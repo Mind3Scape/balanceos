@@ -203,14 +203,31 @@ function PhoneApp() {
   );
 }
 
-// Build tag (logged to console only — handy for confirming the running build).
-const APP_VERSION = "v11";
+// Diagnostic build tag — shows the numbers I need to pinpoint the iOS safe-area
+// behaviour (viewport height vs real screen height + the bottom inset).
+const APP_VERSION = "v12";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 function Root() {
+  const [dbg, setDbg] = useState(APP_VERSION);
+  useEffect(() => {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);";
+    document.body.appendChild(probe);
+    const safe = Math.round(probe.getBoundingClientRect().height);
+    document.body.removeChild(probe);
+    setDbg(`${APP_VERSION} · vp${window.innerHeight} scr${window.screen.height} safe${safe}`);
+  }, []);
   return (
     <AppProvider>
       <PhoneApp />
+      <div style={{
+        position: "fixed", left: "50%", bottom: "1px",
+        transform: "translateX(-50%)", zIndex: 100000,
+        fontSize: 10, letterSpacing: "0.2px", whiteSpace: "nowrap",
+        fontFamily: "-apple-system, ui-monospace, monospace",
+        color: "rgba(170,170,180,0.65)", pointerEvents: "none",
+      }}>{dbg}</div>
     </AppProvider>
   );
 }
