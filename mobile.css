@@ -36,17 +36,13 @@ body {
 
 /* Full-bleed container — transparent so the theme-matched body shows in any
    safe-area gap (no stray black bar). */
-.fit-root { position: absolute; inset: 0; background: transparent; }
+.fit-root { position: absolute; inset: 0; overflow: hidden; background: transparent; }
 
-/* The phone IS the screen — fills the viewport, no bezel, no scaling.
-   The shell extends PAST the bottom edge into the home-indicator safe area
-   (bottom: negative inset) so the screen's own background/gradient covers that
-   strip — otherwise iOS paints it with the manifest's dark background_color.
-   Content inside still respects the safe area via its own bottom padding. */
+/* The phone IS the screen — fills the viewport edge-to-edge (viewport-fit=cover),
+   no bezel, no scaling. */
 .phone-shell {
   position: absolute;
-  top: 0; left: 0; right: 0;
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  inset: 0;
   overflow: hidden;
   background: #f1f1f1;
   transition: background 0.45s ease;

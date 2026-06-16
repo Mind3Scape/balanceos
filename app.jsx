@@ -204,7 +204,7 @@ function PhoneApp() {
 }
 
 // Build tag (logged to console only — handy for confirming the running build).
-const APP_VERSION = "v10";
+const APP_VERSION = "v11";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 function Root() {
