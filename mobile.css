@@ -1,0 +1,196 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   mobile.css — turns the design into a full-bleed, native-feeling iOS web app:
+   edge-to-edge layout, real-OS status bar via safe-area insets, iOS push/pop/
+   fade transitions, liquid-glass chrome, a launch splash, and a desktop phone
+   frame. Loaded AFTER styles.css so it wins.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --ios-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --bos-safe-top: env(safe-area-inset-top, 0px);
+  --bos-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+body { position: fixed; inset: 0; }
+
+#root { position: fixed; inset: 0; }
+
+/* Native feel: no long-press text selection / callout popups (except inputs). */
+.fit-root, .fit-root * { -webkit-user-select: none; user-select: none; }
+.fit-root input, .fit-root textarea { -webkit-user-select: text; user-select: text; }
+
+/* Full-bleed container. */
+.fit-root { position: fixed; inset: 0; overflow: hidden; background: #000; }
+
+/* The phone IS the screen — fills the viewport, no bezel, no scaling. */
+.phone-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f1f1f1;
+  transition: background 0.45s ease;
+}
+.phone-shell.is-dark { background: #0a0a0a; }
+
+/* Holds the animating page layers. */
+.page-stack { position: absolute; inset: 0; overflow: hidden; }
+.page-stack > .bos-page {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* ── Safe-area insets (the real iOS status bar + home indicator) ──────────── */
+/* Non-immersive pages keep the design's 60px top room (≈ the notch); only the
+   bottom needs the home-indicator inset. Immersive screens bake in their own
+   spacing, so we only lift their bottom CTAs above the home indicator. */
+.page-stack > .bos-page:not(.no-tabbar):not(.full-bleed) {
+  padding-bottom: calc(110px + var(--bos-safe-bottom));
+}
+.page-stack > .bos-page.no-tabbar {
+  padding-bottom: calc(30px + var(--bos-safe-bottom));
+}
+.page-stack > .bos-page.full-bleed {
+  padding-bottom: var(--bos-safe-bottom);
+}
+
+/* ── Liquid-glass bottom tab bar — floats above the home indicator ───────── */
+.bos-tabbar {
+  bottom: max(16px, var(--bos-safe-bottom));
+  background: rgba(244, 244, 247, 0.7);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  animation: tabRaise 0.5s var(--ios-ease) both;
+}
+.bos-tabbar.dark {
+  background: rgba(26, 26, 30, 0.55);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.bos-tabbar .tab.active {
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.bos-tabbar.dark .tab.active {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+@keyframes tabRaise { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── iOS navigation transitions ─────────────────────────────────────────── */
+@keyframes pushInRight  { from { transform: translateX(100%); }  to { transform: translateX(0); } }
+@keyframes pushOutLeft  { from { transform: translateX(0); }     to { transform: translateX(-24%); } }
+@keyframes popInLeft    { from { transform: translateX(-24%); }  to { transform: translateX(0); } }
+@keyframes popOutRight  { from { transform: translateX(0); }     to { transform: translateX(100%); } }
+@keyframes fadeIn       { from { opacity: 0; transform: scale(1.012); } to { opacity: 1; transform: scale(1); } }
+@keyframes fadeOut      { from { opacity: 1; } to { opacity: 0; } }
+
+.anim-push-in  { z-index: 2; animation: pushInRight 0.44s var(--ios-ease) both; box-shadow: -12px 0 40px rgba(0,0,0,0.18); }
+.anim-push-out { z-index: 1; animation: pushOutLeft 0.44s var(--ios-ease) both; }
+.anim-pop-in   { z-index: 1; animation: popInLeft  0.42s var(--ios-ease) both; }
+.anim-pop-out  { z-index: 2; animation: popOutRight 0.42s var(--ios-ease) both; box-shadow: -12px 0 40px rgba(0,0,0,0.18); }
+.anim-fade-in  { z-index: 2; animation: fadeIn 0.34s ease both; }
+.anim-fade-out { z-index: 1; animation: fadeOut 0.30s ease both; }
+
+/* Dim the page sliding underneath during a push/pop, like iOS. */
+.anim-push-out::after,
+.anim-pop-in::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.18);
+  pointer-events: none;
+  z-index: 9999;
+}
+.anim-push-out::after { animation: dimIn  0.44s var(--ios-ease) both; }
+.anim-pop-in::after   { animation: dimOut 0.42s var(--ios-ease) both; }
+@keyframes dimIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dimOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* Springier tap feedback across the app. */
+.tap:active { transform: scale(0.96); transition: transform 0.08s var(--ios-ease); }
+
+/* ── Launch splash — pure CSS breathing orb, paints before React mounts ──── */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  padding-bottom: 4vh;
+  background: radial-gradient(120% 90% at 50% 18%, #15294d 0%, #0a1430 42%, #05070f 100%);
+  transition: opacity 0.7s ease;
+}
+body.app-ready #splash { opacity: 0; pointer-events: none; }
+
+#splash .orb {
+  position: relative;
+  width: 132px; height: 132px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%, #ffffff 0%, #bfe2ff 16%, #5fa8ff 38%, #2b6fe0 60%, #16306a 80%, #0c1c44 100%);
+  box-shadow: 0 0 70px 18px rgba(64,150,255,0.45), inset -8px -10px 26px rgba(8,20,52,0.65), inset 8px 8px 22px rgba(255,255,255,0.30);
+  animation: orbBreath 3.4s ease-in-out infinite;
+}
+#splash .orb::after {
+  content: "";
+  position: absolute; left: 26%; top: 18%;
+  width: 30%; height: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0) 70%);
+  filter: blur(2px);
+}
+@keyframes orbBreath {
+  0%, 100% { transform: scale(0.94); box-shadow: 0 0 56px 12px rgba(64,150,255,0.34), inset -8px -10px 26px rgba(8,20,52,0.65), inset 8px 8px 22px rgba(255,255,255,0.30); }
+  50%      { transform: scale(1.04); box-shadow: 0 0 92px 26px rgba(64,150,255,0.55), inset -8px -10px 26px rgba(8,20,52,0.65), inset 8px 8px 22px rgba(255,255,255,0.34); }
+}
+#splash .wordmark {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Manrope", system-ui, sans-serif;
+  font-size: 25px; font-weight: 600; letter-spacing: 0.5px; color: #eaf2ff; opacity: 0.94;
+}
+#splash .wordmark b { font-weight: 700; }
+#splash .tagline {
+  margin-top: -16px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 13px; letter-spacing: 0.2px; color: rgba(190,210,245,0.6);
+}
+
+/* ── Desktop / large viewport: show it inside a phone frame ──────────────── */
+@media (min-width: 600px) and (min-height: 720px) {
+  .fit-root {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(120% 120% at 50% 0%, #14141a 0%, #08080b 70%);
+  }
+  .phone-shell {
+    width: 402px;
+    height: 874px;
+    border-radius: 54px;
+    box-shadow: 0 50px 110px rgba(0,0,0,0.55), 0 0 0 12px #1b1b20, 0 0 0 14px #2c2c33;
+  }
+}
+
+/* Respect reduced-motion users — kill the slide/fade choreography. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-push-in, .anim-push-out, .anim-pop-in, .anim-pop-out,
+  .anim-fade-in, .anim-fade-out, .bos-tabbar { animation-duration: 0.01ms !important; }
+  #splash .orb { animation: none; }
+}

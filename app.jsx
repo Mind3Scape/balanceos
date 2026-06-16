@@ -1,0 +1,201 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   BalanceOS — single full-screen phone (iPhone PWA build)
+
+   The original "BalanceOS App.html" was a *design canvas*: ~30 phone mockups
+   laid out in scrollable strips. This entry instead renders ONE phone, scaled
+   to fill the real device viewport, with the full navigation graph + native
+   iOS-style push / pop / fade transitions. All screen + component code is
+   reused verbatim from the design bundle.
+   ────────────────────────────────────────────────────────────────────────── */
+const { useState, useRef, useEffect, useCallback } = React;
+
+/* Route maps — copied verbatim from the design canvas so behaviour matches. */
+const DARK_ROUTES = new Set([
+  "profile", "settings", "support",
+  "onboarding", "intro", "signup", "levels", "mood", "focus", "level-up", "ai-chat",
+]);
+const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
+const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
+
+const SCREENS = {
+  home: () => HomeScreen,
+  habits: () => HabitsScreen,
+  "habit-settings": () => HabitSettingsScreen,
+  "goal-settings": () => GoalSettingsScreen,
+  "info": () => InfoScreen,
+  "icon-picker": () => IconPickerScreen,
+  "home-customize": () => HomeCustomizeScreen,
+  levels: () => LevelsScreen,
+  "habit-detail": () => HabitDetailScreen,
+  mood: () => MoodScreen,
+  journal: () => JournalScreen,
+  focus: () => FocusScreen,
+  "level-up": () => LevelUpScreen,
+  "ai-chat": () => AIChatScreen,
+  community: () => CommunityScreen,
+  "team-create": () => TeamCreateScreen,
+  "team-detail": () => TeamDetailScreen,
+  "course-detail": () => CourseDetailScreen,
+  "contact-detail": () => ContactDetailScreen,
+  profile: () => ProfileScreen,
+  settings: () => SettingsScreen,
+  notifications: () => NotificationsScreen,
+  history: () => HistoryScreen,
+  support: () => SupportScreen,
+  ai: () => AIScreen,
+  onboarding: () => IntroScreen,
+  intro: () => IntroScreen,
+  signup: () => SignUpScreen,
+};
+
+/* Design tokens (from the canvas "Tweaks" defaults). Applied once so screens
+   read the intended accent / radius / sphere-glow / check colour. */
+const TWEAK_DEFAULTS = {
+  accent: "#FEDE34",
+  palette: ["#FEDE34", "#0a0a0a", "#f1f1f1"],
+  canvas: "#ffffff",
+  radius: 27,
+  titleFont: "sans",
+  density: "regular",
+  showAvatars: true,
+  sphereGlow: 100,
+  checkColor: "#232323",
+};
+const FONT_STACKS = {
+  serif: "ui-serif, 'New York', 'Source Serif 4', Georgia, serif",
+  sans: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif",
+  mono: "'SF Mono', Menlo, monospace",
+};
+const DENSITY_PAD = { compact: "10px 14px", regular: "14px 16px", comfy: "18px 20px" };
+
+function applyTweaks(t) {
+  const r = document.documentElement;
+  r.style.setProperty("--accent", t.accent);
+  r.style.setProperty("--bg", t.palette[2]);
+  r.style.setProperty("--ink", t.palette[1]);
+  r.style.setProperty("--bos-radius", t.radius + "px");
+  r.style.setProperty("--bos-title-font", FONT_STACKS[t.titleFont] || FONT_STACKS.sans);
+  r.style.setProperty("--bos-row-pad", DENSITY_PAD[t.density] || DENSITY_PAD.regular);
+  r.style.setProperty("--bos-sphere-glow", (t.sphereGlow / 100).toString());
+  r.style.setProperty("--bos-avatars", t.showAvatars ? "inline-flex" : "none");
+  r.style.setProperty("--check-color", t.checkColor || t.accent);
+}
+
+const START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a friend" opener
+
+// True when launched from the iOS home screen (installed PWA). There we let the
+// REAL system status bar show; in a browser tab we draw our own so the mockup
+// still looks complete.
+const IS_STANDALONE =
+  (typeof window !== "undefined") &&
+  ((window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+    window.navigator.standalone === true);
+
+/* Animation class names per navigation direction. */
+const ANIM = {
+  push: { out: "anim-push-out", in: "anim-push-in" },
+  pop: { out: "anim-pop-out", in: "anim-pop-in" },
+  fade: { out: "anim-fade-out", in: "anim-fade-in" },
+};
+
+function PhoneApp() {
+  const app = useApp();
+  const [frames, setFrames] = useState([{ route: START_ROUTE, params: {}, id: 0 }]);
+  const [anim, setAnim] = useState(null); // { dir, prevFrame }
+  const idRef = useRef(1);
+
+  useEffect(() => {
+    applyTweaks(TWEAK_DEFAULTS);
+    // Reveal the app and fade the launch splash once mounted.
+    const id = requestAnimationFrame(() => document.body.classList.add("app-ready"));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const navigate = useCallback((next, np = {}) => {
+    setFrames((prev) => {
+      const idx = prev.findIndex((f) => f.route === next);
+      // Re-navigating to the current screen → just refresh its params, no transition.
+      if (idx === prev.length - 1) {
+        const copy = prev.slice();
+        copy[idx] = { ...copy[idx], params: np || {} };
+        return copy;
+      }
+      const cur = prev[prev.length - 1];
+      let dir, nextFrames;
+      if (idx >= 0) {
+        dir = "pop";
+        nextFrames = prev.slice(0, idx + 1);
+      } else if (TAB_ROUTES.has(next)) {
+        dir = "fade";
+        nextFrames = [{ route: next, params: np || {}, id: idRef.current++ }];
+      } else {
+        dir = "push";
+        nextFrames = [...prev, { route: next, params: np || {}, id: idRef.current++ }];
+      }
+      setAnim({ dir, prevFrame: cur });
+      return nextFrames;
+    });
+  }, []);
+
+  const top = frames[frames.length - 1];
+
+  const themeFor = (route) =>
+    app.themeOverride === "dark" ? true
+      : app.themeOverride === "light" ? false
+        : DARK_ROUTES.has(route);
+
+  const topDark = themeFor(top.route);
+  const topInTabs = TAB_ROUTES.has(top.route);
+
+  // Keep the iOS status-bar tint / PWA theme-color in sync with the screen.
+  useEffect(() => {
+    const m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute("content", topDark ? "#0a0a0a" : "#f1f1f1");
+  }, [topDark]);
+
+  const renderLayer = (frame, animClass, onEnd) => {
+    const dark = themeFor(frame.route);
+    const inTabs = TAB_ROUTES.has(frame.route);
+    const full = FULLBLEED_ROUTES.has(frame.route);
+    const Comp = (SCREENS[frame.route] && SCREENS[frame.route]()) || HomeScreen;
+    const cls =
+      "bos-page " + (dark ? "theme-dark" : "theme-light") +
+      (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "") +
+      (animClass ? " " + animClass : "");
+    return (
+      <div key={frame.id} className={cls} onAnimationEnd={onEnd}>
+        <NavCtx.Provider value={{ route: frame.route, params: frame.params, navigate }}>
+          <Comp />
+        </NavCtx.Provider>
+      </div>
+    );
+  };
+
+  const clearAnim = () => setAnim(null);
+
+  return (
+    <div className="fit-root">
+      <div className={"phone-shell " + (topDark ? "is-dark" : "is-light")}>
+        <div className="page-stack">
+          {anim && renderLayer(anim.prevFrame, ANIM[anim.dir].out)}
+          {renderLayer(top, anim ? ANIM[anim.dir].in : "", anim ? clearAnim : undefined)}
+        </div>
+        {/* Real OS status bar on installed app; drawn one only in a browser tab. */}
+        {!IS_STANDALONE && <StatusBar dark={topDark} />}
+        {topInTabs && (
+          <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Root() {
+  return (
+    <AppProvider>
+      <PhoneApp />
+    </AppProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Root />);

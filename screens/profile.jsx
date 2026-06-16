@@ -1,0 +1,798 @@
+/* PROFILE / SETTINGS + sub-screens: Notifications, Support, Settings, Login/SignUp, Onboarding, AI/Insights.
+   All system screens use semantic classes (.bos-sys-*) so they look right in BOTH light and dark themes. */
+const { useState: useP } = React;
+
+/* Theme-aware helpers used across system screens.
+   In the dark theme the .bos-sys-card class flips its own bg & text. */
+function SysCard({ children, style, className = "", ...rest }) {
+  return <div className={"bos-sys-card " + className} style={style} {...rest}>{children}</div>;
+}
+function SysBtn({ children, style, className = "", ...rest }) {
+  return <button className={"bos-sys-card tap " + className} style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px", textAlign: "left", width: "100%", cursor: "pointer", borderRadius: 22, ...style }} {...rest}>{children}</button>;
+}
+
+function ProfileScreen() {
+  const { navigate } = useNav();
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader onBack={() => navigate("home")} title="" right={
+        <button onClick={() => navigate("settings")} className="icon-btn tap"
+          aria-label="Настройки">
+          <I.Settings size={18}/>
+        </button>
+      }/>
+
+      <div style={{ textAlign: "center", marginTop: 4 }}>
+        <div style={{ position: "relative", width: 140, height: 140, margin: "0 auto" }}>
+          {/* Level / energy progress ring — same language as the home avatar */}
+          <svg width="140" height="140" viewBox="0 0 140 140" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+            <circle cx="70" cy="70" r="65" stroke="var(--card-2)" strokeWidth="4" fill="none" />
+            <circle cx="70" cy="70" r="65" stroke="#FEDE34" strokeWidth="4" fill="none"
+              strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 65}
+              strokeDashoffset={2 * Math.PI * 65 * (1 - 0.72)} />
+          </svg>
+          <div style={{ position: "absolute", inset: 11, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat" }} />
+          {/* Level badge */}
+          <div style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}>
+            <I.Sparkles size={11} /> Уровень 7
+          </div>
+        </div>
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontWeight: 700, fontSize: 28, marginTop: 20 }}>Тим Хиллсон</div>
+        <div className="bos-sys-text-2" style={{ fontSize: 14 }}>tomhill@mail.com</div>
+        {/* Quick stats — level energy + credits */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 14 }}>
+          {[
+            { l: "Уровень", v: "7" },
+            { l: "До 8 ур.", v: "72%" },
+            { l: "Кредиты", v: "1.2k" },
+          ].map((s, i) => (
+            <div key={i} className="bos-sys-card" style={{ padding: "8px 16px", borderRadius: 16, minWidth: 72 }}>
+              <div className="bos-sys-text-3" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>{s.l}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.4px", marginTop: 1 }}>{s.v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 26 }}>
+        {[
+          { id: "settings", icon: I.Settings, label: "Настройки" },
+          { id: "notifications", icon: I.Bell, label: "Уведомления" },
+          { id: "history", icon: I.Clock, label: "История" },
+          { id: "ai", icon: I.Sparkles, label: "ИИ-инсайты" },
+          { id: "support", icon: I.Help, label: "Поддержка и помощь" },
+        ].map(r => (
+          <SysBtn key={r.id} onClick={() => navigate(r.id, { from: "profile" })}>
+            <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              {React.createElement(r.icon, { size: 16 })}
+            </span>
+            <span style={{ flex: 1, fontSize: 16, fontWeight: 500 }}>{r.label}</span>
+            <I.ChevronRight size={18} className="bos-sys-text-2" />
+          </SysBtn>
+        ))}
+        <SysBtn onClick={() => navigate("onboarding", { from: "profile" })} style={{ color: "#ef4444" }}>
+          <span style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(239,68,68,0.12)" }}>
+            <I.Logout size={16} />
+          </span>
+          <span style={{ flex: 1, fontSize: 16, fontWeight: 600 }}>Выйти</span>
+        </SysBtn>
+      </div>
+    </div>
+  );
+}
+
+function SettingsScreen() {
+  const { navigate } = useNav();
+  const app = useApp();
+  const [push, setPush] = useP(true);
+  const [sound, setSound] = useP(true);
+  const isDark = app?.themeOverride === "dark";
+  const setDark = (on) => app?.setThemeOverride(on ? "dark" : "light");
+  const wheel = app?.wheelSpheres || (window.DEFAULT_SPHERES || []);
+  const setWheel = (arr) => app?.setWheelSpheres && app.setWheelSpheres(arr);
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader title="Настройки" onBack={() => navigate("profile")} />
+
+      <div className="section-label">Аккаунт</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {[
+          { label: "Редактировать профиль", icon: I.Pencil },
+          { label: "Пароль", icon: I.Lock },
+          { label: "Привязанные аккаунты", icon: I.Globe },
+        ].map((r, i) => (
+          <SysBtn key={i} style={{ padding: 14 }}>
+            <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
+            <span style={{ flex: 1, fontSize: 15 }}>{r.label}</span>
+            <I.ChevronRight size={16} className="bos-sys-text-2" />
+          </SysBtn>
+        ))}
+      </div>
+
+      <div className="section-label" style={{ marginTop: 22 }}>Предпочтения</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {[
+          { label: "Push-уведомления", icon: I.Bell, val: push, set: setPush },
+          { label: "Звук", icon: I.Volume, val: sound, set: setSound },
+          { label: "Тёмная тема", icon: I.Eye, val: isDark, set: setDark },
+        ].map((r, i) => (
+          <div key={i} className="bos-sys-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 14 }}>
+            <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
+            <span style={{ flex: 1, fontSize: 15 }}>{r.label}</span>
+            <Switch on={r.val} onChange={r.set} dark={isDark} />
+          </div>
+        ))}
+      </div>
+
+      <div className="section-label" style={{ marginTop: 22 }}>Колесо баланса</div>
+      <SysCard style={{ padding: 14, marginTop: 8 }}>
+        <div className="bos-sys-text-2" style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 12 }}>Выбери сферы, которые хочешь видеть в колесе на главной.</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {(window.ALL_SPHERES || []).map((s) => {
+            const sel = wheel.includes(s.id);
+            const toggle = () => {
+              if (sel) { if (wheel.length > 3) setWheel(wheel.filter(x => x !== s.id)); }
+              else setWheel([...wheel, s.id]);
+            };
+            return (
+              <button key={s.id} onClick={toggle} className="tap" style={{
+                display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 13px", borderRadius: 999,
+                fontSize: 13.5, fontWeight: 500, cursor: "pointer",
+                background: sel ? "#FEDE34" : "var(--surface-3)",
+                color: sel ? "#0a0a0a" : "var(--text-2)",
+                border: 0, fontWeight: sel ? 600 : 500,
+              }}>
+                <span style={{ fontSize: 15 }}>{s.e}</span>{s.l}
+              </button>
+            );
+          })}
+        </div>
+      </SysCard>
+
+      <div className="section-label" style={{ marginTop: 22 }}>О приложении</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {["Политика конфиденциальности", "Условия использования", "Версия 2.4.1"].map((l, i, a) => (
+          i < a.length - 1 ? (
+            <SysBtn key={i} style={{ padding: 14 }}>
+              <span style={{ flex: 1, fontSize: 15 }}>{l}</span>
+              <I.ChevronRight size={16} className="bos-sys-text-2" />
+            </SysBtn>
+          ) : (
+            <div key={i} className="bos-sys-card" style={{ padding: 14, fontSize: 15 }} >
+              <span className="bos-sys-text-2">{l}</span>
+            </div>
+          )
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NotificationsScreen() {
+  const { navigate, params } = useNav();
+  const items = [
+    { i: "🔥", t: "7 дней подряд!", b: "Ты в огне — продолжай завтра.", w: "Только что", new: true },
+    { i: "👥", t: "Ник пригласил тебя в «Команду креаторов»", b: "Нажми, чтобы принять и присоединиться к цели.", w: "2 ч", new: true },
+    { i: "🧘🏼‍♀️", t: "Напоминание о медитации", b: "Твоя сегодняшняя сессия в 09:30.", w: "5 ч" },
+    { i: "✨", t: "Готов новый ИИ-инсайт", b: "Вечером у тебя самая высокая энергия.", w: "1 д" },
+    { i: "📚", t: "Новый курс: Основы привычек", b: "2 минуты — начни когда угодно.", w: "2 д" },
+  ];
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader title="Уведомления" onBack={() => navigate(params?.from || "profile")} right={
+        <button className="tap bos-sys-text-2" style={{ background: "transparent", border: 0, fontSize: 13 }}>Очистить</button>
+      }/>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {items.map((n, i) => (
+          <SysCard key={i} style={{ padding: 14, display: "flex", gap: 12 }}>
+            <span style={{ fontSize: 26 }}>{n.i}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontWeight: 600, fontSize: 15 }}>{n.t}</span>
+                {n.new && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FEDE34" }} />}
+              </div>
+              <div className="bos-sys-text-2" style={{ fontSize: 13, marginTop: 2 }}>{n.b}</div>
+              <div className="bos-sys-text-3" style={{ fontSize: 11, marginTop: 6 }}>{n.w}</div>
+            </div>
+          </SysCard>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HistoryScreen() {
+  const { navigate } = useNav();
+  const app = useApp();
+
+  // Detect theme from wrapper class so all calendar visuals stay coherent.
+  const wrapRef = React.useRef(null);
+  const [isDark, setIsDark] = useP(false);
+  React.useEffect(() => {
+    const el = wrapRef.current; if (!el) return;
+    let n = el.parentElement;
+    while (n && !n.classList.contains("theme-light") && !n.classList.contains("theme-dark")) n = n.parentElement;
+    setIsDark(!!(n && n.classList.contains("theme-dark")));
+  }, []);
+
+  // Theme tokens shared across the page
+  const TH = isDark ? {
+    cellEmpty: "rgba(255,255,255,0.05)",
+    cellIdle:  "rgba(255,255,255,0.10)",
+    cellBorder:"rgba(255,255,255,0.10)",
+    cellText:  "#fff",
+    cellMuted: "rgba(255,255,255,0.45)",
+    yellowFill:"linear-gradient(160deg, #FEDE34, #EF9F14)",
+    yellow:    "#FEDE34",
+    chipBg:    "rgba(255,255,255,0.06)",
+    progressBg:"rgba(255,255,255,0.08)",
+    iconBg:    "rgba(255,255,255,0.06)",
+    outlineSel:"#fff",
+    outlineToday:"rgba(255,255,255,0.45)",
+    moodText:  "rgba(0,0,0,0.75)", // emoji bg is colored so dark text reads
+  } : {
+    cellEmpty: "transparent",
+    cellIdle:  "#f5f5f5",
+    cellBorder:"rgba(0,0,0,0.06)",
+    cellText:  "var(--text)",
+    cellMuted: "var(--text-4)",
+    yellowFill:"linear-gradient(160deg, #FEDE34, #EF9F14)",
+    yellow:    "#FEDE34",
+    chipBg:    "var(--surface-3)",
+    progressBg:"var(--surface-3)",
+    iconBg:    "var(--surface-3)",
+    outlineSel:"#0a0a0a",
+    outlineToday:"rgba(0,0,0,0.35)",
+    moodText:  "rgba(0,0,0,0.75)",
+  };
+
+  const monthName = "Апрель";
+  const year = 2026;
+  const daysInMonth = 30;
+  const startWeekday = 3;
+  const today = 28;
+
+  const completion = (d) => {
+    if (d > today) return null;
+    const v = (Math.sin(d * 13.37) + 1) / 2;
+    return Math.round(v * 6) / 6;
+  };
+
+  const [selDay, setSelDay] = useP(today);
+
+  const cellStyle = (pct) => {
+    if (pct == null) return { background: TH.cellEmpty, border: "1px dashed " + TH.cellBorder, color: TH.cellMuted };
+    if (pct === 0)   return { background: TH.cellIdle, color: TH.cellMuted };
+    if (pct < 1)     return {
+      background: `linear-gradient(160deg, ${TH.yellow} ${Math.round(pct*100)}%, ${TH.cellIdle} ${Math.round(pct*100)+1}%)`,
+      color: TH.cellText,
+    };
+    return { background: TH.yellowFill, color: "#0a0a0a" };
+  };
+
+  const blanks = Array.from({ length: startWeekday }, (_, i) => ({ blank: true, key: "b" + i }));
+  const days = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, key: "d" + (i + 1) }));
+  const cells = [...blanks, ...days];
+  const weekday = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+
+  const dayHabits = [
+    { e: "🙏", n: "Помогать другим", on: true },
+    { e: "🧘🏼‍♀️", n: "Медитация", on: true },
+    { e: "🏃🏼‍♀️", n: "Утренняя пробежка", on: true },
+    { e: "📚", n: "Читать книгу", on: false },
+    { e: "✍🏼", n: "Бумажный дневник", on: false },
+    { e: "🥊", n: "Бокс", on: true },
+  ];
+  const selPct = completion(selDay);
+
+  const totalDone = days.reduce((s, d) => s + (completion(d.d) || 0) * dayHabits.length, 0);
+  const perfectDays = days.filter(d => completion(d.d) === 1).length;
+  const bestStreak = 21;
+
+  return (
+    <div ref={wrapRef} className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader title="История" onBack={() => navigate("home")} />
+
+      {/* Stat strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+        {[
+          { l: "Лучшая серия", v: bestStreak + "д" },
+          { l: "Идеальных дней", v: perfectDays },
+          { l: "Всего привычек", v: Math.round(totalDone) },
+        ].map((s, i) => (
+          <SysCard key={i} style={{ padding: "12px 14px" }}>
+            <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{s.l}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2, letterSpacing: "-0.4px" }}>{s.v}</div>
+          </SysCard>
+        ))}
+      </div>
+
+      {/* Month calendar */}
+      <SysCard style={{ padding: 16, marginTop: 12, borderRadius: 22 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button className="tap" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit" }}>
+            <I.ChevronLeft size={16}/>
+          </button>
+          <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
+          <button className="tap" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit" }}>
+            <I.ChevronRight size={16}/>
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginTop: 14 }}>
+          {weekday.map((w, i) => (
+            <div key={i} className="bos-sys-text-3" style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6 }}>{w}</div>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginTop: 6 }}>
+          {cells.map(c => {
+            if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }}/>;
+            const pct = completion(c.d);
+            const isSelected = selDay === c.d;
+            const isToday = c.d === today;
+            return (
+              <button key={c.key} onClick={() => setSelDay(c.d)} className="tap"
+                style={{
+                  aspectRatio: "1/1", border: 0, borderRadius: 10, padding: 0,
+                  display: "grid", placeItems: "center", position: "relative",
+                  fontSize: 13, fontWeight: 500, cursor: "pointer",
+                  outline: isSelected ? "2px solid " + TH.outlineSel : (isToday ? "1.5px solid " + TH.outlineToday : "none"),
+                  outlineOffset: isSelected ? -2 : -1,
+                  ...cellStyle(pct),
+                }}>
+                {c.d}
+                {pct === 1 && <span aria-hidden style={{ position: "absolute", bottom: 3, right: 4, fontSize: 9 }}>★</span>}
+                {app?.dayMoods?.[c.d] != null && pct != null && (
+                  <span aria-hidden style={{ position: "absolute", top: 1, right: 3, fontSize: 9, lineHeight: 1 }}>
+                    {MOOD_OPTIONS[app.dayMoods[c.d]].i}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
+          <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Меньше</span>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[0, 0.2, 0.5, 0.85, 1].map((p, i) => (
+              <span key={i} style={{ width: 14, height: 14, borderRadius: 4, ...cellStyle(p) }}/>
+            ))}
+          </div>
+          <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Больше</span>
+        </div>
+      </SysCard>
+
+      {/* Day detail */}
+      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>
+        {monthName} {selDay} · {selPct == null ? "Будущее" : selPct === 1 ? "Идеальный день ✨" : selPct === 0 ? "Пропущен" : `${Math.round(selPct * 100)}%`}
+      </div>
+      <SysCard style={{ marginTop: 8, borderRadius: 22, overflow: "hidden", padding: 0 }}>
+        {selPct == null ? (
+          <div className="bos-sys-text-3" style={{ padding: 24, textAlign: "center", fontSize: 14 }}>Этот день ещё не наступил.</div>
+        ) : (
+          <>
+            <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid var(--line)" }}>
+              <div style={{ flex: 1 }}>
+                <div className="bos-sys-text-2" style={{ fontSize: 13 }}>{Math.round(selPct * dayHabits.length)} из {dayHabits.length} привычек</div>
+                <div style={{ marginTop: 6, height: 8, background: TH.progressBg, borderRadius: 999, overflow: "hidden" }}>
+                  <span style={{ display: "block", height: "100%", width: (selPct * 100) + "%", background: TH.yellowFill, borderRadius: 999 }}/>
+                </div>
+              </div>
+              <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>{Math.round(selPct * 100)}%</span>
+            </div>
+            {app?.dayMoods?.[selDay] != null && (() => {
+              const dm = MOOD_OPTIONS[app.dayMoods[selDay]];
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
+                  <span style={{ width: 36, height: 36, borderRadius: "50%", background: dm.c, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0, color: TH.moodText }}>{dm.i}</span>
+                  <div style={{ flex: 1 }}>
+                    <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Состояние</div>
+                    <div style={{ fontSize: 15, fontWeight: 500, marginTop: 2 }}>{dm.t}</div>
+                  </div>
+                </div>
+              );
+            })()}
+            {dayHabits.map((h, i) => {
+              const done = i < Math.round(selPct * dayHabits.length);
+              return (
+                <div key={i}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
+                    <span style={{ width: 36, height: 36, borderRadius: 11, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{h.e}</span>
+                    <span style={{ flex: 1, fontSize: 15, letterSpacing: "-0.2px" }}>{h.n}</span>
+                    <span style={{
+                      width: 26, height: 26, borderRadius: "50%",
+                      background: done ? "var(--check-color, var(--accent))" : "transparent",
+                      border: done ? 0 : "2px solid " + (isDark ? "rgba(255,255,255,0.35)" : "var(--text-5)"),
+                      display: "grid", placeItems: "center",
+                    }}>
+                      {done && <I.Check size={14} strokeWidth={2.5} color="#fff"/>}
+                    </span>
+                  </div>
+                  {i < dayHabits.length - 1 && <div className="divider"/>}
+                </div>
+              );
+            })}
+          </>
+        )}
+      </SysCard>
+    </div>
+  );
+}
+
+function SupportScreen() {
+  const { navigate } = useNav();
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader title="Поддержка и помощь" onBack={() => navigate("profile")} />
+      <SysCard style={{ padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
+        <I.Search size={18} className="bos-sys-text-2"/>
+        <input placeholder="Поиск по статьям" className="bos-sys-text-2"
+          style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontSize: 15, color: "inherit" }}/>
+      </SysCard>
+      <div className="section-label" style={{ marginTop: 22 }}>Популярные темы</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {["Как работают серии","Приглашение команды","Конфиденциальность и данные","Подключение Apple Health","Отмена подписки"].map((q,i)=>(
+          <SysBtn key={i} style={{ padding: 14 }}>
+            <span style={{ flex: 1, fontSize: 15 }}>{q}</span>
+            <I.ChevronRight size={16} className="bos-sys-text-2"/>
+          </SysBtn>
+        ))}
+      </div>
+      <div className="section-label" style={{ marginTop: 22 }}>Свяжитесь с нами</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
+        <SysCard style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
+          <I.Mail size={20}/>
+          <span style={{ fontSize: 14, fontWeight: 500 }}>Написать нам</span>
+          <span className="bos-sys-text-2" style={{ fontSize: 12 }}>support@balanceos.app</span>
+        </SysCard>
+        <SysCard style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
+          <I.MessageCircle size={20}/>
+          <span style={{ fontSize: 14, fontWeight: 500 }}>Чат поддержки</span>
+          <span className="bos-sys-text-2" style={{ fontSize: 12 }}>Ответ в среднем 5 мин</span>
+        </SysCard>
+      </div>
+    </div>
+  );
+}
+
+function AIScreen() {
+  const { navigate } = useNav();
+  const t = useAIT();
+  const [ask, setAsk] = useP("");
+  // Same orb DNA as intro — pulled into the AI hub
+  const orbTint = ["#cfe1ff", "#7aa4d0", "#1a2c48"];
+
+  const insights = [
+    { i: "🌅", t: "Перенеси «Чтение» на вечер", b: "Твоя вероятность выполнения в 21:00 в 2,1× выше, чем в 7:00.", lift: "+38%" },
+    { i: "🤝", t: "Опирайся на Лену на этой неделе", b: "Привычки с Леной держат серию 91%. Сегодня она онлайн.", lift: "+24%" },
+    { i: "🧘", t: "Двухминутная перезагрузка", b: "По понедельникам падение 60%. Начни с 2-минутной медитации перед первой задачей.", lift: "+19%" },
+  ];
+
+  const patterns = [
+    { t: "Спокойные дни = глубокое чтение", b: "В состоянии «Спокойствие» ты читаешь в 2,3× больше страниц.", c: "#cfe1ff" },
+    { t: "Кардио после 17:00", b: "Тренировки после 17:00 завершаются в 84% случаев.", c: "#9bbfe8" },
+    { t: "Групповые дни сильнее", b: "Когда команда отмечается, +1,4× к выполнению.", c: "#7aa4d0" },
+  ];
+
+  // Tiny 7-day completion sparkline
+  const week = [0.4, 0.65, 0.55, 0.8, 0.72, 0.9, 0.78];
+  const days = ["П","В","С","Ч","П","С","В"];
+
+  const quickPrompts = [
+    "Спланируй мою идеальную среду",
+    "Почему я пропустил пробежки на этой неделе?",
+    "Предложи план сна на 2 недели",
+    "Какой мой следующий рубеж?",
+  ];
+
+  return (
+    <div className="page-in" style={{ padding: "0 12px 24px" }}>
+      {/* Header — tab-style, no back button */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 14px" }}>
+        <div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Персонально · для Тима</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
+        </div>
+        <button onClick={() => navigate("ai-chat")} className="tap"
+          style={{ height: 36, padding: "0 14px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <I.MessageCircle size={14}/> Чат
+        </button>
+      </div>
+
+      {/* Hero — orb + headline insight */}
+      <div style={{
+        position: "relative", overflow: "hidden",
+        background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
+        borderRadius: 28, padding: "22px 22px 24px", color: "#fff",
+      }}>
+        {/* Background stars (subtle) */}
+        <div aria-hidden style={{ position: "absolute", inset: 0, background:
+          "radial-gradient(circle at 80% 20%, rgba(180,210,255,0.18) 0%, transparent 40%), radial-gradient(circle at 10% 90%, rgba(120,160,210,0.15) 0%, transparent 40%)" }} />
+
+        <div style={{ display: "flex", gap: 16, alignItems: "center", position: "relative" }}>
+          {/* Mini Siri orb — using same component as intro */}
+          <div style={{ flexShrink: 0, width: 120, height: 120, display: "grid", placeItems: "center" }}>
+            <svg viewBox="-80 -80 160 160" width="120" height="120" style={{ overflow: "visible" }}>
+              <SiriOrb r={42} tint={orbTint} t={t} intensity={1}/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: "rgba(180,210,255,0.85)", fontWeight: 600, letterSpacing: 1.4, textTransform: "uppercase" }}>Чтение дня</div>
+            <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 22, lineHeight: 1.2, marginTop: 6, letterSpacing: "-0.3px" }}>
+              Ты спокойнее<br/>после прогулок.
+            </div>
+            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5 }}>
+              По средам ты гуляешь и медитируешь. Настроение растёт на 41%.
+            </div>
+          </div>
+        </div>
+
+        {/* CTA row */}
+        <div style={{ display: "flex", gap: 8, marginTop: 16, position: "relative" }}>
+          <button onClick={() => navigate("ai-chat")} className="tap"
+            style={{ flex: 1, background: "var(--card)", color: "#0a1424", border: 0, borderRadius: 999, padding: "11px 14px", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <I.Sparkles size={14}/> Спланировать день
+          </button>
+          <button className="tap"
+            style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 999, padding: "11px 14px", fontSize: 13, fontWeight: 500 }}>
+            Почему?
+          </button>
+        </div>
+      </div>
+
+      {/* Sparkline — completion last 7 days */}
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: "14px 16px 12px", marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>За 7 дней</div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, letterSpacing: "-0.3px" }}>
+              Выполнение +12% <span style={{ color: "#3b9c5a", fontSize: 13, fontWeight: 600 }}>↑</span>
+            </div>
+          </div>
+          <button onClick={() => navigate("history")} className="tap"
+            style={{ background: "transparent", border: 0, color: "var(--text-3)", fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}>
+            История <I.ChevronRight size={14}/>
+          </button>
+        </div>
+        {/* Sparkline */}
+        <svg viewBox="0 0 320 70" width="100%" height="70" style={{ display: "block", marginTop: 8 }}>
+          <defs>
+            <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#7aa4d0" stopOpacity="0.35"/>
+              <stop offset="100%" stopColor="#7aa4d0" stopOpacity="0"/>
+            </linearGradient>
+          </defs>
+          {(() => {
+            const W = 320, H = 60, pad = 18;
+            const xs = week.map((_, i) => pad + (i * (W - pad*2) / (week.length - 1)));
+            const ys = week.map(v => H - v * (H - 8) - 4);
+            const path = xs.map((x, i) => (i ? "L" : "M") + x.toFixed(1) + " " + ys[i].toFixed(1)).join(" ");
+            const fill = `M ${xs[0]} ${H} L ` + xs.map((x,i)=>x.toFixed(1)+" "+ys[i].toFixed(1)).join(" L ") + ` L ${xs[xs.length-1]} ${H} Z`;
+            return (
+              <g>
+                <path d={fill} fill="url(#sparkFill)"/>
+                <path d={path} fill="none" stroke="#3a6ba0" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+                {xs.map((x, i) => <circle key={i} cx={x} cy={ys[i]} r={i === xs.length-1 ? 3.5 : 2} fill={i === xs.length-1 ? "#0a1424" : "#7aa4d0"}/>)}
+                {xs.map((x, i) => <text key={"l"+i} x={x} y={68} fontSize="9" fill="rgba(0,0,0,0.45)" textAnchor="middle">{days[i]}</text>)}
+              </g>
+            );
+          })()}
+        </svg>
+      </div>
+
+      {/* Insights — actionable recommendations */}
+      <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Для тебя сегодня</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {insights.map((p, i) => (
+          <div key={i} style={{ background: "var(--card)", borderRadius: 20, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{p.i}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{p.t}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#1e6b3a", background: "#e5f5ea", padding: "2px 6px", borderRadius: 999 }}>{p.lift}</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>{p.b}</div>
+            </div>
+            <button className="tap" style={{ width: 32, height: 32, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <I.Check size={14} strokeWidth={2.5}/>
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Patterns — passive observations */}
+      <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Закономерности</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+        {patterns.map((p, i) => (
+          <div key={i} style={{
+            background: "var(--card)", borderRadius: 18, padding: 14,
+            boxShadow: "var(--card-shadow)",
+            position: "relative", overflow: "hidden",
+            gridColumn: i === 2 ? "span 2" : "auto",
+          }}>
+            <div style={{ position: "absolute", top: -10, right: -10, width: 60, height: 60, borderRadius: "50%", background: p.c, opacity: 0.35, filter: "blur(8px)" }}/>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", position: "relative" }}>{p.t}</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4, lineHeight: 1.45, position: "relative" }}>{p.b}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Ask AI */}
+      <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Спроси что угодно</div>
+      <div style={{
+        background: "var(--card)", borderRadius: 22, padding: 14, marginTop: 8,
+        boxShadow: "var(--card-shadow)",
+      }}>
+        {/* Quick prompt chips */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+          {quickPrompts.map((q, i) => (
+            <button key={i} onClick={() => { setAsk(q); navigate("ai-chat"); }} className="tap"
+              style={{ fontSize: 12, padding: "7px 12px", borderRadius: 999,
+                       background: "var(--surface-3)", border: 0, color: "var(--text-2)", letterSpacing: "-0.1px" }}>
+              {q}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 6px 0", borderTop: "1px solid var(--line)" }}>
+          <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
+            style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "10px 6px" }}/>
+          <button onClick={() => navigate("ai-chat")} className="tap"
+            style={{ width: 36, height: 36, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center" }}>
+            <I.Send size={14}/>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Local time hook for the orb animation on the AI screen
+function useAIT() {
+  const [t, setT] = React.useState(0);
+  React.useEffect(() => {
+    let raf, s = performance.now();
+    const tick = (now) => { setT((now - s) / 1000); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return t;
+}
+
+/* Onboarding intro flow (5 dark slides) + sign up */
+function OnboardingScreen() {
+  const { navigate } = useNav();
+  const [step, setStep] = useP(0);
+  const slides = [
+    { t: "Цельные люди — в своём ядре", s: "Начни с внутреннего состояния — каждая привычка следует из него." },
+    { t: "Твоё состояние решает", s: "Всё, что ты делаешь, исходит из того, как ты себя чувствуешь. Сначала настройся." },
+    { t: "Добавь то, на что есть силы сегодня", s: "Мы будем держать малый шаг. Постепенность лучше выгорания." },
+    { t: "Овладей своим состоянием — открой свою жизнь.", s: "" },
+  ];
+  if (step >= slides.length) {
+    return (
+      <div className="page-in" style={{ padding: "100px 24px 24px", color: "#fff", height: "100%", display: "flex", flexDirection: "column" }}>
+        <div style={{ textAlign: "center", marginTop: 60 }}>
+          <div style={{ width: 130, height: 130, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", margin: "0 auto", boxShadow: "0 0 60px rgba(255,222,52,0.3)" }}/>
+          <div style={{ fontSize: 22, fontWeight: 600, marginTop: 24 }}>Какое у тебя сейчас состояние?</div>
+          <div style={{ fontSize: 14, color: "#9f9fa9", marginTop: 6 }}>Выбери одно, чтобы начать. Можно всегда поменять.</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginTop: 30 }}>
+          {[{i:"😌",t:"Спокойствие"},{i:"⚡️",t:"Энергия"},{i:"😔",t:"Упадок"},{i:"😤",t:"Стресс"},{i:"🙂",t:"Ровно"},{i:"🔥",t:"В огне"}].map((s,i)=>(
+            <button key={i} onClick={() => navigate("signup")} className="tap" style={{ background: "rgba(39,39,42,0.55)", border: "1px solid rgba(63,63,70,0.4)", borderRadius: 18, padding: 16, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 30 }}>{s.i}</span>
+              <span style={{ fontSize: 14 }}>{s.t}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="page-in" style={{ height: "100%", display: "flex", flexDirection: "column", color: "#fff", padding: 24 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "0 8px" }}>
+        <div style={{ width: 110, height: 110, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", boxShadow: "0 0 80px rgba(255,222,52,0.25)" }}/>
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 22, fontWeight: 500, marginTop: 60, lineHeight: 1.3, maxWidth: 280 }}>{slides[step].t}</div>
+        {slides[step].s && <div style={{ fontSize: 14, color: "#9f9fa9", marginTop: 14, maxWidth: 280, lineHeight: 1.5 }}>{slides[step].s}</div>}
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
+        {slides.map((_, i) => (
+          <span key={i} style={{ width: i === step ? 22 : 6, height: 6, borderRadius: 999, background: i === step ? "#fff" : "rgba(255,255,255,0.25)", transition: "all 0.2s" }}/>
+        ))}
+      </div>
+      <button onClick={() => setStep(step + 1)} className="tap" style={{ background: "var(--card)", color: "#000", border: 0, borderRadius: 999, padding: "16px 24px", fontSize: 16, fontWeight: 500 }}>
+        {step === slides.length - 1 ? "Начать" : "Далее"}
+      </button>
+      <button onClick={() => navigate("signup")} className="tap" style={{ background: "transparent", color: "#9f9fa9", border: 0, padding: 12, fontSize: 13, marginTop: 6 }}>
+        Пропустить
+      </button>
+    </div>
+  );
+}
+
+function SignUpScreen() {
+  const { navigate } = useNav();
+  const [name, setName] = useP("");
+  const [email, setEmail] = useP("");
+  const [pwd, setPwd] = useP("");
+  const wrapRef = React.useRef(null);
+  const [dark, setDark] = useP(true);
+  React.useEffect(() => {
+    let n = wrapRef.current;
+    while (n && !(n.classList && (n.classList.contains("theme-light") || n.classList.contains("theme-dark")))) n = n.parentElement;
+    if (n && n.classList.contains("theme-light")) setDark(false);
+  }, []);
+  const pal = dark ? {
+    bg: "#0a0a0e",
+    text: "#fff", sub: "#9f9fa9",
+    sheet: "rgba(14,14,14,0.94)", sheetBorder: "1px solid rgba(255,255,255,0.06)",
+    inputBg: "rgba(255,255,255,0.06)", inputBorder: "1px solid rgba(255,255,255,0.1)", inputText: "#fff",
+    btnBg: "#f1f1f1", btnFg: "#0a0a0a", line: "rgba(255,255,255,0.12)",
+    socialBg: "rgba(255,255,255,0.06)", socialBorder: "1px solid rgba(255,255,255,0.1)", socialText: "#fff",
+    glow: "0 0 60px rgba(255,222,52,0.2)",
+  } : {
+    bg: "linear-gradient(180deg,#f5f6f8 0%,#eceef2 100%)",
+    text: "#15233c", sub: "rgba(21,35,60,0.6)",
+    sheet: "#ffffff", sheetBorder: "1px solid rgba(0,0,0,0.05)",
+    inputBg: "#f2f5fa", inputBorder: "1px solid rgba(0,0,0,0.08)", inputText: "#15233c",
+    btnBg: "#0f1b2e", btnFg: "#fff", line: "rgba(0,0,0,0.1)",
+    socialBg: "#f2f5fa", socialBorder: "1px solid rgba(0,0,0,0.08)", socialText: "#15233c",
+    glow: "0 10px 40px rgba(120,150,200,0.25)",
+  };
+  const inp = { background: pal.inputBg, border: pal.inputBorder, borderRadius: 14, padding: "14px 16px", color: pal.inputText, fontSize: 15, outline: 0 };
+  return (
+    <div ref={wrapRef} className="page-in" style={{ height: "100%", color: pal.text, display: "flex", flexDirection: "column", background: pal.bg, position: "relative", overflow: "hidden" }}>
+      <div style={{ flex: 1, padding: "72px 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 120, height: 120, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", boxShadow: pal.glow }}/>
+        <div style={{ fontSize: 14, color: pal.sub, marginTop: 28, textAlign: "center", maxWidth: 280, lineHeight: 1.5 }}>
+          После входа всё становится твоим выбором.
+        </div>
+      </div>
+      <div style={{ background: pal.sheet, borderTop: pal.sheetBorder, borderRadius: "33px 33px 0 0", padding: "30px 24px 30px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Имя" style={inp}/>
+          <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="E-mail или номер телефона" style={inp}/>
+          <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="Пароль" style={inp}/>
+        </div>
+        <button onClick={() => navigate("home")} className="tap" style={{ width: "100%", marginTop: 18, background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 16, fontWeight: 600 }}>
+          Зарегистрироваться
+        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18 }}>
+          <span style={{ flex: 1, height: 1, background: pal.line }}/>
+          <span style={{ fontSize: 12, color: pal.sub }}>Или войти через</span>
+          <span style={{ flex: 1, height: 1, background: pal.line }}/>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button className="tap" style={{ flex: 1, background: pal.socialBg, border: pal.socialBorder, borderRadius: 999, padding: 14, color: pal.socialText, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <span style={{ fontSize: 18 }}>G</span> Google
+          </button>
+          <button className="tap" style={{ flex: 1, background: pal.socialBg, border: pal.socialBorder, borderRadius: 999, padding: 14, color: pal.socialText, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <span style={{ fontSize: 18 }}></span> Apple
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IconPickerScreen() {
+  const { navigate, params } = useNav();
+  const list = ["☀️","🤸🏼‍♀️","📖","🙏","🧭","⌨️","🦶","🚭","🌚","👟","🧁","📞","🥊","🧘🏼‍♀️","🏃🏼‍♀️","📚","✍🏼","🥗","💧","🧊","🔥","🎯","🎨","🎵","🌱","☕"];
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader title="Выбери иконку" onBack={() => navigate("habit-settings", params)} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 }}>
+        {list.map((e, i) => (
+          <button key={i} className="tap" onClick={() => navigate("habit-settings", { ...params, picked: e })}
+            style={{ aspectRatio: "1/1", background: "var(--card)", border: 0, borderRadius: 16, fontSize: 28, boxShadow: "var(--card-shadow)" }}>
+            {e}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen });
