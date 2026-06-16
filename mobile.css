@@ -65,8 +65,11 @@ body { position: fixed; inset: 0; }
 .page-stack > .bos-page.no-tabbar {
   padding-bottom: calc(30px + var(--bos-safe-bottom));
 }
+/* Immersive screens fill edge-to-edge; their own bottom padding clears the home
+   indicator. (Adding safe-area padding here left a dark strip at the bottom,
+   because the screen's full-height gradient didn't extend into that padding.) */
 .page-stack > .bos-page.full-bleed {
-  padding-bottom: var(--bos-safe-bottom);
+  padding-bottom: 0;
 }
 
 /* ── Liquid-glass bottom tab bar — floats above the home indicator ─────────

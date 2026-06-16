@@ -196,7 +196,7 @@ function PhoneApp() {
 
 // Temporary build tag so we can confirm which version an installed app is
 // actually running (helps debug PWA update propagation). Remove once stable.
-const APP_VERSION = "v5";
+const APP_VERSION = "v6";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 function Root() {
