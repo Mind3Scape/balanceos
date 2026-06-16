@@ -203,9 +203,10 @@ function PhoneApp() {
   );
 }
 
-// Diagnostic build tag — shows the numbers I need to pinpoint the iOS safe-area
-// behaviour (viewport height vs real screen height + the bottom inset).
-const APP_VERSION = "v12";
+// Diagnostic build — numeric readout + two coloured edge markers so a device
+// screenshot reveals exactly where the "fixed viewport" bottom and the safe-area
+// edge land relative to the dark strip.
+const APP_VERSION = "v13";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 function Root() {
@@ -221,12 +222,17 @@ function Root() {
   return (
     <AppProvider>
       <PhoneApp />
+      {/* GREEN = where "fixed bottom:0" lands (the fixed-viewport bottom). */}
+      <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, height: 4, background: "#39ff14", zIndex: 100001, pointerEvents: "none" }} />
+      {/* MAGENTA = the top edge of the bottom safe area (home-indicator zone). */}
+      <div style={{ position: "fixed", left: 0, right: 0, bottom: "env(safe-area-inset-bottom, 0px)", height: 4, background: "#ff00ff", zIndex: 100001, pointerEvents: "none" }} />
       <div style={{
-        position: "fixed", left: "50%", bottom: "1px",
-        transform: "translateX(-50%)", zIndex: 100000,
-        fontSize: 10, letterSpacing: "0.2px", whiteSpace: "nowrap",
+        position: "fixed", left: "50%", bottom: "10px",
+        transform: "translateX(-50%)", zIndex: 100002,
+        fontSize: 11, letterSpacing: "0.2px", whiteSpace: "nowrap",
         fontFamily: "-apple-system, ui-monospace, monospace",
-        color: "rgba(170,170,180,0.65)", pointerEvents: "none",
+        color: "#ffffff", background: "rgba(0,0,0,0.5)", padding: "2px 8px", borderRadius: 6,
+        pointerEvents: "none",
       }}>{dbg}</div>
     </AppProvider>
   );

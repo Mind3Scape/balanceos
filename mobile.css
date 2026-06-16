@@ -12,14 +12,15 @@
 }
 
 html {
-  height: 100%;
-  /* JS syncs this to the screen theme. The <html> background always fills the
-     entire screen — incl. the home-indicator area — so there's never a gap. */
-  background: #0a0a0a;
+  /* 100vh on iOS = the FULL screen (incl. safe areas), unlike height:100% which
+     resolves to the smaller layout viewport. The themed html/body background
+     then paints the whole screen, covering the home-indicator strip. */
+  height: 100vh;
+  background: #0a0a0a; /* JS syncs to the active screen's theme */
 }
 body {
   margin: 0;
-  height: 100%;
+  height: 100vh;
   overflow: hidden;
   overscroll-behavior: none;
   background: #0a0a0a;
