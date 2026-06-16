@@ -13,7 +13,14 @@ const Icon = ({ children, size = 24, color = "currentColor", strokeWidth = 1.6, 
 const I = {
   Home: ({filled, ...p}) => <Icon {...p}><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2v-9z" fill={filled ? p.color || "currentColor" : "none"} /></Icon>,
   Bolt: ({filled, ...p}) => <Icon {...p}><path d="M13 3L4 14h7l-1 7 9-11h-7l1-7z" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
-  Group: ({filled, ...p}) => { const f = filled ? (p.color || "currentColor") : "none"; return <Icon {...p}><path d="M14.5 14.2c.8-.3 1.6-.4 2.5-.4 2.5 0 4.5 2 4.5 4.5" fill={f}/><circle cx="17" cy="9" r="2.6" fill={f}/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" fill={f}/><circle cx="9" cy="8" r="3.2" fill={f} /></Icon>; },
+  Group: ({filled, ...p}) => filled
+    ? <Icon {...p}>
+        <circle cx="16.5" cy="8" r="2.5" fill="currentColor" stroke="none"/>
+        <path d="M16.5 11c2.9 0 5.2 2.3 5.4 5.1.04.5-.34.9-.84.9H13.5v-1c0-2.8 .3-5 3-5Z" fill="currentColor" stroke="none"/>
+        <circle cx="9" cy="7.4" r="3.5" fill="currentColor" stroke="none"/>
+        <path d="M9 10.4C5.1 10.4 2 13.5 2 17.3V18a1.2 1.2 0 0 0 1.2 1.2h11.6A1.2 1.2 0 0 0 16 18v-.7C16 13.5 12.9 10.4 9 10.4Z" fill="currentColor" stroke="none"/>
+      </Icon>
+    : <Icon {...p}><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M14.5 14.2c.8-.3 1.6-.4 2.5-.4 2.5 0 4.5 2 4.5 4.5"/></Icon>,
   Eye: ({filled, ...p}) => <Icon {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
   Check: (p) => <Icon {...p}><path d="M5 12l5 5 9-11"/></Icon>,
   Plus: (p) => <Icon {...p}><path d="M12 5v14M5 12h14"/></Icon>,
