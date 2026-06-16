@@ -205,7 +205,7 @@ function PhoneApp() {
 
 // Build tag — shown tiny at the very bottom for this debugging round so we can
 // confirm the fix landed (vs cache). Removed once the bottom bar is confirmed gone.
-const APP_VERSION = "v8";
+const APP_VERSION = "v9";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 function Root() {

@@ -19,7 +19,7 @@ html {
 }
 body {
   margin: 0;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
   background: #0a0a0a;
@@ -28,10 +28,7 @@ body {
   touch-action: manipulation;
 }
 
-/* Natural-flow full-screen stack — NO position:fixed. Fixed elements can stop
-   short of the bottom safe area in an installed iOS PWA, which is what left the
-   dark bar above the home indicator. */
-#root { position: relative; width: 100%; height: 100dvh; }
+#root { position: fixed; inset: 0; }
 
 /* Native feel: no long-press text selection / callout popups (except inputs). */
 .fit-root, .fit-root * { -webkit-user-select: none; user-select: none; }
@@ -39,12 +36,17 @@ body {
 
 /* Full-bleed container — transparent so the theme-matched body shows in any
    safe-area gap (no stray black bar). */
-.fit-root { position: absolute; inset: 0; overflow: hidden; background: transparent; }
+.fit-root { position: absolute; inset: 0; background: transparent; }
 
-/* The phone IS the screen — fills the viewport, no bezel, no scaling. */
+/* The phone IS the screen — fills the viewport, no bezel, no scaling.
+   The shell extends PAST the bottom edge into the home-indicator safe area
+   (bottom: negative inset) so the screen's own background/gradient covers that
+   strip — otherwise iOS paints it with the manifest's dark background_color.
+   Content inside still respects the safe area via its own bottom padding. */
 .phone-shell {
   position: absolute;
-  inset: 0;
+  top: 0; left: 0; right: 0;
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
   overflow: hidden;
   background: #f1f1f1;
   transition: background 0.45s ease;
