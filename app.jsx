@@ -203,22 +203,14 @@ function PhoneApp() {
   );
 }
 
-// Build tag — shown tiny at the very bottom for this debugging round so we can
-// confirm the fix landed (vs cache). Removed once the bottom bar is confirmed gone.
-const APP_VERSION = "v9";
+// Build tag (logged to console only — handy for confirming the running build).
+const APP_VERSION = "v10";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 function Root() {
   return (
     <AppProvider>
       <PhoneApp />
-      <div style={{
-        position: "fixed", left: "50%", bottom: "2px",
-        transform: "translateX(-50%)", zIndex: 100000,
-        fontSize: 9, letterSpacing: "0.4px",
-        fontFamily: "-apple-system, ui-monospace, monospace",
-        color: "rgba(150,150,160,0.4)", pointerEvents: "none",
-      }}>BalanceOS {APP_VERSION}</div>
     </AppProvider>
   );
 }
