@@ -62,8 +62,11 @@ function TabBar({ active, dark = false, onTab }) {
     { id: "community", icon: "Group" },
     { id: "ai", icon: "Sparkles" },
   ];
+  const idx = Math.max(0, tabs.findIndex(t => t.id === active));
   return (
     <div className={"bos-tabbar " + (dark ? "dark" : "")}>
+      {/* Liquid-glass selection lens — springs between tabs. */}
+      <span className="bos-tab-lens" style={{ transform: "translateX(" + (idx * 100) + "%)" }} />
       {tabs.map(t => (
         <button key={t.id} className={"tab tap " + (active === t.id ? "active" : "")}
           onClick={() => onTab(t.id)}>

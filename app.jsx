@@ -147,10 +147,14 @@ function PhoneApp() {
   const topDark = themeFor(top.route);
   const topInTabs = TAB_ROUTES.has(top.route);
 
-  // Keep the iOS status-bar tint / PWA theme-color in sync with the screen.
+  // Keep the iOS status-bar tint + the root background in sync with the screen,
+  // so the home-indicator safe area never shows a stray black bar.
   useEffect(() => {
+    const bg = topDark ? "#0a0a0a" : "#f1f1f1";
     const m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute("content", topDark ? "#0a0a0a" : "#f1f1f1");
+    if (m) m.setAttribute("content", bg);
+    document.documentElement.style.background = bg;
+    document.body.style.background = bg;
   }, [topDark]);
 
   const renderLayer = (frame, animClass, onEnd) => {

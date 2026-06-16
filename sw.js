@@ -3,7 +3,7 @@
    immediately (fast, offline-capable) while refreshing the cache in the
    background, so the installed app self-updates when online. Navigations fall
    back to the cached shell when offline. */
-const CACHE = "balanceos-v2";
+const CACHE = "balanceos-v3";
 const ASSETS = [
   "./", "index.html", "styles.css", "mobile.css", "app.jsx",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js", "vendor/babel.min.js",
