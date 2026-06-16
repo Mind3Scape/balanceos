@@ -17,6 +17,15 @@ const DARK_ROUTES = new Set([
 const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
 const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 
+// Root (html/body) background per screen — matches each screen's own base
+// colour so the home-indicator safe area is never a mismatched dark bar
+// (belt-and-suspenders alongside the full-height, no-fixed layout).
+const ROOT_BG = {
+  intro: "#060912", onboarding: "#060912", signup: "#0a0a0a",
+  mood: "#050505", focus: "#05060a", levels: "#0a0a0a", "level-up": "#0a0a0a",
+  "ai-chat": "#0a0a0a", profile: "#0a0a0a", settings: "#0a0a0a", support: "#0a0a0a",
+};
+
 const SCREENS = {
   home: () => HomeScreen,
   habits: () => HabitsScreen,
@@ -150,12 +159,12 @@ function PhoneApp() {
   // Keep the iOS status-bar tint + the root background in sync with the screen,
   // so the home-indicator safe area never shows a stray black bar.
   useEffect(() => {
-    const bg = topDark ? "#0a0a0a" : "#f1f1f1";
+    const bg = ROOT_BG[top.route] || (topDark ? "#0a0a0a" : "#f1f1f1");
     const m = document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute("content", bg);
     document.documentElement.style.background = bg;
     document.body.style.background = bg;
-  }, [topDark]);
+  }, [top.route, topDark]);
 
   const renderLayer = (frame, animClass, onEnd) => {
     const dark = themeFor(frame.route);
@@ -194,14 +203,22 @@ function PhoneApp() {
   );
 }
 
-// Build tag (logged to console only — handy for confirming the running build).
-const APP_VERSION = "v7";
+// Build tag — shown tiny at the very bottom for this debugging round so we can
+// confirm the fix landed (vs cache). Removed once the bottom bar is confirmed gone.
+const APP_VERSION = "v8";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 function Root() {
   return (
     <AppProvider>
       <PhoneApp />
+      <div style={{
+        position: "fixed", left: "50%", bottom: "2px",
+        transform: "translateX(-50%)", zIndex: 100000,
+        fontSize: 9, letterSpacing: "0.4px",
+        fontFamily: "-apple-system, ui-monospace, monospace",
+        color: "rgba(150,150,160,0.4)", pointerEvents: "none",
+      }}>BalanceOS {APP_VERSION}</div>
     </AppProvider>
   );
 }
