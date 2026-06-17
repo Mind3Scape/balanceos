@@ -218,12 +218,12 @@ function HabitsScreen() {
                     )}
                   </div>
                   {h.duration && !h.done && (
-                    <button className="tap" onClick={(e) => { e.stopPropagation(); navigate("focus", { habit: h }); }}
+                    <button className="tap" data-no-haptic onClick={(e) => { e.stopPropagation(); navigate("focus", { habit: h }); }}
                       style={{ width: 30, height: 30, borderRadius: "50%", background: TH.playBtnBg, border: 0, color: TH.playBtnFg, display: "grid", placeItems: "center", flexShrink: 0 }}>
                       <I.Play size={11}/>
                     </button>
                   )}
-                  <button className={"check-btn " + (h.done ? "" : "unchecked")}
+                  <button className={"check-btn " + (h.done ? "" : "unchecked")} data-no-haptic
                     onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>
                     {h.done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
                   </button>
