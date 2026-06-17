@@ -54,17 +54,19 @@ body {
    pill and the home indicator. Adapts to the active theme. */
 .bos-version {
   position: absolute;
-  right: 10px;
-  bottom: 4px;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  text-align: center;
   z-index: 70;
-  font: 600 9px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  letter-spacing: 0.4px;
-  color: rgba(0,0,0,0.26);
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  letter-spacing: 0.5px;
+  color: rgba(0,0,0,0.5);
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
 }
-.phone-shell.is-dark .bos-version { color: rgba(255,255,255,0.26); }
+.phone-shell.is-dark .bos-version { color: rgba(255,255,255,0.5); }
 
 /* Holds the animating page layers. */
 .page-stack { position: absolute; inset: 0; overflow: hidden; }

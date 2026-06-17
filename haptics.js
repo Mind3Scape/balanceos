@@ -1,18 +1,24 @@
 /* BalanceOS — native iOS haptics for the installed web app.
-   iOS 17.4+ plays a subtle Taptic "tick" whenever a native <input switch>
-   toggles from a real user gesture. We keep ONE hidden switch and click it on
-   the touch-down of any interactive control, so the whole mockup buzzes under
-   the finger exactly like a real iOS app. No-op on devices without a Taptic
-   Engine (desktop, older iOS) — silent, never throws. */
+   iOS 17.4+ plays a subtle Taptic "tick" when a native <input switch> toggles
+   from a user gesture. We keep ONE such switch — kept RENDERED but invisible
+   (some iOS builds won't fire the tick for a display:none control) — and click
+   it on the touch-down of any interactive control, so the whole mockup buzzes
+   under the finger like a real iOS app.
+   NOTE: iOS silences these haptics in Low Power Mode and when Settings →
+   Sounds & Haptics → System Haptics is off. No-op (silent, never throws)
+   wherever unsupported. */
 (function () {
   "use strict";
-  var label, ready = false;
+  var label, ready = false, busy = false;
 
   function ensure() {
     if (ready) return;
     label = document.createElement("label");
     label.setAttribute("aria-hidden", "true");
-    label.style.display = "none";
+    // Rendered but invisible & non-interactive (NOT display:none).
+    label.style.cssText =
+      "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;" +
+      "pointer-events:none;overflow:hidden;z-index:-1;";
     var input = document.createElement("input");
     input.type = "checkbox";
     input.setAttribute("switch", ""); // the iOS-only attribute that taps
@@ -22,7 +28,10 @@
   }
 
   function tap() {
+    if (busy) return;          // guard against re-entry from our own click
+    busy = true;
     try { ensure(); label.click(); } catch (e) {}
+    busy = false;
   }
 
   // Public: call haptic() anywhere to fire a single tick.
