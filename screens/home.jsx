@@ -190,26 +190,12 @@ function HomeScreen() {
   const wrapRef = React.useRef(null);
   const isDark = useThemeFlag(wrapRef);
   const [tab, setTab] = useHomeState("habits");
-  const [habits, setHabits] = useHomeState([
-    { id: 1, emoji: "🙏", name: "Помогать другим",   streak: 12, done: true,  friends: [{name:"Анна",initials:"А",color:"#e8c8a8"},{name:"Марк",initials:"М",color:"#a8b9d4"}] },
-    { id: 2, emoji: "🧘🏼‍♀️", name: "Медитация",   streak: 27, done: true, duration: 10, friends: [{name:"Лена",initials:"Л",color:"#d4b8e8"},{name:"Вик",initials:"В",color:"#a8d4e8"},{name:"Том",initials:"Т",color:"#b8e8c8"}] },
-    { id: 3, emoji: "🏃🏼‍♀️", name: "Утренняя пробежка",  streak: 5,  done: true, duration: 25, friends: [{name:"Анна",initials:"А",color:"#e8c8a8"}] },
-    { id: 4, emoji: "📚", name: "Читать книгу",     streak: 3,  done: false, duration: 20 },
-    { id: 5, emoji: "✍🏼", name: "Бумажный дневник", streak: 8,  done: false, duration: 5 },
-  ]);
-  const [goals] = useHomeState([
-    { id: 1, emoji: "🥊", name: "100 раундов бокса", progress: 0.62, sub: "62 / 100" },
-    { id: 2, emoji: "📖", name: "Прочитать 24 книги",      progress: 0.34, sub: "8 / 24"  },
-    { id: 3, emoji: "🎯", name: "Пробежать марафон",     progress: 0.18, sub: "Нед. 4/22" },
-  ]);
-  const toggleGuard = React.useRef({});
-  const toggle = (id) => {
-    const now = Date.now();
-    if (toggleGuard.current[id] && now - toggleGuard.current[id] < 350) return; // swallow a stray double-fire
-    toggleGuard.current[id] = now;
-    setHabits(h => h.map(x => x.id === id ? { ...x, done: !x.done } : x));
-  };
-  const remove = (id) => setHabits(h => h.filter(x => x.id !== id));
+  // Habits + goals come from the shared app store, so a check here shows up
+  // on the Habits tab too (and vice versa).
+  const habits = app?.habits || [];
+  const goals = app?.goals || [];
+  const toggle = app?.toggleHabit || (() => {});
+  const remove = app?.removeHabit || (() => {});
   const doneCount = habits.filter(h => h.done).length;
   const totalCount = habits.length;
   const ringPct = doneCount / totalCount;
@@ -370,19 +356,22 @@ function HomeScreen() {
         </div>
       ) : (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-          {goals.map(g => (
+          {goals.map(g => {
+            const pct = g.target ? g.current / g.target : 0;
+            return (
             <div key={g.id} style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: 14, boxShadow: cardShadow, color: "var(--text)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
                 <span style={{ width: 38, height: 38, borderRadius: 11, background: iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, color: "var(--text-2)", fontWeight: 500 }}>{g.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.sub}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>{Math.round(g.progress*100)}%</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
               </div>
-              <div className="bos-progress"><span style={{ width: (g.progress*100) + "%" }} /></div>
+              <div className="bos-progress"><span style={{ width: (pct*100) + "%" }} /></div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

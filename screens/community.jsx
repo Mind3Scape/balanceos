@@ -310,6 +310,7 @@ function NetworkPersonCard({ p, userLevel }) {
 
 function CommunityScreen() {
   const { navigate } = useNav();
+  const app = useApp();
   const [section, setSection] = useCS("discover");           // discover | community
   const [discTab, setDiscTab] = useCS("teams");              // teams | network
   const [commTab, setCommTab] = useCS("courses");            // courses | classes | partners
@@ -321,22 +322,7 @@ function CommunityScreen() {
   const levelsLeft = 10 - userLevel;
   const weeksToUnlock = 2;
 
-  const teams = [
-    { name: "Команда креаторов", emblem: "✨", goal: "50 добрых дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
-      members: [
-        { name: "Ник",     initials: "Н",  color: "#a8b9d4", pct: 19 },
-        { name: "Светлана", initials: "С",  color: "#e8c8a8", pct: 50 },
-        { name: "Вадим",    initials: "В",  color: "#a8d4e8", pct: 92 },
-        { name: "Сергей",   initials: "Сг", color: "#c8e8a8", pct: 67 },
-      ]
-    },
-    { name: "Добрые дела", emblem: "🌱", goal: "21-дневный спринт доброты", date: "1 — 21 апр", progress: 0.41, accent: "#d6f3df",
-      members: [
-        { name: "Анна", initials: "А", color: "#e8a8c8", pct: 33 },
-        { name: "Миша", initials: "М", color: "#a8e8d4", pct: 71 },
-      ]
-    },
-  ];
+  const teams = app?.teams || []; // shared store — "Создать команду" adds here
   const network = [
     { name: "Александра Иванова", initials: "АИ", color: "#e8c8a8", city: "Москва", role: "Маркетинг", bio: "Диджитал-маркетолог, 5 лет. Йога и медитация.", tags: ["Йога","Маркетинг","Путешествия"], dist: "в 2 км",
       level: 12, impact: 1840, offers: [
@@ -828,6 +814,7 @@ function DurationPicker({ value, onChange }) {
 
 function TeamCreateScreen() {
   const { navigate } = useNav();
+  const app = useApp();
   const [name, setName] = useCS("");
   const [emblem, setEmblem] = useCS("✨");
   const [accent, setAccent] = useCS("#fef3c7");
@@ -1074,7 +1061,18 @@ function TeamCreateScreen() {
         </div>
       </div>
 
-      <button className="bos-btn" style={{ marginTop: 28 }} onClick={() => navigate("community")}>Создать команду</button>
+      <button className="bos-btn" style={{ marginTop: 28 }} onClick={() => {
+        const dur = { week: "Эта неделя", month: "Этот месяц", quarter: "3 месяца", year: "Год" }[duration] || "Этот месяц";
+        app?.addTeam({
+          name: name.trim() || "Новая команда",
+          emblem, accent,
+          goal: goalTitle || (target + " " + unit),
+          date: dur,
+          progress: 0,
+          members: activeMembers.map(m => ({ name: m.name, initials: m.initials, color: m.color, pct: 0 })),
+        });
+        navigate("community");
+      }}>Создать команду</button>
     </div>
   );
 }

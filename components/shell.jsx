@@ -301,6 +301,43 @@ const ALL_SPHERES = [
 ];
 const DEFAULT_SPHERES = ["body", "mind", "career", "money", "friends", "rest"];
 
+/* ── Shared habit / goal / team store ───────────────────────────────
+   ONE source of truth for every screen. Seeded from the demo data and
+   held in ordinary React state, so a full reload always snaps back to
+   this pristine demo (intentional — no persistence, easy to present). */
+const SEED_HABITS = [
+  { id: 1, emoji: "🙏", name: "Помогать другим", done: true,  streak: 12, friends: [{name:"Анна",initials:"А",color:"#e8c8a8"},{name:"Марк",initials:"М",color:"#a8b9d4"}] },
+  { id: 2, emoji: "🧘🏼‍♀️", name: "Медитация", done: true, streak: 27, duration: 10, friends: [{name:"Лена",initials:"Л",color:"#d4b8e8"},{name:"Вик",initials:"В",color:"#a8d4e8"},{name:"Том",initials:"Т",color:"#b8e8c8"}] },
+  { id: 3, emoji: "🏃🏼‍♀️", name: "Утренняя пробежка", done: true, streak: 5, duration: 25, friends: [{name:"Анна",initials:"А",color:"#e8c8a8"}] },
+  { id: 4, emoji: "📚", name: "Читать книгу", done: false, streak: 3, duration: 20 },
+  { id: 5, emoji: "✍🏼", name: "Бумажный дневник", done: false, streak: 8, duration: 5 },
+  { id: 6, emoji: "🥊", name: "Бокс", done: true, streak: 9, duration: 30, friends: [{name:"Марк",initials:"М",color:"#a8b9d4"}] },
+  { id: 7, emoji: "🥗", name: "Здоровое питание", done: true, streak: 15 },
+];
+const SEED_GOALS = [
+  { id: 1, emoji: "🥊", name: "100 раундов бокса", current: 62,  target: 100, unit: "раундов", deadline: "1 авг" },
+  { id: 2, emoji: "📖", name: "Прочитать 24 книги", current: 8,  target: 24,  unit: "книг",   deadline: "31 дек" },
+  { id: 3, emoji: "🎯", name: "Пробежать марафон",  current: 4,  target: 22,  unit: "недель", deadline: "14 окт" },
+  { id: 4, emoji: "🧘🏼‍♀️", name: "300 дней медитации", current: 187, target: 300, unit: "дней", deadline: "в след. году" },
+];
+const SEED_TEAMS = [
+  { name: "Команда креаторов", emblem: "✨", goal: "50 добрых дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
+    members: [
+      { name: "Ник",     initials: "Н",  color: "#a8b9d4", pct: 19 },
+      { name: "Светлана", initials: "С",  color: "#e8c8a8", pct: 50 },
+      { name: "Вадим",    initials: "В",  color: "#a8d4e8", pct: 92 },
+      { name: "Сергей",   initials: "Сг", color: "#c8e8a8", pct: 67 },
+    ] },
+  { name: "Добрые дела", emblem: "🌱", goal: "21-дневный спринт доброты", date: "1 — 21 апр", progress: 0.41, accent: "#d6f3df",
+    members: [
+      { name: "Анна", initials: "А", color: "#e8a8c8", pct: 33 },
+      { name: "Миша", initials: "М", color: "#a8e8d4", pct: 71 },
+    ] },
+];
+// New-item id source. Module-level → resets to 1000 on every reload alongside the seeds.
+let _bosNextId = 1000;
+const _nid = () => ++_bosNextId;
+
 function AppProvider({ children }) {
   const [mood, setMood] = useState(MOOD_OPTIONS[1]);
   const [dayMoods, setDayMoods] = useState({
@@ -315,12 +352,34 @@ function AppProvider({ children }) {
   // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere.
   const [themeOverride, setThemeOverride] = useState("auto");
 
+  // Shared habit / goal store + mutators (the app's single source of truth).
+  const [habits, setHabits] = useState(SEED_HABITS);
+  const [goals, setGoals] = useState(SEED_GOALS);
+
+  const toggleHabit = (id) => setHabits(hs => hs.map(h => h.id === id ? { ...h, done: !h.done } : h));
+  const addHabit = (h) => { const nh = { id: _nid(), done: false, streak: 0, ...h }; setHabits(hs => [...hs, nh]); return nh; };
+  const updateHabit = (id, patch) => setHabits(hs => hs.map(h => h.id === id ? { ...h, ...patch } : h));
+  const removeHabit = (id) => setHabits(hs => hs.filter(h => h.id !== id));
+
+  const addGoal = (g) => { const ng = { id: _nid(), current: 0, ...g }; setGoals(gs => [...gs, ng]); return ng; };
+  const updateGoal = (id, patch) => setGoals(gs => gs.map(g => g.id === id ? { ...g, ...patch } : g));
+  const removeGoal = (id) => setGoals(gs => gs.filter(g => g.id !== id));
+
+  const [teams, setTeams] = useState(SEED_TEAMS);
+  // New teams go to the TOP so the just-created one is immediately visible.
+  const addTeam = (t) => { const nt = { progress: 0, members: [], ...t, _id: _nid() }; setTeams(ts => [nt, ...ts]); return nt; };
+  const removeTeam = (id) => setTeams(ts => ts.filter(t => t._id !== id));
+
   return <AppStateCtx.Provider value={{
     mood, setMood,
     dayMoods, setDayMoods,
     widgets, setWidgets,
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
+    habits, goals,
+    toggleHabit, addHabit, updateHabit, removeHabit,
+    addGoal, updateGoal, removeGoal,
+    teams, addTeam, removeTeam,
   }}>{children}</AppStateCtx.Provider>;
 }
 

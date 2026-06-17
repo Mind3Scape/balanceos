@@ -100,6 +100,7 @@ function ShareHabitSheet({ habit, dark = false }) {
 function HabitsScreen() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
+  const app = useApp();
   const wrapRef = React.useRef(null);
   const [isDark, setIsDark] = useHS(false);
   React.useEffect(() => {
@@ -136,29 +137,11 @@ function HabitsScreen() {
   const cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
 
   const [tab, setTab] = useHS("habits");
-  const [habits, setHabits] = useHS([
-    { id: 1, emoji: "🙏", name: "Помогать другим", done: true,  friends: [{name:"Анна",initials:"А",color:"#e8c8a8"},{name:"Марк",initials:"М",color:"#a8b9d4"}] },
-    { id: 2, emoji: "🧘🏼‍♀️", name: "Медитация", done: true, duration: 10, friends: [{name:"Лена",initials:"Л",color:"#d4b8e8"},{name:"Вик",initials:"В",color:"#a8d4e8"},{name:"Том",initials:"Т",color:"#b8e8c8"}] },
-    { id: 3, emoji: "🏃🏼‍♀️", name: "Утренняя пробежка", done: true, duration: 25, friends: [{name:"Анна",initials:"А",color:"#e8c8a8"}] },
-    { id: 4, emoji: "📚", name: "Читать книгу", done: false, duration: 20 },
-    { id: 5, emoji: "✍🏼", name: "Бумажный дневник", done: false, duration: 5 },
-    { id: 6, emoji: "🥊", name: "Бокс", done: true, duration: 30, friends: [{name:"Марк",initials:"М",color:"#a8b9d4"}] },
-    { id: 7, emoji: "🥗", name: "Здоровое питание", done: true },
-  ]);
-  const [goals, setGoals] = useHS([
-    { id: 1, emoji: "🥊", name: "100 раундов бокса", current: 62, target: 100, unit: "раундов", deadline: "1 авг" },
-    { id: 2, emoji: "📖", name: "Прочитать 24 книги",      current: 8,  target: 24,  unit: "книг",  deadline: "31 дек" },
-    { id: 3, emoji: "🎯", name: "Пробежать марафон",     current: 4,  target: 22,  unit: "недель",  deadline: "14 окт" },
-    { id: 4, emoji: "🧘🏼‍♀️", name: "300 дней медитации", current: 187, target: 300, unit: "дней", deadline: "в след. году" },
-  ]);
-  const toggleGuard = React.useRef({});
-  const toggle = (id) => {
-    const now = Date.now();
-    if (toggleGuard.current[id] && now - toggleGuard.current[id] < 350) return; // swallow a stray double-fire
-    toggleGuard.current[id] = now;
-    setHabits(h => h.map(x => x.id === id ? { ...x, done: !x.done } : x));
-  };
-  const remove = id => setHabits(h => h.filter(x => x.id !== id));
+  // Shared store — same list the Home screen reads/writes.
+  const habits = app?.habits || [];
+  const goals = app?.goals || [];
+  const toggle = app?.toggleHabit || (() => {});
+  const remove = app?.removeHabit || (() => {});
   const rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
   return (
@@ -297,9 +280,11 @@ function HabitsScreen() {
 
 function HabitSettingsScreen() {
   const { navigate, params } = useNav();
+  const app = useApp();
   const editing = params?.mode === "edit";
-  const [name, setName] = useHS(editing ? params.habit.name : "Прогулка");
-  const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : "👟");
+  const preset = params?.preset; // quick-add chip → {i: emoji, t: label}
+  const [name, setName] = useHS(editing ? params.habit.name : (preset?.t || "Прогулка"));
+  const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : (preset?.i || "👟"));
   const [color, setColor] = useHS("#0a0a0a");
   const [goal, setGoal] = useHS(1);
   const [reminderOn, setReminderOn] = useHS(true);
@@ -417,11 +402,17 @@ function HabitSettingsScreen() {
       </div>
 
       {/* Add */}
-      <button className="bos-btn light" style={{ marginTop: 28 }} onClick={() => navigate("habits")}>
+      <button className="bos-btn light" style={{ marginTop: 28 }} onClick={() => {
+        const nm = name.trim() || "Новая привычка";
+        if (editing) app?.updateHabit(params.habit.id, { emoji: iconPick, name: nm });
+        else app?.addHabit({ emoji: iconPick, name: nm });
+        navigate("habits");
+      }}>
         {editing ? "Сохранить" : "Добавить привычку"}
       </button>
       {editing && (
-        <button className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
+        <button className="tap" onClick={() => { app?.removeHabit(params.habit.id); navigate("habits"); }}
+          style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
           Удалить привычку
         </button>
       )}
@@ -437,6 +428,7 @@ window.ShareHabitSheet = ShareHabitSheet;
 /* ─── GOAL SETTINGS — create / edit a goal ─────────────────────── */
 function GoalSettingsScreen() {
   const { navigate, params } = useNav();
+  const app = useApp();
   const editing = params?.mode === "edit";
   const g0 = editing ? params.goal : null;
   const [name, setName] = useHS(g0?.name || "Пробежать марафон");
@@ -528,11 +520,17 @@ function GoalSettingsScreen() {
         )}
       </div>
 
-      <button className="bos-btn light" style={{ marginTop: 28 }} onClick={() => navigate("habits")}>
+      <button className="bos-btn light" style={{ marginTop: 28 }} onClick={() => {
+        const data = { emoji: iconPick, name: name.trim() || "Новая цель", target, unit, deadline };
+        if (editing) app?.updateGoal(g0.id, data);
+        else app?.addGoal(data);
+        navigate("habits");
+      }}>
         {editing ? "Сохранить" : "Создать цель"}
       </button>
       {editing && (
-        <button className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
+        <button className="tap" onClick={() => { app?.removeGoal(g0.id); navigate("habits"); }}
+          style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
           Удалить цель
         </button>
       )}
