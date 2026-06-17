@@ -151,7 +151,13 @@ function HabitsScreen() {
     { id: 3, emoji: "🎯", name: "Пробежать марафон",     current: 4,  target: 22,  unit: "недель",  deadline: "14 окт" },
     { id: 4, emoji: "🧘🏼‍♀️", name: "300 дней медитации", current: 187, target: 300, unit: "дней", deadline: "в след. году" },
   ]);
-  const toggle = id => setHabits(h => h.map(x => x.id === id ? { ...x, done: !x.done } : x));
+  const toggleGuard = React.useRef({});
+  const toggle = (id) => {
+    const now = Date.now();
+    if (toggleGuard.current[id] && now - toggleGuard.current[id] < 350) return; // swallow a stray double-fire
+    toggleGuard.current[id] = now;
+    setHabits(h => h.map(x => x.id === id ? { ...x, done: !x.done } : x));
+  };
   const remove = id => setHabits(h => h.filter(x => x.id !== id));
   const rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 

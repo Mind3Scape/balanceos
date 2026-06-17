@@ -202,7 +202,13 @@ function HomeScreen() {
     { id: 2, emoji: "📖", name: "Прочитать 24 книги",      progress: 0.34, sub: "8 / 24"  },
     { id: 3, emoji: "🎯", name: "Пробежать марафон",     progress: 0.18, sub: "Нед. 4/22" },
   ]);
-  const toggle = (id) => setHabits(h => h.map(x => x.id === id ? { ...x, done: !x.done } : x));
+  const toggleGuard = React.useRef({});
+  const toggle = (id) => {
+    const now = Date.now();
+    if (toggleGuard.current[id] && now - toggleGuard.current[id] < 350) return; // swallow a stray double-fire
+    toggleGuard.current[id] = now;
+    setHabits(h => h.map(x => x.id === id ? { ...x, done: !x.done } : x));
+  };
   const remove = (id) => setHabits(h => h.filter(x => x.id !== id));
   const doneCount = habits.filter(h => h.done).length;
   const totalCount = habits.length;
