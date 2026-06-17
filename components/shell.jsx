@@ -77,6 +77,74 @@ function TabBar({ active, dark = false, onTab, style }) {
   );
 }
 
+/* Swipe-to-reveal row actions (iOS Mail style). Drag a row left to expose the
+   action buttons; a tap on a closed row passes through to its own onClick, a
+   tap on an open row closes it; vertical drags fall through to list scroll. */
+function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 80 }) {
+  const [open, setOpen] = useState(false);
+  const [dx, setDx] = useState(0);
+  const [releasing, setReleasing] = useState(true);
+  const d = useRef(null);
+  const justDragged = useRef(false);
+  const W = actions.length * actionWidth;
+
+  const close = () => { setReleasing(true); setOpen(false); setDx(0); };
+
+  const onDown = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    d.current = { x0: e.clientX, y0: e.clientY, base: open ? -W : 0, active: false, id: e.pointerId, last: open ? -W : 0 };
+  };
+  const onMove = (e) => {
+    const c = d.current; if (!c || c.id !== e.pointerId) return;
+    const ddx = e.clientX - c.x0, ddy = e.clientY - c.y0;
+    if (!c.active) {
+      if (Math.abs(ddx) < 8 && Math.abs(ddy) < 8) return;
+      if (Math.abs(ddy) >= Math.abs(ddx)) { d.current = null; return; } // vertical → let the list scroll
+      c.active = true;
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    const nx = Math.max(-W - 24, Math.min(0, c.base + ddx));
+    c.last = nx;
+    setReleasing(false); setDx(nx);
+    if (e.cancelable) e.preventDefault();
+  };
+  const onUp = () => {
+    const c = d.current; if (!c) return; d.current = null;
+    if (!c.active) return;
+    justDragged.current = true;
+    window.setTimeout(() => { justDragged.current = false; }, 80);
+    const shouldOpen = c.last < -W / 2;
+    setReleasing(true); setOpen(shouldOpen); setDx(shouldOpen ? -W : 0);
+  };
+  const onClickCapture = (e) => {
+    if (e.target.closest && e.target.closest("[data-swipe-actions]")) return; // let action buttons fire
+    if (justDragged.current) { e.stopPropagation(); e.preventDefault(); justDragged.current = false; return; }
+    if (open) { e.stopPropagation(); e.preventDefault(); close(); } // tap a revealed row → close, don't navigate
+  };
+
+  const offset = releasing ? (open ? -W : 0) : dx;
+  return (
+    <div style={{ position: "relative", overflow: "hidden", touchAction: "pan-y" }}
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+      onClickCapture={onClickCapture}>
+      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex" }}>
+        {actions.map((a, i) => (
+          <button key={a.key || i} className="tap" onClick={(e) => { e.stopPropagation(); close(); a.onAction && a.onAction(); }}
+            style={{ width: actionWidth, border: 0, background: a.bg, color: a.color || "#fff",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5,
+              fontSize: 12, fontWeight: 600 }}>
+            {a.icon}<span>{a.label}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{ position: "relative", background: rowBg, transform: "translateX(" + offset + "px)",
+        transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1)" : "none", willChange: "transform" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /*
  * Page header — uses the theme-* class on a parent for colors. Pass `dark`
  * only when the screen is on a custom dark hero where the parent class
@@ -131,7 +199,7 @@ function Segmented({ options, value, onChange }) {
   );
 }
 
-Object.assign(window, { Phone, StatusBar, NavProvider, useNav, TabBar, PageHeader, Switch, Segmented, NavCtx });
+Object.assign(window, { Phone, StatusBar, NavProvider, useNav, TabBar, PageHeader, Switch, Segmented, NavCtx, SwipeRow });
 
 /* ── Moods used across Home / Mood picker / Calendar ─────────────────
    Colors are saturated so the orb gradient (white → c → deep(c) → black)

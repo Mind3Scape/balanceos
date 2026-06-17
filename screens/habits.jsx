@@ -95,6 +95,8 @@ function HabitsScreen() {
     { id: 4, emoji: "🧘🏼‍♀️", name: "300 дней медитации", current: 187, target: 300, unit: "дней", deadline: "в след. году" },
   ]);
   const toggle = id => setHabits(h => h.map(x => x.id === id ? { ...x, done: !x.done } : x));
+  const remove = id => setHabits(h => h.filter(x => x.id !== id));
+  const rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -140,31 +142,36 @@ function HabitsScreen() {
         <div style={{ marginTop: 12, background: TH.cardBg, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, color: "var(--text)" }}>
           {habits.map((h, idx) => (
             <div key={h.id}>
-              <div className="tap"
-                onClick={() => navigate("habit-settings", { mode: "edit", habit: h })}
-                style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
-                <span style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
-                  {(h.friends?.length || h.duration) && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
-                      {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
-                      {h.friends?.length > 0 && <AvatarStack people={h.friends} size={16} max={3} label={false}/>}
-                      {h.friends?.length > 0 && <span>совместно</span>}
-                    </div>
+              <SwipeRow rowBg={rowBg} actions={[
+                { key: "done", label: h.done ? "Снять" : "Готово", icon: <I.Check size={18} strokeWidth={2.5} color="#fff"/>, bg: "#34c759", onAction: () => toggle(h.id) },
+                { key: "del", label: "Удалить", icon: <I.Trash size={17} color="#fff"/>, bg: "#ff3b30", onAction: () => remove(h.id) },
+              ]}>
+                <div className="tap"
+                  onClick={() => navigate("habit-settings", { mode: "edit", habit: h })}
+                  style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
+                  <span style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                    {(h.friends?.length || h.duration) && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
+                        {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
+                        {h.friends?.length > 0 && <AvatarStack people={h.friends} size={16} max={3} label={false}/>}
+                        {h.friends?.length > 0 && <span>совместно</span>}
+                      </div>
+                    )}
+                  </div>
+                  {h.duration && !h.done && (
+                    <button className="tap" onClick={(e) => { e.stopPropagation(); navigate("focus", { habit: h }); }}
+                      style={{ width: 30, height: 30, borderRadius: "50%", background: TH.playBtnBg, border: 0, color: TH.playBtnFg, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                      <I.Play size={11}/>
+                    </button>
                   )}
-                </div>
-                {h.duration && !h.done && (
-                  <button className="tap" onClick={(e) => { e.stopPropagation(); navigate("focus", { habit: h }); }}
-                    style={{ width: 30, height: 30, borderRadius: "50%", background: TH.playBtnBg, border: 0, color: TH.playBtnFg, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <I.Play size={11}/>
+                  <button className={"check-btn " + (h.done ? "" : "unchecked")}
+                    onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>
+                    {h.done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
                   </button>
-                )}
-                <button className={"check-btn " + (h.done ? "" : "unchecked")}
-                  onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>
-                  {h.done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
-                </button>
-              </div>
+                </div>
+              </SwipeRow>
               {idx < habits.length - 1 && <div style={{ height: 1, background: TH.divider }} />}
             </div>
           ))}
