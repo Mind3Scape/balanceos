@@ -347,17 +347,27 @@ const SEED_GOALS = [
   { id: 4, emoji: "🧘🏼‍♀️", name: "300 дней медитации", current: 187, target: 300, unit: "дней", deadline: "в след. году" },
 ];
 const SEED_TEAMS = [
-  { name: "Команда креаторов", emblem: "✨", goal: "50 добрых дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
+  { _id: "seed-1", name: "Команда креаторов", emblem: "✨", goal: "50 добрых дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
     members: [
-      { name: "Ник",     initials: "Н",  color: "#a8b9d4", pct: 19 },
-      { name: "Светлана", initials: "С",  color: "#e8c8a8", pct: 50 },
-      { name: "Вадим",    initials: "В",  color: "#a8d4e8", pct: 92 },
-      { name: "Сергей",   initials: "Сг", color: "#c8e8a8", pct: 67 },
+      { name: "Ник",     initials: "Н",  color: "#a8b9d4", pct: 19, streak: 6,  todayDone: 1, todayTotal: 4 },
+      { name: "Светлана", initials: "С",  color: "#e8c8a8", pct: 50, streak: 12, todayDone: 2, todayTotal: 4 },
+      { name: "Вадим",    initials: "В",  color: "#a8d4e8", pct: 92, streak: 21, todayDone: 4, todayTotal: 4 },
+      { name: "Сергей",   initials: "Сг", color: "#c8e8a8", pct: 67, streak: 9,  todayDone: 3, todayTotal: 4 },
+    ],
+    habits: [
+      { id: 201, emoji: "🙏", name: "Добрые дела",         isMain: true,  doneToday: 3, total: 4, weekPct: 0.78, week: [1,1,0,1,1,1,1] },
+      { id: 202, emoji: "🧘🏼‍♀️", name: "Групповая медитация", isMain: false, doneToday: 2, total: 4, weekPct: 0.65, week: [1,0,1,1,0,1,1] },
+      { id: 203, emoji: "📖", name: "Читаем вместе",        isMain: false, doneToday: 1, total: 4, weekPct: 0.42, week: [0,1,0,1,0,0,1] },
+      { id: 204, emoji: "🥗", name: "Здоровое питание",     isMain: false, doneToday: 3, total: 4, weekPct: 0.81, week: [1,1,1,1,0,1,1] },
     ] },
-  { name: "Добрые дела", emblem: "🌱", goal: "21-дневный спринт доброты", date: "1 — 21 апр", progress: 0.41, accent: "#d6f3df",
+  { _id: "seed-2", name: "Добрые дела", emblem: "🌱", goal: "21-дневный спринт доброты", date: "1 — 21 апр", progress: 0.41, accent: "#d6f3df",
     members: [
-      { name: "Анна", initials: "А", color: "#e8a8c8", pct: 33 },
-      { name: "Миша", initials: "М", color: "#a8e8d4", pct: 71 },
+      { name: "Анна", initials: "А", color: "#e8a8c8", pct: 33, streak: 4, todayDone: 1, todayTotal: 2 },
+      { name: "Миша", initials: "М", color: "#a8e8d4", pct: 71, streak: 15, todayDone: 2, todayTotal: 2 },
+    ],
+    habits: [
+      { id: 211, emoji: "🌱", name: "Доброе дело дня", isMain: true,  doneToday: 2, total: 2, weekPct: 0.70, week: [1,1,1,0,1,1,0] },
+      { id: 212, emoji: "💬", name: "Поддержать друга", isMain: false, doneToday: 1, total: 2, weekPct: 0.50, week: [1,0,1,0,1,0,1] },
     ] },
 ];
 // New-item id source. Module-level → resets to 1000 on every reload alongside the seeds.
@@ -393,8 +403,17 @@ function AppProvider({ children }) {
 
   const [teams, setTeams] = useState(SEED_TEAMS);
   // New teams go to the TOP so the just-created one is immediately visible.
-  const addTeam = (t) => { const nt = { progress: 0, members: [], ...t, _id: _nid() }; setTeams(ts => [nt, ...ts]); return nt; };
+  const addTeam = (t) => { const nt = { progress: 0, members: [], habits: [], ...t, _id: _nid() }; setTeams(ts => [nt, ...ts]); return nt; };
   const removeTeam = (id) => setTeams(ts => ts.filter(t => t._id !== id));
+  const updateTeam = (id, patch) => setTeams(ts => ts.map(t => t._id === id ? { ...t, ...patch } : t));
+  const addTeamHabit = (teamId, h) => setTeams(ts => ts.map(t => {
+    if (t._id !== teamId) return t;
+    const nh = { id: _nid(), doneToday: 0, total: (t.members?.length || 1), weekPct: 0, isMain: false, week: [0,0,0,0,0,0,0], ...h };
+    let habits = t.habits || [];
+    if (nh.isMain) habits = habits.map(x => ({ ...x, isMain: false })); // only one anchor
+    return { ...t, habits: [...habits, nh] };
+  }));
+  const removeTeamHabit = (teamId, habitId) => setTeams(ts => ts.map(t => t._id === teamId ? { ...t, habits: (t.habits || []).filter(h => h.id !== habitId) } : t));
 
   return <AppStateCtx.Provider value={{
     mood, setMood,
@@ -405,7 +424,7 @@ function AppProvider({ children }) {
     habits, goals,
     toggleHabit, addHabit, updateHabit, removeHabit,
     addGoal, updateGoal, removeGoal,
-    teams, addTeam, removeTeam,
+    teams, addTeam, removeTeam, updateTeam, addTeamHabit, removeTeamHabit,
   }}>{children}</AppStateCtx.Provider>;
 }
 

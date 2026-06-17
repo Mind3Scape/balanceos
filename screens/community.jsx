@@ -1079,17 +1079,24 @@ function TeamCreateScreen() {
 
 function TeamDetailScreen() {
   const { navigate, params } = useNav();
-  const t = params?.team || { name: "Команда креаторов", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0.62, members: [] };
+  const app = useApp();
+  const { open: openSheet } = useSheet();
+  const passed = params?.team || { _id: "seed-1", name: "Команда креаторов", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0.62, members: [] };
+  // Read the LIVE team from the store so a just-added habit appears immediately.
+  const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   const accent = t.accent || "#fef3c7";
   const members = t.members?.length ? t.members : [{name:"Ник",initials:"Н",pct:19,color:"#a8b9d4"}];
-  const teamHabits = [
-    { emoji: "🙏", name: "Добрые дела",  isMain: true,  doneToday: 8,  total: 9, weekPct: 0.78 },
-    { emoji: "🧘🏼‍♀️", name: "Групповая медитация", isMain: false, doneToday: 6, total: 9, weekPct: 0.65 },
-    { emoji: "📖", name: "Читаем вместе",       isMain: false, doneToday: 4, total: 9, weekPct: 0.42 },
-    { emoji: "🥗", name: "Здоровое питание",         isMain: false, doneToday: 7, total: 9, weekPct: 0.81 },
+  const DEFAULT_TEAM_HABITS = [
+    { id: 1, emoji: "🙏", name: "Добрые дела",  isMain: true,  doneToday: 8,  total: 9, weekPct: 0.78, week:[1,1,0,1,1,1,1] },
+    { id: 2, emoji: "🧘🏼‍♀️", name: "Групповая медитация", isMain: false, doneToday: 6, total: 9, weekPct: 0.65, week:[1,0,1,1,0,1,1] },
+    { id: 3, emoji: "📖", name: "Читаем вместе",       isMain: false, doneToday: 4, total: 9, weekPct: 0.42, week:[0,1,0,1,0,0,1] },
+    { id: 4, emoji: "🥗", name: "Здоровое питание",         isMain: false, doneToday: 7, total: 9, weekPct: 0.81, week:[1,1,1,1,0,1,1] },
   ];
+  const teamHabits = Array.isArray(t.habits) ? t.habits : DEFAULT_TEAM_HABITS;
   const main = teamHabits.find(h => h.isMain);
-  const aggregate = Math.round(teamHabits.reduce((s,h) => s + h.weekPct, 0) / teamHabits.length * 100);
+  const others = teamHabits.filter(h => !h.isMain);
+  const aggregate = teamHabits.length ? Math.round(teamHabits.reduce((s,h) => s + (h.weekPct||0), 0) / teamHabits.length * 100) : 0;
+  const openAddHabit = () => openSheet(<TeamHabitSheet team={t} members={members} onAdd={(h) => app?.addTeamHabit(t._id, h)} />);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
@@ -1126,6 +1133,7 @@ function TeamDetailScreen() {
         </div>
       </div>
 
+      {main && (<>
       {/* Main habit — featured card */}
       <div className="section-label" style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 6 }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FEDE34" }}/> Главная привычка
@@ -1156,11 +1164,15 @@ function TeamDetailScreen() {
           ))}
         </div>
       </div>
+      </>)}
 
       {/* Other team habits */}
-      <div className="section-label" style={{ marginTop: 22 }}>Привычки команды ({teamHabits.length - 1})</div>
+      <div className="section-label" style={{ marginTop: 22 }}>Привычки команды ({others.length})</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {teamHabits.filter(h => !h.isMain).map((h, i) => (
+        {teamHabits.length === 0 && (
+          <div style={{ fontSize: 13, color: "var(--text-4)", padding: "4px 2px 8px", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем команды.</div>
+        )}
+        {others.map((h, i) => (
           <div key={i} style={{ background: "var(--card)", borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
             <span style={{ width: 40, height: 40, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{h.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1175,7 +1187,7 @@ function TeamDetailScreen() {
             </div>
           </div>
         ))}
-        <button className="tap" style={{ background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 16, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
+        <button onClick={openAddHabit} className="tap" style={{ background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 16, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
           + Добавить привычку команды
         </button>
       </div>
@@ -1210,6 +1222,94 @@ function TeamDetailScreen() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* Bottom sheet — create a shared team habit (opened from Team detail). Team
+   detail is always light, so colors are explicit (sheets render outside the
+   themed page scope, same pattern as ShareAppSheet). */
+function TeamHabitSheet({ team, members = [], onAdd }) {
+  const { close } = useSheet();
+  const C = { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", line: "rgba(0,0,0,0.07)" };
+  const EMO = ["🙏","🧘🏼‍♀️","📖","🥗","🏃🏼‍♀️","💧","🧊","☀️","💬","✍🏼","🎯","🔥"];
+  const [emoji, setEmoji] = useCS("🙏");
+  const [name, setName] = useCS("");
+  const [movesGoal, setMovesGoal] = useCS(true);
+  const [isMain, setIsMain] = useCS(false);
+  const [picked, setPicked] = useCS(() => members.map((_, i) => i)); // default: everyone
+  const toggleMember = (i) => setPicked(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
+  const participants = members.filter((_, i) => picked.includes(i)).map(m => ({ name: m.name, initials: m.initials, color: m.color }));
+  const save = () => {
+    onAdd && onAdd({
+      emoji,
+      name: name.trim() || "Новая привычка",
+      isMain, movesGoal, participants,
+      total: Math.max(1, participants.length || members.length || 1),
+    });
+    close();
+  };
+  return (
+    <div style={{ padding: "2px 20px 6px", color: C.text }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Новая привычка команды</div>
+        <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3 }}>Общая для всех в «{team?.name || "команде"}»</div>
+      </div>
+
+      {/* Emoji picker */}
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "16px -20px 0", padding: "0 20px 4px", scrollbarWidth: "none" }}>
+        {EMO.map(e => (
+          <button key={e} onClick={() => setEmoji(e)} className="tap" style={{
+            flexShrink: 0, width: 46, height: 46, borderRadius: 14, fontSize: 22, lineHeight: 1,
+            background: e === emoji ? "#0a0a0a" : C.tile, border: 0,
+          }}>{e}</button>
+        ))}
+      </div>
+
+      {/* Name */}
+      <input className="bos-input" value={name} onChange={e => setName(e.target.value)} placeholder="напр. Холодный душ" style={{ marginTop: 14 }}/>
+
+      {/* Participants */}
+      {members.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "18px 0 8px" }}>Участвуют</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {members.map((m, i) => {
+              const on = picked.includes(i);
+              return (
+                <button key={i} onClick={() => toggleMember(i)} className="tap" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 5px", borderRadius: 999,
+                  background: on ? "#0a0a0a" : C.tile, color: on ? "#fff" : C.sub, border: 0, fontSize: 12, fontWeight: 500,
+                }}>
+                  <span style={{ width: 22, height: 22, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{m.initials}</span>
+                  {m.name}{on && <I.Check size={12} strokeWidth={3}/>}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Toggles */}
+      <div style={{ background: C.tile, borderRadius: 16, padding: "2px 14px", marginTop: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14.5 }}>Двигает цель команды</div>
+            <div style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>Отметка участника = +1 к общей цели</div>
+          </div>
+          <Switch on={movesGoal} onChange={setMovesGoal}/>
+        </div>
+        <div style={{ height: 1, background: C.line }}/>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14.5 }}>Сделать главной</div>
+            <div style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>Станет «якорем» команды</div>
+          </div>
+          <Switch on={isMain} onChange={setIsMain}/>
+        </div>
+      </div>
+
+      <button className="bos-btn" style={{ marginTop: 20, marginBottom: 2 }} onClick={save}>Добавить привычку</button>
     </div>
   );
 }
