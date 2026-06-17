@@ -37,9 +37,20 @@
     return true;
   }
 
+  function removeOverlay(host) {
+    for (var i = host.children.length - 1; i >= 0; i--) {
+      if (host.children[i].className === "bos-haptic-overlay") host.removeChild(host.children[i]);
+    }
+  }
+
   function enhance(host) {
     if (!host || host.nodeType !== 1) return;
     if (host.closest("[data-no-haptic]")) return;
+    // Don't cover tall in-page blocks (cards): a full-size switch overlay would
+    // swallow a page scroll started over them. A plain card scrolls fine and
+    // still opens on a clean tap — it just won't buzz. The floating tab bar
+    // (outside .bos-page) is exempt, so tabs keep their haptic.
+    if (host.closest(".bos-page") && host.offsetHeight > 56) { if (hasOverlay(host)) removeOverlay(host); return; }
     if (hasOverlay(host)) return;   // already covered (re-checks every scan → self-heals)
     if (!isLeaf(host)) return;      // contains a real nested control → enhance its leaves
     if (window.getComputedStyle(host).position === "static") host.style.position = "relative";
