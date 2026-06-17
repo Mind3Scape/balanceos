@@ -77,10 +77,16 @@ function TabBar({ active, dark = false, onTab, style }) {
   );
 }
 
-/* Swipe-to-reveal row actions (iOS Mail style). Drag a row left to expose the
-   action buttons; a tap on a closed row passes through to its own onClick, a
-   tap on an open row closes it; vertical drags fall through to list scroll. */
-function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 80 }) {
+/* iOS-app swipe-action circle colors, theme-adaptive. */
+function swipeTone(tone, dark) {
+  if (tone === "delete") return dark ? { bg: "rgba(255,255,255,0.12)", fg: "#FF453A" } : { bg: "#f0f0f2", fg: "#FF3B30" };
+  return dark ? { bg: "#ffffff", fg: "#0a0a0a" } : { bg: "#0a0a0a", fg: "#ffffff" }; // done
+}
+
+/* Swipe-to-reveal row actions, styled as iOS-app round icon buttons. Drag a row
+   left to expose the actions; a tap on a closed row passes through to its own
+   onClick, a tap on an open row closes it; vertical drags fall through to scroll. */
+function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 74, dark = false }) {
   const [open, setOpen] = useState(false);
   const [dx, setDx] = useState(0);
   const [releasing, setReleasing] = useState(true);
@@ -127,15 +133,21 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 80 }) 
     <div style={{ position: "relative", overflow: "hidden", touchAction: "pan-y" }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
       onClickCapture={onClickCapture}>
-      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex" }}>
-        {actions.map((a, i) => (
-          <button key={a.key || i} className="tap" onClick={(e) => { e.stopPropagation(); close(); a.onAction && a.onAction(); }}
-            style={{ width: actionWidth, border: 0, background: a.bg, color: a.color || "#fff",
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5,
-              fontSize: 12, fontWeight: 600 }}>
-            {a.icon}<span>{a.label}</span>
-          </button>
-        ))}
+      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: rowBg }}>
+        {actions.map((a, i) => {
+          const ts = swipeTone(a.tone, dark);
+          return (
+            <button key={a.key || i} className="tap" onClick={(e) => { e.stopPropagation(); close(); a.onAction && a.onAction(); }}
+              style={{ width: actionWidth, border: 0, background: "transparent",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, padding: 0 }}>
+              <span style={{ width: 46, height: 46, borderRadius: "50%", background: ts.bg, display: "grid", placeItems: "center",
+                boxShadow: dark ? "none" : "0 1px 3px rgba(0,0,0,0.08)" }}>
+                {React.createElement(a.icon, { size: 20, color: ts.fg, strokeWidth: a.tone === "done" ? 2.6 : 2 })}
+              </span>
+              {a.label && <span style={{ fontSize: 11, fontWeight: 500, color: dark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }}>{a.label}</span>}
+            </button>
+          );
+        })}
       </div>
       <div style={{ position: "relative", background: rowBg, transform: "translateX(" + offset + "px)",
         transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1)" : "none", willChange: "transform" }}>

@@ -202,6 +202,7 @@ function HomeScreen() {
     { id: 3, emoji: "🎯", name: "Пробежать марафон",     progress: 0.18, sub: "Нед. 4/22" },
   ]);
   const toggle = (id) => setHabits(h => h.map(x => x.id === id ? { ...x, done: !x.done } : x));
+  const remove = (id) => setHabits(h => h.filter(x => x.id !== id));
   const doneCount = habits.filter(h => h.done).length;
   const totalCount = habits.length;
   const ringPct = doneCount / totalCount;
@@ -218,6 +219,7 @@ function HomeScreen() {
     ? `linear-gradient(135deg, ${c}66 0%, ${c}22 60%, rgba(255,255,255,0.02) 100%)`
     : `linear-gradient(135deg, ${c} 0%, ${c}66 60%, var(--card-fade) 100%)`;
   const cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
+  const rowBg = isDark ? "#1b1b1e" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -317,6 +319,10 @@ function HomeScreen() {
         <div style={{ marginTop: 10, background: cardBg, border: cardBorder, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, color: "var(--text)" }}>
           {habits.map((h, idx) => (
             <div key={h.id}>
+              <SwipeRow rowBg={rowBg} dark={isDark} actions={[
+                { key: "done", tone: "done", label: h.done ? "Снять" : "Готово", icon: I.Check, onAction: () => toggle(h.id) },
+                { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
+              ]}>
               <div className="tap" onClick={() => toggle(h.id)} style={{
                 display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
               }}>
@@ -344,6 +350,7 @@ function HomeScreen() {
                   {h.done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
                 </button>
               </div>
+              </SwipeRow>
               {idx < habits.length - 1 && <div style={{ height: 1, background: dividerLn }} />}
             </div>
           ))}

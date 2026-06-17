@@ -142,9 +142,9 @@ function HabitsScreen() {
         <div style={{ marginTop: 12, background: TH.cardBg, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, color: "var(--text)" }}>
           {habits.map((h, idx) => (
             <div key={h.id}>
-              <SwipeRow rowBg={rowBg} actions={[
-                { key: "done", label: h.done ? "Снять" : "Готово", icon: <I.Check size={18} strokeWidth={2.5} color="#fff"/>, bg: "#34c759", onAction: () => toggle(h.id) },
-                { key: "del", label: "Удалить", icon: <I.Trash size={17} color="#fff"/>, bg: "#ff3b30", onAction: () => remove(h.id) },
+              <SwipeRow rowBg={rowBg} dark={isDark} actions={[
+                { key: "done", tone: "done", label: h.done ? "Снять" : "Готово", icon: I.Check, onAction: () => toggle(h.id) },
+                { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
                 <div className="tap"
                   onClick={() => navigate("habit-settings", { mode: "edit", habit: h })}

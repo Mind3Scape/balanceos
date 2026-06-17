@@ -49,13 +49,15 @@
     lab.setAttribute("data-no-haptic", "");
     lab.style.cssText =
       "position:absolute;inset:0;margin:0;padding:0;border:0;opacity:0;" +
-      "display:block;pointer-events:auto;z-index:4;";
+      "display:block;pointer-events:auto;z-index:4;touch-action:manipulation;";
     var sw = document.createElement("input");
     sw.type = "checkbox";
     sw.setAttribute("switch", "");          // the iOS-only attribute that taps
     sw.setAttribute("aria-hidden", "true");
     sw.tabIndex = -1;
-    sw.style.cssText = "width:100%;height:100%;margin:0;";
+    // touch-action:manipulation → a drag over the control scrolls the page
+    // instead of the switch swallowing it; only a real tap toggles it (haptic).
+    sw.style.cssText = "width:100%;height:100%;margin:0;touch-action:manipulation;";
     lab.appendChild(sw);
     host.appendChild(lab);
   }
