@@ -101,7 +101,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v20";
+const APP_VERSION = "v21";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -123,7 +123,6 @@ function PhoneApp() {
   const stackRef = useRef(null);
   const EDGE_ZONE = 26;  // px from the left edge that arms the gesture
   const DRAG_THRESH = 8; // px of travel before we lock to a horizontal drag
-  const [vp, setVp] = useState(""); // temp: viewport/screen height in the build stamp
 
   useEffect(() => {
     applyTweaks(TWEAK_DEFAULTS);
@@ -187,21 +186,6 @@ function PhoneApp() {
     const t = window.setTimeout(() => setAnim(null), 520);
     return () => window.clearTimeout(t);
   }, [anim]);
-
-  // TEMP diagnostic: show inner vs screen height in the build stamp so a single
-  // screenshot reveals any safe-area gap (vp should equal scr on iOS). Remove
-  // the "· vp/scr" part once the bottom is confirmed flush.
-  useEffect(() => {
-    const upd = () =>
-      setVp(window.innerHeight + "/" + ((window.screen && window.screen.height) || "?"));
-    upd();
-    window.addEventListener("resize", upd);
-    window.addEventListener("orientationchange", upd);
-    return () => {
-      window.removeEventListener("resize", upd);
-      window.removeEventListener("orientationchange", upd);
-    };
-  }, []);
 
   const renderLayer = (frame, animClass, onEnd) => {
     const dark = themeFor(frame.route);
@@ -275,7 +259,6 @@ function PhoneApp() {
     dragRef.current = null;
     if (!d.active) return;
     const pop = d.dx > d.w * 0.4;
-    if (pop) { try { haptic(); } catch (_) {} }
     setDrag({ dx: pop ? d.w : 0, w: d.w, releasing: true });
     window.setTimeout(() => {
       if (pop) setFrames((f) => (f.length > 1 ? f.slice(0, -1) : f));
@@ -329,7 +312,7 @@ function PhoneApp() {
           <TabBar key="tabbar-drag" active={destTab} dark={themeFor(destTab)}
             onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} />
         )}
-        <div className="bos-version">{APP_VERSION + (vp ? " · " + vp : "")}</div>
+        <div className="bos-version">{APP_VERSION}</div>
       </div>
     </div>
   );
