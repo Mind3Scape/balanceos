@@ -267,7 +267,33 @@ function Segmented({ options, value, onChange }) {
   );
 }
 
-Object.assign(window, { Phone, StatusBar, NavProvider, useNav, TabBar, PageHeader, Switch, Segmented, NavCtx, SwipeRow, SheetCtx, useSheet, BottomSheet });
+/* Count-up number — tweens to `value` on mount (from 0) and whenever it changes.
+   Driven by setInterval, NOT requestAnimationFrame, so it animates even in a
+   backgrounded tab / hidden preview (where rAF + CSS transitions freeze). */
+function CountUp({ value, duration = 800, decimals = 0 }) {
+  const target = Number(value) || 0;
+  const [disp, setDisp] = useState(0);
+  const fromRef = useRef(0);
+  const timerRef = useRef(null);
+  useEffect(() => {
+    const start = fromRef.current;
+    if (start === target) { setDisp(target); return; }
+    const steps = 28;
+    let i = 0;
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      i++;
+      const t = i / steps;
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic — fast then settle
+      setDisp(start + (target - start) * eased);
+      if (i >= steps) { clearInterval(timerRef.current); timerRef.current = null; fromRef.current = target; setDisp(target); }
+    }, duration / steps);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [target]); // eslint-disable-line
+  return <>{decimals ? Number(disp).toFixed(decimals) : Math.round(disp)}</>;
+}
+
+Object.assign(window, { Phone, StatusBar, NavProvider, useNav, TabBar, PageHeader, Switch, Segmented, NavCtx, SwipeRow, SheetCtx, useSheet, BottomSheet, CountUp });
 
 /* ── Moods used across Home / Mood picker / Calendar ─────────────────
    Colors are saturated so the orb gradient (white → c → deep(c) → black)

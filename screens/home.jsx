@@ -65,6 +65,9 @@ function BalanceWheel({ size = 122, isDark = false }) {
 /* Hero swipe deck — page 1: today's reading, page 2: Balance Wheel */
 function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const [page, setPage] = useHomeState(0);
+  // Ring grows from 0 on appear (and eases to its new value on change).
+  const [ringShown, setRingShown] = useHomeState(0);
+  React.useEffect(() => { const t = setTimeout(() => setRingShown(ringPct), 80); return () => clearTimeout(t); }, [ringPct]);
   const heroApp = useApp ? useApp() : null;
   const enabledW = (heroApp?.wheelSpheres && heroApp.wheelSpheres.length >= 3) ? heroApp.wheelSpheres : (window.DEFAULT_SPHERES || []);
   const wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
@@ -106,8 +109,8 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
             <circle cx="36" cy="36" r="32" stroke="#FEDE34" strokeWidth="3.5" fill="none"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 32}
-              strokeDashoffset={2 * Math.PI * 32 * (1 - ringPct)}
-              style={{ transition: "stroke-dashoffset 0.6s ease" }}/>
+              strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
+              style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
           </svg>
           <div style={{
             position: "absolute", inset: 6, borderRadius: "50%",
@@ -141,7 +144,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%", justifyContent: "center" }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4 }}>Баланс жизни</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginTop: 4 }}>
-          <span style={{ fontSize: 34, color: "var(--text)", fontWeight: 700, letterSpacing: "-1.2px", lineHeight: 1 }}>{avgBalance}<span style={{ fontSize: 17, fontWeight: 600, color: "var(--text-4)" }}>%</span></span>
+          <span style={{ fontSize: 34, color: "var(--text)", fontWeight: 700, letterSpacing: "-1.2px", lineHeight: 1 }}><CountUp value={avgBalance}/><span style={{ fontSize: 17, fontWeight: 600, color: "var(--text-4)" }}>%</span></span>
         </div>
         <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4 }}>сбалансировано</div>
 
@@ -243,13 +246,13 @@ function HomeScreen() {
             <span style={{ fontSize: 16 }}>🔥</span>
             <span style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Серия</span>
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px" }}>{dayStreak}<span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-4)" }}> дн.</span></div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px" }}><CountUp value={dayStreak}/><span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-4)" }}> дн.</span></div>
         </button>
         )}
         <div style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6, boxShadow: cardShadow, color: "var(--text)" }}>
           <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Сегодня</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px" }}>{doneCount}</span>
+            <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px" }}><CountUp value={doneCount}/></span>
             <span style={{ fontSize: 13, color: "var(--text-4)" }}>/ {totalCount}</span>
           </div>
         </div>
@@ -257,7 +260,7 @@ function HomeScreen() {
         <button onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, opacity: 0.7 }}>Уровень</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}>7</span>
+            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={7}/></span>
             <span style={{ fontSize: 11, opacity: 0.7 }}>· 1.2k¢</span>
           </div>
         </button>
@@ -387,7 +390,7 @@ function HomeScreen() {
         </div>
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 11, opacity: 0.6, letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>Энергия сегодня</div>
-          <div style={{ fontSize: 32, fontWeight: 700, marginTop: 4, letterSpacing: "-0.5px" }}>+{Math.round(ringPct * 92)} очк.</div>
+          <div style={{ fontSize: 32, fontWeight: 700, marginTop: 4, letterSpacing: "-0.5px" }}>+<CountUp value={Math.round(ringPct * 92)}/> очк.</div>
           <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, marginTop: 6, maxWidth: "75%" }}>
             Ты прошёл {Math.round(ringPct * 100)}%. Команда рассчитывает на тебя.
           </div>
