@@ -1102,7 +1102,7 @@ function TeamDetailScreen() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
-        <button className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
+        <button onClick={() => navigate("team-settings", { team: t })} className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
           <I.Settings size={18}/>
         </button>
       }/>
@@ -1260,6 +1260,106 @@ function TeamDetailScreen() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* Team settings — full screen opened from the gear in Team detail. Edits are
+   local until "Сохранить" → updateTeam; team detail re-reads the live team by _id. */
+function TeamSettingsScreen() {
+  const { navigate, params } = useNav();
+  const app = useApp();
+  const team = params?.team || {};
+  const [name, setName] = useCS(team.name || "");
+  const [emblem, setEmblem] = useCS(team.emblem || "✨");
+  const [accent, setAccent] = useCS(team.accent || "#fef3c7");
+  const [goal, setGoal] = useCS(team.goal || "");
+  const [priv, setPriv] = useCS(team.vis !== "public");
+  const [notify, setNotify] = useCS(team.notify !== false);
+  const [members, setMembers] = useCS(team.members || []);
+  const emblems = ["✨","🌱","🔥","🌊","🏔","🚀","🎯","🧭"];
+  const accents = ["#fef3c7","#dbe9ff","#d6f3df","#e9dffd","#fde2e2","#ffe1c8","#d4f0eb","#e3e3e3"];
+  const SUGGEST = [
+    { name: "Аля",  initials: "А", color: "#d4c8e8" },
+    { name: "Дима", initials: "Д", color: "#a8c0e8" },
+    { name: "Соня", initials: "С", color: "#e8b8d4" },
+  ];
+  const removeMember = (i) => setMembers(ms => ms.filter((_, j) => j !== i));
+  const invite = (p) => setMembers(ms => ms.some(m => m.name === p.name) ? ms : [...ms, { ...p, pct: 0 }]);
+  const save = () => {
+    app?.updateTeam(team._id, { name: name.trim() || team.name, emblem, accent, goal: goal.trim() || team.goal, vis: priv ? "private" : "public", notify, members });
+    navigate("team-detail", { team });
+  };
+  const del = () => { navigate("community"); app?.removeTeam(team._id); };
+  const card = { background: "#fff", borderRadius: 18, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" };
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader title="Настройки команды" onBack={() => navigate("team-detail", { team })} />
+
+      <div className="section-label">Название</div>
+      <input className="bos-input" value={name} onChange={e => setName(e.target.value)} style={{ marginTop: 8 }} />
+
+      <div className="section-label" style={{ marginTop: 22 }}>Эмблема</div>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "8px -16px 0", padding: "0 16px 4px", scrollbarWidth: "none" }}>
+        {emblems.map(e => (
+          <button key={e} onClick={() => setEmblem(e)} className="tap" style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 14, fontSize: 22, lineHeight: 1, background: e === emblem ? "#0a0a0a" : "#f1f1f3", border: 0 }}>{e}</button>
+        ))}
+      </div>
+
+      <div className="section-label" style={{ marginTop: 22 }}>Цвет</div>
+      <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+        {accents.map(c => (
+          <button key={c} onClick={() => setAccent(c)} className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: c, border: c === accent ? "3px solid #0a0a0a" : "3px solid transparent" }}/>
+        ))}
+      </div>
+
+      <div className="section-label" style={{ marginTop: 22 }}>Цель команды</div>
+      <input className="bos-input" value={goal} onChange={e => setGoal(e.target.value)} placeholder="напр. 50 добрых дел" style={{ marginTop: 8 }} />
+
+      <div style={{ ...card, padding: "2px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 0" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, color: "var(--text-2)" }}>Приватная команда</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Только по приглашению</div>
+          </div>
+          <Switch on={priv} onChange={setPriv} />
+        </div>
+        <div style={{ height: 1, background: "var(--line)" }}/>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 0" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, color: "var(--text-2)" }}>Уведомления</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Когда участники отмечаются</div>
+          </div>
+          <Switch on={notify} onChange={setNotify} />
+        </div>
+      </div>
+
+      <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length})</div>
+      <div style={{ ...card, padding: "8px 16px" }}>
+        {members.map((m, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0" }}>
+            <span style={{ width: 36, height: 36, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "#fff", fontWeight: 600, fontSize: 13 }}>{m.initials}</span>
+            <div style={{ flex: 1, fontSize: 15, color: "var(--text-2)" }}>{m.name}</div>
+            <button onClick={() => removeMember(i)} className="tap" aria-label="Убрать" style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--surface-3)", border: 0, color: "var(--text-3)", fontSize: 17, lineHeight: 1 }}>×</button>
+          </div>
+        ))}
+        {members.length === 0 && <div style={{ fontSize: 13, color: "var(--text-4)", padding: "6px 0" }}>Пока никого. Пригласи друзей ниже.</div>}
+      </div>
+      {SUGGEST.filter(p => !members.some(m => m.name === p.name)).length > 0 && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          {SUGGEST.filter(p => !members.some(m => m.name === p.name)).map((p, i) => (
+            <button key={i} onClick={() => invite(p)} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 5px", borderRadius: 999, background: "#fff", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-3)", fontSize: 12, fontWeight: 500 }}>
+              <span style={{ width: 22, height: 22, borderRadius: "50%", background: p.color, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.initials}</span>
+              {p.name} <I.Plus size={12}/>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <button className="bos-btn" style={{ marginTop: 28 }} onClick={save}>Сохранить</button>
+      <button onClick={del} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
+        Удалить команду
+      </button>
     </div>
   );
 }

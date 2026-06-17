@@ -44,6 +44,7 @@ const SCREENS = {
   community: () => CommunityScreen,
   "team-create": () => TeamCreateScreen,
   "team-detail": () => TeamDetailScreen,
+  "team-settings": () => TeamSettingsScreen,
   "course-detail": () => CourseDetailScreen,
   "contact-detail": () => ContactDetailScreen,
   profile: () => ProfileScreen,
@@ -101,7 +102,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v35";
+const APP_VERSION = "v36";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
