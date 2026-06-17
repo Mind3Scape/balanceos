@@ -134,7 +134,7 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
     <div style={{ position: "relative", overflow: "hidden", touchAction: "pan-y" }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
       onClickCapture={onClickCapture}>
-      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: rowBg }}>
+      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: rowBg, isolation: "isolate", zIndex: 0 }}>
         {actions.map((a, i) => {
           const ts = swipeTone(a.tone, dark);
           return (
