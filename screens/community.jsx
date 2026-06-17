@@ -1081,11 +1081,13 @@ function TeamDetailScreen() {
   const { navigate, params } = useNav();
   const app = useApp();
   const { open: openSheet } = useSheet();
+  const [expandedMember, setExpandedMember] = useCS(null);
   const passed = params?.team || { _id: "seed-1", name: "Команда креаторов", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0.62, members: [] };
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   const accent = t.accent || "#fef3c7";
   const members = t.members?.length ? t.members : [{name:"Ник",initials:"Н",pct:19,color:"#a8b9d4"}];
+  const ranked = [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // leaderboard
   const DEFAULT_TEAM_HABITS = [
     { id: 1, emoji: "🙏", name: "Добрые дела",  isMain: true,  doneToday: 8,  total: 9, weekPct: 0.78, week:[1,1,0,1,1,1,1] },
     { id: 2, emoji: "🧘🏼‍♀️", name: "Групповая медитация", isMain: false, doneToday: 6, total: 9, weekPct: 0.65, week:[1,0,1,1,0,1,1] },
@@ -1177,8 +1179,14 @@ function TeamDetailScreen() {
             <span style={{ width: 40, height: 40, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{h.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: "var(--text)" }}>{h.name}</div>
-              <div className="bos-progress" style={{ marginTop: 6 }}>
-                <span style={{ width: Math.round(h.weekPct*100)+"%" }}/>
+              {/* Last 7 days — green when the team hit it that day */}
+              <div style={{ display: "flex", gap: 4, marginTop: 7 }}>
+                {(h.week || [0,0,0,0,0,0,0]).map((d, di) => (
+                  <span key={di} title={["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][di]} style={{
+                    width: 13, height: 13, borderRadius: 4,
+                    background: d ? "#34C759" : "var(--surface-3)",
+                  }}/>
+                ))}
               </div>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -1192,20 +1200,50 @@ function TeamDetailScreen() {
         </button>
       </div>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length})</div>
+      <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length}) · по вкладу</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {members.map((m,i)=>(
-          <div key={i} style={{ background: "var(--card)", borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-            <span style={{ width: 40, height: 40, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "#fff", fontWeight: 600 }}>{m.initials}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15 }}>{m.name}</div>
-              <div className="bos-progress" style={{ marginTop: 4 }}>
-                <span style={{ width: m.pct+"%" }} />
+        {ranked.map((m,i)=>{
+          const isLeader = i === 0 && (m.pct || 0) > 0;
+          const expanded = expandedMember === m.name;
+          const todayDone = m.todayDone ?? 0;
+          const todayTotal = m.todayTotal ?? teamHabits.length;
+          return (
+          <div key={i} style={{ background: "var(--card)", borderRadius: 16, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+            <button onClick={() => setExpandedMember(expanded ? null : m.name)} className="tap"
+              style={{ width: "100%", background: "transparent", border: 0, padding: 12, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
+              <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "#fff", fontWeight: 600, flexShrink: 0 }}>
+                {m.initials}
+                {isLeader && <span style={{ position: "absolute", top: -7, right: -5, fontSize: 14 }}>👑</span>}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, display: "flex", alignItems: "center", gap: 7 }}>
+                  {m.name}
+                  {isLeader && <span style={{ fontSize: 9, fontWeight: 700, color: "#9A7B0A", background: "#FEF3C7", padding: "2px 7px", borderRadius: 999, textTransform: "uppercase", letterSpacing: 0.4 }}>Лидер</span>}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, display: "flex", gap: 10 }}>
+                  <span>🔥 {m.streak ?? 0}</span>
+                  <span>сегодня {todayDone}/{todayTotal}</span>
+                </div>
               </div>
-            </div>
-            <span style={{ fontSize: 13, color: "var(--text-4)" }}>{m.pct}%</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{m.pct}%</span>
+              <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}/>
+            </button>
+            {expanded && (
+              <div style={{ padding: "0 14px 14px 64px", display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {teamHabits.length === 0 && <span style={{ fontSize: 12, color: "var(--text-4)" }}>Нет общих привычек.</span>}
+                {teamHabits.map((h, hi) => {
+                  const did = hi < todayDone;
+                  return (
+                    <span key={hi} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, padding: "4px 9px", borderRadius: 999, background: did ? "#0a0a0a" : "var(--surface-3)", color: did ? "#fff" : "var(--text-4)" }}>
+                      <span style={{ fontSize: 13 }}>{h.emoji}</span>{h.name}{did && <I.Check size={11} strokeWidth={3}/>}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="section-label" style={{ marginTop: 22 }}>Активность</div>
