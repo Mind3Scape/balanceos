@@ -399,6 +399,76 @@ function HomeScreen() {
         </div>
       </div>
       )}
+
+      {/* Invite / share the app — friendly card with an avatar pile */}
+      <button className="tap" onClick={() => openSheet(<ShareAppSheet dark={isDark} />)}
+        style={{ marginTop: 12, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "16px 18px", boxShadow: cardShadow, color: "var(--text)", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
+          <I.Share size={20} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>Поделиться приложением</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2 }}>Позови друзей — вместе в балансе</div>
+        </div>
+        <div style={{ display: "flex", flexShrink: 0 }}>
+          {[{ c: "#e8c8a8", i: "А" }, { c: "#a8d4e8", i: "В" }, { c: "#d4b8e8", i: "Л" }].map((p, idx) => (
+            <span key={idx} style={{ width: 30, height: 30, borderRadius: "50%", background: p.c, border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: idx ? -10 : 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
+          ))}
+        </div>
+      </button>
+    </div>
+  );
+}
+
+/* ── Share-the-app sheet (slides up from the home "Поделиться приложением") ── */
+function ShareAppSheet({ dark = false }) {
+  const { close } = useSheet();
+  const C = dark
+    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.09)" }
+    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", line: "rgba(0,0,0,0.06)" };
+  const friends = [
+    { name: "Катя", i: "К", c: "#f0c8a8" }, { name: "Дима", i: "Д", c: "#a8c0e8" },
+    { name: "Соня", i: "С", c: "#e8b8d4" }, { name: "Ник", i: "Н", c: "#b8e8c8" }, { name: "Аля", i: "А", c: "#d4c8e8" },
+  ];
+  const targets = [{ e: "💬", t: "Сообщения" }, { e: "🔗", t: "Ссылка" }, { e: "📷", t: "Истории" }, { e: "•••", t: "Ещё" }];
+  return (
+    <div style={{ padding: "2px 20px 0", color: C.text }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", margin: "0 auto 12px",
+          background: "radial-gradient(circle at 38% 30%, #ffffff 0%, #bfe2ff 16%, #5fa8ff 40%, #2b6fe0 62%, #16306a 88%)",
+          boxShadow: "0 8px 24px rgba(64,150,255,0.4)" }} />
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться BalanceOS</div>
+        <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>Вместе держать баланс проще — позови друга</div>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.tile, borderRadius: 14, padding: "11px 14px", marginTop: 20 }}>
+        <span style={{ fontSize: 16 }}>🔗</span>
+        <div style={{ flex: 1, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>balanceos.app/i/tim</div>
+        <button className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 600 }}>Копировать</button>
+      </div>
+
+      <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "20px 0 12px" }}>Предложить друзьям</div>
+      <div style={{ display: "flex", gap: 14, overflowX: "auto", margin: "0 -20px", padding: "0 20px 4px", scrollbarWidth: "none" }}>
+        {friends.map((p, i) => (
+          <button key={i} className="tap" style={{ background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0, width: 56, color: C.text }}>
+            <span style={{ width: 54, height: 54, borderRadius: "50%", background: p.c, display: "grid", placeItems: "center", fontSize: 19, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
+            <span style={{ fontSize: 12, color: C.sub }}>{p.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ height: 1, background: C.line, margin: "18px 0" }} />
+
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        {targets.map((t, i) => (
+          <button key={i} className="tap" style={{ flex: 1, background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, color: C.text }}>
+            <span style={{ width: 54, height: 54, borderRadius: "50%", background: C.tile, display: "grid", placeItems: "center", fontSize: 22 }}>{t.e}</span>
+            <span style={{ fontSize: 11, color: C.sub }}>{t.t}</span>
+          </button>
+        ))}
+      </div>
+
+      <button className="tap" onClick={close} style={{ width: "100%", marginTop: 22, background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>Готово</button>
     </div>
   );
 }
