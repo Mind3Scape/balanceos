@@ -101,7 +101,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v16";
+const APP_VERSION = "v17";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -116,6 +116,13 @@ function PhoneApp() {
   const [frames, setFrames] = useState([{ route: START_ROUTE, params: {}, id: 0 }]);
   const [anim, setAnim] = useState(null); // { dir, prevFrame }
   const idRef = useRef(1);
+
+  // Interactive edge-swipe-back: drag from the left edge to pop, finger-tracked.
+  const [drag, setDrag] = useState(null); // { dx, w, releasing } during/just-after a drag
+  const dragRef = useRef(null);
+  const stackRef = useRef(null);
+  const EDGE_ZONE = 26;  // px from the left edge that arms the gesture
+  const DRAG_THRESH = 8; // px of travel before we lock to a horizontal drag
 
   useEffect(() => {
     applyTweaks(TWEAK_DEFAULTS);
@@ -170,6 +177,16 @@ function PhoneApp() {
     document.body.style.background = bg;
   }, [top.route, topDark]);
 
+  // Safety net: clear the transition even if `animationend` never fires — e.g.
+  // the installed PWA is backgrounded mid-animation (iOS freezes the animation
+  // clock), or a throttled tab. Without this, a stuck `anim` would freeze the
+  // page stack and block the edge-swipe gesture (which needs a settled state).
+  useEffect(() => {
+    if (!anim) return undefined;
+    const t = window.setTimeout(() => setAnim(null), 520);
+    return () => window.clearTimeout(t);
+  }, [anim]);
+
   const renderLayer = (frame, animClass, onEnd) => {
     const dark = themeFor(frame.route);
     const inTabs = TAB_ROUTES.has(frame.route);
@@ -188,19 +205,113 @@ function PhoneApp() {
     );
   };
 
+  const renderDragLayer = (frame, style, dimStyle) => {
+    const dark = themeFor(frame.route);
+    const inTabs = TAB_ROUTES.has(frame.route);
+    const full = FULLBLEED_ROUTES.has(frame.route);
+    const Comp = (SCREENS[frame.route] && SCREENS[frame.route]()) || HomeScreen;
+    const cls =
+      "bos-page " + (dark ? "theme-dark" : "theme-light") +
+      (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "");
+    return (
+      <div key={frame.id} className={cls} style={style}>
+        <NavCtx.Provider value={{ route: frame.route, params: frame.params, navigate }}>
+          <Comp />
+        </NavCtx.Provider>
+        {dimStyle && <div className="bos-drag-dim" style={dimStyle} />}
+      </div>
+    );
+  };
+
   const clearAnim = () => setAnim(null);
+
+  // ── Edge-swipe-back gesture (pointer events → works with touch AND mouse) ──
+  const canPop = frames.length > 1 && !anim;
+  const prevFrame = frames.length > 1 ? frames[frames.length - 2] : null;
+
+  const onDragStart = (e) => {
+    if (!canPop || drag) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.clientX > EDGE_ZONE) return;
+    dragRef.current = {
+      id: e.pointerId, x0: e.clientX, y0: e.clientY,
+      w: (stackRef.current && stackRef.current.clientWidth) || window.innerWidth || 1,
+      active: false, dx: 0,
+    };
+  };
+  const onDragMove = (e) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
+    if (!d.active) {
+      if (Math.abs(dx) < DRAG_THRESH && Math.abs(dy) < DRAG_THRESH) return;
+      if (Math.abs(dy) > Math.abs(dx)) { dragRef.current = null; return; } // vertical → let it scroll
+      d.active = true;
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    d.dx = Math.max(0, Math.min(dx, d.w));
+    if (e.cancelable) e.preventDefault();
+    setDrag({ dx: d.dx, w: d.w, releasing: false });
+  };
+  const onDragEnd = (e) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    dragRef.current = null;
+    if (!d.active) return;
+    const pop = d.dx > d.w * 0.4;
+    if (pop) { try { haptic(); } catch (_) {} }
+    setDrag({ dx: pop ? d.w : 0, w: d.w, releasing: true });
+    window.setTimeout(() => {
+      if (pop) setFrames((f) => (f.length > 1 ? f.slice(0, -1) : f));
+      setDrag(null);
+    }, 300);
+  };
+
+  const p = drag ? Math.max(0, Math.min(drag.dx / drag.w, 1)) : 0;
+  const dragTrans = drag && drag.releasing
+    ? "transform 0.3s var(--ios-ease), opacity 0.3s var(--ios-ease)"
+    : "none";
+  const destTab = drag && prevFrame && TAB_ROUTES.has(prevFrame.route) ? prevFrame.route : null;
 
   return (
     <div className="fit-root">
       <div className={"phone-shell " + (topDark ? "is-dark" : "is-light")}>
-        <div className="page-stack">
-          {anim && renderLayer(anim.prevFrame, ANIM[anim.dir].out)}
-          {renderLayer(top, anim ? ANIM[anim.dir].in : "", anim ? clearAnim : undefined)}
+        <div
+          className="page-stack"
+          ref={stackRef}
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+        >
+          {drag && prevFrame ? (
+            <React.Fragment>
+              {renderDragLayer(
+                prevFrame,
+                { transform: "translateX(" + (-24 * (1 - p)).toFixed(2) + "%)", transition: dragTrans, zIndex: 1 },
+                { opacity: 0.18 * (1 - p), transition: dragTrans }
+              )}
+              {renderDragLayer(
+                top,
+                { transform: "translateX(" + drag.dx + "px)", transition: dragTrans, zIndex: 2, boxShadow: "-12px 0 40px rgba(0,0,0,0.18)" },
+                null
+              )}
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              {anim && renderLayer(anim.prevFrame, ANIM[anim.dir].out)}
+              {renderLayer(top, anim ? ANIM[anim.dir].in : "", anim ? clearAnim : undefined)}
+            </React.Fragment>
+          )}
         </div>
         {/* Real OS status bar on installed app; drawn one only in a browser tab. */}
         {!IS_STANDALONE && <StatusBar dark={topDark} />}
-        {topInTabs && (
+        {!drag && topInTabs && (
           <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} />
+        )}
+        {destTab && (
+          <TabBar key="tabbar-drag" active={destTab} dark={themeFor(destTab)}
+            onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} />
         )}
         <div className="bos-version">{APP_VERSION}</div>
       </div>

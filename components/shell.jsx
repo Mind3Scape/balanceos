@@ -55,7 +55,7 @@ function NavProvider({ children, initial = "home" }) {
 const useNav = () => React.useContext(NavCtx);
 
 // Bottom tab bar
-function TabBar({ active, dark = false, onTab }) {
+function TabBar({ active, dark = false, onTab, style }) {
   const tabs = [
     { id: "home", icon: "Home" },
     { id: "habits", icon: "Bolt" },
@@ -64,7 +64,7 @@ function TabBar({ active, dark = false, onTab }) {
   ];
   const idx = Math.max(0, tabs.findIndex(t => t.id === active));
   return (
-    <div className={"bos-tabbar " + (dark ? "dark" : "")}>
+    <div className={"bos-tabbar " + (dark ? "dark" : "")} style={style}>
       {/* Liquid-glass selection lens — springs between tabs. */}
       <span className="bos-tab-lens" style={{ transform: "translateX(" + (idx * 100) + "%)" }} />
       {tabs.map(t => (

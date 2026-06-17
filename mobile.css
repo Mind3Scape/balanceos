@@ -75,6 +75,15 @@ body {
   backface-visibility: hidden;
 }
 
+/* Dim overlay on the incoming screen during an interactive edge-swipe-back. */
+.bos-drag-dim {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  pointer-events: none;
+  z-index: 9998;
+}
+
 /* ── Safe-area insets (the real iOS status bar + home indicator) ──────────── */
 /* Non-immersive pages keep the design's 60px top room (≈ the notch); only the
    bottom needs the home-indicator inset. Immersive screens bake in their own
