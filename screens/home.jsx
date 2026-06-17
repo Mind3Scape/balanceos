@@ -183,6 +183,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
 
 function HomeScreen() {
   const { navigate } = useNav();
+  const { open: openSheet } = useSheet();
   const app = useApp();
   const widgets = app?.widgets || {};
   const mood = app?.mood;
@@ -320,7 +321,7 @@ function HomeScreen() {
           {habits.map((h, idx) => (
             <div key={h.id}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
-                { key: "done", tone: "done", label: h.done ? "Снять" : "Готово", icon: I.Check, onAction: () => toggle(h.id) },
+                { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
               <div className="tap" onClick={() => toggle(h.id)} style={{

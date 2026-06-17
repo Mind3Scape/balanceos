@@ -68,6 +68,31 @@ body {
 }
 .phone-shell.is-dark .bos-version { color: rgba(255,255,255,0.5); }
 
+/* ── Bottom sheet ─────────────────────────────────────────────────────────── */
+.bos-sheet-root { position: absolute; inset: 0; z-index: 300; }
+.bos-sheet-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.42);
+  transition: opacity 0.34s ease;
+}
+.bos-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: #fff;
+  color: #0a0a0a;
+  border-radius: 24px 24px 0 0;
+  padding: 4px 0 calc(22px + var(--bos-safe-bottom));
+  box-shadow: 0 -12px 50px rgba(0,0,0,0.28);
+  max-height: 92%;
+  overflow: hidden;
+  transform: translateY(100%);
+  transition: transform 0.36s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.bos-sheet.is-up { transform: translateY(0); }
+.bos-sheet.is-dark { background: #1c1c1e; color: #fff; box-shadow: 0 -12px 50px rgba(0,0,0,0.6); }
+.bos-sheet-handle { padding: 8px 0 6px; display: flex; justify-content: center; touch-action: none; cursor: grab; }
+.bos-sheet-grab { width: 38px; height: 5px; border-radius: 3px; background: rgba(120,120,128,0.4); }
+.bos-sheet.is-dark .bos-sheet-grab { background: rgba(235,235,245,0.3); }
+
 /* Holds the animating page layers. */
 .page-stack { position: absolute; inset: 0; overflow: hidden; }
 .page-stack > .bos-page {
@@ -109,16 +134,15 @@ body {
    highlight overlay. The selected tab is a brighter glass "lens". */
 .bos-tabbar {
   bottom: max(16px, var(--bos-safe-bottom));
-  background: linear-gradient(to bottom, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 100%);
-  -webkit-backdrop-filter: blur(44px) saturate(235%) brightness(1.10);
-  backdrop-filter: blur(44px) saturate(235%) brightness(1.10);
-  border: 0.5px solid rgba(255,255,255,0.55);
+  background: linear-gradient(to bottom, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 100%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  backdrop-filter: blur(32px) saturate(180%);
+  border: 0.5px solid rgba(255,255,255,0.4);
   box-shadow:
-    0 22px 60px rgba(0,0,0,0.22),
-    0 6px 16px rgba(0,0,0,0.10),
-    inset 0 1.5px 0.5px rgba(255,255,255,1),
-    inset 0 -14px 26px rgba(255,255,255,0.30),
-    inset 0 0 0 0.5px rgba(255,255,255,0.35);
+    0 18px 50px rgba(0,0,0,0.16),
+    0 4px 12px rgba(0,0,0,0.07),
+    inset 0 1px 0.5px rgba(255,255,255,0.75),
+    inset 0 -8px 16px rgba(255,255,255,0.08);
   isolation: isolate;
   animation: tabRaise 0.5s var(--ios-ease) both;
 }
@@ -130,20 +154,19 @@ body {
   pointer-events: none;
   z-index: -1;
   background:
-    radial-gradient(130% 90% at 50% -16%, rgba(255,255,255,0.62) 0%, rgba(255,255,255,0) 60%),
-    linear-gradient(to bottom, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.12) 42%, rgba(255,255,255,0) 76%);
+    radial-gradient(120% 70% at 50% -22%, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 55%),
+    linear-gradient(to bottom, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.05) 36%, rgba(255,255,255,0) 70%);
 }
 .bos-tabbar.dark {
-  background: linear-gradient(to bottom, rgba(62,62,70,0.44), rgba(16,16,20,0.32));
-  -webkit-backdrop-filter: blur(44px) saturate(235%) brightness(1.16);
-  backdrop-filter: blur(44px) saturate(235%) brightness(1.16);
-  border: 0.5px solid rgba(255,255,255,0.18);
+  background: linear-gradient(to bottom, rgba(64,64,72,0.28), rgba(14,14,18,0.18));
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  backdrop-filter: blur(32px) saturate(180%);
+  border: 0.5px solid rgba(255,255,255,0.13);
   box-shadow:
-    0 22px 60px rgba(0,0,0,0.55),
-    0 6px 16px rgba(0,0,0,0.30),
-    inset 0 1.5px 0.5px rgba(255,255,255,0.34),
-    inset 0 -14px 26px rgba(255,255,255,0.06),
-    inset 0 0 0 0.5px rgba(255,255,255,0.10);
+    0 18px 50px rgba(0,0,0,0.5),
+    0 4px 12px rgba(0,0,0,0.28),
+    inset 0 1px 0.5px rgba(255,255,255,0.22),
+    inset 0 -8px 16px rgba(255,255,255,0.04);
 }
 .bos-tabbar.dark::before {
   background: linear-gradient(to bottom, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.03) 40%, rgba(255,255,255,0) 72%);

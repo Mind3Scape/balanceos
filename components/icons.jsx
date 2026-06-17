@@ -23,6 +23,7 @@ const I = {
     : <Icon {...p}><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M14.5 14.2c.8-.3 1.6-.4 2.5-.4 2.5 0 4.5 2 4.5 4.5"/></Icon>,
   Eye: ({filled, ...p}) => <Icon {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
   Check: (p) => <Icon {...p}><path d="M5 12l5 5 9-11"/></Icon>,
+  Share: (p) => <Icon {...p}><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M8 11H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></Icon>,
   Plus: (p) => <Icon {...p}><path d="M12 5v14M5 12h14"/></Icon>,
   ChevronRight: (p) => <Icon {...p}><path d="M9 6l6 6-6 6"/></Icon>,
   ChevronLeft: (p) => <Icon {...p}><path d="M15 6l-6 6 6 6"/></Icon>,

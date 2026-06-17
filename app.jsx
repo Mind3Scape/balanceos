@@ -101,7 +101,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v25";
+const APP_VERSION = "v26";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -123,6 +123,13 @@ function PhoneApp() {
   const stackRef = useRef(null);
   const EDGE_ZONE = 26;  // px from the left edge that arms the gesture
   const DRAG_THRESH = 8; // px of travel before we lock to a horizontal drag
+
+  // App-wide bottom sheet (share, etc.), opened from any screen via useSheet().
+  const [sheet, setSheet] = useState(null);
+  const sheetApi = React.useMemo(() => ({
+    open: (node) => setSheet(node),
+    close: () => setSheet(null),
+  }), []);
 
   useEffect(() => {
     applyTweaks(TWEAK_DEFAULTS);
@@ -273,6 +280,7 @@ function PhoneApp() {
   const destTab = drag && prevFrame && TAB_ROUTES.has(prevFrame.route) ? prevFrame.route : null;
 
   return (
+    <SheetCtx.Provider value={sheetApi}>
     <div className="fit-root">
       <div className={"phone-shell " + (topDark ? "is-dark" : "is-light")}>
         <div
@@ -313,8 +321,10 @@ function PhoneApp() {
             onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} />
         )}
         <div className="bos-version">{APP_VERSION}</div>
+        <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
       </div>
     </div>
+    </SheetCtx.Provider>
   );
 }
 

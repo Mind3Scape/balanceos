@@ -80,6 +80,7 @@ function TabBar({ active, dark = false, onTab, style }) {
 /* iOS-app swipe-action circle colors, theme-adaptive. */
 function swipeTone(tone, dark) {
   if (tone === "delete") return dark ? { bg: "rgba(255,255,255,0.12)", fg: "#FF453A" } : { bg: "#f0f0f2", fg: "#FF3B30" };
+  if (tone === "share")  return dark ? { bg: "rgba(255,255,255,0.14)", fg: "#ffffff" } : { bg: "#eceef2", fg: "#0a0a0a" };
   return dark ? { bg: "#ffffff", fg: "#0a0a0a" } : { bg: "#0a0a0a", fg: "#ffffff" }; // done
 }
 
@@ -156,6 +157,62 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
   );
 }
 
+/* ── Bottom sheet (iOS-style) ───────────────────────────────────────────────
+   Slides up from the bottom over a dimmed backdrop, with a grabber you can drag
+   down (or tap the backdrop) to dismiss. Opened app-wide via useSheet(). */
+const SheetCtx = React.createContext({ open: () => {}, close: () => {} });
+const useSheet = () => React.useContext(SheetCtx);
+
+function BottomSheet({ open, onClose, children, dark = false }) {
+  const [render, setRender] = useState(open);
+  const [shown, setShown] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const drag = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      setRender(true);
+      // setTimeout (not rAF) so it still animates while the tab is backgrounded.
+      const t = window.setTimeout(() => setShown(true), 20);
+      return () => window.clearTimeout(t);
+    }
+    if (render) {
+      setShown(false);
+      const t = window.setTimeout(() => { setRender(false); setDragY(0); }, 340);
+      return () => window.clearTimeout(t);
+    }
+  }, [open]); // eslint-disable-line
+
+  if (!render) return null;
+
+  const onDown = (e) => {
+    drag.current = { y0: e.clientY, id: e.pointerId, dy: 0 };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+  };
+  const onMove = (e) => {
+    const c = drag.current; if (!c || c.id !== e.pointerId) return;
+    c.dy = Math.max(0, e.clientY - c.y0);
+    setDragY(c.dy);
+  };
+  const onUp = () => {
+    const c = drag.current; if (!c) return; drag.current = null;
+    if (c.dy > 110) onClose(); else setDragY(0);
+  };
+
+  return (
+    <div className="bos-sheet-root">
+      <div className="bos-sheet-backdrop" onClick={onClose} style={{ opacity: shown ? 1 : 0 }} />
+      <div className={"bos-sheet " + (dark ? "is-dark " : "") + (shown ? "is-up" : "")}
+        style={shown ? { transform: "translateY(" + dragY + "px)", transition: drag.current ? "none" : undefined } : undefined}>
+        <div className="bos-sheet-handle" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+          <div className="bos-sheet-grab" />
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /*
  * Page header — uses the theme-* class on a parent for colors. Pass `dark`
  * only when the screen is on a custom dark hero where the parent class
@@ -210,7 +267,7 @@ function Segmented({ options, value, onChange }) {
   );
 }
 
-Object.assign(window, { Phone, StatusBar, NavProvider, useNav, TabBar, PageHeader, Switch, Segmented, NavCtx, SwipeRow });
+Object.assign(window, { Phone, StatusBar, NavProvider, useNav, TabBar, PageHeader, Switch, Segmented, NavCtx, SwipeRow, SheetCtx, useSheet, BottomSheet });
 
 /* ── Moods used across Home / Mood picker / Calendar ─────────────────
    Colors are saturated so the orb gradient (white → c → deep(c) → black)

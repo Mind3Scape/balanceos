@@ -41,8 +41,65 @@ function AvatarStack({ people = [], size = 18, max = 3, label = true }) {
   );
 }
 
+/* ── Share-a-habit sheet (slides up from a row's swipe "Поделиться") ───────── */
+function ShareHabitSheet({ habit, dark = false }) {
+  const { close } = useSheet();
+  const C = dark
+    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.09)", ring: "#1c1c1e" }
+    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", line: "rgba(0,0,0,0.06)", ring: "#fff" };
+  const [friends, setFriends] = useHS([
+    { name: "Анна", i: "А", c: "#e8c8a8", on: true },
+    { name: "Марк", i: "М", c: "#a8b9d4", on: true },
+    { name: "Лена", i: "Л", c: "#d4b8e8", on: false },
+    { name: "Вик",  i: "В", c: "#a8d4e8", on: false },
+    { name: "Том",  i: "Т", c: "#b8e8c8", on: false },
+  ]);
+  const toggleF = (idx) => setFriends(f => f.map((x, i) => i === idx ? { ...x, on: !x.on } : x));
+  const targets = [{ e: "💬", t: "Сообщения" }, { e: "🔗", t: "Ссылка" }, { e: "📷", t: "Истории" }, { e: "•••", t: "Ещё" }];
+  return (
+    <div style={{ padding: "2px 20px 0", color: C.text }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{habit?.emoji || "✨"}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться привычкой</div>
+        <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>«{habit?.name || "Привычка"}» — зовите друзей делать вместе</div>
+      </div>
+
+      <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "22px 0 12px" }}>Делать вместе</div>
+      <div style={{ display: "flex", gap: 14, overflowX: "auto", margin: "0 -20px", padding: "0 20px 4px", scrollbarWidth: "none" }}>
+        {friends.map((p, i) => (
+          <button key={i} className="tap" onClick={() => toggleF(i)} style={{ background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0, width: 56, color: C.text }}>
+            <span style={{ position: "relative", width: 54, height: 54, borderRadius: "50%", background: p.c, display: "grid", placeItems: "center", fontSize: 19, fontWeight: 700, color: "rgba(0,0,0,0.55)", opacity: p.on ? 1 : 0.45, transition: "opacity 0.2s" }}>
+              {p.i}
+              {p.on && <span style={{ position: "absolute", right: -2, bottom: -2, width: 20, height: 20, borderRadius: "50%", background: "#34c759", border: "2px solid " + C.ring, display: "grid", placeItems: "center" }}><I.Check size={11} strokeWidth={3} color="#fff" /></span>}
+            </span>
+            <span style={{ fontSize: 12, color: C.sub }}>{p.name}</span>
+          </button>
+        ))}
+        <button className="tap" style={{ background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0, width: 56, color: C.sub }}>
+          <span style={{ width: 54, height: 54, borderRadius: "50%", border: "1.5px dashed " + C.sub, display: "grid", placeItems: "center" }}><I.Plus size={20} /></span>
+          <span style={{ fontSize: 12 }}>Позвать</span>
+        </button>
+      </div>
+
+      <div style={{ height: 1, background: C.line, margin: "18px 0" }} />
+
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        {targets.map((t, i) => (
+          <button key={i} className="tap" style={{ flex: 1, background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, color: C.text }}>
+            <span style={{ width: 54, height: 54, borderRadius: "50%", background: C.tile, display: "grid", placeItems: "center", fontSize: 22 }}>{t.e}</span>
+            <span style={{ fontSize: 11, color: C.sub }}>{t.t}</span>
+          </button>
+        ))}
+      </div>
+
+      <button className="tap" onClick={close} style={{ width: "100%", marginTop: 22, background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>Готово</button>
+    </div>
+  );
+}
+
 function HabitsScreen() {
   const { navigate } = useNav();
+  const { open: openSheet } = useSheet();
   const wrapRef = React.useRef(null);
   const [isDark, setIsDark] = useHS(false);
   React.useEffect(() => {
@@ -143,7 +200,7 @@ function HabitsScreen() {
           {habits.map((h, idx) => (
             <div key={h.id}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
-                { key: "done", tone: "done", label: h.done ? "Снять" : "Готово", icon: I.Check, onAction: () => toggle(h.id) },
+                { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
                 <div className="tap"
@@ -369,6 +426,7 @@ function HabitSettingsScreen() {
 window.HabitsScreen = HabitsScreen;
 window.HabitSettingsScreen = HabitSettingsScreen;
 window.AvatarStack = AvatarStack;
+window.ShareHabitSheet = ShareHabitSheet;
 
 /* ─── GOAL SETTINGS — create / edit a goal ─────────────────────── */
 function GoalSettingsScreen() {
