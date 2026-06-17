@@ -50,6 +50,22 @@ body {
 }
 .phone-shell.is-dark { background: #0a0a0a; }
 
+/* Barely-there build stamp, bottom-right corner — clear of the centered tab
+   pill and the home indicator. Adapts to the active theme. */
+.bos-version {
+  position: absolute;
+  right: 10px;
+  bottom: 4px;
+  z-index: 70;
+  font: 600 9px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  letter-spacing: 0.4px;
+  color: rgba(0,0,0,0.26);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.phone-shell.is-dark .bos-version { color: rgba(255,255,255,0.26); }
+
 /* Holds the animating page layers. */
 .page-stack { position: absolute; inset: 0; overflow: hidden; }
 .page-stack > .bos-page {

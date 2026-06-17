@@ -100,6 +100,10 @@ const IS_STANDALONE =
   ((window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
     window.navigator.standalone === true);
 
+// Build tag — shown as a faint watermark bottom-right + logged to console.
+const APP_VERSION = "v16";
+try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
+
 /* Animation class names per navigation direction. */
 const ANIM = {
   push: { out: "anim-push-out", in: "anim-push-in" },
@@ -198,14 +202,11 @@ function PhoneApp() {
         {topInTabs && (
           <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} />
         )}
+        <div className="bos-version">{APP_VERSION}</div>
       </div>
     </div>
   );
 }
-
-// Build tag (logged to console only).
-const APP_VERSION = "v15";
-try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 function Root() {
   return (
