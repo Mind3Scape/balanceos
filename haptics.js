@@ -5,26 +5,43 @@
    nothing. So to make any control buzz on tap, we overlay an invisible,
    full-size real switch on top of each LEAF control — the finger lands on the
    switch (→ tick) and the click bubbles through to the control (→ its own
-   action still runs). A MutationObserver keeps freshly-rendered controls
-   covered as the React app navigates / re-renders.
+   action still runs).
 
-   iOS still mutes these haptics in Low Power Mode and when Settings → Sounds &
-   Haptics → System Haptics is off. Silent no-op wherever unsupported. */
+   SELF-HEALING: React can wipe an injected overlay when it updates a control's
+   text (a single-text-child update sets textContent, which removes our child —
+   this happened on the onboarding's reused "Далее" button). So we never mark a
+   control "done"; we re-add the overlay whenever it's missing, driven by a
+   MutationObserver plus a low-frequency interval.
+
+   iOS still mutes these haptics in Low Power Mode and when System Haptics is
+   off. Silent no-op wherever unsupported. */
 (function () {
   "use strict";
   var SEL = "button, [role='button'], a[href], .tap";
-  // A control is a "leaf" only if it holds no other tappable inside it.
   var INTERACTIVE = "button, a[href], input, select, textarea, [role='button'], .tap";
-  var FLAG = "data-haptic-on";
+
+  function hasOverlay(host) {
+    for (var i = 0; i < host.children.length; i++) {
+      if (host.children[i].className === "bos-haptic-overlay") return true;
+    }
+    return false;
+  }
+
+  // A "leaf" holds no other tappable (ignoring our own overlay), so covering it
+  // won't swallow a nested control's taps.
+  function isLeaf(host) {
+    var found = host.querySelectorAll(INTERACTIVE);
+    for (var i = 0; i < found.length; i++) {
+      if (!found[i].closest(".bos-haptic-overlay")) return false;
+    }
+    return true;
+  }
 
   function enhance(host) {
     if (!host || host.nodeType !== 1) return;
-    if (host.hasAttribute(FLAG)) return;
     if (host.closest("[data-no-haptic]")) return;
-    // Never cover a control that contains other controls (e.g. a row holding a
-    // check button) — that would swallow their taps. Enhance the leaves instead.
-    if (host.querySelector(INTERACTIVE)) return;
-    host.setAttribute(FLAG, "1");
+    if (hasOverlay(host)) return;   // already covered (re-checks every scan → self-heals)
+    if (!isLeaf(host)) return;      // contains a real nested control → enhance its leaves
     if (window.getComputedStyle(host).position === "static") host.style.position = "relative";
     var lab = document.createElement("label");
     lab.className = "bos-haptic-overlay";
@@ -60,9 +77,12 @@
       if (queued) return;
       queued = true;
       // setTimeout (not rAF) so it still fires while the tab/PWA is backgrounded.
-      setTimeout(function () { queued = false; scan(); }, 50);
+      setTimeout(function () { queued = false; scan(); }, 80);
     });
     mo.observe(document.body, { childList: true, subtree: true });
+    // Safety net: re-heal overlays a re-render may have wiped between mutations
+    // (e.g. the 60fps onboarding updating a reused button's text).
+    setInterval(scan, 1000);
   }
 
   if (document.body) start();

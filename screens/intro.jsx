@@ -532,7 +532,15 @@ function IntroScreen() {
     }}>
       <StarField count={dark ? 60 : 34} opacity={dark ? 0.45 : 0.5} dark={dark}/>
 
-      <div style={{ position: "relative", padding: "60px 24px 0", display: "flex", gap: 4, zIndex: 2 }}>
+      {/* Instagram-stories tap zones: left → back, right → forward. They sit
+         behind the content (the orb/text above are click-through) while the
+         bottom buttons stay on top, so the central area navigates by tap. */}
+      <div className="tap" aria-label="Назад" onClick={() => { if (step > 0) go(step - 1); }}
+        style={{ position: "absolute", left: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
+      <div className="tap" aria-label="Вперёд" onClick={() => { last ? navigate("signup") : go(step + 1); }}
+        style={{ position: "absolute", right: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
+
+      <div style={{ position: "relative", padding: "60px 24px 0", display: "flex", gap: 4, zIndex: 2, pointerEvents: "none" }}>
         {slides.map((_, i) => (
           <div key={i} style={{ flex: 1, height: 2.5, borderRadius: 999, background: i < step ? pal.barDone : pal.barTrack, position: "relative", overflow: "hidden" }}>
             {i === step && <div style={{ position: "absolute", inset: 0, background: pal.barOn, animation: "introBar 5.2s linear forwards" }}/>}
@@ -540,15 +548,15 @@ function IntroScreen() {
         ))}
       </div>
 
-      <Reveal k={"eb"+step} delay={0.05} style={{ position: "relative", padding: "24px 24px 0", textAlign: "center", zIndex: 2 }}>
+      <Reveal k={"eb"+step} delay={0.05} style={{ position: "relative", padding: "24px 24px 0", textAlign: "center", zIndex: 2, pointerEvents: "none" }}>
         <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: pal.eyebrow, fontWeight: 600 }}>{cur.eyebrow}</div>
       </Reveal>
 
-      <div style={{ flex: 1, display: "grid", placeItems: "center", position: "relative", zIndex: 2 }}>
+      <div style={{ flex: 1, display: "grid", placeItems: "center", position: "relative", zIndex: 2, pointerEvents: "none" }}>
         <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark}/>
       </div>
 
-      <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 130 }}>
+      <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 130, pointerEvents: "none" }}>
         <Reveal k={"ti"+step} delay={0.25}>
           <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.8px", textWrap: "balance", maxWidth: 300, margin: "0 auto", color: pal.title }}>{cur.title}</div>
         </Reveal>
@@ -578,10 +586,8 @@ function IntroScreen() {
             {step === 0 ? "Начать" : (cur.mode === "habits" ? "Войти" : "Далее")}
           </button>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 12 }}>
           <button onClick={() => navigate("signup")} className="tap" style={{ background: "transparent", border: 0, color: pal.ghost, fontSize: 12 }}>Пропустить</button>
-          <div style={{ fontSize: 11, color: pal.count, letterSpacing: 1 }}>{String(step+1).padStart(2,"0")} / {String(slides.length).padStart(2,"0")}</div>
-          {step > 0 ? <button onClick={() => go(step-1)} className="tap" style={{ background: "transparent", border: 0, color: pal.ghost, fontSize: 12 }}>← Назад</button> : <span style={{ width: 40 }}/>}
         </div>
       </div>
 
