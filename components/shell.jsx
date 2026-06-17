@@ -273,12 +273,12 @@ Object.assign(window, { Phone, StatusBar, NavProvider, useNav, TabBar, PageHeade
    Colors are saturated so the orb gradient (white → c → deep(c) → black)
    reads as a vivid sphere instead of a pastel disc. */
 const MOOD_OPTIONS = [
-  { i: "😌", t: "Спокойствие", c: "#5FA8FF" },
-  { i: "⚡️", t: "Энергия",     c: "#FFC22E" },
-  { i: "😔", t: "Упадок",      c: "#8B8FA3" },
-  { i: "😤", t: "Стресс",      c: "#FF5C6F" },
-  { i: "🙂", t: "Ровно",       c: "#3FC57E" },
-  { i: "🔥", t: "В огне",      c: "#FF7A2E" },
+  { i: "🤩", t: "Энергия",     c: "#FFC22E" },
+  { i: "😊", t: "Радость",      c: "#5BC57E" },
+  { i: "😌", t: "Спокойствие",  c: "#5FA8FF" },
+  { i: "😣", t: "Тревога",      c: "#FF5C6F" },
+  { i: "😔", t: "Упадок",       c: "#6B7A99" },
+  { i: "😮‍💨", t: "Усталость",   c: "#8B8FA3" },
 ];
 
 /* ── App-wide ephemeral state ───────────────────────────────────────
