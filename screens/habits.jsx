@@ -288,6 +288,13 @@ function HabitSettingsScreen() {
   const [color, setColor] = useHS("#0a0a0a");
   const [goal, setGoal] = useHS(1);
   const [reminderOn, setReminderOn] = useHS(true);
+  const [shareOn, setShareOn] = useHS(true);
+  const [shareFriends, setShareFriends] = useHS([
+    { name: "Анна", i: "А", c: "#e8c8a8", on: true },
+    { name: "Марк", i: "М", c: "#a8b9d4", on: true },
+    { name: "Лена", i: "Л", c: "#d4b8e8", on: false },
+    { name: "Вик",  i: "В", c: "#a8d4e8", on: false },
+  ]);
   const [type, setType] = useHS("build");
 
   return (
@@ -308,11 +315,14 @@ function HabitSettingsScreen() {
             <div style={{ fontSize: 13, color: "var(--text-4)" }}>Иконка</div>
           </div>
         </button>
-        <button className="tap" onClick={() => {}}
+        <button className="tap" onClick={() => {
+          const PAL = ["#0a0a0a","#FF3B30","#FF9500","#34C759","#0A84FF","#AF52DE"];
+          setColor(c => PAL[(PAL.indexOf(c) + 1) % PAL.length] || PAL[0]);
+        }}
           style={{ background: "#fff", border: 0, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-          <div style={{ width: 50, height: 50, borderRadius: 12, background: color }} />
+          <div style={{ width: 50, height: 50, borderRadius: 12, background: color, transition: "background 0.2s" }} />
           <div style={{ textAlign: "left" }}>
-            <div style={{ fontWeight: 500, fontSize: 16 }}>Оникс</div>
+            <div style={{ fontWeight: 500, fontSize: 16 }}>{({ "#0a0a0a": "Оникс", "#FF3B30": "Алый", "#FF9500": "Янтарь", "#34C759": "Лес", "#0A84FF": "Океан", "#AF52DE": "Аметист" })[color] || "Цвет"}</div>
             <div style={{ fontSize: 13, color: "var(--text-4)" }}>Цвет</div>
           </div>
         </button>
@@ -365,16 +375,11 @@ function HabitSettingsScreen() {
             Делать это вместе
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Друзья видят, когда ты отмечаешься. Они могут поддержать или подтолкнуть.</div>
           </div>
-          <Switch on={true} onChange={() => {}} />
+          <Switch on={shareOn} onChange={setShareOn} />
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-          {[
-            { name: "Анна",  i: "А", c: "#e8c8a8", on: true },
-            { name: "Марк",  i: "М", c: "#a8b9d4", on: true },
-            { name: "Лена",  i: "Л", c: "#d4b8e8", on: false },
-            { name: "Вик",   i: "В", c: "#a8d4e8", on: false },
-          ].map((p, i) => (
-            <button key={i} className="tap" style={{
+        {shareOn && <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+          {shareFriends.map((p, i) => (
+            <button key={i} onClick={() => setShareFriends(fs => fs.map((x, j) => j === i ? { ...x, on: !x.on } : x))} className="tap" style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "5px 11px 5px 5px", borderRadius: 999,
               background: p.on ? "#0a0a0a" : "var(--surface-3)",
@@ -386,13 +391,17 @@ function HabitSettingsScreen() {
               {p.on && <I.Check size={12} strokeWidth={3}/>}
             </button>
           ))}
-          <button className="tap" style={{
+          <button onClick={() => setShareFriends(fs => {
+            const pool = [{ name: "Соня", i: "С", c: "#e8b8d4" }, { name: "Дима", i: "Д", c: "#a8c0e8" }, { name: "Аля", i: "А", c: "#d4c8e8" }];
+            const next = pool.find(p => !fs.some(f => f.name === p.name));
+            return next ? [...fs, { ...next, on: true }] : fs;
+          })} className="tap" style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "5px 11px", borderRadius: 999,
             background: "transparent", border: "1px dashed rgba(0,0,0,0.18)",
             color: "var(--text-3)", fontSize: 12, fontWeight: 500,
           }}><I.Plus size={12}/> Пригласить</button>
-        </div>
+        </div>}
       </div>
 
       {/* Habit type */}

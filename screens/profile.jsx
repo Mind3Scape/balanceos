@@ -11,6 +11,80 @@ function SysBtn({ children, style, className = "", ...rest }) {
   return <button className={"bos-sys-card tap " + className} style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px", textAlign: "left", width: "100%", cursor: "pointer", borderRadius: 22, ...style }} {...rest}>{children}</button>;
 }
 
+/* Sheet palette + a few small sheets used across the system screens (opened via useSheet). */
+const sheetColors = (d) => d
+  ? { text: "#fff", sub: "rgba(255,255,255,0.55)", line: "rgba(255,255,255,0.1)", btn: "#fff", btnFg: "#0a0a0a", field: "rgba(255,255,255,0.06)" }
+  : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", line: "rgba(0,0,0,0.08)", btn: "#0a0a0a", btnFg: "#fff", field: "#f5f5f7" };
+
+function SheetDone({ C, label }) {
+  return (
+    <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+      <div style={{ width: 52, height: 52, borderRadius: "50%", background: C.btn, color: C.btnFg, display: "grid", placeItems: "center", margin: "0 auto", fontSize: 24 }}>✓</div>
+      <div style={{ fontSize: 15, fontWeight: 600, marginTop: 10 }}>{label}</div>
+    </div>
+  );
+}
+
+function InfoSheet({ title, body, cta = "Готово", dark = false }) {
+  const { close } = useSheet();
+  const C = sheetColors(dark);
+  const [done, setDone] = useP(false);
+  const act = () => { if (cta === "Готово") return close(); setDone(true); window.setTimeout(close, 1000); };
+  return (
+    <div style={{ padding: "2px 20px 6px", color: C.text }}>
+      <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>{title}</div>
+      {done ? <SheetDone C={C} label="Готово"/> : (
+        <>
+          {body && <div style={{ fontSize: 14, color: C.sub, lineHeight: 1.55, marginTop: 12 }}>{body}</div>}
+          <button onClick={act} className="tap" style={{ width: "100%", marginTop: 16, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>{cta}</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function EditProfileSheet({ dark = false }) {
+  const { close } = useSheet();
+  const C = sheetColors(dark);
+  const [name, setName] = useP("Тим");
+  const [saved, setSaved] = useP(false);
+  const save = () => { setSaved(true); window.setTimeout(close, 900); };
+  return (
+    <div style={{ padding: "2px 20px 6px", color: C.text }}>
+      <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Профиль</div>
+      {saved ? <SheetDone C={C} label="Сохранено"/> : (
+        <>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 14 }}>
+            <div style={{ width: 70, height: 70, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #ffd97a, #d97757)" }}/>
+          </div>
+          <div style={{ fontSize: 12, color: C.sub, margin: "16px 0 6px" }}>Имя</div>
+          <input value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", background: C.field, border: "1px solid " + C.line, borderRadius: 14, padding: 12, fontSize: 15, color: C.text, outline: "none", boxSizing: "border-box" }}/>
+          <button onClick={save} className="tap" style={{ width: "100%", marginTop: 16, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>Сохранить</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FeedbackSheet({ title = "Написать в поддержку", dark = false }) {
+  const { close } = useSheet();
+  const C = sheetColors(dark);
+  const [txt, setTxt] = useP("");
+  const [sent, setSent] = useP(false);
+  const send = () => { setSent(true); window.setTimeout(close, 1000); };
+  return (
+    <div style={{ padding: "2px 20px 6px", color: C.text }}>
+      {sent ? <SheetDone C={C} label="Отправлено"/> : (
+        <>
+          <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>{title}</div>
+          <textarea value={txt} onChange={e => setTxt(e.target.value)} placeholder="Опиши вопрос…" rows={4} style={{ width: "100%", marginTop: 14, background: C.field, border: "1px solid " + C.line, borderRadius: 14, padding: 12, fontSize: 14, color: C.text, fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box" }}/>
+          <button onClick={send} className="tap" style={{ width: "100%", marginTop: 12, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>Отправить</button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ProfileScreen() {
   const { navigate } = useNav();
   return (
@@ -85,6 +159,8 @@ function ProfileScreen() {
 function SettingsScreen() {
   const { navigate } = useNav();
   const app = useApp();
+  const { open: openSheet } = useSheet();
+  const routeDark = app?.themeOverride !== "light"; // settings is a dark route unless globally forced light
   const [push, setPush] = useP(true);
   const [sound, setSound] = useP(true);
   const isDark = app?.themeOverride === "dark";
@@ -98,11 +174,11 @@ function SettingsScreen() {
       <div className="section-label">Аккаунт</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {[
-          { label: "Редактировать профиль", icon: I.Pencil },
-          { label: "Пароль", icon: I.Lock },
-          { label: "Привязанные аккаунты", icon: I.Globe },
+          { label: "Редактировать профиль", icon: I.Pencil, on: () => openSheet(<EditProfileSheet dark={routeDark}/>) },
+          { label: "Пароль", icon: I.Lock, on: () => openSheet(<InfoSheet title="Сменить пароль" body="Пришлём ссылку для смены пароля на твою почту — открой её на этом устройстве." cta="Отправить ссылку" dark={routeDark}/>) },
+          { label: "Привязанные аккаунты", icon: I.Globe, on: () => openSheet(<InfoSheet title="Привязанные аккаунты" body="Google — подключён. Apple — не подключён. Через них можно входить без пароля." cta="Готово" dark={routeDark}/>) },
         ].map((r, i) => (
-          <SysBtn key={i} style={{ padding: 14 }}>
+          <SysBtn key={i} onClick={r.on} style={{ padding: 14 }}>
             <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
             <span style={{ flex: 1, fontSize: 15 }}>{r.label}</span>
             <I.ChevronRight size={16} className="bos-sys-text-2" />
@@ -154,7 +230,7 @@ function SettingsScreen() {
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {["Политика конфиденциальности", "Условия использования", "Версия 2.4.1"].map((l, i, a) => (
           i < a.length - 1 ? (
-            <SysBtn key={i} style={{ padding: 14 }}>
+            <SysBtn key={i} onClick={() => openSheet(<InfoSheet title={l} body="Это демо-макет BalanceOS. Полный текст документа появится в релизной версии приложения." cta="Готово" dark={routeDark}/>)} style={{ padding: 14 }}>
               <span style={{ flex: 1, fontSize: 15 }}>{l}</span>
               <I.ChevronRight size={16} className="bos-sys-text-2" />
             </SysBtn>
@@ -171,33 +247,45 @@ function SettingsScreen() {
 
 function NotificationsScreen() {
   const { navigate, params } = useNav();
-  const items = [
+  const [items, setItems] = useP([
     { i: "🔥", t: "7 дней подряд!", b: "Ты в огне — продолжай завтра.", w: "Только что", new: true },
-    { i: "👥", t: "Ник пригласил тебя в «Команду креаторов»", b: "Нажми, чтобы принять и присоединиться к цели.", w: "2 ч", new: true },
+    { i: "👥", t: "Ник пригласил тебя в «Команду креаторов»", b: "Нажми, чтобы принять и присоединиться к цели.", w: "2 ч", new: true, go: "community" },
     { i: "🧘🏼‍♀️", t: "Напоминание о медитации", b: "Твоя сегодняшняя сессия в 09:30.", w: "5 ч" },
-    { i: "✨", t: "Готов новый ИИ-инсайт", b: "Вечером у тебя самая высокая энергия.", w: "1 д" },
-    { i: "📚", t: "Новый курс: Основы привычек", b: "2 минуты — начни когда угодно.", w: "2 д" },
-  ];
+    { i: "✨", t: "Готов новый ИИ-инсайт", b: "Вечером у тебя самая высокая энергия.", w: "1 д", go: "ai" },
+    { i: "📚", t: "Новый курс: Основы привычек", b: "2 минуты — начни когда угодно.", w: "2 д", go: "community" },
+  ]);
+  const tap = (n, idx) => {
+    setItems(list => list.map((x, j) => j === idx ? { ...x, new: false } : x));
+    if (n.go) navigate(n.go);
+  };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Уведомления" onBack={() => navigate(params?.from || "profile")} right={
-        <button className="tap bos-sys-text-2" style={{ background: "transparent", border: 0, fontSize: 13 }}>Очистить</button>
+        items.length > 0 ? <button onClick={() => setItems([])} className="tap bos-sys-text-2" style={{ background: "transparent", border: 0, fontSize: 13 }}>Очистить</button> : null
       }/>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {items.map((n, i) => (
-          <SysCard key={i} style={{ padding: 14, display: "flex", gap: 12 }}>
-            <span style={{ fontSize: 26 }}>{n.i}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontWeight: 600, fontSize: 15 }}>{n.t}</span>
-                {n.new && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FEDE34" }} />}
+      {items.length === 0 ? (
+        <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "60px 20px", fontSize: 14 }}>
+          <div style={{ fontSize: 34, marginBottom: 10 }}>🔔</div>
+          Новых уведомлений нет
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {items.map((n, i) => (
+            <SysCard key={i} onClick={() => tap(n, i)} style={{ padding: 14, display: "flex", gap: 12, cursor: "pointer" }}>
+              <span style={{ fontSize: 26 }}>{n.i}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>{n.t}</span>
+                  {n.new && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FEDE34" }} />}
+                </div>
+                <div className="bos-sys-text-2" style={{ fontSize: 13, marginTop: 2 }}>{n.b}</div>
+                <div className="bos-sys-text-3" style={{ fontSize: 11, marginTop: 6 }}>{n.w}</div>
               </div>
-              <div className="bos-sys-text-2" style={{ fontSize: 13, marginTop: 2 }}>{n.b}</div>
-              <div className="bos-sys-text-3" style={{ fontSize: 11, marginTop: 6 }}>{n.w}</div>
-            </div>
-          </SysCard>
-        ))}
-      </div>
+              {n.go && <I.ChevronRight size={16} className="bos-sys-text-3" style={{ alignSelf: "center" }} />}
+            </SysCard>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -247,15 +335,22 @@ function HistoryScreen() {
     moodText:  "rgba(0,0,0,0.75)",
   };
 
-  const monthName = "Апрель";
-  const year = 2026;
-  const daysInMonth = 30;
-  const startWeekday = 3;
+  const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+  const DIM = [31,28,31,30,31,30,31,31,30,31,30,31];
+  const CUR_M = 3; // April is "this month" in the demo
   const today = 28;
+  const year = 2026;
+  const [mIdx, setMIdx] = useP(CUR_M);
+  const monthName = MONTHS[mIdx];
+  const daysInMonth = DIM[mIdx];
+  const startWeekday = (mIdx * 3 + 3) % 7; // synthetic but stable per month
+  const isCurMonth = mIdx === CUR_M;
+  const isFuture = mIdx > CUR_M;
+  const lastLogged = isCurMonth ? today : daysInMonth; // past months fully logged; this one up to today
 
   const completion = (d) => {
-    if (d > today) return null;
-    const v = (Math.sin(d * 13.37) + 1) / 2;
+    if (isFuture || d > lastLogged) return null;
+    const v = (Math.sin((d + mIdx * 7) * 13.37) + 1) / 2;
     return Math.round(v * 6) / 6;
   };
 
@@ -311,11 +406,11 @@ function HistoryScreen() {
       {/* Month calendar */}
       <SysCard style={{ padding: 16, marginTop: 12, borderRadius: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button className="tap" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit" }}>
+          <button onClick={() => setMIdx(m => Math.max(0, m - 1))} className="tap" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
             <I.ChevronLeft size={16}/>
           </button>
           <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
-          <button className="tap" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit" }}>
+          <button onClick={() => setMIdx(m => Math.min(11, m + 1))} className="tap" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}>
             <I.ChevronRight size={16}/>
           </button>
         </div>
@@ -331,7 +426,7 @@ function HistoryScreen() {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }}/>;
             const pct = completion(c.d);
             const isSelected = selDay === c.d;
-            const isToday = c.d === today;
+            const isToday = isCurMonth && c.d === today;
             return (
               <button key={c.key} onClick={() => setSelDay(c.d)} className="tap"
                 style={{
@@ -344,7 +439,7 @@ function HistoryScreen() {
                 }}>
                 {c.d}
                 {pct === 1 && <span aria-hidden style={{ position: "absolute", bottom: 3, right: 4, fontSize: 9 }}>★</span>}
-                {app?.dayMoods?.[c.d] != null && pct != null && (
+                {isCurMonth && app?.dayMoods?.[c.d] != null && pct != null && (
                   <span aria-hidden style={{ position: "absolute", top: 1, right: 3, fontSize: 9, lineHeight: 1 }}>
                     {MOOD_OPTIONS[app.dayMoods[c.d]].i}
                   </span>
@@ -424,31 +519,49 @@ function HistoryScreen() {
 
 function SupportScreen() {
   const { navigate } = useNav();
+  const app = useApp();
+  const { open: openSheet } = useSheet();
+  const routeDark = app?.themeOverride !== "light";
+  const [q, setQ] = useP("");
+  const [openFaq, setOpenFaq] = useP(null);
+  const FAQ = [
+    { q: "Как работают серии", a: "Серия растёт на 1 за каждый день, когда выполнена хотя бы одна привычка. Пропустишь день — серия обнуляется, но история сохраняется." },
+    { q: "Приглашение команды", a: "Открой команду → шестерёнка → раздел «Участники» → выбери друга из подсказок. Он получит уведомление и сможет присоединиться к общей цели." },
+    { q: "Конфиденциальность и данные", a: "Твои данные о привычках видны только тебе. В команде друзья видят лишь отметки по общим привычкам — не личные." },
+    { q: "Подключение Apple Health", a: "Настройки → Привязанные аккаунты. После подключения шаги и тренировки будут автоматически отмечать связанные привычки." },
+    { q: "Отмена подписки", a: "Подписка управляется в App Store: Настройки телефона → Apple ID → Подписки → BalanceOS → Отменить." },
+  ].filter(f => !q || f.q.toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Поддержка и помощь" onBack={() => navigate("profile")} />
       <SysCard style={{ padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
         <I.Search size={18} className="bos-sys-text-2"/>
-        <input placeholder="Поиск по статьям" className="bos-sys-text-2"
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Поиск по статьям" className="bos-sys-text-2"
           style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontSize: 15, color: "inherit" }}/>
       </SysCard>
       <div className="section-label" style={{ marginTop: 22 }}>Популярные темы</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {["Как работают серии","Приглашение команды","Конфиденциальность и данные","Подключение Apple Health","Отмена подписки"].map((q,i)=>(
-          <SysBtn key={i} style={{ padding: 14 }}>
-            <span style={{ flex: 1, fontSize: 15 }}>{q}</span>
-            <I.ChevronRight size={16} className="bos-sys-text-2"/>
-          </SysBtn>
+        {FAQ.map((f,i)=>(
+          <div key={i}>
+            <SysBtn onClick={() => setOpenFaq(o => o === f.q ? null : f.q)} style={{ padding: 14 }}>
+              <span style={{ flex: 1, fontSize: 15 }}>{f.q}</span>
+              <I.ChevronRight size={16} className="bos-sys-text-2" style={{ transform: openFaq === f.q ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}/>
+            </SysBtn>
+            {openFaq === f.q && (
+              <div className="bos-sys-text-2" style={{ fontSize: 13.5, lineHeight: 1.55, padding: "10px 16px 2px" }}>{f.a}</div>
+            )}
+          </div>
         ))}
+        {FAQ.length === 0 && <div className="bos-sys-text-3" style={{ fontSize: 14, padding: "8px 4px" }}>Ничего не найдено. Напиши нам ниже.</div>}
       </div>
       <div className="section-label" style={{ marginTop: 22 }}>Свяжитесь с нами</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
-        <SysCard style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
+        <SysCard onClick={() => openSheet(<FeedbackSheet title="Написать нам" dark={routeDark}/>)} style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
           <I.Mail size={20}/>
           <span style={{ fontSize: 14, fontWeight: 500 }}>Написать нам</span>
           <span className="bos-sys-text-2" style={{ fontSize: 12 }}>support@balanceos.app</span>
         </SysCard>
-        <SysCard style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
+        <SysCard onClick={() => openSheet(<FeedbackSheet title="Чат поддержки" dark={routeDark}/>)} style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
           <I.MessageCircle size={20}/>
           <span style={{ fontSize: 14, fontWeight: 500 }}>Чат поддержки</span>
           <span className="bos-sys-text-2" style={{ fontSize: 12 }}>Ответ в среднем 5 мин</span>
@@ -629,7 +742,7 @@ function AIScreen() {
         {/* Quick prompt chips */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
           {quickPrompts.map((q, i) => (
-            <button key={i} onClick={() => { setAsk(q); navigate("ai-chat"); }} className="tap"
+            <button key={i} onClick={() => navigate("ai-chat", { prompt: q })} className="tap"
               style={{ fontSize: 12, padding: "7px 12px", borderRadius: 999,
                        background: "var(--surface-3)", border: 0, color: "var(--text-2)", letterSpacing: "-0.1px" }}>
               {q}
@@ -638,8 +751,9 @@ function AIScreen() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 6px 0", borderTop: "1px solid var(--line)" }}>
           <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
+            onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
             style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "10px 6px" }}/>
-          <button onClick={() => navigate("ai-chat")} className="tap"
+          <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap"
             style={{ width: 36, height: 36, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center" }}>
             <I.Send size={14}/>
           </button>

@@ -233,8 +233,35 @@ function YourImpactCard({ level }) {
   );
 }
 
+/* Reusable "write a message" sheet (light — sheets render outside theme scope). */
+function MessageSheet({ name = "" }) {
+  const { close } = useSheet();
+  const [txt, setTxt] = useCS("");
+  const [sent, setSent] = useCS(false);
+  const send = () => { setSent(true); window.setTimeout(close, 1100); };
+  return (
+    <div style={{ padding: "2px 20px 8px", color: "#0a0a0a" }}>
+      {sent ? (
+        <div style={{ textAlign: "center", padding: "18px 0 12px" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", margin: "0 auto", fontSize: 26 }}>✓</div>
+          <div style={{ fontSize: 17, fontWeight: 700, marginTop: 12 }}>Отправлено{name ? " · " + name : ""}</div>
+          <div style={{ fontSize: 13, color: "rgba(0,0,0,0.5)", marginTop: 3 }}>Ответ придёт в уведомления</div>
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 18, fontWeight: 700, textAlign: "center" }}>Написать{name ? " · " + name : ""}</div>
+          <textarea value={txt} onChange={e => setTxt(e.target.value)} placeholder="Твоё сообщение…" rows={4}
+            style={{ width: "100%", marginTop: 14, border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, padding: 12, fontSize: 14, fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box", background: "#f7f7f8" }}/>
+          <button onClick={send} className="tap" style={{ width: "100%", marginTop: 12, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "13px", fontSize: 15, fontWeight: 600 }}>Отправить</button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function NetworkPersonCard({ p, userLevel }) {
   const { navigate } = useNav();
+  const { open: openSheet } = useSheet();
   // sort offers by level so the easiest-to-book sits first
   const offers = (p.offers || []).slice().sort((a, b) => a.lvl - b.lvl);
   return (
@@ -299,10 +326,10 @@ function NetworkPersonCard({ p, userLevel }) {
       )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <button onClick={(e) => e.stopPropagation()} className="tap" style={{ flex: 1, background: "var(--card-2)", border: 0, borderRadius: 999, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, color: "var(--text-2)" }}>
+        <button onClick={(e) => { e.stopPropagation(); openSheet(<MessageSheet name={p.name}/>); }} className="tap" style={{ flex: 1, background: "var(--card-2)", border: 0, borderRadius: 999, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, color: "var(--text-2)" }}>
           <I.MessageCircle size={15}/> Написать
         </button>
-        <button onClick={(e) => e.stopPropagation()} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 500 }}>Связаться</button>
+        <button onClick={(e) => { e.stopPropagation(); navigate("contact-detail", { contact: p }); }} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 500 }}>Связаться</button>
       </div>
     </div>
   );
@@ -315,6 +342,7 @@ function CommunityScreen() {
   const [discTab, setDiscTab] = useCS("teams");              // teams | network
   const [commTab, setCommTab] = useCS("courses");            // courses | classes | partners
   const [networkUnlocked, setNetworkUnlocked] = useCS(false);
+  const [activated, setActivated] = useCS({}); // partner activations (by index)
 
   const userLevel = 8;
   const xpInLevel = 1240;
@@ -533,9 +561,15 @@ function CommunityScreen() {
                   <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{p.offer}</div>
                   <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 2 }}>+{p.xp} XP за активацию</div>
                 </div>
-                <button className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  Активировать <I.ChevronRight size={14}/>
-                </button>
+                {activated[i] ? (
+                  <span style={{ background: "rgba(52,199,89,0.14)", color: "#1E8E4E", borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <I.Check size={14} strokeWidth={3}/> Активно
+                  </span>
+                ) : (
+                  <button onClick={() => setActivated(a => ({ ...a, [i]: true }))} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    Активировать <I.ChevronRight size={14}/>
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -1556,6 +1590,7 @@ function LevelsScreen() {
 /* ─── COURSE DETAIL — full programme description ─── */
 function CourseDetailScreen() {
   const { navigate, params } = useNav();
+  const [enrolled, setEnrolled] = useCS(false);
   const c = params?.course || { id: "marathon", i: "🏃🏼‍♀️", accent: "#d6f3df", t: "Марафон", d: "21-дневная программа устойчивых привычек.", price: "110 000 ₽", lvl: "База", length: "21 день", cohort: "1 — 21 мая" };
 
   // Default to Marathon programme content; could be data-driven per id
@@ -1690,9 +1725,15 @@ function CourseDetailScreen() {
           <div style={{ fontSize: 22, fontWeight: 700, marginTop: 2, letterSpacing: "-0.4px" }}>{c.price}</div>
           <div style={{ fontSize: 11, opacity: 0.65, marginTop: 2 }}>Единоразово · можно разбить на 3 месяца</div>
         </div>
-        <button className="tap" style={{ background: "var(--card)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          Записаться <I.ChevronRight size={14}/>
-        </button>
+        {enrolled ? (
+          <span style={{ background: "rgba(52,199,89,0.18)", color: "#34C759", borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <I.Check size={15} strokeWidth={3}/> Вы записаны
+          </span>
+        ) : (
+          <button onClick={() => setEnrolled(true)} className="tap" style={{ background: "var(--card)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            Записаться <I.ChevronRight size={14}/>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1710,6 +1751,9 @@ window.ContactDetailScreen = ContactDetailScreen;
    full list of bookable offers. Light theme to match Community. */
 function ContactDetailScreen() {
   const { navigate, params } = useNav();
+  const { open: openSheet } = useSheet();
+  const [booked, setBooked] = useCS({}); // booked offers (by index)
+  const [added, setAdded] = useCS(false);
   const userLevel = 8;
   const p = params?.contact || {
     name: "Александра Иванова", initials: "АИ", color: "#e8c8a8",
@@ -1822,9 +1866,11 @@ function ContactDetailScreen() {
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: locked ? "var(--text-4)" : "var(--text)" }}>{o.price}</div>
-                  {!locked && (
-                    <button className="tap" style={{ marginTop: 4, fontSize: 11, fontWeight: 600, color: "#0a0a0a", background: "#FEDE34", border: 0, borderRadius: 999, padding: "4px 12px" }}>Записаться</button>
-                  )}
+                  {!locked && (booked[j] ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 700, color: "#1E8E4E", background: "rgba(52,199,89,0.14)", borderRadius: 999, padding: "4px 10px" }}><I.Check size={11} strokeWidth={3}/> Записан</span>
+                  ) : (
+                    <button onClick={() => setBooked(b => ({ ...b, [j]: true }))} className="tap" style={{ marginTop: 4, fontSize: 11, fontWeight: 600, color: "#0a0a0a", background: "#FEDE34", border: 0, borderRadius: 999, padding: "4px 12px" }}>Записаться</button>
+                  ))}
                 </div>
               </div>
             );
@@ -1874,11 +1920,11 @@ function ContactDetailScreen() {
 
       {/* Sticky-feel CTA */}
       <div style={{ padding: "22px 16px 0", display: "flex", gap: 8 }}>
-        <button className="tap" style={{ flex: 1, background: "var(--card)", border: 0, borderRadius: 999, padding: "13px 14px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 14, color: "var(--text-2)", boxShadow: "var(--card-shadow)" }}>
+        <button onClick={() => openSheet(<MessageSheet name={p.name}/>)} className="tap" style={{ flex: 1, background: "var(--card)", border: 0, borderRadius: 999, padding: "13px 14px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 14, color: "var(--text-2)", boxShadow: "var(--card-shadow)" }}>
           <I.MessageCircle size={15}/> Написать
         </button>
-        <button className="tap" style={{ flex: 1, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "13px 14px", fontSize: 14, fontWeight: 600 }}>
-          Добавить
+        <button onClick={() => setAdded(a => !a)} className="tap" style={{ flex: 1, background: added ? "rgba(52,199,89,0.16)" : "#0a0a0a", color: added ? "#1E8E4E" : "#fff", border: 0, borderRadius: 999, padding: "13px 14px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          {added ? <><I.Check size={15} strokeWidth={3}/> В контактах</> : "Добавить"}
         </button>
       </div>
     </div>

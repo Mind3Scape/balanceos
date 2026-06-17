@@ -373,7 +373,7 @@ function MiniBars({ data, color = "#0a0a0a", height = 60, textMuted = "rgba(0,0,
 }
 
 function AIChatScreen() {
-  const { navigate } = useNav();
+  const { navigate, params } = useNav();
   // Resolve current theme from the iOS frame wrapper so this screen looks
   // right under both .theme-light and .theme-dark.
   const wrapRef = React.useRef(null);
@@ -459,6 +459,13 @@ function AIChatScreen() {
       }]);
     }, 1400);
   };
+
+  // A prompt passed in from the AI tab / quick chips → auto-send it on open.
+  React.useEffect(() => {
+    if (!params?.prompt) return;
+    const t = window.setTimeout(() => send(params.prompt), 350);
+    return () => window.clearTimeout(t);
+  }, []); // eslint-disable-line
 
   const renderAI = (m, i) => {
     if (m.kind === "greeting") {
