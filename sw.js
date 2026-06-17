@@ -6,9 +6,9 @@
    - Heavy, rarely-changing files (vendor libs, images, icons): CACHE-FIRST for
      speed; refreshed in the background.
    Bump CACHE on each release so the new worker re-precaches cleanly. */
-const CACHE = "balanceos-v18";
+const CACHE = "balanceos-v19";
 const PRECACHE = [
-  "./", "index.html", "styles.css", "mobile.css", "app.jsx", "haptics.js",
+  "./", "index.html", "styles.css", "mobile.css", "app.jsx", "haptics.js", "haptic-test.js",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js", "vendor/babel.min.js",
   "components/icons.jsx", "components/shell.jsx",
   "screens/home.jsx", "screens/habits.jsx", "screens/community.jsx",
