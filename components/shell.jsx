@@ -110,6 +110,9 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
       c.active = true;
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
     }
+    const now = performance.now();
+    if (c.lastT != null) { const dt = now - c.lastT; if (dt > 0) c.vx = (e.clientX - c.lastX) / dt; }
+    c.lastX = e.clientX; c.lastT = now;
     const nx = Math.max(-W - 24, Math.min(0, c.base + ddx));
     c.last = nx;
     setReleasing(false); setDx(nx);
@@ -120,7 +123,9 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
     if (!c.active) return;
     justDragged.current = true;
     window.setTimeout(() => { justDragged.current = false; }, 80);
-    const shouldOpen = c.last < -W / 2;
+    // Flick left → open, flick right → close; otherwise settle by position (35%).
+    const v = c.vx || 0;
+    const shouldOpen = v < -0.35 ? true : v > 0.35 ? false : c.last < -W * 0.35;
     setReleasing(true); setOpen(shouldOpen); setDx(shouldOpen ? -W : 0);
   };
   const onClickCapture = (e) => {
@@ -415,6 +420,11 @@ function AppProvider({ children }) {
   }));
   const removeTeamHabit = (teamId, habitId) => setTeams(ts => ts.map(t => t._id === teamId ? { ...t, habits: (t.habits || []).filter(h => h.id !== habitId) } : t));
 
+  // Community tab/section view-state lives here so navigating into a detail
+  // screen and back doesn't reset it (the screen unmounts on push/pop).
+  const [communityView, setCommunityViewRaw] = useState({ section: "discover", discTab: "teams", commTab: "courses", networkUnlocked: false });
+  const setCommunityView = (patch) => setCommunityViewRaw(v => ({ ...v, ...patch }));
+
   return <AppStateCtx.Provider value={{
     mood, setMood,
     dayMoods, setDayMoods,
@@ -425,6 +435,7 @@ function AppProvider({ children }) {
     toggleHabit, addHabit, updateHabit, removeHabit,
     addGoal, updateGoal, removeGoal,
     teams, addTeam, removeTeam, updateTeam, addTeamHabit, removeTeamHabit,
+    communityView, setCommunityView,
   }}>{children}</AppStateCtx.Provider>;
 }
 

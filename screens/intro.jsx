@@ -500,14 +500,14 @@ function IntroScreen() {
   }, []);
   const pal = dark ? {
     bg: `radial-gradient(circle at 50% 38%, ${cur.glow} 0%, transparent 55%), radial-gradient(ellipse at 50% 100%, rgba(20,35,60,0.6) 0%, transparent 60%), #060912`,
-    title: "#fff", sub: "rgba(255,255,255,0.66)", eyebrow: "rgba(255,255,255,0.55)",
+    title: "#fff", sub: "rgba(255,255,255,0.66)", eyebrow: "rgba(255,255,255,0.55)", eyebrowStrong: "#bcd8ff",
     barOn: "rgba(255,255,255,0.85)", barDone: "rgba(255,255,255,0.65)", barTrack: "rgba(255,255,255,0.12)",
     btnBg: "#fff", btnFg: "#0a0a0a", btnShadow: "0 0 40px rgba(255,255,255,0.15)",
     ghost: "rgba(255,255,255,0.5)", count: "rgba(255,255,255,0.4)",
     moodBorder: "rgba(255,255,255,0.08)", moodText: "#fff",
   } : {
     bg: `radial-gradient(circle at 50% 36%, ${cur.glow} 0%, transparent 52%), radial-gradient(ellipse at 50% 104%, rgba(176,202,238,0.6) 0%, transparent 60%), linear-gradient(180deg,#eef2fb 0%,#e2e9f5 100%)`,
-    title: "#15233c", sub: "rgba(21,35,60,0.62)", eyebrow: "rgba(21,35,60,0.5)",
+    title: "#15233c", sub: "rgba(21,35,60,0.62)", eyebrow: "rgba(21,35,60,0.5)", eyebrowStrong: "#2f5e96",
     barOn: "rgba(21,35,60,0.72)", barDone: "rgba(21,35,60,0.5)", barTrack: "rgba(21,35,60,0.12)",
     btnBg: "#0f1b2e", btnFg: "#fff", btnShadow: "0 10px 26px rgba(20,40,80,0.2)",
     ghost: "rgba(21,35,60,0.45)", count: "rgba(21,35,60,0.4)",
@@ -548,15 +548,18 @@ function IntroScreen() {
         ))}
       </div>
 
-      <Reveal k={"eb"+step} delay={0.05} style={{ position: "relative", padding: "24px 24px 0", textAlign: "center", zIndex: 2, pointerEvents: "none" }}>
-        <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: pal.eyebrow, fontWeight: 600 }}>{cur.eyebrow}</div>
-      </Reveal>
-
       <div style={{ flex: 1, display: "grid", placeItems: "center", position: "relative", zIndex: 2, pointerEvents: "none" }}>
         <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark}/>
       </div>
 
-      <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 130, pointerEvents: "none" }}>
+      <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 150, pointerEvents: "none" }}>
+        {/* Context label — now grouped right above its title, legible accent + staged in first */}
+        <Reveal k={"eb"+step} delay={0.1} style={{ marginBottom: 11 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, letterSpacing: 2.4, textTransform: "uppercase", fontWeight: 700, color: pal.eyebrowStrong }}>
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: pal.eyebrowStrong, boxShadow: `0 0 8px ${pal.eyebrowStrong}` }}/>
+            {cur.eyebrow}
+          </div>
+        </Reveal>
         <Reveal k={"ti"+step} delay={0.25}>
           <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.8px", textWrap: "balance", maxWidth: 300, margin: "0 auto", color: pal.title }}>{cur.title}</div>
         </Reveal>

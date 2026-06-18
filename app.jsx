@@ -102,7 +102,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v37";
+const APP_VERSION = "v38";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -122,8 +122,8 @@ function PhoneApp() {
   const [drag, setDrag] = useState(null); // { dx, w, releasing } during/just-after a drag
   const dragRef = useRef(null);
   const stackRef = useRef(null);
-  const EDGE_ZONE = 26;  // px from the left edge that arms the gesture
-  const DRAG_THRESH = 8; // px of travel before we lock to a horizontal drag
+  const EDGE_ZONE = 32;  // px from the left edge that arms the gesture (roomier = easier to start)
+  const DRAG_THRESH = 7; // px of travel before we lock to a horizontal drag
 
   // App-wide bottom sheet (share, etc.), opened from any screen via useSheet().
   const [sheet, setSheet] = useState(null);
@@ -257,6 +257,10 @@ function PhoneApp() {
       d.active = true;
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
     }
+    // Track horizontal velocity (px/ms) so a quick flick can complete the pop.
+    const now = performance.now();
+    if (d.lastT != null) { const dt = now - d.lastT; if (dt > 0) d.vx = (e.clientX - d.lastX) / dt; }
+    d.lastX = e.clientX; d.lastT = now;
     d.dx = Math.max(0, Math.min(dx, d.w));
     if (e.cancelable) e.preventDefault();
     setDrag({ dx: d.dx, w: d.w, releasing: false });
@@ -266,7 +270,9 @@ function PhoneApp() {
     if (!d || d.id !== e.pointerId) return;
     dragRef.current = null;
     if (!d.active) return;
-    const pop = d.dx > d.w * 0.4;
+    // Go back on a clear rightward flick OR a third of the way across — so a quick
+    // short swipe still completes instead of snapping shut (felt "harsh" before).
+    const pop = (d.vx || 0) > 0.4 || d.dx > d.w * 0.3;
     setDrag({ dx: pop ? d.w : 0, w: d.w, releasing: true });
     window.setTimeout(() => {
       if (pop) setFrames((f) => (f.length > 1 ? f.slice(0, -1) : f));

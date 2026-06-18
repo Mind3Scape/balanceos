@@ -1,5 +1,31 @@
-/* COMMUNITY: Teams + Network + Courses + Online classes + Partners — polished */
+/* COMMUNITY: Teams + Network + Courses + Partners — polished */
 const { useState: useCS } = React;
+
+/* Liquid-glass icon chip — glossy, dimensional, iOS-26 style. Vivid gradient
+   fill + bright top specular + inner shadow + soft coloured glow underneath. */
+const COURSE_GLASS = {
+  overload:     { from: "#FFD60A", to: "#FF8A00" },
+  breakthrough: { from: "#6EC6FF", to: "#0A84FF" },
+  marathon:     { from: "#5BE8A4", to: "#2BB673" },
+};
+function GlassChip({ from, to, emoji, size = 48, radius = 16 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius, flexShrink: 0,
+      display: "grid", placeItems: "center", position: "relative", overflow: "hidden",
+      background: `linear-gradient(145deg, ${from} 0%, ${to} 100%)`,
+      boxShadow: `inset 0 1px 1.5px rgba(255,255,255,0.7), inset 0 -3px 8px rgba(0,0,0,0.18), 0 6px 16px ${to}66`,
+      border: "0.5px solid rgba(255,255,255,0.35)",
+    }}>
+      <div aria-hidden style={{ position: "absolute", top: 0, left: "8%", right: "8%", height: "48%", background: "linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0))", borderRadius: "0 0 60% 60%" }}/>
+      <span style={{ position: "relative", fontSize: Math.round(size * 0.46), lineHeight: 1, filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.22))" }}>{emoji}</span>
+    </div>
+  );
+}
+function CourseGlass({ c, size = 46 }) {
+  const g = COURSE_GLASS[c.id] || { from: c.accent, to: c.accent };
+  return <GlassChip from={g.from} to={g.to} emoji={c.i} size={size} radius={size >= 54 ? 18 : 15} />;
+}
 
 /* Network locked-state banner.
    Network is a premium social tier — unlocks at L10. Shown when level too low. */
@@ -338,10 +364,16 @@ function NetworkPersonCard({ p, userLevel }) {
 function CommunityScreen() {
   const { navigate } = useNav();
   const app = useApp();
-  const [section, setSection] = useCS("discover");           // discover | community
-  const [discTab, setDiscTab] = useCS("teams");              // teams | network
-  const [commTab, setCommTab] = useCS("courses");            // courses | classes | partners
-  const [networkUnlocked, setNetworkUnlocked] = useCS(false);
+  // View-state (section / sub-tabs / network unlock) lives in the shared store so
+  // it survives navigating into a detail screen and back (the screen remounts).
+  const cv = app?.communityView || { section: "discover", discTab: "teams", commTab: "courses", networkUnlocked: false };
+  const { section, discTab, commTab, networkUnlocked } = cv;
+  const setView = (patch) => app?.setCommunityView(patch);
+  const resolve = (v, cur) => (typeof v === "function" ? v(cur) : v);
+  const setSection = (v) => setView({ section: resolve(v, section) });
+  const setDiscTab = (v) => setView({ discTab: resolve(v, discTab) });
+  const setCommTab = (v) => setView({ commTab: resolve(v, commTab) });
+  const setNetworkUnlocked = (v) => setView({ networkUnlocked: resolve(v, networkUnlocked) });
   const [activated, setActivated] = useCS({}); // partner activations (by index)
 
   const userLevel = 8;
@@ -408,7 +440,7 @@ function CommunityScreen() {
         <UnderlineTabs
           value={commTab}
           onChange={setCommTab}
-          tabs={[{ id: "courses", t: "Курсы" }, { id: "classes", t: "Занятия" }, { id: "partners", t: "Партнёры" }]}
+          tabs={[{ id: "courses", t: "Курсы" }, { id: "partners", t: "Партнёры" }]}
         />
       )}
 
@@ -491,7 +523,7 @@ function CommunityScreen() {
             <button key={i} onClick={() => navigate("course-detail", { course: c })} className="tap"
               style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left" }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{c.i}</div>
+                <CourseGlass c={c} size={46} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-0.3px" }}>{c.t}</span>
@@ -515,28 +547,6 @@ function CommunityScreen() {
                 </span>
               </div>
             </button>
-          ))}
-        </div>
-      )}
-
-      {section === "community" && commTab === "classes" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-          {[
-            { t: "Утренняя йога", time: "Вт · 7:00", host: "Аня", live: true },
-            { t: "Дыхание и перезагрузка", time: "Ср · 21:00", host: "Марк", live: false },
-            { t: "Еженедельное закаливание", time: "Сб · 8:00", host: "Команда", live: false },
-            { t: "Воскресная пробежка", time: "Вс · 8:30", host: "Вадим", live: false },
-          ].map((c, i) => (
-            <div key={i} style={{ background: "var(--card)", borderRadius: 18, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-              <div style={{ width: 50, height: 50, borderRadius: "50%", background: c.live ? "#ef4444" : "#fff", border: c.live ? "0" : "1.5px solid #d4d4d4", display: "grid", placeItems: "center" }}>
-                <I.Play size={18} color={c.live ? "#fff" : "#0a0a0a"}/>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{c.t}</div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{c.time} · с {c.host}</div>
-              </div>
-              {c.live && <span style={{ background: "var(--accent-red)", color: "#fff", borderRadius: 999, padding: "4px 10px", fontSize: 10, fontWeight: 700, letterSpacing: 0.6 }}>LIVE</span>}
-            </div>
           ))}
         </div>
       )}
@@ -1641,7 +1651,7 @@ function CourseDetailScreen() {
       {/* HERO */}
       <div style={{ background: "var(--card)", borderRadius: 24, padding: "22px 20px 20px", boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0 }}>{c.i}</div>
+          <CourseGlass c={c} size={58} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, padding: "2px 8px", background: "var(--card-2)", borderRadius: 999, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600 }}>{c.lvl}</span>
