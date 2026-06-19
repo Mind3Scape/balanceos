@@ -193,7 +193,7 @@ function HabitsScreen() {
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
                 <div className="tap"
-                  onClick={() => navigate("habit-settings", { mode: "edit", habit: h })}
+                  onClick={() => navigate("habit-detail", { habit: h, from: "habits" })}
                   style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
                   <span style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>

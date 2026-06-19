@@ -1,57 +1,115 @@
 /* MORE SCREENS — habit detail, mood check-in, journal, focus timer, level-up modal, AI chat */
 const { useState: useM } = React;
 
-/* HABIT DETAIL — streak calendar, history, edit */
+/* HABIT DETAIL — per-habit statistics. Opened by tapping a habit on Home or
+   Habits (the check-circle there still toggles done; the row drills in here).
+   Theme-adaptive; numbers derive deterministically from the habit's streak so
+   they never flicker; "Изменить" opens the edit form. Back returns to the exact
+   tab we came from (params.from) — no more snapping to the wrong tab. */
 function HabitDetailScreen() {
   const { navigate, params } = useNav();
-  const h = params?.habit || { emoji: "🏃🏼‍♀️", name: "Утренняя пробежка", streak: 12 };
-  const cells = Array.from({ length: 35 }, (_, i) => Math.random() > 0.3);
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const back = params?.from || "habits";
+  const seed = params?.habit || { id: 0, emoji: "🏃🏼‍♀️", name: "Утренняя пробежка", streak: 12 };
+  // Live copy from the shared store so streak / done reflect taps made elsewhere.
+  const h = (app?.habits && app.habits.find((x) => x.id === seed.id)) || seed;
+  const isDark = app?.themeOverride === "dark";
+  const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
+
+  const streak = h.streak || 0;
+  // Deterministic derived stats — stable per habit, never random.
+  const best  = Math.max(streak, 27);
+  const total = streak * 9 + (h.id || 1) * 7 + 40;
+  const rate  = Math.min(98, 58 + streak * 2);
+
+  // iOS-26 liquid-glass accent, varied by habit so each feels distinct yet cohesive.
+  const HUES = [
+    { from: "#FFD60A", to: "#FF8A00" }, { from: "#6EC6FF", to: "#0A84FF" },
+    { from: "#5BE8A4", to: "#2BB673" }, { from: "#C8A2FF", to: "#7C5CFF" },
+    { from: "#FF9AA2", to: "#FF5E7E" }, { from: "#6BE3D8", to: "#1FB6A6" },
+  ];
+  const g = HUES[(h.id || 1) % HUES.length];
+
+  // 5-week grid: most recent `streak` days filled; older days a fixed scatter
+  // seeded by habit id (stable across renders — no Math.random flicker).
+  const cells = Array.from({ length: 35 }, (_, i) => {
+    const fromEnd = 34 - i;
+    if (fromEnd < streak) return true;
+    return ((i * 7 + (h.id || 1) * 13) % 10) > 6;
+  });
+
+  const card = isDark
+    ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
+    : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
+  const cellEmpty = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
+
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="" onBack={() => navigate("habits")} right={
-        <button onClick={() => navigate("habit-settings", { mode: "edit", habit: h })} className="tap" style={{ background: "transparent", border: 0, fontSize: 14, color: "var(--text-2)" }}>Изменить</button>
+      <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
+        <button onClick={() => navigate("habit-settings", { mode: "edit", habit: h })} className="tap" style={{ background: "transparent", border: 0, fontSize: 15, fontWeight: 500, color: "var(--text-2)" }}>Изменить</button>
       } />
-      <div style={{ textAlign: "center", padding: "10px 0 24px" }}>
-        <div style={{ width: 96, height: 96, borderRadius: 28, background: "var(--surface-3)", margin: "0 auto", display: "grid", placeItems: "center", fontSize: 52 }}>{h.emoji}</div>
+
+      {/* Hero — liquid-glass emoji tile */}
+      <div style={{ textAlign: "center", padding: "6px 0 22px" }}>
+        <div style={{ width: 92, height: 92, borderRadius: 26, margin: "0 auto", position: "relative", background: `linear-gradient(145deg, ${g.from}, ${g.to})`, boxShadow: `0 12px 30px -10px ${g.to}99, inset 0 1.5px 1px rgba(255,255,255,0.6), inset 0 -10px 18px rgba(0,0,0,0.12)`, display: "grid", placeItems: "center" }}>
+          <div style={{ position: "absolute", inset: 0, borderRadius: 26, background: "linear-gradient(160deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 46%)", pointerEvents: "none" }} />
+          <span style={{ fontSize: 46, filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.18))" }}>{h.emoji}</span>
+        </div>
         <div style={{ fontSize: 26, fontWeight: 700, marginTop: 16, letterSpacing: "-0.5px" }}>{h.name}</div>
-        <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 2 }}>Развивать · ежедневно · 09:30</div>
+        <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
+          Ежедневно{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
+        </div>
       </div>
 
+      {/* Stat cards — count up on open */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
         {[
-          { l: "Серия", v: `${h.streak}д`, i: "🔥" },
-          { l: "Лучшая", v: "27д", i: "🏆" },
-          { l: "Всего", v: "284", i: "📊" },
+          { l: "Серия", v: streak, suf: "д", i: "🔥" },
+          { l: "Лучшая", v: best, suf: "д", i: "🏆" },
+          { l: "Всего", v: total, suf: "", i: "📊" },
         ].map((s, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 14, textAlign: "center", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-            <div style={{ fontSize: 18 }}>{s.i}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4, letterSpacing: "-0.4px" }}>{s.v}</div>
-            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 2 }}>{s.l}</div>
+          <div key={i} style={{ ...card, borderRadius: 18, padding: "14px 8px", textAlign: "center" }}>
+            <div style={{ fontSize: 17 }}>{s.i}</div>
+            <div style={{ fontSize: 21, fontWeight: 700, marginTop: 5, letterSpacing: "-0.5px" }}><Count value={s.v} />{s.suf}</div>
+            <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 3 }}>{s.l}</div>
           </div>
         ))}
       </div>
 
-      <div className="section-label" style={{ marginTop: 20 }}>Последние 5 недель</div>
-      <div style={{ background: "#fff", borderRadius: 18, padding: 14, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+      {/* Activity grid — fills with the habit's own colour */}
+      <div className="section-label" style={{ marginTop: 22 }}>Последние 5 недель</div>
+      <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
           {cells.map((d, i) => (
-            <span key={i} style={{ aspectRatio: "1/1", borderRadius: 6, background: d ? "var(--ink)" : "var(--surface-3)" }} />
+            <span key={i} style={{ aspectRatio: "1/1", borderRadius: 6, background: d ? `linear-gradient(145deg, ${g.from}, ${g.to})` : cellEmpty, boxShadow: d ? `0 2px 6px -2px ${g.to}88` : "none" }} />
           ))}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 11, color: "var(--text-4)" }}>
-          <span>5 нед. назад</span><span>Сегодня</span>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 11, fontSize: 11, color: "var(--text-4)" }}>
+          <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
+          <span>Сегодня →</span>
         </div>
       </div>
 
-      <div className="section-label" style={{ marginTop: 20 }}>Инсайт</div>
-      <div style={{ background: "linear-gradient(135deg,#FEDE3422,#37F4FA22)", border: "1px solid rgba(0,0,0,0.04)", borderRadius: 18, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
-        <I.Sparkles size={18} color="#0a0a0a"/>
+      {/* Insight — derived from the real streak, not canned */}
+      <div className="section-label" style={{ marginTop: 22 }}>Инсайт</div>
+      <div style={{ background: `linear-gradient(135deg, ${g.from}22, ${g.to}22)`, border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.04)", borderRadius: 18, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
+        <I.Sparkles size={18} color={isDark ? "#fff" : "#0a0a0a"} />
         <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-          Ты выполняешь это в 1,4× чаще в паре с медитацией. Попробуй объединить их завтра утром.
+          {streak >= 7
+            ? `Серия уже ${streak} дней — это работает на автопилоте. Не разрывай цепочку сегодня.`
+            : `Ещё ${Math.max(1, 7 - streak)} дн. — и привычка станет автоматической. Сейчас самый важный момент.`}
         </div>
       </div>
 
-      <button onClick={() => navigate("focus", { habit: h })} className="bos-btn" style={{ marginTop: 20 }}>Начать фокус-сессию</button>
+      {/* Actions */}
+      <button onClick={() => app?.toggleHabit && app.toggleHabit(h.id)} className="bos-btn" style={{ marginTop: 22, background: h.done ? (isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)") : undefined, color: h.done ? "var(--text-2)" : undefined }}>
+        {h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"}
+      </button>
+      {h.duration && (
+        <button onClick={() => navigate("focus", { habit: h })} className="tap" style={{ marginTop: 10, width: "100%", background: "transparent", border: 0, color: "var(--text-2)", fontSize: 14, fontWeight: 500, padding: 8 }}>
+          Начать фокус-сессию →
+        </button>
+      )}
     </div>
   );
 }

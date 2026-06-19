@@ -319,7 +319,7 @@ function HomeScreen() {
                 { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
-              <div className="tap" onClick={() => toggle(h.id)} style={{
+              <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{
                 display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
               }}>
                 <span style={{
