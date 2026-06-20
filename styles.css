@@ -282,6 +282,9 @@ button { font: inherit; cursor: pointer; }
   to { opacity: 1; transform: translateY(0); }
 }
 .page-in { animation: pageIn 0.28s ease both; }
+/* During the guided tour, screen swaps happen UNDER the dim — kill the per-screen
+   entrance so nothing fades/flashes into view (the tour drives pages instantly). */
+.page-stack.tour-active .page-in { animation: none !important; }
 
 /* circular progress (conic) */
 .ring {

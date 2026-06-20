@@ -108,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v75";
+const APP_VERSION = "v76";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -147,8 +147,10 @@ const TOUR_STOPS = [
     body: "Общий счёт, серия у каждого или гонка — выбираешь формат. А двигают цель привычки самих участников." },
   { kind: "spot", tab: "team-create", sel: '[data-tour="team-stakes"]', radius: 18, eyebrow: "Геймификация", title: "Ставка на опыт",
     body: "Все скидывают XP в общий банк. Дошли до цели — он возвращается ×2. Не дошли — сгорает. Вот это азарт." },
-  { kind: "spot", tab: "team-detail", sel: '[data-tour="team-chat"]', radius: 18, eyebrow: "Внутри команды", title: "Общий чат и статистика",
-    body: "У команды свой чат — переписка, фото, поддержка. Плюс лидерборд по вкладу и живые цифры. Тренеру видно каждого." },
+  { kind: "spot", tab: "team-detail", sel: '[data-tour="team-chat"]', radius: 18, eyebrow: "Внутри команды", title: "Статистика и чат",
+    body: "Лидерборд по вкладу, прогресс, живые цифры — тренеру видно каждого. А вот и общий чат ↓" },
+  { kind: "peek", tab: "team-chat", eyebrow: "Чат команды", title: "Команда на связи",
+    body: "Заглянем внутрь: переписка, фото, взаимная поддержка — так команда держит общий ритм вместе." },
   { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="impact"]', radius: 20, eyebrow: "Нетворк · твой вклад", title: "Стань тем, к кому идут",
     body: "С ростом уровня ты сам помогаешь кругу — ведёшь, консультируешь, делишься тем, что умеешь. Каждое доброе дело растит твой вклад и репутацию." },
   { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="contacts"]', radius: 20, eyebrow: "Нетворк · контакты", title: "Заказывай помощь других",
@@ -172,6 +174,8 @@ const FRESH_STOPS = [
     body: "Подсказки наверху — от ИИ. Чем больше расскажешь о себе, тем точнее они станут." },
   { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Состояние", title: "Начни с состояния",
     body: "Отметь, как ты сейчас — это первый шаг. Приложение подстроится под тебя." },
+  { kind: "card", emoji: "🧭", title: "Колесо баланса",
+    body: "Каждую привычку приложение само относит к сфере жизни — тело, отношения, дело, отдых. Из них складывается твоё «колесо баланса»: видно, где густо, а где пусто. Чем больше отмечаешь — тем точнее картина.", cta: "Понятно" },
   { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт с первого дня",
     body: "Ты на 1 уровне. Каждая привычка и доброе дело качают опыт — и открывают новое: наставников, контакты, курсы." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
@@ -200,8 +204,8 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
 
   // Drive the tab bar so each "tab" stop shows the real section behind the dim.
   useEffect(() => {
-    if (stop && stop.kind === "spot") {
-      navigate(stop.tab);
+    if (stop && (stop.kind === "spot" || stop.kind === "peek")) {
+      navigate(stop.tab, {}, { instant: true });   // instant: no fade/slide under the dim
       if (stop.view && setCommunityView) setCommunityView(stop.view);
     }
   }, [step]); // eslint-disable-line
@@ -282,6 +286,28 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
     );
   }
 
+  // ── Peek: open a real screen and show a bottom tooltip with NO dim, so the
+  //    screen stays fully alive (e.g. the team chat in action — "feel it"). ──
+  if (stop.kind === "peek") {
+    return (
+      <div ref={rootRef} style={{ position: "absolute", inset: 0, zIndex: 500, pointerEvents: "none" }}>
+        {/* transparent blocker: taps don't escape, but the screen reads bright */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "auto", background: "transparent" }} />
+        <div className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, bottom: "max(20px, calc(var(--bos-safe-bottom, 0px) + 14px))", background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.5)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none", pointerEvents: "auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{stop.eyebrow}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: titleC, marginTop: 3 }}>{stop.title}</div>
+          <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+            <button onClick={skip} className="tap" style={{ background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: "10px 14px", margin: "-4px -8px" }}>Пропустить</button>
+            <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{last ? "Готово" : "Далее"}</button>
+          </div>
+          {dots}
+        </div>
+        {tourStyle}
+      </div>
+    );
+  }
+
   // ── Element spotlight (cutout + tooltip) ──
   const pad = 6;
   const cutout = spot ? { left: spot.x - pad, top: spot.y - pad, width: spot.w + pad * 2, height: spot.h + pad * 2 } : null;
@@ -293,9 +319,9 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
   return (
     <div ref={rootRef} style={{ position: "absolute", inset: 0, zIndex: 500 }}>
       {/* tap blocker (and a flat dim until the target is measured) */}
-      <div style={{ position: "absolute", inset: 0, background: cutout ? "transparent" : "rgba(4,6,12,0.62)" }} />
+      <div style={{ position: "absolute", inset: 0, background: cutout ? "transparent" : "rgba(4,6,12,0.66)" }} />
       {/* cutout: dims everything except the target via a huge ring-shadow */}
-      {cutout && <div key={ctxKey} style={{ position: "absolute", left: cutout.left, top: cutout.top, width: cutout.width, height: cutout.height, borderRadius: stop.radius, boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)", border: "1.5px solid rgba(254,222,52,0.85)", transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)", animation: "bosTourCut 0.3s ease both", pointerEvents: "none" }} />}
+      {cutout && <div key={ctxKey} style={{ position: "absolute", left: cutout.left, top: cutout.top, width: cutout.width, height: cutout.height, borderRadius: stop.radius, boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)", border: "1.5px solid rgba(254,222,52,0.85)", transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }} />}
       <div className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, top: cardTop, bottom: cardBottom, background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{stop.eyebrow}</div>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: titleC, marginTop: 3 }}>{stop.title}</div>
@@ -316,7 +342,13 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
 
 function PhoneApp() {
   const app = useApp();
-  const [frames, setFrames] = useState([{ route: START_ROUTE, params: {}, id: 0 }]);
+  // Optional deep link: ?screen=home opens straight to a screen (skips intro).
+  // Used by the promo composite and for sharing a direct link to a view.
+  const startRoute = (() => {
+    try { const s = new URLSearchParams(window.location.search).get("screen"); return (s && SCREENS[s]) ? s : START_ROUTE; }
+    catch (e) { return START_ROUTE; }
+  })();
+  const [frames, setFrames] = useState([{ route: startRoute, params: {}, id: 0 }]);
   const [anim, setAnim] = useState(null); // { dir, prevFrame }
   const idRef = useRef(1);
 
@@ -341,7 +373,7 @@ function PhoneApp() {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  const navigate = useCallback((next, np = {}) => {
+  const navigate = useCallback((next, np = {}, opts = {}) => {
     setFrames((prev) => {
       const idx = prev.findIndex((f) => f.route === next);
       // Re-navigating to the current screen → just refresh its params, no transition.
@@ -364,7 +396,9 @@ function PhoneApp() {
         dir = (next === "signup" && cur.route === "intro") ? "fade" : "push";
         nextFrames = [...prev, { route: next, params: np || {}, id: idRef.current++ }];
       }
-      setAnim({ dir, prevFrame: cur });
+      // opts.instant → swap with NO page animation (used by the guided tour, so
+      // the page changes UNDER the dim instead of fading/sliding into view = no flash).
+      setAnim(opts.instant ? null : { dir, prevFrame: cur });
       return nextFrames;
     });
   }, []);
@@ -511,7 +545,7 @@ function PhoneApp() {
     <div className="fit-root">
       <div className={"phone-shell " + (topDark ? "is-dark" : "is-light")}>
         <div
-          className="page-stack"
+          className={"page-stack" + (app.tourStep >= 0 ? " tour-active" : "")}
           ref={stackRef}
           onPointerDown={onDragStart}
           onPointerMove={onDragMove}

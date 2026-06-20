@@ -537,6 +537,18 @@ function HomeScreen() {
 /* ── Share-the-app sheet (slides up from the home "Поделиться приложением") ── */
 function ShareAppSheet({ dark = false }) {
   const { close } = useSheet();
+  const [copied, setCopied] = useHomeState(false);
+  // The real, live web app — works on any phone, also opens fine from Telegram.
+  const APP_URL = "https://mind3scape.github.io/balanceos";
+  const copyLink = () => {
+    try { navigator.clipboard.writeText(APP_URL); } catch (e) {}
+    setCopied(true); window.setTimeout(() => setCopied(false), 1600);
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+  };
+  const shareLink = async () => {
+    try { if (navigator.share) { await navigator.share({ title: "BalanceOS", text: "Держим баланс вместе — BalanceOS", url: APP_URL }); return; } } catch (e) { return; }
+    copyLink();
+  };
   const C = dark
     ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.09)" }
     : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", line: "rgba(0,0,0,0.06)" };
@@ -549,16 +561,16 @@ function ShareAppSheet({ dark = false }) {
     <div style={{ padding: "2px 20px 0", color: C.text }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ width: 64, height: 64, borderRadius: "50%", margin: "0 auto 12px",
-          background: "radial-gradient(circle at 38% 30%, #ffffff 0%, #bfe2ff 16%, #5fa8ff 40%, #2b6fe0 62%, #16306a 88%)",
-          boxShadow: "0 8px 24px rgba(64,150,255,0.4)" }} />
+          background: "radial-gradient(circle at 37% 29%, #ffffff 0%, #dbe6f6 14%, #7aa4d0 46%, #3f5f86 72%, #243b5c 100%)",
+          boxShadow: "0 8px 24px rgba(122,164,208,0.42)" }} />
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться BalanceOS</div>
         <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>Вместе держать баланс проще — позови друга</div>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.tile, borderRadius: 14, padding: "11px 14px", marginTop: 20 }}>
         <span style={{ fontSize: 16 }}>🔗</span>
-        <div style={{ flex: 1, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>balanceos.app/i/tim</div>
-        <button className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 600 }}>Копировать</button>
+        <div style={{ flex: 1, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>mind3scape.github.io/balanceos</div>
+        <button onClick={copyLink} className="tap" style={{ background: copied ? "#34C759" : (dark ? "#fff" : "#0a0a0a"), color: copied ? "#fff" : (dark ? "#0a0a0a" : "#fff"), border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 600, transition: "background 0.2s", whiteSpace: "nowrap" }}>{copied ? "Скопировано ✓" : "Копировать"}</button>
       </div>
 
       <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "20px 0 12px" }}>Предложить друзьям</div>
@@ -575,7 +587,7 @@ function ShareAppSheet({ dark = false }) {
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
         {targets.map((t, i) => (
-          <button key={i} className="tap" style={{ flex: 1, background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, color: C.text }}>
+          <button key={i} onClick={shareLink} className="tap" style={{ flex: 1, background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, color: C.text }}>
             <span style={{ width: 54, height: 54, borderRadius: "50%", background: C.tile, display: "grid", placeItems: "center", fontSize: 22 }}>{t.e}</span>
             <span style={{ fontSize: 11, color: C.sub }}>{t.t}</span>
           </button>
