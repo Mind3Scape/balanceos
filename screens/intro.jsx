@@ -317,8 +317,9 @@ function LayerTogether({ t, alpha, dark = true }) {
   // lower-right) — they breathe gently in place instead of whirling chaotically,
   // each linked to the centre by a clean line. (Memoji faces land here next.)
   const TOP = -Math.PI / 2;
+  const PICS = ["./assets/people/m1.png", "./assets/people/m5.png", "./assets/people/m3.png"];
   const friends = (dark ? ["#cfe1ff", "#9bbfe8", "#7aa4d0"] : ["#5a85bd", "#4f7bb0", "#3f6390"])
-    .map((c, i) => ({ c, a: TOP + i * (Math.PI * 2 / 3) }));
+    .map((c, i) => ({ c, pic: PICS[i], a: TOP + i * (Math.PI * 2 / 3) }));
   return (
     <g opacity={alpha}>
       {friends.map((f, i) => {
@@ -327,9 +328,8 @@ function LayerTogether({ t, alpha, dark = true }) {
         return (
           <g key={i}>
             <line x1="0" y1="0" x2={x} y2={y} stroke={f.c} strokeOpacity={dark ? 0.4 : 0.45} strokeWidth="1" />
-            <circle cx={x} cy={y} r="16" fill={f.c} opacity={dark ? 0.16 : 0.2} style={{ filter: "blur(6px)" }} />
-            <circle cx={x} cy={y} r="9" fill={f.c} opacity="0.92" />
-            <circle cx={x - 2} cy={y - 3} r="2.6" fill="#fff" opacity={dark ? 0.7 : 0.55} />
+            <circle cx={x} cy={y} r="21" fill={f.c} opacity={dark ? 0.22 : 0.26} style={{ filter: "blur(7px)" }} />
+            <image href={f.pic} x={x - 21} y={y - 21} width="42" height="42" preserveAspectRatio="xMidYMid meet" />
           </g>
         );
       })}
