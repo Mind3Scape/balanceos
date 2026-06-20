@@ -761,7 +761,7 @@ function AIChatScreen() {
           { i: "✨", t: "Предложи привычку" },
           { i: "🔄", t: "Помоги перезагрузиться" },
         ].map((s, i) => (
-          <button key={i} onClick={() => send(s.t)} className="tap" style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <button key={i} onClick={() => send(s.t)} className="tap" data-no-haptic style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span>{s.i}</span> {s.t}
           </button>
         ))}

@@ -1346,7 +1346,7 @@ function TeamSettingsScreen() {
       <div className="section-label" style={{ marginTop: 22 }}>Эмблема</div>
       <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "8px -16px 0", padding: "0 16px 4px", scrollbarWidth: "none" }}>
         {emblems.map(e => (
-          <button key={e} onClick={() => setEmblem(e)} className="tap" style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 14, fontSize: 22, lineHeight: 1, background: e === emblem ? "#0a0a0a" : "#f1f1f3", border: 0 }}>{e}</button>
+          <button key={e} onClick={() => setEmblem(e)} className="tap" data-no-haptic style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 14, fontSize: 22, lineHeight: 1, background: e === emblem ? "#0a0a0a" : "#f1f1f3", border: 0 }}>{e}</button>
         ))}
       </div>
 
@@ -1441,7 +1441,7 @@ function TeamHabitSheet({ team, members = [], onAdd }) {
       {/* Emoji picker */}
       <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "16px -20px 0", padding: "0 20px 4px", scrollbarWidth: "none" }}>
         {EMO.map(e => (
-          <button key={e} onClick={() => setEmoji(e)} className="tap" style={{
+          <button key={e} onClick={() => setEmoji(e)} className="tap" data-no-haptic style={{
             flexShrink: 0, width: 46, height: 46, borderRadius: 14, fontSize: 22, lineHeight: 1,
             background: e === emoji ? "#0a0a0a" : C.tile, border: 0,
           }}>{e}</button>
