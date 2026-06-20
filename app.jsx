@@ -103,7 +103,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v43";
+const APP_VERSION = "v44";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -166,6 +166,15 @@ function PhoneApp() {
     });
   }, []);
 
+  // Pop one screen off the stack — used by Telegram's native Back button.
+  const goBack = useCallback(() => {
+    setFrames((prev) => {
+      if (prev.length <= 1) return prev;
+      setAnim({ dir: "pop", prevFrame: prev[prev.length - 1] });
+      return prev.slice(0, -1);
+    });
+  }, []);
+
   const top = frames[frames.length - 1];
 
   const themeFor = (route) =>
@@ -184,7 +193,14 @@ function PhoneApp() {
     if (m) m.setAttribute("content", bg);
     document.documentElement.style.background = bg;
     document.body.style.background = bg;
+    if (window.tgHeader) window.tgHeader(bg); // match Telegram's chrome to the screen
   }, [top.route, topDark]);
+
+  // Telegram Mini App: show the native Back button on any pushed screen and let
+  // it pop our stack; hidden at a tab root. No-op in a normal browser.
+  useEffect(() => {
+    if (window.tgBackButton) window.tgBackButton(frames.length > 1, goBack);
+  }, [frames.length, goBack]);
 
   // Safety net: clear the transition even if `animationend` never fires — e.g.
   // the installed PWA is backgrounded mid-animation (iOS freezes the animation
