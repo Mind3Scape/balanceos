@@ -36,6 +36,7 @@ const SCREENS = {
   "home-customize": () => HomeCustomizeScreen,
   levels: () => LevelsScreen,
   "habit-detail": () => HabitDetailScreen,
+  "goal-detail": () => GoalDetailScreen,
   mood: () => MoodScreen,
   journal: () => JournalScreen,
   focus: () => FocusScreen,
@@ -102,7 +103,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v41";
+const APP_VERSION = "v42";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */

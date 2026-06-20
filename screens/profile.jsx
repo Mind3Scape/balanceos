@@ -290,6 +290,18 @@ function NotificationsScreen() {
   );
 }
 
+/* One calendar day-ring: faint track + progress arc (shared #calRing gradient).
+   pct 0..1; `glow` lights a full ring up for a perfect day. */
+function DayRing({ pct, track, sw = 3, glow }) {
+  const r = 16, C = 2 * Math.PI * r;
+  return (
+    <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+      <circle cx="20" cy="20" r={r} fill="none" stroke={track} strokeWidth={sw} />
+      {pct > 0 && <circle cx="20" cy="20" r={r} fill="none" stroke="url(#calRing)" strokeWidth={sw} strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} style={glow ? { filter: "drop-shadow(0 0 1.5px rgba(239,159,20,0.75))" } : undefined} />}
+    </svg>
+  );
+}
+
 function HistoryScreen() {
   const { navigate } = useNav();
   const app = useApp();
@@ -308,6 +320,8 @@ function HistoryScreen() {
   const TH = isDark ? {
     cellEmpty: "rgba(255,255,255,0.05)",
     cellIdle:  "rgba(255,255,255,0.10)",
+    ringTrack: "rgba(255,255,255,0.13)",
+    cellSelBg: "rgba(255,255,255,0.16)",
     cellBorder:"rgba(255,255,255,0.10)",
     cellText:  "#fff",
     cellMuted: "rgba(255,255,255,0.45)",
@@ -322,6 +336,8 @@ function HistoryScreen() {
   } : {
     cellEmpty: "transparent",
     cellIdle:  "#f5f5f5",
+    ringTrack: "rgba(0,0,0,0.09)",
+    cellSelBg: "rgba(0,0,0,0.07)",
     cellBorder:"rgba(0,0,0,0.06)",
     cellText:  "var(--text)",
     cellMuted: "var(--text-4)",
@@ -426,27 +442,38 @@ function HistoryScreen() {
           ))}
         </div>
 
+        {/* Shared gradient for every day-ring */}
+        <svg width="0" height="0" aria-hidden style={{ position: "absolute" }}>
+          <defs>
+            <linearGradient id="calRing" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" />
+            </linearGradient>
+          </defs>
+        </svg>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginTop: 6 }}>
           {cells.map(c => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }}/>;
             const pct = completion(c.d);
+            const future = pct == null;
             const isSelected = selDay === c.d;
             const isToday = isCurMonth && c.d === today;
             return (
               <button key={c.key} onClick={() => setSelDay(c.d)} className="tap"
                 style={{
-                  aspectRatio: "1/1", border: 0, borderRadius: 10, padding: 0,
+                  aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0,
                   display: "grid", placeItems: "center", position: "relative",
-                  fontSize: 13, fontWeight: 500, cursor: "pointer",
-                  outline: isSelected ? "2px solid " + TH.outlineSel : (isToday ? "1.5px solid " + TH.outlineToday : "none"),
-                  outlineOffset: isSelected ? -2 : -1,
-                  ...cellStyle(pct),
+                  fontSize: 13, fontWeight: isToday ? 700 : 500, cursor: "pointer",
+                  background: "transparent",
+                  color: future ? TH.cellMuted : (isToday ? "#EF9F14" : TH.cellText),
                 }}>
-                {c.d}
-                {pct === 1 && <span aria-hidden style={{ position: "absolute", bottom: 3, right: 4, fontSize: 9 }}>★</span>}
+                {isSelected && <span aria-hidden style={{ position: "absolute", width: "64%", aspectRatio: "1/1", borderRadius: "50%", background: TH.cellSelBg }}/>}
+                {future
+                  ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px dashed " + TH.cellBorder }}/>
+                  : <DayRing pct={pct} track={TH.ringTrack} glow={pct === 1} />}
+                <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>
                 {isCurMonth && app?.dayMoods?.[c.d] != null && pct != null && (
-                  <span aria-hidden style={{ position: "absolute", top: 2, right: 2, lineHeight: 0 }}>
-                    <StaticOrb size={11} tint={tintFromMood(MOOD_OPTIONS[app.dayMoods[c.d]].c)} seed={1.2} intensity={0.55} />
+                  <span aria-hidden style={{ position: "absolute", top: 0, right: 0, lineHeight: 0 }}>
+                    <StaticOrb size={10} tint={tintFromMood(MOOD_OPTIONS[app.dayMoods[c.d]].c)} seed={1.2} intensity={0.55} />
                   </span>
                 )}
               </button>
@@ -456,9 +483,11 @@ function HistoryScreen() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
           <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Меньше</span>
-          <div style={{ display: "flex", gap: 4 }}>
-            {[0, 0.2, 0.5, 0.85, 1].map((p, i) => (
-              <span key={i} style={{ width: 14, height: 14, borderRadius: 4, ...cellStyle(p) }}/>
+          <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
+            {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+              <span key={i} style={{ position: "relative", width: 16, height: 16, display: "inline-block" }}>
+                <DayRing pct={p} track={TH.ringTrack} sw={3.4} glow={p === 1} />
+              </span>
             ))}
           </div>
           <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Больше</span>

@@ -117,6 +117,120 @@ function HabitDetailScreen() {
   );
 }
 
+/* GOAL DETAIL — progress ring, the habits it's built from (cross-linked into
+   their own stats), a pace hint, and a +1 to nudge progress. Opened by tapping
+   a goal on Home or Habits. Back returns to the origin tab (params.from). */
+function GoalDetailScreen() {
+  const { navigate, params } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const back = params?.from || "habits";
+  const seed = params?.goal || { id: 0, emoji: "🎯", name: "Цель", current: 0, target: 1, unit: "", deadline: "" };
+  const g = (app?.goals && app.goals.find((x) => x.id === seed.id)) || seed;
+  const isDark = app?.themeOverride === "dark";
+  const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
+
+  const pct = g.target ? Math.min(1, (g.current || 0) / g.target) : 0;
+  const remaining = Math.max(0, (g.target || 0) - (g.current || 0));
+  const done = pct >= 1;
+  const linked = (app?.habits || []).filter((h) => (g.habitIds || []).includes(h.id));
+
+  const card = isDark
+    ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
+    : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
+  const ringTrack = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  const R = 54, CIRC = 2 * Math.PI * R;
+
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
+        <button onClick={() => navigate("goal-settings", { mode: "edit", goal: g })} className="tap" style={{ background: "transparent", border: 0, fontSize: 15, fontWeight: 500, color: "var(--text-2)" }}>Изменить</button>
+      } />
+
+      {/* Hero — progress ring (Apple-Watch style), % counts up on open */}
+      <div style={{ textAlign: "center", padding: "6px 0 18px" }}>
+        <div style={{ position: "relative", width: 170, height: 170, margin: "0 auto" }}>
+          <svg width="170" height="170" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+            <defs>
+              <linearGradient id="goalGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" />
+              </linearGradient>
+            </defs>
+            <circle cx="70" cy="70" r={R} fill="none" stroke={ringTrack} strokeWidth="13" />
+            {pct > 0 && <circle cx="70" cy="70" r={R} fill="none" stroke="url(#goalGrad)" strokeWidth="13" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - pct)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(done ? { filter: "drop-shadow(0 0 6px rgba(239,159,20,0.5))" } : {}) }} />}
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 34, lineHeight: 1 }}>{g.emoji}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px" }}><Count value={Math.round(pct * 100)} />%</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 700, marginTop: 14, letterSpacing: "-0.4px" }}>{g.name}</div>
+        <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
+          <Count value={g.current || 0} /> из {g.target} {g.unit} · до {g.deadline}
+        </div>
+      </div>
+
+      {/* Stat cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        {[
+          { l: "Осталось", v: remaining, i: "🎯" },
+          { l: "Сделано", v: g.current || 0, i: "✅" },
+          { l: "Срок", text: g.deadline, i: "📅" },
+        ].map((s, i) => (
+          <div key={i} style={{ ...card, borderRadius: 18, padding: "14px 6px", textAlign: "center" }}>
+            <div style={{ fontSize: 16 }}>{s.i}</div>
+            <div style={{ fontSize: s.text ? 13.5 : 21, fontWeight: 700, marginTop: 6, letterSpacing: "-0.4px" }}>{s.text ? s.text : <Count value={s.v} />}</div>
+            <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 3 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Built from these habits — tap drills into the habit's own stats */}
+      {linked.length > 0 && (
+        <>
+          <div className="section-label" style={{ marginTop: 22 }}>Складывается из привычек</div>
+          <div style={{ ...card, borderRadius: 18, marginTop: 8, overflow: "hidden" }}>
+            {linked.map((h, i) => (
+              <div key={h.id}>
+                <button className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "goal-detail" })} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: 0, textAlign: "left", color: "var(--text)" }}>
+                  <span style={{ width: 38, height: 38, borderRadius: 11, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{h.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, color: "var(--text-2)", fontWeight: 500 }}>{h.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {h.streak || 0}д серия</div>
+                  </div>
+                  <I.ChevronRight size={17} color="var(--text-4)" />
+                </button>
+                {i < linked.length - 1 && <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)" }} />}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Pace hint */}
+      <div className="section-label" style={{ marginTop: 22 }}>Подсказка</div>
+      <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
+        <I.Sparkles size={18} color={isDark ? "#fff" : "#0a0a0a"} />
+        <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
+          {done
+            ? `Цель достигнута 🎉 «${g.name}» закрыта — можно поставить новую планку.`
+            : pct >= 0.8
+              ? `Финишная прямая — осталось ${remaining} ${g.unit}. Не сбавляй до ${g.deadline}.`
+              : pct >= 0.5
+                ? `Больше половины пути. ${linked[0] ? `Главный двигатель — «${linked[0].name}»: не разрывай серию.` : "Держи темп."}`
+                : `${linked[0] ? `Каждая отметка «${linked[0].name}» приближает к цели. ` : "Начало положено. "}Осталось ${remaining} ${g.unit} до ${g.deadline}.`}
+        </div>
+      </div>
+
+      {/* Action — nudge progress; ring + % update live */}
+      <button onClick={() => { if (!done && app?.updateGoal) app.updateGoal(g.id, { current: Math.min(g.target, (g.current || 0) + 1) }); }} className="bos-btn" style={{ marginTop: 22, background: done ? (isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)") : undefined, color: done ? "var(--text-2)" : undefined }}>
+        {done ? "✓ Цель достигнута" : "+1 к прогрессу"}
+      </button>
+    </div>
+  );
+}
+
 /* MOOD CHECK-IN — quick state pulse */
 /* MOOD CHECK-IN — fullscreen, edge-to-edge black with a centered aurora
    vignette so top/bottom stay pure black. State is represented entirely by
@@ -680,4 +794,4 @@ function AIChatScreen() {
   );
 }
 
-Object.assign(window, { HabitDetailScreen, MoodScreen, JournalScreen, FocusScreen, LevelUpScreen, AIChatScreen });
+Object.assign(window, { HabitDetailScreen, GoalDetailScreen, MoodScreen, JournalScreen, FocusScreen, LevelUpScreen, AIChatScreen });

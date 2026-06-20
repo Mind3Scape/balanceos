@@ -237,7 +237,7 @@ function HabitsScreen() {
             const pct = g.current / g.target;
             return (
               <div key={g.id}>
-                <button className="tap" onClick={() => navigate("goal-settings", { mode: "edit", goal: g })}
+                <button className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ width: "100%", background: "transparent", border: 0, padding: "14px 16px", textAlign: "left", color: "var(--text)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <span style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{g.emoji}</span>
