@@ -39,3 +39,12 @@ for (const f of FILES) {
   console.log("built", f, "→ build/" + f.replace(/\.jsx$/, ".js"), "(" + out.length + " B)");
 }
 console.log("done —", FILES.length, "files,", (total / 1024).toFixed(0), "KB total (no Babel shipped)");
+
+// Cache-bust: stamp index.html's build/*.js URLs with the current APP_VERSION so a
+// new deploy can NEVER be served stale from an HTTP / Telegram-webview cache.
+const appSrc = fs.readFileSync(path.join(root, "app.jsx"), "utf8");
+const ver = (appSrc.match(/APP_VERSION\s*=\s*"(v\d+)"/) || [])[1] || "v0";
+let html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+html = html.replace(/(src="build\/[^"?]+\.js)(\?v=[^"]*)?"/g, `$1?v=${ver}"`);
+fs.writeFileSync(path.join(root, "index.html"), html);
+console.log("stamped index.html build URLs with", ver);
