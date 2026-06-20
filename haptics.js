@@ -84,6 +84,15 @@
   window.haptic = function () {};
 
   function start() {
+    // The Taptic <switch> trick only does anything in an INSTALLED iOS PWA. On
+    // the web / Android / Telegram / desktop the invisible overlays add nothing
+    // and can swallow a touch-scroll started over a control — so only inject them
+    // on iOS standalone; everywhere else scrolling stays fully native.
+    var iOS = /iP(hone|ad|od)/.test(navigator.platform || "") ||
+              ((navigator.userAgent || "").indexOf("Mac") > -1 && "ontouchend" in document);
+    var standalone = window.navigator.standalone === true ||
+                     (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+    if (!(iOS && standalone)) return;
     scan();
     var queued = false;
     var mo = new MutationObserver(function () {
@@ -97,6 +106,25 @@
     // (e.g. the 60fps onboarding updating a reused button's text).
     setInterval(scan, 1000);
   }
+
+  // ── Global tap-vs-scroll guard (ALL platforms) ──────────────────────────────
+  // If the pointer travels more than a few px between press and release, the user
+  // was scrolling/swiping — not tapping — so swallow the click the browser would
+  // still fire. Fixes "I dragged to scroll with my finger on a chip / habit row
+  // and it navigated instead of scrolling." Capture phase → runs before React.
+  (function () {
+    var x0 = 0, y0 = 0, moved = false, down = false, THRESH = 10;
+    document.addEventListener("pointerdown", function (e) {
+      down = true; moved = false; x0 = e.clientX; y0 = e.clientY;
+    }, true);
+    document.addEventListener("pointermove", function (e) {
+      if (down && (Math.abs(e.clientX - x0) > THRESH || Math.abs(e.clientY - y0) > THRESH)) moved = true;
+    }, true);
+    document.addEventListener("pointerup", function () { down = false; }, true);
+    document.addEventListener("click", function (e) {
+      if (moved) { moved = false; e.stopPropagation(); e.preventDefault(); }
+    }, true);
+  })();
 
   if (document.body) start();
   else window.addEventListener("DOMContentLoaded", start);

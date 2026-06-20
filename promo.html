@@ -7,7 +7,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #dce6f4; }
   .promo {
-    width: 1280px; height: 912px; position: relative; overflow: hidden;
+    width: 1280px; height: 1000px; position: relative; overflow: hidden;
     display: flex; flex-direction: column; align-items: center;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
     background:
@@ -37,12 +37,14 @@
     padding: 10px; border-radius: 46px; background: linear-gradient(165deg, #20232b 0%, #0a0a0e 100%);
     box-shadow: 0 40px 84px rgba(40,62,112,0.28), 0 9px 24px rgba(0,0,0,0.18);
   }
-  .phone .screen { width: 286px; height: 540px; border-radius: 36px; overflow: hidden; position: relative; background: #eef3fc; }
-  .phone .screen iframe { width: 375px; height: 708px; border: 0; transform: scale(0.762667); transform-origin: top left; }
+  /* True iPhone screen aspect: 375×812 (≈19.5:9). The app is 375-wide; scale it
+     to the frame width so each phone shows the full screen at real proportions. */
+  .phone .screen { width: 282px; height: 611px; border-radius: 40px; overflow: hidden; position: relative; background: #eef3fc; }
+  .phone .screen iframe { width: 375px; height: 812px; border: 0; transform: scale(0.752); transform-origin: top left; }
   .phone.hero { transform: translateY(-16px); }
-  .phone.hero .screen { width: 300px; height: 566px; }
-  .phone.hero .screen iframe { width: 375px; height: 707px; transform: scale(0.8); }
-  .glass { position: absolute; inset: 0; border-radius: 36px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.06); pointer-events: none; }
+  .phone.hero .screen { width: 300px; height: 650px; }
+  .phone.hero .screen iframe { width: 375px; height: 812px; transform: scale(0.8); }
+  .glass { position: absolute; inset: 0; border-radius: 40px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.06); pointer-events: none; }
   .foot { margin-top: 30px; text-align: center; position: relative; z-index: 2; }
   .pills { display: flex; gap: 11px; justify-content: center; }
   .pills span { background: rgba(255,255,255,0.72); border: 1px solid rgba(21,35,60,0.07); color: #2f5e96; font-size: 14.5px; font-weight: 500; padding: 9px 17px; border-radius: 999px; box-shadow: 0 3px 10px rgba(120,150,200,0.13); }
@@ -63,7 +65,7 @@
     <div class="phone"><div class="screen"><iframe src="index.html?screen=community" scrolling="no"></iframe><div class="glass"></div></div></div>
   </div>
   <div class="foot">
-    <div class="pills"><span>Привычки и цели</span><span>Колесо баланса</span><span>Команды и чат</span><span>ИИ-подсказки</span></div>
+    <div class="pills"><span>Не трекер, а платформа</span><span>Привычки вместе с близкими</span><span>Команды и тренинги</span><span>Цели и ИИ-помощник</span></div>
     <div class="link">mind3scape.github.io/balanceos</div>
   </div>
 </div>

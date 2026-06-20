@@ -1560,8 +1560,38 @@ function LevelsScreen() {
         </div>
       </div>
 
+      {/* Gamification FIRST — for a new user the most important thing is HOW XP
+         works and WHAT achievements unlock, so it sits right under the level. */}
+      <div className="section-label" style={{ marginTop: 20 }}>Как зарабатывать XP</div>
+      <SysCard style={{ padding: 14, marginTop: 8 }}>
+        {[
+          { t: "Выполнить привычку", v: "+5 XP" },
+          { t: "Серия 7 дней", v: "+50 XP" },
+          { t: "Помочь товарищу по команде", v: "+15 XP" },
+          { t: "Достичь цели", v: "+200 XP" },
+        ].map((r, i, arr) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
+            <span>{r.t}</span>
+            <span style={{ color: "#c99a1a", fontWeight: 600 }}>{r.v}</span>
+          </div>
+        ))}
+      </SysCard>
+
+      <div className="section-label" style={{ marginTop: 22 }}>Достижения</div>
+      <SysCard className="tap" onClick={() => navigate("achievements", { from: "levels" })} style={{ padding: 14, marginTop: 8, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
+        <span className="bos-sys-chip-bg" style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 600 }}>Ачивки</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>{achEarned.length} из {ach.length} · открывают круги контактов</div>
+        </div>
+        <div style={{ display: "flex", marginRight: 4 }}>
+          {achEarned.slice(0, 3).map((a, i) => <span key={i} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 13, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{a.i}</span>)}
+        </div>
+        <I.ChevronRight size={18} className="bos-sys-text-2"/>
+      </SysCard>
+
       {/* Credits — spendable on contacts' services in the Network */}
-      <SysCard style={{ padding: 16, marginTop: 12, display: "flex", alignItems: "center", gap: 14, borderRadius: 18 }}>
+      <SysCard style={{ padding: 16, marginTop: 22, display: "flex", alignItems: "center", gap: 14, borderRadius: 18 }}>
         <span className="bos-sys-chip-bg" style={{ width: 50, height: 50, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 24 }}>🪙</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Кредиты</div>
@@ -1589,33 +1619,6 @@ function LevelsScreen() {
         ))}
       </div>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Достижения</div>
-      <SysCard className="tap" onClick={() => navigate("achievements", { from: "levels" })} style={{ padding: 14, marginTop: 8, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-        <span className="bos-sys-chip-bg" style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 600 }}>Ачивки</div>
-          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>{achEarned.length} из {ach.length} · открывают круги контактов</div>
-        </div>
-        <div style={{ display: "flex", marginRight: 4 }}>
-          {achEarned.slice(0, 3).map((a, i) => <span key={i} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 13, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{a.i}</span>)}
-        </div>
-        <I.ChevronRight size={18} className="bos-sys-text-2"/>
-      </SysCard>
-
-      <div className="section-label" style={{ marginTop: 22 }}>Как зарабатывать XP</div>
-      <SysCard style={{ padding: 14, marginTop: 8 }}>
-        {[
-          { t: "Выполнить привычку", v: "+5 XP" },
-          { t: "Серия 7 дней", v: "+50 XP" },
-          { t: "Помочь товарищу по команде", v: "+15 XP" },
-          { t: "Достичь цели", v: "+200 XP" },
-        ].map((r, i, arr) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
-            <span>{r.t}</span>
-            <span style={{ color: "#c99a1a", fontWeight: 600 }}>{r.v}</span>
-          </div>
-        ))}
-      </SysCard>
     </div>
   );
 }

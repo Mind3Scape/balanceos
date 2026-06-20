@@ -108,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v76";
+const APP_VERSION = "v77";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -132,7 +132,9 @@ const TOUR_STOPS = [
   { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Состояние", title: "Отметь, как ты сейчас",
     body: "Раз в день отмечай своё состояние — и приложение подстроится под тебя: цвет, тон, акценты дня." },
   { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт с первого дня",
-    body: "Каждая отметка с самого начала качает опыт и уровень. Чем выше — тем больше открывается: наставники, контакты, курсы, возможности." },
+    body: "Каждая отметка с самого начала качает опыт и уровень. Загляни — покажу, как это устроено." },
+  { kind: "peek", tab: "levels", eyebrow: "Геймификация", title: "Опыт, ачивки, награды",
+    body: "Вот сердце прогресса: сверху — за что капает XP, ниже — ачивки (открывают новые круги людей) и награды за кредиты. Растёшь — открывается больше." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
     body: "Твоя личная система. Привычки и цели живут здесь." },
   { kind: "spot", tab: "habits", sel: '[data-tour="presets"]', radius: 16, eyebrow: "Шаблоны", title: "Листай готовые привычки",
@@ -177,7 +179,9 @@ const FRESH_STOPS = [
   { kind: "card", emoji: "🧭", title: "Колесо баланса",
     body: "Каждую привычку приложение само относит к сфере жизни — тело, отношения, дело, отдых. Из них складывается твоё «колесо баланса»: видно, где густо, а где пусто. Чем больше отмечаешь — тем точнее картина.", cta: "Понятно" },
   { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт с первого дня",
-    body: "Ты на 1 уровне. Каждая привычка и доброе дело качают опыт — и открывают новое: наставников, контакты, курсы." },
+    body: "Ты на 1 уровне. Каждая привычка качает опыт. Загляни — покажу, как это работает." },
+  { kind: "peek", tab: "levels", eyebrow: "Геймификация", title: "Опыт, ачивки, награды",
+    body: "Сверху — за что начисляется XP, ниже — ачивки и награды. Чем выше уровень, тем больше открывается: наставники, контакты, курсы. Это сердце прогресса." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
     body: "Твоя личная система — пока пустая. Самое время собрать её под себя." },
   { kind: "spot", tab: "habits", sel: '[data-tour="presets"]', radius: 16, eyebrow: "Шаблоны", title: "Листай готовые привычки",
