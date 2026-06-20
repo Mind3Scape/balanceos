@@ -501,23 +501,19 @@ function IntroScreen() {
   const [step, setStep] = useIS(0);
   const [prev, setPrev] = useIS(null);
   const [blendStart, setBlendStart] = useIS(0);
-  const [introPhase, setIntroPhase] = useIS(0); // screen 0: 0 = "ты — точка" intro, 1 = main words + button
   const t = useT();
   const blend = Math.min(1, (t - blendStart) / 1.2);
   const effectivePrev = blend < 1 ? prev : null;
 
   const slides = [
-    { mode: "awake",    eyebrow: "Состояние",         title: "Ты не видишь мир таким, какой он есть", sub: "Ты видишь его таким, в каком ты состоянии. Ты — точка внимания в бесконечном пространстве вариантов, и состояние решает, что ты видишь.", glow: "rgba(160,200,240,0.46)" },
+    { mode: "awake",    eyebrow: "Состояние",         title: "Ты не видишь мир таким, какой он есть", sub: "Ты видишь мир таким, в каком состоянии находишься.", glow: "rgba(160,200,240,0.46)" },
     { mode: "comfort",  eyebrow: "Когда сил мало",     title: "В слабом состоянии мир сжимается", sub: "Всё кажется невозможным. Ты живёшь в узком круге привычного — на автопилоте.", glow: "rgba(96,120,150,0.34)" },
     { mode: "state",    eyebrow: "Когда ты наполнен",  title: "В сильном — раскрывается", sub: "Граница раздвигается сама. Ты видишь решения, которые были рядом всё это время.", glow: "rgba(160,205,245,0.52)" },
     { mode: "compound", eyebrow: "Твой выбор",         title: "Состоянием можно управлять", sub: "Не обстоятельствами, а собой. Большинство отдают этот выбор страхам и чужому мнению — здесь ты учишься выбирать сам.", glow: "rgba(180,210,240,0.45)" },
     { mode: "together", eyebrow: "Не в одиночку",      title: "С близкими — пространство шире", sub: "Рядом со своими граница раздвигается дальше. Объединяйтесь в команды, делитесь привычками, держите друг друга.", glow: "rgba(150,185,225,0.42)" },
     { mode: "mood",     eyebrow: "Точка отсчёта",      title: "Как ты сейчас?", sub: "Состояние не вырастить, не замечая его. Отметь, как ты прямо сейчас — отсюда и начнём.", glow: "rgba(180,210,240,0.45)" },
   ];
-  const showIntro = step === 0 && introPhase === 0;
-  const cur = showIntro
-    ? { eyebrow: "Ты", title: "Ты — точка", sub: "Точка внимания внутри бесконечного количества возможных вариантов жизни.", mode: "awake", glow: "rgba(140,180,230,0.42)" }
-    : slides[step];
+  const cur = slides[step];
   const last = step === slides.length - 1;
   const go = (next) => {
     if (next === step) return;
@@ -536,7 +532,6 @@ function IntroScreen() {
     while (n && !(n.classList && (n.classList.contains("theme-light") || n.classList.contains("theme-dark")))) n = n.parentElement;
     if (n && n.classList.contains("theme-light")) setDark(false);
   }, []);
-  useIE(() => { const id = window.setTimeout(() => setIntroPhase(1), 2600); return () => window.clearTimeout(id); }, []);
   const pal = dark ? {
     bg: `radial-gradient(circle at 50% 38%, ${cur.glow} 0%, transparent 55%), radial-gradient(ellipse at 50% 100%, rgba(20,35,60,0.6) 0%, transparent 60%), #060912`,
     title: "#fff", sub: "rgba(255,255,255,0.66)", eyebrow: "rgba(255,255,255,0.55)", eyebrowStrong: "#bcd8ff",
@@ -576,7 +571,7 @@ function IntroScreen() {
          bottom buttons stay on top, so the central area navigates by tap. */}
       <div className="tap" aria-label="Назад" onClick={() => { if (step > 0) go(step - 1); }}
         style={{ position: "absolute", left: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
-      <div className="tap" aria-label="Вперёд" onClick={() => { showIntro ? setIntroPhase(1) : (last ? finish() : go(step + 1)); }}
+      <div className="tap" aria-label="Вперёд" onClick={() => { last ? finish() : go(step + 1); }}
         style={{ position: "absolute", right: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
 
       <div style={{ position: "relative", padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0", display: "flex", gap: 4, zIndex: 2, pointerEvents: "none" }}>
@@ -588,26 +583,26 @@ function IntroScreen() {
       </div>
 
       <div style={{ flex: 1, display: "grid", placeItems: "center", position: "relative", zIndex: 2, pointerEvents: "none" }}>
-        {/* one-time burst ring radiating outward as the orb arrives */}
-        <div aria-hidden style={{ position: "absolute", inset: 0, margin: "auto", width: 200, height: 200, borderRadius: "50%", border: "1.5px solid " + (dark ? "rgba(180,210,255,0.5)" : "rgba(90,130,190,0.4)"), animation: "orbBurst 1.3s ease-out both", pointerEvents: "none" }}/>
-        <div style={{ animation: "orbIntro 1.15s cubic-bezier(0.34,1.4,0.5,1) both" }}>
+        {/* soft ring radiating outward as the orb settles in from the splash */}
+        <div aria-hidden style={{ position: "absolute", inset: 0, margin: "auto", width: 168, height: 168, borderRadius: "50%", border: "1.5px solid " + (dark ? "rgba(180,210,255,0.38)" : "rgba(90,130,190,0.32)"), animation: "orbBurst 1.5s 0.25s ease-out both", pointerEvents: "none" }}/>
+        <div style={{ animation: "orbIntro 0.9s cubic-bezier(0.22,0.8,0.32,1) both" }}>
           <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark}/>
         </div>
       </div>
 
       <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 150, pointerEvents: "none" }}>
         {/* Context label — now grouped right above its title, legible accent + staged in first */}
-        <Reveal k={"eb"+step+introPhase} delay={0.1} style={{ marginBottom: 11 }}>
+        <Reveal k={"eb"+step} delay={0.1} style={{ marginBottom: 11 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, letterSpacing: 2.4, textTransform: "uppercase", fontWeight: 700, color: pal.eyebrowStrong }}>
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: pal.eyebrowStrong, boxShadow: `0 0 8px ${pal.eyebrowStrong}` }}/>
             {cur.eyebrow}
           </div>
         </Reveal>
-        <Reveal k={"ti"+step+introPhase} delay={0.25}>
+        <Reveal k={"ti"+step} delay={0.25}>
           <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.8px", textWrap: "balance", maxWidth: 300, margin: "0 auto", color: pal.title }}>{cur.title}</div>
         </Reveal>
         {cur.sub && (
-          <Reveal k={"su"+step+introPhase} delay={0.45} style={{ marginTop: 12 }}>
+          <Reveal k={"su"+step} delay={0.45} style={{ marginTop: 12 }}>
             <div style={{ fontSize: 14.5, color: pal.sub, lineHeight: 1.55, textWrap: "pretty", maxWidth: 312, margin: "0 auto" }}>{cur.sub}</div>
           </Reveal>
         )}
@@ -627,7 +622,7 @@ function IntroScreen() {
       )}
 
       <div style={{ position: "relative", padding: "20px 24px 28px", zIndex: 2 }}>
-        {!showIntro && cur.mode !== "mood" && (
+        {cur.mode !== "mood" && (
           <button onClick={() => last ? finish() : go(step+1)} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
             {step === 0 ? "Начать" : "Далее"}
           </button>
@@ -641,9 +636,8 @@ function IntroScreen() {
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
         @keyframes moodIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.05); } 30% { opacity: 1; } 62% { transform: scale(1.07); } 100% { opacity: 1; transform: scale(1); } }
-        @keyframes orbBurst { 0% { opacity: 0.6; transform: scale(0.12); } 70% { opacity: 0.18; } 100% { opacity: 0; transform: scale(2.4); } }
-        @keyframes introBloom { 0% { transform: scale(0.5); opacity: 0.85; } 100% { transform: scale(19); opacity: 1; } }
+        @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.9); } 55% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes orbBurst { 0% { opacity: 0.4; transform: scale(0.55); } 70% { opacity: 0.1; } 100% { opacity: 0; transform: scale(1.7); } }
       `}</style>
     </div>
   );

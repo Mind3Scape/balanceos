@@ -162,7 +162,7 @@ function HabitsScreen() {
       </div>
 
       {/* Quick add chips — flush, no panel */}
-      <div style={{ marginBottom: 16 }}>
+      <div data-tour="presets" style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600, marginBottom: 8, padding: "0 4px" }}>Быстрое добавление</div>
         <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", margin: "0 -12px", padding: "0 12px 2px" }}>
           {EMOJI_CHIPS.map((c,i)=>(

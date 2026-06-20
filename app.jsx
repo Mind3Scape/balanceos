@@ -108,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v74";
+const APP_VERSION = "v75";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -135,8 +135,10 @@ const TOUR_STOPS = [
     body: "Каждая отметка с самого начала качает опыт и уровень. Чем выше — тем больше открывается: наставники, контакты, курсы, возможности." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
     body: "Твоя личная система. Привычки и цели живут здесь." },
+  { kind: "spot", tab: "habits", sel: '[data-tour="presets"]', radius: 16, eyebrow: "Шаблоны", title: "Листай готовые привычки",
+    body: "Сверху — карусель пресетов: листай её вбок и тапни любую, чтобы добавить привычку за секунду." },
   { kind: "spot", tab: "habits", sel: '[data-tour="add"]', radius: 999, eyebrow: "Создать", title: "Жми «плюс»",
-    body: "Добавляй привычки и цели. Любую можно делать одному — или вместе с друзьями, поддерживая серии." },
+    body: "Или собери свою с нуля. Любую привычку можно делать одному — или вместе с друзьями, поддерживая серии." },
   { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
     body: "Команды, курсы и наставники. Привычки вместе держат сильнее." },
   { kind: "spot", tab: "community", view: { section: "discover", discTab: "teams" }, sel: '[data-tour="make-team"]', radius: 18, eyebrow: "Команды", title: "Создавай свои команды",
@@ -174,8 +176,10 @@ const FRESH_STOPS = [
     body: "Ты на 1 уровне. Каждая привычка и доброе дело качают опыт — и открывают новое: наставников, контакты, курсы." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
     body: "Твоя личная система — пока пустая. Самое время собрать её под себя." },
+  { kind: "spot", tab: "habits", sel: '[data-tour="presets"]', radius: 16, eyebrow: "Шаблоны", title: "Листай готовые привычки",
+    body: "Сверху — карусель пресетов. Листай её вбок: тапни любую — добавится за секунду. Самый быстрый старт." },
   { kind: "spot", tab: "habits", sel: '[data-tour="add"]', radius: 999, eyebrow: "Создать", title: "Создай первую привычку",
-    body: "Жми «плюс». Начни с одной маленькой — её можно делать одному или вместе с друзьями." },
+    body: "Или жми «плюс» и собери свою. Начни с одной маленькой — её можно делать одному или с друзьями." },
   { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
     body: "Команды с общим чатом, курсы и наставники. Объедини близких — или найди своих." },
   { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="network"]', radius: 12, eyebrow: "Нетворк", title: "Контакты открываются с уровнем",
@@ -190,7 +194,9 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
   const STOPS = tourMode === "fresh" ? FRESH_STOPS : TOUR_STOPS;
   const rootRef = useRef(null);
   const [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
+  const prevCtxRef = useRef(null);        // last stop's tab|view — detect page switches
   const stop = (step >= 0 && step < STOPS.length) ? STOPS[step] : null;
+  const ctxKey = stop ? stop.tab + "|" + (stop.view ? (stop.view.discTab || stop.view.commTab || stop.view.section || "") : "") : "";
 
   // Drive the tab bar so each "tab" stop shows the real section behind the dim.
   useEffect(() => {
@@ -200,23 +206,38 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
     }
   }, [step]); // eslint-disable-line
 
-  // Measure the active tab button so the spotlight hole + caret land on it.
+  // Measure the target so the spotlight hole + caret land on it. Robust to tab
+  // fades and page scroll: re-measure each frame until the layout is STABLE, then
+  // commit once. On a context switch (different tab/view) clear the old highlight
+  // first, so it fades in fresh at the new spot instead of sliding across the
+  // screen and visibly "catching up" (the laggy/glitchy adjust on the contacts page).
   useEffect(() => {
     if (!stop || stop.kind !== "spot") { setSpot(null); return undefined; }
-    let raf2;
-    const measure = () => {
+    const sameCtx = prevCtxRef.current === ctxKey;
+    prevCtxRef.current = ctxKey;
+    if (!sameCtx) setSpot(null); // drop the stale highlight during the page switch
+
+    let raf, cancelled = false, frames = 0, stable = 0, lastKey = "";
+    const tick = () => {
+      if (cancelled) return;
+      frames++;
       const shell = rootRef.current && rootRef.current.parentElement;
-      if (!shell) return;
-      const el = shell.querySelector(stop.sel);
-      if (!el) return;
-      try { el.scrollIntoView({ block: "center", inline: "nearest" }); } catch (_) {}
-      const s = shell.getBoundingClientRect(), b = el.getBoundingClientRect();
-      setSpot({ x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, sw: s.width, sh: s.height });
+      const el = shell && shell.querySelector(stop.sel);
+      if (el) {
+        try { el.scrollIntoView({ block: "center", inline: "nearest" }); } catch (_) {}
+        const s = shell.getBoundingClientRect(), b = el.getBoundingClientRect();
+        const m = { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, sw: s.width, sh: s.height };
+        const key = [m.x, m.y, m.w, m.h].map(n => Math.round(n)).join(",");
+        if (key === lastKey) stable++; else { stable = 0; lastKey = key; }
+        if (sameCtx) setSpot(m);                 // same page → track live (smooth slide)
+        if (stable >= 2) { setSpot(m); return; }  // settled → commit (reveals on a switch)
+      }
+      if (frames > 130) return;                  // hard cap (~2s) so it never spins
+      raf = requestAnimationFrame(tick);
     };
-    const t = window.setTimeout(measure, 400); // after the tab fade settles
-    const raf = requestAnimationFrame(() => { raf2 = requestAnimationFrame(measure); });
-    window.addEventListener("resize", measure);
-    return () => { window.clearTimeout(t); cancelAnimationFrame(raf); cancelAnimationFrame(raf2); window.removeEventListener("resize", measure); };
+    raf = requestAnimationFrame(tick);
+    window.addEventListener("resize", tick);
+    return () => { cancelled = true; cancelAnimationFrame(raf); window.removeEventListener("resize", tick); };
   }, [step]); // eslint-disable-line
 
   if (!stop) return null;
@@ -239,6 +260,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
     <style>{`
       @keyframes bosTourPop { from { opacity: 0; transform: scale(0.93) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
       @keyframes bosTourRing { 0% { transform: scale(0.75); opacity: 0.9; } 100% { transform: scale(1.55); opacity: 0; } }
+      @keyframes bosTourCut { from { opacity: 0; } to { opacity: 1; } }
       .bos-tour-pop { animation: bosTourPop 0.42s cubic-bezier(0.34,1.56,0.64,1) both; }
     `}</style>
   );
@@ -273,14 +295,14 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
       {/* tap blocker (and a flat dim until the target is measured) */}
       <div style={{ position: "absolute", inset: 0, background: cutout ? "transparent" : "rgba(4,6,12,0.62)" }} />
       {/* cutout: dims everything except the target via a huge ring-shadow */}
-      {cutout && <div style={{ position: "absolute", left: cutout.left, top: cutout.top, width: cutout.width, height: cutout.height, borderRadius: stop.radius, boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)", border: "1.5px solid rgba(254,222,52,0.85)", transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }} />}
+      {cutout && <div key={ctxKey} style={{ position: "absolute", left: cutout.left, top: cutout.top, width: cutout.width, height: cutout.height, borderRadius: stop.radius, boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)", border: "1.5px solid rgba(254,222,52,0.85)", transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)", animation: "bosTourCut 0.3s ease both", pointerEvents: "none" }} />}
       <div className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, top: cardTop, bottom: cardBottom, background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{stop.eyebrow}</div>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: titleC, marginTop: 3 }}>{stop.title}</div>
         <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
-          <button onClick={skip} className="tap" style={{ background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: "6px 4px" }}>Пропустить</button>
-          <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "9px 20px", fontSize: 14, fontWeight: 600 }}>{last ? "Готово" : "Далее"}</button>
+          <button onClick={skip} className="tap" style={{ background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: "10px 14px", margin: "-4px -8px" }}>Пропустить</button>
+          <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{last ? "Готово" : "Далее"}</button>
         </div>
         {dots}
         {below
@@ -337,7 +359,9 @@ function PhoneApp() {
         dir = "fade";
         nextFrames = [{ route: next, params: np || {}, id: idRef.current++ }];
       } else {
-        dir = "push";
+        // onboarding → signup cross-fades (the orb visually "flows" from one
+        // screen into the other) instead of sliding in as a separate card.
+        dir = (next === "signup" && cur.route === "intro") ? "fade" : "push";
         nextFrames = [...prev, { route: next, params: np || {}, id: idRef.current++ }];
       }
       setAnim({ dir, prevFrame: cur });

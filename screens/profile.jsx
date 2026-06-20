@@ -1076,21 +1076,22 @@ function SignUpScreen() {
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "100%", color: pal.text, display: "flex", flexDirection: "column", background: pal.bg, position: "relative", overflow: "hidden" }}>
       <div style={{ flex: 1, padding: "max(64px, calc(var(--tg-top-inset, 0px) + 22px)) 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        {/* Your memoji INSIDE the same glass orb from onboarding — it blooms in
-            (the orb arrives, then your face appears in it) rather than from nowhere. */}
-        <div style={{ position: "relative", width: 118, height: 118, display: "grid", placeItems: "center", animation: "suOrbIn 0.9s cubic-bezier(0.34,1.4,0.5,1) both" }}>
+        {/* The SAME orb that ended onboarding flows into this one: as the screens
+            cross-fade, this orb arrives larger (≈ the onboarding orb's size), settles
+            down into place, then your face appears — and only then the sheet rises. */}
+        <div style={{ position: "relative", width: 118, height: 118, display: "grid", placeItems: "center", animation: "suOrbIn 0.8s cubic-bezier(0.22,0.8,0.32,1) both" }}>
           <div aria-hidden style={{ position: "absolute", width: 158, height: 158, borderRadius: "50%", background: dark ? "radial-gradient(circle, rgba(200,205,218,0.4), transparent 64%)" : "radial-gradient(circle, rgba(180,188,205,0.42), transparent 66%)", filter: "blur(8px)" }}/>
           <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: dark ? "linear-gradient(160deg,#474c57,#24262e)" : "linear-gradient(160deg,#eef1f6,#c8cedb)", boxShadow: dark ? "inset 0 3px 10px rgba(255,255,255,0.16), inset 0 -10px 20px rgba(0,0,0,0.32), 0 16px 40px rgba(0,0,0,0.4)" : "inset 0 3px 10px rgba(255,255,255,0.9), inset 0 -12px 22px rgba(70,80,100,0.22), 0 16px 38px rgba(120,130,150,0.35)" }}/>
-          <div style={{ position: "absolute", inset: 9, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", animation: "suFaceIn 0.6s 0.4s ease both" }}/>
+          <div style={{ position: "absolute", inset: 9, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", animation: "suFaceIn 0.5s 0.46s ease both" }}/>
           <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: dark ? "inset 0 0 0 1px rgba(255,255,255,0.12)" : "inset 0 0 0 1px rgba(255,255,255,0.55)", background: "radial-gradient(circle at 33% 24%, rgba(255,255,255,0.6), transparent 40%)" }}/>
-          <style>{`@keyframes suOrbIn{0%{opacity:0;transform:scale(0.5)}60%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}@keyframes suFaceIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}`}</style>
+          <style>{`@keyframes suOrbIn{0%{opacity:0;transform:translateY(-14px) scale(1.34)}45%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}@keyframes suFaceIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}@keyframes suTextIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes suSheetIn{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}`}</style>
         </div>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 27, fontWeight: 700, letterSpacing: "-0.6px", marginTop: 24, textAlign: "center" }}>С чего начнём?</div>
-        <div style={{ fontSize: 14, color: pal.sub, marginTop: 8, textAlign: "center", maxWidth: 286, lineHeight: 1.5 }}>
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 27, fontWeight: 700, letterSpacing: "-0.6px", marginTop: 24, textAlign: "center", animation: "suTextIn 0.6s 0.5s ease both" }}>С чего начнём?</div>
+        <div style={{ fontSize: 14, color: pal.sub, marginTop: 8, textAlign: "center", maxWidth: 286, lineHeight: 1.5, animation: "suTextIn 0.6s 0.6s ease both" }}>
           Загляни в готовый пример — или начни свой путь с чистого листа.
         </div>
       </div>
-      <div style={{ background: pal.sheet, borderTop: pal.sheetBorder, borderRadius: "33px 33px 0 0", padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))" }}>
+      <div style={{ background: pal.sheet, borderTop: pal.sheetBorder, borderRadius: "33px 33px 0 0", padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))", animation: "suSheetIn 0.62s 0.56s cubic-bezier(0.22,0.8,0.32,1) both" }}>
         {/* Door 1 — Demo (where a shared link should land) */}
         <button onClick={goDemo} className="tap" style={{
           width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",

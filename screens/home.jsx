@@ -110,6 +110,10 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
     fresh ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>Подсказки ИИ</div>
+          <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px" }}>Подсказки станут точнее, когда расскажешь о себе.</div>
+        </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 54, height: 54, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
           <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
@@ -122,10 +126,6 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
             background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
             boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}/>
         </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>Подсказки ИИ</div>
-          <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px" }}>Подсказки станут точнее, когда расскажешь о себе.</div>
-        </div>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
@@ -146,10 +146,10 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
     <div key="quote" style={{ position: "relative", height: "100%", padding: 18, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <span style={{ color: "#E0A500" }}>✦</span> Balance AI
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ color: "#E0A500" }}>✦</span> Совет дня
           </div>
-          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 16.5, color: "var(--text)", marginTop: 7, lineHeight: 1.34, letterSpacing: "-0.2px" }}>
+          <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 5, lineHeight: 1.42, letterSpacing: "-0.1px" }}>
             {aiBrief}
           </div>
         </div>
@@ -399,17 +399,13 @@ function HomeScreen() {
       </div>
       )}
 
-      {/* Habits / Goals tabs */}
-      <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
-        <div className="tab-pill" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "#e8e8e8", flex: 1 }}>
+      {/* Habits / Goals tabs — adding lives on the Habits page (its own "+"), so
+         the home screen stays calm and uncluttered (no duplicate create button). */}
+      <div style={{ marginTop: 14 }}>
+        <div className="tab-pill" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "#e8e8e8" }}>
           <button className={"tap " + (tab === "habits" ? "active" : "")} onClick={() => setTab("habits")}>Привычки</button>
           <button className={"tap " + (tab === "goals" ? "active" : "")} onClick={() => setTab("goals")}>Цели</button>
         </div>
-        <button onClick={() => navigate(tab === "habits" ? "habit-settings" : "goal-settings", { mode: "create" })} className="tap"
-          title={tab === "habits" ? "Добавить привычку" : "Добавить цель"}
-          style={{ width: 44, height: 44, borderRadius: 999, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 4px 14px rgba(0,0,0,0.18)" }}>
-          <I.Plus size={18} strokeWidth={2.2}/>
-        </button>
       </div>
 
       {/* Habit/goal list */}

@@ -270,25 +270,31 @@ body {
 }
 body.app-ready #splash { opacity: 0; pointer-events: none; }
 
+/* Glass orb that matches the in-app SiriOrb (airy slate, white catchlight, a
+   hint of living colour mist) — so the splash hands off seamlessly to onboarding,
+   not as a different, electric-blue ball. */
 #splash .orb {
   position: relative;
-  width: 132px; height: 132px;
+  width: 104px; height: 104px;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 30%, #ffffff 0%, #bfe2ff 16%, #5fa8ff 38%, #2b6fe0 60%, #16306a 80%, #0c1c44 100%);
-  box-shadow: 0 0 70px 18px rgba(64,150,255,0.45), inset -8px -10px 26px rgba(8,20,52,0.65), inset 8px 8px 22px rgba(255,255,255,0.30);
+  background:
+    radial-gradient(42% 38% at 70% 30%, rgba(150,224,228,0.5), transparent 60%),
+    radial-gradient(46% 44% at 28% 72%, rgba(150,162,236,0.46), transparent 62%),
+    radial-gradient(circle at 37% 29%, #ffffff 0%, #dbe6f6 14%, #7aa4d0 46%, #3f5f86 72%, #243b5c 100%);
+  box-shadow: 0 0 58px 10px rgba(122,164,208,0.42), inset -8px -10px 26px rgba(20,32,56,0.5), inset 8px 8px 22px rgba(255,255,255,0.34);
   animation: orbBreath 3.4s ease-in-out infinite;
 }
 #splash .orb::after {
   content: "";
-  position: absolute; left: 26%; top: 18%;
+  position: absolute; left: 26%; top: 17%;
   width: 30%; height: 22%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0) 70%);
+  background: radial-gradient(circle, rgba(255,255,255,0.92), rgba(255,255,255,0) 70%);
   filter: blur(2px);
 }
 @keyframes orbBreath {
-  0%, 100% { transform: scale(0.94); box-shadow: 0 0 56px 12px rgba(64,150,255,0.34), inset -8px -10px 26px rgba(8,20,52,0.65), inset 8px 8px 22px rgba(255,255,255,0.30); }
-  50%      { transform: scale(1.04); box-shadow: 0 0 92px 26px rgba(64,150,255,0.55), inset -8px -10px 26px rgba(8,20,52,0.65), inset 8px 8px 22px rgba(255,255,255,0.34); }
+  0%, 100% { transform: scale(0.95); box-shadow: 0 0 48px 8px rgba(122,164,208,0.32), inset -8px -10px 26px rgba(20,32,56,0.5), inset 8px 8px 22px rgba(255,255,255,0.34); }
+  50%      { transform: scale(1.04); box-shadow: 0 0 78px 18px rgba(140,180,222,0.5), inset -8px -10px 26px rgba(20,32,56,0.5), inset 8px 8px 22px rgba(255,255,255,0.38); }
 }
 #splash .wordmark {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
@@ -296,9 +302,10 @@ body.app-ready #splash { opacity: 0; pointer-events: none; }
 }
 #splash .wordmark b { font-weight: 700; }
 #splash .tagline {
-  margin-top: -16px;
+  margin-top: -14px;
+  max-width: 252px; text-align: center; text-wrap: balance;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  font-size: 13px; letter-spacing: 0.2px; color: rgba(21,35,60,0.5);
+  font-size: 14px; line-height: 1.46; letter-spacing: 0.1px; color: rgba(21,35,60,0.54);
 }
 
 /* ── Desktop / large viewport: show it inside a phone frame ──────────────── */
