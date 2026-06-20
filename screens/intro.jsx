@@ -22,30 +22,35 @@ function useT() {
 let __ORB_ID = 0;
 function SiriOrb({ r, tint, t, intensity = 1 }) {
   const uid = useIM(() => "orb" + (++__ORB_ID), []);
+  t = (typeof t === "number" && isFinite(t)) ? t : 0;     // guard against NaN time
   const breath = 1 + Math.sin(t * 0.9) * 0.025;
-  const R = r * breath;
+  const R = (typeof r === "number" && isFinite(r) ? r : 34) * breath;
 
   // Soft internal lights — radial-gradient discs (feathered, NO SVG filter).
   // Each blob slowly CYCLES through the state's palette at its own phase, so the
   // colours continuously blend and mix inside the orb (Siri-style living fluid).
-  const paletteColor = (tn, x) => {
-    x = ((x % 1) + 1) % 1;
-    const stops = [tn[0], tn[1], tn[2], tn[0]];
-    const seg = x * 3, i = Math.floor(seg), f = seg - i;
-    return lerpColor(stops[i], stops[i + 1], f);
-  };
+  // Vivid analogous flow palette from the state's main hue → blobs show DISTINCT
+  // colours that drift and mix (Siri-style living fluid), not one flat tone.
+  const main = (tint && tint[1]) || "#7aa4d0";
+  const lite = (tint && tint[0]) || "#cfe1ff";
+  const flow = [hueShift(main, 30), lite, hueShift(main, -34), hueShift(main, 66), main];
+  const FN = flow.length;
   const DN = 5;
   const discs = Array.from({ length: DN }, (_, i) => {
-    const ph = i / DN;
+    const ci = (i + t * 0.16) % FN;            // colours slowly rotate through the blobs
+    const a = Math.floor(ci), f = ci - a;
     return {
-      col: paletteColor(tint, t * 0.05 + ph),        // slow palette spin → mixing
-      rad: R * (0.42 + 0.16 * Math.sin(i * 1.7 + 0.5)),
-      ox: Math.cos(t * (0.34 + i * 0.07) + i * 1.7) * R * 0.26,
-      oy: Math.sin(t * (0.41 + i * 0.05) + i * 2.3) * R * 0.24,
+      col: lerpColor(flow[a % FN], flow[(a + 1) % FN], f),
+      rad: R * (0.44 + 0.16 * Math.sin(i * 1.7 + 0.5)),
+      ox: Math.cos(t * (0.34 + i * 0.07) + i * 1.7) * R * 0.27,
+      oy: Math.sin(t * (0.41 + i * 0.05) + i * 2.3) * R * 0.25,
     };
   });
   const coreX = Math.cos(t * 0.4) * R * 0.07;
   const coreY = Math.sin(t * 0.33) * R * 0.07;
+  // the heart of the orb also cycles hue, so the whole orb visibly shifts colour
+  const cc = ((t * 0.13) % FN + FN) % FN, ca = Math.floor(cc);
+  const coreMid = lerpColor(flow[ca % FN], flow[(ca + 1) % FN], cc - ca);
 
   return (
     <g>
@@ -75,13 +80,13 @@ function SiriOrb({ r, tint, t, intensity = 1 }) {
         {/* Centred volumetric core: bright middle radiating to transparent edge. */}
         <radialGradient id={uid + "-core"} cx="50%" cy="50%" r="58%">
           <stop offset="0%"   stopColor={tint[0]} stopOpacity="0.97" />
-          <stop offset="38%"  stopColor={tint[1]} stopOpacity="0.78" />
+          <stop offset="38%"  stopColor={coreMid} stopOpacity="0.82" />
           <stop offset="100%" stopColor={tint[2]} stopOpacity="0" />
         </radialGradient>
         {/* Feathered light discs — each its own palette-cycled colour. */}
         {discs.map((d, i) => (
           <radialGradient key={i} id={`${uid}-d${i}`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%"   stopColor={d.col} stopOpacity="0.8" />
+            <stop offset="0%"   stopColor={d.col} stopOpacity="0.92" />
             <stop offset="100%" stopColor={d.col} stopOpacity="0" />
           </radialGradient>
         ))}
@@ -407,6 +412,22 @@ function lerpColor(a, b, k) {
   const m = lerpArr(pa, pb, k).map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
   return "#" + m;
 }
+// Rotate a hex colour's hue by `deg` degrees (keeps S/L) — used to build a vivid
+// analogous palette inside the orb so its colours visibly differ and mix.
+function hueShift(hex, deg) {
+  if (!hex || typeof hex !== "string" || hex[0] !== "#" || hex.length < 7) return "#7aa4d0";
+  let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+  const mx = Math.max(r,g,b), mn = Math.min(r,g,b); let h, s, l = (mx+mn)/2;
+  if (mx === mn) { h = s = 0; }
+  else { const d = mx-mn; s = l > 0.5 ? d/(2-mx-mn) : d/(mx+mn);
+    h = mx === r ? (g-b)/d + (g<b?6:0) : mx === g ? (b-r)/d + 2 : (r-g)/d + 4; h /= 6; }
+  h = (h + deg/360) % 1; if (h < 0) h += 1;
+  const hk = (p,q,x) => { if (x<0) x+=1; if (x>1) x-=1; if (x<1/6) return p+(q-p)*6*x; if (x<1/2) return q; if (x<2/3) return p+(q-p)*(2/3-x)*6; return p; };
+  let R,G,B; if (s === 0) { R=G=B=l; }
+  else { const q = l<0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q; R = hk(p,q,h+1/3); G = hk(p,q,h); B = hk(p,q,h-1/3); }
+  const to = (v) => Math.round(Math.max(0,Math.min(1,v))*255).toString(16).padStart(2,"0");
+  return "#" + to(R) + to(G) + to(B);
+}
 
 function Stage({ mode, prevMode, blend, dark = true }) {
   const t = useT();
@@ -608,7 +629,7 @@ function IntroScreen() {
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
         @keyframes moodIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.18); } 62% { opacity: 1; transform: scale(1.07); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.05); } 30% { opacity: 1; } 62% { transform: scale(1.07); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes orbBurst { 0% { opacity: 0.6; transform: scale(0.12); } 70% { opacity: 0.18; } 100% { opacity: 0; transform: scale(2.4); } }
       `}</style>
     </div>
