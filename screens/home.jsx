@@ -140,26 +140,27 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
         ))}
       </div>
     </div>,
-    /* Page 2: Balance Wheel — radar as the hero, one compact header line */
-    <div key="wheel" style={{ position: "relative", height: "100%", padding: "16px 18px 26px", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4 }}>Баланс жизни</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginTop: 5 }}>
-            <span style={{ fontSize: 30, color: "var(--text)", fontWeight: 700, letterSpacing: "-1px", lineHeight: 1 }}><CountUp value={avgBalance}/><span style={{ fontSize: 15, fontWeight: 600, color: "var(--text-4)" }}>%</span></span>
-            <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>в балансе</span>
-          </div>
+    /* Page 2: Balance — clean radar (kept) + per-sphere breakdown that fills the
+       space and shows what each sphere is + its % level. Original card height. */
+    <div key="wheel" style={{ position: "relative", height: "100%", padding: "14px 16px 14px 8px", boxSizing: "border-box", display: "flex", gap: 6, alignItems: "center" }}>
+      <div style={{ flexShrink: 0 }}><BalanceWheel size={112} isDark={isDark} /></div>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>Баланс жизни</span>
+          <span style={{ fontSize: 20, color: "var(--text)", fontWeight: 700, letterSpacing: "-0.6px", lineHeight: 1 }}><CountUp value={avgBalance}/><span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-4)" }}>%</span></span>
         </div>
-        {weakSpheres[0] && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, background: chipBg, border: chipBd, borderRadius: 999, padding: "6px 11px", color: "var(--text-2)" }}>
-            <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.6 }}>слабее</span>
-            <span style={{ fontSize: 14 }}>{weakSpheres[0].e}</span>
-            <span style={{ fontWeight: 600 }}>{weakSpheres[0].l}</span>
-          </div>
-        )}
-      </div>
-      <div style={{ flex: 1, display: "grid", placeItems: "center" }}>
-        <BalanceWheel size={118} isDark={isDark} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          {wAxes.map((a, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ fontSize: 12, width: 15, textAlign: "center", flexShrink: 0 }}>{a.e}</span>
+              <span style={{ fontSize: 11, color: "var(--text-3)", width: 48, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.l}</span>
+              <span style={{ flex: 1, height: 4, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.055)", overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: Math.round(a.v * 100) + "%", borderRadius: 999, background: zoneColor(a.v) }}/>
+              </span>
+              <span style={{ fontSize: 10.5, color: "var(--text-4)", width: 22, textAlign: "right", flexShrink: 0 }}>{Math.round(a.v * 100)}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>,
   ];
