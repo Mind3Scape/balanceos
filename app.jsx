@@ -11,7 +11,7 @@ const { useState, useRef, useEffect, useCallback } = React;
 
 /* Route maps — copied verbatim from the design canvas so behaviour matches. */
 const DARK_ROUTES = new Set([
-  "profile", "settings", "support",
+  "profile", "settings", "support", "achievements",
   "onboarding", "intro", "signup", "levels", "mood", "focus", "level-up", "ai-chat",
 ]);
 const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
@@ -23,7 +23,7 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 const ROOT_BG = {
   intro: "#060912", onboarding: "#060912", signup: "#0a0a0a",
   mood: "#050505", focus: "#05060a", levels: "#0a0a0a", "level-up": "#0a0a0a",
-  "ai-chat": "#0a0a0a", profile: "#0a0a0a", settings: "#0a0a0a", support: "#0a0a0a",
+  "ai-chat": "#0a0a0a", profile: "#0a0a0a", settings: "#0a0a0a", support: "#0a0a0a", achievements: "#0a0a0a",
 };
 
 const SCREENS = {
@@ -49,6 +49,7 @@ const SCREENS = {
   "course-detail": () => CourseDetailScreen,
   "contact-detail": () => ContactDetailScreen,
   profile: () => ProfileScreen,
+  achievements: () => AchievementsScreen,
   settings: () => SettingsScreen,
   notifications: () => NotificationsScreen,
   history: () => HistoryScreen,
@@ -103,7 +104,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v58";
+const APP_VERSION = "v59";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */

@@ -119,7 +119,7 @@ function ProfileScreen() {
           {[
             { l: "Уровень", v: "7" },
             { l: "До 8 ур.", v: "72%" },
-            { l: "Кредиты", v: "1.2k" },
+            { l: "Опыт", v: "1 240" },
           ].map((s, i) => (
             <div key={i} className="bos-sys-card" style={{ padding: "8px 16px", borderRadius: 16, minWidth: 72 }}>
               <div className="bos-sys-text-3" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>{s.l}</div>
@@ -129,7 +129,19 @@ function ProfileScreen() {
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 26 }}>
+      <SysCard className="tap" onClick={() => navigate("achievements", { from: "profile" })} style={{ marginTop: 22, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
+        <span style={{ width: 42, height: 42, borderRadius: 13, background: "rgba(254,222,52,0.16)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>Достижения</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>4 из 8 · открыли 3 круга контактов</div>
+        </div>
+        <div style={{ display: "flex", marginRight: 4 }}>
+          {["⚡","🧘","🤝"].map((e, i) => <span key={i} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 13, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{e}</span>)}
+        </div>
+        <I.ChevronRight size={18} className="bos-sys-text-2"/>
+      </SysCard>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
         {[
           { id: "settings", icon: I.Settings, label: "Настройки" },
           { id: "notifications", icon: I.Bell, label: "Уведомления" },
@@ -986,4 +998,81 @@ function IconPickerScreen() {
   );
 }
 
-Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen });
+/* ─── ACHIEVEMENTS — ачивки как ключи: курс / уровень / доброе дело → значок →
+   открывает новый круг контактов. Витрина «ощущения» экосистемы. ─── */
+const ACHIEVEMENTS = [
+  { i: "⚡", t: "Перегрузка пройдена", d: "Курс «Перегрузка» · 3 дня",     earned: true,  opens: "наставники по фокусу",   date: "16 мар", accent: "#FEDE34" },
+  { i: "🧘", t: "Голос медитации",     d: "Провёл 10 групповых сессий",    earned: true,  opens: "практики медитации",    date: "2 апр",  accent: "#5BC57E" },
+  { i: "🤝", t: "Капитан команды",     d: "Довёл команду до общей цели",   earned: true,  opens: "лидеры команд",         date: "21 мар", accent: "#5FA8FF" },
+  { i: "🔥", t: "Месяц без пропусков",  d: "Серия привычек 30 дней",        earned: true,  opens: "+1 уровень доступа",    date: "12 апр", accent: "#FF8A5B" },
+  { i: "🚀", t: "Прорыв",              d: "Пройди курс «Прорыв» · 7 дней", earned: false, opens: "продвинутые наставники", req: "курс «Прорыв»",  accent: "#9bd0ff" },
+  { i: "🏃", t: "Марафонец",           d: "Заверши «Марафон» · 21 день",   earned: false, opens: "тренеры по привычкам",  req: "курс «Марафон»", accent: "#85e3a8" },
+  { i: "💼", t: "Профи-консультант",    d: "Достигни 10 уровня",            earned: false, opens: "профи-консультанты",    req: "ещё 3 уровня",   accent: "#c9b8ff" },
+  { i: "🌍", t: "Хранитель ретрита",    d: "Достигни 20 уровня",            earned: false, opens: "организаторы ретритов",  req: "уровень 20",     accent: "#a8e8e0" },
+];
+
+function AchievementsScreen() {
+  const { navigate, params } = useNav();
+  const back = params?.from || "profile";
+  const earned = ACHIEVEMENTS.filter(a => a.earned);
+  const locked = ACHIEVEMENTS.filter(a => !a.earned);
+  const circles = earned.filter(a => !a.opens.startsWith("+")).length;
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader title="Достижения" onBack={() => navigate(back)} />
+
+      {/* Hero — ties achievements to circles of contacts they opened */}
+      <SysCard style={{ padding: 18, borderRadius: 24 }}>
+        <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Твои ачивки</div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+          <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.6px" }}>{earned.length}</span>
+          <span className="bos-sys-text-2" style={{ fontSize: 14 }}>из {ACHIEVEMENTS.length} открыто</span>
+        </div>
+        <div className="bos-sys-text-2" style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
+          Ачивки — это ключи: за курсы, уровни и добрые дела. Уже открыли <b>{circles} круга контактов</b>.
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
+          {earned.map((a, i) => (
+            <span key={i} style={{ width: 34, height: 34, borderRadius: 11, background: a.accent + "26", display: "grid", placeItems: "center", fontSize: 18 }}>{a.i}</span>
+          ))}
+        </div>
+      </SysCard>
+
+      {/* Earned */}
+      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>Открыто</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {earned.map((a, i) => (
+          <SysCard key={i} className="tap" onClick={() => navigate("community")} style={{ padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
+            <span style={{ width: 46, height: 46, borderRadius: 14, background: a.accent + "26", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{a.i}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.2px" }}>{a.t}</div>
+              <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 2 }}>{a.d}</div>
+              <div style={{ fontSize: 12, marginTop: 5, color: a.accent, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <I.Sparkles size={11}/> открыл: {a.opens}
+              </div>
+            </div>
+            <span className="bos-sys-text-3" style={{ fontSize: 11, flexShrink: 0 }}>{a.date}</span>
+          </SysCard>
+        ))}
+      </div>
+
+      {/* Locked — shows the path: how to earn + what it will open */}
+      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>В пути</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {locked.map((a, i) => (
+          <SysCard key={i} className="tap" onClick={() => navigate("community")} style={{ padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
+            <span style={{ width: 46, height: 46, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0, filter: "grayscale(1)", opacity: 0.45 }}>{a.i}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.2px", display: "inline-flex", alignItems: "center", gap: 6 }}>{a.t} <span style={{ fontSize: 11 }}>🔒</span></div>
+              <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 2 }}>Как открыть: {a.req}</div>
+              <div className="bos-sys-text-2" style={{ fontSize: 12, marginTop: 5, fontWeight: 500 }}>→ откроет: {a.opens}</div>
+            </div>
+            <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }}/>
+          </SysCard>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen, AchievementsScreen });
