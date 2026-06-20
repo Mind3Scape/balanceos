@@ -359,11 +359,16 @@ function HistoryScreen() {
   const cellStyle = (pct) => {
     if (pct == null) return { background: TH.cellEmpty, border: "1px dashed " + TH.cellBorder, color: TH.cellMuted };
     if (pct === 0)   return { background: TH.cellIdle, color: TH.cellMuted };
-    if (pct < 1)     return {
-      background: `linear-gradient(160deg, ${TH.yellow} ${Math.round(pct*100)}%, ${TH.cellIdle} ${Math.round(pct*100)+1}%)`,
-      color: TH.cellText,
-    };
-    return { background: TH.yellowFill, color: "#0a0a0a" };
+    if (pct < 1) {
+      const h = Math.round(pct * 100);
+      // Fill rises from the bottom (amber → yellow) with a crisp level line on
+      // top — reads instantly as "how full the day is", no diagonal.
+      return {
+        background: `linear-gradient(to top, #EF9F14 0%, #FEDE34 ${h}%, ${TH.cellIdle} ${h}%)`,
+        color: TH.cellText,
+      };
+    }
+    return { background: "linear-gradient(to top, #EF9F14, #FEDE34)", color: "#0a0a0a" };
   };
 
   const blanks = Array.from({ length: startWeekday }, (_, i) => ({ blank: true, key: "b" + i }));
