@@ -671,7 +671,7 @@ function AIChatScreen() {
     setTyping(true);
     aiReply(history)
       .then((reply) => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: reply }]); })
-      .catch(() => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: "Не получилось ответить сейчас — попробуй ещё раз." }]); });
+      .catch(() => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] }]); });
   };
 
   // A prompt passed in from the AI tab / quick chips → auto-send it on open.

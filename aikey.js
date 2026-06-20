@@ -12,5 +12,5 @@
 
    Leave OPENROUTER_KEY empty ("") to keep the demo's built-in canned replies.
    ───────────────────────────────────────────────────────────────────────────── */
-window.OPENROUTER_KEY = "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";
+window.OPENROUTER_KEY = "";
 window.OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
