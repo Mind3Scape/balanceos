@@ -99,10 +99,8 @@ function SiriOrb({ r, tint, t, intensity = 1 }) {
         <circle cx={coreX} cy={coreY} r={R * 0.98} fill={`url(#${uid}-core)`} />
         {/* glass tinted overlay */}
         <circle cx="0" cy="0" r={R} fill={`url(#${uid}-glass)`} />
-        {/* light streak (refraction) */}
-        <ellipse cx={-R * 0.05} cy={-R * 0.15} rx={R * 0.95} ry={R * 0.15}
-                 fill="rgba(255,255,255,0.06)"
-                 transform={`rotate(${Math.sin(t * 0.6) * 8})`} />
+        {/* (removed the faint refraction streak — it read as an odd translucent
+            oval across the orb, distracting at large size) */}
       </g>
 
       {/* rim highlight */}

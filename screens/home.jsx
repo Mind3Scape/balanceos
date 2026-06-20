@@ -69,6 +69,9 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const [ringShown, setRingShown] = useHomeState(0);
   React.useEffect(() => { const t = setTimeout(() => setRingShown(ringPct), 80); return () => clearTimeout(t); }, [ringPct]);
   const heroApp = useApp ? useApp() : null;
+  // The avatar ring + the glow under it follow the current state orb's colour.
+  const mood = heroApp?.mood;
+  const moodTint = (mood && typeof tintFromMood === "function") ? tintFromMood(mood.c) : null;
   const enabledW = (heroApp?.wheelSpheres && heroApp.wheelSpheres.length >= 3) ? heroApp.wheelSpheres : (window.DEFAULT_SPHERES || []);
   const wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
   const avgBalance = wAxes.length ? Math.round(wAxes.reduce((s, a) => s + a.v, 0) / wAxes.length * 100) : 0;
@@ -105,8 +108,17 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 72, height: 72, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
           <svg width="72" height="72" viewBox="0 0 72 72" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+            {moodTint && (
+              <defs>
+                <linearGradient id="avatarMoodRing" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor={moodTint[0]} />
+                  <stop offset="55%" stopColor={moodTint[1]} />
+                  <stop offset="100%" stopColor={moodTint[2]} />
+                </linearGradient>
+              </defs>
+            )}
             <circle cx="36" cy="36" r="32" stroke={ringBg} strokeWidth="3.5" fill="none"/>
-            <circle cx="36" cy="36" r="32" stroke="#FEDE34" strokeWidth="3.5" fill="none"
+            <circle cx="36" cy="36" r="32" stroke={moodTint ? "url(#avatarMoodRing)" : "#FEDE34"} strokeWidth="3.5" fill="none"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 32}
               strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
@@ -114,8 +126,8 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
           </svg>
           <div style={{
             position: "absolute", inset: 6, borderRadius: "50%",
-            background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, #ffd97a, #d97757)",
-            boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)",
+            background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
+            boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`,
           }}/>
           <div style={{
             position: "absolute", bottom: -2, right: -4, background: "#0a0a0a", color: "#FEDE34",
