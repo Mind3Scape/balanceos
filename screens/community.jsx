@@ -525,7 +525,7 @@ function CommunityScreen() {
       {section === "community" && commTab === "courses" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {courses.map((c, i) => (
-            <button key={i} onClick={() => navigate("course-detail", { course: c })} className="tap"
+            <button key={i} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
               style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left" }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                 <CourseGlass c={c} size={46} />
@@ -1184,6 +1184,17 @@ function TeamDetailScreen() {
         </div>
       </div>
 
+      {/* Team chat — one shared space for the whole team */}
+      <button onClick={() => navigate("team-chat", { team: t })} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 18, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 600 }}>Чат команды</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Сергей: До цели 8 дел — добьём к вечеру 🔥</div>
+        </div>
+        <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>3</span>
+        <I.ChevronRight size={18} color="var(--text-4)"/>
+      </button>
+
       {main && (<>
       {/* Main habit — featured card */}
       <div className="section-label" style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1761,6 +1772,82 @@ function CourseDetailScreen() {
   );
 }
 
+/* ─── TEAM CHAT — one shared chat for the whole team: messages + photos, in the
+   flow of doing the goal together. Core team feature; especially useful for
+   trainers running cohorts and for family circles. ─── */
+function TeamChatScreen() {
+  const { navigate, params } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const isDark = app?.themeOverride === "dark";
+  const team = params?.team || { _id: "seed-1", name: "Команда креаторов", emblem: "✨", members: [] };
+  const SEED = [
+    { who: "Светлана", c: "#e8c8a8", t: "Доброе утро, команда! ☀️ Кто уже отметил доброе дело?", time: "8:14" },
+    { who: "Вадим",    c: "#a8d4e8", t: "Я помог соседке с покупками 💪", time: "8:31" },
+    { who: "Вадим",    c: "#a8d4e8", photo: { e: "🌅", g: "linear-gradient(135deg,#ffd28a,#ff9a6b)" }, cap: "И пробежку засчитал", time: "8:32" },
+    { who: "Ник",      c: "#a8b9d4", t: "Красиво! Тоже выхожу 🏃", time: "8:40" },
+    { who: "Павел",    me: true, c: "#FEDE34", t: "Вы лучшие 🙌 Сегодня закрываем 50 добрых дел!", time: "9:02" },
+    { who: "Сергей",   c: "#c8e8a8", t: "До цели 8 дел — добьём к вечеру 🔥", time: "9:10" },
+  ];
+  const [msgs, setMsgs] = useCS(SEED);
+  const [text, setText] = useCS("");
+  const bottomRef = React.useRef(null);
+  React.useEffect(() => { const el = bottomRef.current; if (el && el.scrollIntoView) el.scrollIntoView({ block: "end" }); }, [msgs.length]);
+  const push = (m) => setMsgs(list => [...list, { who: "Павел", me: true, c: "#FEDE34", time: "сейчас", ...m }]);
+  const send = () => { const v = text.trim(); if (!v) return; push({ t: v }); setText(""); };
+  const sendPhoto = () => push({ photo: { e: "📸", g: "linear-gradient(135deg,#cfe6ff,#9bbef0)" }, cap: "Мой прогресс сегодня" });
+
+  const otherBubble = isDark ? "rgba(255,255,255,0.07)" : "#fff";
+  const mineBubble  = isDark ? "#fff" : "#0a0a0a";
+  const mineText    = isDark ? "#0a0a0a" : "#fff";
+  const Photo = ({ p, cap, light }) => (
+    <div style={{ marginTop: 2 }}>
+      <div style={{ width: 152, height: 104, borderRadius: 14, background: p.g, display: "grid", placeItems: "center", fontSize: 46, boxShadow: "inset 0 -34px 44px rgba(0,0,0,0.14)" }}>{p.e}</div>
+      {cap && <div style={{ fontSize: 12.5, marginTop: 5, color: light ? "rgba(255,255,255,0.85)" : "var(--text-2)" }}>{cap}</div>}
+    </div>
+  );
+
+  return (
+    <div className="page-in" style={{ minHeight: "100%", display: "flex", flexDirection: "column", padding: 0 }}>
+      <div style={{ padding: "0 14px" }}>
+        <PageHeader title={team.name} onBack={() => navigate("team-detail", { team })}
+          right={<span style={{ fontSize: 12, color: "var(--text-4)", whiteSpace: "nowrap" }}>{(team.members?.length || 4)} 👥</span>} />
+      </div>
+
+      <div style={{ flex: 1, padding: "2px 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-4)", margin: "2px 0 2px" }}>Сегодня</div>
+        {msgs.map((m, i) => m.me ? (
+          <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ maxWidth: "78%", background: mineBubble, color: mineText, borderRadius: "18px 18px 5px 18px", padding: m.photo ? 8 : "9px 13px" }}>
+              {m.photo ? <Photo p={m.photo} cap={m.cap} light/> : <div style={{ fontSize: 14.5, lineHeight: 1.4 }}>{m.t}</div>}
+              <div style={{ fontSize: 10, opacity: 0.55, textAlign: "right", marginTop: 3 }}>{m.time}</div>
+            </div>
+          </div>
+        ) : (
+          <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+            <span style={{ width: 30, height: 30, borderRadius: "50%", background: m.c, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{m.who[0]}</span>
+            <div style={{ maxWidth: "78%", background: otherBubble, borderRadius: "18px 18px 18px 5px", padding: m.photo ? 8 : "9px 13px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: m.photo ? 4 : 2 }}>{m.who}</div>
+              {m.photo ? <Photo p={m.photo} cap={m.cap}/> : <div style={{ fontSize: 14.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
+              <div style={{ fontSize: 10, color: "var(--text-4)", textAlign: "right", marginTop: 3 }}>{m.time}</div>
+            </div>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      <div style={{ position: "sticky", bottom: 0, background: isDark ? "rgba(12,12,14,0.92)" : "rgba(244,244,246,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderTop: "1px solid var(--line)", padding: "10px 12px calc(10px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={sendPhoto} className="tap" aria-label="Фото" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 18 }}>📷</button>
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} placeholder="Сообщение команде…"
+          style={{ flex: 1, minWidth: 0, background: "var(--surface-3)", border: 0, borderRadius: 999, padding: "11px 16px", fontSize: 14.5, color: "var(--text)", outline: "none" }} />
+        <button onClick={send} className="tap" aria-label="Отправить" style={{ width: 40, height: 40, borderRadius: "50%", background: text.trim() ? "#0a0a0a" : "var(--surface-3)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, transition: "background 0.2s" }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? "#fff" : "var(--text-4)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+window.TeamChatScreen = TeamChatScreen;
 window.CommunityScreen = CommunityScreen;
 window.CourseDetailScreen = CourseDetailScreen;
 window.TeamCreateScreen = TeamCreateScreen;

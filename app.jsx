@@ -45,6 +45,7 @@ const SCREENS = {
   community: () => CommunityScreen,
   "team-create": () => TeamCreateScreen,
   "team-detail": () => TeamDetailScreen,
+  "team-chat": () => TeamChatScreen,
   "team-settings": () => TeamSettingsScreen,
   "course-detail": () => CourseDetailScreen,
   "contact-detail": () => ContactDetailScreen,
@@ -104,7 +105,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v60";
+const APP_VERSION = "v61";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -127,18 +128,20 @@ const TOUR_STOPS = [
     body: "Подсказки наверху — от ИИ. Чем больше контекста о себе ты заполняешь, тем точнее и полезнее они становятся." },
   { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Состояние", title: "Отметь, как ты сейчас",
     body: "Раз в день отмечай своё состояние — и приложение подстроится под тебя: цвет, тон, акценты дня." },
-  { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт за привычки",
-    body: "Каждая отметка качает уровень. Чем выше — тем больше открывается: наставники, контакты, возможности." },
+  { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт с первого дня",
+    body: "Каждая отметка с самого начала качает опыт и уровень. Чем выше — тем больше открывается: наставники, контакты, курсы, возможности." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
     body: "Твоя личная система. Привычки и цели живут здесь." },
   { kind: "spot", tab: "habits", sel: '[data-tour="add"]', radius: 999, eyebrow: "Создать", title: "Жми «плюс»",
     body: "Добавляй привычки и цели. Любую можно делать одному — или вместе с друзьями, поддерживая серии." },
   { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
     body: "Команды, курсы и наставники. Привычки вместе держат сильнее." },
-  { kind: "spot", tab: "community", discTab: "network", sel: '[data-tour="impact"]', radius: 20, eyebrow: "Нетворк · твой вклад", title: "Помогай другим",
-    body: "С ростом уровня ты сам сможешь помогать кругу — вести, консультировать, делиться тем, что умеешь. Каждое доброе дело — твой вклад." },
-  { kind: "spot", tab: "community", discTab: "network", sel: '[data-tour="contacts"]', radius: 20, eyebrow: "Нетворк · контакты", title: "Заказывай помощь других",
-    body: "А баллы за привычки трать на людей вокруг: запишись к человеку, попади в его карточку, закажи услугу. Так растёте вместе." },
+  { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="impact"]', radius: 20, eyebrow: "Нетворк · твой вклад", title: "Стань тем, к кому идут",
+    body: "С ростом уровня ты сам помогаешь кругу — ведёшь, консультируешь, делишься тем, что умеешь. Каждое доброе дело растит твой вклад и репутацию." },
+  { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="contacts"]', radius: 20, eyebrow: "Нетворк · контакты", title: "Заказывай помощь других",
+    body: "А баллы за привычки трать на людей вокруг: запишись к человеку, попади в его карточку, закажи услугу наставника. Так растёте вместе." },
+  { kind: "spot", tab: "community", view: { section: "community", commTab: "courses" }, sel: '[data-tour="course"]', radius: 20, eyebrow: "Курсы", title: "Ускорители роста",
+    body: "Курсы и интенсивы поднимают уровень и открывают новые круги контактов — как ключи: прошёл курс → получил ачивку → доступ к людям выше." },
   { kind: "spot", tab: "ai", sel: '.bos-tabbar button:nth-of-type(4)', radius: 16, eyebrow: "Помощник", title: "ИИ всегда под рукой",
     body: "Совет, разбор дня, план на завтра. Он держит в уме твой контекст." },
   { kind: "card", emoji: "🌟", title: "Готово — это твоё пространство",
@@ -154,7 +157,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, dark }
   useEffect(() => {
     if (stop && stop.kind === "spot") {
       navigate(stop.tab);
-      if (stop.discTab && setCommunityView) setCommunityView({ section: "discover", discTab: stop.discTab });
+      if (stop.view && setCommunityView) setCommunityView(stop.view);
     }
   }, [step]); // eslint-disable-line
 
