@@ -92,6 +92,19 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const ringBg   = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   const dotIdle  = isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.18)";
   const dotActive= isDark ? "#fff" : "#0a0a0a";
+  // Demo "Balance AI" daily brief — one short line that follows the user's
+  // current state (like the orb) + the day's progress. Replaces the old quote.
+  const AI_BRIEF = {
+    "Энергия":     "Энергии много — берись за самое важное сейчас.",
+    "Радость":     "Ты в ресурсе — отличный день, чтобы закрыть серию.",
+    "Спокойствие": "Спокойствие — твоё время для глубокого чтения.",
+    "Тревога":     "Начни с двух минут дыхания — и день станет легче.",
+    "Упадок":      "Сделай одно маленькое дело — этого сегодня достаточно.",
+    "Усталость":   "Сбавь темп: закрой одну привычку — и довольно.",
+  };
+  const aiBrief = (totalCount && doneCount >= totalCount)
+    ? "День закрыт — ты в потоке. Так держи ритм."
+    : (AI_BRIEF[mood && mood.t] || "Чтение легче даётся вечером — оставь его на потом.");
   const _pages = [
     /* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
     fresh ? (
@@ -133,11 +146,12 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
     <div key="quote" style={{ position: "relative", height: "100%", padding: 18, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4 }}>Чтение дня</div>
-          <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, lineHeight: 1.5, fontStyle: "italic", letterSpacing: "-0.1px" }}>
-            «День за днём то, что ты выбираешь, думаешь и делаешь, становится тобой.»
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ color: "#E0A500" }}>✦</span> Balance AI
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 4 }}>— Гераклит</div>
+          <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 16.5, color: "var(--text)", marginTop: 7, lineHeight: 1.34, letterSpacing: "-0.2px" }}>
+            {aiBrief}
+          </div>
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 72, height: 72, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
@@ -391,9 +405,10 @@ function HomeScreen() {
           <button className={"tap " + (tab === "habits" ? "active" : "")} onClick={() => setTab("habits")}>Привычки</button>
           <button className={"tap " + (tab === "goals" ? "active" : "")} onClick={() => setTab("goals")}>Цели</button>
         </div>
-        <button onClick={() => navigate("home-customize")} className="tap" title="Настроить главный"
-          style={{ width: 44, height: 44, borderRadius: 999, background: chipBg, border: 0, display: "grid", placeItems: "center", color: "var(--text-3)" }}>
-          <I.Settings size={18}/>
+        <button onClick={() => navigate(tab === "habits" ? "habit-settings" : "goal-settings", { mode: "create" })} className="tap"
+          title={tab === "habits" ? "Добавить привычку" : "Добавить цель"}
+          style={{ width: 44, height: 44, borderRadius: 999, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 4px 14px rgba(0,0,0,0.18)" }}>
+          <I.Plus size={18} strokeWidth={2.2}/>
         </button>
       </div>
 
@@ -581,34 +596,33 @@ function HomeCustomizeScreen() {
   const { navigate } = useNav();
   const app = useApp();
   const widgets = app?.widgets || {};
+  const isDark = app?.themeOverride === "dark";
   const setOne = (id, v) => app?.setWidgets({ ...widgets, [id]: v });
+  // Only widgets that REALLY exist and are wired into the home render. The old
+  // quote/ai/weather/books toggles did nothing — removed so every switch works.
   const opts = [
-    { id: "quote",    i: "✨", t: "Цитата дня", d: "Вдохновение вверху" },
-    { id: "mood",     i: "💭", t: "Состояние (настроение)", d: "Твоё самочувствие — нажми, чтобы обновить" },
+    { id: "mood",     i: "💭", t: "Состояние", d: "Твоё самочувствие — нажми, чтобы обновить" },
     { id: "streak",   i: "🔥", t: "Счётчик серии", d: "Дней подряд" },
     { id: "level",    i: "🏆", t: "Уровень и опыт", d: "Прогресс и награды" },
     { id: "calendar", i: "📅", t: "Календарь", d: "Сегодняшняя дата" },
-    { id: "team",     i: "👥", t: "Аватары команды", d: "Активные команды" },
-    { id: "energy",   i: "⚡", t: "Карточка энергии", d: "Итог дня" },
-    { id: "ai",       i: "🤖", t: "Советы ИИ", d: "Персональные рекомендации" },
-    { id: "weather",  i: "🌤️", t: "Погода", d: "Привычки на улице" },
-    { id: "books",    i: "📚", t: "Полка чтения", d: "Книги в процессе" },
+    { id: "team",     i: "👥", t: "Команды", d: "Активные команды" },
+    { id: "energy",   i: "⚡", t: "Энергия дня", d: "Итог дня" },
   ];
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="Настроить главный" onBack={() => navigate("home")} />
-      <div style={{ fontSize: 13, color: "var(--text-4)", marginBottom: 14, lineHeight: 1.5 }}>
-        Включай и выключай виджеты на главном экране. Перетаскивание — скоро.
+      <PageHeader title="Виджеты главного" onBack={() => navigate("settings")} />
+      <div className="bos-sys-text-3" style={{ fontSize: 13, marginBottom: 14, lineHeight: 1.5, padding: "0 2px" }}>
+        Включай и выключай карточки на главном. Сводка и аватар сверху — всегда на месте.
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {opts.map(o => (
-          <div key={o.id} style={{ background: "#fff", borderRadius: 14, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 18 }}>{o.i}</span>
-            <div style={{ flex: 1 }}>
+          <div key={o.id} className="bos-sys-card" style={{ padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+            <span className="bos-sys-chip-bg" style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{o.i}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 500 }}>{o.t}</div>
-              <div style={{ fontSize: 12, color: "var(--text-4)" }}>{o.d}</div>
+              <div className="bos-sys-text-3" style={{ fontSize: 12 }}>{o.d}</div>
             </div>
-            <Switch on={widgets[o.id] !== false} onChange={(v) => setOne(o.id, v)} />
+            <Switch on={widgets[o.id] !== false} onChange={(v) => setOne(o.id, v)} dark={isDark} />
           </div>
         ))}
       </div>

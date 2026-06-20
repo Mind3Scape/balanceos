@@ -213,6 +213,15 @@ function SettingsScreen() {
         ))}
       </div>
 
+      <div className="section-label" style={{ marginTop: 22 }}>Главный экран</div>
+      <div style={{ marginTop: 8 }}>
+        <SysBtn onClick={() => navigate("home-customize")} style={{ padding: 14 }}>
+          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Home size={16} /></span>
+          <span style={{ flex: 1, fontSize: 15 }}>Виджеты на главном</span>
+          <I.ChevronRight size={16} className="bos-sys-text-2" />
+        </SysBtn>
+      </div>
+
       <div className="section-label" style={{ marginTop: 22 }}>Колесо баланса</div>
       <SysCard style={{ padding: 14, marginTop: 8 }}>
         <div className="bos-sys-text-2" style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 12 }}>Выбери сферы, которые хочешь видеть в колесе на главной.</div>
