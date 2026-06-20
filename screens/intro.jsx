@@ -505,6 +505,7 @@ function IntroScreen() {
   const [step, setStep] = useIS(0);
   const [prev, setPrev] = useIS(null);
   const [blendStart, setBlendStart] = useIS(0);
+  const [exiting, setExiting] = useIS(false);
   const t = useT();
   const blend = Math.min(1, (t - blendStart) / 1.2);
   const effectivePrev = blend < 1 ? prev : null;
@@ -522,6 +523,14 @@ function IntroScreen() {
   const go = (next) => {
     if (next === step) return;
     setPrev(slides[step].mode); setBlendStart(t); setStep(next);
+  };
+  // Finale: the orb's field blooms out to fill the screen, then we slip into the
+  // app (signup), where the same orb re-forms with your face inside it.
+  const finish = () => {
+    if (exiting) return;
+    setExiting(true);
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    window.setTimeout(() => navigate("signup"), 520);
   };
 
   // Theme-aware: follows the .theme-light / .theme-dark wrapper from the frame.
@@ -571,7 +580,7 @@ function IntroScreen() {
          bottom buttons stay on top, so the central area navigates by tap. */}
       <div className="tap" aria-label="Назад" onClick={() => { if (step > 0) go(step - 1); }}
         style={{ position: "absolute", left: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
-      <div className="tap" aria-label="Вперёд" onClick={() => { last ? navigate("signup") : go(step + 1); }}
+      <div className="tap" aria-label="Вперёд" onClick={() => { last ? finish() : go(step + 1); }}
         style={{ position: "absolute", right: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
 
       <div style={{ position: "relative", padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0", display: "flex", gap: 4, zIndex: 2, pointerEvents: "none" }}>
@@ -612,7 +621,7 @@ function IntroScreen() {
         <Reveal k="moodgrid" delay={0.5} style={{ position: "relative", padding: "20px 20px 0", zIndex: 2 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
             {moods.map((m, i) => (
-              <button key={i} onClick={() => navigate("signup")} className="tap" style={{ background: pal.moodTile, border: "1px solid " + pal.moodBorder, borderRadius: 18, padding: "14px 8px", color: pal.moodText, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: `moodIn 0.5s ${0.55+i*0.06}s ease both` }}>
+              <button key={i} onClick={finish} className="tap" style={{ background: pal.moodTile, border: "1px solid " + pal.moodBorder, borderRadius: 18, padding: "14px 8px", color: pal.moodText, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: `moodIn 0.5s ${0.55+i*0.06}s ease both` }}>
                 <span style={{ fontSize: 26 }}>{m.i}</span>
                 <span style={{ fontSize: 12, opacity: 0.85 }}>{m.t}</span>
               </button>
@@ -632,12 +641,23 @@ function IntroScreen() {
         </div>
       </div>
 
+      {/* Finale: the orb's field blooms out from centre to fill the screen as we slip into the app */}
+      {exiting && (
+        <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 60, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+          <div style={{ width: 150, height: 150, borderRadius: "50%",
+            background: dark ? "radial-gradient(circle, #dcefff 0%, #7aa4d0 72%)" : "radial-gradient(circle, #f4f8ff 0%, #aecae9 74%)",
+            boxShadow: "0 0 90px rgba(180,210,255,0.7)",
+            animation: "introBloom 0.6s cubic-bezier(0.5,0,0.25,1) forwards" }}/>
+        </div>
+      )}
+
       <style>{`
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
         @keyframes moodIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.05); } 30% { opacity: 1; } 62% { transform: scale(1.07); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes orbBurst { 0% { opacity: 0.6; transform: scale(0.12); } 70% { opacity: 0.18; } 100% { opacity: 0; transform: scale(2.4); } }
+        @keyframes introBloom { 0% { transform: scale(0.5); opacity: 0.85; } 100% { transform: scale(19); opacity: 1; } }
       `}</style>
     </div>
   );
