@@ -640,21 +640,106 @@ function SupportScreen() {
 
 function AIScreen() {
   const { navigate } = useNav();
+  const app = useApp();
   const t = useAIT();
   const [ask, setAsk] = useP("");
+  // Interactivity: which insight/pattern is expanded, which insights were accepted,
+  // and whether the hero's "why" reasoning panel is open. Makes the screen feel live.
+  const [openInsight, setOpenInsight] = useP(null);
+  const [accepted, setAccepted] = useP({});
+  const [openPattern, setOpenPattern] = useP(null);
+  const [showWhy, setShowWhy] = useP(false);
+  const [health, setHealth] = useP(false); // Apple Health mock-connect (fresh user)
   // Same orb DNA as intro — pulled into the AI hub
   const orbTint = ["#cfe1ff", "#7aa4d0", "#1a2c48"];
 
+  // ── New user: near-empty AI — calm intro + connect Apple Health, no fake data ──
+  if (app?.mode === "fresh") {
+    return (
+      <div className="page-in" style={{ padding: "0 12px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 14px" }}>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Твой помощник</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
+          </div>
+        </div>
+
+        {/* Calm empty hero — orb + honest "I don't know you yet" */}
+        <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)", borderRadius: 28, padding: "26px 22px 28px", color: "#fff", textAlign: "center" }}>
+          <div aria-hidden style={{ position: "absolute", inset: 0, background:
+            "radial-gradient(circle at 80% 20%, rgba(180,210,255,0.18) 0%, transparent 40%), radial-gradient(circle at 10% 90%, rgba(120,160,210,0.15) 0%, transparent 40%)" }} />
+          <div style={{ position: "relative", display: "grid", placeItems: "center" }}>
+            <svg viewBox="-80 -80 160 160" width="112" height="112" style={{ overflow: "visible" }}>
+              <SiriOrb r={42} tint={orbTint} t={t} intensity={1}/>
+            </svg>
+            <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 21, lineHeight: 1.25, marginTop: 4, letterSpacing: "-0.3px" }}>Привет! Я твой ИИ-помощник.</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5, maxWidth: 270 }}>Пока я почти ничего о тебе не знаю. Дай немного данных — и я начну подсказывать точно под тебя.</div>
+          </div>
+        </div>
+
+        {/* Apple Health — the key offer for a newcomer */}
+        <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(135deg,#ff5a6e,#ff2d55)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <I.Heart size={24} color="#fff" fill="#fff"/>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>Связать Apple Здоровье</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Подтяну сон, движение и состояние — советы станут точными с первого дня.</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 13, flexWrap: "wrap" }}>
+            {[["😴","Сон"],["🚶","Движение"],["❤️","Пульс"],["🧠","Состояние"]].map((s,i)=>(
+              <span key={i} style={{ fontSize: 12, fontWeight: 500, color: "var(--text-2)", background: "var(--surface-3)", borderRadius: 999, padding: "5px 11px", display: "inline-flex", alignItems: "center", gap: 6 }}><span>{s[0]}</span>{s[1]}</span>
+            ))}
+          </div>
+          {health ? (
+            <div className="bos-acc-in" style={{ marginTop: 13, fontSize: 12.5, color: "#1e6b3a", background: "#e5f5ea", borderRadius: 14, padding: "11px 13px", display: "flex", alignItems: "center", gap: 9, lineHeight: 1.4 }}>
+              <I.Check size={16} strokeWidth={2.5}/> Доступ запросим при установке на iPhone — тогда синхронизация включится.
+            </div>
+          ) : (
+            <button onClick={() => { setHealth(true); if (window.tgHaptic) tgHaptic("light"); }} className="tap"
+              style={{ width: "100%", marginTop: 13, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 13, fontSize: 14.5, fontWeight: 600 }}>Подключить</button>
+          )}
+        </div>
+
+        {/* Tell about yourself → chat */}
+        <button onClick={() => navigate("ai-chat", { prompt: "Расскажу немного о себе и своих целях" })} className="tap"
+          style={{ width: "100%", marginTop: 10, background: "var(--card)", border: 0, borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
+          <span style={{ width: 46, height: 46, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 600 }}>Рассказать о себе</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Пара минут — и ИИ узнает твои цели и ритм дня.</div>
+          </div>
+          <I.ChevronRight size={18} color="var(--text-4)"/>
+        </button>
+
+        <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-4)", marginTop: 18, padding: "0 24px", lineHeight: 1.5 }}>
+          Инсайты и закономерности появятся здесь, когда наберётся немного данных.
+        </div>
+      </div>
+    );
+  }
+
   const insights = [
-    { i: "🌅", t: "Перенеси «Чтение» на вечер", b: "Твоя вероятность выполнения в 21:00 в 2,1× выше, чем в 7:00.", lift: "+38%" },
-    { i: "🤝", t: "Опирайся на Лену на этой неделе", b: "Привычки с Леной держат серию 91%. Сегодня она онлайн.", lift: "+24%" },
-    { i: "🧘", t: "Двухминутная перезагрузка", b: "По понедельникам падение 60%. Начни с 2-минутной медитации перед первой задачей.", lift: "+19%" },
+    { i: "🌅", t: "Перенеси «Чтение» на вечер", b: "Твоя вероятность выполнения в 21:00 в 2,1× выше, чем в 7:00.", lift: "+38%",
+      why: "За 14 дней утренние попытки закрываются на 31%, а вечерние (после 21:00) — на 66%. Вечер для тебя стабильнее.",
+      stats: [["📊", "14 дней"], ["🌙", "×2,1 вечером"]], action: "Перенести на 21:00", doneText: "Перенесено на вечер" },
+    { i: "🤝", t: "Опирайся на Лену", b: "Привычки с Леной держат серию 91%. Сегодня она онлайн.", lift: "+24%",
+      why: "Парные привычки с Леной держатся на 91% против 64%, когда ты один. Совместный день почти не пропускается.",
+      stats: [["🤝", "91% вместе"], ["🟢", "онлайн"]], action: "Позвать Лену", doneText: "Лена приглашена" },
+    { i: "🧘", t: "Двухминутная перезагрузка", b: "По понедельникам падение 60%. Начни с 2-минутной медитации перед первой задачей.", lift: "+19%",
+      why: "Понедельник — твой самый слабый день (−60%). Короткий старт на 2 минуты поднимает выполнение всего дня на 19%.",
+      stats: [["📉", "Пн −60%"], ["⏱", "2 мин"]], action: "Поставить на завтра", doneText: "Добавлено на завтра" },
   ];
 
   const patterns = [
-    { t: "Спокойные дни = глубокое чтение", b: "В состоянии «Спокойствие» ты читаешь в 2,3× больше страниц.", c: "#cfe1ff" },
-    { t: "Кардио после 17:00", b: "Тренировки после 17:00 завершаются в 84% случаев.", c: "#9bbfe8" },
-    { t: "Групповые дни сильнее", b: "Когда команда отмечается, +1,4× к выполнению.", c: "#7aa4d0" },
+    { t: "Спокойные дни = глубокое чтение", b: "В состоянии «Спокойствие» ты читаешь в 2,3× больше страниц.", c: "#cfe1ff",
+      d: "За месяц: 7 спокойных дней → в среднем 23 страницы за сессию. В тревожные дни — 9. Состояние сильно влияет на чтение." },
+    { t: "Кардио после 17:00", b: "Тренировки после 17:00 завершаются в 84% случаев.", c: "#9bbfe8",
+      d: "Из 12 вечерних тренировок завершены 10. Утренних — только 5 из 11. Твоё тело явно «вечернее» для нагрузки." },
+    { t: "Групповые дни сильнее", b: "Когда команда отмечается, +1,4× к выполнению.", c: "#7aa4d0",
+      d: "В дни, когда команда активна до полудня, твой день закрывается в 1,4× чаще. Чужой ритм незаметно держит тебя." },
   ];
 
   // Tiny 7-day completion sparkline
@@ -716,11 +801,26 @@ function AIScreen() {
             style={{ flex: 1, background: "var(--card)", color: "#0a1424", border: 0, borderRadius: 999, padding: "11px 14px", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <I.Sparkles size={14}/> Спланировать день
           </button>
-          <button className="tap"
-            style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 999, padding: "11px 14px", fontSize: 13, fontWeight: 500 }}>
-            Почему?
+          <button onClick={() => setShowWhy(v => !v)} className="tap"
+            style={{ background: showWhy ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 999, padding: "11px 14px", fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            Почему? <I.ChevronRight size={13} style={{ transform: showWhy ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}/>
           </button>
         </div>
+
+        {/* Reasoning panel — the AI shows its work behind the headline insight */}
+        {showWhy && (
+          <div className="bos-acc-in" style={{ marginTop: 12, padding: "12px 14px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, position: "relative" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "rgba(180,210,255,0.85)" }}>Как я это вижу</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", marginTop: 6, lineHeight: 1.5 }}>
+              Смотрю на 14 дней твоих отметок и состояния. После прогулок настроение растёт на 41%, а сон — на 0,6 ч. Связь устойчивая — поэтому прогулки сейчас в приоритете.
+            </div>
+            <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+              {[["🚶","14 прогулок"],["😌","+41% настроение"],["😴","+0,6 ч сон"]].map((s,i)=>(
+                <span key={i} style={{ fontSize: 11.5, fontWeight: 600, color: "#fff", background: "rgba(255,255,255,0.12)", borderRadius: 999, padding: "4px 9px", display: "inline-flex", alignItems: "center", gap: 5 }}><span>{s[0]}</span>{s[1]}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sparkline — completion last 7 days */}
@@ -763,41 +863,74 @@ function AIScreen() {
         </svg>
       </div>
 
-      {/* Insights — actionable recommendations */}
+      {/* Insights — actionable, expandable recommendations */}
       <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Для тебя сегодня</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {insights.map((p, i) => (
-          <div key={i} style={{ background: "var(--card)", borderRadius: 20, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{p.i}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{p.t}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#1e6b3a", background: "#e5f5ea", padding: "2px 6px", borderRadius: 999 }}>{p.lift}</span>
+        {insights.map((p, i) => {
+          const isOpen = openInsight === i;
+          const isDone = !!accepted[i];
+          return (
+          <div key={i} style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+            <button onClick={() => setOpenInsight(isOpen ? null : i)} className="tap"
+              style={{ width: "100%", background: "transparent", border: 0, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: isDone ? "linear-gradient(135deg,#d6f3df,#bfe9cd)" : "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>
+                {isDone ? <I.Check size={20} color="#1e6b3a" strokeWidth={3}/> : p.i}
               </div>
-              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>{p.b}</div>
-            </div>
-            <button className="tap" style={{ width: 32, height: 32, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
-              <I.Check size={14} strokeWidth={2.5}/>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{p.t}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#1e6b3a", background: "#e5f5ea", padding: "2px 7px", borderRadius: 999 }}>{isDone ? "Принято" : p.lift}</span>
+                </div>
+                <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>{isDone ? p.doneText : p.b}</div>
+              </div>
+              <I.ChevronRight size={18} color="var(--text-4)" style={{ flexShrink: 0, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}/>
             </button>
+            {isOpen && (
+              <div className="bos-acc-in" style={{ padding: "0 14px 14px 70px" }}>
+                <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.5 }}>{p.why}</div>
+                <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+                  {p.stats.map((s, si) => (
+                    <span key={si} style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "var(--surface-3)", borderRadius: 999, padding: "4px 9px", display: "inline-flex", alignItems: "center", gap: 5 }}><span>{s[0]}</span>{s[1]}</span>
+                  ))}
+                </div>
+                {!isDone && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <button onClick={() => { setAccepted(a => ({ ...a, [i]: true })); if (window.tgHaptic) tgHaptic("light"); }} className="tap"
+                      style={{ flex: 1, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 14px", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      <I.Check size={14} strokeWidth={2.5}/> {p.action}
+                    </button>
+                    <button onClick={() => navigate("ai-chat", { prompt: p.t })} className="tap"
+                      style={{ background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "10px 14px", fontSize: 13, fontWeight: 500 }}>
+                      Обсудить
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Patterns — passive observations */}
       <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Закономерности</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-        {patterns.map((p, i) => (
-          <div key={i} style={{
-            background: "var(--card)", borderRadius: 18, padding: 14,
+        {patterns.map((p, i) => {
+          const isOpen = openPattern === i;
+          return (
+          <button key={i} onClick={() => setOpenPattern(isOpen ? null : i)} className="tap" style={{
+            background: "var(--card)", borderRadius: 18, padding: 14, border: 0, textAlign: "left",
             boxShadow: "var(--card-shadow)",
             position: "relative", overflow: "hidden",
-            gridColumn: i === 2 ? "span 2" : "auto",
+            gridColumn: (i === 2 || isOpen) ? "span 2" : "auto",
           }}>
             <div style={{ position: "absolute", top: -10, right: -10, width: 60, height: 60, borderRadius: "50%", background: p.c, opacity: 0.35, filter: "blur(8px)" }}/>
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", position: "relative" }}>{p.t}</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4, lineHeight: 1.45, position: "relative" }}>{p.b}</div>
-          </div>
-        ))}
+            {isOpen && <div className="bos-acc-in" style={{ fontSize: 12, color: "var(--text-3)", marginTop: 9, paddingTop: 9, borderTop: "1px solid var(--line)", lineHeight: 1.5, position: "relative" }}>{p.d}</div>}
+          </button>
+          );
+        })}
       </div>
 
       {/* Ask AI */}

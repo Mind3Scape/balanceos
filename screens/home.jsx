@@ -93,7 +93,43 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const dotIdle  = isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.18)";
   const dotActive= isDark ? "#fff" : "#0a0a0a";
   const _pages = [
-    /* Page 1: Quote (left) + Gee avatar with progress ring (top-right) + chips (bottom) */
+    /* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
+    fresh ? (
+    <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
+        <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
+          style={{ flexShrink: 0, position: "relative", width: 54, height: 54, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
+          <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+            <circle cx="27" cy="27" r="23" stroke={ringBg} strokeWidth="3" fill="none"/>
+            <circle cx="27" cy="27" r="23" stroke="#FEDE34" strokeWidth="3" fill="none" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - ringShown)}
+              style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
+          </svg>
+          <div style={{ position: "absolute", inset: 5, borderRadius: "50%",
+            background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
+            boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}/>
+        </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>Подсказки ИИ</div>
+          <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px" }}>Подсказки станут точнее, когда расскажешь о себе.</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {[
+          { i: "✨", t: "ИИ: спланируй день" },
+          { i: "🧭", t: "С чего начать" },
+          { i: "🧘🏼‍♀️", t: "Медитация 5 мин" },
+          { i: "🩺", t: "Связать здоровье" },
+        ].map((c, i) => (
+          <button key={i} onClick={() => navigate("ai")} className="tap" style={{
+            padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
+            background: chipBg, border: chipBd,
+            borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
+          }}><span>{c.i}</span>{c.t}</button>
+        ))}
+      </div>
+    </div>
+    ) : (
     <div key="quote" style={{ position: "relative", height: "100%", padding: 18, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -140,7 +176,8 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
           }}><span>{c.i}</span>{c.t}</button>
         ))}
       </div>
-    </div>,
+    </div>
+    ),
     /* Page 2: Balance — clean radar (kept) + per-sphere breakdown that fills the
        space and shows what each sphere is + its % level. Original card height. */
     <div key="wheel" style={{ position: "relative", height: "100%", padding: "14px 16px 14px 8px", boxSizing: "border-box", display: "flex", gap: 6, alignItems: "center" }}>
@@ -173,7 +210,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       borderRadius: 28, position: "relative", overflow: "hidden",
       boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
     }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div style={{ display: "flex", width: "200%", transform: `translateX(${-page * 50}%)`, transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: 196 }}>
+      <div style={{ display: "flex", width: "200%", transform: `translateX(${-page * 50}%)`, transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: fresh ? 128 : 196 }}>
         {pages.map((p, i) => <div key={i} style={{ width: "50%", flexShrink: 0 }}>{p}</div>)}
       </div>
       {pages.length > 1 && (

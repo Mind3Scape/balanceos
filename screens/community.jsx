@@ -387,18 +387,18 @@ function CommunityScreen() {
     { name: "Александра Иванова", initials: "АИ", color: "#e8c8a8", city: "Москва", role: "Маркетинг", bio: "Диджитал-маркетолог, 5 лет. Йога и медитация.", tags: ["Йога","Маркетинг","Путешествия"], dist: "в 2 км",
       level: 12, impact: 1840, offers: [
         { i: "🧘", t: "Сессия медитации", d: "30 мин · вт и чт",       price: "Бесплатно",        lvl: 5 },
-        { i: "💼", t: "Консультация по маркетингу",  d: "1 ч · бренд и рост",      price: "150 ¢/ч",   lvl: 10 },
+        { i: "💼", t: "Консультация по маркетингу",  d: "1 ч · бренд и рост",      price: "150 XP/ч",   lvl: 10 },
       ] },
     { name: "Иван Петров",        initials: "ИП", color: "#a8d4e8", city: "Москва", role: "Основатель",   bio: "Предприниматель, бегун, вечный ученик.", tags: ["Бег","Книги","Закаливание"], dist: "в 3 км",
       level: 18, impact: 3120, offers: [
         { i: "🌬️", t: "Дыхательная практика",  d: "20 мин · по утрам в будни", price: "Бесплатно",        lvl: 4 },
-        { i: "🏃", t: "Звонок с беговым коучем",     d: "45 мин · планы темпа",     price: "100 ¢/звонок", lvl: 8 },
-        { i: "💬", t: "Q&A с основателем",        d: "1 ч · b2b SaaS",            price: "200 ¢/ч",   lvl: 15 },
+        { i: "🏃", t: "Звонок с беговым коучем",     d: "45 мин · планы темпа",     price: "100 XP/звонок", lvl: 8 },
+        { i: "💬", t: "Q&A с основателем",        d: "1 ч · b2b SaaS",            price: "200 XP/ч",   lvl: 15 },
       ] },
     { name: "Анастасия В.",       initials: "АВ", color: "#d4b8e8", city: "Москва", role: "Коуч",      bio: "Помогаю выстраивать устойчивые ритуалы.", tags: ["Коучинг","Мышление"], dist: "в 5 км",
       level: 9, impact: 1240, offers: [
         { i: "🧠", t: "Разбор привычек",  d: "30 мин · диагностика",       price: "Бесплатно",       lvl: 3 },
-        { i: "🎯", t: "Менторство на месяц", d: "4 звонка · сопровождение",  price: "300 ¢/мес",   lvl: 7 },
+        { i: "🎯", t: "Менторство на месяц", d: "4 звонка · сопровождение",  price: "300 XP/мес",   lvl: 7 },
       ] },
   ];
   const courses = [
@@ -481,7 +481,7 @@ function CommunityScreen() {
               Команды — это привычки вместе с друзьями. Создай первую или дождись приглашения.
             </div>
           )}
-          <button onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+          <button data-tour="make-team" onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
             <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,222,52,0.15)", display: "grid", placeItems: "center" }}>
               <I.Plus size={22} color="#FEDE34"/>
             </span>
@@ -954,7 +954,7 @@ function TeamCreateScreen() {
       <div className="section-label" style={{ marginTop: 22 }}>Общая цель</div>
 
       {/* Goal type picker — 3 cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      <div data-tour="team-modes" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {goalTypes.map(gt => {
           const active = goalType === gt.id;
           return (
@@ -1056,7 +1056,7 @@ function TeamCreateScreen() {
 
       {/* STAKES — optional XP wager */}
       <div className="section-label" style={{ marginTop: 22 }}>Ставка в игре</div>
-      <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div data-tour="team-stakes" style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP</div>
@@ -1185,7 +1185,7 @@ function TeamDetailScreen() {
       </div>
 
       {/* Team chat — one shared space for the whole team */}
-      <button onClick={() => navigate("team-chat", { team: t })} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 18, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
+      <button data-tour="team-chat" onClick={() => navigate("team-chat", { team: t })} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 18, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Чат команды</div>
@@ -1871,7 +1871,7 @@ function ContactDetailScreen() {
     tags: ["Йога","Маркетинг","Путешествия"],
     offers: [
       { i: "🧘", t: "Сеанс медитации", d: "30 мин · вт и чт", price: "Бесплатно", lvl: 5 },
-      { i: "💼", t: "Консультация по маркетингу",  d: "1 ч · бренд и рост", price: "150 ¢/ч", lvl: 10 },
+      { i: "💼", t: "Консультация по маркетингу",  d: "1 ч · бренд и рост", price: "150 XP/ч", lvl: 10 },
     ],
   };
 

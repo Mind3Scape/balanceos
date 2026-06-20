@@ -105,7 +105,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v62";
+const APP_VERSION = "v63";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -136,6 +136,14 @@ const TOUR_STOPS = [
     body: "Добавляй привычки и цели. Любую можно делать одному — или вместе с друзьями, поддерживая серии." },
   { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
     body: "Команды, курсы и наставники. Привычки вместе держат сильнее." },
+  { kind: "spot", tab: "community", view: { section: "discover", discTab: "teams" }, sel: '[data-tour="make-team"]', radius: 18, eyebrow: "Команды", title: "Создавай свои команды",
+    body: "Объедини семью, друзей или клиентов тренинга. У каждой — общая цель, чат и статистика. Заглянем, как собрать." },
+  { kind: "spot", tab: "team-create", sel: '[data-tour="team-modes"]', radius: 18, eyebrow: "Режимы команды", title: "Как двигать общую цель",
+    body: "Общий счёт, серия у каждого или гонка — выбираешь формат. А двигают цель привычки самих участников." },
+  { kind: "spot", tab: "team-create", sel: '[data-tour="team-stakes"]', radius: 18, eyebrow: "Геймификация", title: "Ставка на опыт",
+    body: "Все скидывают XP в общий банк. Дошли до цели — он возвращается ×2. Не дошли — сгорает. Вот это азарт." },
+  { kind: "spot", tab: "team-detail", sel: '[data-tour="team-chat"]', radius: 18, eyebrow: "Внутри команды", title: "Общий чат и статистика",
+    body: "У команды свой чат — переписка, фото, поддержка. Плюс лидерборд по вкладу и живые цифры. Тренеру видно каждого." },
   { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="impact"]', radius: 20, eyebrow: "Нетворк · твой вклад", title: "Стань тем, к кому идут",
     body: "С ростом уровня ты сам помогаешь кругу — ведёшь, консультируешь, делишься тем, что умеешь. Каждое доброе дело растит твой вклад и репутацию." },
   { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="contacts"]', radius: 20, eyebrow: "Нетворк · контакты", title: "Заказывай помощь других",
