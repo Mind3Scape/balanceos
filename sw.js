@@ -6,15 +6,16 @@
    - Heavy, rarely-changing files (vendor libs, images, icons): CACHE-FIRST for
      speed; refreshed in the background.
    Bump CACHE on each release so the new worker re-precaches cleanly. */
-const CACHE = "balanceos-v78";
+const CACHE = "balanceos-v79";
 const PRECACHE = [
-  "./", "index.html", "styles.css", "mobile.css", "app.jsx", "haptics.js", "telegram.js", "aikey.js",
-  "vendor/react.production.min.js", "vendor/react-dom.production.min.js", "vendor/babel.min.js",
-  "components/icons.jsx", "components/shell.jsx",
-  "screens/home.jsx", "screens/habits.jsx", "screens/community.jsx",
-  "screens/profile.jsx", "screens/extra.jsx", "screens/intro.jsx",
-  "assets/sphere.png", "assets/sphere-mid.png", "assets/sphere-large.png",
-  "assets/sphere-glass.png", "assets/quote-decoration.png",
+  "./", "index.html", "styles.css", "mobile.css", "haptics.js", "telegram.js", "aikey.js",
+  "vendor/react.production.min.js", "vendor/react-dom.production.min.js",
+  // Precompiled UI (no Babel shipped).
+  "build/components/icons.js", "build/components/shell.js",
+  "build/screens/home.js", "build/screens/habits.js", "build/screens/community.js",
+  "build/screens/profile.js", "build/screens/extra.js", "build/screens/intro.js",
+  "build/app.js",
+  "assets/sphere.png",
   "manifest.webmanifest",
   "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png",
 ];
