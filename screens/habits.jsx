@@ -10,6 +10,15 @@ const EMOJI_CHIPS = [
 
 /* Avatar stack — small face pile showing who else is doing this habit */
 const AVATAR_PALETTE = ["#a8b9d4","#e8c8a8","#a8d4e8","#d4b8e8","#b8e8c8","#e8b8b8","#c8c8e8"];
+
+/* Per-habit accent. `null` = base (neutral gray, the project default); a value
+   softly tints the icon tile everywhere and fills the stats grid. Kept to calm
+   iOS-system hues so coloured habits still read cohesive with the gray ones. */
+const HABIT_COLORS = [
+  { id: "base", val: null }, { id: "blue", val: "#0A84FF" }, { id: "green", val: "#34C759" },
+  { id: "amber", val: "#FF9500" }, { id: "purple", val: "#AF52DE" }, { id: "pink", val: "#FF2D55" }, { id: "teal", val: "#30B0C7" },
+];
+const HABIT_COLOR_NAMES = { "#0A84FF": "Океан", "#34C759": "Лес", "#FF9500": "Янтарь", "#AF52DE": "Аметист", "#FF2D55": "Маджента", "#30B0C7": "Бирюза" };
 function AvatarStack({ people = [], size = 18, max = 3, label = true }) {
   if (!people.length) return null;
   const visible = people.slice(0, max);
@@ -195,7 +204,7 @@ function HabitsScreen() {
                 <div className="tap"
                   onClick={() => navigate("habit-detail", { habit: h, from: "habits" })}
                   style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                  <span style={{ width: 40, height: 40, borderRadius: 12, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
                     {(h.friends?.length || h.duration) && (
@@ -285,7 +294,7 @@ function HabitSettingsScreen() {
   const preset = params?.preset; // quick-add chip → {i: emoji, t: label}
   const [name, setName] = useHS(editing ? params.habit.name : (preset?.t || "Прогулка"));
   const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : (preset?.i || "👟"));
-  const [color, setColor] = useHS("#0a0a0a");
+  const [color, setColor] = useHS(editing ? (params.habit.color ?? null) : null);
   const [goal, setGoal] = useHS(1);
   const [reminderOn, setReminderOn] = useHS(true);
   const [shareOn, setShareOn] = useHS(true);
@@ -304,28 +313,25 @@ function HabitSettingsScreen() {
       <div className="section-label">Название</div>
       <input className="bos-input" value={name} onChange={e => setName(e.target.value)} style={{ marginTop: 8 }} />
 
-      {/* Icon and color */}
+      {/* Icon + colour — neutral by default; tap a swatch to tint it */}
       <div className="section-label" style={{ marginTop: 22 }}>Иконка и цвет</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
-        <button className="tap" onClick={() => navigate("icon-picker", { current: iconPick, onPick: "habit-icon" })}
-          style={{ background: "#fff", border: 0, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-          <div style={{ width: 50, height: 50, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26 }}>{iconPick}</div>
-          <div style={{ textAlign: "left" }}>
-            <div style={{ fontWeight: 500, fontSize: 16 }}>{name || "Привычка"}</div>
-            <div style={{ fontSize: 13, color: "var(--text-4)" }}>Иконка</div>
-          </div>
-        </button>
-        <button className="tap" onClick={() => {
-          const PAL = ["#0a0a0a","#FF3B30","#FF9500","#34C759","#0A84FF","#AF52DE"];
-          setColor(c => PAL[(PAL.indexOf(c) + 1) % PAL.length] || PAL[0]);
-        }}
-          style={{ background: "#fff", border: 0, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-          <div style={{ width: 50, height: 50, borderRadius: 12, background: color, transition: "background 0.2s" }} />
-          <div style={{ textAlign: "left" }}>
-            <div style={{ fontWeight: 500, fontSize: 16 }}>{({ "#0a0a0a": "Оникс", "#FF3B30": "Алый", "#FF9500": "Янтарь", "#34C759": "Лес", "#0A84FF": "Океан", "#AF52DE": "Аметист" })[color] || "Цвет"}</div>
-            <div style={{ fontSize: 13, color: "var(--text-4)" }}>Цвет</div>
-          </div>
-        </button>
+      <button className="tap" onClick={() => navigate("icon-picker", { current: iconPick, onPick: "habit-icon" })}
+        style={{ width: "100%", background: "#fff", border: 0, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", marginTop: 8 }}>
+        <div style={{ width: 50, height: 50, borderRadius: 12, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, transition: "background 0.2s" }}>{iconPick}</div>
+        <div style={{ textAlign: "left", flex: 1 }}>
+          <div style={{ fontWeight: 500, fontSize: 16 }}>{name || "Привычка"}</div>
+          <div style={{ fontSize: 13, color: "var(--text-4)" }}>{color ? HABIT_COLOR_NAMES[color] : "Базовый"} · сменить иконку</div>
+        </div>
+        <I.ChevronRight size={18} color="var(--text-4)" />
+      </button>
+      <div style={{ display: "flex", gap: 10, marginTop: 12, padding: "2px 2px 0", flexWrap: "wrap" }}>
+        {HABIT_COLORS.map((c) => (
+          <button key={c.id} className="tap" data-no-haptic onClick={() => setColor(c.val)}
+            style={{ width: 34, height: 34, borderRadius: "50%", background: c.val || "var(--surface-3)", border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+              boxShadow: color === c.val ? "0 0 0 2px var(--bg), 0 0 0 4px var(--text)" : (c.val ? "none" : "inset 0 0 0 1px rgba(0,0,0,0.12)") }}>
+            {color === c.val && <I.Check size={15} strokeWidth={3} color={c.val ? "#fff" : "var(--text-2)"} />}
+          </button>
+        ))}
       </div>
 
       {/* Goal */}
@@ -413,8 +419,8 @@ function HabitSettingsScreen() {
       {/* Add */}
       <button className="bos-btn light" style={{ marginTop: 28 }} onClick={() => {
         const nm = name.trim() || "Новая привычка";
-        if (editing) app?.updateHabit(params.habit.id, { emoji: iconPick, name: nm });
-        else app?.addHabit({ emoji: iconPick, name: nm });
+        if (editing) app?.updateHabit(params.habit.id, { emoji: iconPick, name: nm, color });
+        else app?.addHabit({ emoji: iconPick, name: nm, color });
         navigate("habits");
       }}>
         {editing ? "Сохранить" : "Добавить привычку"}

@@ -440,8 +440,8 @@ function HistoryScreen() {
                 {c.d}
                 {pct === 1 && <span aria-hidden style={{ position: "absolute", bottom: 3, right: 4, fontSize: 9 }}>★</span>}
                 {isCurMonth && app?.dayMoods?.[c.d] != null && pct != null && (
-                  <span aria-hidden style={{ position: "absolute", top: 1, right: 3, fontSize: 9, lineHeight: 1 }}>
-                    {MOOD_OPTIONS[app.dayMoods[c.d]].i}
+                  <span aria-hidden style={{ position: "absolute", top: 2, right: 2, lineHeight: 0 }}>
+                    <StaticOrb size={11} tint={tintFromMood(MOOD_OPTIONS[app.dayMoods[c.d]].c)} seed={1.2} intensity={0.55} />
                   </span>
                 )}
               </button>
@@ -482,7 +482,9 @@ function HistoryScreen() {
               const dm = MOOD_OPTIONS[app.dayMoods[selDay]];
               return (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
-                  <span style={{ width: 36, height: 36, borderRadius: "50%", background: dm.c, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0, color: TH.moodText }}>{dm.i}</span>
+                  <span style={{ width: 36, height: 36, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                    <StaticOrb size={34} tint={tintFromMood(dm.c)} seed={1.2} intensity={0.7} />
+                  </span>
                   <div style={{ flex: 1 }}>
                     <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Состояние</div>
                     <div style={{ fontSize: 15, fontWeight: 500, marginTop: 2 }}>{dm.t}</div>

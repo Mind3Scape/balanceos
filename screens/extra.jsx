@@ -22,26 +22,24 @@ function HabitDetailScreen() {
   const total = streak * 9 + (h.id || 1) * 7 + 40;
   const rate  = Math.min(98, 58 + streak * 2);
 
-  // iOS-26 liquid-glass accent, varied by habit so each feels distinct yet cohesive.
-  const HUES = [
-    { from: "#FFD60A", to: "#FF8A00" }, { from: "#6EC6FF", to: "#0A84FF" },
-    { from: "#5BE8A4", to: "#2BB673" }, { from: "#C8A2FF", to: "#7C5CFF" },
-    { from: "#FF9AA2", to: "#FF5E7E" }, { from: "#6BE3D8", to: "#1FB6A6" },
-  ];
-  const g = HUES[(h.id || 1) % HUES.length];
+  // Neutral by default (cohesive with the gray tiles outside); the habit's own
+  // colour only if the user picked one — it tints the tile and fills the grid.
+  const accent  = h.color || (isDark ? "rgba(255,255,255,0.92)" : "#1c1c1e");
+  const tileBg  = h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
+  const emptyBd = isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)";
 
-  // 5-week grid: most recent `streak` days filled; older days a fixed scatter
+  // 5-week grid: most recent `streak` days done; older days a fixed scatter
   // seeded by habit id (stable across renders — no Math.random flicker).
   const cells = Array.from({ length: 35 }, (_, i) => {
     const fromEnd = 34 - i;
     if (fromEnd < streak) return true;
     return ((i * 7 + (h.id || 1) * 13) % 10) > 6;
   });
+  const WD = ["П", "В", "С", "Ч", "П", "С", "В"];
 
   const card = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
     : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
-  const cellEmpty = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -49,11 +47,10 @@ function HabitDetailScreen() {
         <button onClick={() => navigate("habit-settings", { mode: "edit", habit: h })} className="tap" style={{ background: "transparent", border: 0, fontSize: 15, fontWeight: 500, color: "var(--text-2)" }}>Изменить</button>
       } />
 
-      {/* Hero — liquid-glass emoji tile */}
+      {/* Hero — neutral tile (or the habit's soft colour), like the lists outside */}
       <div style={{ textAlign: "center", padding: "6px 0 22px" }}>
-        <div style={{ width: 92, height: 92, borderRadius: 26, margin: "0 auto", position: "relative", background: `linear-gradient(145deg, ${g.from}, ${g.to})`, boxShadow: `0 12px 30px -10px ${g.to}99, inset 0 1.5px 1px rgba(255,255,255,0.6), inset 0 -10px 18px rgba(0,0,0,0.12)`, display: "grid", placeItems: "center" }}>
-          <div style={{ position: "absolute", inset: 0, borderRadius: 26, background: "linear-gradient(160deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 46%)", pointerEvents: "none" }} />
-          <span style={{ fontSize: 46, filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.18))" }}>{h.emoji}</span>
+        <div style={{ width: 88, height: 88, borderRadius: 24, margin: "0 auto", background: tileBg, display: "grid", placeItems: "center", boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
+          <span style={{ fontSize: 44 }}>{h.emoji}</span>
         </div>
         <div style={{ fontSize: 26, fontWeight: 700, marginTop: 16, letterSpacing: "-0.5px" }}>{h.name}</div>
         <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
@@ -76,24 +73,30 @@ function HabitDetailScreen() {
         ))}
       </div>
 
-      {/* Activity grid — fills with the habit's own colour */}
+      {/* Activity grid — filled = done, hollow = missed (unmistakable) */}
       <div className="section-label" style={{ marginTop: 22 }}>Последние 5 недель</div>
       <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginBottom: 5 }}>
+          {WD.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, color: "var(--text-4)", letterSpacing: 0.4 }}>{d}</div>)}
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
-          {cells.map((d, i) => (
-            <span key={i} style={{ aspectRatio: "1/1", borderRadius: 6, background: d ? `linear-gradient(145deg, ${g.from}, ${g.to})` : cellEmpty, boxShadow: d ? `0 2px 6px -2px ${g.to}88` : "none" }} />
+          {cells.map((done, i) => (
+            <span key={i} title={done ? "выполнено" : "пропущено"} style={{ aspectRatio: "1/1", borderRadius: 7, background: done ? accent : "transparent", boxShadow: done ? "none" : `inset 0 0 0 1.5px ${emptyBd}` }} />
           ))}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 11, fontSize: 11, color: "var(--text-4)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, fontSize: 11, color: "var(--text-4)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 11 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 4, background: accent }} /> выполнено</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 4, boxShadow: `inset 0 0 0 1.5px ${emptyBd}` }} /> пропущено</span>
+          </span>
           <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
-          <span>Сегодня →</span>
         </div>
       </div>
 
-      {/* Insight — derived from the real streak, not canned */}
+      {/* Insight — neutral surface, streak-driven copy */}
       <div className="section-label" style={{ marginTop: 22 }}>Инсайт</div>
-      <div style={{ background: `linear-gradient(135deg, ${g.from}22, ${g.to}22)`, border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.04)", borderRadius: 18, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
-        <I.Sparkles size={18} color={isDark ? "#fff" : "#0a0a0a"} />
+      <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
+        <I.Sparkles size={18} color={h.color || (isDark ? "#fff" : "#0a0a0a")} />
         <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
           {streak >= 7
             ? `Серия уже ${streak} дней — это работает на автопилоте. Не разрывай цепочку сегодня.`

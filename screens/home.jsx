@@ -324,7 +324,7 @@ function HomeScreen() {
               }}>
                 <span style={{
                   width: 40, height: 40, borderRadius: 12,
-                  background: iconBg, display: "grid", placeItems: "center",
+                  background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center",
                   fontSize: 20, flexShrink: 0,
                 }}>{h.emoji}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
