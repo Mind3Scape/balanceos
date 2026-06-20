@@ -24,7 +24,7 @@ function HabitDetailScreen() {
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
-  const accent  = h.color || (isDark ? "rgba(255,255,255,0.92)" : "#1c1c1e");
+  const ringColor = h.color || "#FFC400";  // gold by default (matches the main calendar), or the habit's colour
   const tileBg  = h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
   const emptyBd = isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)";
 
@@ -73,21 +73,26 @@ function HabitDetailScreen() {
         ))}
       </div>
 
-      {/* Activity grid — filled = done, hollow = missed (unmistakable) */}
+      {/* Per-habit calendar — a full ring on days you did it, an empty ring if not */}
       <div className="section-label" style={{ marginTop: 22 }}>Последние 5 недель</div>
       <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginBottom: 5 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 7 }}>
           {WD.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, color: "var(--text-4)", letterSpacing: 0.4 }}>{d}</div>)}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
           {cells.map((done, i) => (
-            <span key={i} title={done ? "выполнено" : "пропущено"} style={{ aspectRatio: "1/1", borderRadius: 7, background: done ? accent : "transparent", boxShadow: done ? "none" : `inset 0 0 0 1.5px ${emptyBd}` }} />
+            <span key={i} title={done ? "выполнено" : "пропущено"} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
+              <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+                <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
+                {done && <circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="3.4" style={{ filter: `drop-shadow(0 0 1.6px ${ringColor}aa)` }} />}
+              </svg>
+            </span>
           ))}
         </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, fontSize: 11, color: "var(--text-4)" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 11 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 4, background: accent }} /> выполнено</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 4, boxShadow: `inset 0 0 0 1.5px ${emptyBd}` }} /> пропущено</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="6" /></svg> выполнено</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="6" /></svg> пропущено</span>
           </span>
           <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
         </div>

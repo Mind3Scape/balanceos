@@ -322,6 +322,7 @@ function HistoryScreen() {
     cellIdle:  "rgba(255,255,255,0.10)",
     ringTrack: "rgba(255,255,255,0.13)",
     cellSelBg: "rgba(255,255,255,0.16)",
+    todayBg: "#ffffff", todayFg: "#0a0a0a",
     cellBorder:"rgba(255,255,255,0.10)",
     cellText:  "#fff",
     cellMuted: "rgba(255,255,255,0.45)",
@@ -338,6 +339,7 @@ function HistoryScreen() {
     cellIdle:  "#f5f5f5",
     ringTrack: "rgba(0,0,0,0.09)",
     cellSelBg: "rgba(0,0,0,0.07)",
+    todayBg: "#0a0a0a", todayFg: "#ffffff",
     cellBorder:"rgba(0,0,0,0.06)",
     cellText:  "var(--text)",
     cellMuted: "var(--text-4)",
@@ -446,7 +448,7 @@ function HistoryScreen() {
         <svg width="0" height="0" aria-hidden style={{ position: "absolute" }}>
           <defs>
             <linearGradient id="calRing" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" />
+              <stop offset="0" stopColor="#FFD93B" /><stop offset="1" stopColor="#FFC400" />
             </linearGradient>
           </defs>
         </svg>
@@ -464,9 +466,11 @@ function HistoryScreen() {
                   display: "grid", placeItems: "center", position: "relative",
                   fontSize: 13, fontWeight: isToday ? 700 : 500, cursor: "pointer",
                   background: "transparent",
-                  color: future ? TH.cellMuted : (isToday ? "#EF9F14" : TH.cellText),
+                  color: future ? TH.cellMuted : (isToday ? TH.todayFg : TH.cellText),
                 }}>
-                {isSelected && <span aria-hidden style={{ position: "absolute", width: "64%", aspectRatio: "1/1", borderRadius: "50%", background: TH.cellSelBg }}/>}
+                {isToday
+                  ? <span aria-hidden style={{ position: "absolute", width: "62%", aspectRatio: "1/1", borderRadius: "50%", background: TH.todayBg }}/>
+                  : isSelected && <span aria-hidden style={{ position: "absolute", width: "64%", aspectRatio: "1/1", borderRadius: "50%", background: TH.cellSelBg }}/>}
                 {future
                   ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px dashed " + TH.cellBorder }}/>
                   : <DayRing pct={pct} track={TH.ringTrack} glow={pct === 1} />}
