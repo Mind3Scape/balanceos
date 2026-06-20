@@ -448,11 +448,13 @@ function AppProvider({ children }) {
     setMode("demo"); setUserName("Павел");
     setHabits(SEED_HABITS); setGoals(SEED_GOALS); setTeams(SEED_TEAMS);
     setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES);
+    setCommunityView({ networkUnlocked: true, discTab: "teams", section: "discover" });
   };
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim());
     setHabits([]); setGoals([]); setTeams([]);
     setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES);
+    setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "courses" });
   };
   const startTour = () => setTourStep(0);
   const endTour = () => setTourStep(-1);

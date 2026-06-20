@@ -237,7 +237,7 @@ function HomeScreen() {
         </button>
       </div>
 
-      <HomeHeroSwipe navigate={navigate} doneCount={doneCount} totalCount={totalCount} ringPct={ringPct} isDark={isDark} />
+      <div data-tour="aihints"><HomeHeroSwipe navigate={navigate} doneCount={doneCount} totalCount={totalCount} ringPct={ringPct} isDark={isDark} /></div>
 
       {/* MOOD WIDGET — living card with breathing orb + last-7-days mood trail */}
       {widgets.mood !== false && mood && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}

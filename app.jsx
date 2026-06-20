@@ -103,7 +103,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v56";
+const APP_VERSION = "v57";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -122,32 +122,39 @@ const TOUR_STOPS = [
     body: "BalanceOS — платформа: привычки, команды, наставники, курсы и ИИ. Уровень растёт — и открывается всё больше. Покажу за минуту.", cta: "Показать" },
   { kind: "spot", tab: "home", sel: '.bos-tabbar button:nth-of-type(1)', radius: 16, eyebrow: "Главная", title: "Твой экран дня",
     body: "Виджеты состояния, баланса и серий. Соберёшь под себя — что важно, то и наверху." },
-  { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Состояние", title: "Сердце приложения",
-    body: "Отметь, как ты сейчас — и всё подстроится: цвет, советы, баланс. Можно отметить #хэштегами, что за этим стоит." },
+  { kind: "spot", tab: "home", sel: '[data-tour="aihints"]', radius: 22, eyebrow: "Подсказки ИИ", title: "Совет под твой день",
+    body: "Подсказки наверху — от ИИ. Чем больше контекста о себе ты заполняешь, тем точнее и полезнее они становятся." },
+  { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Состояние", title: "Отметь, как ты сейчас",
+    body: "Раз в день отмечай своё состояние — и приложение подстроится под тебя: цвет, тон, акценты дня." },
   { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт за привычки",
-    body: "Каждая отметка качает уровень. Чем выше — тем больше открывается: новые наставники, контакты, возможности." },
+    body: "Каждая отметка качает уровень. Чем выше — тем больше открывается: наставники, контакты, возможности." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
     body: "Твоя личная система. Привычки и цели живут здесь." },
   { kind: "spot", tab: "habits", sel: '[data-tour="add"]', radius: 999, eyebrow: "Создать", title: "Жми «плюс»",
     body: "Добавляй привычки и цели. Любую можно делать одному — или вместе с друзьями, поддерживая серии." },
   { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
-    body: "Команды, курсы, наставники. Привычки вместе держат сильнее." },
-  { kind: "spot", tab: "community", sel: '[data-tour="network"]', radius: 12, eyebrow: "Нетворк", title: "Контакты по уровню",
-    body: "Люди и наставники открываются с ростом уровня. А курсы — как ключи: прошёл курс → открылся доступ к новым контактам." },
+    body: "Команды, курсы и наставники. Привычки вместе держат сильнее." },
+  { kind: "spot", tab: "community", discTab: "network", sel: '[data-tour="impact"]', radius: 20, eyebrow: "Нетворк · твой вклад", title: "Помогай другим",
+    body: "С ростом уровня ты сам сможешь помогать кругу — вести, консультировать, делиться тем, что умеешь. Каждое доброе дело — твой вклад." },
+  { kind: "spot", tab: "community", discTab: "network", sel: '[data-tour="contacts"]', radius: 20, eyebrow: "Нетворк · контакты", title: "Заказывай помощь других",
+    body: "А баллы за привычки трать на людей вокруг: запишись к человеку, попади в его карточку, закажи услугу. Так растёте вместе." },
   { kind: "spot", tab: "ai", sel: '.bos-tabbar button:nth-of-type(4)', radius: 16, eyebrow: "Помощник", title: "ИИ всегда под рукой",
     body: "Совет, разбор дня, план на завтра. Он держит в уме твой контекст." },
   { kind: "card", emoji: "🌟", title: "Готово — это твоё пространство",
     body: "Отмечай состояние, расти в уровне, открывай людей. Чем дальше — тем больше возможностей. Поехали.", cta: "Начать" },
 ];
 
-function GuidedTour({ step, setStep, endTour, navigate, dark }) {
+function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, dark }) {
   const rootRef = useRef(null);
   const [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
   const stop = (step >= 0 && step < TOUR_STOPS.length) ? TOUR_STOPS[step] : null;
 
   // Drive the tab bar so each "tab" stop shows the real section behind the dim.
   useEffect(() => {
-    if (stop && stop.kind === "spot") navigate(stop.tab);
+    if (stop && stop.kind === "spot") {
+      navigate(stop.tab);
+      if (stop.discTab && setCommunityView) setCommunityView({ section: "discover", discTab: stop.discTab });
+    }
   }, [step]); // eslint-disable-line
 
   // Measure the active tab button so the spotlight hole + caret land on it.
@@ -159,6 +166,7 @@ function GuidedTour({ step, setStep, endTour, navigate, dark }) {
       if (!shell) return;
       const el = shell.querySelector(stop.sel);
       if (!el) return;
+      try { el.scrollIntoView({ block: "center", inline: "nearest" }); } catch (_) {}
       const s = shell.getBoundingClientRect(), b = el.getBoundingClientRect();
       setSpot({ x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, sw: s.width, sh: s.height });
     };
@@ -474,7 +482,7 @@ function PhoneApp() {
         )}
         <div className="bos-version">{APP_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
-        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} dark={topDark} />
+        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} dark={topDark} />
       </div>
     </div>
     </SheetCtx.Provider>

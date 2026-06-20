@@ -198,7 +198,7 @@ function YourImpactCard({ level }) {
   const next = IMPACT_TIERS.find(t => t.lvl > level);
   const myImpact = 480; // demo
   return (
-    <div style={{
+    <div data-tour="impact" style={{
       background: "linear-gradient(135deg, #1a1a1d 0%, #0a0a0a 100%)",
       color: "#fff", borderRadius: 22, padding: 18, position: "relative", overflow: "hidden",
       boxShadow: "0 6px 22px rgba(0,0,0,0.18)",
@@ -504,7 +504,7 @@ function CommunityScreen() {
             <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Рядом в твоём кругу</div>
             <div style={{ fontSize: 11, color: "var(--text-4)" }}>По вкладу</div>
           </div>
-          {network.map((p, i) => <NetworkPersonCard key={i} p={p} userLevel={userLevel} />)}
+          {network.map((p, i) => <div key={i} data-tour={i === 0 ? "contacts" : undefined}><NetworkPersonCard p={p} userLevel={userLevel} /></div>)}
         </div>
         ) : (
           <div style={{ marginTop: 2 }}>

@@ -6,7 +6,7 @@
    - Heavy, rarely-changing files (vendor libs, images, icons): CACHE-FIRST for
      speed; refreshed in the background.
    Bump CACHE on each release so the new worker re-precaches cleanly. */
-const CACHE = "balanceos-v56";
+const CACHE = "balanceos-v57";
 const PRECACHE = [
   "./", "index.html", "styles.css", "mobile.css", "app.jsx", "haptics.js", "telegram.js", "aikey.js",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js", "vendor/babel.min.js",
