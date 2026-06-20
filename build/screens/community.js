@@ -1,12 +1,11 @@
-(function(){
 /* COMMUNITY: Teams + Network + Courses + Partners — polished */
-const {
+var {
   useState: useCS
 } = React;
 
 /* Liquid-glass icon chip — glossy, dimensional, iOS-26 style. Vivid gradient
    fill + bright top specular + inner shadow + soft coloured glow underneath. */
-const COURSE_GLASS = {
+var COURSE_GLASS = {
   overload: {
     from: "#FFD60A",
     to: "#FF8A00"
@@ -65,7 +64,7 @@ function CourseGlass({
   c,
   size = 46
 }) {
-  const g = COURSE_GLASS[c.id] || {
+  var g = COURSE_GLASS[c.id] || {
     from: c.accent,
     to: c.accent
   };
@@ -90,21 +89,21 @@ function NetworkLocked({
   onUnlock,
   onSwitchToCommunity
 }) {
-  const xpPct = Math.max(0, Math.min(1, xp / xpMax));
+  var xpPct = Math.max(0, Math.min(1, xp / xpMax));
   // Pulse animation tick
-  const [t, setT] = useCS(0);
+  var [t, setT] = useCS(0);
   React.useEffect(() => {
-    let raf,
+    var raf,
       s = performance.now();
-    const tick = now => {
+    var tick = now => {
       setT((now - s) / 1000);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
-  const breath = 1 + Math.sin(t * 1.2) * 0.04;
-  const paths = [{
+  var breath = 1 + Math.sin(t * 1.2) * 0.04;
+  var paths = [{
     i: "🔥",
     t: "Держи серию",
     d: `Около ${weeks} недель ежедневных отметок — и ты на месте.`,
@@ -440,7 +439,7 @@ function NetworkLocked({
    book/redeem those offers — the offer is the unit of social capital.
    Tier table is shared between YourImpactCard and NetworkPersonCard so
    levels light up consistently. */
-const IMPACT_TIERS = [{
+var IMPACT_TIERS = [{
   lvl: 3,
   i: "🧠",
   t: "Разбор привычек",
@@ -479,9 +478,9 @@ const IMPACT_TIERS = [{
 function YourImpactCard({
   level
 }) {
-  const unlocked = IMPACT_TIERS.filter(t => t.lvl <= level);
-  const next = IMPACT_TIERS.find(t => t.lvl > level);
-  const myImpact = 480; // demo
+  var unlocked = IMPACT_TIERS.filter(t => t.lvl <= level);
+  var next = IMPACT_TIERS.find(t => t.lvl > level);
+  var myImpact = 480; // demo
   return /*#__PURE__*/React.createElement("div", {
     "data-tour": "impact",
     style: {
@@ -665,12 +664,12 @@ function YourImpactCard({
 function MessageSheet({
   name = ""
 }) {
-  const {
+  var {
     close
   } = useSheet();
-  const [txt, setTxt] = useCS("");
-  const [sent, setSent] = useCS(false);
-  const send = () => {
+  var [txt, setTxt] = useCS("");
+  var [sent, setSent] = useCS(false);
+  var send = () => {
     setSent(true);
     window.setTimeout(close, 1100);
   };
@@ -752,14 +751,14 @@ function NetworkPersonCard({
   p,
   userLevel
 }) {
-  const {
+  var {
     navigate
   } = useNav();
-  const {
+  var {
     open: openSheet
   } = useSheet();
   // sort offers by level so the easiest-to-book sits first
-  const offers = (p.offers || []).slice().sort((a, b) => a.lvl - b.lvl);
+  var offers = (p.offers || []).slice().sort((a, b) => a.lvl - b.lvl);
   return /*#__PURE__*/React.createElement("div", {
     onClick: () => navigate("contact-detail", {
       contact: p
@@ -868,7 +867,7 @@ function NetworkPersonCard({
       gap: 6
     }
   }, offers.map((o, j) => {
-    const locked = userLevel < o.lvl;
+    var locked = userLevel < o.lvl;
     return /*#__PURE__*/React.createElement("div", {
       key: j,
       style: {
@@ -1006,47 +1005,47 @@ function NetworkPersonCard({
   }, "\u0421\u0432\u044F\u0437\u0430\u0442\u044C\u0441\u044F")));
 }
 function CommunityScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp();
+  var app = useApp();
   // View-state (section / sub-tabs / network unlock) lives in the shared store so
   // it survives navigating into a detail screen and back (the screen remounts).
-  const cv = app?.communityView || {
+  var cv = app?.communityView || {
     section: "discover",
     discTab: "teams",
     commTab: "courses",
     networkUnlocked: false
   };
-  const {
+  var {
     section,
     discTab,
     commTab,
     networkUnlocked
   } = cv;
-  const setView = patch => app?.setCommunityView(patch);
-  const resolve = (v, cur) => typeof v === "function" ? v(cur) : v;
-  const setSection = v => setView({
+  var setView = patch => app?.setCommunityView(patch);
+  var resolve = (v, cur) => typeof v === "function" ? v(cur) : v;
+  var setSection = v => setView({
     section: resolve(v, section)
   });
-  const setDiscTab = v => setView({
+  var setDiscTab = v => setView({
     discTab: resolve(v, discTab)
   });
-  const setCommTab = v => setView({
+  var setCommTab = v => setView({
     commTab: resolve(v, commTab)
   });
-  const setNetworkUnlocked = v => setView({
+  var setNetworkUnlocked = v => setView({
     networkUnlocked: resolve(v, networkUnlocked)
   });
-  const [activated, setActivated] = useCS({}); // partner activations (by index)
+  var [activated, setActivated] = useCS({}); // partner activations (by index)
 
-  const userLevel = 8;
-  const xpInLevel = 1240;
-  const xpForNext = 2000;
-  const levelsLeft = 10 - userLevel;
-  const weeksToUnlock = 2;
-  const teams = app?.teams || []; // shared store — "Создать команду" adds here
-  const network = [{
+  var userLevel = 8;
+  var xpInLevel = 1240;
+  var xpForNext = 2000;
+  var levelsLeft = 10 - userLevel;
+  var weeksToUnlock = 2;
+  var teams = app?.teams || []; // shared store — "Создать команду" adds here
+  var network = [{
     name: "Александра Иванова",
     initials: "АИ",
     color: "#e8c8a8",
@@ -1125,7 +1124,7 @@ function CommunityScreen() {
       lvl: 7
     }]
   }];
-  const courses = [{
+  var courses = [{
     id: "overload",
     i: "⚡",
     accent: "#fef3c7",
@@ -1156,7 +1155,7 @@ function CommunityScreen() {
     length: "21 день",
     cohort: "1 — 21 мая"
   }];
-  const partners = [{
+  var partners = [{
     name: "Headspace",
     emblem: "🧘",
     accent: "#ffe1c8",
@@ -1731,7 +1730,7 @@ function UnderlineTabs({
       padding: "0 4px"
     }
   }, tabs.map(tab => {
-    const active = tab.id === value;
+    var active = tab.id === value;
     return /*#__PURE__*/React.createElement("button", {
       key: tab.id,
       "data-tour": tab.id === "network" ? "network" : undefined,
@@ -1775,24 +1774,24 @@ function SplitEditor({
   splitMode,
   setSplitMode
 }) {
-  const activeMembers = members.filter(m => m.on);
-  const perMember = activeMembers.length ? Math.ceil(target / activeMembers.length) : 0;
+  var activeMembers = members.filter(m => m.on);
+  var perMember = activeMembers.length ? Math.ceil(target / activeMembers.length) : 0;
 
   // Initialise custom quotas the first time mode flips to custom
   React.useEffect(() => {
     if (splitMode !== "custom") return;
     setMembers(curr => {
-      const active = curr.filter(m => m.on);
-      const base = active.length ? Math.floor(target / active.length) : 0;
-      const remainder = active.length ? target - base * active.length : 0;
-      let activeIdx = 0;
+      var active = curr.filter(m => m.on);
+      var base = active.length ? Math.floor(target / active.length) : 0;
+      var remainder = active.length ? target - base * active.length : 0;
+      var activeIdx = 0;
       return curr.map(m => {
         if (!m.on) return {
           ...m,
           quota: undefined
         };
         if (m.quota != null) return m;
-        const isFirst = activeIdx === 0;
+        var isFirst = activeIdx === 0;
         activeIdx++;
         return {
           ...m,
@@ -1802,25 +1801,25 @@ function SplitEditor({
     });
     // eslint-disable-next-line
   }, [splitMode]);
-  const setQuota = (idx, q) => {
-    const clean = Math.max(0, parseInt(String(q).replace(/\D/g, "")) || 0);
+  var setQuota = (idx, q) => {
+    var clean = Math.max(0, parseInt(String(q).replace(/\D/g, "")) || 0);
     setMembers(curr => curr.map((m, i) => i === idx ? {
       ...m,
       quota: clean
     } : m));
   };
-  const autoBalance = () => {
+  var autoBalance = () => {
     setMembers(curr => {
-      const active = curr.filter(m => m.on);
-      const base = active.length ? Math.floor(target / active.length) : 0;
-      const remainder = active.length ? target - base * active.length : 0;
-      let activeIdx = 0;
+      var active = curr.filter(m => m.on);
+      var base = active.length ? Math.floor(target / active.length) : 0;
+      var remainder = active.length ? target - base * active.length : 0;
+      var activeIdx = 0;
       return curr.map(m => {
         if (!m.on) return {
           ...m,
           quota: undefined
         };
-        const isFirst = activeIdx === 0;
+        var isFirst = activeIdx === 0;
         activeIdx++;
         return {
           ...m,
@@ -1829,8 +1828,8 @@ function SplitEditor({
       });
     });
   };
-  const customTotal = activeMembers.reduce((s, m) => s + (m.quota || 0), 0);
-  const remainder = target - customTotal;
+  var customTotal = activeMembers.reduce((s, m) => s + (m.quota || 0), 0);
+  var remainder = target - customTotal;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
@@ -1927,7 +1926,7 @@ function SplitEditor({
       background: "var(--card-2)"
     }
   }, activeMembers.map((m, i) => {
-    const flex = Math.max(0.001, m.quota || 0);
+    var flex = Math.max(0.001, m.quota || 0);
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       title: `${m.name} · ${m.quota || 0} ${unit}`,
@@ -2075,7 +2074,7 @@ function DurationPicker({
   value,
   onChange
 }) {
-  const presets = [{
+  var presets = [{
     id: "week",
     t: "1 неделя",
     days: 7
@@ -2100,36 +2099,36 @@ function DurationPicker({
     t: "1 год",
     days: 365
   }];
-  const isCustom = typeof value === "object" && value !== null;
-  const [showCustom, setShowCustom] = useCS(isCustom);
-  const today = new Date();
-  const fmt = d => d.toLocaleDateString("ru-RU", {
+  var isCustom = typeof value === "object" && value !== null;
+  var [showCustom, setShowCustom] = useCS(isCustom);
+  var today = new Date();
+  var fmt = d => d.toLocaleDateString("ru-RU", {
     month: "short",
     day: "numeric"
   });
-  const todayStr = today.toISOString().slice(0, 10);
-  const [start, setStart] = useCS(isCustom ? value.start : todayStr);
-  const [end, setEnd] = useCS(() => {
+  var todayStr = today.toISOString().slice(0, 10);
+  var [start, setStart] = useCS(isCustom ? value.start : todayStr);
+  var [end, setEnd] = useCS(() => {
     if (isCustom) return value.end;
-    const d = new Date();
+    var d = new Date();
     d.setDate(d.getDate() + 30);
     return d.toISOString().slice(0, 10);
   });
-  const previewEnd = (() => {
+  var previewEnd = (() => {
     if (showCustom) return null;
-    const p = presets.find(x => x.id === value);
+    var p = presets.find(x => x.id === value);
     if (!p) return null;
-    const d = new Date();
+    var d = new Date();
     d.setDate(d.getDate() + p.days);
     return d;
   })();
-  const days = (() => {
+  var days = (() => {
     if (!showCustom) {
-      const p = presets.find(x => x.id === value);
+      var p = presets.find(x => x.id === value);
       return p ? p.days : 0;
     }
     try {
-      const s = new Date(start),
+      var s = new Date(start),
         e = new Date(end);
       return Math.max(0, Math.round((e - s) / 86400000));
     } catch {
@@ -2147,7 +2146,7 @@ function DurationPicker({
       flexWrap: "wrap"
     }
   }, presets.map(p => {
-    const on = !showCustom && value === p.id;
+    var on = !showCustom && value === p.id;
     return /*#__PURE__*/React.createElement("button", {
       key: p.id,
       onClick: () => {
@@ -2296,34 +2295,34 @@ function DurationPicker({
   }, days, " \u0434\u043D\u0435\u0439 \u0432\u0441\u0435\u0433\u043E"))));
 }
 function TeamCreateScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp();
-  const [name, setName] = useCS("");
-  const [emblem, setEmblem] = useCS("✨");
-  const [accent, setAccent] = useCS("#fef3c7");
-  const [duration, setDuration] = useCS("month");
-  const [vis, setVis] = useCS("private");
+  var app = useApp();
+  var [name, setName] = useCS("");
+  var [emblem, setEmblem] = useCS("✨");
+  var [accent, setAccent] = useCS("#fef3c7");
+  var [duration, setDuration] = useCS("month");
+  var [vis, setVis] = useCS("private");
 
   // Goal config
-  const [goalType, setGoalType] = useCS("collective"); // collective | streak | race
-  const [goalTitle, setGoalTitle] = useCS("50 добрых дел");
-  const [target, setTarget] = useCS(50);
-  const [unit, setUnit] = useCS("дел");
-  const [splitMode, setSplitMode] = useCS("auto"); // auto | custom
-  const [linkedHabits, setLinkedHabits] = useCS({
+  var [goalType, setGoalType] = useCS("collective"); // collective | streak | race
+  var [goalTitle, setGoalTitle] = useCS("50 добрых дел");
+  var [target, setTarget] = useCS(50);
+  var [unit, setUnit] = useCS("дел");
+  var [splitMode, setSplitMode] = useCS("auto"); // auto | custom
+  var [linkedHabits, setLinkedHabits] = useCS({
     "🙏": true,
     "🧘🏼‍♀️": false,
     "📖": false,
     "🥗": false,
     "🏃🏼‍♀️": false
   });
-  const [stakes, setStakes] = useCS(true);
-  const [stakeAmount, setStakeAmount] = useCS(100);
+  var [stakes, setStakes] = useCS(true);
+  var [stakeAmount, setStakeAmount] = useCS(100);
 
   // Members for split preview
-  const allMembers = [{
+  var allMembers = [{
     name: "Павел (вы)",
     initials: "П",
     color: "#FEDE34",
@@ -2355,14 +2354,14 @@ function TeamCreateScreen() {
     color: "#d4b8e8",
     on: false
   }];
-  const [members, setMembers] = useCS(allMembers);
-  const toggleMember = i => setMembers(m => m.map((x, j) => j === i ? {
+  var [members, setMembers] = useCS(allMembers);
+  var toggleMember = i => setMembers(m => m.map((x, j) => j === i ? {
     ...x,
     on: !x.on
   } : x));
-  const activeMembers = members.filter(m => m.on);
-  const perMember = Math.max(1, Math.ceil(target / Math.max(1, activeMembers.length)));
-  const goalTypes = [{
+  var activeMembers = members.filter(m => m.on);
+  var perMember = Math.max(1, Math.ceil(target / Math.max(1, activeMembers.length)));
+  var goalTypes = [{
     id: "collective",
     e: "🌊",
     t: "Общий счёт",
@@ -2381,7 +2380,7 @@ function TeamCreateScreen() {
     d: "Бок о бок — первый до цели побеждает, остальные получают часть XP.",
     example: `напр. первый до ${target} ${unit}`
   }];
-  const HABIT_LIB = [{
+  var HABIT_LIB = [{
     e: "🙏",
     t: "Помогать"
   }, {
@@ -2397,13 +2396,13 @@ function TeamCreateScreen() {
     e: "🏃🏼‍♀️",
     t: "Бег"
   }];
-  const linkedCount = Object.values(linkedHabits).filter(Boolean).length;
-  const toggleHabit = e => setLinkedHabits(h => ({
+  var linkedCount = Object.values(linkedHabits).filter(Boolean).length;
+  var toggleHabit = e => setLinkedHabits(h => ({
     ...h,
     [e]: !h[e]
   }));
-  const accentSwatches = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
-  const emblemChoices = ["✨", "🌱", "🔥", "🌊", "🏔", "🚀", "🎯", "🧭"];
+  var accentSwatches = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
+  var emblemChoices = ["✨", "🌱", "🔥", "🌊", "🏔", "🚀", "🎯", "🧭"];
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -2523,7 +2522,7 @@ function TeamCreateScreen() {
       marginTop: 8
     }
   }, goalTypes.map(gt => {
-    const active = goalType === gt.id;
+    var active = goalType === gt.id;
     return /*#__PURE__*/React.createElement("button", {
       key: gt.id,
       onClick: () => setGoalType(gt.id),
@@ -2728,7 +2727,7 @@ function TeamCreateScreen() {
       flexWrap: "wrap"
     }
   }, HABIT_LIB.map(h => {
-    const on = linkedHabits[h.e];
+    var on = linkedHabits[h.e];
     return /*#__PURE__*/React.createElement("button", {
       key: h.e,
       onClick: () => toggleHabit(h.e),
@@ -2988,7 +2987,7 @@ function TeamCreateScreen() {
       marginTop: 28
     },
     onClick: () => {
-      const dur = {
+      var dur = {
         week: "Эта неделя",
         month: "Этот месяц",
         quarter: "3 месяца",
@@ -3013,16 +3012,16 @@ function TeamCreateScreen() {
   }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"));
 }
 function TeamDetailScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const app = useApp();
-  const {
+  var app = useApp();
+  var {
     open: openSheet
   } = useSheet();
-  const [expandedMember, setExpandedMember] = useCS(null);
-  const passed = params?.team || {
+  var [expandedMember, setExpandedMember] = useCS(null);
+  var passed = params?.team || {
     _id: "seed-1",
     name: "Команда креаторов",
     emblem: "✨",
@@ -3033,16 +3032,16 @@ function TeamDetailScreen() {
     members: []
   };
   // Read the LIVE team from the store so a just-added habit appears immediately.
-  const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
-  const accent = t.accent || "#fef3c7";
-  const members = t.members?.length ? t.members : [{
+  var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
+  var accent = t.accent || "#fef3c7";
+  var members = t.members?.length ? t.members : [{
     name: "Ник",
     initials: "Н",
     pct: 19,
     color: "#a8b9d4"
   }];
-  const ranked = [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // leaderboard
-  const DEFAULT_TEAM_HABITS = [{
+  var ranked = [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // leaderboard
+  var DEFAULT_TEAM_HABITS = [{
     id: 1,
     emoji: "🙏",
     name: "Добрые дела",
@@ -3079,11 +3078,11 @@ function TeamDetailScreen() {
     weekPct: 0.81,
     week: [1, 1, 1, 1, 0, 1, 1]
   }];
-  const teamHabits = Array.isArray(t.habits) ? t.habits : DEFAULT_TEAM_HABITS;
-  const main = teamHabits.find(h => h.isMain);
-  const others = teamHabits.filter(h => !h.isMain);
-  const aggregate = teamHabits.length ? Math.round(teamHabits.reduce((s, h) => s + (h.weekPct || 0), 0) / teamHabits.length * 100) : 0;
-  const openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheet, {
+  var teamHabits = Array.isArray(t.habits) ? t.habits : DEFAULT_TEAM_HABITS;
+  var main = teamHabits.find(h => h.isMain);
+  var others = teamHabits.filter(h => !h.isMain);
+  var aggregate = teamHabits.length ? Math.round(teamHabits.reduce((s, h) => s + (h.weekPct || 0), 0) / teamHabits.length * 100) : 0;
+  var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheet, {
     team: t,
     members: members,
     onAdd: h => app?.addTeamHabit(t._id, h)
@@ -3532,10 +3531,10 @@ function TeamDetailScreen() {
       marginTop: 8
     }
   }, ranked.map((m, i) => {
-    const isLeader = i === 0 && (m.pct || 0) > 0;
-    const expanded = expandedMember === m.name;
-    const todayDone = m.todayDone ?? 0;
-    const todayTotal = m.todayTotal ?? teamHabits.length;
+    var isLeader = i === 0 && (m.pct || 0) > 0;
+    var expanded = expandedMember === m.name;
+    var todayDone = m.todayDone ?? 0;
+    var todayTotal = m.todayTotal ?? teamHabits.length;
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -3637,7 +3636,7 @@ function TeamDetailScreen() {
         color: "var(--text-4)"
       }
     }, "\u041D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A."), teamHabits.map((h, hi) => {
-      const did = hi < todayDone;
+      var did = hi < todayDone;
       return /*#__PURE__*/React.createElement("span", {
         key: hi,
         style: {
@@ -3718,22 +3717,22 @@ function TeamDetailScreen() {
 /* Team settings — full screen opened from the gear in Team detail. Edits are
    local until "Сохранить" → updateTeam; team detail re-reads the live team by _id. */
 function TeamSettingsScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const app = useApp();
-  const team = params?.team || {};
-  const [name, setName] = useCS(team.name || "");
-  const [emblem, setEmblem] = useCS(team.emblem || "✨");
-  const [accent, setAccent] = useCS(team.accent || "#fef3c7");
-  const [goal, setGoal] = useCS(team.goal || "");
-  const [priv, setPriv] = useCS(team.vis !== "public");
-  const [notify, setNotify] = useCS(team.notify !== false);
-  const [members, setMembers] = useCS(team.members || []);
-  const emblems = ["✨", "🌱", "🔥", "🌊", "🏔", "🚀", "🎯", "🧭"];
-  const accents = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
-  const SUGGEST = [{
+  var app = useApp();
+  var team = params?.team || {};
+  var [name, setName] = useCS(team.name || "");
+  var [emblem, setEmblem] = useCS(team.emblem || "✨");
+  var [accent, setAccent] = useCS(team.accent || "#fef3c7");
+  var [goal, setGoal] = useCS(team.goal || "");
+  var [priv, setPriv] = useCS(team.vis !== "public");
+  var [notify, setNotify] = useCS(team.notify !== false);
+  var [members, setMembers] = useCS(team.members || []);
+  var emblems = ["✨", "🌱", "🔥", "🌊", "🏔", "🚀", "🎯", "🧭"];
+  var accents = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
+  var SUGGEST = [{
     name: "Аля",
     initials: "А",
     color: "#d4c8e8"
@@ -3746,12 +3745,12 @@ function TeamSettingsScreen() {
     initials: "С",
     color: "#e8b8d4"
   }];
-  const removeMember = i => setMembers(ms => ms.filter((_, j) => j !== i));
-  const invite = p => setMembers(ms => ms.some(m => m.name === p.name) ? ms : [...ms, {
+  var removeMember = i => setMembers(ms => ms.filter((_, j) => j !== i));
+  var invite = p => setMembers(ms => ms.some(m => m.name === p.name) ? ms : [...ms, {
     ...p,
     pct: 0
   }]);
-  const save = () => {
+  var save = () => {
     app?.updateTeam(team._id, {
       name: name.trim() || team.name,
       emblem,
@@ -3765,11 +3764,11 @@ function TeamSettingsScreen() {
       team
     });
   };
-  const del = () => {
+  var del = () => {
     navigate("community");
     app?.removeTeam(team._id);
   };
-  const card = {
+  var card = {
     background: "#fff",
     borderRadius: 18,
     marginTop: 8,
@@ -4041,28 +4040,28 @@ function TeamHabitSheet({
   members = [],
   onAdd
 }) {
-  const {
+  var {
     close
   } = useSheet();
-  const C = {
+  var C = {
     text: "#0a0a0a",
     sub: "rgba(0,0,0,0.5)",
     tile: "#f1f1f3",
     line: "rgba(0,0,0,0.07)"
   };
-  const EMO = ["🙏", "🧘🏼‍♀️", "📖", "🥗", "🏃🏼‍♀️", "💧", "🧊", "☀️", "💬", "✍🏼", "🎯", "🔥"];
-  const [emoji, setEmoji] = useCS("🙏");
-  const [name, setName] = useCS("");
-  const [movesGoal, setMovesGoal] = useCS(true);
-  const [isMain, setIsMain] = useCS(false);
-  const [picked, setPicked] = useCS(() => members.map((_, i) => i)); // default: everyone
-  const toggleMember = i => setPicked(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
-  const participants = members.filter((_, i) => picked.includes(i)).map(m => ({
+  var EMO = ["🙏", "🧘🏼‍♀️", "📖", "🥗", "🏃🏼‍♀️", "💧", "🧊", "☀️", "💬", "✍🏼", "🎯", "🔥"];
+  var [emoji, setEmoji] = useCS("🙏");
+  var [name, setName] = useCS("");
+  var [movesGoal, setMovesGoal] = useCS(true);
+  var [isMain, setIsMain] = useCS(false);
+  var [picked, setPicked] = useCS(() => members.map((_, i) => i)); // default: everyone
+  var toggleMember = i => setPicked(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
+  var participants = members.filter((_, i) => picked.includes(i)).map(m => ({
     name: m.name,
     initials: m.initials,
     color: m.color
   }));
-  const save = () => {
+  var save = () => {
     onAdd && onAdd({
       emoji,
       name: name.trim() || "Новая привычка",
@@ -4142,7 +4141,7 @@ function TeamHabitSheet({
       flexWrap: "wrap"
     }
   }, members.map((m, i) => {
-    const on = picked.includes(i);
+    var on = picked.includes(i);
     return /*#__PURE__*/React.createElement("button", {
       key: i,
       onClick: () => toggleMember(i),
@@ -4247,17 +4246,17 @@ function TeamHabitSheet({
 
 /* LEVELS / CREDITS — gamification (theme-aware) */
 function LevelsScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp ? useApp() : null;
-  const ach = typeof window !== "undefined" && window.ACHIEVEMENTS || [];
-  const achEarned = ach.filter(a => a.earned);
-  const lvl = 7;
-  const xp = 1240;
-  const next = 1500;
-  const credits = 1240;
-  const rewards = [{
+  var app = useApp ? useApp() : null;
+  var ach = typeof window !== "undefined" && window.ACHIEVEMENTS || [];
+  var achEarned = ach.filter(a => a.earned);
+  var lvl = 7;
+  var xp = 1240;
+  var next = 1500;
+  var credits = 1240;
+  var rewards = [{
     i: "🎁",
     t: "Коробка-сюрприз",
     c: 200,
@@ -4294,7 +4293,7 @@ function LevelsScreen() {
     lvl: 12,
     unlocked: false
   }];
-  const badges = [{
+  var badges = [{
     i: "🔥",
     t: "Серия 30 дней",
     earned: true
@@ -4631,12 +4630,12 @@ function LevelsScreen() {
 
 /* ─── COURSE DETAIL — full programme description ─── */
 function CourseDetailScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const [enrolled, setEnrolled] = useCS(false);
-  const c = params?.course || {
+  var [enrolled, setEnrolled] = useCS(false);
+  var c = params?.course || {
     id: "marathon",
     i: "🏃🏼‍♀️",
     accent: "#d6f3df",
@@ -4649,7 +4648,7 @@ function CourseDetailScreen() {
   };
 
   // Default to Marathon programme content; could be data-driven per id
-  const META = [{
+  var META = [{
     l: "Длительность",
     v: c.length || "21 день"
   }, {
@@ -4668,7 +4667,7 @@ function CourseDetailScreen() {
     l: "Результат",
     v: "1 устойчивая ежедневная привычка"
   }];
-  const PROGRAMME = {
+  var PROGRAMME = {
     overload: [{
       wk: "День 1",
       h: "Найди шум",
@@ -4709,8 +4708,8 @@ function CourseDetailScreen() {
       b: "Выполняй полную версию на полную длительность. Спланируй восстановление. Задай следующий 30-дневный цикл."
     }]
   };
-  const programme = PROGRAMME[c.id] || PROGRAMME.marathon;
-  const includes = [{
+  var programme = PROGRAMME[c.id] || PROGRAMME.marathon;
+  var includes = [{
     i: "📓",
     t: "Рабочая тетрадь",
     b: "Ежедневные вопросы + страницы недельного разбора."
@@ -4727,7 +4726,7 @@ function CourseDetailScreen() {
     t: "Бонус за финиш",
     b: "+500 XP и постоянный значок в профиле."
   }];
-  const FAQ = [{
+  var FAQ = [{
     q: "Что, если я пропущу день?",
     a: "Восстанавливайся, а не начинай заново. Твоя единственная задача на следующий день — появиться, хотя бы в мини-версии."
   }, {
@@ -5095,19 +5094,19 @@ function CourseDetailScreen() {
    flow of doing the goal together. Core team feature; especially useful for
    trainers running cohorts and for family circles. ─── */
 function TeamChatScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const app = typeof useApp === "function" ? useApp() : null;
-  const isDark = app?.themeOverride === "dark";
-  const team = params?.team || {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isDark = app?.themeOverride === "dark";
+  var team = params?.team || {
     _id: "seed-1",
     name: "Команда креаторов",
     emblem: "✨",
     members: []
   };
-  const SEED = [{
+  var SEED = [{
     who: "Светлана",
     c: "#e8c8a8",
     t: "Доброе утро, команда! ☀️ Кто уже отметил доброе дело?",
@@ -5143,41 +5142,41 @@ function TeamChatScreen() {
     t: "До цели 8 дел — добьём к вечеру 🔥",
     time: "9:10"
   }];
-  const [msgs, setMsgs] = useCS(SEED);
-  const [text, setText] = useCS("");
-  const bottomRef = React.useRef(null);
+  var [msgs, setMsgs] = useCS(SEED);
+  var [text, setText] = useCS("");
+  var bottomRef = React.useRef(null);
   React.useEffect(() => {
-    const el = bottomRef.current;
+    var el = bottomRef.current;
     if (el && el.scrollIntoView) el.scrollIntoView({
       block: "end"
     });
   }, [msgs.length]);
-  const push = m => setMsgs(list => [...list, {
+  var push = m => setMsgs(list => [...list, {
     who: "Павел",
     me: true,
     c: "#FEDE34",
     time: "сейчас",
     ...m
   }]);
-  const send = () => {
-    const v = text.trim();
+  var send = () => {
+    var v = text.trim();
     if (!v) return;
     push({
       t: v
     });
     setText("");
   };
-  const sendPhoto = () => push({
+  var sendPhoto = () => push({
     photo: {
       e: "📸",
       g: "linear-gradient(135deg,#cfe6ff,#9bbef0)"
     },
     cap: "Мой прогресс сегодня"
   });
-  const otherBubble = isDark ? "rgba(255,255,255,0.07)" : "#fff";
-  const mineBubble = isDark ? "#fff" : "#0a0a0a";
-  const mineText = isDark ? "#0a0a0a" : "#fff";
-  const Photo = ({
+  var otherBubble = isDark ? "rgba(255,255,255,0.07)" : "#fff";
+  var mineBubble = isDark ? "#fff" : "#0a0a0a";
+  var mineText = isDark ? "#0a0a0a" : "#fff";
+  var Photo = ({
     p,
     cap,
     light
@@ -5411,17 +5410,17 @@ window.ContactDetailScreen = ContactDetailScreen;
    social-impact history, reviews from people they've helped, and the
    full list of bookable offers. Light theme to match Community. */
 function ContactDetailScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const {
+  var {
     open: openSheet
   } = useSheet();
-  const [booked, setBooked] = useCS({}); // booked offers (by index)
-  const [added, setAdded] = useCS(false);
-  const userLevel = 8;
-  const p = params?.contact || {
+  var [booked, setBooked] = useCS({}); // booked offers (by index)
+  var [added, setAdded] = useCS(false);
+  var userLevel = 8;
+  var p = params?.contact || {
     name: "Александра Иванова",
     initials: "АИ",
     color: "#e8c8a8",
@@ -5447,7 +5446,7 @@ function ContactDetailScreen() {
   };
 
   // Mock impact history — services this person has delivered
-  const history = [{
+  var history = [{
     i: "🧘",
     t: "Проведено медитаций",
     n: 23,
@@ -5463,9 +5462,9 @@ function ContactDetailScreen() {
     n: 5,
     sub: "Группы по 3–5 человек"
   }];
-  const rating = 4.9;
-  const ratingsCount = 36;
-  const reviews = [{
+  var rating = 4.9;
+  var ratingsCount = 36;
+  var reviews = [{
     who: "Ник В.",
     when: "2 дн. назад",
     text: "Самые спокойные 30 минут моей недели. Её объяснение дыхания превратило привычку, которой я боялся, в ту, которую жду.",
@@ -5484,7 +5483,7 @@ function ContactDetailScreen() {
     stars: 5,
     color: "#c8e8a8"
   }];
-  const offers = (p.offers || []).slice().sort((a, b) => a.lvl - b.lvl);
+  var offers = (p.offers || []).slice().sort((a, b) => a.lvl - b.lvl);
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -5723,7 +5722,7 @@ function ContactDetailScreen() {
       gap: 8
     }
   }, offers.map((o, j) => {
-    const locked = userLevel < o.lvl;
+    var locked = userLevel < o.lvl;
     return /*#__PURE__*/React.createElement("div", {
       key: j,
       style: {
@@ -6026,4 +6025,3 @@ function ContactDetailScreen() {
     strokeWidth: 3
   }), " \u0412 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u0430\u0445") : "Добавить")));
 }
-})();

@@ -1,8 +1,7 @@
-(function(){
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 /* PROFILE / SETTINGS + sub-screens: Notifications, Support, Settings, Login/SignUp, Onboarding, AI/Insights.
    All system screens use semantic classes (.bos-sys-*) so they look right in BOTH light and dark themes. */
-const {
+var {
   useState: useP
 } = React;
 
@@ -42,7 +41,7 @@ function SysBtn({
 }
 
 /* Sheet palette + a few small sheets used across the system screens (opened via useSheet). */
-const sheetColors = d => d ? {
+var sheetColors = d => d ? {
   text: "#fff",
   sub: "rgba(255,255,255,0.55)",
   line: "rgba(255,255,255,0.1)",
@@ -92,12 +91,12 @@ function InfoSheet({
   cta = "Готово",
   dark = false
 }) {
-  const {
+  var {
     close
   } = useSheet();
-  const C = sheetColors(dark);
-  const [done, setDone] = useP(false);
-  const act = () => {
+  var C = sheetColors(dark);
+  var [done, setDone] = useP(false);
+  var act = () => {
     if (cta === "Готово") return close();
     setDone(true);
     window.setTimeout(close, 1000);
@@ -142,13 +141,13 @@ function InfoSheet({
 function EditProfileSheet({
   dark = false
 }) {
-  const {
+  var {
     close
   } = useSheet();
-  const C = sheetColors(dark);
-  const [name, setName] = useP("Павел");
-  const [saved, setSaved] = useP(false);
-  const save = () => {
+  var C = sheetColors(dark);
+  var [name, setName] = useP("Павел");
+  var [saved, setSaved] = useP(false);
+  var save = () => {
     setSaved(true);
     window.setTimeout(close, 900);
   };
@@ -219,13 +218,13 @@ function FeedbackSheet({
   title = "Написать в поддержку",
   dark = false
 }) {
-  const {
+  var {
     close
   } = useSheet();
-  const C = sheetColors(dark);
-  const [txt, setTxt] = useP("");
-  const [sent, setSent] = useP(false);
-  const send = () => {
+  var C = sheetColors(dark);
+  var [txt, setTxt] = useP("");
+  var [sent, setSent] = useP(false);
+  var send = () => {
     setSent(true);
     window.setTimeout(close, 1000);
   };
@@ -279,7 +278,7 @@ function FeedbackSheet({
   }, "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C")));
 }
 function ProfileScreen() {
-  const {
+  var {
     navigate
   } = useNav();
   return /*#__PURE__*/React.createElement("div", {
@@ -555,20 +554,20 @@ function ProfileScreen() {
   }, "\u0412\u044B\u0439\u0442\u0438"))));
 }
 function SettingsScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp();
-  const {
+  var app = useApp();
+  var {
     open: openSheet
   } = useSheet();
-  const routeDark = app?.themeOverride !== "light"; // settings is a dark route unless globally forced light
-  const [push, setPush] = useP(true);
-  const [sound, setSound] = useP(true);
-  const isDark = app?.themeOverride === "dark";
-  const setDark = on => app?.setThemeOverride(on ? "dark" : "light");
-  const wheel = app?.wheelSpheres || window.DEFAULT_SPHERES || [];
-  const setWheel = arr => app?.setWheelSpheres && app.setWheelSpheres(arr);
+  var routeDark = app?.themeOverride !== "light"; // settings is a dark route unless globally forced light
+  var [push, setPush] = useP(true);
+  var [sound, setSound] = useP(true);
+  var isDark = app?.themeOverride === "dark";
+  var setDark = on => app?.setThemeOverride(on ? "dark" : "light");
+  var wheel = app?.wheelSpheres || window.DEFAULT_SPHERES || [];
+  var setWheel = arr => app?.setWheelSpheres && app.setWheelSpheres(arr);
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -751,8 +750,8 @@ function SettingsScreen() {
       gap: 8
     }
   }, (window.ALL_SPHERES || []).map(s => {
-    const sel = wheel.includes(s.id);
-    const toggle = () => {
+    var sel = wheel.includes(s.id);
+    var toggle = () => {
       if (sel) {
         if (wheel.length > 3) setWheel(wheel.filter(x => x !== s.id));
       } else setWheel([...wheel, s.id]);
@@ -850,11 +849,11 @@ function SettingsScreen() {
   }, l)))));
 }
 function NotificationsScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const [items, setItems] = useP([{
+  var [items, setItems] = useP([{
     i: "🔥",
     t: "7 дней подряд!",
     b: "Ты в огне — продолжай завтра.",
@@ -885,7 +884,7 @@ function NotificationsScreen() {
     w: "2 д",
     go: "community"
   }]);
-  const tap = (n, idx) => {
+  var tap = (n, idx) => {
     setItems(list => list.map((x, j) => j === idx ? {
       ...x,
       new: false
@@ -991,7 +990,7 @@ function DayRing({
   sw = 3,
   glow
 }) {
-  const r = 16,
+  var r = 16,
     C = 2 * Math.PI * r;
   return /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 40 40",
@@ -1026,24 +1025,24 @@ function DayRing({
   }));
 }
 function HistoryScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp();
+  var app = useApp();
 
   // Detect theme from wrapper class so all calendar visuals stay coherent.
-  const wrapRef = React.useRef(null);
-  const [isDark, setIsDark] = useP(false);
+  var wrapRef = React.useRef(null);
+  var [isDark, setIsDark] = useP(false);
   React.useEffect(() => {
-    const el = wrapRef.current;
+    var el = wrapRef.current;
     if (!el) return;
-    let n = el.parentElement;
+    var n = el.parentElement;
     while (n && !n.classList.contains("theme-light") && !n.classList.contains("theme-dark")) n = n.parentElement;
     setIsDark(!!(n && n.classList.contains("theme-dark")));
   }, []);
 
   // Theme tokens shared across the page
-  const TH = isDark ? {
+  var TH = isDark ? {
     cellEmpty: "rgba(255,255,255,0.05)",
     cellIdle: "rgba(255,255,255,0.10)",
     ringTrack: "rgba(255,255,255,0.13)",
@@ -1080,26 +1079,26 @@ function HistoryScreen() {
     outlineToday: "rgba(0,0,0,0.35)",
     moodText: "rgba(0,0,0,0.75)"
   };
-  const MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-  const DIM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  const CUR_M = 3; // April is "this month" in the demo
-  const today = 28;
-  const year = 2026;
-  const [mIdx, setMIdx] = useP(CUR_M);
-  const monthName = MONTHS[mIdx];
-  const daysInMonth = DIM[mIdx];
-  const startWeekday = (mIdx * 3 + 3) % 7; // synthetic but stable per month
-  const isCurMonth = mIdx === CUR_M;
-  const isFuture = mIdx > CUR_M;
-  const lastLogged = isCurMonth ? today : daysInMonth; // past months fully logged; this one up to today
+  var MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+  var DIM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  var CUR_M = 3; // April is "this month" in the demo
+  var today = 28;
+  var year = 2026;
+  var [mIdx, setMIdx] = useP(CUR_M);
+  var monthName = MONTHS[mIdx];
+  var daysInMonth = DIM[mIdx];
+  var startWeekday = (mIdx * 3 + 3) % 7; // synthetic but stable per month
+  var isCurMonth = mIdx === CUR_M;
+  var isFuture = mIdx > CUR_M;
+  var lastLogged = isCurMonth ? today : daysInMonth; // past months fully logged; this one up to today
 
-  const completion = d => {
+  var completion = d => {
     if (isFuture || d > lastLogged) return null;
-    const v = (Math.sin((d + mIdx * 7) * 13.37) + 1) / 2;
+    var v = (Math.sin((d + mIdx * 7) * 13.37) + 1) / 2;
     return Math.round(v * 6) / 6;
   };
-  const [selDay, setSelDay] = useP(today);
-  const cellStyle = pct => {
+  var [selDay, setSelDay] = useP(today);
+  var cellStyle = pct => {
     if (pct == null) return {
       background: TH.cellEmpty,
       border: "1px dashed " + TH.cellBorder,
@@ -1110,7 +1109,7 @@ function HistoryScreen() {
       color: TH.cellMuted
     };
     if (pct < 1) {
-      const h = Math.round(pct * 100);
+      var h = Math.round(pct * 100);
       // Fill rises from the bottom (amber → yellow) with a crisp level line on
       // top — reads instantly as "how full the day is", no diagonal.
       return {
@@ -1123,21 +1122,21 @@ function HistoryScreen() {
       color: "#0a0a0a"
     };
   };
-  const blanks = Array.from({
+  var blanks = Array.from({
     length: startWeekday
   }, (_, i) => ({
     blank: true,
     key: "b" + i
   }));
-  const days = Array.from({
+  var days = Array.from({
     length: daysInMonth
   }, (_, i) => ({
     d: i + 1,
     key: "d" + (i + 1)
   }));
-  const cells = [...blanks, ...days];
-  const weekday = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  const dayHabits = [{
+  var cells = [...blanks, ...days];
+  var weekday = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  var dayHabits = [{
     e: "🙏",
     n: "Помогать другим",
     on: true
@@ -1162,10 +1161,10 @@ function HistoryScreen() {
     n: "Бокс",
     on: true
   }];
-  const selPct = completion(selDay);
-  const totalDone = days.reduce((s, d) => s + (completion(d.d) || 0) * dayHabits.length, 0);
-  const perfectDays = days.filter(d => completion(d.d) === 1).length;
-  const bestStreak = 21;
+  var selPct = completion(selDay);
+  var totalDone = days.reduce((s, d) => s + (completion(d.d) || 0) * dayHabits.length, 0);
+  var perfectDays = days.filter(d => completion(d.d) === 1).length;
+  var bestStreak = 21;
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
     className: "page-in",
@@ -1310,10 +1309,10 @@ function HistoryScreen() {
         aspectRatio: "1/1"
       }
     });
-    const pct = completion(c.d);
-    const future = pct == null;
-    const isSelected = selDay === c.d;
-    const isToday = isCurMonth && c.d === today;
+    var pct = completion(c.d);
+    var future = pct == null;
+    var isSelected = selDay === c.d;
+    var isToday = isCurMonth && c.d === today;
     return /*#__PURE__*/React.createElement("button", {
       key: c.key,
       onClick: () => setSelDay(c.d),
@@ -1477,7 +1476,7 @@ function HistoryScreen() {
       letterSpacing: "-0.4px"
     }
   }, Math.round(selPct * 100), "%")), app?.dayMoods?.[selDay] != null && (() => {
-    const dm = MOOD_OPTIONS[app.dayMoods[selDay]];
+    var dm = MOOD_OPTIONS[app.dayMoods[selDay]];
     return /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
@@ -1554,7 +1553,7 @@ function HistoryScreen() {
       lineHeight: 1.45
     }
   }, app.dayNotes[selDay].note)), dayHabits.map((h, i) => {
-    const done = i < Math.round(selPct * dayHabits.length);
+    var done = i < Math.round(selPct * dayHabits.length);
     return /*#__PURE__*/React.createElement("div", {
       key: i
     }, /*#__PURE__*/React.createElement("div", {
@@ -1601,17 +1600,17 @@ function HistoryScreen() {
   }))));
 }
 function SupportScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp();
-  const {
+  var app = useApp();
+  var {
     open: openSheet
   } = useSheet();
-  const routeDark = app?.themeOverride !== "light";
-  const [q, setQ] = useP("");
-  const [openFaq, setOpenFaq] = useP(null);
-  const FAQ = [{
+  var routeDark = app?.themeOverride !== "light";
+  var [q, setQ] = useP("");
+  var [openFaq, setOpenFaq] = useP(null);
+  var FAQ = [{
     q: "Как работают серии",
     a: "Серия растёт на 1 за каждый день, когда выполнена хотя бы одна привычка. Пропустишь день — серия обнуляется, но история сохраняется."
   }, {
@@ -1767,21 +1766,21 @@ function SupportScreen() {
   }, "\u041E\u0442\u0432\u0435\u0442 \u0432 \u0441\u0440\u0435\u0434\u043D\u0435\u043C 5 \u043C\u0438\u043D"))));
 }
 function AIScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp();
-  const t = useAIT();
-  const [ask, setAsk] = useP("");
+  var app = useApp();
+  var t = useAIT();
+  var [ask, setAsk] = useP("");
   // Interactivity: which insight/pattern is expanded, which insights were accepted,
   // and whether the hero's "why" reasoning panel is open. Makes the screen feel live.
-  const [openInsight, setOpenInsight] = useP(null);
-  const [accepted, setAccepted] = useP({});
-  const [openPattern, setOpenPattern] = useP(null);
-  const [showWhy, setShowWhy] = useP(false);
-  const [health, setHealth] = useP(false); // Apple Health mock-connect (fresh user)
+  var [openInsight, setOpenInsight] = useP(null);
+  var [accepted, setAccepted] = useP({});
+  var [openPattern, setOpenPattern] = useP(null);
+  var [showWhy, setShowWhy] = useP(false);
+  var [health, setHealth] = useP(false); // Apple Health mock-connect (fresh user)
   // Same orb DNA as intro — pulled into the AI hub
-  const orbTint = ["#cfe1ff", "#7aa4d0", "#1a2c48"];
+  var orbTint = ["#cfe1ff", "#7aa4d0", "#1a2c48"];
 
   // ── New user: near-empty AI — calm intro + connect Apple Health, no fake data ──
   if (app?.mode === "fresh") {
@@ -2023,7 +2022,7 @@ function AIScreen() {
       }
     }, "\u0418\u043D\u0441\u0430\u0439\u0442\u044B \u0438 \u0437\u0430\u043A\u043E\u043D\u043E\u043C\u0435\u0440\u043D\u043E\u0441\u0442\u0438 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C, \u043A\u043E\u0433\u0434\u0430 \u043D\u0430\u0431\u0435\u0440\u0451\u0442\u0441\u044F \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u0434\u0430\u043D\u043D\u044B\u0445."));
   }
-  const insights = [{
+  var insights = [{
     i: "🌅",
     t: "Перенеси «Чтение» на вечер",
     b: "Твоя вероятность выполнения в 21:00 в 2,1× выше, чем в 7:00.",
@@ -2051,7 +2050,7 @@ function AIScreen() {
     action: "Поставить на завтра",
     doneText: "Добавлено на завтра"
   }];
-  const patterns = [{
+  var patterns = [{
     t: "Спокойные дни = глубокое чтение",
     b: "В состоянии «Спокойствие» ты читаешь в 2,3× больше страниц.",
     c: "#cfe1ff",
@@ -2069,9 +2068,9 @@ function AIScreen() {
   }];
 
   // Tiny 7-day completion sparkline
-  const week = [0.4, 0.65, 0.55, 0.8, 0.72, 0.9, 0.78];
-  const days = ["П", "В", "С", "Ч", "П", "С", "В"];
-  const quickPrompts = ["Спланируй мою идеальную среду", "Почему я пропустил пробежки на этой неделе?", "Предложи план сна на 2 недели", "Какой мой следующий рубеж?"];
+  var week = [0.4, 0.65, 0.55, 0.8, 0.72, 0.9, 0.78];
+  var days = ["П", "В", "С", "Ч", "П", "С", "В"];
+  var quickPrompts = ["Спланируй мою идеальную среду", "Почему я пропустил пробежки на этой неделе?", "Предложи план сна на 2 недели", "Какой мой следующий рубеж?"];
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -2352,13 +2351,13 @@ function AIScreen() {
     stopColor: "#7aa4d0",
     stopOpacity: "0"
   }))), (() => {
-    const W = 320,
+    var W = 320,
       H = 60,
       pad = 18;
-    const xs = week.map((_, i) => pad + i * (W - pad * 2) / (week.length - 1));
-    const ys = week.map(v => H - v * (H - 8) - 4);
-    const path = xs.map((x, i) => (i ? "L" : "M") + x.toFixed(1) + " " + ys[i].toFixed(1)).join(" ");
-    const fill = `M ${xs[0]} ${H} L ` + xs.map((x, i) => x.toFixed(1) + " " + ys[i].toFixed(1)).join(" L ") + ` L ${xs[xs.length - 1]} ${H} Z`;
+    var xs = week.map((_, i) => pad + i * (W - pad * 2) / (week.length - 1));
+    var ys = week.map(v => H - v * (H - 8) - 4);
+    var path = xs.map((x, i) => (i ? "L" : "M") + x.toFixed(1) + " " + ys[i].toFixed(1)).join(" ");
+    var fill = `M ${xs[0]} ${H} L ` + xs.map((x, i) => x.toFixed(1) + " " + ys[i].toFixed(1)).join(" L ") + ` L ${xs[xs.length - 1]} ${H} Z`;
     return /*#__PURE__*/React.createElement("g", null, /*#__PURE__*/React.createElement("path", {
       d: fill,
       fill: "url(#sparkFill)"
@@ -2398,8 +2397,8 @@ function AIScreen() {
       marginTop: 8
     }
   }, insights.map((p, i) => {
-    const isOpen = openInsight === i;
-    const isDone = !!accepted[i];
+    var isOpen = openInsight === i;
+    var isDone = !!accepted[i];
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
@@ -2571,7 +2570,7 @@ function AIScreen() {
       marginTop: 8
     }
   }, patterns.map((p, i) => {
-    const isOpen = openPattern === i;
+    var isOpen = openPattern === i;
     return /*#__PURE__*/React.createElement("button", {
       key: i,
       onClick: () => setOpenPattern(isOpen ? null : i),
@@ -2709,11 +2708,11 @@ function AIScreen() {
 
 // Local time hook for the orb animation on the AI screen
 function useAIT() {
-  const [t, setT] = React.useState(0);
+  var [t, setT] = React.useState(0);
   React.useEffect(() => {
-    let raf,
+    var raf,
       s = performance.now();
-    const tick = now => {
+    var tick = now => {
       setT((now - s) / 1000);
       raf = requestAnimationFrame(tick);
     };
@@ -2725,11 +2724,11 @@ function useAIT() {
 
 /* Onboarding intro flow (5 dark slides) + sign up */
 function OnboardingScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const [step, setStep] = useP(0);
-  const slides = [{
+  var [step, setStep] = useP(0);
+  var slides = [{
     t: "Цельные люди — в своём ядре",
     s: "Начни с внутреннего состояния — каждая привычка следует из него."
   }, {
@@ -2914,20 +2913,20 @@ function OnboardingScreen() {
   }, "\u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C"));
 }
 function SignUpScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const [name, setName] = useP("");
-  const [email, setEmail] = useP("");
-  const [pwd, setPwd] = useP("");
-  const wrapRef = React.useRef(null);
-  const [dark, setDark] = useP(true);
+  var [name, setName] = useP("");
+  var [email, setEmail] = useP("");
+  var [pwd, setPwd] = useP("");
+  var wrapRef = React.useRef(null);
+  var [dark, setDark] = useP(true);
   React.useEffect(() => {
-    let n = wrapRef.current;
+    var n = wrapRef.current;
     while (n && !(n.classList && (n.classList.contains("theme-light") || n.classList.contains("theme-dark")))) n = n.parentElement;
     if (n && n.classList.contains("theme-light")) setDark(false);
   }, []);
-  const pal = dark ? {
+  var pal = dark ? {
     bg: "#0a0a0e",
     text: "#fff",
     sub: "#9f9fa9",
@@ -2960,7 +2959,7 @@ function SignUpScreen() {
     socialText: "#15233c",
     glow: "0 10px 40px rgba(120,150,200,0.25)"
   };
-  const inp = {
+  var inp = {
     background: pal.inputBg,
     border: pal.inputBorder,
     borderRadius: 14,
@@ -2969,13 +2968,13 @@ function SignUpScreen() {
     fontSize: 15,
     outline: 0
   };
-  const app = useApp ? useApp() : null;
-  const goDemo = () => {
+  var app = useApp ? useApp() : null;
+  var goDemo = () => {
     app?.enterDemo?.();
     app?.startTour?.();
     navigate("home");
   };
-  const goFresh = () => {
+  var goFresh = () => {
     app?.enterFresh?.(name);
     app?.startTour?.("fresh");
     navigate("home");
@@ -3239,11 +3238,11 @@ function SignUpScreen() {
   }), " Apple"))));
 }
 function IconPickerScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const list = ["☀️", "🤸🏼‍♀️", "📖", "🙏", "🧭", "⌨️", "🦶", "🚭", "🌚", "👟", "🧁", "📞", "🥊", "🧘🏼‍♀️", "🏃🏼‍♀️", "📚", "✍🏼", "🥗", "💧", "🧊", "🔥", "🎯", "🎨", "🎵", "🌱", "☕"];
+  var list = ["☀️", "🤸🏼‍♀️", "📖", "🙏", "🧭", "⌨️", "🦶", "🚭", "🌚", "👟", "🧁", "📞", "🥊", "🧘🏼‍♀️", "🏃🏼‍♀️", "📚", "✍🏼", "🥗", "💧", "🧊", "🔥", "🎯", "🎨", "🎵", "🌱", "☕"];
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -3278,7 +3277,7 @@ function IconPickerScreen() {
 
 /* ─── ACHIEVEMENTS — ачивки как ключи: курс / уровень / доброе дело → значок →
    открывает новый круг контактов. Витрина «ощущения» экосистемы. ─── */
-const ACHIEVEMENTS = [{
+var ACHIEVEMENTS = [{
   i: "⚡",
   t: "Перегрузка пройдена",
   d: "Курс «Перегрузка» · 3 дня",
@@ -3344,14 +3343,14 @@ const ACHIEVEMENTS = [{
   accent: "#a8e8e0"
 }];
 function AchievementsScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const back = params?.from || "profile";
-  const earned = ACHIEVEMENTS.filter(a => a.earned);
-  const locked = ACHIEVEMENTS.filter(a => !a.earned);
-  const circles = earned.filter(a => !a.opens.startsWith("+")).length;
+  var back = params?.from || "profile";
+  var earned = ACHIEVEMENTS.filter(a => a.earned);
+  var locked = ACHIEVEMENTS.filter(a => !a.earned);
+  var circles = earned.filter(a => !a.opens.startsWith("+")).length;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -3567,12 +3566,12 @@ function AchievementsScreen() {
 // Manifesto — the full philosophical text behind the onboarding, for those who
 // want to read it whole. Reached from Settings → «О приложении».
 function ManifestScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const Orb = window.StateOrb;
-  const stanzas = [["Ты — точка.", "Точка внимания внутри бесконечного количества возможных вариантов жизни."], ["Ты не видишь мир таким, какой он есть.", "Ты видишь его таким, в каком состоянии находишься."], [null, "Большинство людей не выбирают своё состояние. Они позволяют новостям, обстоятельствам, страхам и чужому мнению выбирать его за них."], [null, "Тебе кажется, что твоей жизнью управляют обстоятельства. Но обстоятельства не определяют твои решения — их определяет твоё состояние."], [null, "В одном состоянии всё кажется невозможным. В другом — ты видишь решения, которые были рядом всё это время."], ["Это пространство — для одного.", "Научиться управлять своим состоянием. Расширять восприятие. Видеть больше возможностей. И осознанно выбирать направление движения."], [null, "Твоя жизнь не определяется тем, что происходит вокруг. Она определяется тем, из какого состояния ты встречаешь происходящее."], ["Путешествие начинается внутри.", "Это пространство учит главному: управлять не обстоятельствами, а собой."]];
+  var Orb = window.StateOrb;
+  var stanzas = [["Ты — точка.", "Точка внимания внутри бесконечного количества возможных вариантов жизни."], ["Ты не видишь мир таким, какой он есть.", "Ты видишь его таким, в каком состоянии находишься."], [null, "Большинство людей не выбирают своё состояние. Они позволяют новостям, обстоятельствам, страхам и чужому мнению выбирать его за них."], [null, "Тебе кажется, что твоей жизнью управляют обстоятельства. Но обстоятельства не определяют твои решения — их определяет твоё состояние."], [null, "В одном состоянии всё кажется невозможным. В другом — ты видишь решения, которые были рядом всё это время."], ["Это пространство — для одного.", "Научиться управлять своим состоянием. Расширять восприятие. Видеть больше возможностей. И осознанно выбирать направление движения."], [null, "Твоя жизнь не определяется тем, что происходит вокруг. Она определяется тем, из какого состояния ты встречаешь происходящее."], ["Путешествие начинается внутри.", "Это пространство учит главному: управлять не обстоятельствами, а собой."]];
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -3630,4 +3629,3 @@ Object.assign(window, {
   ACHIEVEMENTS,
   ManifestScreen
 });
-})();

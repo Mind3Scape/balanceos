@@ -1,4 +1,3 @@
-(function(){
 /* ──────────────────────────────────────────────────────────────────────────
    BalanceOS — single full-screen phone (iPhone PWA build)
 
@@ -8,7 +7,7 @@
    iOS-style push / pop / fade transitions. All screen + component code is
    reused verbatim from the design bundle.
    ────────────────────────────────────────────────────────────────────────── */
-const {
+var {
   useState,
   useRef,
   useEffect,
@@ -21,20 +20,20 @@ const {
 // Onboarding/intro/signup now FOLLOW the app theme (light by default, dark when
 // the user forces dark) — each already ships both palettes. Only the cinematic
 // in-app immersive screens stay always-dark.
-const DARK_ROUTES = new Set(["mood", "focus", "level-up", "ai-chat"]);
-const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
-const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
+var DARK_ROUTES = new Set(["mood", "focus", "level-up", "ai-chat"]);
+var TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
+var FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 
 // Root (html/body) background per screen — matches each screen's own base
 // colour so the home-indicator safe area is never a mismatched dark bar
 // (belt-and-suspenders alongside the full-height, no-fixed layout).
-const ROOT_BG = {
+var ROOT_BG = {
   mood: "#050505",
   focus: "#05060a",
   "level-up": "#0a0a0a",
   "ai-chat": "#0a0a0a"
 };
-const SCREENS = {
+var SCREENS = {
   home: () => HomeScreen,
   habits: () => HabitsScreen,
   "habit-settings": () => HabitSettingsScreen,
@@ -72,7 +71,7 @@ const SCREENS = {
 
 /* Design tokens (from the canvas "Tweaks" defaults). Applied once so screens
    read the intended accent / radius / sphere-glow / check colour. */
-const TWEAK_DEFAULTS = {
+var TWEAK_DEFAULTS = {
   accent: "#FEDE34",
   palette: ["#FEDE34", "#0a0a0a", "#f1f1f1"],
   canvas: "#ffffff",
@@ -83,18 +82,18 @@ const TWEAK_DEFAULTS = {
   sphereGlow: 100,
   checkColor: "#232323"
 };
-const FONT_STACKS = {
+var FONT_STACKS = {
   serif: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
   sans: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif",
   mono: "'SF Mono', Menlo, monospace"
 };
-const DENSITY_PAD = {
+var DENSITY_PAD = {
   compact: "10px 14px",
   regular: "14px 16px",
   comfy: "18px 20px"
 };
 function applyTweaks(t) {
-  const r = document.documentElement;
+  var r = document.documentElement;
   r.style.setProperty("--accent", t.accent);
   r.style.setProperty("--bg", t.palette[2]);
   r.style.setProperty("--ink", t.palette[1]);
@@ -105,21 +104,21 @@ function applyTweaks(t) {
   r.style.setProperty("--bos-avatars", t.showAvatars ? "inline-flex" : "none");
   r.style.setProperty("--check-color", t.checkColor || t.accent);
 }
-const START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a friend" opener
+var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a friend" opener
 
 // True when launched from the iOS home screen (installed PWA). There we let the
 // REAL system status bar show; in a browser tab we draw our own so the mockup
 // still looks complete.
-const IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
+var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v79";
+var APP_VERSION = "v80";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
 
 /* Animation class names per navigation direction. */
-const ANIM = {
+var ANIM = {
   push: {
     out: "anim-push-out",
     in: "anim-push-in"
@@ -138,7 +137,7 @@ const ANIM = {
    Hybrid form: a welcome card framing the ecosystem, then a moving spotlight that
    lights each REAL tab in turn (the tour drives the tab bar), then a closing card.
    Skippable at every step. Mounted in the phone shell so it survives tab fades. */
-const TOUR_STOPS = [{
+var TOUR_STOPS = [{
   kind: "card",
   emoji: "✨",
   title: "Это не просто трекер привычек",
@@ -314,7 +313,7 @@ const TOUR_STOPS = [{
    through 15 screens. Just a few warm cards on the essentials; the deep dive
    (teams, network, courses, levels) lives behind the "Что дальше?" banner on the
    home screen, opened only when they're curious (→ EXPLORE_STOPS). */
-const FRESH_STOPS = [{
+var FRESH_STOPS = [{
   kind: "card",
   emoji: "🌱",
   title: "Это твой старт",
@@ -339,7 +338,7 @@ const FRESH_STOPS = [{
 /* Opt-in deep dive — opened from the "Что дальше?" banner on the home screen.
    Shows the broader ecosystem (teams, chat, network, courses, levels, AI),
    framed as "here's what opens up as you grow." */
-const EXPLORE_STOPS = [{
+var EXPLORE_STOPS = [{
   kind: "card",
   emoji: "🧭",
   title: "Что тебя ждёт дальше",
@@ -441,12 +440,12 @@ function GuidedTour({
   tourMode,
   dark
 }) {
-  const STOPS = tourMode === "fresh" ? FRESH_STOPS : tourMode === "explore" ? EXPLORE_STOPS : TOUR_STOPS;
-  const rootRef = useRef(null);
-  const [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
-  const prevCtxRef = useRef(null); // last stop's tab|view — detect page switches
-  const stop = step >= 0 && step < STOPS.length ? STOPS[step] : null;
-  const ctxKey = stop ? stop.tab + "|" + (stop.view ? stop.view.discTab || stop.view.commTab || stop.view.section || "" : "") : "";
+  var STOPS = tourMode === "fresh" ? FRESH_STOPS : tourMode === "explore" ? EXPLORE_STOPS : TOUR_STOPS;
+  var rootRef = useRef(null);
+  var [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
+  var prevCtxRef = useRef(null); // last stop's tab|view — detect page switches
+  var stop = step >= 0 && step < STOPS.length ? STOPS[step] : null;
+  var ctxKey = stop ? stop.tab + "|" + (stop.view ? stop.view.discTab || stop.view.commTab || stop.view.section || "" : "") : "";
 
   // Drive the tab bar so each "tab" stop shows the real section behind the dim.
   useEffect(() => {
@@ -468,20 +467,20 @@ function GuidedTour({
       setSpot(null);
       return undefined;
     }
-    const sameCtx = prevCtxRef.current === ctxKey;
+    var sameCtx = prevCtxRef.current === ctxKey;
     prevCtxRef.current = ctxKey;
     if (!sameCtx) setSpot(null); // drop the stale highlight during the page switch
 
-    let raf,
+    var raf,
       cancelled = false,
       frames = 0,
       stable = 0,
       lastKey = "";
-    const tick = () => {
+    var tick = () => {
       if (cancelled) return;
       frames++;
-      const shell = rootRef.current && rootRef.current.parentElement;
-      const el = shell && shell.querySelector(stop.sel);
+      var shell = rootRef.current && rootRef.current.parentElement;
+      var el = shell && shell.querySelector(stop.sel);
       if (el) {
         try {
           el.scrollIntoView({
@@ -489,9 +488,9 @@ function GuidedTour({
             inline: "nearest"
           });
         } catch (_) {}
-        const s = shell.getBoundingClientRect(),
+        var s = shell.getBoundingClientRect(),
           b = el.getBoundingClientRect();
-        const m = {
+        var m = {
           x: b.left - s.left,
           y: b.top - s.top,
           w: b.width,
@@ -499,7 +498,7 @@ function GuidedTour({
           sw: s.width,
           sh: s.height
         };
-        const key = [m.x, m.y, m.w, m.h].map(n => Math.round(n)).join(",");
+        var key = [m.x, m.y, m.w, m.h].map(n => Math.round(n)).join(",");
         if (key === lastKey) stable++;else {
           stable = 0;
           lastKey = key;
@@ -523,18 +522,18 @@ function GuidedTour({
   }, [step]); // eslint-disable-line
 
   if (!stop) return null;
-  const last = step >= STOPS.length - 1;
-  const next = () => {
+  var last = step >= STOPS.length - 1;
+  var next = () => {
     if (last) {
       endTour();
       navigate("home");
     } else setStep(step + 1);
   };
-  const skip = () => {
+  var skip = () => {
     endTour();
     navigate("home");
   };
-  const dots = /*#__PURE__*/React.createElement("div", {
+  var dots = /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 5,
@@ -551,11 +550,11 @@ function GuidedTour({
       transition: "width 0.3s, background 0.3s"
     }
   })));
-  const cardBg = dark ? "rgba(26,26,30,0.97)" : "rgba(255,255,255,0.98)";
-  const titleC = dark ? "#fff" : "#0a0a0a";
-  const bodyC = dark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.55)";
-  const ghostC = dark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)";
-  const tourStyle = /*#__PURE__*/React.createElement("style", null, `
+  var cardBg = dark ? "rgba(26,26,30,0.97)" : "rgba(255,255,255,0.98)";
+  var titleC = dark ? "#fff" : "#0a0a0a";
+  var bodyC = dark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.55)";
+  var ghostC = dark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)";
+  var tourStyle = /*#__PURE__*/React.createElement("style", null, `
       @keyframes bosTourPop { from { opacity: 0; transform: scale(0.93) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
       @keyframes bosTourRing { 0% { transform: scale(0.75); opacity: 0.9; } 100% { transform: scale(1.55); opacity: 0; } }
       @keyframes bosTourCut { from { opacity: 0; } to { opacity: 1; } }
@@ -729,18 +728,18 @@ function GuidedTour({
   }
 
   // ── Element spotlight (cutout + tooltip) ──
-  const pad = 6;
-  const cutout = spot ? {
+  var pad = 6;
+  var cutout = spot ? {
     left: spot.x - pad,
     top: spot.y - pad,
     width: spot.w + pad * 2,
     height: spot.h + pad * 2
   } : null;
-  const tcx = spot ? spot.x + spot.w / 2 : 200; // target centre x
-  const below = spot ? spot.y + spot.h / 2 < spot.sh * 0.5 : false; // card below a top-half target, else above
-  const cardTop = spot && below ? spot.y + spot.h + pad + 14 : undefined;
-  const cardBottom = spot && !below ? spot.sh - spot.y + pad + 14 : spot ? undefined : 110;
-  const caretLeft = spot ? Math.max(16, Math.min(tcx - 21, spot.sw - 28 - 22)) : 180;
+  var tcx = spot ? spot.x + spot.w / 2 : 200; // target centre x
+  var below = spot ? spot.y + spot.h / 2 < spot.sh * 0.5 : false; // card below a top-half target, else above
+  var cardTop = spot && below ? spot.y + spot.h + pad + 14 : undefined;
+  var cardBottom = spot && !below ? spot.sh - spot.y + pad + 14 : spot ? undefined : 110;
+  var caretLeft = spot ? Math.max(16, Math.min(tcx - 21, spot.sw - 28 - 22)) : 180;
   return /*#__PURE__*/React.createElement("div", {
     ref: rootRef,
     style: {
@@ -866,58 +865,58 @@ function GuidedTour({
   })), tourStyle);
 }
 function PhoneApp() {
-  const app = useApp();
+  var app = useApp();
   // Optional deep link: ?screen=home opens straight to a screen (skips intro).
   // Used by the promo composite and for sharing a direct link to a view.
-  const startRoute = (() => {
+  var startRoute = (() => {
     try {
-      const s = new URLSearchParams(window.location.search).get("screen");
+      var s = new URLSearchParams(window.location.search).get("screen");
       return s && SCREENS[s] ? s : START_ROUTE;
     } catch (e) {
       return START_ROUTE;
     }
   })();
-  const [frames, setFrames] = useState([{
+  var [frames, setFrames] = useState([{
     route: startRoute,
     params: {},
     id: 0
   }]);
-  const [anim, setAnim] = useState(null); // { dir, prevFrame }
-  const idRef = useRef(1);
+  var [anim, setAnim] = useState(null); // { dir, prevFrame }
+  var idRef = useRef(1);
 
   // Interactive edge-swipe-back: drag from the left edge to pop, finger-tracked.
-  const [drag, setDrag] = useState(null); // { dx, w, releasing } during/just-after a drag
-  const dragRef = useRef(null);
-  const stackRef = useRef(null);
-  const EDGE_ZONE = 32; // px from the left edge that arms the gesture (roomier = easier to start)
-  const DRAG_THRESH = 7; // px of travel before we lock to a horizontal drag
+  var [drag, setDrag] = useState(null); // { dx, w, releasing } during/just-after a drag
+  var dragRef = useRef(null);
+  var stackRef = useRef(null);
+  var EDGE_ZONE = 32; // px from the left edge that arms the gesture (roomier = easier to start)
+  var DRAG_THRESH = 7; // px of travel before we lock to a horizontal drag
 
   // App-wide bottom sheet (share, etc.), opened from any screen via useSheet().
-  const [sheet, setSheet] = useState(null);
-  const sheetApi = React.useMemo(() => ({
+  var [sheet, setSheet] = useState(null);
+  var sheetApi = React.useMemo(() => ({
     open: node => setSheet(node),
     close: () => setSheet(null)
   }), []);
   useEffect(() => {
     applyTweaks(TWEAK_DEFAULTS);
     // Reveal the app and fade the launch splash once mounted.
-    const id = requestAnimationFrame(() => document.body.classList.add("app-ready"));
+    var id = requestAnimationFrame(() => document.body.classList.add("app-ready"));
     return () => cancelAnimationFrame(id);
   }, []);
-  const navigate = useCallback((next, np = {}, opts = {}) => {
+  var navigate = useCallback((next, np = {}, opts = {}) => {
     setFrames(prev => {
-      const idx = prev.findIndex(f => f.route === next);
+      var idx = prev.findIndex(f => f.route === next);
       // Re-navigating to the current screen → just refresh its params, no transition.
       if (idx === prev.length - 1) {
-        const copy = prev.slice();
+        var copy = prev.slice();
         copy[idx] = {
           ...copy[idx],
           params: np || {}
         };
         return copy;
       }
-      const cur = prev[prev.length - 1];
-      let dir, nextFrames;
+      var cur = prev[prev.length - 1];
+      var dir, nextFrames;
       if (idx >= 0) {
         dir = "pop";
         nextFrames = prev.slice(0, idx + 1);
@@ -949,7 +948,7 @@ function PhoneApp() {
   }, []);
 
   // Pop one screen off the stack — used by Telegram's native Back button.
-  const goBack = useCallback(() => {
+  var goBack = useCallback(() => {
     setFrames(prev => {
       if (prev.length <= 1) return prev;
       setAnim({
@@ -959,16 +958,16 @@ function PhoneApp() {
       return prev.slice(0, -1);
     });
   }, []);
-  const top = frames[frames.length - 1];
-  const themeFor = route => app.themeOverride === "dark" ? true : app.themeOverride === "light" ? false : DARK_ROUTES.has(route);
-  const topDark = themeFor(top.route);
-  const topInTabs = TAB_ROUTES.has(top.route);
+  var top = frames[frames.length - 1];
+  var themeFor = route => app.themeOverride === "dark" ? true : app.themeOverride === "light" ? false : DARK_ROUTES.has(route);
+  var topDark = themeFor(top.route);
+  var topInTabs = TAB_ROUTES.has(top.route);
 
   // Keep the iOS status-bar tint + the root background in sync with the screen,
   // so the home-indicator safe area never shows a stray black bar.
   useEffect(() => {
-    const bg = ROOT_BG[top.route] || (topDark ? "#0a0a0a" : "#f1f1f1");
-    const m = document.querySelector('meta[name="theme-color"]');
+    var bg = ROOT_BG[top.route] || (topDark ? "#0a0a0a" : "#f1f1f1");
+    var m = document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute("content", bg);
     document.documentElement.style.background = bg;
     document.body.style.background = bg;
@@ -987,15 +986,15 @@ function PhoneApp() {
   // page stack and block the edge-swipe gesture (which needs a settled state).
   useEffect(() => {
     if (!anim) return undefined;
-    const t = window.setTimeout(() => setAnim(null), 520);
+    var t = window.setTimeout(() => setAnim(null), 520);
     return () => window.clearTimeout(t);
   }, [anim]);
-  const renderLayer = (frame, animClass, onEnd) => {
-    const dark = themeFor(frame.route);
-    const inTabs = TAB_ROUTES.has(frame.route);
-    const full = FULLBLEED_ROUTES.has(frame.route);
-    const Comp = SCREENS[frame.route] && SCREENS[frame.route]() || HomeScreen;
-    const cls = "bos-page " + (dark ? "theme-dark" : "theme-light") + (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "") + (animClass ? " " + animClass : "");
+  var renderLayer = (frame, animClass, onEnd) => {
+    var dark = themeFor(frame.route);
+    var inTabs = TAB_ROUTES.has(frame.route);
+    var full = FULLBLEED_ROUTES.has(frame.route);
+    var Comp = SCREENS[frame.route] && SCREENS[frame.route]() || HomeScreen;
+    var cls = "bos-page " + (dark ? "theme-dark" : "theme-light") + (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "") + (animClass ? " " + animClass : "");
     return /*#__PURE__*/React.createElement("div", {
       key: frame.id,
       className: cls,
@@ -1008,12 +1007,12 @@ function PhoneApp() {
       }
     }, /*#__PURE__*/React.createElement(Comp, null)));
   };
-  const renderDragLayer = (frame, style, dimStyle) => {
-    const dark = themeFor(frame.route);
-    const inTabs = TAB_ROUTES.has(frame.route);
-    const full = FULLBLEED_ROUTES.has(frame.route);
-    const Comp = SCREENS[frame.route] && SCREENS[frame.route]() || HomeScreen;
-    const cls = "bos-page " + (dark ? "theme-dark" : "theme-light") + (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "");
+  var renderDragLayer = (frame, style, dimStyle) => {
+    var dark = themeFor(frame.route);
+    var inTabs = TAB_ROUTES.has(frame.route);
+    var full = FULLBLEED_ROUTES.has(frame.route);
+    var Comp = SCREENS[frame.route] && SCREENS[frame.route]() || HomeScreen;
+    var cls = "bos-page " + (dark ? "theme-dark" : "theme-light") + (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "");
     return /*#__PURE__*/React.createElement("div", {
       key: frame.id,
       className: cls,
@@ -1029,12 +1028,12 @@ function PhoneApp() {
       style: dimStyle
     }));
   };
-  const clearAnim = () => setAnim(null);
+  var clearAnim = () => setAnim(null);
 
   // ── Edge-swipe-back gesture (pointer events → works with touch AND mouse) ──
-  const canPop = frames.length > 1 && !anim;
-  const prevFrame = frames.length > 1 ? frames[frames.length - 2] : null;
-  const onDragStart = e => {
+  var canPop = frames.length > 1 && !anim;
+  var prevFrame = frames.length > 1 ? frames[frames.length - 2] : null;
+  var onDragStart = e => {
     if (!canPop || drag) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (e.clientX > EDGE_ZONE) return;
@@ -1047,10 +1046,10 @@ function PhoneApp() {
       dx: 0
     };
   };
-  const onDragMove = e => {
-    const d = dragRef.current;
+  var onDragMove = e => {
+    var d = dragRef.current;
     if (!d || d.id !== e.pointerId) return;
-    const dx = e.clientX - d.x0,
+    var dx = e.clientX - d.x0,
       dy = e.clientY - d.y0;
     if (!d.active) {
       if (Math.abs(dx) < DRAG_THRESH && Math.abs(dy) < DRAG_THRESH) return;
@@ -1064,9 +1063,9 @@ function PhoneApp() {
       } catch (_) {}
     }
     // Track horizontal velocity (px/ms) so a quick flick can complete the pop.
-    const now = performance.now();
+    var now = performance.now();
     if (d.lastT != null) {
-      const dt = now - d.lastT;
+      var dt = now - d.lastT;
       if (dt > 0) d.vx = (e.clientX - d.lastX) / dt;
     }
     d.lastX = e.clientX;
@@ -1079,14 +1078,14 @@ function PhoneApp() {
       releasing: false
     });
   };
-  const onDragEnd = e => {
-    const d = dragRef.current;
+  var onDragEnd = e => {
+    var d = dragRef.current;
     if (!d || d.id !== e.pointerId) return;
     dragRef.current = null;
     if (!d.active) return;
     // Go back on a clear rightward flick OR a third of the way across — so a quick
     // short swipe still completes instead of snapping shut (felt "harsh" before).
-    const pop = (d.vx || 0) > 0.4 || d.dx > d.w * 0.3;
+    var pop = (d.vx || 0) > 0.4 || d.dx > d.w * 0.3;
     setDrag({
       dx: pop ? d.w : 0,
       w: d.w,
@@ -1097,9 +1096,9 @@ function PhoneApp() {
       setDrag(null);
     }, 300);
   };
-  const p = drag ? Math.max(0, Math.min(drag.dx / drag.w, 1)) : 0;
-  const dragTrans = drag && drag.releasing ? "transform 0.3s var(--ios-ease), opacity 0.3s var(--ios-ease)" : "none";
-  const destTab = drag && prevFrame && TAB_ROUTES.has(prevFrame.route) ? prevFrame.route : null;
+  var p = drag ? Math.max(0, Math.min(drag.dx / drag.w, 1)) : 0;
+  var dragTrans = drag && drag.releasing ? "transform 0.3s var(--ios-ease), opacity 0.3s var(--ios-ease)" : "none";
+  var destTab = drag && prevFrame && TAB_ROUTES.has(prevFrame.route) ? prevFrame.route : null;
   return /*#__PURE__*/React.createElement(SheetCtx.Provider, {
     value: sheetApi
   }, /*#__PURE__*/React.createElement("div", {
@@ -1159,4 +1158,3 @@ function Root() {
   return /*#__PURE__*/React.createElement(AppProvider, null, /*#__PURE__*/React.createElement(PhoneApp, null));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(Root, null));
-})();

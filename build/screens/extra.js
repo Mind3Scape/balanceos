@@ -1,6 +1,5 @@
-(function(){
 /* MORE SCREENS — habit detail, mood check-in, journal, focus timer, level-up modal, AI chat */
-const {
+var {
   useState: useM
 } = React;
 
@@ -10,51 +9,51 @@ const {
    they never flicker; "Изменить" opens the edit form. Back returns to the exact
    tab we came from (params.from) — no more snapping to the wrong tab. */
 function HabitDetailScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const app = typeof useApp === "function" ? useApp() : null;
-  const back = params?.from || "habits";
-  const seed = params?.habit || {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var back = params?.from || "habits";
+  var seed = params?.habit || {
     id: 0,
     emoji: "🏃🏼‍♀️",
     name: "Утренняя пробежка",
     streak: 12
   };
   // Live copy from the shared store so streak / done reflect taps made elsewhere.
-  const h = app?.habits && app.habits.find(x => x.id === seed.id) || seed;
-  const isDark = app?.themeOverride === "dark";
-  const Count = typeof CountUp !== "undefined" ? CountUp : ({
+  var h = app?.habits && app.habits.find(x => x.id === seed.id) || seed;
+  var isDark = app?.themeOverride === "dark";
+  var Count = typeof CountUp !== "undefined" ? CountUp : ({
     value
   }) => value;
-  const streak = h.streak || 0;
+  var streak = h.streak || 0;
   // Deterministic derived stats — stable per habit, never random.
-  const best = Math.max(streak, 27);
-  const total = streak * 9 + (h.id || 1) * 7 + 40;
-  const rate = Math.min(98, 58 + streak * 2);
+  var best = Math.max(streak, 27);
+  var total = streak * 9 + (h.id || 1) * 7 + 40;
+  var rate = Math.min(98, 58 + streak * 2);
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
-  const ringColor = h.color || "#FFC400"; // gold by default (matches the main calendar), or the habit's colour
-  const tileBg = h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
-  const emptyBd = isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)";
+  var ringColor = h.color || "#FFC400"; // gold by default (matches the main calendar), or the habit's colour
+  var tileBg = h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
+  var emptyBd = isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)";
 
   // 5-week grid: most recent `streak` days done; older days a fixed scatter
   // seeded by habit id (stable across renders — no Math.random flicker).
-  const cells = Array.from({
+  var cells = Array.from({
     length: 35
   }, (_, i) => {
-    const fromEnd = 34 - i;
+    var fromEnd = 34 - i;
     if (fromEnd < streak) return true;
     return (i * 7 + (h.id || 1) * 13) % 10 > 6;
   });
-  const WD = ["П", "В", "С", "Ч", "П", "С", "В"];
+  var WD = ["П", "В", "С", "Ч", "П", "С", "В"];
   // For timed habits the day-ring fills relative to MINUTES spent that day, so a
   // 30-min session reads fuller than a 10-min one. Deterministic per cell.
-  const MIN_FACTORS = [1, 0.5, 1.5, 1, 2, 0.8, 3, 1.2, 0.7, 1];
-  const dayMins = i => h.duration ? Math.round(h.duration * MIN_FACTORS[(i * 5 + (h.id || 1) * 3) % MIN_FACTORS.length]) : 0;
-  const card = isDark ? {
+  var MIN_FACTORS = [1, 0.5, 1.5, 1, 2, 0.8, 3, 1.2, 0.7, 1];
+  var dayMins = i => h.duration ? Math.round(h.duration * MIN_FACTORS[(i * 5 + (h.id || 1) * 3) % MIN_FACTORS.length]) : 0;
+  var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
   } : {
@@ -203,9 +202,9 @@ function HabitDetailScreen() {
       gap: 6
     }
   }, cells.map((done, i) => {
-    const mins = done ? dayMins(i) : 0;
-    const frac = !done ? 0 : h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1;
-    const C = 2 * Math.PI * 15.5;
+    var mins = done ? dayMins(i) : 0;
+    var frac = !done ? 0 : h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1;
+    var C = 2 * Math.PI * 15.5;
     return /*#__PURE__*/React.createElement("span", {
       key: i,
       title: !done ? "пропущено" : h.duration ? mins + " мин" : "выполнено",
@@ -363,13 +362,13 @@ function HabitDetailScreen() {
    their own stats), a pace hint, and a +1 to nudge progress. Opened by tapping
    a goal on Home or Habits. Back returns to the origin tab (params.from). */
 function GoalDetailScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const app = typeof useApp === "function" ? useApp() : null;
-  const back = params?.from || "habits";
-  const seed = params?.goal || {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var back = params?.from || "habits";
+  var seed = params?.goal || {
     id: 0,
     emoji: "🎯",
     name: "Цель",
@@ -378,24 +377,24 @@ function GoalDetailScreen() {
     unit: "",
     deadline: ""
   };
-  const g = app?.goals && app.goals.find(x => x.id === seed.id) || seed;
-  const isDark = app?.themeOverride === "dark";
-  const Count = typeof CountUp !== "undefined" ? CountUp : ({
+  var g = app?.goals && app.goals.find(x => x.id === seed.id) || seed;
+  var isDark = app?.themeOverride === "dark";
+  var Count = typeof CountUp !== "undefined" ? CountUp : ({
     value
   }) => value;
-  const pct = g.target ? Math.min(1, (g.current || 0) / g.target) : 0;
-  const remaining = Math.max(0, (g.target || 0) - (g.current || 0));
-  const done = pct >= 1;
-  const linked = (app?.habits || []).filter(h => (g.habitIds || []).includes(h.id));
-  const card = isDark ? {
+  var pct = g.target ? Math.min(1, (g.current || 0) / g.target) : 0;
+  var remaining = Math.max(0, (g.target || 0) - (g.current || 0));
+  var done = pct >= 1;
+  var linked = (app?.habits || []).filter(h => (g.habitIds || []).includes(h.id));
+  var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
   } : {
     background: "#fff",
     boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
   };
-  const ringTrack = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
-  const R = 54,
+  var ringTrack = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  var R = 54,
     CIRC = 2 * Math.PI * R;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
@@ -669,7 +668,7 @@ function GoalDetailScreen() {
    vignette so top/bottom stay pure black. State is represented entirely by
    colored orbs (no emoji). Includes a consistency-streak bonus strip. */
 /* Contextual sub-state hashtags per mood — tap to journal without typing a word. */
-const MOOD_TAGS = {
+var MOOD_TAGS = {
   "Энергия": ["выспался", "спорт", "продуктивно", "вдохновение", "цель", "музыка", "свежесть", "кофе"],
   "Радость": ["встреча_с_друзьями", "успех", "благодарность", "природа", "любовь", "смех", "забота", "хорошая_новость"],
   "Спокойствие": ["медитация", "тишина", "прогулка", "баланс", "выспался", "чтение", "дыхание", "природа"],
@@ -678,11 +677,11 @@ const MOOD_TAGS = {
   "Усталость": ["недосып", "перегруз", "много_задач", "дорога", "экраны", "стресс", "нет_отдыха", "мало_движения"]
 };
 function MoodScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp ? useApp() : null;
-  const moods = typeof MOOD_OPTIONS !== "undefined" ? MOOD_OPTIONS : [{
+  var app = useApp ? useApp() : null;
+  var moods = typeof MOOD_OPTIONS !== "undefined" ? MOOD_OPTIONS : [{
     i: "😌",
     t: "Спокойствие",
     c: "#cfe1ff"
@@ -707,47 +706,47 @@ function MoodScreen() {
     t: "В огне",
     c: "#ffe1c8"
   }];
-  const [picked, setPicked] = useM(app?.mood?.t ? moods.findIndex(m => m.t === app.mood.t) : -1);
-  const [note, setNote] = useM("");
-  const [tags, setTags] = useM([]);
-  const [noteOpen, setNoteOpen] = useM(false);
+  var [picked, setPicked] = useM(app?.mood?.t ? moods.findIndex(m => m.t === app.mood.t) : -1);
+  var [note, setNote] = useM("");
+  var [tags, setTags] = useM([]);
+  var [noteOpen, setNoteOpen] = useM(false);
 
   // Breathing time
-  const [t, setT] = useM(0);
+  var [t, setT] = useM(0);
   React.useEffect(() => {
-    let raf,
+    var raf,
       s = performance.now();
-    const tick = now => {
+    var tick = now => {
       setT((now - s) / 1000);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
-  const breath = 1 + Math.sin(t * 0.8) * 0.04;
-  const pulse = 1 + Math.sin(t * 1.3) * 0.06;
-  const cur = picked >= 0 ? moods[picked] : null;
-  const tint = cur ? cur.c : "#6a7a92";
+  var breath = 1 + Math.sin(t * 0.8) * 0.04;
+  var pulse = 1 + Math.sin(t * 1.3) * 0.06;
+  var cur = picked >= 0 ? moods[picked] : null;
+  var tint = cur ? cur.c : "#6a7a92";
 
   // Consistency mock — how many recent days had a mood logged
-  const streak = (() => {
+  var streak = (() => {
     if (!app?.dayMoods) return 3;
     return Object.keys(app.dayMoods).length;
   })();
-  const bonusXP = streak * 5;
-  const sameStateStreak = (() => {
+  var bonusXP = streak * 5;
+  var sameStateStreak = (() => {
     if (!cur || !app?.dayMoods) return 0;
-    const days = Object.entries(app.dayMoods).sort(([a], [b]) => b - a);
-    let s = 0;
-    for (const [, mi] of days) {
+    var days = Object.entries(app.dayMoods).sort(([a], [b]) => b - a);
+    var s = 0;
+    for (var [, mi] of days) {
       if (moods[mi]?.t === cur.t) s++;else break;
     }
     return s;
   })();
-  const TODAY = 28;
-  const moodTags = cur ? MOOD_TAGS[cur.t] || [] : [];
-  const toggleTag = tg => setTags(ts => ts.includes(tg) ? ts.filter(x => x !== tg) : [...ts, tg]);
-  const onSave = () => {
+  var TODAY = 28;
+  var moodTags = cur ? MOOD_TAGS[cur.t] || [] : [];
+  var toggleTag = tg => setTags(ts => ts.includes(tg) ? ts.filter(x => x !== tg) : [...ts, tg]);
+  var onSave = () => {
     if (picked < 0 || !app) return navigate("home");
     app.setMood && app.setMood(moods[picked]);
     app.setDayMoods && app.setDayMoods({
@@ -907,7 +906,7 @@ function MoodScreen() {
       gap: 8
     }
   }, moods.map((m, idx) => {
-    const active = picked === idx;
+    var active = picked === idx;
     return /*#__PURE__*/React.createElement("button", {
       key: idx,
       onClick: () => {
@@ -984,7 +983,7 @@ function MoodScreen() {
       gap: 8
     }
   }, moodTags.map(tg => {
-    const on = tags.includes(tg);
+    var on = tags.includes(tg);
     return /*#__PURE__*/React.createElement("button", {
       key: tg,
       onClick: () => toggleTag(tg),
@@ -1119,24 +1118,24 @@ function MoodScreen() {
 /* Darken a hex color by amount (0–1) — used to deepen orb gradients. */
 function darken(hex, amt = 0.4) {
   if (!hex || hex[0] !== "#") return "#222";
-  let h = hex.slice(1);
+  var h = hex.slice(1);
   if (h.length === 3) h = h.split("").map(c => c + c).join("");
-  const n = parseInt(h, 16);
-  const r = Math.max(0, (n >> 16 & 255) * (1 - amt)) | 0;
-  const g = Math.max(0, (n >> 8 & 255) * (1 - amt)) | 0;
-  const b = Math.max(0, (n & 255) * (1 - amt)) | 0;
+  var n = parseInt(h, 16);
+  var r = Math.max(0, (n >> 16 & 255) * (1 - amt)) | 0;
+  var g = Math.max(0, (n >> 8 & 255) * (1 - amt)) | 0;
+  var b = Math.max(0, (n & 255) * (1 - amt)) | 0;
   return "#" + (r << 16 | g << 8 | b).toString(16).padStart(6, "0");
 }
 
 /* JOURNAL / DAILY REFLECTION */
 function JournalScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const [a, setA] = useM("");
-  const [b, setB] = useM("");
-  const [c, setC] = useM("");
-  const past = [{
+  var [a, setA] = useM("");
+  var [b, setB] = useM("");
+  var [c, setC] = useM("");
+  var past = [{
     date: "27 апр",
     w: "Сохранил серию даже после долгого дня.",
     g: "Не гнать себя во второй половине дня."
@@ -1290,17 +1289,17 @@ function JournalScreen() {
 
 /* FOCUS SESSION — pomodoro-ish */
 function FocusScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const h = params?.habit || {
+  var h = params?.habit || {
     emoji: "🧘🏼‍♀️",
     name: "Медитация"
   };
-  const [secs] = useM(15 * 60);
-  const m = Math.floor(secs / 60).toString().padStart(2, "0");
-  const s = (secs % 60).toString().padStart(2, "0");
+  var [secs] = useM(15 * 60);
+  var m = Math.floor(secs / 60).toString().padStart(2, "0");
+  var s = (secs % 60).toString().padStart(2, "0");
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1423,7 +1422,7 @@ function FocusScreen() {
 
 /* LEVEL-UP modal screen — celebratory in-app moment */
 function LevelUpScreen() {
-  const {
+  var {
     navigate
   } = useNav();
   return /*#__PURE__*/React.createElement("div", {
@@ -1560,7 +1559,7 @@ function MiniBars({
   textMuted = "rgba(0,0,0,0.5)",
   barIdle = "rgba(0,0,0,0.12)"
 }) {
-  const max = Math.max(...data.map(d => d.v));
+  var max = Math.max(...data.map(d => d.v));
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -1599,23 +1598,23 @@ function MiniBars({
    Uses the key from aikey.js (window.OPENROUTER_KEY). No key → graceful canned
    replies so the demo still feels alive. Browser-direct call (OpenRouter allows
    it); the key is the user's capped test key on a free model, by their choice. */
-const AI_SYSTEM = "Ты — Balance, тёплый ИИ-наставник внутри приложения BalanceOS про состояние, энергию и привычки. Отвечай по-русски, коротко и по делу (2–4 предложения), поддерживающе, живым языком без канцелярита. Помогаешь спланировать день, разобраться с состоянием и предложить маленький следующий шаг.";
-const AI_DEMO = ["Понял тебя. Давай по шагам: что сейчас сильнее всего забирает энергию? С этого и начнём.", "Окей. Предложу одно действие на 5 минут прямо сейчас — оно сдвинет весь день. Готов попробовать?", "Слышу. Сначала состояние, потом задачи. Сделай медленный вдох на 4 счёта и расскажи, как ощущается.", "Хорошая мысль. Давай привяжем это к уже существующей привычке — так новое приживётся легче."];
+var AI_SYSTEM = "Ты — Balance, тёплый ИИ-наставник внутри приложения BalanceOS про состояние, энергию и привычки. Отвечай по-русски, коротко и по делу (2–4 предложения), поддерживающе, живым языком без канцелярита. Помогаешь спланировать день, разобраться с состоянием и предложить маленький следующий шаг.";
+var AI_DEMO = ["Понял тебя. Давай по шагам: что сейчас сильнее всего забирает энергию? С этого и начнём.", "Окей. Предложу одно действие на 5 минут прямо сейчас — оно сдвинет весь день. Готов попробовать?", "Слышу. Сначала состояние, потом задачи. Сделай медленный вдох на 4 счёта и расскажи, как ощущается.", "Хорошая мысль. Давай привяжем это к уже существующей привычке — так новое приживётся легче."];
 async function aiReply(history) {
-  const key = typeof window !== "undefined" && window.OPENROUTER_KEY || "";
+  var key = typeof window !== "undefined" && window.OPENROUTER_KEY || "";
   if (!key) {
     await new Promise(r => setTimeout(r, 1100));
     return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
   }
-  const model = typeof window !== "undefined" && window.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free";
-  const messages = [{
+  var model = typeof window !== "undefined" && window.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free";
+  var messages = [{
     role: "system",
     content: AI_SYSTEM
   }].concat((history || []).filter(m => m && m.t).map(m => ({
     role: m.who === "me" ? "user" : "assistant",
     content: m.t
   })));
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  var res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1631,29 +1630,29 @@ async function aiReply(history) {
     })
   });
   if (!res.ok) throw new Error("AI " + res.status);
-  const data = await res.json();
-  const txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  var data = await res.json();
+  var txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
   return txt && txt.trim() || "…";
 }
 function AIChatScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
   // Resolve current theme from the iOS frame wrapper so this screen looks
   // right under both .theme-light and .theme-dark.
-  const wrapRef = React.useRef(null);
-  const [isDark, setIsDark] = useM(false);
+  var wrapRef = React.useRef(null);
+  var [isDark, setIsDark] = useM(false);
   React.useEffect(() => {
-    const el = wrapRef.current;
+    var el = wrapRef.current;
     if (!el) return;
-    let n = el.parentElement;
+    var n = el.parentElement;
     while (n && !n.classList.contains("theme-light") && !n.classList.contains("theme-dark")) n = n.parentElement;
     setIsDark(!!(n && n.classList.contains("theme-dark")));
   }, []);
 
   // Theme tokens for chat bubbles & chrome
-  const TH = isDark ? {
+  var TH = isDark ? {
     bg: "#0a0a0a",
     text: "#fff",
     muted: "rgba(255,255,255,0.5)",
@@ -1710,7 +1709,7 @@ function AIChatScreen() {
   };
 
   // Each message: { who, kind, t, ...cardData }
-  const [msgs, setMsgs] = useM([{
+  var [msgs, setMsgs] = useM([{
     who: "ai",
     kind: "greeting",
     t: "Доброе утро, Павел ☀️"
@@ -1774,16 +1773,16 @@ function AIChatScreen() {
       v: 58
     }]
   }]);
-  const [draft, setDraft] = useM("");
-  const [typing, setTyping] = useM(false);
-  const scrollRef = React.useRef(null);
+  var [draft, setDraft] = useM("");
+  var [typing, setTyping] = useM(false);
+  var scrollRef = React.useRef(null);
   React.useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, typing]);
-  const send = text => {
-    const t = (text ?? draft).trim();
+  var send = text => {
+    var t = (text ?? draft).trim();
     if (!t) return;
-    const history = [...msgs, {
+    var history = [...msgs, {
       who: "me",
       t
     }];
@@ -1810,11 +1809,11 @@ function AIChatScreen() {
   // A prompt passed in from the AI tab / quick chips → auto-send it on open.
   React.useEffect(() => {
     if (!params?.prompt) return;
-    const t = window.setTimeout(() => send(params.prompt), 350);
+    var t = window.setTimeout(() => send(params.prompt), 350);
     return () => window.clearTimeout(t);
   }, []); // eslint-disable-line
 
-  const renderAI = (m, i) => {
+  var renderAI = (m, i) => {
     if (m.kind === "greeting") {
       return /*#__PURE__*/React.createElement("div", {
         key: i,
@@ -2040,7 +2039,7 @@ function AIChatScreen() {
       }
     }, "\u041F\u0435\u0440\u0435\u043D\u0435\u0441\u0442\u0438 \u043F\u043E\u043D\u0435\u0434\u0435\u043B\u044C\u043D\u0438\u043A\u0438 \u2192"))));
   };
-  const renderMe = (m, i) => /*#__PURE__*/React.createElement("div", {
+  var renderMe = (m, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       alignSelf: "flex-end",
@@ -2319,4 +2318,3 @@ Object.assign(window, {
   LevelUpScreen,
   AIChatScreen
 });
-})();

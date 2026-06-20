@@ -1,6 +1,5 @@
-(function(){
 /* Shared UI bits + iPhone frame for BalanceOS */
-const {
+var {
   useState,
   useRef,
   useEffect
@@ -109,8 +108,8 @@ function Phone({
   statusDark,
   fullBleed = false
 }) {
-  const dark = theme === "dark";
-  const sbDark = statusDark === undefined ? dark : statusDark;
+  var dark = theme === "dark";
+  var sbDark = statusDark === undefined ? dark : statusDark;
   return /*#__PURE__*/React.createElement("div", {
     className: "dc-phone",
     style: {
@@ -130,14 +129,14 @@ function Phone({
 }
 
 // App-level navigation context
-const NavCtx = React.createContext(null);
+var NavCtx = React.createContext(null);
 function NavProvider({
   children,
   initial = "home"
 }) {
-  const [route, setRoute] = useState(initial);
-  const [params, setParams] = useState({});
-  const navigate = (r, p = {}) => {
+  var [route, setRoute] = useState(initial);
+  var [params, setParams] = useState({});
+  var navigate = (r, p = {}) => {
     setRoute(r);
     setParams(p);
   };
@@ -149,7 +148,7 @@ function NavProvider({
     }
   }, children);
 }
-const useNav = () => React.useContext(NavCtx);
+var useNav = () => React.useContext(NavCtx);
 
 // Bottom tab bar
 function TabBar({
@@ -158,7 +157,7 @@ function TabBar({
   onTab,
   style
 }) {
-  const tabs = [{
+  var tabs = [{
     id: "home",
     icon: "Home"
   }, {
@@ -171,7 +170,7 @@ function TabBar({
     id: "ai",
     icon: "Sparkles"
   }];
-  const idx = Math.max(0, tabs.findIndex(t => t.id === active));
+  var idx = Math.max(0, tabs.findIndex(t => t.id === active));
   return /*#__PURE__*/React.createElement("div", {
     className: "bos-tabbar " + (dark ? "dark" : ""),
     style: style
@@ -225,18 +224,18 @@ function SwipeRow({
   actionWidth = 64,
   dark = false
 }) {
-  const [open, setOpen] = useState(false);
-  const [dx, setDx] = useState(0);
-  const [releasing, setReleasing] = useState(true);
-  const d = useRef(null);
-  const justDragged = useRef(false);
-  const W = actions.length * actionWidth;
-  const close = () => {
+  var [open, setOpen] = useState(false);
+  var [dx, setDx] = useState(0);
+  var [releasing, setReleasing] = useState(true);
+  var d = useRef(null);
+  var justDragged = useRef(false);
+  var W = actions.length * actionWidth;
+  var close = () => {
     setReleasing(true);
     setOpen(false);
     setDx(0);
   };
-  const onDown = e => {
+  var onDown = e => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     d.current = {
       x0: e.clientX,
@@ -247,10 +246,10 @@ function SwipeRow({
       last: open ? -W : 0
     };
   };
-  const onMove = e => {
-    const c = d.current;
+  var onMove = e => {
+    var c = d.current;
     if (!c || c.id !== e.pointerId) return;
-    const ddx = e.clientX - c.x0,
+    var ddx = e.clientX - c.x0,
       ddy = e.clientY - c.y0;
     if (!c.active) {
       if (Math.abs(ddx) < 8 && Math.abs(ddy) < 8) return;
@@ -263,21 +262,21 @@ function SwipeRow({
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch (_) {}
     }
-    const now = performance.now();
+    var now = performance.now();
     if (c.lastT != null) {
-      const dt = now - c.lastT;
+      var dt = now - c.lastT;
       if (dt > 0) c.vx = (e.clientX - c.lastX) / dt;
     }
     c.lastX = e.clientX;
     c.lastT = now;
-    const nx = Math.max(-W - 24, Math.min(0, c.base + ddx));
+    var nx = Math.max(-W - 24, Math.min(0, c.base + ddx));
     c.last = nx;
     setReleasing(false);
     setDx(nx);
     if (e.cancelable) e.preventDefault();
   };
-  const onUp = () => {
-    const c = d.current;
+  var onUp = () => {
+    var c = d.current;
     if (!c) return;
     d.current = null;
     if (!c.active) return;
@@ -286,13 +285,13 @@ function SwipeRow({
       justDragged.current = false;
     }, 80);
     // Flick left → open, flick right → close; otherwise settle by position (35%).
-    const v = c.vx || 0;
-    const shouldOpen = v < -0.35 ? true : v > 0.35 ? false : c.last < -W * 0.35;
+    var v = c.vx || 0;
+    var shouldOpen = v < -0.35 ? true : v > 0.35 ? false : c.last < -W * 0.35;
     setReleasing(true);
     setOpen(shouldOpen);
     setDx(shouldOpen ? -W : 0);
   };
-  const onClickCapture = e => {
+  var onClickCapture = e => {
     if (e.target.closest && e.target.closest("[data-swipe-actions]")) return; // let action buttons fire
     if (justDragged.current) {
       e.stopPropagation();
@@ -306,7 +305,7 @@ function SwipeRow({
       close();
     } // tap a revealed row → close, don't navigate
   };
-  const offset = releasing ? open ? -W : 0 : dx;
+  var offset = releasing ? open ? -W : 0 : dx;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -332,7 +331,7 @@ function SwipeRow({
       zIndex: 0
     }
   }, actions.map((a, i) => {
-    const ts = swipeTone(a.tone, dark);
+    var ts = swipeTone(a.tone, dark);
     return /*#__PURE__*/React.createElement("button", {
       key: a.key || i,
       className: "tap",
@@ -384,40 +383,40 @@ function SwipeRow({
 /* ── Bottom sheet (iOS-style) ───────────────────────────────────────────────
    Slides up from the bottom over a dimmed backdrop, with a grabber you can drag
    down (or tap the backdrop) to dismiss. Opened app-wide via useSheet(). */
-const SheetCtx = React.createContext({
+var SheetCtx = React.createContext({
   open: () => {},
   close: () => {}
 });
-const useSheet = () => React.useContext(SheetCtx);
+var useSheet = () => React.useContext(SheetCtx);
 function BottomSheet({
   open,
   onClose,
   children,
   dark = false
 }) {
-  const [render, setRender] = useState(open);
-  const [shown, setShown] = useState(false);
-  const [dragY, setDragY] = useState(0);
-  const drag = useRef(null);
+  var [render, setRender] = useState(open);
+  var [shown, setShown] = useState(false);
+  var [dragY, setDragY] = useState(0);
+  var drag = useRef(null);
   useEffect(() => {
     if (open) {
       setRender(true);
       // setTimeout (not rAF) so it still animates while the tab is backgrounded.
-      const t = window.setTimeout(() => setShown(true), 20);
+      var t = window.setTimeout(() => setShown(true), 20);
       return () => window.clearTimeout(t);
     }
     if (render) {
       setShown(false);
-      const t = window.setTimeout(() => {
+      var _t = window.setTimeout(() => {
         setRender(false);
         setDragY(0);
       }, 340);
-      return () => window.clearTimeout(t);
+      return () => window.clearTimeout(_t);
     }
   }, [open]); // eslint-disable-line
 
   if (!render) return null;
-  const onDown = e => {
+  var onDown = e => {
     drag.current = {
       y0: e.clientY,
       id: e.pointerId,
@@ -427,14 +426,14 @@ function BottomSheet({
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch (_) {}
   };
-  const onMove = e => {
-    const c = drag.current;
+  var onMove = e => {
+    var c = drag.current;
     if (!c || c.id !== e.pointerId) return;
     c.dy = Math.max(0, e.clientY - c.y0);
     setDragY(c.dy);
   };
-  const onUp = () => {
-    const c = drag.current;
+  var onUp = () => {
+    var c = drag.current;
     if (!c) return;
     drag.current = null;
     if (c.dy > 110) onClose();else setDragY(0);
@@ -564,23 +563,23 @@ function CountUp({
   duration = 800,
   decimals = 0
 }) {
-  const target = Number(value) || 0;
-  const [disp, setDisp] = useState(0);
-  const fromRef = useRef(0);
-  const timerRef = useRef(null);
+  var target = Number(value) || 0;
+  var [disp, setDisp] = useState(0);
+  var fromRef = useRef(0);
+  var timerRef = useRef(null);
   useEffect(() => {
-    const start = fromRef.current;
+    var start = fromRef.current;
     if (start === target) {
       setDisp(target);
       return;
     }
-    const steps = 28;
-    let i = 0;
+    var steps = 28;
+    var i = 0;
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       i++;
-      const t = i / steps;
-      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic — fast then settle
+      var t = i / steps;
+      var eased = 1 - Math.pow(1 - t, 3); // easeOutCubic — fast then settle
       setDisp(start + (target - start) * eased);
       if (i >= steps) {
         clearInterval(timerRef.current);
@@ -615,7 +614,7 @@ Object.assign(window, {
 /* ── Moods used across Home / Mood picker / Calendar ─────────────────
    Colors are saturated so the orb gradient (white → c → deep(c) → black)
    reads as a vivid sphere instead of a pastel disc. */
-const MOOD_OPTIONS = [{
+var MOOD_OPTIONS = [{
   i: "🤩",
   t: "Энергия",
   c: "#FFC22E"
@@ -644,12 +643,12 @@ const MOOD_OPTIONS = [{
 /* ── App-wide ephemeral state ───────────────────────────────────────
    Theme, current mood, enabled home widgets, day-mood history.
    Lives at App root, read anywhere via useApp(). */
-const AppStateCtx = React.createContext(null);
-const useApp = () => React.useContext(AppStateCtx);
+var AppStateCtx = React.createContext(null);
+var useApp = () => React.useContext(AppStateCtx);
 
 /* Life-balance spheres — master list + sensible core default. The wheel and
    Settings both read from this so they stay in sync. */
-const ALL_SPHERES = [{
+var ALL_SPHERES = [{
   id: "body",
   l: "Тело",
   e: "💪",
@@ -690,13 +689,13 @@ const ALL_SPHERES = [{
   e: "🌙",
   v: 0.40
 }];
-const DEFAULT_SPHERES = ["body", "mind", "career", "money", "friends", "rest"];
+var DEFAULT_SPHERES = ["body", "mind", "career", "money", "friends", "rest"];
 
 /* ── Shared habit / goal / team store ───────────────────────────────
    ONE source of truth for every screen. Seeded from the demo data and
    held in ordinary React state, so a full reload always snaps back to
    this pristine demo (intentional — no persistence, easy to present). */
-const SEED_HABITS = [{
+var SEED_HABITS = [{
   id: 1,
   emoji: "🙏",
   name: "Помогать другим",
@@ -776,7 +775,7 @@ const SEED_HABITS = [{
   done: true,
   streak: 15
 }];
-const SEED_GOALS = [{
+var SEED_GOALS = [{
   id: 1,
   emoji: "🥊",
   name: "100 раундов бокса",
@@ -813,7 +812,7 @@ const SEED_GOALS = [{
   deadline: "в след. году",
   habitIds: [2]
 }];
-const SEED_TEAMS = [{
+var SEED_TEAMS = [{
   _id: "seed-1",
   name: "Команда креаторов",
   emblem: "✨",
@@ -937,7 +936,7 @@ const SEED_TEAMS = [{
   }]
 }];
 /* Demo day-mood history (calendar dots). Extracted so enterDemo() can restore it. */
-const SEED_DAYMOODS = {
+var SEED_DAYMOODS = {
   21: 0,
   22: 1,
   23: 4,
@@ -948,7 +947,7 @@ const SEED_DAYMOODS = {
   28: 1
 };
 /* Demo journal — per-day sub-state #tags (+ optional free note). Day → {tags, note}. */
-const SEED_DAYNOTES = {
+var SEED_DAYNOTES = {
   28: {
     tags: ["благодарность", "забота"],
     note: ""
@@ -968,12 +967,12 @@ const SEED_DAYNOTES = {
 };
 
 // New-item id source. Module-level → resets to 1000 on every reload alongside the seeds.
-let _bosNextId = 1000;
-const _nid = () => ++_bosNextId;
+var _bosNextId = 1000;
+var _nid = () => ++_bosNextId;
 
 /* Home widgets: full for the demo; minimal for a fresh new user — don't overwhelm.
    Stat cards / calendar / team / energy stay off until there's something to show. */
-const DEMO_WIDGETS = {
+var DEMO_WIDGETS = {
   quote: true,
   mood: true,
   streak: true,
@@ -985,7 +984,7 @@ const DEMO_WIDGETS = {
   weather: false,
   books: false
 };
-const FRESH_WIDGETS = {
+var FRESH_WIDGETS = {
   quote: true,
   mood: true,
   streak: false,
@@ -1000,31 +999,31 @@ const FRESH_WIDGETS = {
 function AppProvider({
   children
 }) {
-  const [mood, setMood] = useState(MOOD_OPTIONS[1]);
-  const [dayMoods, setDayMoods] = useState(SEED_DAYMOODS);
-  const [dayNotes, setDayNotes] = useState(SEED_DAYNOTES);
-  const [widgets, setWidgets] = useState(DEMO_WIDGETS);
-  const [wheelSpheres, setWheelSpheres] = useState(DEFAULT_SPHERES);
+  var [mood, setMood] = useState(MOOD_OPTIONS[1]);
+  var [dayMoods, setDayMoods] = useState(SEED_DAYMOODS);
+  var [dayNotes, setDayNotes] = useState(SEED_DAYNOTES);
+  var [widgets, setWidgets] = useState(DEMO_WIDGETS);
+  var [wheelSpheres, setWheelSpheres] = useState(DEFAULT_SPHERES);
   // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere.
-  const [themeOverride, setThemeOverride] = useState("auto");
+  var [themeOverride, setThemeOverride] = useState("auto");
 
   // Demo vs. fresh-start experience. Default = demo (a reload always lands on the
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.
-  const [mode, setMode] = useState("demo"); // "demo" | "fresh"
-  const [userName, setUserName] = useState("Павел");
+  var [mode, setMode] = useState("demo"); // "demo" | "fresh"
+  var [userName, setUserName] = useState("Павел");
   // Guided coach-mark tour. -1 = off; 0..N = current stop. Started on entering demo.
-  const [tourStep, setTourStep] = useState(-1);
-  const [tourMode, setTourMode] = useState("demo"); // "demo" | "fresh"
+  var [tourStep, setTourStep] = useState(-1);
+  var [tourMode, setTourMode] = useState("demo"); // "demo" | "fresh"
 
   // Shared habit / goal store + mutators (the app's single source of truth).
-  const [habits, setHabits] = useState(SEED_HABITS);
-  const [goals, setGoals] = useState(SEED_GOALS);
-  const toggleHabit = id => setHabits(hs => hs.map(h => h.id === id ? {
+  var [habits, setHabits] = useState(SEED_HABITS);
+  var [goals, setGoals] = useState(SEED_GOALS);
+  var toggleHabit = id => setHabits(hs => hs.map(h => h.id === id ? {
     ...h,
     done: !h.done
   } : h));
-  const addHabit = h => {
-    const nh = {
+  var addHabit = h => {
+    var nh = {
       id: _nid(),
       done: false,
       streak: 0,
@@ -1033,13 +1032,13 @@ function AppProvider({
     setHabits(hs => [...hs, nh]);
     return nh;
   };
-  const updateHabit = (id, patch) => setHabits(hs => hs.map(h => h.id === id ? {
+  var updateHabit = (id, patch) => setHabits(hs => hs.map(h => h.id === id ? {
     ...h,
     ...patch
   } : h));
-  const removeHabit = id => setHabits(hs => hs.filter(h => h.id !== id));
-  const addGoal = g => {
-    const ng = {
+  var removeHabit = id => setHabits(hs => hs.filter(h => h.id !== id));
+  var addGoal = g => {
+    var ng = {
       id: _nid(),
       current: 0,
       ...g
@@ -1047,15 +1046,15 @@ function AppProvider({
     setGoals(gs => [...gs, ng]);
     return ng;
   };
-  const updateGoal = (id, patch) => setGoals(gs => gs.map(g => g.id === id ? {
+  var updateGoal = (id, patch) => setGoals(gs => gs.map(g => g.id === id ? {
     ...g,
     ...patch
   } : g));
-  const removeGoal = id => setGoals(gs => gs.filter(g => g.id !== id));
-  const [teams, setTeams] = useState(SEED_TEAMS);
+  var removeGoal = id => setGoals(gs => gs.filter(g => g.id !== id));
+  var [teams, setTeams] = useState(SEED_TEAMS);
   // New teams go to the TOP so the just-created one is immediately visible.
-  const addTeam = t => {
-    const nt = {
+  var addTeam = t => {
+    var nt = {
       progress: 0,
       members: [],
       habits: [],
@@ -1065,14 +1064,14 @@ function AppProvider({
     setTeams(ts => [nt, ...ts]);
     return nt;
   };
-  const removeTeam = id => setTeams(ts => ts.filter(t => t._id !== id));
-  const updateTeam = (id, patch) => setTeams(ts => ts.map(t => t._id === id ? {
+  var removeTeam = id => setTeams(ts => ts.filter(t => t._id !== id));
+  var updateTeam = (id, patch) => setTeams(ts => ts.map(t => t._id === id ? {
     ...t,
     ...patch
   } : t));
-  const addTeamHabit = (teamId, h) => setTeams(ts => ts.map(t => {
+  var addTeamHabit = (teamId, h) => setTeams(ts => ts.map(t => {
     if (t._id !== teamId) return t;
-    const nh = {
+    var nh = {
       id: _nid(),
       doneToday: 0,
       total: t.members?.length || 1,
@@ -1081,7 +1080,7 @@ function AppProvider({
       week: [0, 0, 0, 0, 0, 0, 0],
       ...h
     };
-    let habits = t.habits || [];
+    var habits = t.habits || [];
     if (nh.isMain) habits = habits.map(x => ({
       ...x,
       isMain: false
@@ -1091,7 +1090,7 @@ function AppProvider({
       habits: [...habits, nh]
     };
   }));
-  const removeTeamHabit = (teamId, habitId) => setTeams(ts => ts.map(t => t._id === teamId ? {
+  var removeTeamHabit = (teamId, habitId) => setTeams(ts => ts.map(t => t._id === teamId ? {
     ...t,
     habits: (t.habits || []).filter(h => h.id !== habitId)
   } : t));
@@ -1099,7 +1098,7 @@ function AppProvider({
   // ── Entry modes ───────────────────────────────────────────────────
   // enterDemo: fill everything with the seed demo (Павел's filled life).
   // enterFresh: wipe to a clean slate, like a brand-new first user.
-  const enterDemo = () => {
+  var enterDemo = () => {
     setMode("demo");
     setUserName("Павел");
     setHabits(SEED_HABITS);
@@ -1116,7 +1115,7 @@ function AppProvider({
       section: "discover"
     });
   };
-  const enterFresh = (name = "") => {
+  var enterFresh = (name = "") => {
     setMode("fresh");
     setUserName((name || "").trim());
     setHabits([]);
@@ -1134,21 +1133,21 @@ function AppProvider({
       commTab: "courses"
     });
   };
-  const startTour = mode => {
+  var startTour = mode => {
     setTourMode(mode || "demo");
     setTourStep(0);
   };
-  const endTour = () => setTourStep(-1);
+  var endTour = () => setTourStep(-1);
 
   // Community tab/section view-state lives here so navigating into a detail
   // screen and back doesn't reset it (the screen unmounts on push/pop).
-  const [communityView, setCommunityViewRaw] = useState({
+  var [communityView, setCommunityViewRaw] = useState({
     section: "discover",
     discTab: "teams",
     commTab: "courses",
     networkUnlocked: false
   });
-  const setCommunityView = patch => setCommunityViewRaw(v => ({
+  var setCommunityView = patch => setCommunityViewRaw(v => ({
     ...v,
     ...patch
   }));
@@ -1203,4 +1202,3 @@ Object.assign(window, {
   useApp,
   AppProvider
 });
-})();

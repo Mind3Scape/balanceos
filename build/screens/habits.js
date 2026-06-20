@@ -1,9 +1,8 @@
-(function(){
 /* HABITS & GOALS screen + HABIT SETTINGS (create/edit) */
-const {
+var {
   useState: useHS
 } = React;
-const EMOJI_CHIPS = [{
+var EMOJI_CHIPS = [{
   i: "☀️",
   t: "Подъём в 5:00"
 }, {
@@ -42,12 +41,12 @@ const EMOJI_CHIPS = [{
 }];
 
 /* Avatar stack — small face pile showing who else is doing this habit */
-const AVATAR_PALETTE = ["#a8b9d4", "#e8c8a8", "#a8d4e8", "#d4b8e8", "#b8e8c8", "#e8b8b8", "#c8c8e8"];
+var AVATAR_PALETTE = ["#a8b9d4", "#e8c8a8", "#a8d4e8", "#d4b8e8", "#b8e8c8", "#e8b8b8", "#c8c8e8"];
 
 /* Per-habit accent. `null` = base (neutral gray, the project default); a value
    softly tints the icon tile everywhere and fills the stats grid. Kept to calm
    iOS-system hues so coloured habits still read cohesive with the gray ones. */
-const HABIT_COLORS = [{
+var HABIT_COLORS = [{
   id: "base",
   val: null
 }, {
@@ -69,7 +68,7 @@ const HABIT_COLORS = [{
   id: "teal",
   val: "#30B0C7"
 }];
-const HABIT_COLOR_NAMES = {
+var HABIT_COLOR_NAMES = {
   "#0A84FF": "Океан",
   "#34C759": "Лес",
   "#FF9500": "Янтарь",
@@ -84,8 +83,8 @@ function AvatarStack({
   label = true
 }) {
   if (!people.length) return null;
-  const visible = people.slice(0, max);
-  const overflow = people.length - visible.length;
+  var visible = people.slice(0, max);
+  var overflow = people.length - visible.length;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-flex",
@@ -140,10 +139,10 @@ function ShareHabitSheet({
   habit,
   dark = false
 }) {
-  const {
+  var {
     close
   } = useSheet();
-  const C = dark ? {
+  var C = dark ? {
     text: "#fff",
     sub: "rgba(255,255,255,0.5)",
     tile: "rgba(255,255,255,0.08)",
@@ -156,7 +155,7 @@ function ShareHabitSheet({
     line: "rgba(0,0,0,0.06)",
     ring: "#fff"
   };
-  const [friends, setFriends] = useHS([{
+  var [friends, setFriends] = useHS([{
     name: "Анна",
     i: "А",
     c: "#e8c8a8",
@@ -182,11 +181,11 @@ function ShareHabitSheet({
     c: "#b8e8c8",
     on: false
   }]);
-  const toggleF = idx => setFriends(f => f.map((x, i) => i === idx ? {
+  var toggleF = idx => setFriends(f => f.map((x, i) => i === idx ? {
     ...x,
     on: !x.on
   } : x));
-  const targets = [{
+  var targets = [{
     e: "💬",
     t: "Сообщения"
   }, {
@@ -387,25 +386,25 @@ function ShareHabitSheet({
   }, "\u0413\u043E\u0442\u043E\u0432\u043E"));
 }
 function HabitsScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const {
+  var {
     open: openSheet
   } = useSheet();
-  const app = useApp();
-  const wrapRef = React.useRef(null);
-  const [isDark, setIsDark] = useHS(false);
+  var app = useApp();
+  var wrapRef = React.useRef(null);
+  var [isDark, setIsDark] = useHS(false);
   React.useEffect(() => {
-    const el = wrapRef.current;
+    var el = wrapRef.current;
     if (!el) return;
-    let n = el.parentElement;
+    var n = el.parentElement;
     while (n && !n.classList.contains("theme-light") && !n.classList.contains("theme-dark")) n = n.parentElement;
     setIsDark(!!(n && n.classList.contains("theme-dark")));
   }, []);
 
   // Theme tokens — solid surfaces, NO borders. Match Home dark style.
-  const TH = isDark ? {
+  var TH = isDark ? {
     cardBg: "linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
     chipBg: "rgba(255,255,255,0.06)",
     chipBd: "0",
@@ -432,14 +431,14 @@ function HabitsScreen() {
     playBtnBg: "var(--text-2)",
     playBtnFg: "#fff"
   };
-  const cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
-  const [tab, setTab] = useHS("habits");
+  var cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
+  var [tab, setTab] = useHS("habits");
   // Shared store — same list the Home screen reads/writes.
-  const habits = app?.habits || [];
-  const goals = app?.goals || [];
-  const toggle = app?.toggleHabit || (() => {});
-  const remove = app?.removeHabit || (() => {});
-  const rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
+  var habits = app?.habits || [];
+  var goals = app?.goals || [];
+  var toggle = app?.toggleHabit || (() => {});
+  var remove = app?.removeHabit || (() => {});
+  var rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
@@ -812,7 +811,7 @@ function HabitsScreen() {
       color: "var(--text)"
     }
   }, goals.map((g, idx) => {
-    const pct = g.current / g.target;
+    var pct = g.current / g.target;
     return /*#__PURE__*/React.createElement("div", {
       key: g.id
     }, /*#__PURE__*/React.createElement("button", {
@@ -971,20 +970,20 @@ function HabitsScreen() {
   }))))));
 }
 function HabitSettingsScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const app = useApp();
-  const editing = params?.mode === "edit";
-  const preset = params?.preset; // quick-add chip → {i: emoji, t: label}
-  const [name, setName] = useHS(editing ? params.habit.name : preset?.t || "Прогулка");
-  const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : preset?.i || "👟");
-  const [color, setColor] = useHS(editing ? params.habit.color ?? null : null);
-  const [goal, setGoal] = useHS(1);
-  const [reminderOn, setReminderOn] = useHS(true);
-  const [shareOn, setShareOn] = useHS(true);
-  const [shareFriends, setShareFriends] = useHS([{
+  var app = useApp();
+  var editing = params?.mode === "edit";
+  var preset = params?.preset; // quick-add chip → {i: emoji, t: label}
+  var [name, setName] = useHS(editing ? params.habit.name : preset?.t || "Прогулка");
+  var [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : preset?.i || "👟");
+  var [color, setColor] = useHS(editing ? params.habit.color ?? null : null);
+  var [goal, setGoal] = useHS(1);
+  var [reminderOn, setReminderOn] = useHS(true);
+  var [shareOn, setShareOn] = useHS(true);
+  var [shareFriends, setShareFriends] = useHS([{
     name: "Анна",
     i: "А",
     c: "#e8c8a8",
@@ -1005,7 +1004,7 @@ function HabitSettingsScreen() {
     c: "#a8d4e8",
     on: false
   }]);
-  const [type, setType] = useHS("build");
+  var [type, setType] = useHS("build");
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1303,7 +1302,7 @@ function HabitSettingsScreen() {
     strokeWidth: 3
   }))), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShareFriends(fs => {
-      const pool = [{
+      var pool = [{
         name: "Соня",
         i: "С",
         c: "#e8b8d4"
@@ -1316,7 +1315,7 @@ function HabitSettingsScreen() {
         i: "А",
         c: "#d4c8e8"
       }];
-      const next = pool.find(p => !fs.some(f => f.name === p.name));
+      var next = pool.find(p => !fs.some(f => f.name === p.name));
       return next ? [...fs, {
         ...next,
         on: true
@@ -1362,7 +1361,7 @@ function HabitSettingsScreen() {
       marginTop: 28
     },
     onClick: () => {
-      const nm = name.trim() || "Новая привычка";
+      var nm = name.trim() || "Новая привычка";
       if (editing) app?.updateHabit(params.habit.id, {
         emoji: iconPick,
         name: nm,
@@ -1398,19 +1397,19 @@ window.ShareHabitSheet = ShareHabitSheet;
 
 /* ─── GOAL SETTINGS — create / edit a goal ─────────────────────── */
 function GoalSettingsScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const app = useApp();
-  const editing = params?.mode === "edit";
-  const g0 = editing ? params.goal : null;
-  const [name, setName] = useHS(g0?.name || "Пробежать марафон");
-  const [iconPick, setIconPick] = useHS(g0?.emoji || "🎯");
-  const [target, setTarget] = useHS(g0?.target || 22);
-  const [unit, setUnit] = useHS(g0?.unit || "недель");
-  const [deadline, setDeadline] = useHS(g0?.deadline || "14 окт");
-  const [linkHabit, setLinkHabit] = useHS(true);
+  var app = useApp();
+  var editing = params?.mode === "edit";
+  var g0 = editing ? params.goal : null;
+  var [name, setName] = useHS(g0?.name || "Пробежать марафон");
+  var [iconPick, setIconPick] = useHS(g0?.emoji || "🎯");
+  var [target, setTarget] = useHS(g0?.target || 22);
+  var [unit, setUnit] = useHS(g0?.unit || "недель");
+  var [deadline, setDeadline] = useHS(g0?.deadline || "14 окт");
+  var [linkHabit, setLinkHabit] = useHS(true);
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1691,7 +1690,7 @@ function GoalSettingsScreen() {
       marginTop: 28
     },
     onClick: () => {
-      const data = {
+      var data = {
         emoji: iconPick,
         name: name.trim() || "Новая цель",
         target,
@@ -1720,7 +1719,7 @@ function GoalSettingsScreen() {
 }
 
 /* ─── INFO SCREEN — knowledge articles ─────────────────────────── */
-const INFO_TOPICS = {
+var INFO_TOPICS = {
   "habits-basics": {
     emoji: "🌱",
     eyebrow: "5 мин чтения",
@@ -1789,11 +1788,11 @@ const INFO_TOPICS = {
   }
 };
 function InfoScreen() {
-  const {
+  var {
     navigate,
     params
   } = useNav();
-  const topic = INFO_TOPICS[params?.topic] || INFO_TOPICS["habits-basics"];
+  var topic = INFO_TOPICS[params?.topic] || INFO_TOPICS["habits-basics"];
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1996,4 +1995,3 @@ function InfoScreen() {
 }
 window.GoalSettingsScreen = GoalSettingsScreen;
 window.InfoScreen = InfoScreen;
-})();

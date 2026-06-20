@@ -1,20 +1,19 @@
-(function(){
 /* Cinematic onboarding for BalanceOS.
    ONE protagonist: a Siri-style glass orb (you). It changes size + inner mist color
    with each scene. Decorative layers cross-fade around it. Particles persist. */
 
-const {
+var {
   useState: useIS,
   useEffect: useIE,
   useRef: useIR,
   useMemo: useIM
 } = React;
 function useT() {
-  const [t, setT] = useIS(0);
+  var [t, setT] = useIS(0);
   useIE(() => {
-    let raf,
+    var raf,
       s = performance.now();
-    const tick = now => {
+    var tick = now => {
       setT((now - s) / 1000);
       raf = requestAnimationFrame(tick);
     };
@@ -28,33 +27,33 @@ function useT() {
    Glassy translucent sphere with internal swirling mist (3 colored
    blobs orbiting + gooey blur) and a clean specular highlight.
    Color tint comes from `tint` (an array of 3 colors). Size from `r`. */
-let __ORB_ID = 0;
+var __ORB_ID = 0;
 function SiriOrb({
   r,
   tint,
   t,
   intensity = 1
 }) {
-  const uid = useIM(() => "orb" + ++__ORB_ID, []);
+  var uid = useIM(() => "orb" + ++__ORB_ID, []);
   t = typeof t === "number" && isFinite(t) ? t : 0; // guard against NaN time
-  const breath = 1 + Math.sin(t * 0.9) * 0.025;
-  const R = (typeof r === "number" && isFinite(r) ? r : 34) * breath;
+  var breath = 1 + Math.sin(t * 0.9) * 0.025;
+  var R = (typeof r === "number" && isFinite(r) ? r : 34) * breath;
 
   // Soft internal lights — radial-gradient discs (feathered, NO SVG filter).
   // Each blob slowly CYCLES through the state's palette at its own phase, so the
   // colours continuously blend and mix inside the orb (Siri-style living fluid).
   // Vivid analogous flow palette from the state's main hue → blobs show DISTINCT
   // colours that drift and mix (Siri-style living fluid), not one flat tone.
-  const main = tint && tint[1] || "#7aa4d0";
-  const lite = tint && tint[0] || "#cfe1ff";
-  const flow = [hueShift(main, 30), lite, hueShift(main, -34), hueShift(main, 66), main];
-  const FN = flow.length;
-  const DN = 5;
-  const discs = Array.from({
+  var main = tint && tint[1] || "#7aa4d0";
+  var lite = tint && tint[0] || "#cfe1ff";
+  var flow = [hueShift(main, 30), lite, hueShift(main, -34), hueShift(main, 66), main];
+  var FN = flow.length;
+  var DN = 5;
+  var discs = Array.from({
     length: DN
   }, (_, i) => {
-    const ci = (i + t * 0.16) % FN; // colours slowly rotate through the blobs
-    const a = Math.floor(ci),
+    var ci = (i + t * 0.16) % FN; // colours slowly rotate through the blobs
+    var a = Math.floor(ci),
       f = ci - a;
     return {
       col: lerpColor(flow[a % FN], flow[(a + 1) % FN], f),
@@ -63,12 +62,12 @@ function SiriOrb({
       oy: Math.sin(t * (0.41 + i * 0.05) + i * 2.3) * R * 0.25
     };
   });
-  const coreX = Math.cos(t * 0.4) * R * 0.07;
-  const coreY = Math.sin(t * 0.33) * R * 0.07;
+  var coreX = Math.cos(t * 0.4) * R * 0.07;
+  var coreY = Math.sin(t * 0.33) * R * 0.07;
   // the heart of the orb also cycles hue, so the whole orb visibly shifts colour
-  const cc = (t * 0.13 % FN + FN) % FN,
+  var cc = (t * 0.13 % FN + FN) % FN,
     ca = Math.floor(cc);
-  const coreMid = lerpColor(flow[ca % FN], flow[(ca + 1) % FN], cc - ca);
+  var coreMid = lerpColor(flow[ca % FN], flow[(ca + 1) % FN], cc - ca);
   return /*#__PURE__*/React.createElement("g", null, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
     id: uid + "-clip"
   }, /*#__PURE__*/React.createElement("circle", {
@@ -236,12 +235,12 @@ function SiriOrb({
    (e.g. the Home state widget) so the product reads as one object.
    Derives a 3-stop inner-mist tint from a single mood color. */
 function tintFromMood(hex) {
-  const h = hex && hex[0] === "#" && hex.length >= 7 ? hex : "#7AA4D0";
-  const p = [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-  const mix = (a, b, k) => Math.round(a + (b - a) * k);
-  const toHex = arr => "#" + arr.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
-  const light = toHex(p.map(v => mix(v, 255, 0.60)));
-  const deep = toHex(p.map((v, i) => mix(v, [16, 26, 46][i], 0.60)));
+  var h = hex && hex[0] === "#" && hex.length >= 7 ? hex : "#7AA4D0";
+  var p = [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  var mix = (a, b, k) => Math.round(a + (b - a) * k);
+  var toHex = arr => "#" + arr.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
+  var light = toHex(p.map(v => mix(v, 255, 0.60)));
+  var deep = toHex(p.map((v, i) => mix(v, [16, 26, 46][i], 0.60)));
   return [light, h, deep];
 }
 function StateOrb({
@@ -249,8 +248,8 @@ function StateOrb({
   tint,
   intensity = 1.15
 }) {
-  const t = useT();
-  const R = 34;
+  var t = useT();
+  var R = 34;
   return /*#__PURE__*/React.createElement("svg", {
     viewBox: "-58 -58 116 116",
     width: size,
@@ -293,7 +292,7 @@ function StaticOrb({
 }
 
 /* ─── PARTICLES ──────────────────────────────────────────────── */
-const PARTICLE_COUNT = 32;
+var PARTICLE_COUNT = 32;
 function useParticles() {
   return useIM(() => Array.from({
     length: PARTICLE_COUNT
@@ -304,46 +303,46 @@ function useParticles() {
   })), []);
 }
 function targetFor(mode, p, t, R) {
-  const a0 = p.i / PARTICLE_COUNT * Math.PI * 2 + p.seed * 0.001;
+  var a0 = p.i / PARTICLE_COUNT * Math.PI * 2 + p.seed * 0.001;
   switch (mode) {
     case "awake":
       {
-        const r = 100 + p.i * 37 % 50 - t * 5 % 25;
+        var r = 100 + p.i * 37 % 50 - t * 5 % 25;
         return [Math.cos(a0 + t * 0.05) * Math.max(R + 20, r), Math.sin(a0 + t * 0.05) * Math.max(R + 20, r), 1];
       }
     case "comfort":
       {
-        const stragglers = p.i % 5 === 0;
-        const rr = stragglers ? 120 : R + 24 + Math.sin(t * 0.8 + p.seed) * 2;
+        var stragglers = p.i % 5 === 0;
+        var rr = stragglers ? 120 : R + 24 + Math.sin(t * 0.8 + p.seed) * 2;
         return [Math.cos(a0 + t * 0.18) * rr, Math.sin(a0 + t * 0.18) * rr, stragglers ? 0.4 : 1];
       }
     case "state":
       {
-        const baseR = R + 12 + p.i % 6 * 14;
-        const wave = Math.sin(t * 1.6 - baseR * 0.05) * 8;
-        const rr = baseR + wave;
-        return [Math.cos(a0 + t * 0.08) * rr, Math.sin(a0 + t * 0.08) * rr, 1];
+        var baseR = R + 12 + p.i % 6 * 14;
+        var wave = Math.sin(t * 1.6 - baseR * 0.05) * 8;
+        var _rr = baseR + wave;
+        return [Math.cos(a0 + t * 0.08) * _rr, Math.sin(a0 + t * 0.08) * _rr, 1];
       }
     case "compound":
       {
-        const phase = (p.i * 0.18 + t * 0.18) % 1;
-        const rr = 130 - phase * (130 - R - 4);
-        const a = a0 + phase * Math.PI * 2;
-        return [Math.cos(a) * rr, Math.sin(a) * rr, 0.4 + (1 - phase) * 0.9];
+        var phase = (p.i * 0.18 + t * 0.18) % 1;
+        var _rr2 = 130 - phase * (130 - R - 4);
+        var a = a0 + phase * Math.PI * 2;
+        return [Math.cos(a) * _rr2, Math.sin(a) * _rr2, 0.4 + (1 - phase) * 0.9];
       }
     case "together":
       {
-        const k = p.i % 4;
-        const cs = [[0, 0], [Math.cos(t * 0.35) * 85, Math.sin(t * 0.35) * 85], [Math.cos(t * 0.35 + 2.1) * 95, Math.sin(t * 0.35 + 2.1) * 70], [Math.cos(t * 0.35 + 4.2) * 80, Math.sin(t * 0.35 + 4.2) * 95]];
-        const [cx, cy] = cs[k];
-        const lr = 14 + p.i % 3 * 5;
-        const la = a0 * 3 + t * 0.7;
+        var k = p.i % 4;
+        var cs = [[0, 0], [Math.cos(t * 0.35) * 85, Math.sin(t * 0.35) * 85], [Math.cos(t * 0.35 + 2.1) * 95, Math.sin(t * 0.35 + 2.1) * 70], [Math.cos(t * 0.35 + 4.2) * 80, Math.sin(t * 0.35 + 4.2) * 95]];
+        var [cx, cy] = cs[k];
+        var lr = 14 + p.i % 3 * 5;
+        var la = a0 * 3 + t * 0.7;
         return [cx + Math.cos(la) * lr, cy + Math.sin(la) * lr, 0.7];
       }
     default:
       {
-        const rr = R + 12 + p.i % 7 * 3 + Math.sin(t + p.seed) * 2;
-        return [Math.cos(a0 + t * 0.4) * rr, Math.sin(a0 + t * 0.4) * rr, 0.55];
+        var _rr3 = R + 12 + p.i % 7 * 3 + Math.sin(t + p.seed) * 2;
+        return [Math.cos(a0 + t * 0.4) * _rr3, Math.sin(a0 + t * 0.4) * _rr3, 0.55];
       }
   }
 }
@@ -355,20 +354,20 @@ function ParticleField({
   R,
   dark = true
 }) {
-  const ps = useParticles();
-  const colors = dark ? ["#ffffff", "#cfe1ff", "#9bbfe8", "#7aa4d0", "#e6eeff"] : ["#3f5f8a", "#4f7bb0", "#6f9ad1", "#345070", "#5e8fbf"];
+  var ps = useParticles();
+  var colors = dark ? ["#ffffff", "#cfe1ff", "#9bbfe8", "#7aa4d0", "#e6eeff"] : ["#3f5f8a", "#4f7bb0", "#6f9ad1", "#345070", "#5e8fbf"];
   return /*#__PURE__*/React.createElement("g", null, ps.map(p => {
-    const [tx, ty, op] = targetFor(mode, p, t, R);
-    let x = tx,
+    var [tx, ty, op] = targetFor(mode, p, t, R);
+    var x = tx,
       y = ty,
       o = op;
     if (prevMode && blend < 1) {
-      const [px, py, pop] = targetFor(prevMode, p, t, R);
+      var [px, py, pop] = targetFor(prevMode, p, t, R);
       x = px + (tx - px) * blend;
       y = py + (ty - py) * blend;
       o = pop + (op - pop) * blend;
     }
-    const c = colors[p.hue];
+    var c = colors[p.hue];
     return /*#__PURE__*/React.createElement("g", {
       key: p.i
     }, /*#__PURE__*/React.createElement("circle", {
@@ -393,7 +392,7 @@ function ParticleField({
 /* ─── DECOR LAYERS ──────────────────────────────────────────────── */
 /* Shared "possibilities" beyond the comfort zone — dim & out of reach in the
    weak-state scene, lit & reachable once the state grows strong. */
-const POSS = [{
+var POSS = [{
   a: 0.4,
   r: 122
 }, {
@@ -416,10 +415,10 @@ function LayerComfort({
   dark = true
 }) {
   if (alpha <= 0) return null;
-  const zoneR = R + 28;
-  const zoneFill = dark ? "rgba(150,175,210,0.055)" : "rgba(70,110,160,0.06)";
-  const boundary = dark ? "rgba(255,255,255,0.32)" : "rgba(40,70,110,0.30)";
-  const possC = dark ? "#93a6c0" : "#8398b5";
+  var zoneR = R + 28;
+  var zoneFill = dark ? "rgba(150,175,210,0.055)" : "rgba(70,110,160,0.06)";
+  var boundary = dark ? "rgba(255,255,255,0.32)" : "rgba(40,70,110,0.30)";
+  var possC = dark ? "#93a6c0" : "#8398b5";
   return /*#__PURE__*/React.createElement("g", {
     opacity: alpha
   }, /*#__PURE__*/React.createElement("circle", {
@@ -436,7 +435,7 @@ function LayerComfort({
     strokeWidth: "1",
     strokeDasharray: "3 5"
   }), POSS.map((p, i) => {
-    const x = Math.cos(p.a + t * 0.04) * p.r,
+    var x = Math.cos(p.a + t * 0.04) * p.r,
       y = Math.sin(p.a + t * 0.04) * p.r;
     return /*#__PURE__*/React.createElement("circle", {
       key: i,
@@ -454,15 +453,15 @@ function LayerState({
   dark = true
 }) {
   if (alpha <= 0) return null;
-  const wave = dark ? "rgba(180,210,255,0.6)" : "rgba(70,130,200,0.55)";
-  const boundary = dark ? "rgba(180,210,255,0.38)" : "rgba(70,130,200,0.4)";
-  const halo = dark ? "#bfe0ff" : "#7fb4ec";
-  const core = dark ? "#dcefff" : "#2f6fb0";
+  var wave = dark ? "rgba(180,210,255,0.6)" : "rgba(70,130,200,0.55)";
+  var boundary = dark ? "rgba(180,210,255,0.38)" : "rgba(70,130,200,0.4)";
+  var halo = dark ? "#bfe0ff" : "#7fb4ec";
+  var core = dark ? "#dcefff" : "#2f6fb0";
   return /*#__PURE__*/React.createElement("g", {
     opacity: alpha
   }, [0, 1, 2, 3].map(i => {
-    const phase = (t * 0.45 + i * 0.25) % 1;
-    const r = 24 + phase * 140;
+    var phase = (t * 0.45 + i * 0.25) % 1;
+    var r = 24 + phase * 140;
     return /*#__PURE__*/React.createElement("circle", {
       key: i,
       cx: "0",
@@ -482,7 +481,7 @@ function LayerState({
     strokeWidth: "1",
     strokeDasharray: "3 6"
   }), POSS.map((p, i) => {
-    const x = Math.cos(p.a + t * 0.04) * p.r,
+    var x = Math.cos(p.a + t * 0.04) * p.r,
       y = Math.sin(p.a + t * 0.04) * p.r;
     return /*#__PURE__*/React.createElement("g", {
       key: i
@@ -510,15 +509,15 @@ function LayerCompound({
   dark = true
 }) {
   if (alpha <= 0) return null;
-  const stroke = dark ? "rgba(180,210,255,0.22)" : "rgba(60,110,180,0.30)";
+  var stroke = dark ? "rgba(180,210,255,0.22)" : "rgba(60,110,180,0.30)";
   return /*#__PURE__*/React.createElement("g", {
     opacity: alpha
   }, [0, 1].map(arm => {
-    let d = "";
-    for (let i = 0; i < 110; i++) {
-      const k = i / 110;
-      const a = arm * Math.PI + k * Math.PI * 4 + t * 0.18;
-      const r = 130 * (1 - k);
+    var d = "";
+    for (var i = 0; i < 110; i++) {
+      var k = i / 110;
+      var a = arm * Math.PI + k * Math.PI * 4 + t * 0.18;
+      var r = 130 * (1 - k);
       d += (i === 0 ? "M" : "L") + (Math.cos(a) * r).toFixed(1) + " " + (Math.sin(a) * r).toFixed(1) + " ";
     }
     return /*#__PURE__*/React.createElement("path", {
@@ -543,9 +542,9 @@ function LayerTogether({
   // with your central orb), the trio slowly orbiting around you.
   // One guy + two women (one in glasses), young & hatless. They float cleanly
   // with just a soft glow + a link to you — no hard orb frames or outlines.
-  const TOP = -Math.PI / 2;
-  const PICS = ["./assets/people/m13.png", "./assets/people/m2.png", "./assets/people/m5.png"];
-  const friends = (dark ? ["#cfe1ff", "#9bbfe8", "#a9c4e8"] : ["#5a85bd", "#4f7bb0", "#6f9ad1"]).map((c, i) => ({
+  var TOP = -Math.PI / 2;
+  var PICS = ["./assets/people/m13.png", "./assets/people/m2.png", "./assets/people/m5.png"];
+  var friends = (dark ? ["#cfe1ff", "#9bbfe8", "#a9c4e8"] : ["#5a85bd", "#4f7bb0", "#6f9ad1"]).map((c, i) => ({
     c,
     pic: PICS[i],
     a: TOP + i * (Math.PI * 2 / 3)
@@ -553,9 +552,9 @@ function LayerTogether({
   return /*#__PURE__*/React.createElement("g", {
     opacity: alpha
   }, friends.map((f, i) => {
-    const rr = 95 + Math.sin(t * 0.9 + i * 2.1) * 4; // gentle breathing
-    const ang = f.a + t * 0.08; // slow orbit around you
-    const x = Math.cos(ang) * rr,
+    var rr = 95 + Math.sin(t * 0.9 + i * 2.1) * 4; // gentle breathing
+    var ang = f.a + t * 0.08; // slow orbit around you
+    var x = Math.cos(ang) * rr,
       y = Math.sin(ang) * rr;
     return /*#__PURE__*/React.createElement("g", {
       key: i
@@ -588,7 +587,7 @@ function LayerTogether({
 }
 
 /* Habit ecosystem — chaotic ellipses, mono blue */
-const HABITS = [{
+var HABITS = [{
   e: "🏃",
   c: "#cfe1ff",
   a: 78,
@@ -654,10 +653,10 @@ const HABITS = [{
   ph: 3.0
 }];
 function habitPos(h, t) {
-  const theta = t / h.period * Math.PI * 2 + h.ph;
-  const x0 = Math.cos(theta) * h.a,
+  var theta = t / h.period * Math.PI * 2 + h.ph;
+  var x0 = Math.cos(theta) * h.a,
     y0 = Math.sin(theta) * h.b;
-  const co = Math.cos(h.tilt),
+  var co = Math.cos(h.tilt),
     si = Math.sin(h.tilt);
   return [x0 * co - y0 * si, x0 * si + y0 * co];
 }
@@ -667,8 +666,8 @@ function LayerHabits({
   dark = true
 }) {
   if (alpha <= 0) return null;
-  const orbit = dark ? "rgba(255,255,255,0.05)" : "rgba(40,70,110,0.10)";
-  const nodeFill = dark ? "rgba(10,18,32,0.92)" : "#ffffff";
+  var orbit = dark ? "rgba(255,255,255,0.05)" : "rgba(40,70,110,0.10)";
+  var nodeFill = dark ? "rgba(10,18,32,0.92)" : "#ffffff";
   return /*#__PURE__*/React.createElement("g", {
     opacity: alpha
   }, HABITS.map((h, i) => /*#__PURE__*/React.createElement("ellipse", {
@@ -683,9 +682,9 @@ function LayerHabits({
     strokeWidth: "1",
     strokeDasharray: "1 4"
   })), HABITS.map((h, i) => {
-    const stamps = [];
-    for (let s = 1; s <= 6; s++) {
-      const [tx, ty] = habitPos(h, t - s * 0.08);
+    var stamps = [];
+    for (var s = 1; s <= 6; s++) {
+      var [tx, ty] = habitPos(h, t - s * 0.08);
       stamps.push(/*#__PURE__*/React.createElement("circle", {
         key: "t" + i + s,
         cx: tx,
@@ -702,7 +701,7 @@ function LayerHabits({
       key: "tr" + i
     }, stamps);
   }), HABITS.map((h, i) => {
-    const [x, y] = habitPos(h, t);
+    var [x, y] = habitPos(h, t);
     return /*#__PURE__*/React.createElement("g", {
       key: "h" + i
     }, /*#__PURE__*/React.createElement("circle", {
@@ -733,7 +732,7 @@ function LayerHabits({
 
 /* ─── STAGE ─────────────────────────────────────────────────────── */
 /* Per-mode orb behaviour: size + tint colors for inner mist */
-const SCENE = {
+var SCENE = {
   awake: {
     size: 40,
     intensity: 0.85,
@@ -781,34 +780,34 @@ function lerpColor(a, b, k) {
   if (!a || typeof a !== "string" || a[0] !== "#" || a.length < 7) a = "#7aa4d0";
   if (!b || typeof b !== "string" || b[0] !== "#" || b.length < 7) b = "#7aa4d0";
   if (!isFinite(k)) k = 0;
-  const pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
-  const pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
-  const m = lerpArr(pa, pb, k).map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
+  var pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+  var pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+  var m = lerpArr(pa, pb, k).map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
   return "#" + m;
 }
 // Rotate a hex colour's hue by `deg` degrees (keeps S/L) — used to build a vivid
 // analogous palette inside the orb so its colours visibly differ and mix.
 function hueShift(hex, deg) {
   if (!hex || typeof hex !== "string" || hex[0] !== "#" || hex.length < 7) return "#7aa4d0";
-  let r = parseInt(hex.slice(1, 3), 16) / 255,
+  var r = parseInt(hex.slice(1, 3), 16) / 255,
     g = parseInt(hex.slice(3, 5), 16) / 255,
     b = parseInt(hex.slice(5, 7), 16) / 255;
-  const mx = Math.max(r, g, b),
+  var mx = Math.max(r, g, b),
     mn = Math.min(r, g, b);
-  let h,
+  var h,
     s,
     l = (mx + mn) / 2;
   if (mx === mn) {
     h = s = 0;
   } else {
-    const d = mx - mn;
+    var d = mx - mn;
     s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
     h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
     h /= 6;
   }
   h = (h + deg / 360) % 1;
   if (h < 0) h += 1;
-  const hk = (p, q, x) => {
+  var hk = (p, q, x) => {
     if (x < 0) x += 1;
     if (x > 1) x -= 1;
     if (x < 1 / 6) return p + (q - p) * 6 * x;
@@ -816,17 +815,17 @@ function hueShift(hex, deg) {
     if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6;
     return p;
   };
-  let R, G, B;
+  var R, G, B;
   if (s === 0) {
     R = G = B = l;
   } else {
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s,
+    var q = l < 0.5 ? l * (1 + s) : l + s - l * s,
       p = 2 * l - q;
     R = hk(p, q, h + 1 / 3);
     G = hk(p, q, h);
     B = hk(p, q, h - 1 / 3);
   }
-  const to = v => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0");
+  var to = v => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0");
   return "#" + to(R) + to(G) + to(B);
 }
 function Stage({
@@ -835,18 +834,18 @@ function Stage({
   blend,
   dark = true
 }) {
-  const t = useT();
-  const cur = SCENE[mode];
-  const prev = prevMode ? SCENE[prevMode] : null;
-  const k = prev ? blend : 1;
-  const size = prev ? lerp(prev.size, cur.size, k) : cur.size;
-  const intensity = prev ? lerp(prev.intensity, cur.intensity, k) : cur.intensity;
-  const tint = prev ? cur.tint.map((c, i) => lerpColor(prev.tint[i], c, k)) : cur.tint;
-  const aComfort = mode === "comfort" ? 1 : prevMode === "comfort" ? 1 - blend : 0;
-  const aState = mode === "state" ? 1 : prevMode === "state" ? 1 - blend : 0;
-  const aComp = mode === "compound" ? 1 : prevMode === "compound" ? 1 - blend : 0;
-  const aTog = mode === "together" ? 1 : prevMode === "together" ? 1 - blend : 0;
-  const aHab = mode === "habits" ? 1 : prevMode === "habits" ? 1 - blend : 0;
+  var t = useT();
+  var cur = SCENE[mode];
+  var prev = prevMode ? SCENE[prevMode] : null;
+  var k = prev ? blend : 1;
+  var size = prev ? lerp(prev.size, cur.size, k) : cur.size;
+  var intensity = prev ? lerp(prev.intensity, cur.intensity, k) : cur.intensity;
+  var tint = prev ? cur.tint.map((c, i) => lerpColor(prev.tint[i], c, k)) : cur.tint;
+  var aComfort = mode === "comfort" ? 1 : prevMode === "comfort" ? 1 - blend : 0;
+  var aState = mode === "state" ? 1 : prevMode === "state" ? 1 - blend : 0;
+  var aComp = mode === "compound" ? 1 : prevMode === "compound" ? 1 - blend : 0;
+  var aTog = mode === "together" ? 1 : prevMode === "together" ? 1 - blend : 0;
+  var aHab = mode === "habits" ? 1 : prevMode === "habits" ? 1 - blend : 0;
   return /*#__PURE__*/React.createElement("svg", {
     viewBox: "-160 -160 320 320",
     style: {
@@ -897,17 +896,17 @@ function StarField({
   opacity = 0.45,
   dark = true
 }) {
-  const ref = useIR(null);
+  var ref = useIR(null);
   useIE(() => {
     if (!ref.current) return;
-    const cvs = ref.current;
-    const ctx = cvs.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    const r = cvs.getBoundingClientRect();
+    var cvs = ref.current;
+    var ctx = cvs.getContext("2d");
+    var dpr = window.devicePixelRatio || 1;
+    var r = cvs.getBoundingClientRect();
     cvs.width = r.width * dpr;
     cvs.height = r.height * dpr;
-    const rgb = dark ? "255,255,255" : "90,120,160";
-    const stars = Array.from({
+    var rgb = dark ? "255,255,255" : "90,120,160";
+    var stars = Array.from({
       length: count
     }, () => ({
       x: Math.random(),
@@ -916,13 +915,13 @@ function StarField({
       p: Math.random() * Math.PI * 2,
       s: Math.random() * 0.5 + 0.4
     }));
-    let raf,
+    var raf,
       start = performance.now();
-    const draw = now => {
-      const t = (now - start) / 1000;
+    var draw = now => {
+      var t = (now - start) / 1000;
       ctx.clearRect(0, 0, cvs.width, cvs.height);
       stars.forEach(s => {
-        const tw = 0.4 + Math.sin(t * s.s + s.p) * 0.6;
+        var tw = 0.4 + Math.sin(t * s.s + s.p) * 0.6;
         ctx.beginPath();
         ctx.arc(s.x * cvs.width, s.y * cvs.height, s.r * dpr, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${rgb},${tw * opacity})`;
@@ -959,16 +958,16 @@ function Reveal({
   }, children);
 }
 function IntroScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const [step, setStep] = useIS(0);
-  const [prev, setPrev] = useIS(null);
-  const [blendStart, setBlendStart] = useIS(0);
-  const t = useT();
-  const blend = Math.min(1, (t - blendStart) / 1.2);
-  const effectivePrev = blend < 1 ? prev : null;
-  const slides = [{
+  var [step, setStep] = useIS(0);
+  var [prev, setPrev] = useIS(null);
+  var [blendStart, setBlendStart] = useIS(0);
+  var t = useT();
+  var blend = Math.min(1, (t - blendStart) / 1.2);
+  var effectivePrev = blend < 1 ? prev : null;
+  var slides = [{
     mode: "awake",
     eyebrow: "Состояние",
     title: "Ты не видишь мир таким, какой он есть",
@@ -1005,15 +1004,15 @@ function IntroScreen() {
     sub: "Состояние не вырастить, не замечая его. Отметь, как ты прямо сейчас — отсюда и начнём.",
     glow: "rgba(180,210,240,0.45)"
   }];
-  const cur = slides[step];
-  const last = step === slides.length - 1;
-  const go = next => {
+  var cur = slides[step];
+  var last = step === slides.length - 1;
+  var go = next => {
     if (next === step) return;
     setPrev(slides[step].mode);
     setBlendStart(t);
     setStep(next);
   };
-  const finish = () => {
+  var finish = () => {
     if (window.tgHaptic) {
       try {
         window.tgHaptic("light");
@@ -1023,14 +1022,14 @@ function IntroScreen() {
   };
 
   // Theme-aware: follows the .theme-light / .theme-dark wrapper from the frame.
-  const wrapRef = useIR(null);
-  const [dark, setDark] = useIS(true);
+  var wrapRef = useIR(null);
+  var [dark, setDark] = useIS(true);
   useIE(() => {
-    let n = wrapRef.current;
+    var n = wrapRef.current;
     while (n && !(n.classList && (n.classList.contains("theme-light") || n.classList.contains("theme-dark")))) n = n.parentElement;
     if (n && n.classList.contains("theme-light")) setDark(false);
   }, []);
-  const pal = dark ? {
+  var pal = dark ? {
     bg: `radial-gradient(circle at 50% 38%, ${cur.glow} 0%, transparent 55%), radial-gradient(ellipse at 50% 100%, rgba(20,35,60,0.6) 0%, transparent 60%), #060912`,
     title: "#fff",
     sub: "rgba(255,255,255,0.66)",
@@ -1065,7 +1064,7 @@ function IntroScreen() {
     moodText: "#15233c",
     moodTile: "rgba(70,120,190,0.07)"
   };
-  const moods = [{
+  var moods = [{
     i: "🤩",
     t: "Энергия",
     c: "rgba(255,221,90,0.18)"
@@ -1347,4 +1346,3 @@ Object.assign(window, {
   StaticOrb,
   tintFromMood
 });
-})();

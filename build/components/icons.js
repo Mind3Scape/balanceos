@@ -1,7 +1,6 @@
-(function(){
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 /* Icon set for BalanceOS — line-art SVGs that match the Figma's stroke-icon system */
-const Icon = ({
+var Icon = ({
   children,
   size = 24,
   color = "currentColor",
@@ -21,7 +20,7 @@ const Icon = ({
     strokeLinejoin: "round"
   }, rest), children);
 };
-const I = {
+var I = {
   Home: ({
     filled,
     ...p
@@ -215,7 +214,7 @@ const I = {
     filled,
     ...p
   }) => {
-    const f = filled ? p.color || "currentColor" : "none";
+    var f = filled ? p.color || "currentColor" : "none";
     return /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
       d: "M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z",
       fill: f
@@ -405,4 +404,3 @@ const I = {
   }))
 };
 window.I = I;
-})();

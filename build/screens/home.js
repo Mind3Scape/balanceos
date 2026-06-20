@@ -1,16 +1,15 @@
-(function(){
 /* HOME — theme-aware. Streaks, AI bell, customizable widgets, deeper hierarchy */
-const {
+var {
   useState: useHomeState
 } = React;
 
 /* Detect dark/light theme from wrapper class */
 function useThemeFlag(ref) {
-  const [isDark, setIsDark] = React.useState(false);
+  var [isDark, setIsDark] = React.useState(false);
   React.useEffect(() => {
-    const el = ref.current;
+    var el = ref.current;
     if (!el) return;
-    let n = el.parentElement;
+    var n = el.parentElement;
     while (n && !n.classList.contains("theme-light") && !n.classList.contains("theme-dark")) n = n.parentElement;
     setIsDark(!!(n && n.classList.contains("theme-dark")));
   }, []);
@@ -27,23 +26,23 @@ function BalanceWheel({
   size = 122,
   isDark = false
 }) {
-  const uid = React.useMemo(() => "bw" + Math.random().toString(36).slice(2, 7), []);
-  const app = useApp ? useApp() : null;
-  const enabled = app?.wheelSpheres && app.wheelSpheres.length >= 3 ? app.wheelSpheres : window.DEFAULT_SPHERES || [];
-  const axes = (window.ALL_SPHERES || []).filter(s => enabled.includes(s.id));
-  const cx = size / 2,
+  var uid = React.useMemo(() => "bw" + Math.random().toString(36).slice(2, 7), []);
+  var app = useApp ? useApp() : null;
+  var enabled = app?.wheelSpheres && app.wheelSpheres.length >= 3 ? app.wheelSpheres : window.DEFAULT_SPHERES || [];
+  var axes = (window.ALL_SPHERES || []).filter(s => enabled.includes(s.id));
+  var cx = size / 2,
     cy = size / 2,
     r = size * 0.40;
-  const pad = 30;
-  const W = size + pad * 2;
-  const ang = i => i / axes.length * Math.PI * 2 - Math.PI / 2;
-  const pt = (i, v, rad = r) => [cx + Math.cos(ang(i)) * rad * v, cy + Math.sin(ang(i)) * rad * v];
-  const poly = axes.map((a, i) => {
-    const [x, y] = pt(i, a.v);
+  var pad = 30;
+  var W = size + pad * 2;
+  var ang = i => i / axes.length * Math.PI * 2 - Math.PI / 2;
+  var pt = (i, v, rad = r) => [cx + Math.cos(ang(i)) * rad * v, cy + Math.sin(ang(i)) * rad * v];
+  var poly = axes.map((a, i) => {
+    var [x, y] = pt(i, a.v);
     return (i ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1);
   }).join(" ") + "Z";
-  const grid = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.055)";
-  const chipFill = isDark ? "#1d1d20" : "#ffffff";
+  var grid = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.055)";
+  var chipFill = isDark ? "#1d1d20" : "#ffffff";
   return /*#__PURE__*/React.createElement("svg", {
     width: W,
     height: W,
@@ -87,7 +86,7 @@ function BalanceWheel({
     strokeWidth: "1.7",
     strokeLinejoin: "round"
   }), axes.map((a, i) => {
-    const [x, y] = pt(i, a.v);
+    var [x, y] = pt(i, a.v);
     return /*#__PURE__*/React.createElement("circle", {
       key: i,
       cx: x,
@@ -98,7 +97,7 @@ function BalanceWheel({
       strokeWidth: "1.2"
     });
   }), axes.map((a, i) => {
-    const [ox, oy] = pt(i, 1.26);
+    var [ox, oy] = pt(i, 1.26);
     return /*#__PURE__*/React.createElement("text", {
       key: i,
       x: ox,
@@ -118,43 +117,43 @@ function HomeHeroSwipe({
   ringPct,
   isDark
 }) {
-  const [page, setPage] = useHomeState(0);
+  var [page, setPage] = useHomeState(0);
   // Ring grows from 0 on appear (and eases to its new value on change).
-  const [ringShown, setRingShown] = useHomeState(0);
+  var [ringShown, setRingShown] = useHomeState(0);
   React.useEffect(() => {
-    const t = setTimeout(() => setRingShown(ringPct), 80);
+    var t = setTimeout(() => setRingShown(ringPct), 80);
     return () => clearTimeout(t);
   }, [ringPct]);
-  const heroApp = useApp ? useApp() : null;
+  var heroApp = useApp ? useApp() : null;
   // The avatar ring + the glow under it follow the current state orb's colour.
-  const mood = heroApp?.mood;
-  const moodTint = mood && typeof tintFromMood === "function" ? tintFromMood(mood.c) : null;
-  const fresh = heroApp?.mode === "fresh";
-  const enabledW = heroApp?.wheelSpheres && heroApp.wheelSpheres.length >= 3 ? heroApp.wheelSpheres : window.DEFAULT_SPHERES || [];
-  const wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
-  const avgBalance = wAxes.length ? Math.round(wAxes.reduce((s, a) => s + a.v, 0) / wAxes.length * 100) : 0;
-  const weakSpheres = [...wAxes].sort((a, b) => a.v - b.v).slice(0, 2);
-  const startX = React.useRef(null);
-  const onTouchStart = e => {
+  var mood = heroApp?.mood;
+  var moodTint = mood && typeof tintFromMood === "function" ? tintFromMood(mood.c) : null;
+  var fresh = heroApp?.mode === "fresh";
+  var enabledW = heroApp?.wheelSpheres && heroApp.wheelSpheres.length >= 3 ? heroApp.wheelSpheres : window.DEFAULT_SPHERES || [];
+  var wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
+  var avgBalance = wAxes.length ? Math.round(wAxes.reduce((s, a) => s + a.v, 0) / wAxes.length * 100) : 0;
+  var weakSpheres = [...wAxes].sort((a, b) => a.v - b.v).slice(0, 2);
+  var startX = React.useRef(null);
+  var onTouchStart = e => {
     startX.current = e.touches[0].clientX;
   };
-  const onTouchEnd = e => {
+  var onTouchEnd = e => {
     if (startX.current == null) return;
-    const dx = e.changedTouches[0].clientX - startX.current;
+    var dx = e.changedTouches[0].clientX - startX.current;
     if (dx < -40 && page < 1) setPage(page + 1);
     if (dx > 40 && page > 0) setPage(page - 1);
     startX.current = null;
   };
-  const chipBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.85)";
-  const chipBd = isDark ? "0" : "1px solid rgba(0,0,0,0.05)";
-  const cardBg = isDark ? "linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)" : "linear-gradient(160deg, #ffffff 0%, #f5f5f5 100%)";
-  const cardBd = isDark ? "0" : "1px solid rgba(0,0,0,0.04)";
-  const ringBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const dotIdle = isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.18)";
-  const dotActive = isDark ? "#fff" : "#0a0a0a";
+  var chipBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.85)";
+  var chipBd = isDark ? "0" : "1px solid rgba(0,0,0,0.05)";
+  var cardBg = isDark ? "linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)" : "linear-gradient(160deg, #ffffff 0%, #f5f5f5 100%)";
+  var cardBd = isDark ? "0" : "1px solid rgba(0,0,0,0.04)";
+  var ringBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  var dotIdle = isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.18)";
+  var dotActive = isDark ? "#fff" : "#0a0a0a";
   // Demo "Balance AI" daily brief — one short line that follows the user's
   // current state (like the orb) + the day's progress. Replaces the old quote.
-  const AI_BRIEF = {
+  var AI_BRIEF = {
     "Энергия": "Энергии много — берись за самое важное сейчас.",
     "Радость": "Ты в ресурсе — отличный день, чтобы закрыть серию.",
     "Спокойствие": "Спокойствие — твоё время для глубокого чтения.",
@@ -162,8 +161,8 @@ function HomeHeroSwipe({
     "Упадок": "Сделай одно маленькое дело — этого сегодня достаточно.",
     "Усталость": "Сбавь темп: закрой одну привычку — и довольно."
   };
-  const aiBrief = totalCount && doneCount >= totalCount ? "День закрыт — ты в потоке. Так держи ритм." : AI_BRIEF[mood && mood.t] || "Чтение легче даётся вечером — оставь его на потом.";
-  const _pages = [/* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
+  var aiBrief = totalCount && doneCount >= totalCount ? "День закрыт — ты в потоке. Так держи ритм." : AI_BRIEF[mood && mood.t] || "Чтение легче даётся вечером — оставь его на потом.";
+  var _pages = [/* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
   fresh ? /*#__PURE__*/React.createElement("div", {
     key: "hints",
     style: {
@@ -538,7 +537,7 @@ function HomeHeroSwipe({
     }
   })))))))];
   // Fresh new user: only the quote/avatar page (no balance wheel until there's data).
-  const pages = fresh ? _pages.slice(0, 1) : _pages;
+  var pages = fresh ? _pages.slice(0, 1) : _pages;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: cardBg,
@@ -590,38 +589,38 @@ function HomeHeroSwipe({
   }))));
 }
 function HomeScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const {
+  var {
     open: openSheet
   } = useSheet();
-  const app = useApp();
-  const widgets = app?.widgets || {};
-  const mood = app?.mood;
-  const wrapRef = React.useRef(null);
-  const isDark = useThemeFlag(wrapRef);
-  const [tab, setTab] = useHomeState("habits");
+  var app = useApp();
+  var widgets = app?.widgets || {};
+  var mood = app?.mood;
+  var wrapRef = React.useRef(null);
+  var isDark = useThemeFlag(wrapRef);
+  var [tab, setTab] = useHomeState("habits");
   // Habits + goals come from the shared app store, so a check here shows up
   // on the Habits tab too (and vice versa).
-  const habits = app?.habits || [];
-  const goals = app?.goals || [];
-  const teams = app?.teams || [];
-  const userName = app?.userName ?? "";
-  const toggle = app?.toggleHabit || (() => {});
-  const remove = app?.removeHabit || (() => {});
-  const doneCount = habits.filter(h => h.done).length;
-  const totalCount = habits.length;
-  const ringPct = totalCount ? doneCount / totalCount : 0;
-  const dayStreak = app?.mode === "fresh" ? 0 : 27;
+  var habits = app?.habits || [];
+  var goals = app?.goals || [];
+  var teams = app?.teams || [];
+  var userName = app?.userName ?? "";
+  var toggle = app?.toggleHabit || (() => {});
+  var remove = app?.removeHabit || (() => {});
+  var doneCount = habits.filter(h => h.done).length;
+  var totalCount = habits.length;
+  var ringPct = totalCount ? doneCount / totalCount : 0;
+  var dayStreak = app?.mode === "fresh" ? 0 : 27;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
   // sparkle burst when the whole day closes (doneCount reaches total).
-  const [celebrate, setCelebrate] = React.useState(null);
-  const prevDoneRef = React.useRef(doneCount);
+  var [celebrate, setCelebrate] = React.useState(null);
+  var prevDoneRef = React.useRef(doneCount);
   React.useEffect(() => {
     if (doneCount > prevDoneRef.current) {
-      const full = totalCount > 0 && doneCount === totalCount;
+      var full = totalCount > 0 && doneCount === totalCount;
       setCelebrate({
         xp: full ? 100 : 15,
         full,
@@ -632,7 +631,7 @@ function HomeScreen() {
           window.tgHaptic(full ? "heavy" : "light");
         } catch (e) {}
       }
-      const t = window.setTimeout(() => setCelebrate(null), full ? 2000 : 1200);
+      var t = window.setTimeout(() => setCelebrate(null), full ? 2000 : 1200);
       prevDoneRef.current = doneCount;
       return () => window.clearTimeout(t);
     }
@@ -640,15 +639,15 @@ function HomeScreen() {
   }, [doneCount, totalCount]);
 
   // Theme tokens
-  const cardBg = isDark ? "rgba(39,39,42,0.55)" : "#fff";
-  const cardBorder = "0";
-  const chipBg = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
-  const iconBg = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
-  const bellIcon = isDark ? "#fff" : "#0a0a0a";
-  const dividerLn = isDark ? "rgba(255,255,255,0.06)" : "var(--line)";
-  const moodGrad = c => isDark ? `linear-gradient(135deg, ${c}66 0%, ${c}22 60%, rgba(255,255,255,0.02) 100%)` : `linear-gradient(135deg, ${c} 0%, ${c}66 60%, var(--card-fade) 100%)`;
-  const cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
-  const rowBg = isDark ? "#1b1b1e" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
+  var cardBg = isDark ? "rgba(39,39,42,0.55)" : "#fff";
+  var cardBorder = "0";
+  var chipBg = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
+  var iconBg = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
+  var bellIcon = isDark ? "#fff" : "#0a0a0a";
+  var dividerLn = isDark ? "rgba(255,255,255,0.06)" : "var(--line)";
+  var moodGrad = c => isDark ? `linear-gradient(135deg, ${c}66 0%, ${c}22 60%, rgba(255,255,255,0.02) 100%)` : `linear-gradient(135deg, ${c} 0%, ${c}66 60%, var(--card-fade) 100%)`;
+  var cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
+  var rowBg = isDark ? "#1b1b1e" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
@@ -751,7 +750,7 @@ function HomeScreen() {
       animation: "bosXpPop 1.15s cubic-bezier(0.22,1,0.36,1) forwards"
     }
   }, "\u2726 +", celebrate.xp, " XP", celebrate.full ? " · день закрыт" : ""), celebrate.full && [0, 1, 2, 3, 4, 5, 6, 7].map(i => {
-    const a = i / 8 * Math.PI * 2;
+    var a = i / 8 * Math.PI * 2;
     return /*#__PURE__*/React.createElement("span", {
       key: i,
       style: {
@@ -1339,7 +1338,7 @@ function HomeScreen() {
       gap: 8
     }
   }, goals.map(g => {
-    const pct = g.target ? g.current / g.target : 0;
+    var pct = g.target ? g.current / g.target : 0;
     return /*#__PURE__*/React.createElement("div", {
       key: g.id,
       className: "tap",
@@ -1589,13 +1588,13 @@ function HomeScreen() {
 function ShareAppSheet({
   dark = false
 }) {
-  const {
+  var {
     close
   } = useSheet();
-  const [copied, setCopied] = useHomeState(false);
+  var [copied, setCopied] = useHomeState(false);
   // The real, live web app — works on any phone, also opens fine from Telegram.
-  const APP_URL = "https://mind3scape.github.io/balanceos";
-  const copyLink = () => {
+  var APP_URL = "https://mind3scape.github.io/balanceos";
+  var copyLink = () => {
     try {
       navigator.clipboard.writeText(APP_URL);
     } catch (e) {}
@@ -1607,7 +1606,7 @@ function ShareAppSheet({
       } catch (e) {}
     }
   };
-  const shareLink = async () => {
+  var shareLink = async () => {
     try {
       if (navigator.share) {
         await navigator.share({
@@ -1622,7 +1621,7 @@ function ShareAppSheet({
     }
     copyLink();
   };
-  const C = dark ? {
+  var C = dark ? {
     text: "#fff",
     sub: "rgba(255,255,255,0.5)",
     tile: "rgba(255,255,255,0.08)",
@@ -1633,7 +1632,7 @@ function ShareAppSheet({
     tile: "#f1f1f3",
     line: "rgba(0,0,0,0.06)"
   };
-  const friends = [{
+  var friends = [{
     name: "Катя",
     i: "К",
     c: "#f0c8a8"
@@ -1654,7 +1653,7 @@ function ShareAppSheet({
     i: "А",
     c: "#d4c8e8"
   }];
-  const targets = [{
+  var targets = [{
     e: "💬",
     t: "Сообщения"
   }, {
@@ -1844,19 +1843,19 @@ function ShareAppSheet({
 
 /* Home customization screen — pick widgets (wired to global app.widgets) */
 function HomeCustomizeScreen() {
-  const {
+  var {
     navigate
   } = useNav();
-  const app = useApp();
-  const widgets = app?.widgets || {};
-  const isDark = app?.themeOverride === "dark";
-  const setOne = (id, v) => app?.setWidgets({
+  var app = useApp();
+  var widgets = app?.widgets || {};
+  var isDark = app?.themeOverride === "dark";
+  var setOne = (id, v) => app?.setWidgets({
     ...widgets,
     [id]: v
   });
   // Only widgets that REALLY exist and are wired into the home render. The old
   // quote/ai/weather/books toggles did nothing — removed so every switch works.
-  const opts = [{
+  var opts = [{
     id: "mood",
     i: "💭",
     t: "Состояние",
@@ -1963,35 +1962,35 @@ function MoodWidget({
   navigate
 }) {
   // Last 7 days (mock); use real app.dayMoods if present
-  const today = 28;
-  const last7 = [22, 23, 24, 25, 26, 27, 28].map(d => ({
+  var today = 28;
+  var last7 = [22, 23, 24, 25, 26, 27, 28].map(d => ({
     d,
     m: app?.dayMoods && app.dayMoods[d] != null ? MOOD_OPTIONS[app.dayMoods[d]] : null,
     today: d === today
   }));
-  const logged = last7.filter(d => d.m).length;
-  const sameAsToday = last7.filter(d => d.m && d.m.t === mood.t).length;
+  var logged = last7.filter(d => d.m).length;
+  var sameAsToday = last7.filter(d => d.m && d.m.t === mood.t).length;
 
   // hex deepener for orb gradients
-  const deep = (hex, amt = 0.45) => {
+  var deep = (hex, amt = 0.45) => {
     if (!hex || hex[0] !== "#") return "#222";
-    let h = hex.slice(1);
+    var h = hex.slice(1);
     if (h.length === 3) h = h.split("").map(c => c + c).join("");
-    const n = parseInt(h, 16);
-    const r = Math.max(0, (n >> 16 & 255) * (1 - amt)) | 0;
-    const g = Math.max(0, (n >> 8 & 255) * (1 - amt)) | 0;
-    const b = Math.max(0, (n & 255) * (1 - amt)) | 0;
+    var n = parseInt(h, 16);
+    var r = Math.max(0, (n >> 16 & 255) * (1 - amt)) | 0;
+    var g = Math.max(0, (n >> 8 & 255) * (1 - amt)) | 0;
+    var b = Math.max(0, (n & 255) * (1 - amt)) | 0;
     return "#" + (r << 16 | g << 8 | b).toString(16).padStart(6, "0");
   };
-  const bg = isDark ? `linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)` : `#ffffff`;
-  const border = isDark ? "0" : "1px solid rgba(0,0,0,0.04)";
-  const labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.50)";
-  const subMuted = isDark ? "rgba(255,255,255,0.60)" : "rgba(0,0,0,0.55)";
-  const titleColor = isDark ? "#fff" : "var(--text)";
-  const trailIdle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const trailRing = isDark ? "rgba(255,255,255,0.85)" : "#0a0a0a";
-  const chipBg = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
-  const fresh = app?.mode === "fresh";
+  var bg = isDark ? `linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)` : `#ffffff`;
+  var border = isDark ? "0" : "1px solid rgba(0,0,0,0.04)";
+  var labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.50)";
+  var subMuted = isDark ? "rgba(255,255,255,0.60)" : "rgba(0,0,0,0.55)";
+  var titleColor = isDark ? "#fff" : "var(--text)";
+  var trailIdle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  var trailRing = isDark ? "rgba(255,255,255,0.85)" : "#0a0a0a";
+  var chipBg = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
+  var fresh = app?.mode === "fresh";
   return /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("mood"),
     className: "tap",
@@ -2135,4 +2134,3 @@ function MoodWidget({
     }
   }, logged, "/7 \u043E\u0442\u043C\u0435\u0447\u0435\u043D\u043E")));
 }
-})();
