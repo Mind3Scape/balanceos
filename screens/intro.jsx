@@ -559,7 +559,7 @@ function IntroScreen() {
           </div>
         </Reveal>
         <Reveal k={"ti"+step} delay={0.25}>
-          <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.8px", textWrap: "balance", maxWidth: 300, margin: "0 auto", color: pal.title }}>{cur.title}</div>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.8px", textWrap: "balance", maxWidth: 300, margin: "0 auto", color: pal.title }}>{cur.title}</div>
         </Reveal>
         {cur.sub && (
           <Reveal k={"su"+step} delay={0.45} style={{ marginTop: 12 }}>

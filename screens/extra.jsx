@@ -371,7 +371,7 @@ function MoodScreen() {
 
       {/* Headline */}
       <div style={{ position: "relative", zIndex: 2, padding: "0 24px", textAlign: "center" }}>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", minHeight: 36 }}>
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", minHeight: 36 }}>
           {cur ? cur.t : "Как оно ощущается\u00A0сейчас?"}
         </div>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 6, lineHeight: 1.5 }}>

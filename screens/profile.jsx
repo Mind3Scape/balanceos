@@ -112,7 +112,7 @@ function ProfileScreen() {
             <I.Sparkles size={11} /> Уровень 7
           </div>
         </div>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontWeight: 700, fontSize: 28, marginTop: 20 }}>Павел Хиллсон</div>
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontWeight: 700, fontSize: 28, marginTop: 20 }}>Павел Хиллсон</div>
         <div className="bos-sys-text-2" style={{ fontSize: 14 }}>tomhill@mail.com</div>
         {/* Quick stats — level energy + credits */}
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 14 }}>
@@ -681,7 +681,7 @@ function AIScreen() {
             <svg viewBox="-80 -80 160 160" width="112" height="112" style={{ overflow: "visible" }}>
               <SiriOrb r={42} tint={orbTint} t={t} intensity={1}/>
             </svg>
-            <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 21, lineHeight: 1.25, marginTop: 4, letterSpacing: "-0.3px" }}>Привет! Я твой ИИ-помощник.</div>
+            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 21, lineHeight: 1.25, marginTop: 4, letterSpacing: "-0.3px" }}>Привет! Я твой ИИ-помощник.</div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5, maxWidth: 270 }}>Пока я почти ничего о тебе не знаю. Дай немного данных — и я начну подсказывать точно под тебя.</div>
           </div>
         </div>
@@ -795,7 +795,7 @@ function AIScreen() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, color: "rgba(180,210,255,0.85)", fontWeight: 600, letterSpacing: 1.4, textTransform: "uppercase" }}>Чтение дня</div>
-            <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 22, lineHeight: 1.2, marginTop: 6, letterSpacing: "-0.3px" }}>
+            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 22, lineHeight: 1.2, marginTop: 6, letterSpacing: "-0.3px" }}>
               Ты спокойнее<br/>после прогулок.
             </div>
             <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5 }}>
@@ -1017,7 +1017,7 @@ function OnboardingScreen() {
     <div className="page-in" style={{ height: "100%", display: "flex", flexDirection: "column", color: "#fff", padding: 24 }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "0 8px" }}>
         <div style={{ width: 110, height: 110, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", boxShadow: "0 0 80px rgba(255,222,52,0.25)" }}/>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 22, fontWeight: 500, marginTop: 60, lineHeight: 1.3, maxWidth: 280 }}>{slides[step].t}</div>
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 22, fontWeight: 500, marginTop: 60, lineHeight: 1.3, maxWidth: 280 }}>{slides[step].t}</div>
         {slides[step].s && <div style={{ fontSize: 14, color: "#9f9fa9", marginTop: 14, maxWidth: 280, lineHeight: 1.5 }}>{slides[step].s}</div>}
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>

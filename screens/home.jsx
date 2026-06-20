@@ -149,7 +149,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, display: "inline-flex", alignItems: "center", gap: 5 }}>
             <span style={{ color: "#E0A500" }}>✦</span> Balance AI
           </div>
-          <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 16.5, color: "var(--text)", marginTop: 7, lineHeight: 1.34, letterSpacing: "-0.2px" }}>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 16.5, color: "var(--text)", marginTop: 7, lineHeight: 1.34, letterSpacing: "-0.2px" }}>
             {aiBrief}
           </div>
         </div>
@@ -697,7 +697,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{fresh ? "Как ты сейчас?" : mood.t}</div>
+          <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{fresh ? "Как ты сейчас?" : mood.t}</div>
           <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>{fresh ? "Нажми, чтобы отметить первое состояние." : "Нажми, чтобы обновить — сфера следует за твоим состоянием."}</div>
         </div>
       </div>

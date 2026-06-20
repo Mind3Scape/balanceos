@@ -3,7 +3,7 @@
   --bg: #f1f1f1;
   --accent: #FEDE34;
   --bos-radius: 22px;
-  --bos-title-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Manrope", system-ui, sans-serif;
+  --bos-title-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
   --bos-row-pad: 14px 16px;
   --bos-sphere-glow: 1;
   --bos-avatars: inline-flex;
@@ -49,7 +49,7 @@ html, body {
   margin: 0;
   padding: 0;
   background: #2a2a2a;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Manrope", system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -117,7 +117,7 @@ button { font: inherit; cursor: pointer; }
   align-items: center;
   justify-content: space-between;
   padding: 18px 32px 0 36px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Manrope", system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   font-weight: 600;
   font-size: 17px;
   z-index: 10;

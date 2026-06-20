@@ -92,7 +92,7 @@ function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, color: "rgba(180,210,255,0.85)", fontWeight: 600, letterSpacing: 1.4, textTransform: "uppercase" }}>Нетворк · Уровень 10</div>
-            <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 22, lineHeight: 1.15, marginTop: 6, letterSpacing: "-0.3px" }}>
+            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 22, lineHeight: 1.15, marginTop: 6, letterSpacing: "-0.3px" }}>
               Создан для<br/>преданных делу.
             </div>
             <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5 }}>
@@ -209,7 +209,7 @@ function YourImpactCard({ level }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Твой вклад в сообщество</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
-            <span style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 30, fontWeight: 400, letterSpacing: "-0.5px" }}>{myImpact}</span>
+            <span style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 400, letterSpacing: "-0.5px" }}>{myImpact}</span>
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", letterSpacing: 0.4 }}>очк. вклада · Уровень {level}</span>
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.5, marginTop: 4 }}>
@@ -1679,7 +1679,7 @@ function CourseDetailScreen() {
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, padding: "2px 8px", background: "var(--card-2)", borderRadius: 999, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600 }}>{c.lvl}</span>
             </div>
-            <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 26, lineHeight: 1.15, letterSpacing: "-0.4px", marginTop: 6, color: "var(--text)" }}>{c.t}</div>
+            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 26, lineHeight: 1.15, letterSpacing: "-0.4px", marginTop: 6, color: "var(--text)" }}>{c.t}</div>
             <div style={{ fontSize: 14, color: "var(--text-3)", marginTop: 8, lineHeight: 1.5 }}>{c.d}</div>
           </div>
         </div>

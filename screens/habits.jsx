@@ -614,14 +614,14 @@ function InfoScreen() {
       <div style={{ background: "#fff", borderRadius: 24, padding: "22px 20px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
         <div style={{ width: 56, height: 56, borderRadius: 16, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 30, marginBottom: 12 }}>{topic.emoji}</div>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>{topic.eyebrow}</div>
-        <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.5px", marginTop: 4, color: "var(--text)" }}>{topic.title}</div>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.5px", marginTop: 4, color: "var(--text)" }}>{topic.title}</div>
         <div style={{ fontSize: 15, color: "var(--text-3)", marginTop: 12, lineHeight: 1.55, letterSpacing: "-0.1px" }}>{topic.lede}</div>
       </div>
 
       {/* Pull quote */}
       <div style={{ background: "#0a0a0a", color: "#fff", borderRadius: 22, padding: "20px 22px", marginTop: 12, position: "relative", overflow: "hidden" }}>
-        <div aria-hidden style={{ position: "absolute", top: -10, right: -10, fontSize: 100, opacity: 0.06, fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", lineHeight: 1 }}>"</div>
-        <div style={{ fontFamily: "ui-serif, 'New York', 'Source Serif 4', serif", fontSize: 18, lineHeight: 1.4, position: "relative" }}>{topic.pull}</div>
+        <div aria-hidden style={{ position: "absolute", top: -10, right: -10, fontSize: 100, opacity: 0.06, fontFamily: "var(--bos-title-font)", lineHeight: 1 }}>"</div>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 18, lineHeight: 1.4, position: "relative" }}>{topic.pull}</div>
       </div>
 
       {/* Numbered sections */}

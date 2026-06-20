@@ -75,8 +75,8 @@ const TWEAK_DEFAULTS = {
   checkColor: "#232323",
 };
 const FONT_STACKS = {
-  serif: "ui-serif, 'New York', 'Source Serif 4', Georgia, serif",
-  sans: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif",
+  serif: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+  sans: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif",
   mono: "'SF Mono', Menlo, monospace",
 };
 const DENSITY_PAD = { compact: "10px 14px", regular: "14px 16px", comfy: "18px 20px" };
@@ -105,7 +105,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v64";
+const APP_VERSION = "v65";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
