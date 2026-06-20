@@ -601,7 +601,7 @@ function UnderlineTabs({ value, onChange, tabs }) {
       {tabs.map(tab => {
         const active = tab.id === value;
         return (
-          <button key={tab.id} onClick={() => onChange(tab.id)} className="tap" style={{
+          <button key={tab.id} data-tour={tab.id === "network" ? "network" : undefined} onClick={() => onChange(tab.id)} className="tap" style={{
             background: "transparent", border: 0, padding: "10px 14px 12px",
             fontSize: 14, fontWeight: 600,
             color: active ? "var(--text)" : "var(--text-4)",

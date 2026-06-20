@@ -930,7 +930,7 @@ function SignUpScreen() {
           background: "linear-gradient(135deg, #FEDE34 0%, #FFC400 100%)", color: "#0a0a0a",
           border: 0, borderRadius: 20, padding: "15px 16px", boxShadow: "0 12px 30px rgba(254,222,52,0.32)",
         }}>
-          <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(0,0,0,0.07)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>✨</span>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.55)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={23} color="#0a0a0a"/></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Посмотреть демо</div>
             <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.6)", marginTop: 2, lineHeight: 1.35 }}>Всё уже настроено — лучший способ понять, как это работает</div>

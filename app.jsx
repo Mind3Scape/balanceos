@@ -103,7 +103,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v55";
+const APP_VERSION = "v56";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -119,17 +119,25 @@ const ANIM = {
    Skippable at every step. Mounted in the phone shell so it survives tab fades. */
 const TOUR_STOPS = [
   { kind: "card", emoji: "✨", title: "Это не просто трекер привычек",
-    body: "BalanceOS — целая платформа: твои привычки, команды, тренеры и ИИ в одном месте. Давай за минуту покажу, что где.", cta: "Показать" },
-  { kind: "tab", tab: "home", idx: 0, eyebrow: "Главная", title: "Твой экран",
-    body: "Состояние, баланс жизни, серии — это виджеты. Собери экран под себя: что важно, то и наверху." },
-  { kind: "tab", tab: "habits", idx: 1, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
-    body: "Добавляй привычки и цели по кнопке «плюс». Любую привычку можно делать одному — или вместе с друзьями." },
-  { kind: "tab", tab: "community", idx: 2, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
-    body: "Команды, курсы и тренеры. Привычки вместе держат сильнее — и сюда хочется возвращаться." },
-  { kind: "tab", tab: "ai", idx: 3, eyebrow: "Помощник", title: "ИИ всегда под рукой",
-    body: "Спроси совет, попроси разобрать день или собрать план. Он держит в уме твой контекст." },
+    body: "BalanceOS — платформа: привычки, команды, наставники, курсы и ИИ. Уровень растёт — и открывается всё больше. Покажу за минуту.", cta: "Показать" },
+  { kind: "spot", tab: "home", sel: '.bos-tabbar button:nth-of-type(1)', radius: 16, eyebrow: "Главная", title: "Твой экран дня",
+    body: "Виджеты состояния, баланса и серий. Соберёшь под себя — что важно, то и наверху." },
+  { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Состояние", title: "Сердце приложения",
+    body: "Отметь, как ты сейчас — и всё подстроится: цвет, советы, баланс. Можно отметить #хэштегами, что за этим стоит." },
+  { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт за привычки",
+    body: "Каждая отметка качает уровень. Чем выше — тем больше открывается: новые наставники, контакты, возможности." },
+  { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
+    body: "Твоя личная система. Привычки и цели живут здесь." },
+  { kind: "spot", tab: "habits", sel: '[data-tour="add"]', radius: 999, eyebrow: "Создать", title: "Жми «плюс»",
+    body: "Добавляй привычки и цели. Любую можно делать одному — или вместе с друзьями, поддерживая серии." },
+  { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
+    body: "Команды, курсы, наставники. Привычки вместе держат сильнее." },
+  { kind: "spot", tab: "community", sel: '[data-tour="network"]', radius: 12, eyebrow: "Нетворк", title: "Контакты по уровню",
+    body: "Люди и наставники открываются с ростом уровня. А курсы — как ключи: прошёл курс → открылся доступ к новым контактам." },
+  { kind: "spot", tab: "ai", sel: '.bos-tabbar button:nth-of-type(4)', radius: 16, eyebrow: "Помощник", title: "ИИ всегда под рукой",
+    body: "Совет, разбор дня, план на завтра. Он держит в уме твой контекст." },
   { kind: "card", emoji: "🌟", title: "Готово — это твоё пространство",
-    body: "Сила состояния растёт, когда рядом люди. Загляни в каждый раздел — и зови своих.", cta: "Начать" },
+    body: "Отмечай состояние, расти в уровне, открывай людей. Чем дальше — тем больше возможностей. Поехали.", cta: "Начать" },
 ];
 
 function GuidedTour({ step, setStep, endTour, navigate, dark }) {
@@ -139,24 +147,25 @@ function GuidedTour({ step, setStep, endTour, navigate, dark }) {
 
   // Drive the tab bar so each "tab" stop shows the real section behind the dim.
   useEffect(() => {
-    if (stop && stop.kind === "tab") navigate(stop.tab);
+    if (stop && stop.kind === "spot") navigate(stop.tab);
   }, [step]); // eslint-disable-line
 
   // Measure the active tab button so the spotlight hole + caret land on it.
   useEffect(() => {
-    if (!stop || stop.kind !== "tab") { setSpot(null); return undefined; }
+    if (!stop || stop.kind !== "spot") { setSpot(null); return undefined; }
+    let raf2;
     const measure = () => {
       const shell = rootRef.current && rootRef.current.parentElement;
       if (!shell) return;
-      const btn = shell.querySelectorAll(".bos-tabbar button")[stop.idx];
-      if (!btn) return;
-      const s = shell.getBoundingClientRect(), b = btn.getBoundingClientRect();
-      setSpot({ cx: b.left - s.left + b.width / 2, cy: b.top - s.top + b.height / 2, top: b.top - s.top, w: s.width, shellH: s.height });
+      const el = shell.querySelector(stop.sel);
+      if (!el) return;
+      const s = shell.getBoundingClientRect(), b = el.getBoundingClientRect();
+      setSpot({ x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, sw: s.width, sh: s.height });
     };
-    const t = window.setTimeout(measure, 380); // after the tab fade settles
-    const raf = requestAnimationFrame(measure);
+    const t = window.setTimeout(measure, 400); // after the tab fade settles
+    const raf = requestAnimationFrame(() => { raf2 = requestAnimationFrame(measure); });
     window.addEventListener("resize", measure);
-    return () => { window.clearTimeout(t); cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
+    return () => { window.clearTimeout(t); cancelAnimationFrame(raf); cancelAnimationFrame(raf2); window.removeEventListener("resize", measure); };
   }, [step]); // eslint-disable-line
 
   if (!stop) return null;
@@ -200,18 +209,21 @@ function GuidedTour({ step, setStep, endTour, navigate, dark }) {
     );
   }
 
-  // ── Tab spotlight ──
-  const cx = spot ? spot.cx : 200, cy = spot ? spot.cy : 800;
-  const cardBottom = spot ? (spot.shellH - spot.top + 22) : 110;
-  const caretLeft = spot ? Math.max(14, Math.min(cx - 21, spot.w - 28 - 18)) : 180;
-  const dimBg = spot
-    ? `radial-gradient(circle at ${cx}px ${cy}px, rgba(0,0,0,0) 25px, rgba(0,0,0,0.16) 40px, rgba(4,6,12,0.66) 94px)`
-    : "rgba(4,6,12,0.5)";
+  // ── Element spotlight (cutout + tooltip) ──
+  const pad = 6;
+  const cutout = spot ? { left: spot.x - pad, top: spot.y - pad, width: spot.w + pad * 2, height: spot.h + pad * 2 } : null;
+  const tcx = spot ? spot.x + spot.w / 2 : 200;                       // target centre x
+  const below = spot ? (spot.y + spot.h / 2) < spot.sh * 0.5 : false; // card below a top-half target, else above
+  const cardTop = (spot && below) ? (spot.y + spot.h + pad + 14) : undefined;
+  const cardBottom = (spot && !below) ? (spot.sh - spot.y + pad + 14) : (spot ? undefined : 110);
+  const caretLeft = spot ? Math.max(16, Math.min(tcx - 21, spot.sw - 28 - 22)) : 180;
   return (
     <div ref={rootRef} style={{ position: "absolute", inset: 0, zIndex: 500 }}>
-      <div style={{ position: "absolute", inset: 0, background: dimBg, transition: "background 0.35s ease" }} />
-      {spot && <span aria-hidden style={{ position: "absolute", left: cx, top: cy, width: 46, height: 46, marginLeft: -23, marginTop: -23, borderRadius: "50%", border: "2px solid rgba(254,222,52,0.9)", boxShadow: "0 0 16px rgba(254,222,52,0.5)", animation: "bosTourRing 1.6s ease-out infinite", pointerEvents: "none" }} />}
-      <div className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, bottom: cardBottom, background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+      {/* tap blocker (and a flat dim until the target is measured) */}
+      <div style={{ position: "absolute", inset: 0, background: cutout ? "transparent" : "rgba(4,6,12,0.62)" }} />
+      {/* cutout: dims everything except the target via a huge ring-shadow */}
+      {cutout && <div style={{ position: "absolute", left: cutout.left, top: cutout.top, width: cutout.width, height: cutout.height, borderRadius: stop.radius, boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)", border: "1.5px solid rgba(254,222,52,0.85)", transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }} />}
+      <div className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, top: cardTop, bottom: cardBottom, background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{stop.eyebrow}</div>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: titleC, marginTop: 3 }}>{stop.title}</div>
         <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
@@ -220,7 +232,9 @@ function GuidedTour({ step, setStep, endTour, navigate, dark }) {
           <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "9px 20px", fontSize: 14, fontWeight: 600 }}>{last ? "Готово" : "Далее"}</button>
         </div>
         {dots}
-        <span aria-hidden style={{ position: "absolute", bottom: -7, left: caretLeft, width: 14, height: 14, background: cardBg, transform: "rotate(45deg)", borderRadius: 3, borderRight: dark ? "1px solid rgba(255,255,255,0.08)" : "none", borderBottom: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }} />
+        {below
+          ? <span aria-hidden style={{ position: "absolute", top: -7, left: caretLeft, width: 14, height: 14, background: cardBg, transform: "rotate(45deg)", borderRadius: 3, borderLeft: dark ? "1px solid rgba(255,255,255,0.08)" : "none", borderTop: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }} />
+          : <span aria-hidden style={{ position: "absolute", bottom: -7, left: caretLeft, width: 14, height: 14, background: cardBg, transform: "rotate(45deg)", borderRadius: 3, borderRight: dark ? "1px solid rgba(255,255,255,0.08)" : "none", borderBottom: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }} />}
       </div>
       {tourStyle}
     </div>

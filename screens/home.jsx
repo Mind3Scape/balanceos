@@ -262,7 +262,7 @@ function HomeScreen() {
           </div>
         </div>
         {widgets.level !== false && (
-        <button onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
+        <button data-tour="level" onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, opacity: 0.7 }}>Уровень</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
             <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={app?.mode === "fresh" ? 1 : 7}/></span>
@@ -580,7 +580,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
   const chipBg     = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
 
   return (
-    <button onClick={() => navigate("mood")} className="tap"
+    <button onClick={() => navigate("mood")} className="tap" data-tour="state"
       style={{
         marginTop: 12, width: "100%", border, textAlign: "left",
         background: bg,
