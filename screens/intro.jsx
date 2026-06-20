@@ -316,20 +316,29 @@ function LayerTogether({ t, alpha, dark = true }) {
   // Three companions held at FIXED points around you (top, lower-left,
   // lower-right) — they breathe gently in place instead of whirling chaotically,
   // each linked to the centre by a clean line. (Memoji faces land here next.)
+  // Young, hatless companions — each a memoji set INSIDE a glass orb (cohesive
+  // with your central orb), the trio slowly orbiting around you.
   const TOP = -Math.PI / 2;
-  const PICS = ["./assets/people/m1.png", "./assets/people/m5.png", "./assets/people/m3.png"];
-  const friends = (dark ? ["#cfe1ff", "#9bbfe8", "#7aa4d0"] : ["#5a85bd", "#4f7bb0", "#3f6390"])
+  const PICS = ["./assets/people/m2.png", "./assets/people/m5.png", "./assets/people/m8.png"];
+  const friends = (dark ? ["#cfe1ff", "#9bbfe8", "#a9c4e8"] : ["#5a85bd", "#4f7bb0", "#6f9ad1"])
     .map((c, i) => ({ c, pic: PICS[i], a: TOP + i * (Math.PI * 2 / 3) }));
+  const base = dark ? "#16233c" : "#e9eff8";
+  const rim = dark ? "rgba(255,255,255,0.5)" : "rgba(60,100,150,0.38)";
   return (
     <g opacity={alpha}>
       {friends.map((f, i) => {
-        const rr = 94 + Math.sin(t * 0.9 + i * 2.1) * 4;   // gentle breathing, anchored
-        const x = Math.cos(f.a) * rr, y = Math.sin(f.a) * rr;
+        const rr = 95 + Math.sin(t * 0.9 + i * 2.1) * 4;   // gentle breathing
+        const ang = f.a + t * 0.08;                        // slow orbit around you
+        const x = Math.cos(ang) * rr, y = Math.sin(ang) * rr;
         return (
           <g key={i}>
-            <line x1="0" y1="0" x2={x} y2={y} stroke={f.c} strokeOpacity={dark ? 0.4 : 0.45} strokeWidth="1" />
-            <circle cx={x} cy={y} r="21" fill={f.c} opacity={dark ? 0.22 : 0.26} style={{ filter: "blur(7px)" }} />
-            <image href={f.pic} x={x - 21} y={y - 21} width="42" height="42" preserveAspectRatio="xMidYMid meet" />
+            <line x1="0" y1="0" x2={x} y2={y} stroke={f.c} strokeOpacity={dark ? 0.38 : 0.42} strokeWidth="1" />
+            <circle cx={x} cy={y} r="23" fill={f.c} opacity={dark ? 0.22 : 0.26} style={{ filter: "blur(7px)" }} />
+            <circle cx={x} cy={y} r="18.5" fill={base} />
+            <clipPath id={`tgc${i}`}><circle cx={x} cy={y} r="18" /></clipPath>
+            <image href={f.pic} x={x - 22} y={y - 22} width="44" height="44" clipPath={`url(#tgc${i})`} preserveAspectRatio="xMidYMid slice" />
+            <circle cx={x} cy={y} r="18.5" fill="none" stroke={rim} strokeWidth="1" />
+            <ellipse cx={x - 5} cy={y - 8} rx="7" ry="4" fill="#fff" opacity={dark ? 0.22 : 0.4} style={{ filter: "blur(2px)" }} />
           </g>
         );
       })}
@@ -501,8 +510,7 @@ function IntroScreen() {
   const effectivePrev = blend < 1 ? prev : null;
 
   const slides = [
-    { mode: "awake",    eyebrow: "Ты",                title: "Ты — точка", sub: "Точка внимания внутри бесконечного количества возможных вариантов жизни.", glow: "rgba(140,180,230,0.42)" },
-    { mode: "awake",    eyebrow: "Состояние",         title: "Ты не видишь мир таким, какой он есть", sub: "Ты видишь его таким, в каком ты состоянии. От него зависит всё остальное.", glow: "rgba(160,200,240,0.46)" },
+    { mode: "awake",    eyebrow: "Состояние",         title: "Ты не видишь мир таким, какой он есть", sub: "Ты видишь его таким, в каком ты состоянии. Ты — точка внимания в бесконечном пространстве вариантов, и состояние решает, что ты видишь.", glow: "rgba(160,200,240,0.46)" },
     { mode: "comfort",  eyebrow: "Когда сил мало",     title: "В слабом состоянии мир сжимается", sub: "Всё кажется невозможным. Ты живёшь в узком круге привычного — на автопилоте.", glow: "rgba(96,120,150,0.34)" },
     { mode: "state",    eyebrow: "Когда ты наполнен",  title: "В сильном — раскрывается", sub: "Граница раздвигается сама. Ты видишь решения, которые были рядом всё это время.", glow: "rgba(160,205,245,0.52)" },
     { mode: "compound", eyebrow: "Твой выбор",         title: "Состоянием можно управлять", sub: "Не обстоятельствами, а собой. Большинство отдают этот выбор страхам и чужому мнению — здесь ты учишься выбирать сам.", glow: "rgba(180,210,240,0.45)" },
@@ -530,14 +538,14 @@ function IntroScreen() {
     barOn: "rgba(255,255,255,0.85)", barDone: "rgba(255,255,255,0.65)", barTrack: "rgba(255,255,255,0.12)",
     btnBg: "#fff", btnFg: "#0a0a0a", btnShadow: "0 0 40px rgba(255,255,255,0.15)",
     ghost: "rgba(255,255,255,0.5)", count: "rgba(255,255,255,0.4)",
-    moodBorder: "rgba(255,255,255,0.08)", moodText: "#fff",
+    moodBorder: "rgba(255,255,255,0.08)", moodText: "#fff", moodTile: "rgba(150,190,240,0.10)",
   } : {
     bg: `radial-gradient(circle at 50% 36%, ${cur.glow} 0%, transparent 52%), radial-gradient(ellipse at 50% 104%, rgba(176,202,238,0.6) 0%, transparent 60%), linear-gradient(180deg,#eef2fb 0%,#e2e9f5 100%)`,
     title: "#15233c", sub: "rgba(21,35,60,0.62)", eyebrow: "rgba(21,35,60,0.5)", eyebrowStrong: "#2f5e96",
     barOn: "rgba(21,35,60,0.72)", barDone: "rgba(21,35,60,0.5)", barTrack: "rgba(21,35,60,0.12)",
     btnBg: "#0f1b2e", btnFg: "#fff", btnShadow: "0 10px 26px rgba(20,40,80,0.2)",
     ghost: "rgba(21,35,60,0.45)", count: "rgba(21,35,60,0.4)",
-    moodBorder: "rgba(20,40,80,0.1)", moodText: "#15233c",
+    moodBorder: "rgba(20,40,80,0.1)", moodText: "#15233c", moodTile: "rgba(70,120,190,0.07)",
   };
 
   const moods = [
@@ -604,7 +612,7 @@ function IntroScreen() {
         <Reveal k="moodgrid" delay={0.5} style={{ position: "relative", padding: "20px 20px 0", zIndex: 2 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
             {moods.map((m, i) => (
-              <button key={i} onClick={() => navigate("signup")} className="tap" style={{ background: m.c, border: "1px solid " + pal.moodBorder, borderRadius: 18, padding: "14px 8px", color: pal.moodText, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: `moodIn 0.5s ${0.55+i*0.06}s ease both` }}>
+              <button key={i} onClick={() => navigate("signup")} className="tap" style={{ background: pal.moodTile, border: "1px solid " + pal.moodBorder, borderRadius: 18, padding: "14px 8px", color: pal.moodText, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: `moodIn 0.5s ${0.55+i*0.06}s ease both` }}>
                 <span style={{ fontSize: 26 }}>{m.i}</span>
                 <span style={{ fontSize: 12, opacity: 0.85 }}>{m.t}</span>
               </button>
