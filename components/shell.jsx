@@ -380,15 +380,16 @@ const SEED_TEAMS = [
       { id: 212, emoji: "💬", name: "Поддержать друга", isMain: false, doneToday: 1, total: 2, weekPct: 0.50, week: [1,0,1,0,1,0,1] },
     ] },
 ];
+/* Demo day-mood history (calendar dots). Extracted so enterDemo() can restore it. */
+const SEED_DAYMOODS = { 21: 0, 22: 1, 23: 4, 24: 5, 25: 1, 26: 3, 27: 0, 28: 1 };
+
 // New-item id source. Module-level → resets to 1000 on every reload alongside the seeds.
 let _bosNextId = 1000;
 const _nid = () => ++_bosNextId;
 
 function AppProvider({ children }) {
   const [mood, setMood] = useState(MOOD_OPTIONS[1]);
-  const [dayMoods, setDayMoods] = useState({
-    21: 0, 22: 1, 23: 4, 24: 5, 25: 1, 26: 3, 27: 0, 28: 1,
-  });
+  const [dayMoods, setDayMoods] = useState(SEED_DAYMOODS);
   const [widgets, setWidgets] = useState({
     quote: true, mood: true, streak: true, level: true,
     calendar: true, team: true, energy: true, ai: true,
@@ -397,6 +398,13 @@ function AppProvider({ children }) {
   const [wheelSpheres, setWheelSpheres] = useState(DEFAULT_SPHERES);
   // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere.
   const [themeOverride, setThemeOverride] = useState("auto");
+
+  // Demo vs. fresh-start experience. Default = demo (a reload always lands on the
+  // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.
+  const [mode, setMode] = useState("demo");      // "demo" | "fresh"
+  const [userName, setUserName] = useState("Павел");
+  // Guided coach-mark tour. -1 = off; 0..N = current stop. Started on entering demo.
+  const [tourStep, setTourStep] = useState(-1);
 
   // Shared habit / goal store + mutators (the app's single source of truth).
   const [habits, setHabits] = useState(SEED_HABITS);
@@ -425,6 +433,22 @@ function AppProvider({ children }) {
   }));
   const removeTeamHabit = (teamId, habitId) => setTeams(ts => ts.map(t => t._id === teamId ? { ...t, habits: (t.habits || []).filter(h => h.id !== habitId) } : t));
 
+  // ── Entry modes ───────────────────────────────────────────────────
+  // enterDemo: fill everything with the seed demo (Павел's filled life).
+  // enterFresh: wipe to a clean slate, like a brand-new first user.
+  const enterDemo = () => {
+    setMode("demo"); setUserName("Павел");
+    setHabits(SEED_HABITS); setGoals(SEED_GOALS); setTeams(SEED_TEAMS);
+    setDayMoods(SEED_DAYMOODS); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES);
+  };
+  const enterFresh = (name = "") => {
+    setMode("fresh"); setUserName((name || "").trim());
+    setHabits([]); setGoals([]); setTeams([]);
+    setDayMoods({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES);
+  };
+  const startTour = () => setTourStep(0);
+  const endTour = () => setTourStep(-1);
+
   // Community tab/section view-state lives here so navigating into a detail
   // screen and back doesn't reset it (the screen unmounts on push/pop).
   const [communityView, setCommunityViewRaw] = useState({ section: "discover", discTab: "teams", commTab: "courses", networkUnlocked: false });
@@ -436,6 +460,8 @@ function AppProvider({ children }) {
     widgets, setWidgets,
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
+    mode, userName, enterDemo, enterFresh,
+    tourStep, setTourStep, startTour, endTour,
     habits, goals,
     toggleHabit, addHabit, updateHabit, removeHabit,
     addGoal, updateGoal, removeGoal,

@@ -200,12 +200,14 @@ function HomeScreen() {
   // on the Habits tab too (and vice versa).
   const habits = app?.habits || [];
   const goals = app?.goals || [];
+  const teams = app?.teams || [];
+  const userName = app?.userName ?? "";
   const toggle = app?.toggleHabit || (() => {});
   const remove = app?.removeHabit || (() => {});
   const doneCount = habits.filter(h => h.done).length;
   const totalCount = habits.length;
-  const ringPct = doneCount / totalCount;
-  const dayStreak = 27;
+  const ringPct = totalCount ? doneCount / totalCount : 0;
+  const dayStreak = app?.mode === "fresh" ? 0 : 27;
 
   // Theme tokens
   const cardBg     = isDark ? "rgba(39,39,42,0.55)" : "#fff";
@@ -226,7 +228,7 @@ function HomeScreen() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Вторник · 28 апреля</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>Доброе утро, Тим</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? "Доброе утро, " + userName : "Доброе утро 👋"}</div>
         </div>
         <button onClick={() => navigate("notifications", { from: "home" })} className="tap"
           style={{ width: 42, height: 42, borderRadius: 14, background: iconBg, border: 0, display: "grid", placeItems: "center", position: "relative" }}>
@@ -263,8 +265,8 @@ function HomeScreen() {
         <button onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, opacity: 0.7 }}>Уровень</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={7}/></span>
-            <span style={{ fontSize: 11, opacity: 0.7 }}>· 1.2k¢</span>
+            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={app?.mode === "fresh" ? 1 : 7}/></span>
+            <span style={{ fontSize: 11, opacity: 0.7 }}>{app?.mode === "fresh" ? "· 0¢" : "· 1.2k¢"}</span>
           </div>
         </button>
         )}
@@ -289,13 +291,17 @@ function HomeScreen() {
           style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
           <div>
             <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Команда</div>
-            <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>3 активны</div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{teams.length ? teams.length + " активны" : "Создай команду"}</div>
           </div>
+          {teams.length > 0 ? (
           <div style={{ display: "flex" }}>
             <span style={{ width: 28, height: 28, borderRadius: "50%", background: "#e8a8a8", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
             <span style={{ width: 28, height: 28, borderRadius: "50%", background: "#a8d4a8", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: -10 }} />
             <span style={{ width: 28, height: 28, borderRadius: "50%", background: "#c8b9e8", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: -10 }} />
           </div>
+          ) : (
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", color: "var(--text-3)" }}><I.Plus size={16}/></span>
+          )}
         </button>
         )}
       </div>
@@ -315,6 +321,14 @@ function HomeScreen() {
 
       {/* Habit/goal list */}
       {tab === "habits" ? (
+        habits.length === 0 ? (
+          <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Здесь будут твои привычки</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
+            <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
+          </button>
+        ) : (
         <div style={{ marginTop: 10, background: cardBg, border: cardBorder, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, color: "var(--text)" }}>
           {habits.map((h, idx) => (
             <div key={h.id}>
@@ -360,7 +374,16 @@ function HomeScreen() {
             </button>
           </div>
         </div>
+        )
       ) : (
+        goals.length === 0 ? (
+          <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Пока нет целей</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
+            <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Поставить цель</span>
+          </button>
+        ) : (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
           {goals.map(g => {
             const pct = g.target ? g.current / g.target : 0;
@@ -379,6 +402,7 @@ function HomeScreen() {
             );
           })}
         </div>
+        )
       )}
 
       {/* Today's energy — always dark card, looks intentional in both themes */}
@@ -395,7 +419,7 @@ function HomeScreen() {
           <div style={{ fontSize: 11, opacity: 0.6, letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>Энергия сегодня</div>
           <div style={{ fontSize: 32, fontWeight: 700, marginTop: 4, letterSpacing: "-0.5px" }}>+<CountUp value={Math.round(ringPct * 92)}/> очк.</div>
           <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, marginTop: 6, maxWidth: "75%" }}>
-            Ты прошёл {Math.round(ringPct * 100)}%. Команда рассчитывает на тебя.
+            {totalCount === 0 ? "Отметь первую привычку — и счёт пойдёт." : <>Ты прошёл {Math.round(ringPct * 100)}%. Команда рассчитывает на тебя.</>}
           </div>
         </div>
       </div>

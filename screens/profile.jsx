@@ -46,7 +46,7 @@ function InfoSheet({ title, body, cta = "Готово", dark = false }) {
 function EditProfileSheet({ dark = false }) {
   const { close } = useSheet();
   const C = sheetColors(dark);
-  const [name, setName] = useP("Тим");
+  const [name, setName] = useP("Павел");
   const [saved, setSaved] = useP(false);
   const save = () => { setSaved(true); window.setTimeout(close, 900); };
   return (
@@ -112,7 +112,7 @@ function ProfileScreen() {
             <I.Sparkles size={11} /> Уровень 7
           </div>
         </div>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontWeight: 700, fontSize: 28, marginTop: 20 }}>Тим Хиллсон</div>
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontWeight: 700, fontSize: 28, marginTop: 20 }}>Павел Хиллсон</div>
         <div className="bos-sys-text-2" style={{ fontSize: 14 }}>tomhill@mail.com</div>
         {/* Quick stats — level energy + credits */}
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 14 }}>
@@ -646,7 +646,7 @@ function AIScreen() {
       {/* Header — tab-style, no back button */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 14px" }}>
         <div>
-          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Персонально · для Тима</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Персонально · для Павла</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
         </div>
         <button onClick={() => navigate("ai-chat")} className="tap"
@@ -896,33 +896,55 @@ function SignUpScreen() {
     glow: "0 10px 40px rgba(120,150,200,0.25)",
   };
   const inp = { background: pal.inputBg, border: pal.inputBorder, borderRadius: 14, padding: "14px 16px", color: pal.inputText, fontSize: 15, outline: 0 };
+  const app = useApp ? useApp() : null;
+  const goDemo = () => { app?.enterDemo?.(); app?.startTour?.(); navigate("home"); };
+  const goFresh = () => { app?.enterFresh?.(name); navigate("home"); };
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "100%", color: pal.text, display: "flex", flexDirection: "column", background: pal.bg, position: "relative", overflow: "hidden" }}>
-      <div style={{ flex: 1, padding: "72px 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 120, height: 120, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", boxShadow: pal.glow }}/>
-        <div style={{ fontSize: 14, color: pal.sub, marginTop: 28, textAlign: "center", maxWidth: 280, lineHeight: 1.5 }}>
-          После входа всё становится твоим выбором.
+      <div style={{ flex: 1, padding: "max(64px, calc(var(--tg-top-inset, 0px) + 22px)) 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 104, height: 104, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", boxShadow: pal.glow }}/>
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 27, fontWeight: 700, letterSpacing: "-0.6px", marginTop: 24, textAlign: "center" }}>С чего начнём?</div>
+        <div style={{ fontSize: 14, color: pal.sub, marginTop: 8, textAlign: "center", maxWidth: 286, lineHeight: 1.5 }}>
+          Загляни в готовый пример — или начни свой путь с чистого листа.
         </div>
       </div>
-      <div style={{ background: pal.sheet, borderTop: pal.sheetBorder, borderRadius: "33px 33px 0 0", padding: "30px 24px 30px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ background: pal.sheet, borderTop: pal.sheetBorder, borderRadius: "33px 33px 0 0", padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))" }}>
+        {/* Door 1 — Demo (where a shared link should land) */}
+        <button onClick={goDemo} className="tap" style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",
+          background: "linear-gradient(135deg, #FEDE34 0%, #FFC400 100%)", color: "#0a0a0a",
+          border: 0, borderRadius: 20, padding: "15px 16px", boxShadow: "0 12px 30px rgba(254,222,52,0.32)",
+        }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(0,0,0,0.07)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>✨</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Посмотреть демо</div>
+            <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.6)", marginTop: 2, lineHeight: 1.35 }}>Всё уже настроено — лучший способ понять, как это работает</div>
+          </div>
+          <I.ChevronRight size={20} color="rgba(0,0,0,0.5)" />
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 16px" }}>
+          <span style={{ flex: 1, height: 1, background: pal.line }}/>
+          <span style={{ fontSize: 12, color: pal.sub }}>или создай свой аккаунт</span>
+          <span style={{ flex: 1, height: 1, background: pal.line }}/>
+        </div>
+
+        {/* Door 2 — Real registration (clean slate) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <input value={name} onChange={e=>setName(e.target.value)} placeholder="Имя" style={inp}/>
           <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="E-mail или номер телефона" style={inp}/>
           <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="Пароль" style={inp}/>
         </div>
-        <button onClick={() => navigate("home")} className="tap" style={{ width: "100%", marginTop: 18, background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 16, fontWeight: 600 }}>
-          Зарегистрироваться
+        <button onClick={goFresh} className="tap" style={{ width: "100%", marginTop: 16, background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 16, fontWeight: 600 }}>
+          Начать с чистого листа
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18 }}>
-          <span style={{ flex: 1, height: 1, background: pal.line }}/>
-          <span style={{ fontSize: 12, color: pal.sub }}>Или войти через</span>
-          <span style={{ flex: 1, height: 1, background: pal.line }}/>
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-          <button className="tap" style={{ flex: 1, background: pal.socialBg, border: pal.socialBorder, borderRadius: 999, padding: 14, color: pal.socialText, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <div style={{ textAlign: "center", fontSize: 12, color: pal.sub, marginTop: 9 }}>Пустое приложение — первую привычку создашь сам.</div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button onClick={goFresh} className="tap" style={{ flex: 1, background: pal.socialBg, border: pal.socialBorder, borderRadius: 999, padding: 13, color: pal.socialText, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>G</span> Google
           </button>
-          <button className="tap" style={{ flex: 1, background: pal.socialBg, border: pal.socialBorder, borderRadius: 999, padding: 14, color: pal.socialText, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <button onClick={goFresh} className="tap" style={{ flex: 1, background: pal.socialBg, border: pal.socialBorder, borderRadius: 999, padding: 13, color: pal.socialText, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}></span> Apple
           </button>
         </div>

@@ -476,6 +476,11 @@ function CommunityScreen() {
               </div>
             </div>
           ))}
+          {teams.length === 0 && (
+            <div style={{ textAlign: "center", padding: "8px 18px 2px", color: "var(--text-4)", fontSize: 13.5, lineHeight: 1.5 }}>
+              Команды — это привычки вместе с друзьями. Создай первую или дождись приглашения.
+            </div>
+          )}
           <button onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
             <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,222,52,0.15)", display: "grid", placeItems: "center" }}>
               <I.Plus size={22} color="#FEDE34"/>
@@ -879,7 +884,7 @@ function TeamCreateScreen() {
 
   // Members for split preview
   const allMembers = [
-    { name: "Тим (вы)", initials: "Т",  color: "#FEDE34", on: true,  you: true },
+    { name: "Павел (вы)", initials: "П",  color: "#FEDE34", on: true,  you: true },
     { name: "Ник",      initials: "Н",  color: "#a8b9d4", on: true },
     { name: "Светлана",  initials: "С",  color: "#e8c8a8", on: true },
     { name: "Вадим",     initials: "В",  color: "#a8d4e8", on: false },
