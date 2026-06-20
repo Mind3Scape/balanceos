@@ -36,6 +36,10 @@ function HabitDetailScreen() {
     return ((i * 7 + (h.id || 1) * 13) % 10) > 6;
   });
   const WD = ["П", "В", "С", "Ч", "П", "С", "В"];
+  // For timed habits the day-ring fills relative to MINUTES spent that day, so a
+  // 30-min session reads fuller than a 10-min one. Deterministic per cell.
+  const MIN_FACTORS = [1, 0.5, 1.5, 1, 2, 0.8, 3, 1.2, 0.7, 1];
+  const dayMins = (i) => h.duration ? Math.round(h.duration * MIN_FACTORS[(i * 5 + (h.id || 1) * 3) % MIN_FACTORS.length]) : 0;
 
   const card = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
@@ -80,14 +84,21 @@ function HabitDetailScreen() {
           {WD.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, color: "var(--text-4)", letterSpacing: 0.4 }}>{d}</div>)}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-          {cells.map((done, i) => (
-            <span key={i} title={done ? "выполнено" : "пропущено"} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
-              <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-                <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
-                {done && <circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="3.4" style={{ filter: `drop-shadow(0 0 1.6px ${ringColor}aa)` }} />}
-              </svg>
-            </span>
-          ))}
+          {cells.map((done, i) => {
+            const mins = done ? dayMins(i) : 0;
+            const frac = !done ? 0 : (h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1);
+            const C = 2 * Math.PI * 15.5;
+            return (
+              <span key={i} title={!done ? "пропущено" : (h.duration ? mins + " мин" : "выполнено")} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
+                <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+                  <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
+                  {frac > 0 && <circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="3.4"
+                    strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)}
+                    transform="rotate(-90 20 20)" style={{ filter: `drop-shadow(0 0 1.6px ${ringColor}aa)` }} />}
+                </svg>
+              </span>
+            );
+          })}
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
@@ -96,6 +107,11 @@ function HabitDetailScreen() {
           </span>
           <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
         </div>
+        {h.duration && (
+          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 9, lineHeight: 1.4 }}>
+            Кольцо тем полнее, чем дольше была сессия в этот день.
+          </div>
+        )}
       </div>
 
       {/* Insight — neutral surface, streak-driven copy */}

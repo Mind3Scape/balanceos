@@ -1504,6 +1504,9 @@ function TeamHabitSheet({ team, members = [], onAdd }) {
 /* LEVELS / CREDITS — gamification (theme-aware) */
 function LevelsScreen() {
   const { navigate } = useNav();
+  const app = useApp ? useApp() : null;
+  const ach = (typeof window !== "undefined" && window.ACHIEVEMENTS) || [];
+  const achEarned = ach.filter(a => a.earned);
   const lvl = 7;
   const xp = 1240;
   const next = 1500;
@@ -1546,17 +1549,18 @@ function LevelsScreen() {
         </div>
       </div>
 
-      {/* Credits */}
+      {/* Credits — spendable on contacts' services in the Network */}
       <SysCard style={{ padding: 16, marginTop: 12, display: "flex", alignItems: "center", gap: 14, borderRadius: 18 }}>
-        <span className="bos-sys-chip-bg" style={{ width: 50, height: 50, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22 }}>¢</span>
-        <div style={{ flex: 1 }}>
+        <span className="bos-sys-chip-bg" style={{ width: 50, height: 50, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 24 }}>🪙</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Кредиты</div>
           <div style={{ fontSize: 26, fontWeight: 700, marginTop: 2 }}>{credits.toLocaleString()}</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 11.5, marginTop: 1 }}>на услуги наставников в Нетворке</div>
         </div>
-        <button className="tap" style={{ background: "#FEDE34", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 600 }}>Заработать</button>
+        <button onClick={() => { app?.setCommunityView?.({ section: "discover", discTab: "network" }); navigate("community"); }} className="tap" style={{ background: "#FEDE34", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>В Нетворк</button>
       </SysCard>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Магазин наград</div>
+      <div className="section-label" style={{ marginTop: 22 }}>Награды за кредиты</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {rewards.map((r, i) => (
           <SysCard key={i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, opacity: r.unlocked ? 1 : 0.55 }}>
@@ -1564,7 +1568,7 @@ function LevelsScreen() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{r.t}</div>
               <div className="bos-sys-text-3" style={{ fontSize: 11, marginTop: 2 }}>
-                {r.unlocked ? `${r.c} ¢` : `Откроется на уровне ${r.lvl}`}
+                {r.unlocked ? `${r.c} кредитов` : `Откроется на уровне ${r.lvl}`}
               </div>
             </div>
             <button disabled={!r.unlocked || credits < r.c} className="tap" style={{ background: r.unlocked && credits >= r.c ? "#FEDE34" : "var(--surface-3)", color: r.unlocked && credits >= r.c ? "#0a0a0a" : "var(--text-4)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>
@@ -1574,15 +1578,18 @@ function LevelsScreen() {
         ))}
       </div>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Значки</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 8 }}>
-        {badges.map((b, i) => (
-          <SysCard key={i} style={{ padding: 12, textAlign: "center", opacity: b.earned ? 1 : 0.4 }}>
-            <div style={{ fontSize: 30, filter: b.earned ? "none" : "grayscale(1)" }}>{b.i}</div>
-            <div className="bos-sys-text-2" style={{ fontSize: 11, marginTop: 4 }}>{b.t}</div>
-          </SysCard>
-        ))}
-      </div>
+      <div className="section-label" style={{ marginTop: 22 }}>Достижения</div>
+      <SysCard className="tap" onClick={() => navigate("achievements", { from: "levels" })} style={{ padding: 14, marginTop: 8, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
+        <span className="bos-sys-chip-bg" style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 600 }}>Ачивки</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>{achEarned.length} из {ach.length} · открывают круги контактов</div>
+        </div>
+        <div style={{ display: "flex", marginRight: 4 }}>
+          {achEarned.slice(0, 3).map((a, i) => <span key={i} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 13, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{a.i}</span>)}
+        </div>
+        <I.ChevronRight size={18} className="bos-sys-text-2"/>
+      </SysCard>
 
       <div className="section-label" style={{ marginTop: 22 }}>Как зарабатывать XP</div>
       <SysCard style={{ padding: 14, marginTop: 8 }}>

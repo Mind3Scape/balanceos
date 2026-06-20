@@ -1047,8 +1047,8 @@ function AchievementsScreen() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.2px" }}>{a.t}</div>
               <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 2 }}>{a.d}</div>
-              <div style={{ fontSize: 12, marginTop: 5, color: a.accent, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <I.Sparkles size={11}/> открыл: {a.opens}
+              <div className="bos-sys-text-2" style={{ fontSize: 12, marginTop: 5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <I.Sparkles size={11} color={a.accent}/> открыл: {a.opens}
               </div>
             </div>
             <span className="bos-sys-text-3" style={{ fontSize: 11, flexShrink: 0 }}>{a.date}</span>
@@ -1075,4 +1075,4 @@ function AchievementsScreen() {
   );
 }
 
-Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen, AchievementsScreen });
+Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen, AchievementsScreen, ACHIEVEMENTS });

@@ -154,10 +154,9 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <span style={{ fontSize: 12, width: 15, textAlign: "center", flexShrink: 0 }}>{a.e}</span>
               <span style={{ fontSize: 11, color: "var(--text-3)", width: 48, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.l}</span>
-              <span style={{ flex: 1, height: 4, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.055)", overflow: "hidden" }}>
+              <span style={{ flex: 1, height: 5, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.055)", overflow: "hidden" }}>
                 <span style={{ display: "block", height: "100%", width: Math.round(a.v * 100) + "%", borderRadius: 999, background: zoneColor(a.v) }}/>
               </span>
-              <span style={{ fontSize: 10.5, color: "var(--text-4)", width: 22, textAlign: "right", flexShrink: 0 }}>{Math.round(a.v * 100)}</span>
             </div>
           ))}
         </div>
