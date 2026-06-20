@@ -105,7 +105,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v61";
+const APP_VERSION = "v62";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -148,10 +148,38 @@ const TOUR_STOPS = [
     body: "Отмечай состояние, расти в уровне, открывай людей. Чем дальше — тем больше возможностей. Поехали.", cta: "Начать" },
 ];
 
-function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, dark }) {
+/* New-user guide — gentler, for an empty fresh start. Points at elements that
+   exist in fresh mode (level widget stays on; the Network is still locked). */
+const FRESH_STOPS = [
+  { kind: "card", emoji: "🌱", title: "Добро пожаловать — твой старт",
+    body: "BalanceOS — платформа: привычки, команды, наставники, курсы и ИИ. Покажу за минуту, как тут устроено и куда расти.", cta: "Показать" },
+  { kind: "spot", tab: "home", sel: '.bos-tabbar button:nth-of-type(1)', radius: 16, eyebrow: "Главная", title: "Твой экран",
+    body: "Сейчас спокойно и пусто. Виджеты будут появляться по мере того, как ты начнёшь." },
+  { kind: "spot", tab: "home", sel: '[data-tour="aihints"]', radius: 22, eyebrow: "Подсказки ИИ", title: "Совет под твой день",
+    body: "Подсказки наверху — от ИИ. Чем больше расскажешь о себе, тем точнее они станут." },
+  { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Состояние", title: "Начни с состояния",
+    body: "Отметь, как ты сейчас — это первый шаг. Приложение подстроится под тебя." },
+  { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт с первого дня",
+    body: "Ты на 1 уровне. Каждая привычка и доброе дело качают опыт — и открывают новое: наставников, контакты, курсы." },
+  { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
+    body: "Твоя личная система — пока пустая. Самое время собрать её под себя." },
+  { kind: "spot", tab: "habits", sel: '[data-tour="add"]', radius: 999, eyebrow: "Создать", title: "Создай первую привычку",
+    body: "Жми «плюс». Начни с одной маленькой — её можно делать одному или вместе с друзьями." },
+  { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
+    body: "Команды с общим чатом, курсы и наставники. Объедини близких — или найди своих." },
+  { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="network"]', radius: 12, eyebrow: "Нетворк", title: "Контакты открываются с уровнем",
+    body: "Пока закрыто — и это нормально. Расти в уровне и проходи курсы → откроется круг людей и наставников, к которым можно прийти." },
+  { kind: "spot", tab: "ai", sel: '.bos-tabbar button:nth-of-type(4)', radius: 16, eyebrow: "Помощник", title: "ИИ с первого дня",
+    body: "Спроси совет, попроси план или разбор дня — он рядом с самого начала." },
+  { kind: "card", emoji: "🚀", title: "Поехали!",
+    body: "Расти шаг за шагом — и приложение раскрывается. Начни с состояния или первой привычки.", cta: "Начать" },
+];
+
+function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMode, dark }) {
+  const STOPS = tourMode === "fresh" ? FRESH_STOPS : TOUR_STOPS;
   const rootRef = useRef(null);
   const [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
-  const stop = (step >= 0 && step < TOUR_STOPS.length) ? TOUR_STOPS[step] : null;
+  const stop = (step >= 0 && step < STOPS.length) ? STOPS[step] : null;
 
   // Drive the tab bar so each "tab" stop shows the real section behind the dim.
   useEffect(() => {
@@ -181,13 +209,13 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, dark }
   }, [step]); // eslint-disable-line
 
   if (!stop) return null;
-  const last = step >= TOUR_STOPS.length - 1;
+  const last = step >= STOPS.length - 1;
   const next = () => { if (last) { endTour(); navigate("home"); } else setStep(step + 1); };
   const skip = () => { endTour(); navigate("home"); };
 
   const dots = (
     <div style={{ display: "flex", gap: 5, justifyContent: "center", marginTop: 14 }}>
-      {TOUR_STOPS.map((_, i) => (
+      {STOPS.map((_, i) => (
         <span key={i} style={{ width: i === step ? 16 : 5, height: 5, borderRadius: 999, background: i === step ? "#FEDE34" : (dark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.18)"), transition: "width 0.3s, background 0.3s" }} />
       ))}
     </div>
@@ -486,7 +514,7 @@ function PhoneApp() {
         )}
         <div className="bos-version">{APP_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
-        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} dark={topDark} />
+        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} tourMode={app.tourMode} dark={topDark} />
       </div>
     </div>
     </SheetCtx.Provider>

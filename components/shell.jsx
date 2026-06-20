@@ -394,15 +394,16 @@ const SEED_DAYNOTES = {
 let _bosNextId = 1000;
 const _nid = () => ++_bosNextId;
 
+/* Home widgets: full for the demo; minimal for a fresh new user — don't overwhelm.
+   Stat cards / calendar / team / energy stay off until there's something to show. */
+const DEMO_WIDGETS  = { quote: true, mood: true, streak: true,  level: true,  calendar: true,  team: true,  energy: true,  ai: true,  weather: false, books: false };
+const FRESH_WIDGETS = { quote: true, mood: true, streak: false, level: true, calendar: false, team: false, energy: false, ai: false, weather: false, books: false };
+
 function AppProvider({ children }) {
   const [mood, setMood] = useState(MOOD_OPTIONS[1]);
   const [dayMoods, setDayMoods] = useState(SEED_DAYMOODS);
   const [dayNotes, setDayNotes] = useState(SEED_DAYNOTES);
-  const [widgets, setWidgets] = useState({
-    quote: true, mood: true, streak: true, level: true,
-    calendar: true, team: true, energy: true, ai: true,
-    weather: false, books: false,
-  });
+  const [widgets, setWidgets] = useState(DEMO_WIDGETS);
   const [wheelSpheres, setWheelSpheres] = useState(DEFAULT_SPHERES);
   // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere.
   const [themeOverride, setThemeOverride] = useState("auto");
@@ -413,6 +414,7 @@ function AppProvider({ children }) {
   const [userName, setUserName] = useState("Павел");
   // Guided coach-mark tour. -1 = off; 0..N = current stop. Started on entering demo.
   const [tourStep, setTourStep] = useState(-1);
+  const [tourMode, setTourMode] = useState("demo"); // "demo" | "fresh"
 
   // Shared habit / goal store + mutators (the app's single source of truth).
   const [habits, setHabits] = useState(SEED_HABITS);
@@ -447,16 +449,16 @@ function AppProvider({ children }) {
   const enterDemo = () => {
     setMode("demo"); setUserName("Павел");
     setHabits(SEED_HABITS); setGoals(SEED_GOALS); setTeams(SEED_TEAMS);
-    setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES);
+    setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(DEMO_WIDGETS);
     setCommunityView({ networkUnlocked: true, discTab: "teams", section: "discover" });
   };
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim());
     setHabits([]); setGoals([]); setTeams([]);
-    setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES);
+    setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "courses" });
   };
-  const startTour = () => setTourStep(0);
+  const startTour = (mode) => { setTourMode(mode || "demo"); setTourStep(0); };
   const endTour = () => setTourStep(-1);
 
   // Community tab/section view-state lives here so navigating into a detail
@@ -472,7 +474,7 @@ function AppProvider({ children }) {
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
     mode, userName, enterDemo, enterFresh,
-    tourStep, setTourStep, startTour, endTour,
+    tourStep, setTourStep, startTour, endTour, tourMode,
     habits, goals,
     toggleHabit, addHabit, updateHabit, removeHabit,
     addGoal, updateGoal, removeGoal,

@@ -69,6 +69,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   // The avatar ring + the glow under it follow the current state orb's colour.
   const mood = heroApp?.mood;
   const moodTint = (mood && typeof tintFromMood === "function") ? tintFromMood(mood.c) : null;
+  const fresh = heroApp?.mode === "fresh";
   const enabledW = (heroApp?.wheelSpheres && heroApp.wheelSpheres.length >= 3) ? heroApp.wheelSpheres : (window.DEFAULT_SPHERES || []);
   const wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
   const avgBalance = wAxes.length ? Math.round(wAxes.reduce((s, a) => s + a.v, 0) / wAxes.length * 100) : 0;
@@ -91,7 +92,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const ringBg   = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   const dotIdle  = isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.18)";
   const dotActive= isDark ? "#fff" : "#0a0a0a";
-  const pages = [
+  const _pages = [
     /* Page 1: Quote (left) + Gee avatar with progress ring (top-right) + chips (bottom) */
     <div key="quote" style={{ position: "relative", height: "100%", padding: 18, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
@@ -163,6 +164,8 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       </div>
     </div>,
   ];
+  // Fresh new user: only the quote/avatar page (no balance wheel until there's data).
+  const pages = fresh ? _pages.slice(0, 1) : _pages;
   return (
     <div style={{
       background: cardBg,
@@ -173,6 +176,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       <div style={{ display: "flex", width: "200%", transform: `translateX(${-page * 50}%)`, transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: 196 }}>
         {pages.map((p, i) => <div key={i} style={{ width: "50%", flexShrink: 0 }}>{p}</div>)}
       </div>
+      {pages.length > 1 && (
       <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 5 }}>
         {pages.map((_, i) => (
           <button key={i} onClick={() => setPage(i)} className="tap" style={{
@@ -182,6 +186,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
           }}/>
         ))}
       </div>
+      )}
     </div>
   );
 }
@@ -614,6 +619,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
   const trailIdle  = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   const trailRing  = isDark ? "rgba(255,255,255,0.85)" : "#0a0a0a";
   const chipBg     = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
+  const fresh = app?.mode === "fresh";
 
   return (
     <button onClick={() => navigate("mood")} className="tap" data-tour="state"
@@ -640,12 +646,13 @@ function MoodWidget({ mood, app, isDark, navigate }) {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{mood.t}</div>
-          <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>Нажми, чтобы обновить — сфера следует за твоим состоянием.</div>
+          <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Manrope', system-ui, sans-serif", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{fresh ? "Как ты сейчас?" : mood.t}</div>
+          <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>{fresh ? "Нажми, чтобы отметить первое состояние." : "Нажми, чтобы обновить — сфера следует за твоим состоянием."}</div>
         </div>
       </div>
 
-      {/* Last 7 days trail — pure colored orbs, no emoji */}
+      {/* Last 7 days trail — hidden for a fresh user (no marks yet) */}
+      {!fresh && (
       <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"), display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         {last7.map((d, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
@@ -674,6 +681,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
           {logged}/7 отмечено
         </span>
       </div>
+      )}
     </button>
   );
 }
