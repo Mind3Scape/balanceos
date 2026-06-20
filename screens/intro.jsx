@@ -25,15 +25,25 @@ function SiriOrb({ r, tint, t, intensity = 1 }) {
   const breath = 1 + Math.sin(t * 0.9) * 0.025;
   const R = r * breath;
 
-  // Soft internal lights — radial-gradient discs (inherently feathered, NO
-  // SVG filter). Wider, multi-frequency drift so the haze visibly FLOWS and
-  // mixes, while the bright core keeps it anchored to the centre.
-  const lights = [
-    { g: "l1", rad: R * 0.60, ox: Math.cos(t * 0.45) * R * 0.24,       oy: Math.sin(t * 0.37 + 1.2) * R * 0.20 },
-    { g: "l2", rad: R * 0.52, ox: Math.cos(t * 0.62 + 2.1) * R * 0.22, oy: Math.sin(t * 0.50) * R * 0.26 },
-    { g: "l1", rad: R * 0.40, ox: Math.cos(t * 0.33 + 4.0) * R * 0.26, oy: Math.sin(t * 0.58 + 0.7) * R * 0.22 },
-    { g: "l2", rad: R * 0.34, ox: Math.cos(t * 0.71 + 1.0) * R * 0.20, oy: Math.sin(t * 0.42 + 3.0) * R * 0.24 },
-  ];
+  // Soft internal lights — radial-gradient discs (feathered, NO SVG filter).
+  // Each blob slowly CYCLES through the state's palette at its own phase, so the
+  // colours continuously blend and mix inside the orb (Siri-style living fluid).
+  const paletteColor = (tn, x) => {
+    x = ((x % 1) + 1) % 1;
+    const stops = [tn[0], tn[1], tn[2], tn[0]];
+    const seg = x * 3, i = Math.floor(seg), f = seg - i;
+    return lerpColor(stops[i], stops[i + 1], f);
+  };
+  const DN = 5;
+  const discs = Array.from({ length: DN }, (_, i) => {
+    const ph = i / DN;
+    return {
+      col: paletteColor(tint, t * 0.05 + ph),        // slow palette spin → mixing
+      rad: R * (0.42 + 0.16 * Math.sin(i * 1.7 + 0.5)),
+      ox: Math.cos(t * (0.34 + i * 0.07) + i * 1.7) * R * 0.26,
+      oy: Math.sin(t * (0.41 + i * 0.05) + i * 2.3) * R * 0.24,
+    };
+  });
   const coreX = Math.cos(t * 0.4) * R * 0.07;
   const coreY = Math.sin(t * 0.33) * R * 0.07;
 
@@ -68,15 +78,13 @@ function SiriOrb({ r, tint, t, intensity = 1 }) {
           <stop offset="38%"  stopColor={tint[1]} stopOpacity="0.78" />
           <stop offset="100%" stopColor={tint[2]} stopOpacity="0" />
         </radialGradient>
-        {/* Feathered light discs (used for the gentle internal swirl). */}
-        <radialGradient id={uid + "-l1"} cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stopColor={tint[0]} stopOpacity="0.85" />
-          <stop offset="100%" stopColor={tint[0]} stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id={uid + "-l2"} cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stopColor={tint[1]} stopOpacity="0.75" />
-          <stop offset="100%" stopColor={tint[1]} stopOpacity="0" />
-        </radialGradient>
+        {/* Feathered light discs — each its own palette-cycled colour. */}
+        {discs.map((d, i) => (
+          <radialGradient key={i} id={`${uid}-d${i}`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stopColor={d.col} stopOpacity="0.8" />
+            <stop offset="100%" stopColor={d.col} stopOpacity="0" />
+          </radialGradient>
+        ))}
         {/* Soft specular (feathered, no CSS blur). */}
         <radialGradient id={uid + "-spec"} cx="50%" cy="50%" r="50%">
           <stop offset="0%"   stopColor="#fff" stopOpacity="0.72" />
@@ -91,9 +99,9 @@ function SiriOrb({ r, tint, t, intensity = 1 }) {
       <g clipPath={`url(#${uid}-clip)`}>
         {/* lighter glass base */}
         <circle cx="0" cy="0" r={R} fill={`url(#${uid}-base)`} />
-        {/* gentle internal lights, kept near centre */}
-        {lights.map((b, i) => (
-          <circle key={i} cx={b.ox} cy={b.oy} r={b.rad} fill={`url(#${uid}-${b.g})`} />
+        {/* gentle internal lights — drifting, colour-cycling blobs */}
+        {discs.map((d, i) => (
+          <circle key={i} cx={d.ox} cy={d.oy} r={d.rad} fill={`url(#${uid}-d${i})`} />
         ))}
         {/* centred radiating core on top */}
         <circle cx={coreX} cy={coreY} r={R * 0.98} fill={`url(#${uid}-core)`} />
@@ -547,7 +555,11 @@ function IntroScreen() {
       </div>
 
       <div style={{ flex: 1, display: "grid", placeItems: "center", position: "relative", zIndex: 2, pointerEvents: "none" }}>
-        <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark}/>
+        {/* one-time burst ring radiating outward as the orb arrives */}
+        <div aria-hidden style={{ position: "absolute", inset: 0, margin: "auto", width: 200, height: 200, borderRadius: "50%", border: "1.5px solid " + (dark ? "rgba(180,210,255,0.5)" : "rgba(90,130,190,0.4)"), animation: "orbBurst 1.3s ease-out both", pointerEvents: "none" }}/>
+        <div style={{ animation: "orbIntro 1.15s cubic-bezier(0.34,1.4,0.5,1) both" }}>
+          <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark}/>
+        </div>
       </div>
 
       <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 150, pointerEvents: "none" }}>
@@ -596,6 +608,8 @@ function IntroScreen() {
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
         @keyframes moodIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.18); } 62% { opacity: 1; transform: scale(1.07); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes orbBurst { 0% { opacity: 0.6; transform: scale(0.12); } 70% { opacity: 0.18; } 100% { opacity: 0; transform: scale(2.4); } }
       `}</style>
     </div>
   );
