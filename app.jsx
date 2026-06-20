@@ -12,8 +12,11 @@ const { useState, useRef, useEffect, useCallback } = React;
 /* Route maps — copied verbatim from the design canvas so behaviour matches. */
 // Cinematic / immersive screens stay dark always. The settings/profile/levels/
 // achievements cluster now FOLLOWS the app theme (light in light, dark in dark).
+// Onboarding/intro/signup now FOLLOW the app theme (light by default, dark when
+// the user forces dark) — each already ships both palettes. Only the cinematic
+// in-app immersive screens stay always-dark.
 const DARK_ROUTES = new Set([
-  "onboarding", "intro", "signup", "mood", "focus", "level-up", "ai-chat",
+  "mood", "focus", "level-up", "ai-chat",
 ]);
 const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
 const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
@@ -22,7 +25,6 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 // colour so the home-indicator safe area is never a mismatched dark bar
 // (belt-and-suspenders alongside the full-height, no-fixed layout).
 const ROOT_BG = {
-  intro: "#060912", onboarding: "#060912", signup: "#0a0a0a",
   mood: "#050505", focus: "#05060a", "level-up": "#0a0a0a", "ai-chat": "#0a0a0a",
 };
 
@@ -106,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v68";
+const APP_VERSION = "v69";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
