@@ -108,17 +108,10 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 72, height: 72, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
           <svg width="72" height="72" viewBox="0 0 72 72" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-            {moodTint && (
-              <defs>
-                <linearGradient id="avatarMoodRing" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor={moodTint[0]} />
-                  <stop offset="55%" stopColor={moodTint[1]} />
-                  <stop offset="100%" stopColor={moodTint[2]} />
-                </linearGradient>
-              </defs>
-            )}
             <circle cx="36" cy="36" r="32" stroke={ringBg} strokeWidth="3.5" fill="none"/>
-            <circle cx="36" cy="36" r="32" stroke={moodTint ? "url(#avatarMoodRing)" : "#FEDE34"} strokeWidth="3.5" fill="none"
+            {/* The fill ring keeps its gold colour (it tracks completed habits);
+                only the disc + glow UNDER the avatar follow the mood (below). */}
+            <circle cx="36" cy="36" r="32" stroke="#FEDE34" strokeWidth="3.5" fill="none"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 32}
               strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
