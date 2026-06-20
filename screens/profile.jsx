@@ -249,6 +249,11 @@ function SettingsScreen() {
 
       <div className="section-label" style={{ marginTop: 22 }}>О приложении</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        <SysBtn onClick={() => navigate("manifest", { from: "settings" })} style={{ padding: 14 }}>
+          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={16} /></span>
+          <span style={{ flex: 1, fontSize: 15 }}>Манифест</span>
+          <I.ChevronRight size={16} className="bos-sys-text-2" />
+        </SysBtn>
         {["Политика конфиденциальности", "Условия использования", "Версия 2.4.1"].map((l, i, a) => (
           i < a.length - 1 ? (
             <SysBtn key={i} onClick={() => openSheet(<InfoSheet title={l} body="Это демо-макет BalanceOS. Полный текст документа появится в релизной версии приложения." cta="Готово" dark={routeDark}/>)} style={{ padding: 14 }}>
@@ -1217,4 +1222,37 @@ function AchievementsScreen() {
   );
 }
 
-Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen, AchievementsScreen, ACHIEVEMENTS });
+// Manifesto — the full philosophical text behind the onboarding, for those who
+// want to read it whole. Reached from Settings → «О приложении».
+function ManifestScreen() {
+  const { navigate, params } = useNav();
+  const Orb = window.StateOrb;
+  const stanzas = [
+    ["Ты — точка.", "Точка внимания внутри бесконечного количества возможных вариантов жизни."],
+    ["Ты не видишь мир таким, какой он есть.", "Ты видишь его таким, в каком состоянии находишься."],
+    [null, "Большинство людей не выбирают своё состояние. Они позволяют новостям, обстоятельствам, страхам и чужому мнению выбирать его за них."],
+    [null, "Тебе кажется, что твоей жизнью управляют обстоятельства. Но обстоятельства не определяют твои решения — их определяет твоё состояние."],
+    [null, "В одном состоянии всё кажется невозможным. В другом — ты видишь решения, которые были рядом всё это время."],
+    ["Это пространство — для одного.", "Научиться управлять своим состоянием. Расширять восприятие. Видеть больше возможностей. И осознанно выбирать направление движения."],
+    [null, "Твоя жизнь не определяется тем, что происходит вокруг. Она определяется тем, из какого состояния ты встречаешь происходящее."],
+    ["Путешествие начинается внутри.", "Это пространство учит главному: управлять не обстоятельствами, а собой."],
+  ];
+  return (
+    <div className="page-in" style={{ padding: "0 22px 44px" }}>
+      <PageHeader title="Манифест" onBack={() => navigate(params?.from || "settings")} />
+      <div style={{ display: "grid", placeItems: "center", margin: "6px 0 22px" }}>
+        {Orb ? <Orb size={94} tint={["#cfe1ff", "#7aa4d0", "#1a2c48"]} intensity={1} /> : null}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
+        {stanzas.map((s, i) => (
+          <div key={i}>
+            {s[0] && <div style={{ fontSize: 20.5, fontWeight: 600, letterSpacing: "-0.4px", lineHeight: 1.26, color: "var(--text)" }}>{s[0]}</div>}
+            {s[1] && <div className="bos-sys-text-2" style={{ fontSize: 15.5, lineHeight: 1.62, marginTop: s[0] ? 8 : 0 }}>{s[1]}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen, AchievementsScreen, ACHIEVEMENTS, ManifestScreen });

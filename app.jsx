@@ -51,6 +51,7 @@ const SCREENS = {
   "contact-detail": () => ContactDetailScreen,
   profile: () => ProfileScreen,
   achievements: () => AchievementsScreen,
+  manifest: () => ManifestScreen,
   settings: () => SettingsScreen,
   notifications: () => NotificationsScreen,
   history: () => HistoryScreen,
@@ -105,7 +106,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v67";
+const APP_VERSION = "v68";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */

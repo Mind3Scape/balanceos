@@ -313,27 +313,23 @@ function LayerCompound({ t, alpha, dark = true }) {
 }
 function LayerTogether({ t, alpha, dark = true }) {
   if (alpha <= 0) return null;
-  const friends = dark ? [
-    { a: 0,   c: "#cfe1ff", rx: 85, ry: 85 },
-    { a: 2.1, c: "#9bbfe8", rx: 95, ry: 70 },
-    { a: 4.2, c: "#7aa4d0", rx: 80, ry: 95 },
-  ] : [
-    { a: 0,   c: "#5a85bd", rx: 85, ry: 85 },
-    { a: 2.1, c: "#4f7bb0", rx: 95, ry: 70 },
-    { a: 4.2, c: "#3f6390", rx: 80, ry: 95 },
-  ];
+  // Three companions held at FIXED points around you (top, lower-left,
+  // lower-right) — they breathe gently in place instead of whirling chaotically,
+  // each linked to the centre by a clean line. (Memoji faces land here next.)
+  const TOP = -Math.PI / 2;
+  const friends = (dark ? ["#cfe1ff", "#9bbfe8", "#7aa4d0"] : ["#5a85bd", "#4f7bb0", "#3f6390"])
+    .map((c, i) => ({ c, a: TOP + i * (Math.PI * 2 / 3) }));
   return (
     <g opacity={alpha}>
       {friends.map((f, i) => {
-        const x = Math.cos(t * 0.35 + f.a) * f.rx;
-        const y = Math.sin(t * 0.35 + f.a) * f.ry;
+        const rr = 94 + Math.sin(t * 0.9 + i * 2.1) * 4;   // gentle breathing, anchored
+        const x = Math.cos(f.a) * rr, y = Math.sin(f.a) * rr;
         return (
           <g key={i}>
-            <path d={`M 0 0 Q ${x*0.3} ${y*0.3 + Math.sin(t+i)*12} ${x} ${y}`}
-              stroke={f.c} strokeOpacity={dark ? 0.45 : 0.5} strokeWidth="1" fill="none" />
-            <circle cx={x} cy={y} r="16" fill={f.c} opacity={dark ? 0.18 : 0.22} style={{ filter: "blur(6px)" }} />
-            <circle cx={x} cy={y} r="8" fill={f.c} opacity="0.9" />
-            <circle cx={x - 2} cy={y - 3} r="2.5" fill="#fff" opacity={dark ? 0.7 : 0.55} />
+            <line x1="0" y1="0" x2={x} y2={y} stroke={f.c} strokeOpacity={dark ? 0.4 : 0.45} strokeWidth="1" />
+            <circle cx={x} cy={y} r="16" fill={f.c} opacity={dark ? 0.16 : 0.2} style={{ filter: "blur(6px)" }} />
+            <circle cx={x} cy={y} r="9" fill={f.c} opacity="0.92" />
+            <circle cx={x - 2} cy={y - 3} r="2.6" fill="#fff" opacity={dark ? 0.7 : 0.55} />
           </g>
         );
       })}
@@ -406,7 +402,10 @@ const SCENE = {
 function lerp(a, b, k) { return a + (b - a) * k; }
 function lerpArr(a, b, k) { return a.map((v, i) => lerp(v, b[i], k)); }
 function lerpColor(a, b, k) {
-  // hex like "#rrggbb"
+  // hex like "#rrggbb" — tolerate bad inputs so a stray undefined never crashes
+  if (!a || typeof a !== "string" || a[0] !== "#" || a.length < 7) a = "#7aa4d0";
+  if (!b || typeof b !== "string" || b[0] !== "#" || b.length < 7) b = "#7aa4d0";
+  if (!isFinite(k)) k = 0;
   const pa = [parseInt(a.slice(1,3),16), parseInt(a.slice(3,5),16), parseInt(a.slice(5,7),16)];
   const pb = [parseInt(b.slice(1,3),16), parseInt(b.slice(3,5),16), parseInt(b.slice(5,7),16)];
   const m = lerpArr(pa, pb, k).map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
@@ -502,13 +501,13 @@ function IntroScreen() {
   const effectivePrev = blend < 1 ? prev : null;
 
   const slides = [
-    { mode: "awake",    eyebrow: "Состояние",        title: "Всё держится на состоянии", sub: "BalanceOS — не про галочки и не про успех. Он про твоё состояние: сколько в тебе сил, ясности, желания жить. От него зависит всё остальное.", glow: "rgba(140,180,230,0.42)" },
-    { mode: "comfort",  eyebrow: "Когда сил мало",    title: "Мир сжимается", sub: "В слабом состоянии всё сужается до привычного круга. Новое кажется неподъёмным — и ты живёшь на автопилоте.", glow: "rgba(96,120,150,0.34)" },
-    { mode: "state",    eyebrow: "Когда ты наполнен", title: "Мир раскрывается", sub: "В сильном состоянии граница раздвигается сама. Далёкое вдруг становится по силам. Цель — чаще бывать здесь.", glow: "rgba(160,205,245,0.52)" },
-    { mode: "compound", eyebrow: "Как это растёт",    title: "По чуть-чуть, каждый день", sub: "Состояние не включить кнопкой. Его собирают маленькие шаги — каждый возвращается к тебе и питает ядро.", glow: "rgba(180,210,240,0.45)" },
-    { mode: "together", eyebrow: "Не в одиночку",     title: "С близкими — дальше", sub: "Когда рядом свои, заходить за прежние границы легче. Делитесь привычками и поддерживайте друг друга.", glow: "rgba(150,185,225,0.42)" },
-    { mode: "habits",   eyebrow: "Твоя система",      title: "Привычки держат в силе", sub: "Сон, движение, тишина, благодарность — у каждой привычки свой ритм. Вместе они и есть твоё состояние.", glow: "rgba(170,205,240,0.48)" },
-    { mode: "mood",     eyebrow: "Точка отсчёта",     title: "Как ты сейчас?", sub: "Состояние не вырастить, не замечая его. Отметь, как ты прямо сейчас — отсюда и начнём.", glow: "rgba(180,210,240,0.45)" },
+    { mode: "awake",    eyebrow: "Ты",                title: "Ты — точка", sub: "Точка внимания внутри бесконечного количества возможных вариантов жизни.", glow: "rgba(140,180,230,0.42)" },
+    { mode: "awake",    eyebrow: "Состояние",         title: "Ты не видишь мир таким, какой он есть", sub: "Ты видишь его таким, в каком ты состоянии. От него зависит всё остальное.", glow: "rgba(160,200,240,0.46)" },
+    { mode: "comfort",  eyebrow: "Когда сил мало",     title: "В слабом состоянии мир сжимается", sub: "Всё кажется невозможным. Ты живёшь в узком круге привычного — на автопилоте.", glow: "rgba(96,120,150,0.34)" },
+    { mode: "state",    eyebrow: "Когда ты наполнен",  title: "В сильном — раскрывается", sub: "Граница раздвигается сама. Ты видишь решения, которые были рядом всё это время.", glow: "rgba(160,205,245,0.52)" },
+    { mode: "compound", eyebrow: "Твой выбор",         title: "Состоянием можно управлять", sub: "Не обстоятельствами, а собой. Большинство отдают этот выбор страхам и чужому мнению — здесь ты учишься выбирать сам.", glow: "rgba(180,210,240,0.45)" },
+    { mode: "together", eyebrow: "Не в одиночку",      title: "С близкими — пространство шире", sub: "Рядом со своими граница раздвигается дальше. Объединяйтесь в команды, делитесь привычками, держите друг друга.", glow: "rgba(150,185,225,0.42)" },
+    { mode: "mood",     eyebrow: "Точка отсчёта",      title: "Как ты сейчас?", sub: "Состояние не вырастить, не замечая его. Отметь, как ты прямо сейчас — отсюда и начнём.", glow: "rgba(180,210,240,0.45)" },
   ];
   const cur = slides[step];
   const last = step === slides.length - 1;
@@ -617,7 +616,7 @@ function IntroScreen() {
       <div style={{ position: "relative", padding: "20px 24px 28px", zIndex: 2 }}>
         {cur.mode !== "mood" && (
           <button onClick={() => last ? navigate("signup") : go(step+1)} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
-            {step === 0 ? "Начать" : (cur.mode === "habits" ? "Войти" : "Далее")}
+            {step === 0 ? "Начать" : "Далее"}
           </button>
         )}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 12 }}>
