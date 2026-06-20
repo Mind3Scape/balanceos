@@ -209,6 +209,22 @@ function HomeScreen() {
   const ringPct = totalCount ? doneCount / totalCount : 0;
   const dayStreak = app?.mode === "fresh" ? 0 : 27;
 
+  // Celebration when a habit gets completed: float +XP near the avatar ring,
+  // sparkle burst when the whole day closes (doneCount reaches total).
+  const [celebrate, setCelebrate] = React.useState(null);
+  const prevDoneRef = React.useRef(doneCount);
+  React.useEffect(() => {
+    if (doneCount > prevDoneRef.current) {
+      const full = totalCount > 0 && doneCount === totalCount;
+      setCelebrate({ xp: full ? 100 : 15, full, key: Date.now() + ":" + doneCount });
+      if (window.tgHaptic) { try { window.tgHaptic(full ? "heavy" : "light"); } catch (e) {} }
+      const t = window.setTimeout(() => setCelebrate(null), full ? 2000 : 1200);
+      prevDoneRef.current = doneCount;
+      return () => window.clearTimeout(t);
+    }
+    prevDoneRef.current = doneCount;
+  }, [doneCount, totalCount]);
+
   // Theme tokens
   const cardBg     = isDark ? "rgba(39,39,42,0.55)" : "#fff";
   const cardBorder = "0";
@@ -237,7 +253,25 @@ function HomeScreen() {
         </button>
       </div>
 
-      <div data-tour="aihints"><HomeHeroSwipe navigate={navigate} doneCount={doneCount} totalCount={totalCount} ringPct={ringPct} isDark={isDark} /></div>
+      <div data-tour="aihints" style={{ position: "relative" }}>
+        <HomeHeroSwipe navigate={navigate} doneCount={doneCount} totalCount={totalCount} ringPct={ringPct} isDark={isDark} />
+        {celebrate && (
+          <div key={celebrate.key} aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 6, overflow: "visible" }}>
+            <div style={{ position: "absolute", top: 66, right: 16, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5,
+              background: "#0a0a0a", color: "#FEDE34", fontSize: celebrate.full ? 13 : 12, fontWeight: 800,
+              padding: celebrate.full ? "7px 12px" : "5px 10px", borderRadius: 999, boxShadow: "0 8px 22px rgba(0,0,0,0.3)",
+              animation: "bosXpPop 1.15s cubic-bezier(0.22,1,0.36,1) forwards" }}>
+              ✦ +{celebrate.xp} XP{celebrate.full ? " · день закрыт" : ""}
+            </div>
+            {celebrate.full && [0,1,2,3,4,5,6,7].map(i => {
+              const a = (i / 8) * Math.PI * 2;
+              return <span key={i} style={{ position: "absolute", top: 52, right: 52, width: 5, height: 5, borderRadius: "50%",
+                background: "#FEDE34", boxShadow: "0 0 6px #FEDE34", animation: "bosSpark 0.9s ease-out forwards",
+                ["--sx"]: Math.cos(a) * 44 + "px", ["--sy"]: Math.sin(a) * 44 + "px" }}/>;
+            })}
+          </div>
+        )}
+      </div>
 
       {/* MOOD WIDGET — living card with breathing orb + last-7-days mood trail */}
       {widgets.mood !== false && mood && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
@@ -264,10 +298,13 @@ function HomeScreen() {
         {widgets.level !== false && (
         <button data-tour="level" onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, opacity: 0.7 }}>Уровень</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
             <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={app?.mode === "fresh" ? 1 : 7}/></span>
-            <span style={{ fontSize: 11, opacity: 0.7 }}>{app?.mode === "fresh" ? "· 0¢" : "· 1.2k¢"}</span>
+            <span style={{ fontSize: 10.5, opacity: 0.62, fontWeight: 700 }}>{app?.mode === "fresh" ? "0 XP" : "1 240 XP"}</span>
           </div>
+          <span style={{ display: "block", height: 4, borderRadius: 999, background: "rgba(0,0,0,0.16)", overflow: "hidden", marginTop: 1 }}>
+            <span style={{ display: "block", height: "100%", width: (app?.mode === "fresh" ? 4 : 83) + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
+          </span>
         </button>
         )}
       </div>
@@ -508,7 +545,7 @@ function HomeCustomizeScreen() {
     { id: "quote",    i: "✨", t: "Цитата дня", d: "Вдохновение вверху" },
     { id: "mood",     i: "💭", t: "Состояние (настроение)", d: "Твоё самочувствие — нажми, чтобы обновить" },
     { id: "streak",   i: "🔥", t: "Счётчик серии", d: "Дней подряд" },
-    { id: "level",    i: "🏆", t: "Уровень и кредиты", d: "Опыт и награды" },
+    { id: "level",    i: "🏆", t: "Уровень и опыт", d: "Прогресс и награды" },
     { id: "calendar", i: "📅", t: "Календарь", d: "Сегодняшняя дата" },
     { id: "team",     i: "👥", t: "Аватары команды", d: "Активные команды" },
     { id: "energy",   i: "⚡", t: "Карточка энергии", d: "Итог дня" },

@@ -238,6 +238,19 @@ body {
 /* Springier tap feedback across the app. */
 .tap:active { transform: scale(0.96); transition: transform 0.08s var(--ios-ease); }
 
+/* Home XP celebration — float the +XP near the avatar ring; sparkle burst on a full day. */
+@keyframes bosXpPop {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.8); }
+  22%  { opacity: 1; transform: translateY(0) scale(1.05); }
+  35%  { transform: translateY(0) scale(1); }
+  78%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-26px) scale(0.96); }
+}
+@keyframes bosSpark {
+  0%   { opacity: 1; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--sx,0), var(--sy,0)) scale(0.3); }
+}
+
 /* ── Launch splash — pure CSS breathing orb, paints before React mounts ──── */
 #splash {
   position: fixed;
