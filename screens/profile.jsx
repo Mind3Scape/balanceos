@@ -1076,7 +1076,15 @@ function SignUpScreen() {
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "100%", color: pal.text, display: "flex", flexDirection: "column", background: pal.bg, position: "relative", overflow: "hidden" }}>
       <div style={{ flex: 1, padding: "max(64px, calc(var(--tg-top-inset, 0px) + 22px)) 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 104, height: 104, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", boxShadow: pal.glow }}/>
+        {/* Your memoji INSIDE the same glass orb from onboarding — it blooms in
+            (the orb arrives, then your face appears in it) rather than from nowhere. */}
+        <div style={{ position: "relative", width: 118, height: 118, display: "grid", placeItems: "center", animation: "suOrbIn 0.9s cubic-bezier(0.34,1.4,0.5,1) both" }}>
+          <div aria-hidden style={{ position: "absolute", width: 158, height: 158, borderRadius: "50%", background: dark ? "radial-gradient(circle, rgba(150,185,240,0.45), transparent 64%)" : "radial-gradient(circle, rgba(120,160,225,0.42), transparent 66%)", filter: "blur(8px)" }}/>
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: dark ? "linear-gradient(160deg,#4a5b82,#222d45)" : "linear-gradient(160deg,#bcd2f1,#7ea5d8)", boxShadow: dark ? "inset 0 3px 10px rgba(255,255,255,0.18), inset 0 -10px 20px rgba(0,0,0,0.3), 0 16px 40px rgba(0,0,0,0.4)" : "inset 0 3px 10px rgba(255,255,255,0.85), inset 0 -12px 22px rgba(40,80,140,0.28), 0 16px 38px rgba(90,130,195,0.4)" }}/>
+          <div style={{ position: "absolute", inset: 9, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", animation: "suFaceIn 0.6s 0.4s ease both" }}/>
+          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: dark ? "inset 0 0 0 1px rgba(255,255,255,0.12)" : "inset 0 0 0 1px rgba(255,255,255,0.55)", background: "radial-gradient(circle at 33% 24%, rgba(255,255,255,0.6), transparent 40%)" }}/>
+          <style>{`@keyframes suOrbIn{0%{opacity:0;transform:scale(0.5)}60%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}@keyframes suFaceIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}`}</style>
+        </div>
         <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 27, fontWeight: 700, letterSpacing: "-0.6px", marginTop: 24, textAlign: "center" }}>С чего начнём?</div>
         <div style={{ fontSize: 14, color: pal.sub, marginTop: 8, textAlign: "center", maxWidth: 286, lineHeight: 1.5 }}>
           Загляни в готовый пример — или начни свой путь с чистого листа.
