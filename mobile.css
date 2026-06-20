@@ -8,7 +8,7 @@
 :root {
   --ios-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --bos-safe-top: env(safe-area-inset-top, 0px);
-  --bos-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --bos-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-bottom-inset, 0px));
 }
 
 html {
@@ -127,6 +127,11 @@ body {
 .page-stack > .bos-page.full-bleed {
   padding-bottom: 0;
 }
+
+/* Top room (was a fixed 60px under the old fake status bar). Stays 60px in a
+   browser / installed PWA, and grows only if Telegram reports a bigger top inset
+   in fullscreen (notch + its floating buttons). Full-bleed screens keep padding:0. */
+.bos-page:not(.full-bleed) { padding-top: max(60px, var(--tg-top-inset, 0px)); }
 
 /* ── Liquid-glass bottom tab bar — floats above the home indicator ─────────
    Genuine frosted-glass: low opacity so content behind shows through, heavy

@@ -103,7 +103,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v44";
+const APP_VERSION = "v45";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -335,8 +335,8 @@ function PhoneApp() {
             </React.Fragment>
           )}
         </div>
-        {/* Real OS status bar on installed app; drawn one only in a browser tab. */}
-        {!IS_STANDALONE && <StatusBar dark={topDark} />}
+        {/* No fake status bar. iOS draws the real one in an installed PWA; in a
+            browser or Telegram the OS / Telegram owns the top bar, so we stay clean. */}
         {!drag && topInTabs && (
           <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} />
         )}

@@ -35,6 +35,24 @@
       tg.ready();
       tg.expand();
       if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); // a scroll shouldn't close the app
+      if (tg.requestFullscreen) tg.requestFullscreen();         // edge-to-edge: drops Telegram's header bar
+    } catch (e) {}
+
+    // Publish Telegram's safe-area insets as CSS vars so our top/bottom spacing
+    // clears the notch and Telegram's floating fullscreen buttons.
+    function applyInsets() {
+      var sa = tg.safeAreaInset || {}, ca = tg.contentSafeAreaInset || {};
+      var r = document.documentElement.style;
+      r.setProperty("--tg-top-inset", ((sa.top || 0) + (ca.top || 0)) + "px");
+      r.setProperty("--tg-bottom-inset", ((sa.bottom || 0) + (ca.bottom || 0)) + "px");
+    }
+    try {
+      applyInsets();
+      if (tg.onEvent) {
+        tg.onEvent("safeAreaChanged", applyInsets);
+        tg.onEvent("contentSafeAreaChanged", applyInsets);
+        tg.onEvent("fullscreenChanged", applyInsets);
+      }
     } catch (e) {}
 
     // Real native haptic on every tap. Bound once. A scroll-drag never fires a
