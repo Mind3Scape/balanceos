@@ -30,33 +30,30 @@ function BalanceWheel({ size = 122, isDark = false }) {
   const ang = (i) => (i / axes.length) * Math.PI * 2 - Math.PI / 2;
   const pt = (i, v, rad = r) => [cx + Math.cos(ang(i)) * rad * v, cy + Math.sin(ang(i)) * rad * v];
   const poly = axes.map((a, i) => { const [x, y] = pt(i, a.v); return (i ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1); }).join(" ") + "Z";
-  const grid = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.07)";
+  const grid = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.055)";
   const chipFill = isDark ? "#1d1d20" : "#ffffff";
 
   return (
     <svg width={W} height={W} viewBox={`${-pad} ${-pad} ${W} ${W}`} style={{ overflow: "visible", display: "block" }}>
       <defs>
-        <radialGradient id={uid + "-fill"} cx="50%" cy="50%" r="55%">
-          <stop offset="0%" stopColor="#34C759" stopOpacity="0.50"/>
-          <stop offset="52%" stopColor="#FFC400" stopOpacity="0.34"/>
-          <stop offset="100%" stopColor="#FF8A3D" stopOpacity="0.26"/>
+        {/* single warm gradient — clean, not a muddy multi-colour blob */}
+        <radialGradient id={uid + "-fill"} cx="50%" cy="46%" r="60%">
+          <stop offset="0%"   stopColor="#FFD64A" stopOpacity="0.46"/>
+          <stop offset="100%" stopColor="#FF9F45" stopOpacity="0.12"/>
         </radialGradient>
       </defs>
-      {/* grid rings — the 0.70 ring is the dashed "balance goal" */}
-      {[0.4, 0.7, 1].map((g, i) => (
-        <circle key={i} cx={cx} cy={cy} r={r * g} fill="none" stroke={g === 0.7 ? (isDark ? "rgba(52,199,89,0.5)" : "rgba(52,199,89,0.45)") : grid}
-          strokeWidth="1" strokeDasharray={g === 0.7 ? "2.5 4" : undefined}/>
-      ))}
-      {/* spokes */}
-      {axes.map((_, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke={grid} strokeWidth="1"/>; })}
-      {/* radar shape */}
-      <path d={poly} fill={`url(#${uid}-fill)`} stroke="#FFB020" strokeWidth="1.6" strokeLinejoin="round"/>
-      {/* vertex dots, colored by zone */}
-      {axes.map((a, i) => { const [x, y] = pt(i, a.v); return <circle key={i} cx={x} cy={y} r="2.8" fill={zoneColor(a.v)} stroke={chipFill} strokeWidth="1.2"/>; })}
-      {/* emoji icons at the tips — clean, no chip ring */}
+      {/* two quiet rings: the outer bound + a dashed "balance goal" at 0.70.
+          No spokes / inner rings — keeps it calm and Apple-clean. */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={grid} strokeWidth="1"/>
+      <circle cx={cx} cy={cy} r={r * 0.7} fill="none" stroke={isDark ? "rgba(52,199,89,0.38)" : "rgba(52,199,89,0.34)"} strokeWidth="1" strokeDasharray="2.5 4.5"/>
+      {/* the balance shape */}
+      <path d={poly} fill={`url(#${uid}-fill)`} stroke="#FFB020" strokeWidth="1.7" strokeLinejoin="round"/>
+      {/* vertex dots, colored by zone (green/amber/red) */}
+      {axes.map((a, i) => { const [x, y] = pt(i, a.v); return <circle key={i} cx={x} cy={y} r="2.5" fill={zoneColor(a.v)} stroke={chipFill} strokeWidth="1.2"/>; })}
+      {/* emoji at the tips */}
       {axes.map((a, i) => {
-        const [ox, oy] = pt(i, 1.24);
-        return <text key={i} x={ox} y={oy} fontSize="15" textAnchor="middle" dominantBaseline="central">{a.e}</text>;
+        const [ox, oy] = pt(i, 1.26);
+        return <text key={i} x={ox} y={oy} fontSize="14" textAnchor="middle" dominantBaseline="central">{a.e}</text>;
       })}
     </svg>
   );
@@ -143,26 +140,26 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
         ))}
       </div>
     </div>,
-    /* Page 2: Balance Wheel */
-    <div key="wheel" style={{ position: "relative", height: "100%", padding: "20px 22px 20px 14px", boxSizing: "border-box", display: "flex", gap: 14, alignItems: "center" }}>
-      <div style={{ flexShrink: 0 }}><BalanceWheel size={122} isDark={isDark}/></div>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%", justifyContent: "center" }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4 }}>Баланс жизни</div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginTop: 4 }}>
-          <span style={{ fontSize: 34, color: "var(--text)", fontWeight: 700, letterSpacing: "-1.2px", lineHeight: 1 }}><CountUp value={avgBalance}/><span style={{ fontSize: 17, fontWeight: 600, color: "var(--text-4)" }}>%</span></span>
+    /* Page 2: Balance Wheel — radar as the hero, one compact header line */
+    <div key="wheel" style={{ position: "relative", height: "100%", padding: "16px 18px 26px", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4 }}>Баланс жизни</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginTop: 5 }}>
+            <span style={{ fontSize: 30, color: "var(--text)", fontWeight: 700, letterSpacing: "-1px", lineHeight: 1 }}><CountUp value={avgBalance}/><span style={{ fontSize: 15, fontWeight: 600, color: "var(--text-4)" }}>%</span></span>
+            <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>в балансе</span>
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4 }}>сбалансировано</div>
-
-        <div style={{ height: 1, background: "var(--line)", margin: "16px 0 0", maxWidth: 150 }}/>
-
-        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 16 }}>Слабее всего</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-          {weakSpheres.map((w, i) => (
-            <span key={i} style={{ fontSize: 15, color: "var(--text-2)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 9 }}>
-              <span style={{ fontSize: 17 }}>{w.e}</span>{w.l}
-            </span>
-          ))}
-        </div>
+        {weakSpheres[0] && (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, background: chipBg, border: chipBd, borderRadius: 999, padding: "6px 11px", color: "var(--text-2)" }}>
+            <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.6 }}>слабее</span>
+            <span style={{ fontSize: 14 }}>{weakSpheres[0].e}</span>
+            <span style={{ fontWeight: 600 }}>{weakSpheres[0].l}</span>
+          </div>
+        )}
+      </div>
+      <div style={{ flex: 1, display: "grid", placeItems: "center" }}>
+        <BalanceWheel size={118} isDark={isDark} />
       </div>
     </div>,
   ];
