@@ -103,7 +103,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v53";
+const APP_VERSION = "v54";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -112,6 +112,120 @@ const ANIM = {
   pop: { out: "anim-pop-out", in: "anim-pop-in" },
   fade: { out: "anim-fade-out", in: "anim-fade-in" },
 };
+
+/* ── Guided tour (coach marks) — runs once on entering the demo ────────────────
+   Hybrid form: a welcome card framing the ecosystem, then a moving spotlight that
+   lights each REAL tab in turn (the tour drives the tab bar), then a closing card.
+   Skippable at every step. Mounted in the phone shell so it survives tab fades. */
+const TOUR_STOPS = [
+  { kind: "card", emoji: "✨", title: "Это не просто трекер привычек",
+    body: "BalanceOS — целая платформа: твои привычки, команды, тренеры и ИИ в одном месте. Давай за минуту покажу, что где.", cta: "Показать" },
+  { kind: "tab", tab: "home", idx: 0, eyebrow: "Главная", title: "Твой экран",
+    body: "Состояние, баланс жизни, серии — это виджеты. Собери экран под себя: что важно, то и наверху." },
+  { kind: "tab", tab: "habits", idx: 1, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
+    body: "Добавляй привычки и цели по кнопке «плюс». Любую привычку можно делать одному — или вместе с друзьями." },
+  { kind: "tab", tab: "community", idx: 2, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
+    body: "Команды, курсы и тренеры. Привычки вместе держат сильнее — и сюда хочется возвращаться." },
+  { kind: "tab", tab: "ai", idx: 3, eyebrow: "Помощник", title: "ИИ всегда под рукой",
+    body: "Спроси совет, попроси разобрать день или собрать план. Он держит в уме твой контекст." },
+  { kind: "card", emoji: "🌟", title: "Готово — это твоё пространство",
+    body: "Сила состояния растёт, когда рядом люди. Загляни в каждый раздел — и зови своих.", cta: "Начать" },
+];
+
+function GuidedTour({ step, setStep, endTour, navigate, dark }) {
+  const rootRef = useRef(null);
+  const [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
+  const stop = (step >= 0 && step < TOUR_STOPS.length) ? TOUR_STOPS[step] : null;
+
+  // Drive the tab bar so each "tab" stop shows the real section behind the dim.
+  useEffect(() => {
+    if (stop && stop.kind === "tab") navigate(stop.tab);
+  }, [step]); // eslint-disable-line
+
+  // Measure the active tab button so the spotlight hole + caret land on it.
+  useEffect(() => {
+    if (!stop || stop.kind !== "tab") { setSpot(null); return undefined; }
+    const measure = () => {
+      const shell = rootRef.current && rootRef.current.parentElement;
+      if (!shell) return;
+      const btn = shell.querySelectorAll(".bos-tabbar button")[stop.idx];
+      if (!btn) return;
+      const s = shell.getBoundingClientRect(), b = btn.getBoundingClientRect();
+      setSpot({ cx: b.left - s.left + b.width / 2, cy: b.top - s.top + b.height / 2, top: b.top - s.top, w: s.width, shellH: s.height });
+    };
+    const t = window.setTimeout(measure, 380); // after the tab fade settles
+    const raf = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => { window.clearTimeout(t); cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
+  }, [step]); // eslint-disable-line
+
+  if (!stop) return null;
+  const last = step >= TOUR_STOPS.length - 1;
+  const next = () => { if (last) { endTour(); navigate("home"); } else setStep(step + 1); };
+  const skip = () => { endTour(); navigate("home"); };
+
+  const dots = (
+    <div style={{ display: "flex", gap: 5, justifyContent: "center", marginTop: 14 }}>
+      {TOUR_STOPS.map((_, i) => (
+        <span key={i} style={{ width: i === step ? 16 : 5, height: 5, borderRadius: 999, background: i === step ? "#FEDE34" : (dark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.18)"), transition: "width 0.3s, background 0.3s" }} />
+      ))}
+    </div>
+  );
+  const cardBg = dark ? "rgba(26,26,30,0.97)" : "rgba(255,255,255,0.98)";
+  const titleC = dark ? "#fff" : "#0a0a0a";
+  const bodyC = dark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.55)";
+  const ghostC = dark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)";
+  const tourStyle = (
+    <style>{`
+      @keyframes bosTourPop { from { opacity: 0; transform: scale(0.93) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+      @keyframes bosTourRing { 0% { transform: scale(0.75); opacity: 0.9; } 100% { transform: scale(1.55); opacity: 0; } }
+      .bos-tour-pop { animation: bosTourPop 0.42s cubic-bezier(0.34,1.56,0.64,1) both; }
+    `}</style>
+  );
+
+  // ── Centered welcome / closing card ──
+  if (stop.kind === "card") {
+    return (
+      <div ref={rootRef} style={{ position: "absolute", inset: 0, zIndex: 500, display: "grid", placeItems: "center", padding: 28, background: "rgba(4,6,12,0.62)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}>
+        <div className="bos-tour-pop" style={{ width: "100%", maxWidth: 320, background: cardBg, borderRadius: 28, padding: "30px 24px 22px", textAlign: "center", boxShadow: "0 30px 70px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+          <div style={{ fontSize: 46, lineHeight: 1, marginBottom: 14 }}>{stop.emoji}</div>
+          <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: "-0.4px", color: titleC, lineHeight: 1.2 }}>{stop.title}</div>
+          <div style={{ fontSize: 14.5, color: bodyC, lineHeight: 1.5, marginTop: 10 }}>{stop.body}</div>
+          <button onClick={next} className="tap" style={{ width: "100%", marginTop: 22, background: "linear-gradient(135deg,#FEDE34,#FFC400)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: 15, fontSize: 15.5, fontWeight: 700 }}>{stop.cta}</button>
+          {!last && <button onClick={skip} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: 8 }}>Пропустить</button>}
+          {dots}
+        </div>
+        {tourStyle}
+      </div>
+    );
+  }
+
+  // ── Tab spotlight ──
+  const cx = spot ? spot.cx : 200, cy = spot ? spot.cy : 800;
+  const cardBottom = spot ? (spot.shellH - spot.top + 22) : 110;
+  const caretLeft = spot ? Math.max(14, Math.min(cx - 21, spot.w - 28 - 18)) : 180;
+  const dimBg = spot
+    ? `radial-gradient(circle at ${cx}px ${cy}px, rgba(0,0,0,0) 25px, rgba(0,0,0,0.16) 40px, rgba(4,6,12,0.66) 94px)`
+    : "rgba(4,6,12,0.5)";
+  return (
+    <div ref={rootRef} style={{ position: "absolute", inset: 0, zIndex: 500 }}>
+      <div style={{ position: "absolute", inset: 0, background: dimBg, transition: "background 0.35s ease" }} />
+      {spot && <span aria-hidden style={{ position: "absolute", left: cx, top: cy, width: 46, height: 46, marginLeft: -23, marginTop: -23, borderRadius: "50%", border: "2px solid rgba(254,222,52,0.9)", boxShadow: "0 0 16px rgba(254,222,52,0.5)", animation: "bosTourRing 1.6s ease-out infinite", pointerEvents: "none" }} />}
+      <div className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, bottom: cardBottom, background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{stop.eyebrow}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: titleC, marginTop: 3 }}>{stop.title}</div>
+        <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+          <button onClick={skip} className="tap" style={{ background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: "6px 4px" }}>Пропустить</button>
+          <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "9px 20px", fontSize: 14, fontWeight: 600 }}>{last ? "Готово" : "Далее"}</button>
+        </div>
+        {dots}
+        <span aria-hidden style={{ position: "absolute", bottom: -7, left: caretLeft, width: 14, height: 14, background: cardBg, transform: "rotate(45deg)", borderRadius: 3, borderRight: dark ? "1px solid rgba(255,255,255,0.08)" : "none", borderBottom: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }} />
+      </div>
+      {tourStyle}
+    </div>
+  );
+}
 
 function PhoneApp() {
   const app = useApp();
@@ -346,6 +460,7 @@ function PhoneApp() {
         )}
         <div className="bos-version">{APP_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
+        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} dark={topDark} />
       </div>
     </div>
     </SheetCtx.Provider>
