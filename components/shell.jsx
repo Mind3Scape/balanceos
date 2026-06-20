@@ -382,6 +382,13 @@ const SEED_TEAMS = [
 ];
 /* Demo day-mood history (calendar dots). Extracted so enterDemo() can restore it. */
 const SEED_DAYMOODS = { 21: 0, 22: 1, 23: 4, 24: 5, 25: 1, 26: 3, 27: 0, 28: 1 };
+/* Demo journal — per-day sub-state #tags (+ optional free note). Day → {tags, note}. */
+const SEED_DAYNOTES = {
+  28: { tags: ["благодарность", "забота"], note: "" },
+  27: { tags: ["спорт", "продуктивно"], note: "Рано встал — много успел до завтрака." },
+  25: { tags: ["встреча_с_друзьями"], note: "" },
+  23: { tags: ["дедлайн", "недосып"], note: "" },
+};
 
 // New-item id source. Module-level → resets to 1000 on every reload alongside the seeds.
 let _bosNextId = 1000;
@@ -390,6 +397,7 @@ const _nid = () => ++_bosNextId;
 function AppProvider({ children }) {
   const [mood, setMood] = useState(MOOD_OPTIONS[1]);
   const [dayMoods, setDayMoods] = useState(SEED_DAYMOODS);
+  const [dayNotes, setDayNotes] = useState(SEED_DAYNOTES);
   const [widgets, setWidgets] = useState({
     quote: true, mood: true, streak: true, level: true,
     calendar: true, team: true, energy: true, ai: true,
@@ -439,12 +447,12 @@ function AppProvider({ children }) {
   const enterDemo = () => {
     setMode("demo"); setUserName("Павел");
     setHabits(SEED_HABITS); setGoals(SEED_GOALS); setTeams(SEED_TEAMS);
-    setDayMoods(SEED_DAYMOODS); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES);
+    setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES);
   };
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim());
     setHabits([]); setGoals([]); setTeams([]);
-    setDayMoods({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES);
+    setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES);
   };
   const startTour = () => setTourStep(0);
   const endTour = () => setTourStep(-1);
@@ -457,6 +465,7 @@ function AppProvider({ children }) {
   return <AppStateCtx.Provider value={{
     mood, setMood,
     dayMoods, setDayMoods,
+    dayNotes, setDayNotes,
     widgets, setWidgets,
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,

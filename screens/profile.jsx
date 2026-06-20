@@ -530,6 +530,21 @@ function HistoryScreen() {
                 </div>
               );
             })()}
+            {app?.dayNotes?.[selDay] && ((app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length) || app.dayNotes[selDay].note) && (
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
+                <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Журнал</div>
+                {app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                    {app.dayNotes[selDay].tags.map((tg, k) => (
+                      <span key={k} style={{ fontSize: 12.5, padding: "5px 10px", borderRadius: 999, background: TH.iconBg }}>#{tg}</span>
+                    ))}
+                  </div>
+                )}
+                {app.dayNotes[selDay].note && (
+                  <div className="bos-sys-text-2" style={{ fontSize: 14, marginTop: 8, lineHeight: 1.45 }}>{app.dayNotes[selDay].note}</div>
+                )}
+              </div>
+            )}
             {dayHabits.map((h, i) => {
               const done = i < Math.round(selPct * dayHabits.length);
               return (

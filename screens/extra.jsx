@@ -240,6 +240,16 @@ function GoalDetailScreen() {
 /* MOOD CHECK-IN — fullscreen, edge-to-edge black with a centered aurora
    vignette so top/bottom stay pure black. State is represented entirely by
    colored orbs (no emoji). Includes a consistency-streak bonus strip. */
+/* Contextual sub-state hashtags per mood — tap to journal without typing a word. */
+const MOOD_TAGS = {
+  "Энергия":     ["выспался", "спорт", "продуктивно", "вдохновение", "цель", "музыка", "свежесть", "кофе"],
+  "Радость":     ["встреча_с_друзьями", "успех", "благодарность", "природа", "любовь", "смех", "забота", "хорошая_новость"],
+  "Спокойствие": ["медитация", "тишина", "прогулка", "баланс", "выспался", "чтение", "дыхание", "природа"],
+  "Тревога":     ["дедлайн", "неопределённость", "недосып", "перегруз", "ожидание", "новости", "конфликт", "здоровье"],
+  "Упадок":      ["усталость", "одиночество", "переутомление", "неудача", "пасмурно", "рутина", "недосып", "сомнения"],
+  "Усталость":   ["недосып", "перегруз", "много_задач", "дорога", "экраны", "стресс", "нет_отдыха", "недо_спорта"],
+};
+
 function MoodScreen() {
   const { navigate } = useNav();
   const app = useApp ? useApp() : null;
@@ -253,6 +263,8 @@ function MoodScreen() {
   ];
   const [picked, setPicked] = useM(app?.mood?.t ? moods.findIndex(m => m.t === app.mood.t) : -1);
   const [note, setNote] = useM("");
+  const [tags, setTags] = useM([]);
+  const [noteOpen, setNoteOpen] = useM(false);
 
   // Breathing time
   const [t, setT] = useM(0);
@@ -284,9 +296,14 @@ function MoodScreen() {
     return s;
   })();
 
+  const TODAY = 28;
+  const moodTags = cur ? (MOOD_TAGS[cur.t] || []) : [];
+  const toggleTag = (tg) => setTags(ts => ts.includes(tg) ? ts.filter(x => x !== tg) : [...ts, tg]);
   const onSave = () => {
     if (picked < 0 || !app) return navigate("home");
     app.setMood && app.setMood(moods[picked]);
+    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [TODAY]: picked });
+    app.setDayNotes && app.setDayNotes({ ...(app.dayNotes || {}), [TODAY]: { tags, note: note.trim() } });
     navigate("home");
   };
 
@@ -320,8 +337,8 @@ function MoodScreen() {
       </div>
 
       {/* Hero — pure orb */}
-      <div style={{ position: "relative", zIndex: 2, flex: 1, display: "grid", placeItems: "center", padding: "20px 20px 0", minHeight: 220 }}>
-        <div style={{ position: "relative", width: 220, height: 220, display: "grid", placeItems: "center" }}>
+      <div style={{ position: "relative", zIndex: 2, flex: 1, display: "grid", placeItems: "center", padding: "12px 20px 0", minHeight: cur ? 132 : 220, transition: "min-height 0.4s ease" }}>
+        <div style={{ position: "relative", width: cur ? 156 : 220, height: cur ? 156 : 220, display: "grid", placeItems: "center", transition: "width 0.4s ease, height 0.4s ease" }}>
           {/* Outer aurora halo */}
           <div aria-hidden style={{
             position: "absolute", inset: -40, borderRadius: "50%",
@@ -331,7 +348,7 @@ function MoodScreen() {
           }}/>
           {/* Main orb — same glass orb as the rest of the app */}
           <div style={{ transform: `scale(${breath})`, transition: "transform 0.15s" }}>
-            <StateOrb size={196} tint={tintFromMood(tint)} intensity={cur ? 1.3 : 0.7} />
+            <StateOrb size={cur ? 140 : 196} tint={tintFromMood(tint)} intensity={cur ? 1.3 : 0.7} />
           </div>
         </div>
       </div>
@@ -342,17 +359,17 @@ function MoodScreen() {
           {cur ? cur.t : "Как оно ощущается\u00A0сейчас?"}
         </div>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 6, lineHeight: 1.5 }}>
-          {cur ? "Выбери другое или сохрани сферу в её цвете." : "Каждый цвет — это состояние. Выбери подходящее."}
+          {cur ? "Отметь хэштегами, что за этим стоит — или просто сохрани." : "Каждый цвет — это состояние. Выбери подходящее."}
         </div>
       </div>
 
       {/* Orb selector — 6 colored orbs in a row, no emoji */}
-      <div style={{ position: "relative", zIndex: 2, padding: "26px 20px 0" }}>
+      <div style={{ position: "relative", zIndex: 2, padding: cur ? "14px 20px 0" : "26px 20px 0" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
           {moods.map((m, idx) => {
             const active = picked === idx;
             return (
-              <button key={idx} onClick={() => setPicked(idx)} className="tap" aria-label={m.t} style={{
+              <button key={idx} onClick={() => { setPicked(idx); setTags([]); setNoteOpen(false); }} className="tap" aria-label={m.t} style={{
                 background: "transparent", border: 0, padding: "6px 2px 8px",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                 color: "#fff", cursor: "pointer",
@@ -376,21 +393,51 @@ function MoodScreen() {
         </div>
       </div>
 
-      {/* Consistency bonus strip */}
+      {/* Picked → sub-state #hashtags (+ optional note). Not picked → streak nudge. */}
+      {cur ? (
+      <div style={{ position: "relative", zIndex: 2, margin: "16px 20px 0" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 11 }}>
+          <span style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Что за этим стоит?</span>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>по желанию</span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {moodTags.map((tg) => {
+            const on = tags.includes(tg);
+            return (
+              <button key={tg} onClick={() => toggleTag(tg)} className="tap" data-no-haptic style={{
+                padding: "8px 13px", borderRadius: 999, fontSize: 13, fontWeight: 500, border: 0, cursor: "pointer",
+                background: on ? "#fff" : "rgba(255,255,255,0.08)", color: on ? "#0a0a0a" : "rgba(255,255,255,0.72)",
+                display: "inline-flex", alignItems: "center", gap: 5, transition: "background 0.18s, color 0.18s",
+              }}>
+                {on && <span style={{ width: 7, height: 7, borderRadius: "50%", background: tint }} />}
+                #{tg}
+              </button>
+            );
+          })}
+        </div>
+        {noteOpen ? (
+          <textarea value={note} onChange={e => setNote(e.target.value)} autoFocus placeholder="Опиши, что чувствуешь сейчас…"
+            style={{ width: "100%", marginTop: 12, background: "rgba(255,255,255,0.06)", border: 0, borderRadius: 14, padding: 12, color: "#fff", fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 60, resize: "none", boxSizing: "border-box" }}/>
+        ) : (
+          <button onClick={() => setNoteOpen(true)} className="tap" style={{ marginTop: 12, background: "transparent", border: 0, color: "rgba(255,255,255,0.55)", fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 2px" }}>
+            <I.Plus size={14}/> Своя заметка
+          </button>
+        )}
+      </div>
+      ) : (
       <div style={{ position: "relative", zIndex: 2, margin: "18px 20px 0", padding: "12px 14px",
         background: "rgba(255,255,255,0.045)", borderRadius: 16,
         display: "flex", alignItems: "center", gap: 12,
       }}>
         <div style={{ width: 36, height: 36, borderRadius: 999, background: "rgba(254,222,52,0.14)", display: "grid", placeItems: "center", color: "#FEDE34", fontSize: 18 }}>✨</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>Бонус за постоянство</div>
+          <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>Дневник состояния</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", marginTop: 3, lineHeight: 1.35 }}>
-            {sameStateStreak >= 2
-              ? <>{sameStateStreak} дн. подряд в состоянии <b>{cur?.t}</b> · +{sameStateStreak * 10} XP, если продолжишь.</>
-              : <>Серия отметок {streak} дн. · отметься завтра ради +{bonusXP + 10} XP.</>}
+            Выбери состояние — подскажу хэштеги, чтобы отметить, что за ним стоит.
           </div>
         </div>
       </div>
+      )}
 
       {/* Save bar */}
       <div style={{ position: "relative", zIndex: 2, padding: "14px 20px 28px" }}>
