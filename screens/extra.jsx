@@ -552,6 +552,43 @@ function MiniBars({ data, color = "#0a0a0a", height = 60, textMuted = "rgba(0,0,
   );
 }
 
+/* ── Live AI via OpenRouter ─────────────────────────────────────────────────
+   Uses the key from aikey.js (window.OPENROUTER_KEY). No key → graceful canned
+   replies so the demo still feels alive. Browser-direct call (OpenRouter allows
+   it); the key is the user's capped test key on a free model, by their choice. */
+const AI_SYSTEM = "Ты — Balance, тёплый ИИ-наставник внутри приложения BalanceOS про состояние, энергию и привычки. Отвечай по-русски, коротко и по делу (2–4 предложения), поддерживающе, живым языком без канцелярита. Помогаешь спланировать день, разобраться с состоянием и предложить маленький следующий шаг.";
+const AI_DEMO = [
+  "Понял тебя. Давай по шагам: что сейчас сильнее всего забирает энергию? С этого и начнём.",
+  "Окей. Предложу одно действие на 5 минут прямо сейчас — оно сдвинет весь день. Готов попробовать?",
+  "Слышу. Сначала состояние, потом задачи. Сделай медленный вдох на 4 счёта и расскажи, как ощущается.",
+  "Хорошая мысль. Давай привяжем это к уже существующей привычке — так новое приживётся легче.",
+];
+async function aiReply(history) {
+  const key = (typeof window !== "undefined" && window.OPENROUTER_KEY) || "";
+  if (!key) {
+    await new Promise((r) => setTimeout(r, 1100));
+    return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
+  }
+  const model = (typeof window !== "undefined" && window.OPENROUTER_MODEL) || "meta-llama/llama-3.3-70b-instruct:free";
+  const messages = [{ role: "system", content: AI_SYSTEM }].concat(
+    (history || []).filter((m) => m && m.t).map((m) => ({ role: m.who === "me" ? "user" : "assistant", content: m.t }))
+  );
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + key,
+      "HTTP-Referer": "https://mind3scape.github.io/balanceos",
+      "X-Title": "BalanceOS",
+    },
+    body: JSON.stringify({ model, messages, max_tokens: 500, temperature: 0.7 }),
+  });
+  if (!res.ok) throw new Error("AI " + res.status);
+  const data = await res.json();
+  const txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  return (txt && txt.trim()) || "…";
+}
+
 function AIChatScreen() {
   const { navigate, params } = useNav();
   // Resolve current theme from the iOS frame wrapper so this screen looks
@@ -628,16 +665,13 @@ function AIChatScreen() {
   const send = (text) => {
     const t = (text ?? draft).trim();
     if (!t) return;
-    setMsgs(m => [...m, { who: "me", t }]);
+    const history = [...msgs, { who: "me", t }];
+    setMsgs(history);
     setDraft("");
     setTyping(true);
-    setTimeout(() => {
-      setTyping(false);
-      setMsgs(m => [...m, {
-        who: "ai", kind: "text",
-        t: "Понял. Дай мне секунду — набросаю план, который учитывает энергию сегодняшнего дня."
-      }]);
-    }, 1400);
+    aiReply(history)
+      .then((reply) => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: reply }]); })
+      .catch(() => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: "Не получилось ответить сейчас — попробуй ещё раз." }]); });
   };
 
   // A prompt passed in from the AI tab / quick chips → auto-send it on open.

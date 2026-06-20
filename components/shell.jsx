@@ -139,6 +139,10 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
     <div style={{ position: "relative", overflow: "hidden", touchAction: "pan-y" }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
       onClickCapture={onClickCapture}>
+      {/* Render the action buttons only while open or actively swiping — never
+          when the row is closed — so they can't flash through during a tab
+          fade-in (they used to peek as a compositing artifact of the animation). */}
+      {(open || dx < 0) && (
       <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: rowBg, isolation: "isolate", zIndex: 0 }}>
         {actions.map((a, i) => {
           const ts = swipeTone(a.tone, dark);
@@ -154,6 +158,7 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
           );
         })}
       </div>
+      )}
       <div style={{ position: "relative", background: rowBg, transform: "translateX(" + offset + "px)",
         transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1)" : "none", willChange: "transform" }}>
         {children}

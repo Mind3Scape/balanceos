@@ -540,7 +540,7 @@ function IntroScreen() {
       <div className="tap" aria-label="Вперёд" onClick={() => { last ? navigate("signup") : go(step + 1); }}
         style={{ position: "absolute", right: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
 
-      <div style={{ position: "relative", padding: "60px 24px 0", display: "flex", gap: 4, zIndex: 2, pointerEvents: "none" }}>
+      <div style={{ position: "relative", padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0", display: "flex", gap: 4, zIndex: 2, pointerEvents: "none" }}>
         {slides.map((_, i) => (
           <div key={i} style={{ flex: 1, height: 2.5, borderRadius: 999, background: i < step ? pal.barDone : pal.barTrack, position: "relative", overflow: "hidden" }}>
             {i === step && <div style={{ position: "absolute", inset: 0, background: pal.barOn, animation: "introBar 5.2s linear forwards" }}/>}
