@@ -318,12 +318,12 @@ function LayerTogether({ t, alpha, dark = true }) {
   // each linked to the centre by a clean line. (Memoji faces land here next.)
   // Young, hatless companions — each a memoji set INSIDE a glass orb (cohesive
   // with your central orb), the trio slowly orbiting around you.
+  // One guy + two women (one in glasses), young & hatless. They float cleanly
+  // with just a soft glow + a link to you — no hard orb frames or outlines.
   const TOP = -Math.PI / 2;
-  const PICS = ["./assets/people/m2.png", "./assets/people/m5.png", "./assets/people/m8.png"];
+  const PICS = ["./assets/people/m13.png", "./assets/people/m2.png", "./assets/people/m5.png"];
   const friends = (dark ? ["#cfe1ff", "#9bbfe8", "#a9c4e8"] : ["#5a85bd", "#4f7bb0", "#6f9ad1"])
     .map((c, i) => ({ c, pic: PICS[i], a: TOP + i * (Math.PI * 2 / 3) }));
-  const base = dark ? "#16233c" : "#e9eff8";
-  const rim = dark ? "rgba(255,255,255,0.5)" : "rgba(60,100,150,0.38)";
   return (
     <g opacity={alpha}>
       {friends.map((f, i) => {
@@ -332,13 +332,9 @@ function LayerTogether({ t, alpha, dark = true }) {
         const x = Math.cos(ang) * rr, y = Math.sin(ang) * rr;
         return (
           <g key={i}>
-            <line x1="0" y1="0" x2={x} y2={y} stroke={f.c} strokeOpacity={dark ? 0.38 : 0.42} strokeWidth="1" />
-            <circle cx={x} cy={y} r="23" fill={f.c} opacity={dark ? 0.22 : 0.26} style={{ filter: "blur(7px)" }} />
-            <circle cx={x} cy={y} r="18.5" fill={base} />
-            <clipPath id={`tgc${i}`}><circle cx={x} cy={y} r="18" /></clipPath>
-            <image href={f.pic} x={x - 22} y={y - 22} width="44" height="44" clipPath={`url(#tgc${i})`} preserveAspectRatio="xMidYMid slice" />
-            <circle cx={x} cy={y} r="18.5" fill="none" stroke={rim} strokeWidth="1" />
-            <ellipse cx={x - 5} cy={y - 8} rx="7" ry="4" fill="#fff" opacity={dark ? 0.22 : 0.4} style={{ filter: "blur(2px)" }} />
+            <line x1="0" y1="0" x2={x} y2={y} stroke={f.c} strokeOpacity={dark ? 0.32 : 0.38} strokeWidth="1" />
+            <circle cx={x} cy={y} r="22" fill={f.c} opacity={dark ? 0.2 : 0.24} style={{ filter: "blur(8px)" }} />
+            <image href={f.pic} x={x - 23} y={y - 23} width="46" height="46" preserveAspectRatio="xMidYMid meet" />
           </g>
         );
       })}
@@ -505,7 +501,7 @@ function IntroScreen() {
   const [step, setStep] = useIS(0);
   const [prev, setPrev] = useIS(null);
   const [blendStart, setBlendStart] = useIS(0);
-  const [exiting, setExiting] = useIS(false);
+  const [introPhase, setIntroPhase] = useIS(0); // screen 0: 0 = "ты — точка" intro, 1 = main words + button
   const t = useT();
   const blend = Math.min(1, (t - blendStart) / 1.2);
   const effectivePrev = blend < 1 ? prev : null;
@@ -518,19 +514,18 @@ function IntroScreen() {
     { mode: "together", eyebrow: "Не в одиночку",      title: "С близкими — пространство шире", sub: "Рядом со своими граница раздвигается дальше. Объединяйтесь в команды, делитесь привычками, держите друг друга.", glow: "rgba(150,185,225,0.42)" },
     { mode: "mood",     eyebrow: "Точка отсчёта",      title: "Как ты сейчас?", sub: "Состояние не вырастить, не замечая его. Отметь, как ты прямо сейчас — отсюда и начнём.", glow: "rgba(180,210,240,0.45)" },
   ];
-  const cur = slides[step];
+  const showIntro = step === 0 && introPhase === 0;
+  const cur = showIntro
+    ? { eyebrow: "Ты", title: "Ты — точка", sub: "Точка внимания внутри бесконечного количества возможных вариантов жизни.", mode: "awake", glow: "rgba(140,180,230,0.42)" }
+    : slides[step];
   const last = step === slides.length - 1;
   const go = (next) => {
     if (next === step) return;
     setPrev(slides[step].mode); setBlendStart(t); setStep(next);
   };
-  // Finale: the orb's field blooms out to fill the screen, then we slip into the
-  // app (signup), where the same orb re-forms with your face inside it.
   const finish = () => {
-    if (exiting) return;
-    setExiting(true);
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-    window.setTimeout(() => navigate("signup"), 520);
+    navigate("signup");
   };
 
   // Theme-aware: follows the .theme-light / .theme-dark wrapper from the frame.
@@ -541,6 +536,7 @@ function IntroScreen() {
     while (n && !(n.classList && (n.classList.contains("theme-light") || n.classList.contains("theme-dark")))) n = n.parentElement;
     if (n && n.classList.contains("theme-light")) setDark(false);
   }, []);
+  useIE(() => { const id = window.setTimeout(() => setIntroPhase(1), 2600); return () => window.clearTimeout(id); }, []);
   const pal = dark ? {
     bg: `radial-gradient(circle at 50% 38%, ${cur.glow} 0%, transparent 55%), radial-gradient(ellipse at 50% 100%, rgba(20,35,60,0.6) 0%, transparent 60%), #060912`,
     title: "#fff", sub: "rgba(255,255,255,0.66)", eyebrow: "rgba(255,255,255,0.55)", eyebrowStrong: "#bcd8ff",
@@ -580,7 +576,7 @@ function IntroScreen() {
          bottom buttons stay on top, so the central area navigates by tap. */}
       <div className="tap" aria-label="Назад" onClick={() => { if (step > 0) go(step - 1); }}
         style={{ position: "absolute", left: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
-      <div className="tap" aria-label="Вперёд" onClick={() => { last ? finish() : go(step + 1); }}
+      <div className="tap" aria-label="Вперёд" onClick={() => { showIntro ? setIntroPhase(1) : (last ? finish() : go(step + 1)); }}
         style={{ position: "absolute", right: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
 
       <div style={{ position: "relative", padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0", display: "flex", gap: 4, zIndex: 2, pointerEvents: "none" }}>
@@ -601,17 +597,17 @@ function IntroScreen() {
 
       <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 150, pointerEvents: "none" }}>
         {/* Context label — now grouped right above its title, legible accent + staged in first */}
-        <Reveal k={"eb"+step} delay={0.1} style={{ marginBottom: 11 }}>
+        <Reveal k={"eb"+step+introPhase} delay={0.1} style={{ marginBottom: 11 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, letterSpacing: 2.4, textTransform: "uppercase", fontWeight: 700, color: pal.eyebrowStrong }}>
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: pal.eyebrowStrong, boxShadow: `0 0 8px ${pal.eyebrowStrong}` }}/>
             {cur.eyebrow}
           </div>
         </Reveal>
-        <Reveal k={"ti"+step} delay={0.25}>
+        <Reveal k={"ti"+step+introPhase} delay={0.25}>
           <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.8px", textWrap: "balance", maxWidth: 300, margin: "0 auto", color: pal.title }}>{cur.title}</div>
         </Reveal>
         {cur.sub && (
-          <Reveal k={"su"+step} delay={0.45} style={{ marginTop: 12 }}>
+          <Reveal k={"su"+step+introPhase} delay={0.45} style={{ marginTop: 12 }}>
             <div style={{ fontSize: 14.5, color: pal.sub, lineHeight: 1.55, textWrap: "pretty", maxWidth: 312, margin: "0 auto" }}>{cur.sub}</div>
           </Reveal>
         )}
@@ -631,8 +627,8 @@ function IntroScreen() {
       )}
 
       <div style={{ position: "relative", padding: "20px 24px 28px", zIndex: 2 }}>
-        {cur.mode !== "mood" && (
-          <button onClick={() => last ? navigate("signup") : go(step+1)} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
+        {!showIntro && cur.mode !== "mood" && (
+          <button onClick={() => last ? finish() : go(step+1)} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
             {step === 0 ? "Начать" : "Далее"}
           </button>
         )}
@@ -640,16 +636,6 @@ function IntroScreen() {
           <button onClick={() => navigate("signup")} className="tap" style={{ background: "transparent", border: 0, color: pal.ghost, fontSize: 12 }}>Пропустить</button>
         </div>
       </div>
-
-      {/* Finale: the orb's field blooms out from centre to fill the screen as we slip into the app */}
-      {exiting && (
-        <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 60, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-          <div style={{ width: 150, height: 150, borderRadius: "50%",
-            background: dark ? "radial-gradient(circle, #dcefff 0%, #7aa4d0 72%)" : "radial-gradient(circle, #f4f8ff 0%, #aecae9 74%)",
-            boxShadow: "0 0 90px rgba(180,210,255,0.7)",
-            animation: "introBloom 0.6s cubic-bezier(0.5,0,0.25,1) forwards" }}/>
-        </div>
-      )}
 
       <style>{`
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
