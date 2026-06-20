@@ -494,6 +494,22 @@ function HomeScreen() {
         )
       )}
 
+      {/* New-user "what's next" banner — the deep dive (teams, levels, mentors)
+         lives here as an inviting opt-in, so the first-run guide can stay tiny. */}
+      {app?.mode === "fresh" && (
+        <button onClick={() => app?.startTour?.("explore")} className="tap" data-no-haptic
+          style={{ marginTop: 12, width: "100%", textAlign: "left", border: isDark ? "0" : "1px solid rgba(70,120,190,0.14)", borderRadius: 22, padding: "15px 16px",
+            background: isDark ? "linear-gradient(135deg, rgba(122,164,208,0.20), rgba(122,164,208,0.05))" : "linear-gradient(135deg, #eef3fc 0%, #dfe9f8 100%)",
+            color: "var(--text)", display: "flex", alignItems: "center", gap: 13 }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22, boxShadow: isDark ? "none" : "0 2px 8px rgba(120,150,200,0.2)" }}>🧭</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Что дальше?</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.4 }}>Команды, уровни, наставники — загляни, куда можно расти</div>
+          </div>
+          <I.ChevronRight size={20} color="var(--text-4)" />
+        </button>
+      )}
+
       {/* Today's energy — always dark card, looks intentional in both themes */}
       {widgets.energy !== false && (
       <div style={{

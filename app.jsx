@@ -108,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v77";
+const APP_VERSION = "v78";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -167,39 +167,49 @@ const TOUR_STOPS = [
 
 /* New-user guide — gentler, for an empty fresh start. Points at elements that
    exist in fresh mode (level widget stays on; the Network is still locked). */
+/* New-user guide — INTENTIONALLY tiny. A brand-new user shouldn't be dragged
+   through 15 screens. Just a few warm cards on the essentials; the deep dive
+   (teams, network, courses, levels) lives behind the "Что дальше?" banner on the
+   home screen, opened only when they're curious (→ EXPLORE_STOPS). */
 const FRESH_STOPS = [
-  { kind: "card", emoji: "🌱", title: "Добро пожаловать — твой старт",
-    body: "BalanceOS — платформа: привычки, команды, наставники, курсы и ИИ. Покажу за минуту, как тут устроено и куда расти.", cta: "Показать" },
-  { kind: "spot", tab: "home", sel: '.bos-tabbar button:nth-of-type(1)', radius: 16, eyebrow: "Главная", title: "Твой экран",
-    body: "Сейчас спокойно и пусто. Виджеты будут появляться по мере того, как ты начнёшь." },
-  { kind: "spot", tab: "home", sel: '[data-tour="aihints"]', radius: 22, eyebrow: "Подсказки ИИ", title: "Совет под твой день",
-    body: "Подсказки наверху — от ИИ. Чем больше расскажешь о себе, тем точнее они станут." },
-  { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Состояние", title: "Начни с состояния",
-    body: "Отметь, как ты сейчас — это первый шаг. Приложение подстроится под тебя." },
-  { kind: "card", emoji: "🧭", title: "Колесо баланса",
-    body: "Каждую привычку приложение само относит к сфере жизни — тело, отношения, дело, отдых. Из них складывается твоё «колесо баланса»: видно, где густо, а где пусто. Чем больше отмечаешь — тем точнее картина.", cta: "Понятно" },
-  { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт с первого дня",
-    body: "Ты на 1 уровне. Каждая привычка качает опыт. Загляни — покажу, как это работает." },
-  { kind: "peek", tab: "levels", eyebrow: "Геймификация", title: "Опыт, ачивки, награды",
-    body: "Сверху — за что начисляется XP, ниже — ачивки и награды. Чем выше уровень, тем больше открывается: наставники, контакты, курсы. Это сердце прогресса." },
-  { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
-    body: "Твоя личная система — пока пустая. Самое время собрать её под себя." },
-  { kind: "spot", tab: "habits", sel: '[data-tour="presets"]', radius: 16, eyebrow: "Шаблоны", title: "Листай готовые привычки",
-    body: "Сверху — карусель пресетов. Листай её вбок: тапни любую — добавится за секунду. Самый быстрый старт." },
-  { kind: "spot", tab: "habits", sel: '[data-tour="add"]', radius: 999, eyebrow: "Создать", title: "Создай первую привычку",
-    body: "Или жми «плюс» и собери свою. Начни с одной маленькой — её можно делать одному или с друзьями." },
+  { kind: "card", emoji: "🌱", title: "Это твой старт",
+    body: "BalanceOS растёт вместе с тобой. Сейчас тут спокойно и пусто — наполнится, как только ты начнёшь. Покажу самое главное за полминуты.", cta: "Покажи" },
+  { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Каждый день", title: "Начни с состояния",
+    body: "Отметь, как ты сейчас — это твой первый шаг. Цвет, тон и подсказки приложения подстроятся под тебя." },
+  { kind: "card", emoji: "✨", title: "Дальше — в своём темпе",
+    body: "Заведи первую привычку — кнопка ждёт ниже. А когда станет интересно «что там дальше», внизу главной есть гид: команды, уровни, наставники. Без спешки.", cta: "Начать" },
+];
+
+/* Opt-in deep dive — opened from the "Что дальше?" banner on the home screen.
+   Shows the broader ecosystem (teams, chat, network, courses, levels, AI),
+   framed as "here's what opens up as you grow." */
+const EXPLORE_STOPS = [
+  { kind: "card", emoji: "🧭", title: "Что тебя ждёт дальше",
+    body: "BalanceOS — это не только привычки. По мере роста открывается целая экосистема. Загляну на минуту — куда можно двигаться.", cta: "Показать" },
   { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
-    body: "Команды с общим чатом, курсы и наставники. Объедини близких — или найди своих." },
-  { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="network"]', radius: 12, eyebrow: "Нетворк", title: "Контакты открываются с уровнем",
-    body: "Пока закрыто — и это нормально. Расти в уровне и проходи курсы → откроется круг людей и наставников, к которым можно прийти." },
-  { kind: "spot", tab: "ai", sel: '.bos-tabbar button:nth-of-type(4)', radius: 16, eyebrow: "Помощник", title: "ИИ с первого дня",
-    body: "Спроси совет, попроси план или разбор дня — он рядом с самого начала." },
-  { kind: "card", emoji: "🚀", title: "Поехали!",
-    body: "Расти шаг за шагом — и приложение раскрывается. Начни с состояния или первой привычки.", cta: "Начать" },
+    body: "Команды, курсы и наставники. Привычки вместе держат сильнее." },
+  { kind: "spot", tab: "community", view: { section: "discover", discTab: "teams" }, sel: '[data-tour="make-team"]', radius: 18, eyebrow: "Команды", title: "Команды — вместе с близкими",
+    body: "Объедини семью, друзей или клиентов тренинга. У каждой команды — общая цель, чат и статистика." },
+  { kind: "spot", tab: "team-create", sel: '[data-tour="team-modes"]', radius: 18, eyebrow: "Режимы команды", title: "Как двигать общую цель",
+    body: "Общий счёт, серия у каждого или гонка — выбираешь формат. А двигают цель привычки самих участников." },
+  { kind: "spot", tab: "team-create", sel: '[data-tour="team-stakes"]', radius: 18, eyebrow: "Геймификация", title: "Ставка на опыт",
+    body: "Все скидывают XP в общий банк. Дошли до цели — он возвращается ×2. Не дошли — сгорает. Вот это азарт." },
+  { kind: "peek", tab: "team-chat", eyebrow: "Чат команды", title: "Команда на связи",
+    body: "У каждой команды свой живой чат: переписка, фото, поддержка — так держат общий ритм вместе." },
+  { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="network"]', radius: 12, eyebrow: "Нетворк", title: "Наставники и контакты",
+    body: "С ростом уровня открывается круг людей: наставники, услуги, помощь. Баллы за привычки тратишь на них." },
+  { kind: "spot", tab: "community", view: { section: "community", commTab: "courses" }, sel: '[data-tour="course"]', radius: 20, eyebrow: "Курсы", title: "Ускорители роста",
+    body: "Курсы и интенсивы поднимают уровень и открывают новые круги — как ключи к следующим людям." },
+  { kind: "peek", tab: "levels", eyebrow: "Геймификация", title: "Опыт, ачивки, награды",
+    body: "Каждый шаг даёт XP → растёт уровень → открываются ачивки, награды и новые возможности. Это сердце прогресса." },
+  { kind: "spot", tab: "ai", sel: '.bos-tabbar button:nth-of-type(4)', radius: 16, eyebrow: "Помощник", title: "ИИ всегда рядом",
+    body: "Совет, разбор дня, план на завтра — с самого начала под рукой." },
+  { kind: "card", emoji: "🌟", title: "Двигайся в своём темпе",
+    body: "Всё это раскрывается по мере роста. Начни с малого — а экосистема откроется сама. Поехали!", cta: "Понятно" },
 ];
 
 function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMode, dark }) {
-  const STOPS = tourMode === "fresh" ? FRESH_STOPS : TOUR_STOPS;
+  const STOPS = tourMode === "fresh" ? FRESH_STOPS : tourMode === "explore" ? EXPLORE_STOPS : TOUR_STOPS;
   const rootRef = useRef(null);
   const [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
   const prevCtxRef = useRef(null);        // last stop's tab|view — detect page switches
