@@ -318,7 +318,6 @@ function MoodScreen() {
   const [picked, setPicked] = useM(app?.mood?.t ? moods.findIndex(m => m.t === app.mood.t) : -1);
   const [note, setNote] = useM("");
   const [tags, setTags] = useM([]);
-  const [noteOpen, setNoteOpen] = useM(false);
 
   // Breathing time
   const [t, setT] = useM(0);
@@ -391,7 +390,7 @@ function MoodScreen() {
       </div>
 
       {/* Hero — pure orb */}
-      <div style={{ position: "relative", zIndex: 2, flex: 1, display: "grid", placeItems: "center", padding: "12px 20px 0", minHeight: cur ? 132 : 220, transition: "min-height 0.4s ease" }}>
+      <div style={{ position: "relative", zIndex: 2, flex: cur ? "0 0 auto" : 1, display: "grid", placeItems: "center", padding: "12px 20px 0", minHeight: cur ? 132 : 220, transition: "min-height 0.4s ease" }}>
         <div style={{ position: "relative", width: cur ? 156 : 220, height: cur ? 156 : 220, display: "grid", placeItems: "center", transition: "width 0.4s ease, height 0.4s ease" }}>
           {/* Outer aurora halo */}
           <div aria-hidden style={{
@@ -413,7 +412,7 @@ function MoodScreen() {
           {cur ? cur.t : "Как оно ощущается\u00A0сейчас?"}
         </div>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 6, lineHeight: 1.5 }}>
-          {cur ? "Отметь хэштегами, что за этим стоит — или просто сохрани." : "Каждый цвет — это состояние. Выбери подходящее."}
+          {cur ? "Отметь, что за этим стоит — или просто сохрани." : "Каждый цвет — это состояние. Выбери подходящее."}
         </div>
       </div>
 
@@ -423,7 +422,7 @@ function MoodScreen() {
           {moods.map((m, idx) => {
             const active = picked === idx;
             return (
-              <button key={idx} onClick={() => { setPicked(idx); setTags([]); setNoteOpen(false); }} className="tap" aria-label={m.t} style={{
+              <button key={idx} onClick={() => { setPicked(idx); setTags([]); setNote(""); }} className="tap" aria-label={m.t} style={{
                 background: "transparent", border: 0, padding: "6px 2px 8px",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                 color: "#fff", cursor: "pointer",
@@ -464,19 +463,15 @@ function MoodScreen() {
                 display: "inline-flex", alignItems: "center", gap: 5, transition: "background 0.18s, color 0.18s",
               }}>
                 {on && <span style={{ width: 7, height: 7, borderRadius: "50%", background: tint }} />}
-                #{tg}
+                {tg.replace(/_/g, " ")}
               </button>
             );
           })}
         </div>
-        {noteOpen ? (
-          <textarea value={note} onChange={e => setNote(e.target.value)} autoFocus placeholder="Опиши, что чувствуешь сейчас…"
-            style={{ width: "100%", marginTop: 12, background: "rgba(255,255,255,0.06)", border: 0, borderRadius: 14, padding: 12, color: "#fff", fontSize: 16, fontFamily: "inherit", outline: 0, minHeight: 60, resize: "none", boxSizing: "border-box" }}/>
-        ) : (
-          <button onClick={() => setNoteOpen(true)} className="tap" style={{ marginTop: 12, background: "transparent", border: 0, color: "rgba(255,255,255,0.55)", fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 2px" }}>
-            <I.Plus size={14}/> Своя заметка
-          </button>
-        )}
+        {/* Note — always visible (an obvious inset field), so you can't miss that
+            you can write your own. No autoFocus → the caret never jumps on open. */}
+        <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Опиши, что чувствуешь сейчас…"
+          style={{ width: "100%", marginTop: 12, background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.10)", boxShadow: "inset 0 1px 4px rgba(0,0,0,0.35)", borderRadius: 14, padding: "12px 14px", color: "#fff", fontSize: 16, fontFamily: "inherit", lineHeight: 1.4, outline: 0, minHeight: 50, resize: "none", boxSizing: "border-box", display: "block" }}/>
       </div>
       ) : (
       <div style={{ position: "relative", zIndex: 2, margin: "18px 20px 0", padding: "12px 14px",
@@ -487,12 +482,13 @@ function MoodScreen() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>Дневник состояния</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", marginTop: 3, lineHeight: 1.35 }}>
-            Выбери состояние — подскажу хэштеги, чтобы отметить, что за ним стоит.
+            Выбери состояние — подскажу слова, чтобы отметить, что за ним стоит.
           </div>
         </div>
       </div>
       )}
 
+      {cur && <div aria-hidden style={{ flex: 1, minHeight: 6 }} />}
       {/* Save bar */}
       <div style={{ position: "relative", zIndex: 2, padding: "14px 20px 28px" }}>
         <button onClick={onSave} disabled={picked < 0} className="tap" style={{

@@ -1210,6 +1210,15 @@ function AppProvider({
     setTourScreen(key);
     setTourStep(0);
   };
+  // Once the guided tour is finished OR dismissed once, NOTHING auto-pops again — no
+  // per-tab sheet jumps in your face. The whole guide is one all-or-nothing thing.
+  var [guideDone, setGuideDone] = useState(false);
+  var finishGuide = () => {
+    setGuideDone(true);
+    setTourScreen(null);
+    setTourStep(-1);
+    setOnbTab(null);
+  };
 
   // Shared habit / goal store + mutators (the app's single source of truth).
   var [habits, setHabits] = useState(SEED_HABITS);
@@ -1317,6 +1326,7 @@ function AppProvider({
     seenTabs.current = {};
     setTourStep(-1);
     setTourScreen(null);
+    setGuideDone(false);
   };
   var enterFresh = (name = "") => {
     setMode("fresh");
@@ -1344,6 +1354,7 @@ function AppProvider({
     };
     setTourStep(-1);
     setTourScreen(null);
+    setGuideDone(false);
   };
   var startTour = mode => {
     setTourMode(mode || "demo");
@@ -1393,6 +1404,8 @@ function AppProvider({
       showTabIntro,
       tourScreen,
       startScreenTour,
+      guideDone,
+      finishGuide,
       habits,
       goals,
       toggleHabit,

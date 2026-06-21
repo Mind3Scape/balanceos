@@ -494,6 +494,10 @@ function AppProvider({ children }) {
   // launches just that screen's stops; on finish the tour returns to the screen.
   const [tourScreen, setTourScreen] = useState(null);
   const startScreenTour = (key) => { setTourScreen(key); setTourStep(0); };
+  // Once the guided tour is finished OR dismissed once, NOTHING auto-pops again — no
+  // per-tab sheet jumps in your face. The whole guide is one all-or-nothing thing.
+  const [guideDone, setGuideDone] = useState(false);
+  const finishGuide = () => { setGuideDone(true); setTourScreen(null); setTourStep(-1); setOnbTab(null); };
 
   // Shared habit / goal store + mutators (the app's single source of truth).
   const [habits, setHabits] = useState(SEED_HABITS);
@@ -532,7 +536,7 @@ function AppProvider({ children }) {
     setCommunityView({ networkUnlocked: true, discTab: "teams", section: "discover" });
     // Demo greets each screen with its own intro sheet → clear "seen" so home
     // (and every tab) shows one. No forced linear tour anymore.
-    setOnbWelcome(false); setOnbTab(null); seenTabs.current = {}; setTourStep(-1); setTourScreen(null);
+    setOnbWelcome(false); setOnbTab(null); seenTabs.current = {}; setTourStep(-1); setTourScreen(null); setGuideDone(false);
   };
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim());
@@ -541,7 +545,7 @@ function AppProvider({ children }) {
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "courses" });
     // Arm the welcome sheets; mark home as already-introduced so only the OTHER
     // tabs trigger a contextual intro when the user first opens them.
-    setOnbWelcome(true); setOnbTab(null); seenTabs.current = { home: true }; setTourStep(-1); setTourScreen(null);
+    setOnbWelcome(true); setOnbTab(null); seenTabs.current = { home: true }; setTourStep(-1); setTourScreen(null); setGuideDone(false);
   };
   const startTour = (mode) => { setTourMode(mode || "demo"); setTourStep(0); };
   const endTour = () => setTourStep(-1);
@@ -561,7 +565,7 @@ function AppProvider({ children }) {
     mode, userName, enterDemo, enterFresh,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
-    tourScreen, startScreenTour,
+    tourScreen, startScreenTour, guideDone, finishGuide,
     habits, goals,
     toggleHabit, addHabit, updateHabit, removeHabit,
     addGoal, updateGoal, removeGoal,

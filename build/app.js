@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v95";
+var APP_VERSION = "v96";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -325,7 +325,7 @@ var HOME_SHARE_STOP = {
   radius: 20,
   eyebrow: "Качай уровень",
   title: "Начни с простого — поделись",
-  body: "Хочешь быстро поднять уровень? Поделись приложением: +150 XP за каждого друга — и выше множитель на весь твой XP. Покажу, как это выглядит ↓",
+  body: "Поделись приложением: +150 XP за каждого друга, а соберёшь троих — ещё +300 XP сверху.",
   cta: "Показать «Поделиться»",
   openShare: true
 };
@@ -436,7 +436,10 @@ function GuidedTour({
   setCommunityView,
   openSheet,
   tourScreen,
-  dark
+  dark,
+  onAdvance,
+  onDismiss,
+  lastScreen
 }) {
   var STOPS = SCREEN_TOURS[tourScreen] || [];
   var baseTab = TAB_ROUTES.has(tourScreen) ? tourScreen : "home";
@@ -560,24 +563,22 @@ function GuidedTour({
   };
   var next = () => {
     if (last) {
-      // A stop can open a real bottom sheet as its finale (e.g. demonstrate
-      // "Поделиться приложением" so the influence/XP reward is felt, not just told).
-      if (stop.openShare && openSheet) {
-        try {
-          openSheet(React.createElement(ShareAppSheet, {
-            dark
-          }));
-        } catch (_) {}
-      }
+      // This screen's spotlights are done → flow straight into the NEXT screen's
+      // sheet + spotlights (one continuous guide), or finish if this was the last.
       resetHero();
-      endTour();
-      navigate(baseTab);
+      if (onAdvance) onAdvance(tourScreen);else {
+        endTour();
+        navigate(baseTab);
+      }
     } else setStep(step + 1);
   };
+  // Skipping ONCE dismisses the whole guide for the session — it never pops again.
   var skip = () => {
     resetHero();
-    endTour();
-    navigate(baseTab);
+    if (onDismiss) onDismiss(baseTab);else {
+      endTour();
+      navigate(baseTab);
+    }
   };
   var dots = /*#__PURE__*/React.createElement("div", {
     style: {
@@ -770,7 +771,7 @@ function GuidedTour({
         fontSize: 14,
         fontWeight: 600
       }
-    }, last ? stop.cta || "Готово" : "Далее")), dots), tourStyle);
+    }, last && lastScreen ? stop.cta || "Готово" : "Далее")), dots), tourStyle);
   }
 
   // ── Element spotlight (cutout + tooltip) ──
@@ -882,7 +883,7 @@ function GuidedTour({
       fontSize: 14,
       fontWeight: 600
     }
-  }, last ? stop.cta || "Готово" : "Далее")), dots, below ? /*#__PURE__*/React.createElement("span", {
+  }, last && lastScreen ? stop.cta || "Готово" : "Далее")), dots, below ? /*#__PURE__*/React.createElement("span", {
     "aria-hidden": true,
     style: {
       position: "absolute",
@@ -1318,7 +1319,7 @@ function FreshOnboarding({
     onSkip: lastW ? null : closeWelcome
   })), /*#__PURE__*/React.createElement(BottomSheet, {
     open: !!tab,
-    onClose: closeTab,
+    onClose: () => app.finishGuide(),
     dark: dark
   }, tabView && /*#__PURE__*/React.createElement(OnbSheet, {
     eyebrow: tabView.eyebrow,
@@ -1329,15 +1330,15 @@ function FreshOnboarding({
     onCta: tabView.detail ? () => {
       app.startScreenTour(tabKey);
       closeTab();
-    } : closeTab,
-    onSkip: tabView.detail ? closeTab : undefined,
-    skipLabel: "\u041E\u0441\u043C\u043E\u0442\u0440\u044E\u0441\u044C \u0441\u0430\u043C",
+    } : () => app.finishGuide(),
+    onSkip: tabView.detail ? () => app.finishGuide() : undefined,
+    skipLabel: "\u0421\u0430\u043C \u0440\u0430\u0437\u0431\u0435\u0440\u0443\u0441\u044C",
     pills: tabView.pills && tabView.pills.map(p => ({
       emoji: p.emoji,
       label: p.label,
       onClick: p.view ? () => {
         app.setCommunityView(p.view);
-        closeTab();
+        app.finishGuide();
       } : undefined
     }))
   })));
@@ -1641,10 +1642,38 @@ function PhoneApp() {
   // richer intro with "Показать детально" (home included). Never while the
   // welcome sequence or a spotlight tour is running.
   useEffect(() => {
-    if (TAB_ROUTES.has(top.route) && !app.onbWelcome && app.tourStep < 0 && (app.mode === "fresh" || app.mode === "demo")) {
-      app.showTabIntro(top.route);
+    // Only the demo's HOME sheet auto-rises — the single door into the guided tour,
+    // which then drives ITSELF across the other screens. Nothing pops up on a manual
+    // tab switch anymore (the annoying part), and once the guide is done/dismissed it
+    // never shows again. Fresh users get the gentle welcome sheets and explore freely.
+    if (top.route === "home" && app.mode === "demo" && !app.onbWelcome && !app.guideDone && app.tourStep < 0) {
+      app.showTabIntro("home");
     }
-  }, [top.route, app.mode, app.onbWelcome, app.tourStep]); // eslint-disable-line
+  }, [top.route, app.mode, app.onbWelcome, app.tourStep, app.guideDone]); // eslint-disable-line
+
+  // Guided tour chaining (demo): a screen's spotlights finish → advance to the NEXT
+  // screen (navigate + raise its sheet); the last screen → finish. One continuous
+  // flow the user takes once — or skips once, which dismisses the whole thing.
+  var advanceGuide = fromKey => {
+    var order = ["home", "habits", "community", "ai"];
+    var nxt = order[order.indexOf(fromKey) + 1];
+    app.endTour();
+    if (nxt) {
+      navigate(nxt, {}, {
+        instant: true
+      });
+      app.setOnbTab(nxt);
+    } else {
+      app.finishGuide();
+      navigate("home");
+    }
+  };
+  var dismissGuide = toTab => {
+    app.finishGuide();
+    if (toTab) navigate(toTab, {}, {
+      instant: true
+    });
+  };
 
   // Safety net: clear the transition even if `animationend` never fires — e.g.
   // the installed PWA is backgrounded mid-animation (iOS freezes the animation
@@ -1821,7 +1850,10 @@ function PhoneApp() {
     setCommunityView: app.setCommunityView,
     openSheet: sheetApi.open,
     tourScreen: app.tourScreen,
-    dark: topDark
+    dark: topDark,
+    onAdvance: advanceGuide,
+    onDismiss: dismissGuide,
+    lastScreen: app.tourScreen === "ai"
   }))));
 }
 function Root() {

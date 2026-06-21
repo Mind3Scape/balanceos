@@ -821,7 +821,6 @@ function MoodScreen() {
   var [picked, setPicked] = useM(app?.mood?.t ? moods.findIndex(m => m.t === app.mood.t) : -1);
   var [note, setNote] = useM("");
   var [tags, setTags] = useM([]);
-  var [noteOpen, setNoteOpen] = useM(false);
 
   // Breathing time
   var [t, setT] = useM(0);
@@ -945,7 +944,7 @@ function MoodScreen() {
     style: {
       position: "relative",
       zIndex: 2,
-      flex: 1,
+      flex: cur ? "0 0 auto" : 1,
       display: "grid",
       placeItems: "center",
       padding: "12px 20px 0",
@@ -1005,7 +1004,7 @@ function MoodScreen() {
       marginTop: 6,
       lineHeight: 1.5
     }
-  }, cur ? "Отметь хэштегами, что за этим стоит — или просто сохрани." : "Каждый цвет — это состояние. Выбери подходящее.")), /*#__PURE__*/React.createElement("div", {
+  }, cur ? "Отметь, что за этим стоит — или просто сохрани." : "Каждый цвет — это состояние. Выбери подходящее.")), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       zIndex: 2,
@@ -1024,7 +1023,7 @@ function MoodScreen() {
       onClick: () => {
         setPicked(idx);
         setTags([]);
-        setNoteOpen(false);
+        setNote("");
       },
       className: "tap",
       "aria-label": m.t,
@@ -1122,44 +1121,30 @@ function MoodScreen() {
         borderRadius: "50%",
         background: tint
       }
-    }), "#", tg);
-  })), noteOpen ? /*#__PURE__*/React.createElement("textarea", {
+    }), tg.replace(/_/g, " "));
+  })), /*#__PURE__*/React.createElement("textarea", {
     value: note,
     onChange: e => setNote(e.target.value),
-    autoFocus: true,
     placeholder: "\u041E\u043F\u0438\u0448\u0438, \u0447\u0442\u043E \u0447\u0443\u0432\u0441\u0442\u0432\u0443\u0435\u0448\u044C \u0441\u0435\u0439\u0447\u0430\u0441\u2026",
     style: {
       width: "100%",
       marginTop: 12,
-      background: "rgba(255,255,255,0.06)",
-      border: 0,
+      background: "rgba(0,0,0,0.25)",
+      border: "1px solid rgba(255,255,255,0.10)",
+      boxShadow: "inset 0 1px 4px rgba(0,0,0,0.35)",
       borderRadius: 14,
-      padding: 12,
+      padding: "12px 14px",
       color: "#fff",
       fontSize: 16,
       fontFamily: "inherit",
+      lineHeight: 1.4,
       outline: 0,
-      minHeight: 60,
+      minHeight: 50,
       resize: "none",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      display: "block"
     }
-  }) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => setNoteOpen(true),
-    className: "tap",
-    style: {
-      marginTop: 12,
-      background: "transparent",
-      border: 0,
-      color: "rgba(255,255,255,0.55)",
-      fontSize: 13.5,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "4px 2px"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 14
-  }), " \u0421\u0432\u043E\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430")) : /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       zIndex: 2,
@@ -1202,7 +1187,13 @@ function MoodScreen() {
       marginTop: 3,
       lineHeight: 1.35
     }
-  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u2014 \u043F\u043E\u0434\u0441\u043A\u0430\u0436\u0443 \u0445\u044D\u0448\u0442\u0435\u0433\u0438, \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043C\u0435\u0442\u0438\u0442\u044C, \u0447\u0442\u043E \u0437\u0430 \u043D\u0438\u043C \u0441\u0442\u043E\u0438\u0442."))), /*#__PURE__*/React.createElement("div", {
+  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u2014 \u043F\u043E\u0434\u0441\u043A\u0430\u0436\u0443 \u0441\u043B\u043E\u0432\u0430, \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043C\u0435\u0442\u0438\u0442\u044C, \u0447\u0442\u043E \u0437\u0430 \u043D\u0438\u043C \u0441\u0442\u043E\u0438\u0442."))), cur && /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      flex: 1,
+      minHeight: 6
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       zIndex: 2,

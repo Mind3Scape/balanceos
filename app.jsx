@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v95";
+const APP_VERSION = "v96";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -173,7 +173,7 @@ const TOUR_STOPS = [
    spots are skipped — the sheet already introduces the screen. */
 // Extra stops layered onto the sliced base tour.
 const HOME_SHARE_STOP = { kind: "spot", tab: "home", sel: '[data-tour="share-app"]', radius: 20, eyebrow: "Качай уровень", title: "Начни с простого — поделись",
-  body: "Хочешь быстро поднять уровень? Поделись приложением: +150 XP за каждого друга — и выше множитель на весь твой XP. Покажу, как это выглядит ↓", cta: "Показать «Поделиться»", openShare: true };
+  body: "Поделись приложением: +150 XP за каждого друга, а соберёшь троих — ещё +300 XP сверху.", cta: "Показать «Поделиться»", openShare: true };
 // Dive into a SHARED habit so the demo shows the «кто с тобой» competition.
 const HABIT_PEEK_STOP = { kind: "peek", tab: "habit-detail", params: { habit: { id: 1, emoji: "🙏", name: "Помогать другим", streak: 12, friends: [{ name: "Анна", initials: "А", color: "#e8c8a8" }, { name: "Марк", initials: "М", color: "#a8b9d4" }] }, from: "habits" }, eyebrow: "Внутри привычки", title: "Кто с тобой — соревнование",
   body: "Заходишь в привычку — видишь, кто её делает с тобой, серии у каждого и кто лидирует. Азарт держит ритм." };
@@ -206,7 +206,7 @@ const SCREEN_TOURS = {
 /* GuidedTour renders ONE screen's stops (SCREEN_TOURS[tourScreen]); the demo
    greets each screen with a sheet, and "Показать детально" launches these. On
    finish it returns to that screen's base tab, leaving the user free to explore. */
-function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSheet, tourScreen, dark }) {
+function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSheet, tourScreen, dark, onAdvance, onDismiss, lastScreen }) {
   const STOPS = SCREEN_TOURS[tourScreen] || [];
   const baseTab = TAB_ROUTES.has(tourScreen) ? tourScreen : "home";
   const rootRef = useRef(null);
@@ -282,13 +282,14 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
   const resetHero = () => { if (typeof window !== "undefined" && window.__bosHeroPage) window.__bosHeroPage(0); };
   const next = () => {
     if (last) {
-      // A stop can open a real bottom sheet as its finale (e.g. demonstrate
-      // "Поделиться приложением" so the influence/XP reward is felt, not just told).
-      if (stop.openShare && openSheet) { try { openSheet(React.createElement(ShareAppSheet, { dark })); } catch (_) {} }
-      resetHero(); endTour(); navigate(baseTab);
+      // This screen's spotlights are done → flow straight into the NEXT screen's
+      // sheet + spotlights (one continuous guide), or finish if this was the last.
+      resetHero();
+      if (onAdvance) onAdvance(tourScreen); else { endTour(); navigate(baseTab); }
     } else setStep(step + 1);
   };
-  const skip = () => { resetHero(); endTour(); navigate(baseTab); };
+  // Skipping ONCE dismisses the whole guide for the session — it never pops again.
+  const skip = () => { resetHero(); if (onDismiss) onDismiss(baseTab); else { endTour(); navigate(baseTab); } };
 
   const dots = (
     <div style={{ display: "flex", gap: 5, justifyContent: "center", marginTop: 14 }}>
@@ -340,7 +341,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
           <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
             <button onClick={skip} className="tap" style={{ background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: "10px 14px", margin: "-4px -8px" }}>Пропустить</button>
-            <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{last ? (stop.cta || "Готово") : "Далее"}</button>
+            <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{(last && lastScreen) ? (stop.cta || "Готово") : "Далее"}</button>
           </div>
           {dots}
         </div>
@@ -373,7 +374,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
         <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
           <button onClick={skip} className="tap" style={{ background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: "10px 14px", margin: "-4px -8px" }}>Пропустить</button>
-          <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{last ? (stop.cta || "Готово") : "Далее"}</button>
+          <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{(last && lastScreen) ? (stop.cta || "Готово") : "Далее"}</button>
         </div>
         {dots}
         {below
@@ -528,13 +529,13 @@ function FreshOnboarding({ app, dark }) {
           onCta={() => { if (lastW) closeWelcome(); else setWStep(wStep + 1); }}
           onSkip={lastW ? null : closeWelcome} />
       </BottomSheet>
-      <BottomSheet open={!!tab} onClose={closeTab} dark={dark}>
+      <BottomSheet open={!!tab} onClose={() => app.finishGuide()} dark={dark}>
         {tabView && <OnbSheet eyebrow={tabView.eyebrow} title={tabView.title} body={tabView.body} dark={dark}
           cta={tabView.detail ? "Показать детально" : "Понятно"}
-          onCta={tabView.detail ? () => { app.startScreenTour(tabKey); closeTab(); } : closeTab}
-          onSkip={tabView.detail ? closeTab : undefined}
-          skipLabel="Осмотрюсь сам"
-          pills={tabView.pills && tabView.pills.map(p => ({ emoji: p.emoji, label: p.label, onClick: p.view ? () => { app.setCommunityView(p.view); closeTab(); } : undefined }))} />}
+          onCta={tabView.detail ? () => { app.startScreenTour(tabKey); closeTab(); } : () => app.finishGuide()}
+          onSkip={tabView.detail ? () => app.finishGuide() : undefined}
+          skipLabel="Сам разберусь"
+          pills={tabView.pills && tabView.pills.map(p => ({ emoji: p.emoji, label: p.label, onClick: p.view ? () => { app.setCommunityView(p.view); app.finishGuide(); } : undefined }))} />}
       </BottomSheet>
     </React.Fragment>
   );
@@ -689,10 +690,26 @@ function PhoneApp() {
   // richer intro with "Показать детально" (home included). Never while the
   // welcome sequence or a spotlight tour is running.
   useEffect(() => {
-    if (TAB_ROUTES.has(top.route) && !app.onbWelcome && app.tourStep < 0 && (app.mode === "fresh" || app.mode === "demo")) {
-      app.showTabIntro(top.route);
+    // Only the demo's HOME sheet auto-rises — the single door into the guided tour,
+    // which then drives ITSELF across the other screens. Nothing pops up on a manual
+    // tab switch anymore (the annoying part), and once the guide is done/dismissed it
+    // never shows again. Fresh users get the gentle welcome sheets and explore freely.
+    if (top.route === "home" && app.mode === "demo" && !app.onbWelcome && !app.guideDone && app.tourStep < 0) {
+      app.showTabIntro("home");
     }
-  }, [top.route, app.mode, app.onbWelcome, app.tourStep]); // eslint-disable-line
+  }, [top.route, app.mode, app.onbWelcome, app.tourStep, app.guideDone]); // eslint-disable-line
+
+  // Guided tour chaining (demo): a screen's spotlights finish → advance to the NEXT
+  // screen (navigate + raise its sheet); the last screen → finish. One continuous
+  // flow the user takes once — or skips once, which dismisses the whole thing.
+  const advanceGuide = (fromKey) => {
+    const order = ["home", "habits", "community", "ai"];
+    const nxt = order[order.indexOf(fromKey) + 1];
+    app.endTour();
+    if (nxt) { navigate(nxt, {}, { instant: true }); app.setOnbTab(nxt); }
+    else { app.finishGuide(); navigate("home"); }
+  };
+  const dismissGuide = (toTab) => { app.finishGuide(); if (toTab) navigate(toTab, {}, { instant: true }); };
 
   // Safety net: clear the transition even if `animationend` never fires — e.g.
   // the installed PWA is backgrounded mid-animation (iOS freezes the animation
@@ -839,7 +856,7 @@ function PhoneApp() {
         <div className="bos-version">{APP_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
         <FreshOnboarding app={app} dark={topDark} />
-        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} openSheet={sheetApi.open} tourScreen={app.tourScreen} dark={topDark} />
+        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} openSheet={sheetApi.open} tourScreen={app.tourScreen} dark={topDark} onAdvance={advanceGuide} onDismiss={dismissGuide} lastScreen={app.tourScreen === "ai"} />
       </div>
     </div>
     </SheetCtx.Provider>
