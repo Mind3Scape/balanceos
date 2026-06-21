@@ -314,6 +314,10 @@ function HabitsScreen() {
   );
 }
 
+/* Clean, Apple-style emoji set for habit / goal icons — single-glyph, no skin-
+   tone or gender modifiers so they read consistently across the grid. */
+const HABIT_ICONS = ["🏃","🚶","🚴","🏊","💪","🧘","🤸","🧗","📖","📚","✍️","🎨","🎵","🎸","💻","🧠","🙏","🧊","💧","🥗","🍎","☕","🚭","😴","☀️","🌙","🔥","🌱","⭐","🎯","❤️","🧭"];
+
 function HabitSettingsScreen() {
   const { navigate, params } = useNav();
   const app = useApp();
@@ -321,6 +325,7 @@ function HabitSettingsScreen() {
   const preset = params?.preset; // quick-add chip → {i: emoji, t: label}
   const [name, setName] = useHS(editing ? params.habit.name : (preset?.t || "Прогулка"));
   const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : (preset?.i || "👟"));
+  const [showIcons, setShowIcons] = useHS(false);
   const [color, setColor] = useHS(editing ? (params.habit.color ?? null) : null);
   const [goal, setGoal] = useHS(1);
   const [reminderOn, setReminderOn] = useHS(true);
@@ -342,15 +347,31 @@ function HabitSettingsScreen() {
 
       {/* Icon + colour — neutral by default; tap a swatch to tint it */}
       <div className="section-label" style={{ marginTop: 22 }}>Иконка и цвет</div>
-      <button className="tap" onClick={() => navigate("icon-picker", { current: iconPick, onPick: "habit-icon" })}
+      <button className="tap" data-no-haptic onClick={() => setShowIcons(v => !v)}
         style={{ width: "100%", background: "#fff", border: 0, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", marginTop: 8 }}>
         <div style={{ width: 50, height: 50, borderRadius: 12, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, transition: "background 0.2s" }}>{iconPick}</div>
         <div style={{ textAlign: "left", flex: 1 }}>
           <div style={{ fontWeight: 500, fontSize: 16 }}>{name || "Привычка"}</div>
-          <div style={{ fontSize: 13, color: "var(--text-4)" }}>{color ? HABIT_COLOR_NAMES[color] : "Базовый"} · сменить иконку</div>
+          <div style={{ fontSize: 13, color: "var(--text-4)" }}>{color ? HABIT_COLOR_NAMES[color] : "Базовый"} · {showIcons ? "выбери иконку" : "сменить иконку"}</div>
         </div>
-        <I.ChevronRight size={18} color="var(--text-4)" />
+        <I.ChevronRight size={18} color="var(--text-4)" style={{ transform: showIcons ? "rotate(90deg)" : "none", transition: "transform 0.2s" }} />
       </button>
+      {showIcons && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8, marginTop: 10 }}>
+          {HABIT_ICONS.map((e) => {
+            const on = e === iconPick;
+            return (
+              <button key={e} className="tap" data-no-haptic onClick={() => { setIconPick(e); setShowIcons(false); }}
+                style={{ aspectRatio: "1/1", borderRadius: 14, fontSize: 24, border: 0, cursor: "pointer",
+                  background: on ? (color || "#0a0a0a") : "var(--surface-3)",
+                  boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
+                  transform: on ? "scale(1.06)" : "none", transition: "transform 0.12s, background 0.12s" }}>
+                {e}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10, marginTop: 12, padding: "2px 2px 0", flexWrap: "wrap" }}>
         {HABIT_COLORS.map((c) => (
           <button key={c.id} className="tap" data-no-haptic onClick={() => setColor(c.val)}
@@ -480,6 +501,7 @@ function GoalSettingsScreen() {
   const g0 = editing ? params.goal : null;
   const [name, setName] = useHS(g0?.name || "Пробежать марафон");
   const [iconPick, setIconPick] = useHS(g0?.emoji || "🎯");
+  const [showIcons, setShowIcons] = useHS(false);
   const [target, setTarget] = useHS(g0?.target || 22);
   const [unit, setUnit] = useHS(g0?.unit || "недель");
   const [deadline, setDeadline] = useHS(g0?.deadline || "14 окт");
@@ -493,15 +515,31 @@ function GoalSettingsScreen() {
       <input className="bos-input" value={name} onChange={e => setName(e.target.value)} style={{ marginTop: 8 }} placeholder="напр. Пробежать марафон" />
 
       <div className="section-label" style={{ marginTop: 22 }}>Иконка</div>
-      <button className="tap" onClick={() => navigate("icon-picker", { current: iconPick, onPick: "goal-icon" })}
+      <button className="tap" data-no-haptic onClick={() => setShowIcons(v => !v)}
         style={{ marginTop: 8, width: "100%", background: "#fff", border: 0, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
         <div style={{ width: 50, height: 50, borderRadius: 12, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 26 }}>{iconPick}</div>
         <div style={{ textAlign: "left", flex: 1 }}>
           <div style={{ fontWeight: 500, fontSize: 16 }}>{name || "Цель"}</div>
-          <div style={{ fontSize: 13, color: "var(--text-4)" }}>Нажми, чтобы изменить</div>
+          <div style={{ fontSize: 13, color: "var(--text-4)" }}>{showIcons ? "выбери иконку" : "нажми, чтобы изменить"}</div>
         </div>
-        <I.ChevronRight size={18} color="var(--text-4)"/>
+        <I.ChevronRight size={18} color="var(--text-4)" style={{ transform: showIcons ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}/>
       </button>
+      {showIcons && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8, marginTop: 10 }}>
+          {HABIT_ICONS.map((e) => {
+            const on = e === iconPick;
+            return (
+              <button key={e} className="tap" data-no-haptic onClick={() => { setIconPick(e); setShowIcons(false); }}
+                style={{ aspectRatio: "1/1", borderRadius: 14, fontSize: 24, border: 0, cursor: "pointer",
+                  background: on ? "#0a0a0a" : "var(--surface-3)",
+                  boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
+                  transform: on ? "scale(1.06)" : "none", transition: "transform 0.12s, background 0.12s" }}>
+                {e}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="section-label" style={{ marginTop: 22 }}>Цель (значение)</div>
       <div style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>

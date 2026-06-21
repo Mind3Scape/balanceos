@@ -982,6 +982,10 @@ function HabitsScreen() {
     size: 14
   }))))));
 }
+
+/* Clean, Apple-style emoji set for habit / goal icons — single-glyph, no skin-
+   tone or gender modifiers so they read consistently across the grid. */
+var HABIT_ICONS = ["🏃", "🚶", "🚴", "🏊", "💪", "🧘", "🤸", "🧗", "📖", "📚", "✍️", "🎨", "🎵", "🎸", "💻", "🧠", "🙏", "🧊", "💧", "🥗", "🍎", "☕", "🚭", "😴", "☀️", "🌙", "🔥", "🌱", "⭐", "🎯", "❤️", "🧭"];
 function HabitSettingsScreen() {
   var {
     navigate,
@@ -992,6 +996,7 @@ function HabitSettingsScreen() {
   var preset = params?.preset; // quick-add chip → {i: emoji, t: label}
   var [name, setName] = useHS(editing ? params.habit.name : preset?.t || "Прогулка");
   var [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : preset?.i || "👟");
+  var [showIcons, setShowIcons] = useHS(false);
   var [color, setColor] = useHS(editing ? params.habit.color ?? null : null);
   var [goal, setGoal] = useHS(1);
   var [reminderOn, setReminderOn] = useHS(true);
@@ -1042,10 +1047,8 @@ function HabitSettingsScreen() {
     }
   }, "\u0418\u043A\u043E\u043D\u043A\u0430 \u0438 \u0446\u0432\u0435\u0442"), /*#__PURE__*/React.createElement("button", {
     className: "tap",
-    onClick: () => navigate("icon-picker", {
-      current: iconPick,
-      onPick: "habit-icon"
-    }),
+    "data-no-haptic": true,
+    onClick: () => setShowIcons(v => !v),
     style: {
       width: "100%",
       background: "#fff",
@@ -1084,9 +1087,42 @@ function HabitSettingsScreen() {
       fontSize: 13,
       color: "var(--text-4)"
     }
-  }, color ? HABIT_COLOR_NAMES[color] : "Базовый", " \xB7 \u0441\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, color ? HABIT_COLOR_NAMES[color] : "Базовый", " \xB7 ", showIcons ? "выбери иконку" : "сменить иконку")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
-    color: "var(--text-4)"
+    color: "var(--text-4)",
+    style: {
+      transform: showIcons ? "rotate(90deg)" : "none",
+      transition: "transform 0.2s"
+    }
+  })), showIcons && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(6,1fr)",
+      gap: 8,
+      marginTop: 10
+    }
+  }, HABIT_ICONS.map(e => {
+    var on = e === iconPick;
+    return /*#__PURE__*/React.createElement("button", {
+      key: e,
+      className: "tap",
+      "data-no-haptic": true,
+      onClick: () => {
+        setIconPick(e);
+        setShowIcons(false);
+      },
+      style: {
+        aspectRatio: "1/1",
+        borderRadius: 14,
+        fontSize: 24,
+        border: 0,
+        cursor: "pointer",
+        background: on ? color || "#0a0a0a" : "var(--surface-3)",
+        boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
+        transform: on ? "scale(1.06)" : "none",
+        transition: "transform 0.12s, background 0.12s"
+      }
+    }, e);
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -1447,6 +1483,7 @@ function GoalSettingsScreen() {
   var g0 = editing ? params.goal : null;
   var [name, setName] = useHS(g0?.name || "Пробежать марафон");
   var [iconPick, setIconPick] = useHS(g0?.emoji || "🎯");
+  var [showIcons, setShowIcons] = useHS(false);
   var [target, setTarget] = useHS(g0?.target || 22);
   var [unit, setUnit] = useHS(g0?.unit || "недель");
   var [deadline, setDeadline] = useHS(g0?.deadline || "14 окт");
@@ -1476,10 +1513,8 @@ function GoalSettingsScreen() {
     }
   }, "\u0418\u043A\u043E\u043D\u043A\u0430"), /*#__PURE__*/React.createElement("button", {
     className: "tap",
-    onClick: () => navigate("icon-picker", {
-      current: iconPick,
-      onPick: "goal-icon"
-    }),
+    "data-no-haptic": true,
+    onClick: () => setShowIcons(v => !v),
     style: {
       marginTop: 8,
       width: "100%",
@@ -1517,9 +1552,42 @@ function GoalSettingsScreen() {
       fontSize: 13,
       color: "var(--text-4)"
     }
-  }, "\u041D\u0430\u0436\u043C\u0438, \u0447\u0442\u043E\u0431\u044B \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, showIcons ? "выбери иконку" : "нажми, чтобы изменить")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
-    color: "var(--text-4)"
+    color: "var(--text-4)",
+    style: {
+      transform: showIcons ? "rotate(90deg)" : "none",
+      transition: "transform 0.2s"
+    }
+  })), showIcons && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(6,1fr)",
+      gap: 8,
+      marginTop: 10
+    }
+  }, HABIT_ICONS.map(e => {
+    var on = e === iconPick;
+    return /*#__PURE__*/React.createElement("button", {
+      key: e,
+      className: "tap",
+      "data-no-haptic": true,
+      onClick: () => {
+        setIconPick(e);
+        setShowIcons(false);
+      },
+      style: {
+        aspectRatio: "1/1",
+        borderRadius: 14,
+        fontSize: 24,
+        border: 0,
+        cursor: "pointer",
+        background: on ? "#0a0a0a" : "var(--surface-3)",
+        boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
+        transform: on ? "scale(1.06)" : "none",
+        transition: "transform 0.12s, background 0.12s"
+      }
+    }, e);
   })), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
