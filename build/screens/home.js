@@ -1453,56 +1453,112 @@ function HomeScreen() {
   })), widgets.energy !== false && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
-      padding: 18,
-      background: "linear-gradient(135deg, #1a1a1d 0%, #0a0a0a 100%)",
+      padding: 16,
+      background: cardBg,
+      border: cardBorder,
       borderRadius: 22,
-      color: "#fff",
-      position: "relative",
-      overflow: "hidden"
+      boxShadow: cardShadow,
+      color: "var(--text)",
+      display: "flex",
+      alignItems: "center",
+      gap: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
+    style: {
+      position: "relative",
+      width: 66,
+      height: 66,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 66 66",
+    style: {
+      width: 66,
+      height: 66,
+      transform: "rotate(-90deg)"
+    },
+    "aria-hidden": true
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "33",
+    cy: "33",
+    r: "28",
+    fill: "none",
+    stroke: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)",
+    strokeWidth: "7"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "33",
+    cy: "33",
+    r: "28",
+    fill: "none",
+    stroke: "url(#bosEnergyGrad)",
+    strokeWidth: "7",
+    strokeLinecap: "round",
+    strokeDasharray: 2 * Math.PI * 28,
+    strokeDashoffset: 2 * Math.PI * 28 * (1 - Math.max(0.04, ringPct)),
+    style: {
+      transition: "stroke-dashoffset 0.9s cubic-bezier(0.32,0.72,0,1)"
+    }
+  }), /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "bosEnergyGrad",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#FFB02E"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#FF7A59"
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
-      top: -14,
-      right: -14,
-      opacity: 0.85
+      inset: 0,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 17,
+      fontWeight: 700,
+      color: "var(--text)"
     }
-  }, /*#__PURE__*/React.createElement(StaticOrb, {
-    size: 120,
-    tint: tintFromMood("#5FA8FF"),
-    seed: 1.2,
-    intensity: 0.4
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(CountUp, {
+    value: Math.round(ringPct * 100)
+  }), "%")), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "relative"
+      flex: 1,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
-      opacity: 0.6,
+      color: "var(--text-4)",
       letterSpacing: 1.2,
       textTransform: "uppercase",
       fontWeight: 600
     }
   }, "\u042D\u043D\u0435\u0440\u0433\u0438\u044F \u0441\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 32,
+      fontSize: 27,
       fontWeight: 700,
-      marginTop: 4,
-      letterSpacing: "-0.5px"
+      marginTop: 1,
+      letterSpacing: "-0.5px",
+      color: "var(--text)"
     }
   }, "+", /*#__PURE__*/React.createElement(CountUp, {
     value: Math.round(ringPct * 92)
-  }), " \u043E\u0447\u043A."), /*#__PURE__*/React.createElement("div", {
+  }), " ", /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 13,
-      opacity: 0.7,
-      lineHeight: 1.5,
-      marginTop: 6,
-      maxWidth: "75%"
+      fontSize: 14,
+      fontWeight: 600,
+      color: "var(--text-4)"
     }
-  }, totalCount === 0 ? "Отметь первую привычку — и счёт пойдёт." : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0422\u044B \u043F\u0440\u043E\u0448\u0451\u043B ", Math.round(ringPct * 100), "%. \u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442 \u043D\u0430 \u0442\u0435\u0431\u044F.")))), /*#__PURE__*/React.createElement("button", {
+  }, "\u043E\u0447\u043A.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      lineHeight: 1.4,
+      marginTop: 3
+    }
+  }, totalCount === 0 ? "Отметь первую привычку — и счёт пойдёт." : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0422\u044B \u043F\u0440\u043E\u0448\u0451\u043B ", Math.round(ringPct * 100), "%. \u0422\u0430\u043A \u0434\u0435\u0440\u0436\u0430\u0442\u044C.")))), /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheet, {
       dark: isDark

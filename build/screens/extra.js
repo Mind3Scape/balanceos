@@ -167,7 +167,119 @@ function HabitDetailScreen() {
       fontWeight: 600,
       marginTop: 3
     }
-  }, s.l)))), /*#__PURE__*/React.createElement("div", {
+  }, s.l)))), h.friends?.length > 0 && (() => {
+    var mkStreak = seed => 3 + Math.abs(seed) * 7 % 24; // deterministic 3..26
+    var people = [{
+      name: "Ты",
+      initials: "Я",
+      color: h.color || "#FFC400",
+      streak,
+      you: true
+    }, ...h.friends.map((f, i) => ({
+      name: f.name,
+      initials: f.initials || (f.name || "?")[0],
+      color: f.color,
+      streak: mkStreak((f.name || "X").charCodeAt(0) + i * 5 + (h.id || 1))
+    }))].sort((a, b) => b.streak - a.streak);
+    var maxStreak = Math.max(...people.map(p => p.streak), 1);
+    var myRank = people.findIndex(p => p.you) + 1;
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      className: "section-label",
+      style: {
+        marginTop: 22
+      }
+    }, "\u041A\u0442\u043E \u0441 \u0442\u043E\u0431\u043E\u0439 \xB7 \u0441\u043E\u0440\u0435\u0432\u043D\u043E\u0432\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        ...card,
+        borderRadius: 18,
+        padding: 8,
+        marginTop: 8
+      }
+    }, people.map((p, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        padding: "9px 8px",
+        borderRadius: 12,
+        background: p.you ? isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)" : "transparent"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 22,
+        textAlign: "center",
+        fontSize: i === 0 ? 15 : 13,
+        fontWeight: 700,
+        color: i === 0 ? "#E0A500" : "var(--text-4)"
+      }
+    }, i === 0 ? "👑" : i + 1), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: p.color,
+        display: "grid",
+        placeItems: "center",
+        fontSize: 13,
+        fontWeight: 700,
+        color: "rgba(0,0,0,0.55)",
+        flexShrink: 0
+      }
+    }, p.initials), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14.5,
+        fontWeight: p.you ? 700 : 500,
+        color: "var(--text)"
+      }
+    }, p.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 5,
+        background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+        borderRadius: 999,
+        marginTop: 5,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        height: "100%",
+        width: p.streak / maxStreak * 100 + "%",
+        background: i === 0 ? "linear-gradient(90deg,#FFC400,#FF8A5B)" : isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.35)",
+        borderRadius: 999
+      }
+    }))), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13
+      }
+    }, "\uD83D\uDD25"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 15,
+        fontWeight: 700,
+        color: "var(--text)"
+      }
+    }, p.streak)))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-4)",
+        textAlign: "center",
+        padding: "8px 4px 4px",
+        lineHeight: 1.4
+      }
+    }, myRank === 1 ? "Ты лидируешь — не сбавляй! 🔥" : `Ты на ${myRank}-м месте · до лидера ${people[0].streak - streak} дн. серии`)));
+  })(), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22

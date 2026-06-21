@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v83";
+var APP_VERSION = "v84";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -182,6 +182,12 @@ var TOUR_STOPS = [{
   eyebrow: "Геймификация",
   title: "Опыт, ачивки, награды",
   body: "Вот сердце прогресса: сверху — за что капает XP, ниже — ачивки (открывают новые круги людей) и награды за кредиты. Растёшь — открывается больше."
+}, {
+  kind: "peek",
+  tab: "achievements",
+  eyebrow: "Ачивки вживую",
+  title: "Каждая открывает свой круг",
+  body: "Вот они: «Перегрузка» открыла наставников по фокусу, «Капитан команды» — лидеров. Каждая ачивка — ключ к новым людям и +уровень доступа."
 }, {
   kind: "spot",
   tab: "habits",
@@ -750,94 +756,84 @@ function GuidedTour({
    on the first home screen; then, when the user opens a tab THEMSELVES for the
    first time, a one-line intro sheet rises to orient them — never a forced march. */
 var WELCOME_SHEETS = [{
-  icon: "Globe",
-  grad: "linear-gradient(150deg,#5B6CF0,#9B6CF4)",
   eyebrow: "Добро пожаловать",
   title: "Это не трекер. Это платформа.",
   body: "Привычки, люди и рост — в одном месте. Маленькие шаги каждый день складываются в большое.",
   pills: [{
-    icon: "Bolt",
+    emoji: "⚡",
     label: "Привычки"
   }, {
-    icon: "Users",
+    emoji: "👥",
     label: "Команды"
   }, {
-    icon: "Book",
+    emoji: "🎓",
     label: "Тренинги"
   }]
 }, {
-  icon: "Users",
-  grad: "linear-gradient(150deg,#FF7A59,#FF5C8A)",
   eyebrow: "Вместе",
   title: "Привычки — с близкими",
   body: "Делай привычки вдвоём, собирай команды, проходи тренинги с наставниками. Вместе — крепче.",
   pills: [{
-    icon: "Users",
+    emoji: "👥",
     label: "Команды"
   }, {
-    icon: "Heart",
+    emoji: "🤝",
     label: "Вдвоём"
   }, {
-    icon: "MessageCircle",
+    emoji: "💬",
     label: "Чат"
   }]
 }, {
-  icon: "Trophy",
-  grad: "linear-gradient(150deg,#2BD4C0,#34C759)",
   eyebrow: "Твой темп",
   title: "Расти, как тебе удобно",
   body: "Выполняй привычки — уровень растёт, открываются люди и возможности. Гид «Что дальше?» ждёт внизу.",
   pills: [{
-    icon: "Trophy",
+    emoji: "🏆",
     label: "Уровни"
   }, {
-    icon: "Compass",
+    emoji: "🧭",
     label: "Наставники"
   }, {
-    icon: "Wallet",
+    emoji: "🎁",
     label: "Награды"
   }]
 }];
 var TAB_INTROS = {
   habits: {
-    icon: "Bolt",
-    grad: "linear-gradient(150deg,#2FB85C,#7BD389)",
     eyebrow: "Практика",
     title: "Тут ты всё создаёшь",
     body: "Привычки и цели живут здесь. Делай их один или вместе с близкими, держа общую серию.",
     pills: [{
-      icon: "Bolt",
+      emoji: "⚡",
       label: "Привычки"
     }, {
-      icon: "Target",
+      emoji: "🎯",
       label: "Цели"
     }, {
-      icon: "Users",
+      emoji: "👥",
       label: "Вместе"
     }]
   },
   community: {
-    icon: "Users",
-    grad: "linear-gradient(150deg,#8A6CF4,#B96CF0)",
     eyebrow: "Сообщество",
     title: "Сердце приложения",
     body: "Команды с близкими, курсы и тренинги, нетворк наставников. Вместе держим ритм сильнее.",
     pills: [{
-      icon: "Users",
+      emoji: "👥",
       label: "Команды",
       view: {
         section: "discover",
         discTab: "teams"
       }
     }, {
-      icon: "Book",
+      emoji: "🎓",
       label: "Курсы",
       view: {
         section: "community",
         commTab: "courses"
       }
     }, {
-      icon: "Compass",
+      emoji: "🧭",
       label: "Нетворк",
       view: {
         section: "discover",
@@ -846,63 +842,40 @@ var TAB_INTROS = {
     }]
   },
   ai: {
-    icon: "Sparkles",
-    grad: "linear-gradient(150deg,#FFB02E,#FF8A00)",
     eyebrow: "Помощник",
     title: "ИИ всегда рядом",
     body: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст и подсказывает по делу.",
     pills: [{
-      icon: "Bulb",
+      emoji: "💡",
       label: "Совет дня"
     }, {
-      icon: "ChartBar",
+      emoji: "📊",
       label: "Разбор"
     }, {
-      icon: "Calendar",
+      emoji: "🗓️",
       label: "План"
     }]
   }
 };
 
-/* A premium, consistent hero medallion — same squircle frame everywhere (so it
-   never jumps in size/place between sheets), a per-topic gradient + white glyph
-   for meaning/variety. Replaces the orb-on-every-sheet (which jumped by colour). */
-function OnbHero({
-  icon,
-  grad
-}) {
+/* The same brand orb on every onboarding sheet — identical size, position and
+   tint on every step, so it reads as ONE persistent orb while only the text
+   changes (orb-continuity). Pills below carry the per-screen meaning via colourful
+   iOS emoji. (Richer bespoke imagery is a later design pass, together with David.) */
+function OnbHero() {
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 86,
-      height: 86,
-      borderRadius: 25,
-      background: grad,
-      margin: "0 auto",
+      height: 92,
       display: "grid",
       placeItems: "center",
-      position: "relative",
-      overflow: "hidden",
-      boxShadow: "0 16px 32px -10px rgba(30,30,60,0.45)"
+      margin: "0 auto"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      inset: 0,
-      background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 55%)"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "relative",
-      filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.22))",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, React.createElement(I[icon] || I.Sparkles, {
-    size: 38,
-    color: "#fff",
-    strokeWidth: 2
-  })));
+  }, /*#__PURE__*/React.createElement(StaticOrb, {
+    size: 88,
+    tint: tintFromMood("#5FA8FF"),
+    seed: 2.0,
+    intensity: 0.5
+  }));
 }
 
 /* Presentational content for one onboarding bottom-sheet. Fixed minHeight + a
@@ -910,8 +883,6 @@ function OnbHero({
    nothing jumps between steps. `pills` (always shown) surface the key things on
    the screen; a pill with onClick jumps there. */
 function OnbSheet({
-  icon,
-  grad,
   eyebrow,
   title,
   body,
@@ -938,12 +909,9 @@ function OnbSheet({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 4,
-      marginBottom: 16
+      marginBottom: 14
     }
-  }, /*#__PURE__*/React.createElement(OnbHero, {
-    icon: icon,
-    grad: grad
-  })), eyebrow && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(OnbHero, null)), eyebrow && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       fontWeight: 700,
@@ -992,7 +960,7 @@ function OnbSheet({
       background: pillBg,
       border: 0,
       borderRadius: 999,
-      padding: "8px 13px",
+      padding: "8px 13px 8px 11px",
       fontSize: 13.5,
       fontWeight: 600,
       color: titleC,
@@ -1000,11 +968,12 @@ function OnbSheet({
       alignItems: "center",
       gap: 6
     };
-    var inner = /*#__PURE__*/React.createElement(React.Fragment, null, React.createElement(I[p.icon] || I.Check, {
-      size: 14,
-      color: titleC,
-      strokeWidth: 2
-    }), " ", p.label);
+    var inner = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14.5,
+        lineHeight: 1
+      }
+    }, p.emoji), " ", p.label);
     return p.onClick ? /*#__PURE__*/React.createElement("button", {
       key: i,
       onClick: p.onClick,
@@ -1094,8 +1063,6 @@ function FreshOnboarding({
     onClose: closeWelcome,
     dark: dark
   }, /*#__PURE__*/React.createElement(OnbSheet, {
-    icon: ws.icon,
-    grad: ws.grad,
     eyebrow: ws.eyebrow,
     title: ws.title,
     body: ws.body,
@@ -1113,8 +1080,6 @@ function FreshOnboarding({
     onClose: closeTab,
     dark: dark
   }, tabView && /*#__PURE__*/React.createElement(OnbSheet, {
-    icon: tabView.icon,
-    grad: tabView.grad,
     eyebrow: tabView.eyebrow,
     title: tabView.title,
     body: tabView.body,
@@ -1122,7 +1087,7 @@ function FreshOnboarding({
     cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
     onCta: closeTab,
     pills: tabView.pills && tabView.pills.map(p => ({
-      icon: p.icon,
+      emoji: p.emoji,
       label: p.label,
       onClick: p.view ? () => {
         app.setCommunityView(p.view);

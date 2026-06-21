@@ -510,21 +510,25 @@ function HomeScreen() {
         </button>
       )}
 
-      {/* Today's energy — always dark card, looks intentional in both themes */}
+      {/* Today's energy — light, native card with an Activity-style progress ring
+         (no dark slab, no orb). The ring fills with today's completion. */}
       {widgets.energy !== false && (
-      <div style={{
-        marginTop: 12, padding: 18,
-        background: "linear-gradient(135deg, #1a1a1d 0%, #0a0a0a 100%)",
-        borderRadius: 22, color: "#fff", position: "relative", overflow: "hidden",
-      }}>
-        <div aria-hidden style={{ position: "absolute", top: -14, right: -14, opacity: 0.85 }}>
-          <StaticOrb size={120} tint={tintFromMood("#5FA8FF")} seed={1.2} intensity={0.4} />
+      <div style={{ marginTop: 12, padding: 16, background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, color: "var(--text)", display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ position: "relative", width: 66, height: 66, flexShrink: 0 }}>
+          <svg viewBox="0 0 66 66" style={{ width: 66, height: 66, transform: "rotate(-90deg)" }} aria-hidden>
+            <circle cx="33" cy="33" r="28" fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)"} strokeWidth="7" />
+            <circle cx="33" cy="33" r="28" fill="none" stroke="url(#bosEnergyGrad)" strokeWidth="7" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 28} strokeDashoffset={2 * Math.PI * 28 * (1 - Math.max(0.04, ringPct))}
+              style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(0.32,0.72,0,1)" }} />
+            <defs><linearGradient id="bosEnergyGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFB02E" /><stop offset="1" stopColor="#FF7A59" /></linearGradient></defs>
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 17, fontWeight: 700, color: "var(--text)" }}><CountUp value={Math.round(ringPct * 100)} />%</div>
         </div>
-        <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 11, opacity: 0.6, letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>Энергия сегодня</div>
-          <div style={{ fontSize: 32, fontWeight: 700, marginTop: 4, letterSpacing: "-0.5px" }}>+<CountUp value={Math.round(ringPct * 92)}/> очк.</div>
-          <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, marginTop: 6, maxWidth: "75%" }}>
-            {totalCount === 0 ? "Отметь первую привычку — и счёт пойдёт." : <>Ты прошёл {Math.round(ringPct * 100)}%. Команда рассчитывает на тебя.</>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, color: "var(--text-4)", letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>Энергия сегодня</div>
+          <div style={{ fontSize: 27, fontWeight: 700, marginTop: 1, letterSpacing: "-0.5px", color: "var(--text)" }}>+<CountUp value={Math.round(ringPct * 92)} /> <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-4)" }}>очк.</span></div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4, marginTop: 3 }}>
+            {totalCount === 0 ? "Отметь первую привычку — и счёт пойдёт." : <>Ты прошёл {Math.round(ringPct * 100)}%. Так держать.</>}
           </div>
         </div>
       </div>

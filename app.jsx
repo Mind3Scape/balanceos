@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v83";
+const APP_VERSION = "v84";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -136,6 +136,8 @@ const TOUR_STOPS = [
     body: "Каждая отметка с самого начала качает опыт и уровень. Загляни — покажу, как это устроено." },
   { kind: "peek", tab: "levels", eyebrow: "Геймификация", title: "Опыт, ачивки, награды",
     body: "Вот сердце прогресса: сверху — за что капает XP, ниже — ачивки (открывают новые круги людей) и награды за кредиты. Растёшь — открывается больше." },
+  { kind: "peek", tab: "achievements", eyebrow: "Ачивки вживую", title: "Каждая открывает свой круг",
+    body: "Вот они: «Перегрузка» открыла наставников по фокусу, «Капитан команды» — лидеров. Каждая ачивка — ключ к новым людям и +уровень доступа." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
     body: "Твоя личная система. Привычки и цели живут здесь." },
   { kind: "spot", tab: "habits", sel: '[data-tour="presets"]', radius: 16, eyebrow: "Шаблоны", title: "Листай готовые привычки",
@@ -320,45 +322,41 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
    on the first home screen; then, when the user opens a tab THEMSELVES for the
    first time, a one-line intro sheet rises to orient them — never a forced march. */
 const WELCOME_SHEETS = [
-  { icon: "Globe", grad: "linear-gradient(150deg,#5B6CF0,#9B6CF4)", eyebrow: "Добро пожаловать", title: "Это не трекер. Это платформа.",
+  { eyebrow: "Добро пожаловать", title: "Это не трекер. Это платформа.",
     body: "Привычки, люди и рост — в одном месте. Маленькие шаги каждый день складываются в большое.",
-    pills: [ { icon: "Bolt", label: "Привычки" }, { icon: "Users", label: "Команды" }, { icon: "Book", label: "Тренинги" } ] },
-  { icon: "Users", grad: "linear-gradient(150deg,#FF7A59,#FF5C8A)", eyebrow: "Вместе", title: "Привычки — с близкими",
+    pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "👥", label: "Команды" }, { emoji: "🎓", label: "Тренинги" } ] },
+  { eyebrow: "Вместе", title: "Привычки — с близкими",
     body: "Делай привычки вдвоём, собирай команды, проходи тренинги с наставниками. Вместе — крепче.",
-    pills: [ { icon: "Users", label: "Команды" }, { icon: "Heart", label: "Вдвоём" }, { icon: "MessageCircle", label: "Чат" } ] },
-  { icon: "Trophy", grad: "linear-gradient(150deg,#2BD4C0,#34C759)", eyebrow: "Твой темп", title: "Расти, как тебе удобно",
+    pills: [ { emoji: "👥", label: "Команды" }, { emoji: "🤝", label: "Вдвоём" }, { emoji: "💬", label: "Чат" } ] },
+  { eyebrow: "Твой темп", title: "Расти, как тебе удобно",
     body: "Выполняй привычки — уровень растёт, открываются люди и возможности. Гид «Что дальше?» ждёт внизу.",
-    pills: [ { icon: "Trophy", label: "Уровни" }, { icon: "Compass", label: "Наставники" }, { icon: "Wallet", label: "Награды" } ] },
+    pills: [ { emoji: "🏆", label: "Уровни" }, { emoji: "🧭", label: "Наставники" }, { emoji: "🎁", label: "Награды" } ] },
 ];
 
 const TAB_INTROS = {
-  habits: { icon: "Bolt", grad: "linear-gradient(150deg,#2FB85C,#7BD389)", eyebrow: "Практика", title: "Тут ты всё создаёшь",
+  habits: { eyebrow: "Практика", title: "Тут ты всё создаёшь",
     body: "Привычки и цели живут здесь. Делай их один или вместе с близкими, держа общую серию.",
-    pills: [ { icon: "Bolt", label: "Привычки" }, { icon: "Target", label: "Цели" }, { icon: "Users", label: "Вместе" } ] },
-  community: { icon: "Users", grad: "linear-gradient(150deg,#8A6CF4,#B96CF0)", eyebrow: "Сообщество", title: "Сердце приложения",
+    pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "🎯", label: "Цели" }, { emoji: "👥", label: "Вместе" } ] },
+  community: { eyebrow: "Сообщество", title: "Сердце приложения",
     body: "Команды с близкими, курсы и тренинги, нетворк наставников. Вместе держим ритм сильнее.",
     pills: [
-      { icon: "Users", label: "Команды", view: { section: "discover", discTab: "teams" } },
-      { icon: "Book", label: "Курсы", view: { section: "community", commTab: "courses" } },
-      { icon: "Compass", label: "Нетворк", view: { section: "discover", discTab: "network" } },
+      { emoji: "👥", label: "Команды", view: { section: "discover", discTab: "teams" } },
+      { emoji: "🎓", label: "Курсы", view: { section: "community", commTab: "courses" } },
+      { emoji: "🧭", label: "Нетворк", view: { section: "discover", discTab: "network" } },
     ] },
-  ai: { icon: "Sparkles", grad: "linear-gradient(150deg,#FFB02E,#FF8A00)", eyebrow: "Помощник", title: "ИИ всегда рядом",
+  ai: { eyebrow: "Помощник", title: "ИИ всегда рядом",
     body: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст и подсказывает по делу.",
-    pills: [ { icon: "Bulb", label: "Совет дня" }, { icon: "ChartBar", label: "Разбор" }, { icon: "Calendar", label: "План" } ] },
+    pills: [ { emoji: "💡", label: "Совет дня" }, { emoji: "📊", label: "Разбор" }, { emoji: "🗓️", label: "План" } ] },
 };
 
-/* A premium, consistent hero medallion — same squircle frame everywhere (so it
-   never jumps in size/place between sheets), a per-topic gradient + white glyph
-   for meaning/variety. Replaces the orb-on-every-sheet (which jumped by colour). */
-function OnbHero({ icon, grad }) {
+/* The same brand orb on every onboarding sheet — identical size, position and
+   tint on every step, so it reads as ONE persistent orb while only the text
+   changes (orb-continuity). Pills below carry the per-screen meaning via colourful
+   iOS emoji. (Richer bespoke imagery is a later design pass, together with David.) */
+function OnbHero() {
   return (
-    <div style={{ width: 86, height: 86, borderRadius: 25, background: grad, margin: "0 auto",
-      display: "grid", placeItems: "center", position: "relative", overflow: "hidden",
-      boxShadow: "0 16px 32px -10px rgba(30,30,60,0.45)" }}>
-      <div aria-hidden style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 55%)" }} />
-      <span style={{ position: "relative", filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.22))", display: "grid", placeItems: "center" }}>
-        {React.createElement(I[icon] || I.Sparkles, { size: 38, color: "#fff", strokeWidth: 2 })}
-      </span>
+    <div style={{ height: 92, display: "grid", placeItems: "center", margin: "0 auto" }}>
+      <StaticOrb size={88} tint={tintFromMood("#5FA8FF")} seed={2.0} intensity={0.5} />
     </div>
   );
 }
@@ -367,15 +365,15 @@ function OnbHero({ icon, grad }) {
    top-anchored hero + reserved body height → every sheet is the SAME size, so
    nothing jumps between steps. `pills` (always shown) surface the key things on
    the screen; a pill with onClick jumps there. */
-function OnbSheet({ icon, grad, eyebrow, title, body, pills, cta, onCta, onSkip, total, index, dark }) {
+function OnbSheet({ eyebrow, title, body, pills, cta, onCta, onSkip, total, index, dark }) {
   const titleC = dark ? "#fff" : "#0a0a0a";
   const bodyC = dark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.56)";
   const ghostC = dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)";
   const pillBg = dark ? "rgba(255,255,255,0.08)" : "#f0f1f4";
   return (
     <div style={{ padding: "4px 22px 8px", textAlign: "center", minHeight: 454, display: "flex", flexDirection: "column" }}>
-      <div style={{ marginTop: 4, marginBottom: 16 }}>
-        <OnbHero icon={icon} grad={grad} />
+      <div style={{ marginTop: 4, marginBottom: 14 }}>
+        <OnbHero />
       </div>
       {eyebrow && <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{eyebrow}</div>}
       {/* Title + body heights are RESERVED (2 lines / 3 lines) so a 1-line title or
@@ -388,8 +386,8 @@ function OnbSheet({ icon, grad, eyebrow, title, body, pills, cta, onCta, onSkip,
       {pills && pills.length > 0 && (
         <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 16 }}>
           {pills.map((p, i) => {
-            const st = { background: pillBg, border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 13.5, fontWeight: 600, color: titleC, display: "inline-flex", alignItems: "center", gap: 6 };
-            const inner = <>{React.createElement(I[p.icon] || I.Check, { size: 14, color: titleC, strokeWidth: 2 })} {p.label}</>;
+            const st = { background: pillBg, border: 0, borderRadius: 999, padding: "8px 13px 8px 11px", fontSize: 13.5, fontWeight: 600, color: titleC, display: "inline-flex", alignItems: "center", gap: 6 };
+            const inner = <><span style={{ fontSize: 14.5, lineHeight: 1 }}>{p.emoji}</span> {p.label}</>;
             return p.onClick
               ? <button key={i} onClick={p.onClick} className="tap" style={st}>{inner}</button>
               : <span key={i} style={st}>{inner}</span>;
@@ -433,16 +431,16 @@ function FreshOnboarding({ app, dark }) {
   return (
     <React.Fragment>
       <BottomSheet open={welcome} onClose={closeWelcome} dark={dark}>
-        <OnbSheet icon={ws.icon} grad={ws.grad} eyebrow={ws.eyebrow} title={ws.title} body={ws.body} pills={ws.pills} dark={dark}
+        <OnbSheet eyebrow={ws.eyebrow} title={ws.title} body={ws.body} pills={ws.pills} dark={dark}
           total={WELCOME_SHEETS.length} index={wStep}
           cta={lastW ? "Начать" : "Дальше"}
           onCta={() => { if (lastW) closeWelcome(); else setWStep(wStep + 1); }}
           onSkip={lastW ? null : closeWelcome} />
       </BottomSheet>
       <BottomSheet open={!!tab} onClose={closeTab} dark={dark}>
-        {tabView && <OnbSheet icon={tabView.icon} grad={tabView.grad} eyebrow={tabView.eyebrow} title={tabView.title} body={tabView.body} dark={dark}
+        {tabView && <OnbSheet eyebrow={tabView.eyebrow} title={tabView.title} body={tabView.body} dark={dark}
           cta="Понятно" onCta={closeTab}
-          pills={tabView.pills && tabView.pills.map(p => ({ icon: p.icon, label: p.label, onClick: p.view ? () => { app.setCommunityView(p.view); closeTab(); } : undefined }))} />}
+          pills={tabView.pills && tabView.pills.map(p => ({ emoji: p.emoji, label: p.label, onClick: p.view ? () => { app.setCommunityView(p.view); closeTab(); } : undefined }))} />}
       </BottomSheet>
     </React.Fragment>
   );
