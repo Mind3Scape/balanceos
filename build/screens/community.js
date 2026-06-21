@@ -1488,28 +1488,22 @@ function CommunityScreen() {
       padding: 16,
       boxShadow: "var(--card-shadow)",
       border: 0,
-      textAlign: "left"
+      textAlign: "left",
+      color: "var(--text)",
+      display: "block",
+      width: "100%"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
+      justifyContent: "space-between",
       alignItems: "flex-start",
       gap: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 46,
-      height: 46,
-      borderRadius: "50%",
-      background: c.accent,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      flexShrink: 0
-    }
-  }, c.i), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
+      flex: 1,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1522,6 +1516,7 @@ function CommunityScreen() {
     style: {
       fontWeight: 700,
       fontSize: 17,
+      color: "var(--text)",
       letterSpacing: "-0.3px"
     }
   }, c.t), /*#__PURE__*/React.createElement("span", {
@@ -1550,7 +1545,18 @@ function CommunityScreen() {
       display: "flex",
       gap: 10
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\u23F1 ", c.length), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC5 ", c.cohort)))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, "\u23F1 ", c.length), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC5 ", c.cohort))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: "50%",
+      background: c.accent,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22,
+      flexShrink: 0
+    }
+  }, c.i)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -1571,7 +1577,8 @@ function CommunityScreen() {
     style: {
       fontSize: 16,
       fontWeight: 700,
-      marginTop: 2
+      marginTop: 2,
+      color: "var(--text)"
     }
   }, c.price)), /*#__PURE__*/React.createElement("span", {
     style: {

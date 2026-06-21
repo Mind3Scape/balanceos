@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v99";
+var APP_VERSION = "v100";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -500,17 +500,21 @@ function GuidedTour({
       lastKey = "",
       lastSet = "",
       committed = false;
-    // Safety net: if the target is never found (unmounted / bad selector), reveal the
-    // card on its own after a beat so the user is never stranded on a blank screen.
+    // Safety net: if the target is NEVER found (unmounted / bad selector), reveal the
+    // card on its own so the user isn't stranded. The moment the target IS found we
+    // cancel this — otherwise a slow first render (e.g. the community screen settling
+    // after its sheet closes) flashes the card centred, then it visibly jumps onto the
+    // target. That was the "Создавай свои команды" glitch. Generous window for the race.
     var lateTimer = setTimeout(() => {
       if (!cancelled) setLate(true);
-    }, 1100);
+    }, 1800);
     var tick = () => {
       if (cancelled) return;
       frames++;
       var shell = rootRef.current && rootRef.current.parentElement;
       var el = shell && shell.querySelector(stop.sel);
       if (el) {
+        clearTimeout(lateTimer); // target exists — never fall back to the centred card
         if (!committed) {
           try {
             el.scrollIntoView({

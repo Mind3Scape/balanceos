@@ -433,17 +433,19 @@ function hueShift(hex, deg) {
   return "#" + to(R) + to(G) + to(B);
 }
 
-// Emotional spectrum for the onboarding state slider: heavy slate (far left) →
-// calm blue (centre = base) → fresh green → energised gold (far right). A single
-// value 0..1 maps to the colour the orb morphs through as the slider is dragged.
-const MOOD_SPECTRUM_STOPS = ["#586A8F", "#6E90C4", "#5EA8E8", "#5BC57E", "#FFC22E"];
+// Onboarding state slider: a clean rainbow (red → orange → yellow → green → blue)
+// paired with a morphing mood face + a native word. Centre = «Ровно». The orb
+// takes the colour; the face is the hero. One value 0..1 drives all three.
+const MOOD_SPECTRUM_STOPS = ["#FF5A5F", "#FF9F43", "#FFCE3A", "#34C759", "#19B6E8"];
+const MOOD_FACES = ["😣", "😕", "😐", "🙂", "🤩"];
+const MOOD_WORDS = ["Накрывает", "Так себе", "Ровно", "В потоке", "На крыльях"];
 function moodSpectrum(v) {
   const x = Math.max(0, Math.min(1, isFinite(v) ? v : 0.5)) * (MOOD_SPECTRUM_STOPS.length - 1);
   const i = Math.min(MOOD_SPECTRUM_STOPS.length - 2, Math.floor(x));
   return lerpColor(MOOD_SPECTRUM_STOPS[i], MOOD_SPECTRUM_STOPS[i + 1], x - i);
 }
-function moodWord(v) {
-  return v < 0.16 ? "Тяжело" : v < 0.4 ? "Спад" : v < 0.62 ? "Ровно" : v < 0.84 ? "Хорошо" : "На подъёме";
+function moodBucket(v) {
+  return Math.max(0, Math.min(MOOD_FACES.length - 1, Math.floor((isFinite(v) ? v : 0.5) * MOOD_FACES.length)));
 }
 
 function Stage({ mode, prevMode, blend, dark = true, tintOverride }) {
@@ -530,7 +532,10 @@ function IntroScreen() {
   const mdt = Math.max(0, Math.min(0.05, t - me.t)); me.t = t;
   me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
   const moodTint = tintFromMood(moodSpectrum(me.val));
-  const moodMain = moodSpectrum(moodVal); // crisp colour for labels/thumb (un-eased)
+  const moodMain = moodSpectrum(moodVal); // crisp colour for the track fill (un-eased)
+  const moodIdx = moodBucket(moodVal);
+  const moodFace = MOOD_FACES[moodIdx];
+  const moodWordTxt = MOOD_WORDS[moodIdx];
   const trackRef = useIR(null);
   const moodDrag = useIR(false);
   const setMoodFromX = (clientX) => {
@@ -613,6 +618,12 @@ function IntroScreen() {
         <div style={{ animation: "orbIntro 0.9s cubic-bezier(0.22,0.8,0.32,1) both" }}>
           <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark} tintOverride={moodTint}/>
         </div>
+        {/* Mood face floating in the orb — pops to the next emoji as the slider moves */}
+        {cur.mode === "mood" && (
+          <div key={moodIdx} style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none", zIndex: 3 }}>
+            <span style={{ fontSize: 58, lineHeight: 1, animation: "moodFacePop 0.42s cubic-bezier(0.34,1.56,0.64,1) both", filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.35))" }}>{moodFace}</span>
+          </div>
+        )}
       </div>
 
       <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 150, pointerEvents: "none" }}>
@@ -634,26 +645,24 @@ function IntroScreen() {
       </div>
 
       {cur.mode === "mood" && (
-        <Reveal k="moodslider" delay={0.5} style={{ position: "relative", padding: "14px 30px 0", zIndex: 2 }}>
-          {/* current-state word — colour follows the slider */}
-          <div style={{ textAlign: "center", fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px", color: moodMain, transition: "color 0.25s", marginBottom: 14 }}>{moodWord(moodVal)}</div>
-          {/* draggable track */}
+        <Reveal k="moodslider" delay={0.5} style={{ position: "relative", padding: "12px 30px 0", zIndex: 2 }}>
+          {/* changing word — ONE constant colour (no colour-shifting text) */}
+          <div style={{ textAlign: "center", fontSize: 21, fontWeight: 700, letterSpacing: "-0.3px", color: pal.title, marginBottom: 16 }}>{moodWordTxt}</div>
+          {/* clean iOS slider: neutral rail + colour fill + plain white knob */}
           <div ref={trackRef} className="tap"
             onPointerDown={(e) => { moodDrag.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setMoodFromX(e.clientX); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } }}
             onPointerMove={(e) => { if (moodDrag.current) setMoodFromX(e.clientX); }}
             onPointerUp={() => { moodDrag.current = false; }}
             onPointerCancel={() => { moodDrag.current = false; }}
             style={{ position: "relative", height: 40, display: "flex", alignItems: "center", touchAction: "none", cursor: "pointer" }}>
-            {/* spectrum rail */}
-            <div style={{ position: "absolute", left: 0, right: 0, height: 6, borderRadius: 999, background: `linear-gradient(90deg, ${MOOD_SPECTRUM_STOPS.join(",")})`, opacity: 0.92 }} />
-            {/* centre (base) tick */}
-            <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 2, height: 16, borderRadius: 2, background: dark ? "rgba(255,255,255,0.5)" : "rgba(21,35,60,0.38)", transform: "translate(-50%,-50%)" }} />
-            {/* thumb */}
-            <div style={{ position: "absolute", left: `${moodVal * 100}%`, top: "50%", width: 30, height: 30, borderRadius: "50%", background: "#fff", border: `2.5px solid ${moodMain}`, boxShadow: `0 3px 10px rgba(0,0,0,0.28), 0 0 0 6px ${moodMain}33`, transform: "translate(-50%,-50%)", transition: moodDrag.current ? "none" : "border-color 0.25s, box-shadow 0.25s" }} />
+            <div style={{ position: "absolute", left: 0, right: 0, height: 5, borderRadius: 999, background: dark ? "rgba(255,255,255,0.16)" : "rgba(21,35,60,0.13)" }} />
+            <div style={{ position: "absolute", left: 0, width: `${moodVal * 100}%`, height: 5, borderRadius: 999, background: moodMain, transition: moodDrag.current ? "none" : "width 0.18s, background 0.25s" }} />
+            <div style={{ position: "absolute", left: `${moodVal * 100}%`, top: "50%", width: 28, height: 28, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.22), 0 4px 11px rgba(0,0,0,0.13)", transform: "translate(-50%,-50%)", transition: moodDrag.current ? "none" : "left 0.18s" }} />
           </div>
-          {/* end captions */}
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: pal.count, marginTop: 8 }}>
-            <span>тяжело</span><span>ровно</span><span>на подъёме</span>
+          {/* emoji ends — the extremes of the scale */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 7, fontSize: 19, opacity: 0.75 }}>
+            <span>{MOOD_FACES[0]}</span>
+            <span>{MOOD_FACES[MOOD_FACES.length - 1]}</span>
           </div>
         </Reveal>
       )}
@@ -670,7 +679,7 @@ function IntroScreen() {
       <style>{`
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
-        @keyframes moodIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes moodFacePop { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.9); } 55% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
         @keyframes orbBurst { 0% { opacity: 0.4; transform: scale(0.55); } 70% { opacity: 0.1; } 100% { opacity: 0; transform: scale(1.7); } }
       `}</style>

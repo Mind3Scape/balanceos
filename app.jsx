@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v99";
+const APP_VERSION = "v100";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -249,15 +249,19 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
     setLate(false);
 
     let raf, cancelled = false, frames = 0, stable = 0, lastKey = "", lastSet = "", committed = false;
-    // Safety net: if the target is never found (unmounted / bad selector), reveal the
-    // card on its own after a beat so the user is never stranded on a blank screen.
-    const lateTimer = setTimeout(() => { if (!cancelled) setLate(true); }, 1100);
+    // Safety net: if the target is NEVER found (unmounted / bad selector), reveal the
+    // card on its own so the user isn't stranded. The moment the target IS found we
+    // cancel this — otherwise a slow first render (e.g. the community screen settling
+    // after its sheet closes) flashes the card centred, then it visibly jumps onto the
+    // target. That was the "Создавай свои команды" glitch. Generous window for the race.
+    const lateTimer = setTimeout(() => { if (!cancelled) setLate(true); }, 1800);
     const tick = () => {
       if (cancelled) return;
       frames++;
       const shell = rootRef.current && rootRef.current.parentElement;
       const el = shell && shell.querySelector(stop.sel);
       if (el) {
+        clearTimeout(lateTimer);   // target exists — never fall back to the centred card
         if (!committed) { try { el.scrollIntoView({ block: "center", inline: "nearest" }); } catch (_) {} }
         const s = shell.getBoundingClientRect(), b = el.getBoundingClientRect();
         const m = { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, sw: s.width, sh: s.height };

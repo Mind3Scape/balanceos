@@ -829,17 +829,19 @@ function hueShift(hex, deg) {
   return "#" + to(R) + to(G) + to(B);
 }
 
-// Emotional spectrum for the onboarding state slider: heavy slate (far left) →
-// calm blue (centre = base) → fresh green → energised gold (far right). A single
-// value 0..1 maps to the colour the orb morphs through as the slider is dragged.
-var MOOD_SPECTRUM_STOPS = ["#586A8F", "#6E90C4", "#5EA8E8", "#5BC57E", "#FFC22E"];
+// Onboarding state slider: a clean rainbow (red → orange → yellow → green → blue)
+// paired with a morphing mood face + a native word. Centre = «Ровно». The orb
+// takes the colour; the face is the hero. One value 0..1 drives all three.
+var MOOD_SPECTRUM_STOPS = ["#FF5A5F", "#FF9F43", "#FFCE3A", "#34C759", "#19B6E8"];
+var MOOD_FACES = ["😣", "😕", "😐", "🙂", "🤩"];
+var MOOD_WORDS = ["Накрывает", "Так себе", "Ровно", "В потоке", "На крыльях"];
 function moodSpectrum(v) {
   var x = Math.max(0, Math.min(1, isFinite(v) ? v : 0.5)) * (MOOD_SPECTRUM_STOPS.length - 1);
   var i = Math.min(MOOD_SPECTRUM_STOPS.length - 2, Math.floor(x));
   return lerpColor(MOOD_SPECTRUM_STOPS[i], MOOD_SPECTRUM_STOPS[i + 1], x - i);
 }
-function moodWord(v) {
-  return v < 0.16 ? "Тяжело" : v < 0.4 ? "Спад" : v < 0.62 ? "Ровно" : v < 0.84 ? "Хорошо" : "На подъёме";
+function moodBucket(v) {
+  return Math.max(0, Math.min(MOOD_FACES.length - 1, Math.floor((isFinite(v) ? v : 0.5) * MOOD_FACES.length)));
 }
 function Stage({
   mode,
@@ -998,7 +1000,10 @@ function IntroScreen() {
   me.t = t;
   me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
   var moodTint = tintFromMood(moodSpectrum(me.val));
-  var moodMain = moodSpectrum(moodVal); // crisp colour for labels/thumb (un-eased)
+  var moodMain = moodSpectrum(moodVal); // crisp colour for the track fill (un-eased)
+  var moodIdx = moodBucket(moodVal);
+  var moodFace = MOOD_FACES[moodIdx];
+  var moodWordTxt = MOOD_WORDS[moodIdx];
   var trackRef = useIR(null);
   var moodDrag = useIR(false);
   var setMoodFromX = clientX => {
@@ -1207,7 +1212,24 @@ function IntroScreen() {
     blend: blend,
     dark: dark,
     tintOverride: moodTint
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), cur.mode === "mood" && /*#__PURE__*/React.createElement("div", {
+    key: moodIdx,
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeItems: "center",
+      pointerEvents: "none",
+      zIndex: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 58,
+      lineHeight: 1,
+      animation: "moodFacePop 0.42s cubic-bezier(0.34,1.56,0.64,1) both",
+      filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.35))"
+    }
+  }, moodFace))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       padding: "0 28px",
@@ -1276,20 +1298,19 @@ function IntroScreen() {
     delay: 0.5,
     style: {
       position: "relative",
-      padding: "14px 30px 0",
+      padding: "12px 30px 0",
       zIndex: 2
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      fontSize: 20,
+      fontSize: 21,
       fontWeight: 700,
       letterSpacing: "-0.3px",
-      color: moodMain,
-      transition: "color 0.25s",
-      marginBottom: 14
+      color: pal.title,
+      marginBottom: 16
     }
-  }, moodWord(moodVal)), /*#__PURE__*/React.createElement("div", {
+  }, moodWordTxt), /*#__PURE__*/React.createElement("div", {
     ref: trackRef,
     className: "tap",
     onPointerDown: e => {
@@ -1326,46 +1347,43 @@ function IntroScreen() {
       position: "absolute",
       left: 0,
       right: 0,
-      height: 6,
+      height: 5,
       borderRadius: 999,
-      background: `linear-gradient(90deg, ${MOOD_SPECTRUM_STOPS.join(",")})`,
-      opacity: 0.92
+      background: dark ? "rgba(255,255,255,0.16)" : "rgba(21,35,60,0.13)"
     }
   }), /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
     style: {
       position: "absolute",
-      left: "50%",
-      top: "50%",
-      width: 2,
-      height: 16,
-      borderRadius: 2,
-      background: dark ? "rgba(255,255,255,0.5)" : "rgba(21,35,60,0.38)",
-      transform: "translate(-50%,-50%)"
+      left: 0,
+      width: `${moodVal * 100}%`,
+      height: 5,
+      borderRadius: 999,
+      background: moodMain,
+      transition: moodDrag.current ? "none" : "width 0.18s, background 0.25s"
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: `${moodVal * 100}%`,
       top: "50%",
-      width: 30,
-      height: 30,
+      width: 28,
+      height: 28,
       borderRadius: "50%",
       background: "#fff",
-      border: `2.5px solid ${moodMain}`,
-      boxShadow: `0 3px 10px rgba(0,0,0,0.28), 0 0 0 6px ${moodMain}33`,
+      boxShadow: "0 1px 3px rgba(0,0,0,0.22), 0 4px 11px rgba(0,0,0,0.13)",
       transform: "translate(-50%,-50%)",
-      transition: moodDrag.current ? "none" : "border-color 0.25s, box-shadow 0.25s"
+      transition: moodDrag.current ? "none" : "left 0.18s"
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
-      fontSize: 11,
-      color: pal.count,
-      marginTop: 8
+      alignItems: "center",
+      marginTop: 7,
+      fontSize: 19,
+      opacity: 0.75
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\u0442\u044F\u0436\u0435\u043B\u043E"), /*#__PURE__*/React.createElement("span", null, "\u0440\u043E\u0432\u043D\u043E"), /*#__PURE__*/React.createElement("span", null, "\u043D\u0430 \u043F\u043E\u0434\u044A\u0451\u043C\u0435"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, MOOD_FACES[0]), /*#__PURE__*/React.createElement("span", null, MOOD_FACES[MOOD_FACES.length - 1]))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       padding: "20px 24px 28px",
@@ -1405,7 +1423,7 @@ function IntroScreen() {
   }, "\u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C"))), /*#__PURE__*/React.createElement("style", null, `
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
-        @keyframes moodIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes moodFacePop { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.9); } 55% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
         @keyframes orbBurst { 0% { opacity: 0.4; transform: scale(0.55); } 70% { opacity: 0.1; } 100% { opacity: 0; transform: scale(1.7); } }
       `));
