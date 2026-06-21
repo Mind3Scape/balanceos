@@ -73,12 +73,9 @@ function ShareHabitSheet({ habit, dark = false }) {
         <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>«{habit?.name || "Привычка"}» — зовите друзей делать вместе</div>
       </div>
 
-      {/* Influence reward — bringing someone into a good habit earns XP */}
-      <div style={{ marginTop: 16, borderRadius: 14, padding: "11px 13px", background: dark ? "rgba(52,199,89,0.12)" : "#eafaef", display: "flex", alignItems: "center", gap: 9 }}>
-        <span style={{ fontSize: 16 }}>✨</span>
-        <div style={{ fontSize: 12.5, color: dark ? "rgba(255,255,255,0.72)" : "#1a7a3a", lineHeight: 1.4 }}>
-          <b>+30 XP</b>, когда друг присоединится — вовлекать в хорошее тоже доброе дело.
-        </div>
+      {/* Reward hero — the eye lands on what you earn + the influence multiplier */}
+      <div style={{ marginTop: 16 }}>
+        <XPRewardCard amount={75} reason="когда друг присоединится к этой привычке" maxMult="1.5" dark={dark} />
       </div>
 
       <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "22px 0 12px" }}>Делать вместе</div>
@@ -412,7 +409,7 @@ function HabitSettingsScreen() {
         </div>
         <div style={{ marginTop: 12, borderRadius: 12, padding: "9px 12px", background: "#eafaef", display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 15 }}>✨</span>
-          <div style={{ fontSize: 12.5, color: "#1a7a3a", lineHeight: 1.4 }}><b>+30 XP</b>, когда друг присоединится — и он уже в приложении.</div>
+          <div style={{ fontSize: 12.5, color: "#1a7a3a", lineHeight: 1.4 }}><b>+75 XP</b>, когда друг присоединится — и он уже в приложении. Растёт круг — растёт твой множитель XP.</div>
         </div>
         {shareOn && <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
           {shareFriends.map((p, i) => (

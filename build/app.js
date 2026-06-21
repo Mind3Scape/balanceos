@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v88";
+var APP_VERSION = "v89";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -285,7 +285,7 @@ var TOUR_STOPS = [{
   radius: 20,
   eyebrow: "Нетворк · контакты",
   title: "Заказывай помощь других",
-  body: "А баллы за привычки трать на людей вокруг: запишись к человеку, попади в его карточку, закажи услугу наставника. Так растёте вместе."
+  body: "А XP за привычки трать на людей вокруг: запишись к человеку, попади в его карточку, закажи услугу наставника. Так растёте вместе."
 }, {
   kind: "spot",
   tab: "community",
@@ -325,7 +325,7 @@ var HOME_SHARE_STOP = {
   radius: 20,
   eyebrow: "Качай уровень",
   title: "Начни с простого — поделись",
-  body: "Хочешь быстро поднять уровень? Поделись приложением: +50 XP за каждого друга, кто присоединится. Покажу, как это выглядит ↓",
+  body: "Хочешь быстро поднять уровень? Поделись приложением: +150 XP за каждого друга — и выше множитель на весь твой XP. Покажу, как это выглядит ↓",
   cta: "Показать «Поделиться»",
   openShare: true
 };
@@ -366,11 +366,21 @@ var HABIT_INVITE_STOP = {
   radius: 18,
   eyebrow: "Вместе с другом",
   title: "Создавая — позови друга",
-  body: "Любую привычку можно делать вдвоём. Друг присоединился → +30 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг."
+  body: "Любую привычку можно делать вдвоём. Друг присоединился → +75 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг."
+};
+// The heart of the economy — a small focus on the influence MULTIPLIER.
+var INFLUENCE_MULT_STOP = {
+  kind: "spot",
+  tab: "levels",
+  sel: '[data-tour="influence-mult"]',
+  radius: 18,
+  eyebrow: "Множитель влияния",
+  title: "Вовлекаешь — растёшь быстрее всех",
+  body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — до ×1.5. Привёл людей — качаешься в полтора раза быстрее, даже на тех же привычках."
 };
 var SCREEN_TOURS = {
-  home: [...TOUR_STOPS.slice(2, 7), HOME_SHARE_STOP],
-  // aihints, state, level, levels-peek, ach-peek, share
+  home: [...TOUR_STOPS.slice(2, 6), INFLUENCE_MULT_STOP, TOUR_STOPS[6], HOME_SHARE_STOP],
+  // aihints, state, level, levels-peek, MULTIPLIER, ach-peek, share
   habits: [...TOUR_STOPS.slice(8, 10), HABIT_INVITE_STOP, HABIT_PEEK_STOP],
   // presets, add, invite-while-creating, leaderboard peek
   community: TOUR_STOPS.slice(11, 19),
@@ -984,6 +994,9 @@ var DEMO_INTROS = {
     }, {
       emoji: "🏆",
       label: "Уровень"
+    }, {
+      emoji: "🤝",
+      label: "Влияние ×1.5"
     }]
   },
   habits: {
@@ -1307,7 +1320,7 @@ function GuideScreen() {
   }, {
     e: "🧭",
     t: "Нетворк и наставники",
-    b: "С ростом уровня открывается круг людей: наставники, услуги, помощь. Баллы за привычки тратишь на них."
+    b: "С ростом уровня открывается круг людей: наставники, услуги, помощь. XP за привычки тратишь на них."
   }, {
     e: "✨",
     t: "ИИ-помощник",

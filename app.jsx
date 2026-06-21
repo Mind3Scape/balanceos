@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v88";
+const APP_VERSION = "v89";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -159,7 +159,7 @@ const TOUR_STOPS = [
   { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="impact"]', radius: 20, eyebrow: "Нетворк · твой вклад", title: "Стань тем, к кому идут",
     body: "С ростом уровня ты сам помогаешь кругу — ведёшь, консультируешь, делишься тем, что умеешь. Каждое доброе дело растит твой вклад и репутацию." },
   { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="contacts"]', radius: 20, eyebrow: "Нетворк · контакты", title: "Заказывай помощь других",
-    body: "А баллы за привычки трать на людей вокруг: запишись к человеку, попади в его карточку, закажи услугу наставника. Так растёте вместе." },
+    body: "А XP за привычки трать на людей вокруг: запишись к человеку, попади в его карточку, закажи услугу наставника. Так растёте вместе." },
   { kind: "spot", tab: "community", view: { section: "community", commTab: "courses" }, sel: '[data-tour="course"]', radius: 20, eyebrow: "Курсы", title: "Ускорители роста",
     body: "Курсы и интенсивы поднимают уровень и открывают новые круги контактов — как ключи: прошёл курс → получил ачивку → доступ к людям выше." },
   { kind: "spot", tab: "ai", sel: '.bos-tabbar button:nth-of-type(4)', radius: 16, eyebrow: "Помощник", title: "ИИ всегда под рукой",
@@ -173,16 +173,19 @@ const TOUR_STOPS = [
    spots are skipped — the sheet already introduces the screen. */
 // Extra stops layered onto the sliced base tour.
 const HOME_SHARE_STOP = { kind: "spot", tab: "home", sel: '[data-tour="share-app"]', radius: 20, eyebrow: "Качай уровень", title: "Начни с простого — поделись",
-  body: "Хочешь быстро поднять уровень? Поделись приложением: +50 XP за каждого друга, кто присоединится. Покажу, как это выглядит ↓", cta: "Показать «Поделиться»", openShare: true };
+  body: "Хочешь быстро поднять уровень? Поделись приложением: +150 XP за каждого друга — и выше множитель на весь твой XP. Покажу, как это выглядит ↓", cta: "Показать «Поделиться»", openShare: true };
 // Dive into a SHARED habit so the demo shows the «кто с тобой» competition.
 const HABIT_PEEK_STOP = { kind: "peek", tab: "habit-detail", params: { habit: { id: 1, emoji: "🙏", name: "Помогать другим", streak: 12, friends: [{ name: "Анна", initials: "А", color: "#e8c8a8" }, { name: "Марк", initials: "М", color: "#a8b9d4" }] }, from: "habits" }, eyebrow: "Внутри привычки", title: "Кто с тобой — соревнование",
   body: "Заходишь в привычку — видишь, кто её делает с тобой, серии у каждого и кто лидирует. Азарт держит ритм." };
 // The natural referral: while CREATING a habit you can invite any friend → +XP.
 const HABIT_INVITE_STOP = { kind: "spot", tab: "habit-settings", params: { mode: "create" }, sel: '[data-tour="invite-friend"]', radius: 18, eyebrow: "Вместе с другом", title: "Создавая — позови друга",
-  body: "Любую привычку можно делать вдвоём. Друг присоединился → +30 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг." };
+  body: "Любую привычку можно делать вдвоём. Друг присоединился → +75 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг." };
+// The heart of the economy — a small focus on the influence MULTIPLIER.
+const INFLUENCE_MULT_STOP = { kind: "spot", tab: "levels", sel: '[data-tour="influence-mult"]', radius: 18, eyebrow: "Множитель влияния", title: "Вовлекаешь — растёшь быстрее всех",
+  body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — до ×1.5. Привёл людей — качаешься в полтора раза быстрее, даже на тех же привычках." };
 
 const SCREEN_TOURS = {
-  home: [...TOUR_STOPS.slice(2, 7), HOME_SHARE_STOP],     // aihints, state, level, levels-peek, ach-peek, share
+  home: [...TOUR_STOPS.slice(2, 6), INFLUENCE_MULT_STOP, TOUR_STOPS[6], HOME_SHARE_STOP],  // aihints, state, level, levels-peek, MULTIPLIER, ach-peek, share
   habits: [...TOUR_STOPS.slice(8, 10), HABIT_INVITE_STOP, HABIT_PEEK_STOP],  // presets, add, invite-while-creating, leaderboard peek
   community: TOUR_STOPS.slice(11, 19),                    // make-team … course (teams, chat, network, courses)
   ai: [
@@ -395,7 +398,7 @@ const TAB_INTROS = {
 const DEMO_INTROS = {
   home: { eyebrow: "Главная", title: "Твой экран дня", detail: true,
     body: "Состояние, баланс, серии и уровень — что важно, то наверху. Собери под себя.",
-    pills: [ { emoji: "😌", label: "Состояние" }, { emoji: "🔥", label: "Серии" }, { emoji: "🏆", label: "Уровень" } ] },
+    pills: [ { emoji: "😌", label: "Состояние" }, { emoji: "🔥", label: "Серии" }, { emoji: "🏆", label: "Уровень" }, { emoji: "🤝", label: "Влияние ×1.5" } ] },
   habits: { eyebrow: "Практика", title: "Тут ты всё создаёшь", detail: true,
     body: "Привычки и цели — одному или вместе. Шаблоны для быстрого старта.",
     pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "🎯", label: "Цели" }, { emoji: "👥", label: "Вместе" } ] },
@@ -519,7 +522,7 @@ function GuideScreen() {
     { e: "🌱", t: "Привычки и цели", b: "Твоя личная система. Маленькие шаги, что ведут к большой цели — каждый день." },
     { e: "👥", t: "Вместе с близкими", b: "Общие привычки и команды — семья, друзья, клиенты тренинга. Общая цель, чат и статистика." },
     { e: "🎓", t: "Тренинги и курсы", b: "Проходи программы наставников, получай ачивки и открывай новые круги людей." },
-    { e: "🧭", t: "Нетворк и наставники", b: "С ростом уровня открывается круг людей: наставники, услуги, помощь. Баллы за привычки тратишь на них." },
+    { e: "🧭", t: "Нетворк и наставники", b: "С ростом уровня открывается круг людей: наставники, услуги, помощь. XP за привычки тратишь на них." },
     { e: "✨", t: "ИИ-помощник", b: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст." },
     { e: "🏆", t: "Уровни и награды", b: "Каждый шаг даёт опыт. Уровень растёт — открываются возможности, ачивки и новые люди." },
   ];

@@ -602,6 +602,155 @@ function CountUp({
   }, [target]); // eslint-disable-line
   return /*#__PURE__*/React.createElement(React.Fragment, null, decimals ? Number(disp).toFixed(decimals) : Math.round(disp));
 }
+
+/* ── XP reward hero — the focal "what you earn" tile inside share sheets.
+   A big gold XP number (same gradient as the home energy ring, so energy = XP
+   reads visually) with the Влияние multiplier as a teal capsule beneath. Built
+   to catch the eye the instant a share sheet opens. Reused by ShareAppSheet &
+   ShareHabitSheet so both share moments tell the same story. */
+function XPRewardCard({
+  amount = 50,
+  reason = "когда друг присоединится",
+  maxMult = "1.5",
+  footer = null,
+  dark = false
+}) {
+  var C = dark ? {
+    card: "rgba(255,255,255,0.055)",
+    line: "rgba(255,255,255,0.10)",
+    text: "#fff",
+    sub: "rgba(255,255,255,0.56)",
+    boltBg: "rgba(255,196,60,0.16)"
+  } : {
+    card: "#fff",
+    line: "rgba(0,0,0,0.05)",
+    text: "#0a0a0a",
+    sub: "rgba(0,0,0,0.5)",
+    boltBg: "#fff4dd"
+  };
+  var goldGrad = "linear-gradient(135deg,#FFB02E,#FF7A59)";
+  var inflGrad = "linear-gradient(135deg,#5FA8FF,#46E6DC)";
+  var goldText = {
+    background: goldGrad,
+    WebkitBackgroundClip: "text",
+    backgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    color: "#FF8A3D"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: 20,
+      padding: "16px 17px",
+      background: C.card,
+      border: "1px solid " + C.line,
+      boxShadow: dark ? "none" : "0 8px 24px rgba(255,150,40,0.13)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: -46,
+      left: -26,
+      width: 170,
+      height: 170,
+      borderRadius: "50%",
+      background: "radial-gradient(circle, rgba(255,176,46,0.30), transparent 68%)",
+      pointerEvents: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 42,
+      fontWeight: 800,
+      letterSpacing: "-1.5px",
+      lineHeight: 1,
+      ...goldText
+    }
+  }, "+", /*#__PURE__*/React.createElement(CountUp, {
+    value: amount
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 19,
+      fontWeight: 800,
+      letterSpacing: "-0.5px",
+      ...goldText
+    }
+  }, "XP")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: C.sub,
+      marginTop: 3,
+      lineHeight: 1.35
+    }
+  }, reason)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: 14,
+      background: C.boltBg,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 24,
+      flexShrink: 0
+    }
+  }, "\u26A1\uFE0F")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: C.line,
+      margin: "13px 0 12px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      background: inflGrad,
+      color: "#fff",
+      fontWeight: 800,
+      fontSize: 15,
+      letterSpacing: "-0.3px",
+      borderRadius: 12,
+      padding: "7px 11px",
+      boxShadow: "0 4px 12px rgba(70,150,230,0.30)"
+    }
+  }, "\xD7", maxMult), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.sub,
+      lineHeight: 1.4
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: C.text
+    }
+  }, "\u041C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C \u0432\u043B\u0438\u044F\u043D\u0438\u044F."), " \u0427\u0435\u043C \u0431\u043E\u043B\u044C\u0448\u0435 \u0434\u0440\u0443\u0437\u0435\u0439 \u0432 \u0434\u0435\u043B\u0435 \u2014 \u0442\u0435\u043C \u0431\u044B\u0441\u0442\u0440\u0435\u0435 \u0440\u0430\u0441\u0442\u0451\u0442 ", /*#__PURE__*/React.createElement("i", null, "\u0432\u0435\u0441\u044C"), " \u0442\u0432\u043E\u0439 XP, \u0434\u043E \xD7", maxMult, ".")), footer));
+}
 Object.assign(window, {
   Phone,
   StatusBar,
@@ -616,7 +765,8 @@ Object.assign(window, {
   SheetCtx,
   useSheet,
   BottomSheet,
-  CountUp
+  CountUp,
+  XPRewardCard
 });
 
 /* ── Moods used across Home / Mood picker / Calendar ─────────────────

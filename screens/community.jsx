@@ -210,7 +210,7 @@ function YourImpactCard({ level }) {
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Твой вклад в сообщество</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
             <span style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 400, letterSpacing: "-0.5px" }}>{myImpact}</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", letterSpacing: 0.4 }}>очк. вклада · Уровень {level}</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", letterSpacing: 0.4 }}>XP вклада · Уровень {level}</span>
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.5, marginTop: 4 }}>
             Каждое выполненное для сообщества предложение приносит вклад. Обменяй его на кредиты или повышай свой статус.
@@ -1519,6 +1519,11 @@ function LevelsScreen() {
   const app = useApp ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const invited = app?.mode === "demo" ? 2 : 0; // people you've drawn into the app
+  // Влияние multiplier — the more active people in your circle, the faster ALL
+  // your XP grows. This is the "big bonus relative to grinding points".
+  const multTier = invited >= 10 ? 1.5 : invited >= 3 ? 1.25 : invited >= 1 ? 1.1 : 1.0;
+  const nextMult = invited < 3 ? { n: 3, m: 1.25 } : invited < 10 ? { n: 10, m: 1.5 } : null;
+  const ruPpl = (n, a) => { const m = n % 10, h = n % 100; return a[(m === 1 && h !== 11) ? 0 : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? 1 : 2]; };
   const ach = (typeof window !== "undefined" && window.ACHIEVEMENTS) || [];
   const achEarned = ach.filter(a => a.earned);
   const lvl = 7;
@@ -1568,38 +1573,59 @@ function LevelsScreen() {
       <div className="section-label" style={{ marginTop: 20 }}>Как зарабатывать XP</div>
       <SysCard style={{ padding: 14, marginTop: 8 }}>
         {[
-          { t: "Выполнить привычку", v: "+5 XP" },
-          { t: "Серия 7 дней", v: "+50 XP" },
-          { t: "Помочь товарищу по команде", v: "+15 XP" },
-          { t: "Вовлечь друга в привычку", v: "+30 XP" },
-          { t: "Пригласить нового друга", v: "+50 XP" },
-          { t: "Достичь цели", v: "+200 XP" },
+          { t: "Выполнить привычку", v: "+10" },
+          { t: "Идеальный день — все привычки", v: "+30" },
+          { t: "Серия 7 дней", v: "+75" },
+          { t: "Достичь цели", v: "+250" },
+          { t: "Позвать друга в привычку", v: "+75", infl: true },
+          { t: "Пригласить друга в приложение", v: "+150", infl: true },
         ].map((r, i, arr) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
-            <span>{r.t}</span>
-            <span style={{ color: "#c99a1a", fontWeight: 600 }}>{r.v}</span>
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 7 }}>{r.infl && <span style={{ fontSize: 14 }}>🤝</span>}{r.t}</span>
+            <span style={{ color: r.infl ? "#2f8fd6" : "#c99a1a", fontWeight: 700 }}>{r.v} XP</span>
           </div>
         ))}
       </SysCard>
+      <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 8, padding: "0 4px", lineHeight: 1.45 }}>
+        За вовлечение людей платим щедрее всего — это растит и твой множитель ниже.
+      </div>
 
-      {/* Круг влияния — referrals framed as a good deed, with XP + milestones */}
+      {/* Круг влияния — the influence MULTIPLIER is the hero: involve people →
+         everything you earn grows faster. data-tour drives the demo spotlight. */}
       <div className="section-label" style={{ marginTop: 22 }}>Круг влияния</div>
-      <SysCard style={{ padding: 16, marginTop: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span className="bos-sys-chip-bg" style={{ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🤝</span>
+      <SysCard data-tour="influence-mult" style={{ padding: 16, marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+          <div style={{ width: 60, height: 60, borderRadius: 17, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(140deg,#5FA8FF,#46E6DC)", boxShadow: "0 7px 18px rgba(70,150,230,0.34)", color: "#fff" }}>
+            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}>×{multTier}</span>
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 600 }}>Вовлекай других в хорошее</div>
-            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>Вовлечено {invited} · заработано +{invited * 50} XP</div>
+            <div style={{ fontSize: 15.5, fontWeight: 700 }}>Множитель влияния</div>
+            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 3, lineHeight: 1.4 }}>
+              {multTier > 1
+                ? <>Каждое действие приносит <b style={{ color: "var(--text-2)" }}>+{Math.round((multTier - 1) * 100)}% XP</b> — в деле {invited} {ruPpl(invited, ["друг", "друга", "друзей"])}.</>
+                : <>Пригласи первого друга — и запустишь множитель на весь свой XP.</>}
+            </div>
           </div>
         </div>
-        <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden", marginTop: 13 }}>
-          <span style={{ display: "block", height: "100%", width: Math.min(100, invited / 3 * 100) + "%", background: "linear-gradient(90deg,#5FA8FF,#46E6DC)", borderRadius: 999 }} />
+
+        {nextMult && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden" }}>
+              <span style={{ display: "block", height: "100%", width: Math.min(100, invited / nextMult.n * 100) + "%", background: "linear-gradient(90deg,#5FA8FF,#46E6DC)", borderRadius: 999 }} />
+            </div>
+            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
+              Ещё <b style={{ color: "var(--text-2)" }}>{nextMult.n - invited}</b> {ruPpl(nextMult.n - invited, ["человек", "человека", "человек"])} → множитель <b style={{ color: "var(--text-2)" }}>×{nextMult.m}</b> на всё, что ты делаешь.
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 13, padding: "10px 12px", borderRadius: 12, background: isDark ? "rgba(94,168,255,0.10)" : "#eef4fd" }}>
+          <span style={{ fontSize: 15 }}>🤝</span>
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5, lineHeight: 1.4, color: isDark ? "rgba(255,255,255,0.74)" : "#2c5b96" }}>
+            <b>+150 XP</b> за каждого друга в приложении · вовлечено {invited} — это <b>+{invited * 150} XP</b>.
+          </div>
         </div>
-        <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
-          {invited >= 3
-            ? "Бейдж «Вдохновитель» твой! Следующая ступень — 10 человек (+400 XP)."
-            : <>Вовлеки ещё {3 - invited} — получишь <b style={{ color: "var(--text-2)" }}>+100 XP</b> и бейдж «Вдохновитель».</>}
-        </div>
+
         <button onClick={() => openSheet(<ShareAppSheet dark={isDark} />)} className="tap" style={{ width: "100%", marginTop: 14, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 12, fontSize: 14.5, fontWeight: 600 }}>Пригласить друга</button>
       </SysCard>
 

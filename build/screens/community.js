@@ -545,7 +545,7 @@ function YourImpactCard({
       color: "rgba(255,255,255,0.55)",
       letterSpacing: 0.4
     }
-  }, "\u043E\u0447\u043A. \u0432\u043A\u043B\u0430\u0434\u0430 \xB7 \u0423\u0440\u043E\u0432\u0435\u043D\u044C ", level)), /*#__PURE__*/React.createElement("div", {
+  }, "XP \u0432\u043A\u043B\u0430\u0434\u0430 \xB7 \u0423\u0440\u043E\u0432\u0435\u043D\u044C ", level)), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "rgba(255,255,255,0.65)",
@@ -4255,6 +4255,21 @@ function LevelsScreen() {
   var app = useApp ? useApp() : null;
   var isDark = app?.themeOverride === "dark";
   var invited = app?.mode === "demo" ? 2 : 0; // people you've drawn into the app
+  // Влияние multiplier — the more active people in your circle, the faster ALL
+  // your XP grows. This is the "big bonus relative to grinding points".
+  var multTier = invited >= 10 ? 1.5 : invited >= 3 ? 1.25 : invited >= 1 ? 1.1 : 1.0;
+  var nextMult = invited < 3 ? {
+    n: 3,
+    m: 1.25
+  } : invited < 10 ? {
+    n: 10,
+    m: 1.5
+  } : null;
+  var ruPpl = (n, a) => {
+    var m = n % 10,
+      h = n % 100;
+    return a[m === 1 && h !== 11 ? 0 : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? 1 : 2];
+  };
   var ach = typeof window !== "undefined" && window.ACHIEVEMENTS || [];
   var achEarned = ach.filter(a => a.earned);
   var lvl = 7;
@@ -4419,42 +4434,64 @@ function LevelsScreen() {
     }
   }, [{
     t: "Выполнить привычку",
-    v: "+5 XP"
+    v: "+10"
+  }, {
+    t: "Идеальный день — все привычки",
+    v: "+30"
   }, {
     t: "Серия 7 дней",
-    v: "+50 XP"
-  }, {
-    t: "Помочь товарищу по команде",
-    v: "+15 XP"
-  }, {
-    t: "Вовлечь друга в привычку",
-    v: "+30 XP"
-  }, {
-    t: "Пригласить нового друга",
-    v: "+50 XP"
+    v: "+75"
   }, {
     t: "Достичь цели",
-    v: "+200 XP"
+    v: "+250"
+  }, {
+    t: "Позвать друга в привычку",
+    v: "+75",
+    infl: true
+  }, {
+    t: "Пригласить друга в приложение",
+    v: "+150",
+    infl: true
   }].map((r, i, arr) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: "flex",
       justifyContent: "space-between",
+      alignItems: "center",
       padding: "10px 0",
       borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0,
       fontSize: 14
     }
-  }, /*#__PURE__*/React.createElement("span", null, r.t), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: "#c99a1a",
-      fontWeight: 600
+      display: "flex",
+      alignItems: "center",
+      gap: 7
     }
-  }, r.v)))), /*#__PURE__*/React.createElement("div", {
+  }, r.infl && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14
+    }
+  }, "\uD83E\uDD1D"), r.t), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: r.infl ? "#2f8fd6" : "#c99a1a",
+      fontWeight: 700
+    }
+  }, r.v, " XP")))), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12,
+      marginTop: 8,
+      padding: "0 4px",
+      lineHeight: 1.45
+    }
+  }, "\u0417\u0430 \u0432\u043E\u0432\u043B\u0435\u0447\u0435\u043D\u0438\u0435 \u043B\u044E\u0434\u0435\u0439 \u043F\u043B\u0430\u0442\u0438\u043C \u0449\u0435\u0434\u0440\u0435\u0435 \u0432\u0441\u0435\u0433\u043E \u2014 \u044D\u0442\u043E \u0440\u0430\u0441\u0442\u0438\u0442 \u0438 \u0442\u0432\u043E\u0439 \u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C \u043D\u0438\u0436\u0435."), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
     }
   }, "\u041A\u0440\u0443\u0433 \u0432\u043B\u0438\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement(SysCard, {
+    "data-tour": "influence-mult",
     style: {
       padding: 16,
       marginTop: 8
@@ -4463,20 +4500,27 @@ function LevelsScreen() {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 12
+      gap: 13
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 46,
-      height: 46,
-      borderRadius: 13,
+      width: 60,
+      height: 60,
+      borderRadius: 17,
+      flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      fontSize: 22,
-      flexShrink: 0
+      background: "linear-gradient(140deg,#5FA8FF,#46E6DC)",
+      boxShadow: "0 7px 18px rgba(70,150,230,0.34)",
+      color: "#fff"
     }
-  }, "\uD83E\uDD1D"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22,
+      fontWeight: 800,
+      letterSpacing: "-0.5px"
+    }
+  }, "\xD7", multTier)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -4484,27 +4528,35 @@ function LevelsScreen() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 15.5,
-      fontWeight: 600
+      fontWeight: 700
     }
-  }, "\u0412\u043E\u0432\u043B\u0435\u043A\u0430\u0439 \u0434\u0440\u0443\u0433\u0438\u0445 \u0432 \u0445\u043E\u0440\u043E\u0448\u0435\u0435"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C \u0432\u043B\u0438\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
     style: {
       fontSize: 12.5,
-      marginTop: 2
+      marginTop: 3,
+      lineHeight: 1.4
     }
-  }, "\u0412\u043E\u0432\u043B\u0435\u0447\u0435\u043D\u043E ", invited, " \xB7 \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043E +", invited * 50, " XP"))), /*#__PURE__*/React.createElement("div", {
+  }, multTier > 1 ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u041A\u0430\u0436\u0434\u043E\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043F\u0440\u0438\u043D\u043E\u0441\u0438\u0442 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "+", Math.round((multTier - 1) * 100), "% XP"), " \u2014 \u0432 \u0434\u0435\u043B\u0435 ", invited, " ", ruPpl(invited, ["друг", "друга", "друзей"]), ".") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u043F\u0435\u0440\u0432\u043E\u0433\u043E \u0434\u0440\u0443\u0433\u0430 \u2014 \u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0448\u044C \u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C \u043D\u0430 \u0432\u0435\u0441\u044C \u0441\u0432\u043E\u0439 XP.")))), nextMult && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       height: 7,
       background: "var(--surface-3)",
       borderRadius: 999,
-      overflow: "hidden",
-      marginTop: 13
+      overflow: "hidden"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       display: "block",
       height: "100%",
-      width: Math.min(100, invited / 3 * 100) + "%",
+      width: Math.min(100, invited / nextMult.n * 100) + "%",
       background: "linear-gradient(90deg,#5FA8FF,#46E6DC)",
       borderRadius: 999
     }
@@ -4515,11 +4567,36 @@ function LevelsScreen() {
       marginTop: 8,
       lineHeight: 1.45
     }
-  }, invited >= 3 ? "Бейдж «Вдохновитель» твой! Следующая ступень — 10 человек (+400 XP)." : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0412\u043E\u0432\u043B\u0435\u043A\u0438 \u0435\u0449\u0451 ", 3 - invited, " \u2014 \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C ", /*#__PURE__*/React.createElement("b", {
+  }, "\u0415\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: "var(--text-2)"
     }
-  }, "+100 XP"), " \u0438 \u0431\u0435\u0439\u0434\u0436 \xAB\u0412\u0434\u043E\u0445\u043D\u043E\u0432\u0438\u0442\u0435\u043B\u044C\xBB.")), /*#__PURE__*/React.createElement("button", {
+  }, nextMult.n - invited), " ", ruPpl(nextMult.n - invited, ["человек", "человека", "человек"]), " \u2192 \u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "\xD7", nextMult.m), " \u043D\u0430 \u0432\u0441\u0451, \u0447\u0442\u043E \u0442\u044B \u0434\u0435\u043B\u0430\u0435\u0448\u044C.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      marginTop: 13,
+      padding: "10px 12px",
+      borderRadius: 12,
+      background: isDark ? "rgba(94,168,255,0.10)" : "#eef4fd"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15
+    }
+  }, "\uD83E\uDD1D"), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      lineHeight: 1.4,
+      color: isDark ? "rgba(255,255,255,0.74)" : "#2c5b96"
+    }
+  }, /*#__PURE__*/React.createElement("b", null, "+150 XP"), " \u0437\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0434\u0440\u0443\u0433\u0430 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438 \xB7 \u0432\u043E\u0432\u043B\u0435\u0447\u0435\u043D\u043E ", invited, " \u2014 \u044D\u0442\u043E ", /*#__PURE__*/React.createElement("b", null, "+", invited * 150, " XP"), ".")), /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheet, {
       dark: isDark
     })),
