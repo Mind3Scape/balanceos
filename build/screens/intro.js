@@ -1065,8 +1065,18 @@ function IntroScreen() {
   // top line shrinks to a caption while the bottom line ("…в каком состоянии
   // находишься") grows bold into the headline. The truer line takes over.
   var swapScene = step === 0;
-  var swapped = swapScene && t - blendStart > 2.5;
-  var SWAP_TR = "font-size 1.15s cubic-bezier(0.45,0,0.12,1), font-weight 1.15s ease, color 1s ease, letter-spacing 1.15s ease";
+  // First-frame focus swap, driven PER FRAME off the animation clock (no CSS
+  // transition on font-size/weight/wrap → no re-rasterisation flicker). `sp`
+  // eases 0→1 with zero velocity at both ends (smootherstep), so the scale
+  // flows in and gently settles. The morph itself is transform:scale (GPU).
+  var clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+  var smootherstep = x => {
+    x = clamp01(x);
+    return x * x * x * (x * (x * 6 - 15) + 10);
+  };
+  var SWAP_AT = 2.4,
+    SWAP_DUR = 1.7;
+  var sp = swapScene ? smootherstep((t - blendStart - SWAP_AT) / SWAP_DUR) : 0;
   var go = next => {
     if (next === step) return;
     setPrev(slides[step].mode);
@@ -1291,8 +1301,8 @@ function IntroScreen() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      height: 124,
-      maxWidth: 340,
+      height: 132,
+      maxWidth: 344,
       margin: "0 auto"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1300,32 +1310,46 @@ function IntroScreen() {
       position: "absolute",
       left: 0,
       right: 0,
-      bottom: "calc(50% + 6px)",
-      transition: SWAP_TR,
+      bottom: "calc(50% + 8px)",
+      transformOrigin: "center bottom",
+      transform: `scale(${(1 - sp * 0.38).toFixed(4)})`,
+      opacity: 1 - sp * 0.58,
+      willChange: "transform, opacity",
       fontFamily: "var(--bos-title-font)",
-      lineHeight: 1.22,
-      textWrap: "balance",
-      fontSize: swapped ? 14.5 : 23,
-      fontWeight: swapped ? 400 : 600,
-      letterSpacing: swapped ? "0px" : "-0.4px",
-      color: swapped ? pal.sub : pal.title
+      fontSize: 23,
+      fontWeight: 600,
+      lineHeight: 1.24,
+      letterSpacing: "-0.4px",
+      color: pal.title
     }
   }, "\u0422\u044B \u043D\u0435 \u0432\u0438\u0434\u0438\u0448\u044C \u043C\u0438\u0440 \u0442\u0430\u043A\u0438\u043C,", /*#__PURE__*/React.createElement("br", null), "\u043A\u0430\u043A\u043E\u0439 \u043E\u043D \u0435\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: 0,
       right: 0,
-      top: "calc(50% + 6px)",
-      transition: SWAP_TR,
+      top: "calc(50% + 8px)",
+      transformOrigin: "center top",
+      transform: `scale(${(0.62 + sp * 0.38).toFixed(4)})`,
+      willChange: "transform, opacity",
       fontFamily: "var(--bos-title-font)",
-      lineHeight: 1.22,
-      textWrap: "balance",
-      fontSize: swapped ? 23 : 14.5,
-      fontWeight: swapped ? 600 : 400,
-      letterSpacing: swapped ? "-0.4px" : "0px",
-      color: swapped ? pal.title : pal.sub
+      fontSize: 23,
+      fontWeight: 600,
+      lineHeight: 1.24,
+      letterSpacing: "-0.4px",
+      color: pal.title
     }
-  }, "\u0422\u044B \u0432\u0438\u0434\u0438\u0448\u044C \u043C\u0438\u0440 \u0442\u0430\u043A\u0438\u043C,", /*#__PURE__*/React.createElement("br", null), "\u0432 \u043A\u0430\u043A\u043E\u043C \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0438 \u043D\u0430\u0445\u043E\u0434\u0438\u0448\u044C\u0441\u044F"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Reveal, {
+  }, [["Ты", "видишь", "мир", "таким,"], ["в", "каком", "состоянии", "находишься"]].map((lineWords, li) => /*#__PURE__*/React.createElement("div", {
+    key: li
+  }, lineWords.map((w, wi) => {
+    var idx = (li === 0 ? 0 : 4) + wi;
+    var lit = clamp01((sp - idx / 8 * 0.6) / 0.32);
+    return /*#__PURE__*/React.createElement("span", {
+      key: wi,
+      style: {
+        opacity: 0.4 + lit * 0.6
+      }
+    }, wi < lineWords.length - 1 ? w + " " : w);
+  })))))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Reveal, {
     k: "ti" + step,
     delay: 0.25
   }, /*#__PURE__*/React.createElement("div", {

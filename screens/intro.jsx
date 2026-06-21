@@ -568,8 +568,14 @@ function IntroScreen() {
   // top line shrinks to a caption while the bottom line ("…в каком состоянии
   // находишься") grows bold into the headline. The truer line takes over.
   const swapScene = step === 0;
-  const swapped = swapScene && (t - blendStart) > 2.5;
-  const SWAP_TR = "font-size 1.15s cubic-bezier(0.45,0,0.12,1), font-weight 1.15s ease, color 1s ease, letter-spacing 1.15s ease";
+  // First-frame focus swap, driven PER FRAME off the animation clock (no CSS
+  // transition on font-size/weight/wrap → no re-rasterisation flicker). `sp`
+  // eases 0→1 with zero velocity at both ends (smootherstep), so the scale
+  // flows in and gently settles. The morph itself is transform:scale (GPU).
+  const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+  const smootherstep = (x) => { x = clamp01(x); return x * x * x * (x * (x * 6 - 15) + 10); };
+  const SWAP_AT = 2.4, SWAP_DUR = 1.7;
+  const sp = swapScene ? smootherstep((t - blendStart - SWAP_AT) / SWAP_DUR) : 0;
   const go = (next) => {
     if (next === step) return;
     setPrev(slides[step].mode); setBlendStart(t); setStep(next);
@@ -656,17 +662,31 @@ function IntroScreen() {
              grows DOWN), so the gap between them stays put and nothing reflows.
              Each phrase is locked to exactly two lines. */
           <Reveal k="swap0" delay={0.22}>
-            <div style={{ position: "relative", height: 124, maxWidth: 340, margin: "0 auto" }}>
-              <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(50% + 6px)",
-                transition: SWAP_TR, fontFamily: "var(--bos-title-font)", lineHeight: 1.22, textWrap: "balance",
-                fontSize: swapped ? 14.5 : 23, fontWeight: swapped ? 400 : 600,
-                letterSpacing: swapped ? "0px" : "-0.4px", color: swapped ? pal.sub : pal.title,
+            <div style={{ position: "relative", height: 132, maxWidth: 344, margin: "0 auto" }}>
+              {/* premise — headline that recedes to a caption (scales down, dims) */}
+              <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(50% + 8px)",
+                transformOrigin: "center bottom", transform: `scale(${(1 - sp * 0.38).toFixed(4)})`,
+                opacity: 1 - sp * 0.58, willChange: "transform, opacity",
+                fontFamily: "var(--bos-title-font)", fontSize: 23, fontWeight: 600,
+                lineHeight: 1.24, letterSpacing: "-0.4px", color: pal.title,
               }}>Ты не видишь мир таким,<br/>какой он есть</div>
-              <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 6px)",
-                transition: SWAP_TR, fontFamily: "var(--bos-title-font)", lineHeight: 1.22, textWrap: "balance",
-                fontSize: swapped ? 23 : 14.5, fontWeight: swapped ? 600 : 400,
-                letterSpacing: swapped ? "-0.4px" : "0px", color: swapped ? pal.title : pal.sub,
-              }}>Ты видишь мир таким,<br/>в каком состоянии находишься</div>
+              {/* truth — rises into the headline; its words light up in reading order */}
+              <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 8px)",
+                transformOrigin: "center top", transform: `scale(${(0.62 + sp * 0.38).toFixed(4)})`,
+                willChange: "transform, opacity",
+                fontFamily: "var(--bos-title-font)", fontSize: 23, fontWeight: 600,
+                lineHeight: 1.24, letterSpacing: "-0.4px", color: pal.title,
+              }}>
+                {[["Ты", "видишь", "мир", "таким,"], ["в", "каком", "состоянии", "находишься"]].map((lineWords, li) => (
+                  <div key={li}>
+                    {lineWords.map((w, wi) => {
+                      const idx = (li === 0 ? 0 : 4) + wi;
+                      const lit = clamp01((sp - (idx / 8) * 0.6) / 0.32);
+                      return <span key={wi} style={{ opacity: 0.4 + lit * 0.6 }}>{wi < lineWords.length - 1 ? w + " " : w}</span>;
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </Reveal>
         ) : (
