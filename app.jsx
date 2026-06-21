@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v87";
+const APP_VERSION = "v88";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -177,10 +177,13 @@ const HOME_SHARE_STOP = { kind: "spot", tab: "home", sel: '[data-tour="share-app
 // Dive into a SHARED habit so the demo shows the «кто с тобой» competition.
 const HABIT_PEEK_STOP = { kind: "peek", tab: "habit-detail", params: { habit: { id: 1, emoji: "🙏", name: "Помогать другим", streak: 12, friends: [{ name: "Анна", initials: "А", color: "#e8c8a8" }, { name: "Марк", initials: "М", color: "#a8b9d4" }] }, from: "habits" }, eyebrow: "Внутри привычки", title: "Кто с тобой — соревнование",
   body: "Заходишь в привычку — видишь, кто её делает с тобой, серии у каждого и кто лидирует. Азарт держит ритм." };
+// The natural referral: while CREATING a habit you can invite any friend → +XP.
+const HABIT_INVITE_STOP = { kind: "spot", tab: "habit-settings", params: { mode: "create" }, sel: '[data-tour="invite-friend"]', radius: 18, eyebrow: "Вместе с другом", title: "Создавая — позови друга",
+  body: "Любую привычку можно делать вдвоём. Друг присоединился → +30 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг." };
 
 const SCREEN_TOURS = {
   home: [...TOUR_STOPS.slice(2, 7), HOME_SHARE_STOP],     // aihints, state, level, levels-peek, ach-peek, share
-  habits: [...TOUR_STOPS.slice(8, 10), HABIT_PEEK_STOP],  // presets, add, habit-leaderboard peek
+  habits: [...TOUR_STOPS.slice(8, 10), HABIT_INVITE_STOP, HABIT_PEEK_STOP],  // presets, add, invite-while-creating, leaderboard peek
   community: TOUR_STOPS.slice(11, 19),                    // make-team … course (teams, chat, network, courses)
   ai: [
     { kind: "spot", tab: "ai", sel: '[data-tour="ai-hero"]', radius: 24, eyebrow: "Чтение дня", title: "Главный инсайт дня",

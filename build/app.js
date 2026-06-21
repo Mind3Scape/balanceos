@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v87";
+var APP_VERSION = "v88";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -355,11 +355,24 @@ var HABIT_PEEK_STOP = {
   title: "Кто с тобой — соревнование",
   body: "Заходишь в привычку — видишь, кто её делает с тобой, серии у каждого и кто лидирует. Азарт держит ритм."
 };
+// The natural referral: while CREATING a habit you can invite any friend → +XP.
+var HABIT_INVITE_STOP = {
+  kind: "spot",
+  tab: "habit-settings",
+  params: {
+    mode: "create"
+  },
+  sel: '[data-tour="invite-friend"]',
+  radius: 18,
+  eyebrow: "Вместе с другом",
+  title: "Создавая — позови друга",
+  body: "Любую привычку можно делать вдвоём. Друг присоединился → +30 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг."
+};
 var SCREEN_TOURS = {
   home: [...TOUR_STOPS.slice(2, 7), HOME_SHARE_STOP],
   // aihints, state, level, levels-peek, ach-peek, share
-  habits: [...TOUR_STOPS.slice(8, 10), HABIT_PEEK_STOP],
-  // presets, add, habit-leaderboard peek
+  habits: [...TOUR_STOPS.slice(8, 10), HABIT_INVITE_STOP, HABIT_PEEK_STOP],
+  // presets, add, invite-while-creating, leaderboard peek
   community: TOUR_STOPS.slice(11, 19),
   // make-team … course (teams, chat, network, courses)
   ai: [{

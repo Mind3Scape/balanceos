@@ -399,15 +399,20 @@ function HabitSettingsScreen() {
         + Добавить напоминание
       </button>
 
-      {/* Share with friend */}
+      {/* Share with friend — the most natural referral moment: invite anyone into
+          your habit. They join → you earn XP and they're in the app. */}
       <div className="section-label" style={{ marginTop: 8 }}>Поделиться с другом</div>
-      <div style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+      <div data-tour="invite-friend" style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Делать это вместе
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Друзья видят, когда ты отмечаешься. Они могут поддержать или подтолкнуть.</div>
           </div>
           <Switch on={shareOn} onChange={setShareOn} />
+        </div>
+        <div style={{ marginTop: 12, borderRadius: 12, padding: "9px 12px", background: "#eafaef", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 15 }}>✨</span>
+          <div style={{ fontSize: 12.5, color: "#1a7a3a", lineHeight: 1.4 }}><b>+30 XP</b>, когда друг присоединится — и он уже в приложении.</div>
         </div>
         {shareOn && <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
           {shareFriends.map((p, i) => (

@@ -333,7 +333,6 @@ function SwipeRow({
       display: "flex",
       alignItems: "center",
       background: track,
-      borderRadius: "0 16px 16px 0",
       isolation: "isolate",
       zIndex: 0
     }
@@ -381,7 +380,9 @@ function SwipeRow({
       position: "relative",
       background: rowBg,
       transform: "translateX(" + offset + "px)",
-      transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1)" : "none",
+      borderTopRightRadius: offset < 0 ? 16 : 0,
+      borderBottomRightRadius: offset < 0 ? 16 : 0,
+      transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.25s ease" : "none",
       willChange: "transform"
     }
   }, children));

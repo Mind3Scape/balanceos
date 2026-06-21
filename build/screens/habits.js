@@ -1250,6 +1250,7 @@ function HabitSettingsScreen() {
       marginTop: 8
     }
   }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0441 \u0434\u0440\u0443\u0433\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
+    "data-tour": "invite-friend",
     style: {
       background: "#fff",
       borderRadius: 18,
@@ -1279,7 +1280,27 @@ function HabitSettingsScreen() {
   }, "\u0414\u0440\u0443\u0437\u044C\u044F \u0432\u0438\u0434\u044F\u0442, \u043A\u043E\u0433\u0434\u0430 \u0442\u044B \u043E\u0442\u043C\u0435\u0447\u0430\u0435\u0448\u044C\u0441\u044F. \u041E\u043D\u0438 \u043C\u043E\u0433\u0443\u0442 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u0438\u043B\u0438 \u043F\u043E\u0434\u0442\u043E\u043B\u043A\u043D\u0443\u0442\u044C.")), /*#__PURE__*/React.createElement(Switch, {
     on: shareOn,
     onChange: setShareOn
-  })), shareOn && /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      borderRadius: 12,
+      padding: "9px 12px",
+      background: "#eafaef",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15
+    }
+  }, "\u2728"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#1a7a3a",
+      lineHeight: 1.4
+    }
+  }, /*#__PURE__*/React.createElement("b", null, "+30 XP"), ", \u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F \u2014 \u0438 \u043E\u043D \u0443\u0436\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438.")), shareOn && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,

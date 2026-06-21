@@ -148,7 +148,7 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
           when the row is closed — so they can't flash through during a tab
           fade-in (they used to peek as a compositing artifact of the animation). */}
       {(open || dx < 0) && (
-      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: track, borderRadius: "0 16px 16px 0", isolation: "isolate", zIndex: 0 }}>
+      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: track, isolation: "isolate", zIndex: 0 }}>
         {actions.map((a, i) => {
           const ts = swipeTone(a.tone, dark);
           return (
@@ -164,8 +164,12 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
         })}
       </div>
       )}
+      {/* The WHITE row itself rounds its trailing (right) corners as it slides away,
+          so it reads like a card peeling off — the grey beneath is just the
+          background flowing through (no rounding on the track). */}
       <div style={{ position: "relative", background: rowBg, transform: "translateX(" + offset + "px)",
-        transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1)" : "none", willChange: "transform" }}>
+        borderTopRightRadius: offset < 0 ? 16 : 0, borderBottomRightRadius: offset < 0 ? 16 : 0,
+        transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.25s ease" : "none", willChange: "transform" }}>
         {children}
       </div>
     </div>
