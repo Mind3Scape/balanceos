@@ -77,23 +77,28 @@ function TabBar({ active, dark = false, onTab, style }) {
   );
 }
 
-/* iOS-app swipe-action circle colors, theme-adaptive. */
+/* iOS-app swipe-action circle colors, theme-adaptive. Light circles are pure
+   white so they read as raised buttons over the grey reveal-track (below). */
 function swipeTone(tone, dark) {
-  if (tone === "delete") return dark ? { bg: "rgba(255,255,255,0.12)", fg: "#FF453A" } : { bg: "#f0f0f2", fg: "#FF3B30" };
-  if (tone === "share")  return dark ? { bg: "rgba(255,255,255,0.14)", fg: "#ffffff" } : { bg: "#eceef2", fg: "#0a0a0a" };
+  if (tone === "delete") return dark ? { bg: "rgba(255,255,255,0.12)", fg: "#FF453A" } : { bg: "#fff", fg: "#FF3B30" };
+  if (tone === "share")  return dark ? { bg: "rgba(255,255,255,0.14)", fg: "#ffffff" } : { bg: "#fff", fg: "#0a0a0a" };
   return dark ? { bg: "#ffffff", fg: "#0a0a0a" } : { bg: "#0a0a0a", fg: "#ffffff" }; // done
 }
 
 /* Swipe-to-reveal row actions, styled as iOS-app round icon buttons. Drag a row
    left to expose the actions; a tap on a closed row passes through to its own
    onClick, a tap on an open row closes it; vertical drags fall through to scroll. */
-function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, dark = false }) {
+function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, dark = false, trackBg }) {
   const [open, setOpen] = useState(false);
   const [dx, setDx] = useState(0);
   const [releasing, setReleasing] = useState(true);
   const d = useRef(null);
   const justDragged = useRef(false);
   const W = actions.length * actionWidth;
+  // The reveal-track sits BEHIND the (white) row; making it the grey page
+  // background gives an iOS-grouped-list feel — the row lifts to show the
+  // surface beneath, instead of white-on-white where the buttons vanish.
+  const track = trackBg || (dark ? "#0a0a0a" : "#f1f1f1");
 
   const close = () => { setReleasing(true); setOpen(false); setDx(0); };
 
@@ -143,7 +148,7 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
           when the row is closed — so they can't flash through during a tab
           fade-in (they used to peek as a compositing artifact of the animation). */}
       {(open || dx < 0) && (
-      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: rowBg, isolation: "isolate", zIndex: 0 }}>
+      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: track, isolation: "isolate", zIndex: 0 }}>
         {actions.map((a, i) => {
           const ts = swipeTone(a.tone, dark);
           return (
@@ -416,6 +421,19 @@ function AppProvider({ children }) {
   const [tourStep, setTourStep] = useState(-1);
   const [tourMode, setTourMode] = useState("demo"); // "demo" | "fresh"
 
+  // ── Fresh-user onboarding (replaces the old forced coach-mark tour) ──
+  // onbWelcome: the gentle 3-step iOS bottom-sheet welcome, shown once on the
+  // first home screen. onbTab: a one-time intro sheet that rises when the user
+  // FIRST opens a given tab themselves — unobtrusive, but nobody gets lost.
+  const [onbWelcome, setOnbWelcome] = useState(false);
+  const [onbTab, setOnbTab] = useState(null);
+  const seenTabs = useRef({});
+  const showTabIntro = (route) => {
+    if (seenTabs.current[route]) return;
+    seenTabs.current[route] = true;
+    setOnbTab(route);
+  };
+
   // Shared habit / goal store + mutators (the app's single source of truth).
   const [habits, setHabits] = useState(SEED_HABITS);
   const [goals, setGoals] = useState(SEED_GOALS);
@@ -451,12 +469,16 @@ function AppProvider({ children }) {
     setHabits(SEED_HABITS); setGoals(SEED_GOALS); setTeams(SEED_TEAMS);
     setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(DEMO_WIDGETS);
     setCommunityView({ networkUnlocked: true, discTab: "teams", section: "discover" });
+    setOnbWelcome(false); setOnbTab(null);
   };
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim());
     setHabits([]); setGoals([]); setTeams([]);
     setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "courses" });
+    // Arm the welcome sheets; mark home as already-introduced so only the OTHER
+    // tabs trigger a contextual intro when the user first opens them.
+    setOnbWelcome(true); setOnbTab(null); seenTabs.current = { home: true };
   };
   const startTour = (mode) => { setTourMode(mode || "demo"); setTourStep(0); };
   const endTour = () => setTourStep(-1);
@@ -475,6 +497,7 @@ function AppProvider({ children }) {
     themeOverride, setThemeOverride,
     mode, userName, enterDemo, enterFresh,
     tourStep, setTourStep, startTour, endTour, tourMode,
+    onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     habits, goals,
     toggleHabit, addHabit, updateHabit, removeHabit,
     addGoal, updateGoal, removeGoal,

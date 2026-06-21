@@ -58,6 +58,7 @@ var SCREENS = {
   "contact-detail": () => ContactDetailScreen,
   profile: () => ProfileScreen,
   achievements: () => AchievementsScreen,
+  guide: () => GuideScreen,
   manifest: () => ManifestScreen,
   settings: () => SettingsScreen,
   notifications: () => NotificationsScreen,
@@ -112,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v81";
+var APP_VERSION = "v82";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -307,130 +308,9 @@ var TOUR_STOPS = [{
   cta: "Начать"
 }];
 
-/* New-user guide — gentler, for an empty fresh start. Points at elements that
-   exist in fresh mode (level widget stays on; the Network is still locked). */
-/* New-user guide — INTENTIONALLY tiny. A brand-new user shouldn't be dragged
-   through 15 screens. Just a few warm cards on the essentials; the deep dive
-   (teams, network, courses, levels) lives behind the "Что дальше?" banner on the
-   home screen, opened only when they're curious (→ EXPLORE_STOPS). */
-var FRESH_STOPS = [{
-  kind: "card",
-  emoji: "🌱",
-  title: "Это твой старт",
-  body: "BalanceOS растёт вместе с тобой. Сейчас тут спокойно и пусто — наполнится, как только ты начнёшь. Покажу самое главное за полминуты.",
-  cta: "Покажи"
-}, {
-  kind: "spot",
-  tab: "home",
-  sel: '[data-tour="state"]',
-  radius: 20,
-  eyebrow: "Каждый день",
-  title: "Начни с состояния",
-  body: "Отметь, как ты сейчас — это твой первый шаг. Цвет, тон и подсказки приложения подстроятся под тебя."
-}, {
-  kind: "card",
-  emoji: "✨",
-  title: "Дальше — в своём темпе",
-  body: "Заведи первую привычку — кнопка ждёт ниже. А когда станет интересно «что там дальше», внизу главной есть гид: команды, уровни, наставники. Без спешки.",
-  cta: "Начать"
-}];
-
-/* Opt-in deep dive — opened from the "Что дальше?" banner on the home screen.
-   Shows the broader ecosystem (teams, chat, network, courses, levels, AI),
-   framed as "here's what opens up as you grow." */
-var EXPLORE_STOPS = [{
-  kind: "card",
-  emoji: "🧭",
-  title: "Что тебя ждёт дальше",
-  body: "BalanceOS — это не только привычки. По мере роста открывается целая экосистема. Загляну на минуту — куда можно двигаться.",
-  cta: "Показать"
-}, {
-  kind: "spot",
-  tab: "community",
-  sel: '.bos-tabbar button:nth-of-type(3)',
-  radius: 16,
-  eyebrow: "Сообщество",
-  title: "Здесь живёт экосистема",
-  body: "Команды, курсы и наставники. Привычки вместе держат сильнее."
-}, {
-  kind: "spot",
-  tab: "community",
-  view: {
-    section: "discover",
-    discTab: "teams"
-  },
-  sel: '[data-tour="make-team"]',
-  radius: 18,
-  eyebrow: "Команды",
-  title: "Команды — вместе с близкими",
-  body: "Объедини семью, друзей или клиентов тренинга. У каждой команды — общая цель, чат и статистика."
-}, {
-  kind: "spot",
-  tab: "team-create",
-  sel: '[data-tour="team-modes"]',
-  radius: 18,
-  eyebrow: "Режимы команды",
-  title: "Как двигать общую цель",
-  body: "Общий счёт, серия у каждого или гонка — выбираешь формат. А двигают цель привычки самих участников."
-}, {
-  kind: "spot",
-  tab: "team-create",
-  sel: '[data-tour="team-stakes"]',
-  radius: 18,
-  eyebrow: "Геймификация",
-  title: "Ставка на опыт",
-  body: "Все скидывают XP в общий банк. Дошли до цели — он возвращается ×2. Не дошли — сгорает. Вот это азарт."
-}, {
-  kind: "peek",
-  tab: "team-chat",
-  eyebrow: "Чат команды",
-  title: "Команда на связи",
-  body: "У каждой команды свой живой чат: переписка, фото, поддержка — так держат общий ритм вместе."
-}, {
-  kind: "spot",
-  tab: "community",
-  view: {
-    section: "discover",
-    discTab: "network"
-  },
-  sel: '[data-tour="network"]',
-  radius: 12,
-  eyebrow: "Нетворк",
-  title: "Наставники и контакты",
-  body: "С ростом уровня открывается круг людей: наставники, услуги, помощь. Баллы за привычки тратишь на них."
-}, {
-  kind: "spot",
-  tab: "community",
-  view: {
-    section: "community",
-    commTab: "courses"
-  },
-  sel: '[data-tour="course"]',
-  radius: 20,
-  eyebrow: "Курсы",
-  title: "Ускорители роста",
-  body: "Курсы и интенсивы поднимают уровень и открывают новые круги — как ключи к следующим людям."
-}, {
-  kind: "peek",
-  tab: "levels",
-  eyebrow: "Геймификация",
-  title: "Опыт, ачивки, награды",
-  body: "Каждый шаг даёт XP → растёт уровень → открываются ачивки, награды и новые возможности. Это сердце прогресса."
-}, {
-  kind: "spot",
-  tab: "ai",
-  sel: '.bos-tabbar button:nth-of-type(4)',
-  radius: 16,
-  eyebrow: "Помощник",
-  title: "ИИ всегда рядом",
-  body: "Совет, разбор дня, план на завтра — с самого начала под рукой."
-}, {
-  kind: "card",
-  emoji: "🌟",
-  title: "Двигайся в своём темпе",
-  body: "Всё это раскрывается по мере роста. Начни с малого — а экосистема откроется сама. Поехали!",
-  cta: "Понятно"
-}];
+/* The fresh-user experience no longer uses this coach-mark tour at all — it now
+   opens with gentle iOS bottom-sheets (FreshOnboarding) and per-tab intro sheets.
+   GuidedTour is the rich DEMO walkthrough only. */
 function GuidedTour({
   step,
   setStep,
@@ -440,7 +320,7 @@ function GuidedTour({
   tourMode,
   dark
 }) {
-  var STOPS = tourMode === "fresh" ? FRESH_STOPS : tourMode === "explore" ? EXPLORE_STOPS : TOUR_STOPS;
+  var STOPS = TOUR_STOPS;
   var rootRef = useRef(null);
   var [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
   var prevCtxRef = useRef(null); // last stop's tab|view — detect page switches
@@ -864,6 +744,443 @@ function GuidedTour({
     }
   })), tourStyle);
 }
+
+/* ── Fresh-user onboarding: gentle iOS bottom-sheets ───────────────────────────
+   Replaces the old forced coach-mark tour. Three calm "what is this" sheets rise
+   on the first home screen; then, when the user opens a tab THEMSELVES for the
+   first time, a one-line intro sheet rises to orient them — never a forced march. */
+var WELCOME_SHEETS = [{
+  tint: "#46a6ff",
+  eyebrow: "Добро пожаловать",
+  title: "Это не трекер. Это платформа.",
+  body: "BalanceOS соединяет привычки, людей и рост в одном месте. Маленькие шаги каждый день складываются в большое."
+}, {
+  tint: "#866cf4",
+  eyebrow: "Вместе",
+  title: "Привычки — с близкими",
+  body: "Делай привычки вдвоём, собирай команды семьи или друзей, проходи тренинги с наставниками. Вместе держится крепче."
+}, {
+  tint: "#35e6dc",
+  eyebrow: "Твой темп",
+  title: "Расти, как тебе удобно",
+  body: "Отмечай состояние, выполняй привычки — уровень растёт, открываются люди и возможности. А внизу главной всегда ждёт гид «Что дальше?»."
+}];
+var TAB_INTROS = {
+  habits: {
+    tint: "#34C759",
+    eyebrow: "Практика",
+    title: "Тут ты всё создаёшь",
+    body: "Привычки и цели живут здесь. Любую можно делать одному — или вместе с близкими, поддерживая общую серию."
+  },
+  community: {
+    tint: "#866cf4",
+    eyebrow: "Сообщество",
+    title: "Сердце приложения",
+    body: "Здесь живёт экосистема: команды с близкими, курсы и тренинги, нетворк наставников. Привычки вместе держат сильнее.",
+    chips: [{
+      icon: "👥",
+      label: "Команды",
+      view: {
+        section: "discover",
+        discTab: "teams"
+      }
+    }, {
+      icon: "🎓",
+      label: "Курсы",
+      view: {
+        section: "community",
+        commTab: "courses"
+      }
+    }, {
+      icon: "🧭",
+      label: "Нетворк",
+      view: {
+        section: "discover",
+        discTab: "network"
+      }
+    }]
+  },
+  ai: {
+    tint: "#FFC22E",
+    eyebrow: "Помощник",
+    title: "ИИ всегда рядом",
+    body: "Совет, разбор дня, план на завтра. Balance держит в уме твой контекст и подсказывает по делу."
+  }
+};
+
+/* Presentational content for one onboarding bottom-sheet. */
+function OnbSheet({
+  tint,
+  emoji,
+  eyebrow,
+  title,
+  body,
+  chips,
+  cta,
+  onCta,
+  onSkip,
+  total,
+  index,
+  dark
+}) {
+  var titleC = dark ? "#fff" : "#0a0a0a";
+  var bodyC = dark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.56)";
+  var ghostC = dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "4px 24px 8px",
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      placeItems: "center",
+      marginTop: 2,
+      marginBottom: 14
+    }
+  }, tint ? /*#__PURE__*/React.createElement(StaticOrb, {
+    size: 92,
+    tint: tintFromMood(tint),
+    seed: 2.2,
+    intensity: 0.55
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 50
+    }
+  }, emoji)), eyebrow && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      color: "#E0A500"
+    }
+  }, eyebrow), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+      fontSize: 25,
+      fontWeight: 700,
+      letterSpacing: "-0.5px",
+      color: titleC,
+      lineHeight: 1.18,
+      marginTop: 6
+    }
+  }, title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      color: bodyC,
+      lineHeight: 1.5,
+      marginTop: 11,
+      maxWidth: 330,
+      marginLeft: "auto",
+      marginRight: "auto"
+    }
+  }, body), chips && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      justifyContent: "center",
+      flexWrap: "wrap",
+      marginTop: 16
+    }
+  }, chips.map((c, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: c.onClick,
+    className: "tap",
+    style: {
+      background: dark ? "rgba(255,255,255,0.08)" : "#f0f1f4",
+      border: 0,
+      borderRadius: 999,
+      padding: "9px 15px",
+      fontSize: 14,
+      fontWeight: 600,
+      color: titleC,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", null, c.icon), " ", c.label))), /*#__PURE__*/React.createElement("button", {
+    onClick: onCta,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 20,
+      background: dark ? "#fff" : "#0a0a0a",
+      color: dark ? "#0a0a0a" : "#fff",
+      border: 0,
+      borderRadius: 999,
+      padding: 16,
+      fontSize: 16,
+      fontWeight: 600
+    }
+  }, cta), onSkip && /*#__PURE__*/React.createElement("button", {
+    onClick: onSkip,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 6,
+      background: "transparent",
+      border: 0,
+      color: ghostC,
+      fontSize: 13.5,
+      padding: 9
+    }
+  }, "\u042F \u0440\u0430\u0437\u0431\u0435\u0440\u0443\u0441\u044C \u0441\u0430\u043C"), total > 1 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 5,
+      justifyContent: "center",
+      marginTop: 14
+    }
+  }, Array.from({
+    length: total
+  }).map((_, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      width: i === index ? 16 : 5,
+      height: 5,
+      borderRadius: 999,
+      background: i === index ? dark ? "#fff" : "#0a0a0a" : dark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.16)",
+      transition: "width 0.3s"
+    }
+  }))));
+}
+function FreshOnboarding({
+  app,
+  dark
+}) {
+  var welcome = !!app.onbWelcome;
+  var [wStep, setWStep] = useState(0);
+  useEffect(() => {
+    if (welcome) setWStep(0);
+  }, [welcome]);
+  var tab = !welcome && app.onbTab ? TAB_INTROS[app.onbTab] : null;
+  // Keep the last tab content mounted through the close animation (so it slides
+  // down with text intact instead of emptying first).
+  var lastTab = useRef(null);
+  if (tab) lastTab.current = tab;
+  var tabView = tab || lastTab.current;
+  var closeWelcome = () => app.setOnbWelcome(false);
+  var closeTab = () => app.setOnbTab(null);
+  var ws = WELCOME_SHEETS[wStep] || WELCOME_SHEETS[0];
+  var lastW = wStep >= WELCOME_SHEETS.length - 1;
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(BottomSheet, {
+    open: welcome,
+    onClose: closeWelcome,
+    dark: dark
+  }, /*#__PURE__*/React.createElement(OnbSheet, {
+    tint: ws.tint,
+    eyebrow: ws.eyebrow,
+    title: ws.title,
+    body: ws.body,
+    dark: dark,
+    total: WELCOME_SHEETS.length,
+    index: wStep,
+    cta: lastW ? "Начать" : "Дальше",
+    onCta: () => {
+      if (lastW) closeWelcome();else setWStep(wStep + 1);
+    },
+    onSkip: lastW ? null : closeWelcome
+  })), /*#__PURE__*/React.createElement(BottomSheet, {
+    open: !!tab,
+    onClose: closeTab,
+    dark: dark
+  }, tabView && /*#__PURE__*/React.createElement(OnbSheet, {
+    tint: tabView.tint,
+    eyebrow: tabView.eyebrow,
+    title: tabView.title,
+    body: tabView.body,
+    dark: dark,
+    cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
+    onCta: closeTab,
+    chips: tabView.chips && tabView.chips.map(c => ({
+      icon: c.icon,
+      label: c.label,
+      onClick: () => {
+        app.setCommunityView(c.view);
+        closeTab();
+      }
+    }))
+  })));
+}
+
+/* ── "О приложении" — one beautiful page describing the whole product. Opened
+   from the home "Что дальше?" banner (fresh users); links out to the manifest. */
+function GuideScreen() {
+  var {
+    navigate
+  } = useNav();
+  var FEATURES = [{
+    e: "🌱",
+    t: "Привычки и цели",
+    b: "Твоя личная система. Маленькие шаги, что ведут к большой цели — каждый день."
+  }, {
+    e: "👥",
+    t: "Вместе с близкими",
+    b: "Общие привычки и команды — семья, друзья, клиенты тренинга. Общая цель, чат и статистика."
+  }, {
+    e: "🎓",
+    t: "Тренинги и курсы",
+    b: "Проходи программы наставников, получай ачивки и открывай новые круги людей."
+  }, {
+    e: "🧭",
+    t: "Нетворк и наставники",
+    b: "С ростом уровня открывается круг людей: наставники, услуги, помощь. Баллы за привычки тратишь на них."
+  }, {
+    e: "✨",
+    t: "ИИ-помощник",
+    b: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст."
+  }, {
+    e: "🏆",
+    t: "Уровни и награды",
+    b: "Каждый шаг даёт опыт. Уровень растёт — открываются возможности, ачивки и новые люди."
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-in",
+    style: {
+      padding: "0 16px 28px"
+    }
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "\u041E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438",
+    onBack: () => navigate("home")
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      textAlign: "center",
+      padding: "6px 6px 20px"
+    }
+  }, /*#__PURE__*/React.createElement(StaticOrb, {
+    size: 108,
+    tint: tintFromMood("#46a6ff"),
+    seed: 1.6,
+    intensity: 0.6
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--bos-title-font)",
+      fontSize: 27,
+      fontWeight: 800,
+      letterSpacing: "-0.6px",
+      color: "var(--text)",
+      marginTop: 14,
+      lineHeight: 1.15
+    }
+  }, "BalanceOS \u2014 \u044D\u0442\u043E \u044D\u043A\u043E\u0441\u0438\u0441\u0442\u0435\u043C\u0430"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      color: "var(--text-3)",
+      marginTop: 10,
+      lineHeight: 1.55,
+      maxWidth: 332
+    }
+  }, "\u041D\u0435 \u043F\u0440\u043E\u0441\u0442\u043E \u0442\u0440\u0435\u043A\u0435\u0440 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A, \u0430 \u043C\u0435\u0441\u0442\u043E, \u0433\u0434\u0435 \u0442\u044B \u0440\u0430\u0441\u0442\u0451\u0448\u044C \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0431\u043B\u0438\u0437\u043A\u0438\u043C\u0438: \u043E\u0431\u0449\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u043A\u043E\u043C\u0430\u043D\u0434\u044B, \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0438, \u0446\u0435\u043B\u0438 \u0438 \u0418\u0418-\u043F\u043E\u043C\u043E\u0449\u043D\u0438\u043A \u2014 \u0432 \u043E\u0434\u043D\u043E\u043C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, FEATURES.map((f, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      background: "var(--card)",
+      borderRadius: 20,
+      padding: 16,
+      boxShadow: "var(--card-shadow)",
+      display: "flex",
+      gap: 14,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: 14,
+      background: "var(--surface-3)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 24,
+      flexShrink: 0
+    }
+  }, f.e), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16.5,
+      fontWeight: 600,
+      color: "var(--text)",
+      letterSpacing: "-0.2px"
+    }
+  }, f.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-3)",
+      marginTop: 4,
+      lineHeight: 1.5
+    }
+  }, f.b))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("manifest"),
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 16,
+      background: "#0a0a0a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 20,
+      padding: "18px 20px",
+      display: "flex",
+      alignItems: "center",
+      gap: 14,
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 13,
+      background: "rgba(255,255,255,0.1)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22,
+      flexShrink: 0
+    }
+  }, "\uD83D\uDCDC"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700
+    }
+  }, "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C \u043C\u0430\u043D\u0438\u0444\u0435\u0441\u0442"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "rgba(255,255,255,0.6)",
+      marginTop: 2
+    }
+  }, "\u0412\u043E \u0447\u0442\u043E \u043C\u044B \u0432\u0435\u0440\u0438\u043C \u0438 \u0437\u0430\u0447\u0435\u043C \u0432\u0441\u0451 \u044D\u0442\u043E")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 20,
+    color: "rgba(255,255,255,0.6)"
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("home"),
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 10,
+      background: "transparent",
+      border: 0,
+      color: "var(--text-4)",
+      fontSize: 14.5,
+      fontWeight: 500,
+      padding: 12
+    }
+  }, "\u041D\u0430\u0447\u0430\u0442\u044C \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u2192"));
+}
 function PhoneApp() {
   var app = useApp();
   // Optional deep link: ?screen=home opens straight to a screen (skips intro).
@@ -979,6 +1296,14 @@ function PhoneApp() {
   useEffect(() => {
     if (window.tgBackButton) window.tgBackButton(frames.length > 1, goBack);
   }, [frames.length, goBack]);
+
+  // Fresh-user: the first time they open a tab THEMSELVES, raise a one-time
+  // intro sheet for that page (home is pre-seen — the welcome sheets cover it).
+  useEffect(() => {
+    if (app.mode === "fresh" && !app.onbWelcome && TAB_ROUTES.has(top.route)) {
+      app.showTabIntro(top.route);
+    }
+  }, [top.route, app.mode, app.onbWelcome]); // eslint-disable-line
 
   // Safety net: clear the transition even if `animationend` never fires — e.g.
   // the installed PWA is backgrounded mid-animation (iOS freezes the animation
@@ -1144,7 +1469,10 @@ function PhoneApp() {
     open: !!sheet,
     onClose: sheetApi.close,
     dark: topDark
-  }, sheet), /*#__PURE__*/React.createElement(GuidedTour, {
+  }, sheet), /*#__PURE__*/React.createElement(FreshOnboarding, {
+    app: app,
+    dark: topDark
+  }), /*#__PURE__*/React.createElement(GuidedTour, {
     step: app.tourStep,
     setStep: app.setTourStep,
     endTour: app.endTour,

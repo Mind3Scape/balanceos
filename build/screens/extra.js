@@ -1024,7 +1024,7 @@ function MoodScreen() {
       borderRadius: 14,
       padding: 12,
       color: "#fff",
-      fontSize: 14,
+      fontSize: 16,
       fontFamily: "inherit",
       outline: 0,
       minHeight: 60,
@@ -2272,7 +2272,7 @@ function AIChatScreen() {
       outline: 0,
       background: "transparent",
       color: TH.text,
-      fontSize: 14
+      fontSize: 16
     }
   }), /*#__PURE__*/React.createElement("button", {
     className: "tap",

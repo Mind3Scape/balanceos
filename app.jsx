@@ -53,6 +53,7 @@ const SCREENS = {
   "contact-detail": () => ContactDetailScreen,
   profile: () => ProfileScreen,
   achievements: () => AchievementsScreen,
+  guide: () => GuideScreen,
   manifest: () => ManifestScreen,
   settings: () => SettingsScreen,
   notifications: () => NotificationsScreen,
@@ -108,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v81";
+const APP_VERSION = "v82";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -165,51 +166,11 @@ const TOUR_STOPS = [
     body: "Отмечай состояние, расти в уровне, открывай людей. Чем дальше — тем больше возможностей. Поехали.", cta: "Начать" },
 ];
 
-/* New-user guide — gentler, for an empty fresh start. Points at elements that
-   exist in fresh mode (level widget stays on; the Network is still locked). */
-/* New-user guide — INTENTIONALLY tiny. A brand-new user shouldn't be dragged
-   through 15 screens. Just a few warm cards on the essentials; the deep dive
-   (teams, network, courses, levels) lives behind the "Что дальше?" banner on the
-   home screen, opened only when they're curious (→ EXPLORE_STOPS). */
-const FRESH_STOPS = [
-  { kind: "card", emoji: "🌱", title: "Это твой старт",
-    body: "BalanceOS растёт вместе с тобой. Сейчас тут спокойно и пусто — наполнится, как только ты начнёшь. Покажу самое главное за полминуты.", cta: "Покажи" },
-  { kind: "spot", tab: "home", sel: '[data-tour="state"]', radius: 20, eyebrow: "Каждый день", title: "Начни с состояния",
-    body: "Отметь, как ты сейчас — это твой первый шаг. Цвет, тон и подсказки приложения подстроятся под тебя." },
-  { kind: "card", emoji: "✨", title: "Дальше — в своём темпе",
-    body: "Заведи первую привычку — кнопка ждёт ниже. А когда станет интересно «что там дальше», внизу главной есть гид: команды, уровни, наставники. Без спешки.", cta: "Начать" },
-];
-
-/* Opt-in deep dive — opened from the "Что дальше?" banner on the home screen.
-   Shows the broader ecosystem (teams, chat, network, courses, levels, AI),
-   framed as "here's what opens up as you grow." */
-const EXPLORE_STOPS = [
-  { kind: "card", emoji: "🧭", title: "Что тебя ждёт дальше",
-    body: "BalanceOS — это не только привычки. По мере роста открывается целая экосистема. Загляну на минуту — куда можно двигаться.", cta: "Показать" },
-  { kind: "spot", tab: "community", sel: '.bos-tabbar button:nth-of-type(3)', radius: 16, eyebrow: "Сообщество", title: "Здесь живёт экосистема",
-    body: "Команды, курсы и наставники. Привычки вместе держат сильнее." },
-  { kind: "spot", tab: "community", view: { section: "discover", discTab: "teams" }, sel: '[data-tour="make-team"]', radius: 18, eyebrow: "Команды", title: "Команды — вместе с близкими",
-    body: "Объедини семью, друзей или клиентов тренинга. У каждой команды — общая цель, чат и статистика." },
-  { kind: "spot", tab: "team-create", sel: '[data-tour="team-modes"]', radius: 18, eyebrow: "Режимы команды", title: "Как двигать общую цель",
-    body: "Общий счёт, серия у каждого или гонка — выбираешь формат. А двигают цель привычки самих участников." },
-  { kind: "spot", tab: "team-create", sel: '[data-tour="team-stakes"]', radius: 18, eyebrow: "Геймификация", title: "Ставка на опыт",
-    body: "Все скидывают XP в общий банк. Дошли до цели — он возвращается ×2. Не дошли — сгорает. Вот это азарт." },
-  { kind: "peek", tab: "team-chat", eyebrow: "Чат команды", title: "Команда на связи",
-    body: "У каждой команды свой живой чат: переписка, фото, поддержка — так держат общий ритм вместе." },
-  { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="network"]', radius: 12, eyebrow: "Нетворк", title: "Наставники и контакты",
-    body: "С ростом уровня открывается круг людей: наставники, услуги, помощь. Баллы за привычки тратишь на них." },
-  { kind: "spot", tab: "community", view: { section: "community", commTab: "courses" }, sel: '[data-tour="course"]', radius: 20, eyebrow: "Курсы", title: "Ускорители роста",
-    body: "Курсы и интенсивы поднимают уровень и открывают новые круги — как ключи к следующим людям." },
-  { kind: "peek", tab: "levels", eyebrow: "Геймификация", title: "Опыт, ачивки, награды",
-    body: "Каждый шаг даёт XP → растёт уровень → открываются ачивки, награды и новые возможности. Это сердце прогресса." },
-  { kind: "spot", tab: "ai", sel: '.bos-tabbar button:nth-of-type(4)', radius: 16, eyebrow: "Помощник", title: "ИИ всегда рядом",
-    body: "Совет, разбор дня, план на завтра — с самого начала под рукой." },
-  { kind: "card", emoji: "🌟", title: "Двигайся в своём темпе",
-    body: "Всё это раскрывается по мере роста. Начни с малого — а экосистема откроется сама. Поехали!", cta: "Понятно" },
-];
-
+/* The fresh-user experience no longer uses this coach-mark tour at all — it now
+   opens with gentle iOS bottom-sheets (FreshOnboarding) and per-tab intro sheets.
+   GuidedTour is the rich DEMO walkthrough only. */
 function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMode, dark }) {
-  const STOPS = tourMode === "fresh" ? FRESH_STOPS : tourMode === "explore" ? EXPLORE_STOPS : TOUR_STOPS;
+  const STOPS = TOUR_STOPS;
   const rootRef = useRef(null);
   const [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
   const prevCtxRef = useRef(null);        // last stop's tab|view — detect page switches
@@ -354,6 +315,150 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourMo
   );
 }
 
+/* ── Fresh-user onboarding: gentle iOS bottom-sheets ───────────────────────────
+   Replaces the old forced coach-mark tour. Three calm "what is this" sheets rise
+   on the first home screen; then, when the user opens a tab THEMSELVES for the
+   first time, a one-line intro sheet rises to orient them — never a forced march. */
+const WELCOME_SHEETS = [
+  { tint: "#46a6ff", eyebrow: "Добро пожаловать", title: "Это не трекер. Это платформа.",
+    body: "BalanceOS соединяет привычки, людей и рост в одном месте. Маленькие шаги каждый день складываются в большое." },
+  { tint: "#866cf4", eyebrow: "Вместе", title: "Привычки — с близкими",
+    body: "Делай привычки вдвоём, собирай команды семьи или друзей, проходи тренинги с наставниками. Вместе держится крепче." },
+  { tint: "#35e6dc", eyebrow: "Твой темп", title: "Расти, как тебе удобно",
+    body: "Отмечай состояние, выполняй привычки — уровень растёт, открываются люди и возможности. А внизу главной всегда ждёт гид «Что дальше?»." },
+];
+
+const TAB_INTROS = {
+  habits: { tint: "#34C759", eyebrow: "Практика", title: "Тут ты всё создаёшь",
+    body: "Привычки и цели живут здесь. Любую можно делать одному — или вместе с близкими, поддерживая общую серию." },
+  community: { tint: "#866cf4", eyebrow: "Сообщество", title: "Сердце приложения",
+    body: "Здесь живёт экосистема: команды с близкими, курсы и тренинги, нетворк наставников. Привычки вместе держат сильнее.",
+    chips: [
+      { icon: "👥", label: "Команды", view: { section: "discover", discTab: "teams" } },
+      { icon: "🎓", label: "Курсы", view: { section: "community", commTab: "courses" } },
+      { icon: "🧭", label: "Нетворк", view: { section: "discover", discTab: "network" } },
+    ] },
+  ai: { tint: "#FFC22E", eyebrow: "Помощник", title: "ИИ всегда рядом",
+    body: "Совет, разбор дня, план на завтра. Balance держит в уме твой контекст и подсказывает по делу." },
+};
+
+/* Presentational content for one onboarding bottom-sheet. */
+function OnbSheet({ tint, emoji, eyebrow, title, body, chips, cta, onCta, onSkip, total, index, dark }) {
+  const titleC = dark ? "#fff" : "#0a0a0a";
+  const bodyC = dark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.56)";
+  const ghostC = dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)";
+  return (
+    <div style={{ padding: "4px 24px 8px", textAlign: "center" }}>
+      <div style={{ display: "grid", placeItems: "center", marginTop: 2, marginBottom: 14 }}>
+        {tint ? <StaticOrb size={92} tint={tintFromMood(tint)} seed={2.2} intensity={0.55} />
+              : <div style={{ fontSize: 50 }}>{emoji}</div>}
+      </div>
+      {eyebrow && <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{eyebrow}</div>}
+      <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 25, fontWeight: 700, letterSpacing: "-0.5px", color: titleC, lineHeight: 1.18, marginTop: 6 }}>{title}</div>
+      <div style={{ fontSize: 15.5, color: bodyC, lineHeight: 1.5, marginTop: 11, maxWidth: 330, marginLeft: "auto", marginRight: "auto" }}>{body}</div>
+      {chips && (
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 16 }}>
+          {chips.map((c, i) => (
+            <button key={i} onClick={c.onClick} className="tap" style={{ background: dark ? "rgba(255,255,255,0.08)" : "#f0f1f4", border: 0, borderRadius: 999, padding: "9px 15px", fontSize: 14, fontWeight: 600, color: titleC, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span>{c.icon}</span> {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <button onClick={onCta} className="tap" style={{ width: "100%", marginTop: 20, background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 16, fontSize: 16, fontWeight: 600 }}>{cta}</button>
+      {onSkip && <button onClick={onSkip} className="tap" style={{ width: "100%", marginTop: 6, background: "transparent", border: 0, color: ghostC, fontSize: 13.5, padding: 9 }}>Я разберусь сам</button>}
+      {total > 1 && (
+        <div style={{ display: "flex", gap: 5, justifyContent: "center", marginTop: 14 }}>
+          {Array.from({ length: total }).map((_, i) => (
+            <span key={i} style={{ width: i === index ? 16 : 5, height: 5, borderRadius: 999, background: i === index ? (dark ? "#fff" : "#0a0a0a") : (dark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.16)"), transition: "width 0.3s" }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FreshOnboarding({ app, dark }) {
+  const welcome = !!app.onbWelcome;
+  const [wStep, setWStep] = useState(0);
+  useEffect(() => { if (welcome) setWStep(0); }, [welcome]);
+
+  const tab = (!welcome && app.onbTab) ? TAB_INTROS[app.onbTab] : null;
+  // Keep the last tab content mounted through the close animation (so it slides
+  // down with text intact instead of emptying first).
+  const lastTab = useRef(null);
+  if (tab) lastTab.current = tab;
+  const tabView = tab || lastTab.current;
+
+  const closeWelcome = () => app.setOnbWelcome(false);
+  const closeTab = () => app.setOnbTab(null);
+
+  const ws = WELCOME_SHEETS[wStep] || WELCOME_SHEETS[0];
+  const lastW = wStep >= WELCOME_SHEETS.length - 1;
+
+  return (
+    <React.Fragment>
+      <BottomSheet open={welcome} onClose={closeWelcome} dark={dark}>
+        <OnbSheet tint={ws.tint} eyebrow={ws.eyebrow} title={ws.title} body={ws.body} dark={dark}
+          total={WELCOME_SHEETS.length} index={wStep}
+          cta={lastW ? "Начать" : "Дальше"}
+          onCta={() => { if (lastW) closeWelcome(); else setWStep(wStep + 1); }}
+          onSkip={lastW ? null : closeWelcome} />
+      </BottomSheet>
+      <BottomSheet open={!!tab} onClose={closeTab} dark={dark}>
+        {tabView && <OnbSheet tint={tabView.tint} eyebrow={tabView.eyebrow} title={tabView.title} body={tabView.body} dark={dark}
+          cta="Понятно" onCta={closeTab}
+          chips={tabView.chips && tabView.chips.map(c => ({ icon: c.icon, label: c.label, onClick: () => { app.setCommunityView(c.view); closeTab(); } }))} />}
+      </BottomSheet>
+    </React.Fragment>
+  );
+}
+
+/* ── "О приложении" — one beautiful page describing the whole product. Opened
+   from the home "Что дальше?" banner (fresh users); links out to the manifest. */
+function GuideScreen() {
+  const { navigate } = useNav();
+  const FEATURES = [
+    { e: "🌱", t: "Привычки и цели", b: "Твоя личная система. Маленькие шаги, что ведут к большой цели — каждый день." },
+    { e: "👥", t: "Вместе с близкими", b: "Общие привычки и команды — семья, друзья, клиенты тренинга. Общая цель, чат и статистика." },
+    { e: "🎓", t: "Тренинги и курсы", b: "Проходи программы наставников, получай ачивки и открывай новые круги людей." },
+    { e: "🧭", t: "Нетворк и наставники", b: "С ростом уровня открывается круг людей: наставники, услуги, помощь. Баллы за привычки тратишь на них." },
+    { e: "✨", t: "ИИ-помощник", b: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст." },
+    { e: "🏆", t: "Уровни и награды", b: "Каждый шаг даёт опыт. Уровень растёт — открываются возможности, ачивки и новые люди." },
+  ];
+  return (
+    <div className="page-in" style={{ padding: "0 16px 28px" }}>
+      <PageHeader title="О приложении" onBack={() => navigate("home")} />
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "6px 6px 20px" }}>
+        <StaticOrb size={108} tint={tintFromMood("#46a6ff")} seed={1.6} intensity={0.6} />
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 27, fontWeight: 800, letterSpacing: "-0.6px", color: "var(--text)", marginTop: 14, lineHeight: 1.15 }}>BalanceOS — это экосистема</div>
+        <div style={{ fontSize: 15, color: "var(--text-3)", marginTop: 10, lineHeight: 1.55, maxWidth: 332 }}>Не просто трекер привычек, а место, где ты растёшь вместе с близкими: общие привычки, команды, тренинги, цели и ИИ-помощник — в одном приложении.</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {FEATURES.map((f, i) => (
+          <div key={i} style={{ background: "var(--card)", borderRadius: 20, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "flex-start" }}>
+            <div style={{ width: 46, height: 46, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{f.e}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 16.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{f.t}</div>
+              <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 4, lineHeight: 1.5 }}>{f.b}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button onClick={() => navigate("manifest")} className="tap"
+        style={{ width: "100%", marginTop: 16, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 20, padding: "18px 20px", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+        <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(255,255,255,0.1)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>📜</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Прочитать манифест</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Во что мы верим и зачем всё это</div>
+        </div>
+        <I.ChevronRight size={20} color="rgba(255,255,255,0.6)" />
+      </button>
+      <button onClick={() => navigate("home")} className="tap" style={{ width: "100%", marginTop: 10, background: "transparent", border: 0, color: "var(--text-4)", fontSize: 14.5, fontWeight: 500, padding: 12 }}>Начать пользоваться →</button>
+    </div>
+  );
+}
+
 function PhoneApp() {
   const app = useApp();
   // Optional deep link: ?screen=home opens straight to a screen (skips intro).
@@ -452,6 +557,14 @@ function PhoneApp() {
   useEffect(() => {
     if (window.tgBackButton) window.tgBackButton(frames.length > 1, goBack);
   }, [frames.length, goBack]);
+
+  // Fresh-user: the first time they open a tab THEMSELVES, raise a one-time
+  // intro sheet for that page (home is pre-seen — the welcome sheets cover it).
+  useEffect(() => {
+    if (app.mode === "fresh" && !app.onbWelcome && TAB_ROUTES.has(top.route)) {
+      app.showTabIntro(top.route);
+    }
+  }, [top.route, app.mode, app.onbWelcome]); // eslint-disable-line
 
   // Safety net: clear the transition even if `animationend` never fires — e.g.
   // the installed PWA is backgrounded mid-animation (iOS freezes the animation
@@ -597,6 +710,7 @@ function PhoneApp() {
         )}
         <div className="bos-version">{APP_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
+        <FreshOnboarding app={app} dark={topDark} />
         <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} tourMode={app.tourMode} dark={topDark} />
       </div>
     </div>

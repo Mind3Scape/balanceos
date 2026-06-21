@@ -2965,7 +2965,7 @@ function SignUpScreen() {
     borderRadius: 14,
     padding: "14px 16px",
     color: pal.inputText,
-    fontSize: 15,
+    fontSize: 16,
     outline: 0
   };
   var app = useApp ? useApp() : null;
@@ -2974,9 +2974,10 @@ function SignUpScreen() {
     app?.startTour?.();
     navigate("home");
   };
+  // Fresh start: enter empty mode and let the gentle bottom-sheet welcome take
+  // over on home (no more forced coach-mark tour).
   var goFresh = () => {
     app?.enterFresh?.(name);
-    app?.startTour?.("fresh");
     navigate("home");
   };
   return /*#__PURE__*/React.createElement("div", {

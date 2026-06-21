@@ -189,20 +189,21 @@ function TabBar({
   }))));
 }
 
-/* iOS-app swipe-action circle colors, theme-adaptive. */
+/* iOS-app swipe-action circle colors, theme-adaptive. Light circles are pure
+   white so they read as raised buttons over the grey reveal-track (below). */
 function swipeTone(tone, dark) {
   if (tone === "delete") return dark ? {
     bg: "rgba(255,255,255,0.12)",
     fg: "#FF453A"
   } : {
-    bg: "#f0f0f2",
+    bg: "#fff",
     fg: "#FF3B30"
   };
   if (tone === "share") return dark ? {
     bg: "rgba(255,255,255,0.14)",
     fg: "#ffffff"
   } : {
-    bg: "#eceef2",
+    bg: "#fff",
     fg: "#0a0a0a"
   };
   return dark ? {
@@ -222,7 +223,8 @@ function SwipeRow({
   actions = [],
   rowBg = "#fff",
   actionWidth = 64,
-  dark = false
+  dark = false,
+  trackBg
 }) {
   var [open, setOpen] = useState(false);
   var [dx, setDx] = useState(0);
@@ -230,6 +232,10 @@ function SwipeRow({
   var d = useRef(null);
   var justDragged = useRef(false);
   var W = actions.length * actionWidth;
+  // The reveal-track sits BEHIND the (white) row; making it the grey page
+  // background gives an iOS-grouped-list feel — the row lifts to show the
+  // surface beneath, instead of white-on-white where the buttons vanish.
+  var track = trackBg || (dark ? "#0a0a0a" : "#f1f1f1");
   var close = () => {
     setReleasing(true);
     setOpen(false);
@@ -326,7 +332,7 @@ function SwipeRow({
       bottom: 0,
       display: "flex",
       alignItems: "center",
-      background: rowBg,
+      background: track,
       isolation: "isolate",
       zIndex: 0
     }
@@ -1015,6 +1021,19 @@ function AppProvider({
   var [tourStep, setTourStep] = useState(-1);
   var [tourMode, setTourMode] = useState("demo"); // "demo" | "fresh"
 
+  // ── Fresh-user onboarding (replaces the old forced coach-mark tour) ──
+  // onbWelcome: the gentle 3-step iOS bottom-sheet welcome, shown once on the
+  // first home screen. onbTab: a one-time intro sheet that rises when the user
+  // FIRST opens a given tab themselves — unobtrusive, but nobody gets lost.
+  var [onbWelcome, setOnbWelcome] = useState(false);
+  var [onbTab, setOnbTab] = useState(null);
+  var seenTabs = useRef({});
+  var showTabIntro = route => {
+    if (seenTabs.current[route]) return;
+    seenTabs.current[route] = true;
+    setOnbTab(route);
+  };
+
   // Shared habit / goal store + mutators (the app's single source of truth).
   var [habits, setHabits] = useState(SEED_HABITS);
   var [goals, setGoals] = useState(SEED_GOALS);
@@ -1114,6 +1133,8 @@ function AppProvider({
       discTab: "teams",
       section: "discover"
     });
+    setOnbWelcome(false);
+    setOnbTab(null);
   };
   var enterFresh = (name = "") => {
     setMode("fresh");
@@ -1132,6 +1153,13 @@ function AppProvider({
       section: "discover",
       commTab: "courses"
     });
+    // Arm the welcome sheets; mark home as already-introduced so only the OTHER
+    // tabs trigger a contextual intro when the user first opens them.
+    setOnbWelcome(true);
+    setOnbTab(null);
+    seenTabs.current = {
+      home: true
+    };
   };
   var startTour = mode => {
     setTourMode(mode || "demo");
@@ -1174,6 +1202,11 @@ function AppProvider({
       startTour,
       endTour,
       tourMode,
+      onbWelcome,
+      setOnbWelcome,
+      onbTab,
+      setOnbTab,
+      showTabIntro,
       habits,
       goals,
       toggleHabit,

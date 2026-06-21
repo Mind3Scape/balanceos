@@ -433,7 +433,7 @@ function MoodScreen() {
         </div>
         {noteOpen ? (
           <textarea value={note} onChange={e => setNote(e.target.value)} autoFocus placeholder="Опиши, что чувствуешь сейчас…"
-            style={{ width: "100%", marginTop: 12, background: "rgba(255,255,255,0.06)", border: 0, borderRadius: 14, padding: 12, color: "#fff", fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 60, resize: "none", boxSizing: "border-box" }}/>
+            style={{ width: "100%", marginTop: 12, background: "rgba(255,255,255,0.06)", border: 0, borderRadius: 14, padding: 12, color: "#fff", fontSize: 16, fontFamily: "inherit", outline: 0, minHeight: 60, resize: "none", boxSizing: "border-box" }}/>
         ) : (
           <button onClick={() => setNoteOpen(true)} className="tap" style={{ marginTop: 12, background: "transparent", border: 0, color: "rgba(255,255,255,0.55)", fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 2px" }}>
             <I.Plus size={14}/> Своя заметка
@@ -875,7 +875,7 @@ function AIChatScreen() {
           <I.Plus size={18}/>
         </button>
         <div style={{ flex: 1, background: TH.composer, border: TH.composerBorder, borderRadius: 999, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-          <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Расскажи Balance, как ты себя чувствуешь…" style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: TH.text, fontSize: 14 }}/>
+          <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Расскажи Balance, как ты себя чувствуешь…" style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: TH.text, fontSize: 16 }}/>
           <button className="tap" style={{ background: "transparent", border: 0, color: TH.muted, padding: 0, display: "grid", placeItems: "center" }}>
             <I.Mic size={16}/>
           </button>

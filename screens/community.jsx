@@ -277,7 +277,7 @@ function MessageSheet({ name = "" }) {
         <>
           <div style={{ fontSize: 18, fontWeight: 700, textAlign: "center" }}>Написать{name ? " · " + name : ""}</div>
           <textarea value={txt} onChange={e => setTxt(e.target.value)} placeholder="Твоё сообщение…" rows={4}
-            style={{ width: "100%", marginTop: 14, border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, padding: 12, fontSize: 14, fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box", background: "#f7f7f8" }}/>
+            style={{ width: "100%", marginTop: 14, border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, padding: 12, fontSize: 16, fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box", background: "#f7f7f8" }}/>
           <button onClick={send} className="tap" style={{ width: "100%", marginTop: 12, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "13px", fontSize: 15, fontWeight: 600 }}>Отправить</button>
         </>
       )}

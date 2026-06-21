@@ -1069,10 +1069,12 @@ function SignUpScreen() {
     socialBg: "#f2f5fa", socialBorder: "1px solid rgba(0,0,0,0.08)", socialText: "#15233c",
     glow: "0 10px 40px rgba(120,150,200,0.25)",
   };
-  const inp = { background: pal.inputBg, border: pal.inputBorder, borderRadius: 14, padding: "14px 16px", color: pal.inputText, fontSize: 15, outline: 0 };
+  const inp = { background: pal.inputBg, border: pal.inputBorder, borderRadius: 14, padding: "14px 16px", color: pal.inputText, fontSize: 16, outline: 0 };
   const app = useApp ? useApp() : null;
   const goDemo = () => { app?.enterDemo?.(); app?.startTour?.(); navigate("home"); };
-  const goFresh = () => { app?.enterFresh?.(name); app?.startTour?.("fresh"); navigate("home"); };
+  // Fresh start: enter empty mode and let the gentle bottom-sheet welcome take
+  // over on home (no more forced coach-mark tour).
+  const goFresh = () => { app?.enterFresh?.(name); navigate("home"); };
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "100%", color: pal.text, display: "flex", flexDirection: "column", background: pal.bg, position: "relative", overflow: "hidden" }}>
       <div style={{ flex: 1, padding: "max(64px, calc(var(--tg-top-inset, 0px) + 22px)) 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>

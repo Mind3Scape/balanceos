@@ -1401,7 +1401,7 @@ function HomeScreen() {
       }
     })));
   })), app?.mode === "fresh" && /*#__PURE__*/React.createElement("button", {
-    onClick: () => app?.startTour?.("explore"),
+    onClick: () => navigate("guide"),
     className: "tap",
     "data-no-haptic": true,
     style: {
@@ -1447,7 +1447,7 @@ function HomeScreen() {
       marginTop: 2,
       lineHeight: 1.4
     }
-  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B, \u0443\u0440\u043E\u0432\u043D\u0438, \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A\u0438 \u2014 \u0437\u0430\u0433\u043B\u044F\u043D\u0438, \u043A\u0443\u0434\u0430 \u043C\u043E\u0436\u043D\u043E \u0440\u0430\u0441\u0442\u0438")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\u041E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438: \u043A\u043E\u043C\u0430\u043D\u0434\u044B, \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0438, \u0446\u0435\u043B\u0438 \u2014 \u0432\u0441\u044F \u0441\u0443\u0442\u044C \u043D\u0430 \u043E\u0434\u043D\u043E\u0439 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 20,
     color: "var(--text-4)"
   })), widgets.energy !== false && /*#__PURE__*/React.createElement("div", {

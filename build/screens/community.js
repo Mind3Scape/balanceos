@@ -724,7 +724,7 @@ function MessageSheet({
       border: "1px solid rgba(0,0,0,0.1)",
       borderRadius: 14,
       padding: 12,
-      fontSize: 14,
+      fontSize: 16,
       fontFamily: "inherit",
       resize: "none",
       outline: "none",
