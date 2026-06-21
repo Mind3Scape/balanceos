@@ -775,14 +775,14 @@ function AIScreen() {
           <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Персонально · для Павла</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
         </div>
-        <button onClick={() => navigate("ai-chat")} className="tap"
+        <button data-tour="ai-chat-btn" onClick={() => navigate("ai-chat")} className="tap"
           style={{ height: 36, padding: "0 14px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}>
           <I.MessageCircle size={14}/> Чат
         </button>
       </div>
 
       {/* Hero — orb + headline insight */}
-      <div style={{
+      <div data-tour="ai-hero" style={{
         position: "relative", overflow: "hidden",
         background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
         borderRadius: 28, padding: "22px 22px 24px", color: "#fff",
@@ -879,7 +879,7 @@ function AIScreen() {
 
       {/* Insights — actionable, expandable recommendations */}
       <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Для тебя сегодня</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      <div data-tour="ai-insights" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {insights.map((p, i) => {
           const isOpen = openInsight === i;
           const isDone = !!accepted[i];

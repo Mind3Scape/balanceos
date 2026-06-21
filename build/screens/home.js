@@ -1559,6 +1559,7 @@ function HomeScreen() {
       marginTop: 3
     }
   }, totalCount === 0 ? "Отметь первую привычку — и счёт пойдёт." : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0422\u044B \u043F\u0440\u043E\u0448\u0451\u043B ", Math.round(ringPct * 100), "%. \u0422\u0430\u043A \u0434\u0435\u0440\u0436\u0430\u0442\u044C.")))), /*#__PURE__*/React.createElement("button", {
+    "data-tour": "share-app",
     className: "tap",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheet, {
       dark: isDark

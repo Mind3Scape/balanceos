@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v86";
+var APP_VERSION = "v87";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -317,14 +317,76 @@ var TOUR_STOPS = [{
 /* Per-screen slices of the tour, launched from a demo intro sheet's "Показать
    детально". The welcome/closing cards and the redundant "this is the X tab"
    spots are skipped — the sheet already introduces the screen. */
+// Extra stops layered onto the sliced base tour.
+var HOME_SHARE_STOP = {
+  kind: "spot",
+  tab: "home",
+  sel: '[data-tour="share-app"]',
+  radius: 20,
+  eyebrow: "Качай уровень",
+  title: "Начни с простого — поделись",
+  body: "Хочешь быстро поднять уровень? Поделись приложением: +50 XP за каждого друга, кто присоединится. Покажу, как это выглядит ↓",
+  cta: "Показать «Поделиться»",
+  openShare: true
+};
+// Dive into a SHARED habit so the demo shows the «кто с тобой» competition.
+var HABIT_PEEK_STOP = {
+  kind: "peek",
+  tab: "habit-detail",
+  params: {
+    habit: {
+      id: 1,
+      emoji: "🙏",
+      name: "Помогать другим",
+      streak: 12,
+      friends: [{
+        name: "Анна",
+        initials: "А",
+        color: "#e8c8a8"
+      }, {
+        name: "Марк",
+        initials: "М",
+        color: "#a8b9d4"
+      }]
+    },
+    from: "habits"
+  },
+  eyebrow: "Внутри привычки",
+  title: "Кто с тобой — соревнование",
+  body: "Заходишь в привычку — видишь, кто её делает с тобой, серии у каждого и кто лидирует. Азарт держит ритм."
+};
 var SCREEN_TOURS = {
-  home: TOUR_STOPS.slice(2, 7),
-  // aihints, state, level, levels-peek, ach-peek
-  habits: TOUR_STOPS.slice(8, 10),
-  // presets, add
+  home: [...TOUR_STOPS.slice(2, 7), HOME_SHARE_STOP],
+  // aihints, state, level, levels-peek, ach-peek, share
+  habits: [...TOUR_STOPS.slice(8, 10), HABIT_PEEK_STOP],
+  // presets, add, habit-leaderboard peek
   community: TOUR_STOPS.slice(11, 19),
   // make-team … course (teams, chat, network, courses)
-  ai: []
+  ai: [{
+    kind: "spot",
+    tab: "ai",
+    sel: '[data-tour="ai-hero"]',
+    radius: 24,
+    eyebrow: "Чтение дня",
+    title: "Главный инсайт дня",
+    body: "Каждый день ИИ читает твои отметки и состояние — и выдаёт главное: что заметил и что сделать. Жми «Почему?» — покажет логику."
+  }, {
+    kind: "spot",
+    tab: "ai",
+    sel: '[data-tour="ai-insights"]',
+    radius: 18,
+    eyebrow: "Подсказки",
+    title: "Рекомендации под тебя",
+    body: "Ежедневные советы: перенести привычку, опереться на друга, перезагрузиться. Тапни любую — раскроется и можно принять."
+  }, {
+    kind: "spot",
+    tab: "ai",
+    sel: '[data-tour="ai-chat-btn"]',
+    radius: 999,
+    eyebrow: "Чат",
+    title: "Спроси что угодно",
+    body: "А тут — живой чат. Спланировать день, разобрать неделю, спросить совет: ИИ держит в уме весь твой контекст."
+  }]
 };
 
 /* GuidedTour renders ONE screen's stops (SCREEN_TOURS[tourScreen]); the demo
@@ -336,6 +398,7 @@ function GuidedTour({
   endTour,
   navigate,
   setCommunityView,
+  openSheet,
   tourScreen,
   dark
 }) {
@@ -350,7 +413,7 @@ function GuidedTour({
   // Drive the tab bar so each "tab" stop shows the real section behind the dim.
   useEffect(() => {
     if (stop && (stop.kind === "spot" || stop.kind === "peek")) {
-      navigate(stop.tab, {}, {
+      navigate(stop.tab, stop.params || {}, {
         instant: true
       }); // instant: no fade/slide under the dim
       if (stop.view && setCommunityView) setCommunityView(stop.view);
@@ -375,7 +438,9 @@ function GuidedTour({
       cancelled = false,
       frames = 0,
       stable = 0,
-      lastKey = "";
+      lastKey = "",
+      lastSet = "",
+      committed = false;
     var tick = () => {
       if (cancelled) return;
       frames++;
@@ -403,13 +468,20 @@ function GuidedTour({
           stable = 0;
           lastKey = key;
         }
-        if (sameCtx) setSpot(m); // same page → track live (smooth slide)
-        if (stable >= 2) {
-          setSpot(m);
-          return;
-        } // settled → commit (reveals on a switch)
+        var apply = () => {
+          if (key !== lastSet) {
+            setSpot(m);
+            lastSet = key;
+          }
+        };
+        if (stable >= 2) committed = true;
+        // Reveal once stable (fades in at the right place after a context switch),
+        // then KEEP following late layout shifts (avatars/lists settling, async
+        // reflow) so the highlight can't end up half-covering the target — the
+        // make-team CTA used to. The cutout's CSS transition smooths each nudge.
+        if (sameCtx || committed) apply();
       }
-      if (frames > 130) return; // hard cap (~2s) so it never spins
+      if (frames > 200) return; // ~3.3s window for late shifts, then stop
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -425,6 +497,15 @@ function GuidedTour({
   var last = step >= STOPS.length - 1;
   var next = () => {
     if (last) {
+      // A stop can open a real bottom sheet as its finale (e.g. demonstrate
+      // "Поделиться приложением" so the influence/XP reward is felt, not just told).
+      if (stop.openShare && openSheet) {
+        try {
+          openSheet(React.createElement(ShareAppSheet, {
+            dark
+          }));
+        } catch (_) {}
+      }
       endTour();
       navigate(baseTab);
     } else setStep(step + 1);
@@ -624,7 +705,7 @@ function GuidedTour({
         fontSize: 14,
         fontWeight: 600
       }
-    }, last ? "Готово" : "Далее")), dots), tourStyle);
+    }, last ? stop.cta || "Готово" : "Далее")), dots), tourStyle);
   }
 
   // ── Element spotlight (cutout + tooltip) ──
@@ -734,7 +815,7 @@ function GuidedTour({
       fontSize: 14,
       fontWeight: 600
     }
-  }, last ? "Готово" : "Далее")), dots, below ? /*#__PURE__*/React.createElement("span", {
+  }, last ? stop.cta || "Готово" : "Далее")), dots, below ? /*#__PURE__*/React.createElement("span", {
     "aria-hidden": true,
     style: {
       position: "absolute",
@@ -927,7 +1008,7 @@ var DEMO_INTROS = {
   ai: {
     eyebrow: "Помощник",
     title: "ИИ всегда рядом",
-    detail: false,
+    detail: true,
     body: "Совет, разбор дня, план на завтра — держит в уме твой контекст и подсказывает по делу.",
     pills: [{
       emoji: "💡",
@@ -1668,6 +1749,7 @@ function PhoneApp() {
     endTour: app.endTour,
     navigate: navigate,
     setCommunityView: app.setCommunityView,
+    openSheet: sheetApi.open,
     tourScreen: app.tourScreen,
     dark: topDark
   }))));

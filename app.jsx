@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v86";
+const APP_VERSION = "v87";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -171,17 +171,31 @@ const TOUR_STOPS = [
 /* Per-screen slices of the tour, launched from a demo intro sheet's "Показать
    детально". The welcome/closing cards and the redundant "this is the X tab"
    spots are skipped — the sheet already introduces the screen. */
+// Extra stops layered onto the sliced base tour.
+const HOME_SHARE_STOP = { kind: "spot", tab: "home", sel: '[data-tour="share-app"]', radius: 20, eyebrow: "Качай уровень", title: "Начни с простого — поделись",
+  body: "Хочешь быстро поднять уровень? Поделись приложением: +50 XP за каждого друга, кто присоединится. Покажу, как это выглядит ↓", cta: "Показать «Поделиться»", openShare: true };
+// Dive into a SHARED habit so the demo shows the «кто с тобой» competition.
+const HABIT_PEEK_STOP = { kind: "peek", tab: "habit-detail", params: { habit: { id: 1, emoji: "🙏", name: "Помогать другим", streak: 12, friends: [{ name: "Анна", initials: "А", color: "#e8c8a8" }, { name: "Марк", initials: "М", color: "#a8b9d4" }] }, from: "habits" }, eyebrow: "Внутри привычки", title: "Кто с тобой — соревнование",
+  body: "Заходишь в привычку — видишь, кто её делает с тобой, серии у каждого и кто лидирует. Азарт держит ритм." };
+
 const SCREEN_TOURS = {
-  home: TOUR_STOPS.slice(2, 7),        // aihints, state, level, levels-peek, ach-peek
-  habits: TOUR_STOPS.slice(8, 10),     // presets, add
-  community: TOUR_STOPS.slice(11, 19), // make-team … course (teams, chat, network, courses)
-  ai: [],
+  home: [...TOUR_STOPS.slice(2, 7), HOME_SHARE_STOP],     // aihints, state, level, levels-peek, ach-peek, share
+  habits: [...TOUR_STOPS.slice(8, 10), HABIT_PEEK_STOP],  // presets, add, habit-leaderboard peek
+  community: TOUR_STOPS.slice(11, 19),                    // make-team … course (teams, chat, network, courses)
+  ai: [
+    { kind: "spot", tab: "ai", sel: '[data-tour="ai-hero"]', radius: 24, eyebrow: "Чтение дня", title: "Главный инсайт дня",
+      body: "Каждый день ИИ читает твои отметки и состояние — и выдаёт главное: что заметил и что сделать. Жми «Почему?» — покажет логику." },
+    { kind: "spot", tab: "ai", sel: '[data-tour="ai-insights"]', radius: 18, eyebrow: "Подсказки", title: "Рекомендации под тебя",
+      body: "Ежедневные советы: перенести привычку, опереться на друга, перезагрузиться. Тапни любую — раскроется и можно принять." },
+    { kind: "spot", tab: "ai", sel: '[data-tour="ai-chat-btn"]', radius: 999, eyebrow: "Чат", title: "Спроси что угодно",
+      body: "А тут — живой чат. Спланировать день, разобрать неделю, спросить совет: ИИ держит в уме весь твой контекст." },
+  ],
 };
 
 /* GuidedTour renders ONE screen's stops (SCREEN_TOURS[tourScreen]); the demo
    greets each screen with a sheet, and "Показать детально" launches these. On
    finish it returns to that screen's base tab, leaving the user free to explore. */
-function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourScreen, dark }) {
+function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSheet, tourScreen, dark }) {
   const STOPS = SCREEN_TOURS[tourScreen] || [];
   const baseTab = TAB_ROUTES.has(tourScreen) ? tourScreen : "home";
   const rootRef = useRef(null);
@@ -193,7 +207,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourSc
   // Drive the tab bar so each "tab" stop shows the real section behind the dim.
   useEffect(() => {
     if (stop && (stop.kind === "spot" || stop.kind === "peek")) {
-      navigate(stop.tab, {}, { instant: true });   // instant: no fade/slide under the dim
+      navigate(stop.tab, stop.params || {}, { instant: true });   // instant: no fade/slide under the dim
       if (stop.view && setCommunityView) setCommunityView(stop.view);
     }
   }, [step]); // eslint-disable-line
@@ -209,7 +223,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourSc
     prevCtxRef.current = ctxKey;
     if (!sameCtx) setSpot(null); // drop the stale highlight during the page switch
 
-    let raf, cancelled = false, frames = 0, stable = 0, lastKey = "";
+    let raf, cancelled = false, frames = 0, stable = 0, lastKey = "", lastSet = "", committed = false;
     const tick = () => {
       if (cancelled) return;
       frames++;
@@ -221,10 +235,15 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourSc
         const m = { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, sw: s.width, sh: s.height };
         const key = [m.x, m.y, m.w, m.h].map(n => Math.round(n)).join(",");
         if (key === lastKey) stable++; else { stable = 0; lastKey = key; }
-        if (sameCtx) setSpot(m);                 // same page → track live (smooth slide)
-        if (stable >= 2) { setSpot(m); return; }  // settled → commit (reveals on a switch)
+        const apply = () => { if (key !== lastSet) { setSpot(m); lastSet = key; } };
+        if (stable >= 2) committed = true;
+        // Reveal once stable (fades in at the right place after a context switch),
+        // then KEEP following late layout shifts (avatars/lists settling, async
+        // reflow) so the highlight can't end up half-covering the target — the
+        // make-team CTA used to. The cutout's CSS transition smooths each nudge.
+        if (sameCtx || committed) apply();
       }
-      if (frames > 130) return;                  // hard cap (~2s) so it never spins
+      if (frames > 200) return;                  // ~3.3s window for late shifts, then stop
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -234,7 +253,14 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourSc
 
   if (!stop) return null;
   const last = step >= STOPS.length - 1;
-  const next = () => { if (last) { endTour(); navigate(baseTab); } else setStep(step + 1); };
+  const next = () => {
+    if (last) {
+      // A stop can open a real bottom sheet as its finale (e.g. demonstrate
+      // "Поделиться приложением" so the influence/XP reward is felt, not just told).
+      if (stop.openShare && openSheet) { try { openSheet(React.createElement(ShareAppSheet, { dark })); } catch (_) {} }
+      endTour(); navigate(baseTab);
+    } else setStep(step + 1);
+  };
   const skip = () => { endTour(); navigate(baseTab); };
 
   const dots = (
@@ -287,7 +313,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourSc
           <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
             <button onClick={skip} className="tap" style={{ background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: "10px 14px", margin: "-4px -8px" }}>Пропустить</button>
-            <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{last ? "Готово" : "Далее"}</button>
+            <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{last ? (stop.cta || "Готово") : "Далее"}</button>
           </div>
           {dots}
         </div>
@@ -316,7 +342,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, tourSc
         <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
           <button onClick={skip} className="tap" style={{ background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: "10px 14px", margin: "-4px -8px" }}>Пропустить</button>
-          <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{last ? "Готово" : "Далее"}</button>
+          <button onClick={next} className="tap" style={{ background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{last ? (stop.cta || "Готово") : "Далее"}</button>
         </div>
         {dots}
         {below
@@ -373,7 +399,7 @@ const DEMO_INTROS = {
   community: { eyebrow: "Сообщество", title: "Сердце экосистемы", detail: true,
     body: "Команды с близкими, нетворк наставников, курсы. Самая глубина — здесь.",
     pills: [ { emoji: "👥", label: "Команды" }, { emoji: "🧭", label: "Нетворк" }, { emoji: "🎓", label: "Курсы" } ] },
-  ai: { eyebrow: "Помощник", title: "ИИ всегда рядом", detail: false,
+  ai: { eyebrow: "Помощник", title: "ИИ всегда рядом", detail: true,
     body: "Совет, разбор дня, план на завтра — держит в уме твой контекст и подсказывает по делу.",
     pills: [ { emoji: "💡", label: "Совет" }, { emoji: "📊", label: "Разбор" }, { emoji: "🗓️", label: "План" } ] },
 };
@@ -781,7 +807,7 @@ function PhoneApp() {
         <div className="bos-version">{APP_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
         <FreshOnboarding app={app} dark={topDark} />
-        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} tourScreen={app.tourScreen} dark={topDark} />
+        <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} openSheet={sheetApi.open} tourScreen={app.tourScreen} dark={topDark} />
       </div>
     </div>
     </SheetCtx.Provider>

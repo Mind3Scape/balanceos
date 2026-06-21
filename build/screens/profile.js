@@ -2098,6 +2098,7 @@ function AIScreen() {
       marginTop: 2
     }
   }, "Balance AI")), /*#__PURE__*/React.createElement("button", {
+    "data-tour": "ai-chat-btn",
     onClick: () => navigate("ai-chat"),
     className: "tap",
     style: {
@@ -2116,6 +2117,7 @@ function AIScreen() {
   }, /*#__PURE__*/React.createElement(I.MessageCircle, {
     size: 14
   }), " \u0427\u0430\u0442")), /*#__PURE__*/React.createElement("div", {
+    "data-tour": "ai-hero",
     style: {
       position: "relative",
       overflow: "hidden",
@@ -2390,6 +2392,7 @@ function AIScreen() {
       padding: "0 4px"
     }
   }, "\u0414\u043B\u044F \u0442\u0435\u0431\u044F \u0441\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("div", {
+    "data-tour": "ai-insights",
     style: {
       display: "flex",
       flexDirection: "column",

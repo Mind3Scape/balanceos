@@ -535,7 +535,7 @@ function HomeScreen() {
       )}
 
       {/* Invite / share the app — friendly card with an avatar pile */}
-      <button className="tap" onClick={() => openSheet(<ShareAppSheet dark={isDark} />)}
+      <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheet dark={isDark} />)}
         style={{ marginTop: 12, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "16px 18px", boxShadow: cardShadow, color: "var(--text)", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
         <span style={{ width: 44, height: 44, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
           <I.Share size={20} />
