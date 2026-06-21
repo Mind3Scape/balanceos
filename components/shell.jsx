@@ -148,7 +148,7 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
           when the row is closed — so they can't flash through during a tab
           fade-in (they used to peek as a compositing artifact of the animation). */}
       {(open || dx < 0) && (
-      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: track, isolation: "isolate", zIndex: 0 }}>
+      <div data-swipe-actions="" style={{ position: "absolute", top: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", background: track, borderRadius: "0 16px 16px 0", isolation: "isolate", zIndex: 0 }}>
         {actions.map((a, i) => {
           const ts = swipeTone(a.tone, dark);
           return (

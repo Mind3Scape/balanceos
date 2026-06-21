@@ -333,6 +333,7 @@ function SwipeRow({
       display: "flex",
       alignItems: "center",
       background: track,
+      borderRadius: "0 16px 16px 0",
       isolation: "isolate",
       zIndex: 0
     }
