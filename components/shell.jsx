@@ -419,7 +419,7 @@ const SEED_GOALS = [
   { id: 4, emoji: "🧘🏼‍♀️", name: "300 дней медитации", current: 187, target: 300, unit: "дней", deadline: "в след. году", habitIds: [2] },
 ];
 const SEED_TEAMS = [
-  { _id: "seed-1", name: "Команда креаторов", emblem: "✨", goal: "50 добрых дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
+  { _id: "seed-1", name: "Команда создателей", emblem: "✨", goal: "50 добрых дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
     members: [
       { name: "Ник",     initials: "Н",  color: "#7FB3F2", pct: 19, streak: 6,  todayDone: 1, todayTotal: 4 },
       { name: "Светлана", initials: "С",  color: "#F4A574", pct: 50, streak: 12, todayDone: 2, todayTotal: 4 },

@@ -2466,7 +2466,7 @@ function TeamCreateScreen() {
   }, "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
-    placeholder: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u043A\u0440\u0435\u0430\u0442\u043E\u0440\u043E\u0432",
+    placeholder: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u0441\u043E\u0437\u0434\u0430\u0442\u0435\u043B\u0435\u0439",
     style: {
       width: "100%",
       marginTop: 6,
@@ -3071,12 +3071,19 @@ function TeamRing({
   }));
 }
 
-/* TEAM CALENDAR — the FULL month calendar (paged, like History), but multi-user:
-   "Вся команда" → each day's ring shows how much of the team showed up; tap a member
-   → their whole month in their colour. Tap a day → the trainer's read-out for it.
-   Trainers needed more than the last 5 weeks, so months page back and forth. */
-function TeamCalendar({
-  members
+/* PEOPLE MONTH CALENDAR — ONE shared full-month calendar (paged, like History), used
+   by BOTH a team and an individual habit so the whole app reads the same way. Pass
+   people [{name,initials,color,you?}] and dayFrac(personIdx, day, month)→0..1. With
+   >1 person it shows a "Все" density view + a per-person selector; 1 person = just
+   that month. Selection can be controlled (selPerson/onSelPerson) to sync with a
+   leaderboard, else internal. `granular` shows %-completion in the read-out (teams). */
+function PeopleMonthCalendar({
+  people = [],
+  dayFrac,
+  label = "Календарь",
+  granular = false,
+  selPerson: selProp,
+  onSelPerson
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
   var isDark = app?.themeOverride === "dark";
@@ -3085,30 +3092,30 @@ function TeamCalendar({
   var CUR_M = 3,
     today = 28,
     year = 2026;
+  var solo = people.length <= 1;
   var [mIdx, setMIdx] = useCS(CUR_M);
-  var [selMember, setSelMember] = useCS(null); // null = Вся команда
+  var [selInner, setSelInner] = useCS(solo ? 0 : null);
+  var selPerson = selProp !== undefined ? selProp : selInner;
+  var setSelPerson = v => {
+    if (onSelPerson) onSelPerson(v);else setSelInner(v);
+  };
   var [selDay, setSelDay] = useCS(today);
   var daysInMonth = DIM[mIdx];
   var startWeekday = (mIdx * 3 + 3) % 7;
   var isCurMonth = mIdx === CUR_M;
   var lastLogged = isCurMonth ? today : mIdx > CUR_M ? 0 : daysInMonth;
   var future = d => mIdx > CUR_M || d > lastLogged;
-  // Deterministic per-member, per-day completion (0..1) — higher for higher-% members.
-  var memFrac = (mi, d) => {
-    if (future(d)) return null;
-    var lvl = (members[mi] && members[mi].pct != null ? members[mi].pct : 50) / 100;
-    var n = Math.sin(d * 12.9898 + mi * 78.233 + mIdx * 37.719) * 43758.5453;
-    var r = n - Math.floor(n);
-    return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
-  };
+  var pf = (pi, d) => future(d) ? null : dayFrac(pi, d, mIdx);
   var allFrac = d => {
     if (future(d)) return null;
-    var v = members.map((_, mi) => memFrac(mi, d));
+    var v = people.map((_, i) => pf(i, d));
     return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
   };
-  var dayPct = d => selMember == null ? allFrac(d) : memFrac(selMember, d);
+  var dayPct = d => selPerson == null ? allFrac(d) : pf(selPerson, d);
   var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
-  var selColor = selMember == null ? "#FFC400" : members[selMember]?.color || "#FFC400";
+  var selColor = selPerson == null ? "#FFC400" : people[selPerson]?.color || "#FFC400";
+  var todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)"; // soft grey — not a hard black fill
+  var selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
   var chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
   var chip = active => ({
     display: "inline-flex",
@@ -3137,22 +3144,23 @@ function TeamCalendar({
     d: i + 1,
     key: "d" + (i + 1)
   }))];
-  var selDone = future(selDay) ? null : members.filter((_, mi) => (memFrac(mi, selDay) ?? 0) >= 0.5).length;
+  var selActive = future(selDay) ? null : people.filter((_, i) => (pf(i, selDay) ?? 0) >= 0.5).length;
   var selAvg = future(selDay) ? null : Math.round((allFrac(selDay) || 0) * 100);
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  var selName = selPerson != null && people[selPerson] ? people[selPerson].name : null;
+  return /*#__PURE__*/React.createElement(React.Fragment, null, label && /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
     }
-  }, "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+  }, label), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: label ? 8 : 0,
       boxShadow: "var(--card-shadow)"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, !solo && /*#__PURE__*/React.createElement("div", {
     className: "screen-scroll",
     style: {
       display: "flex",
@@ -3162,9 +3170,9 @@ function TeamCalendar({
       marginBottom: 14
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setSelMember(null),
+    onClick: () => setSelPerson(null),
     className: "tap",
-    style: chip(selMember == null)
+    style: chip(selPerson == null)
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       width: 18,
@@ -3175,11 +3183,11 @@ function TeamCalendar({
       placeItems: "center",
       fontSize: 10
     }
-  }, "\uD83D\uDC65"), "\u0412\u0441\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u0430"), members.map((m, i) => /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDC65"), "\u0412\u0441\u0435"), people.map((m, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
-    onClick: () => setSelMember(i),
+    onClick: () => setSelPerson(i),
     className: "tap",
-    style: chip(selMember === i)
+    style: chip(selPerson === i)
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       width: 18,
@@ -3192,7 +3200,7 @@ function TeamCalendar({
       fontWeight: 700,
       color: "rgba(0,0,0,0.6)"
     }
-  }, m.initials), (m.name || "").split(" ")[0]))), /*#__PURE__*/React.createElement("div", {
+  }, m.initials), m.you ? "Ты" : (m.name || "").split(" ")[0]))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -3287,25 +3295,25 @@ function TeamCalendar({
         fontWeight: isToday ? 700 : 500,
         cursor: "pointer",
         background: "transparent",
-        color: fut ? "var(--text-4)" : isToday ? isDark ? "#0a0a0a" : "#fff" : isDark ? "#fff" : "var(--text)"
+        color: fut ? "var(--text-4)" : isDark ? "#fff" : "var(--text)"
       }
-    }, isToday ? /*#__PURE__*/React.createElement("span", {
+    }, isToday && /*#__PURE__*/React.createElement("span", {
       "aria-hidden": true,
       style: {
         position: "absolute",
         width: "62%",
         aspectRatio: "1/1",
         borderRadius: "50%",
-        background: isDark ? "#fff" : "#0a0a0a"
+        background: todayBg
       }
-    }) : isSel && /*#__PURE__*/React.createElement("span", {
+    }), isSel && !isToday && /*#__PURE__*/React.createElement("span", {
       "aria-hidden": true,
       style: {
         position: "absolute",
-        width: "64%",
+        width: "66%",
         aspectRatio: "1/1",
         borderRadius: "50%",
-        background: isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.07)"
+        border: "1.5px solid " + selRing
       }
     }), fut ? /*#__PURE__*/React.createElement("span", {
       "aria-hidden": true,
@@ -3335,15 +3343,19 @@ function TeamCalendar({
       color: "var(--text-3)",
       lineHeight: 1.45
     }
-  }, future(selDay) ? `${MONTHS[mIdx]} ${selDay} — ещё впереди` : selMember == null ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+  }, future(selDay) ? `${MONTHS[mIdx]} ${selDay} — ещё впереди` : solo ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
     style: {
       color: "var(--text)"
     }
-  }, MONTHS[mIdx], " ", selDay), " \xB7 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u0430\u0441\u044C \u043D\u0430 ", selAvg, "% \xB7 ", selDone, " \u0438\u0437 ", members.length, " \u0431\u044B\u043B\u0438 \u0430\u043A\u0442\u0438\u0432\u043D\u044B") : /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+  }, MONTHS[mIdx], " ", selDay), " \xB7 ", (dayPct(selDay) || 0) > 0 ? "выполнено ✓" : "пропущено") : selPerson == null ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
     style: {
       color: "var(--text)"
     }
-  }, members[selMember].name), " \xB7 ", MONTHS[mIdx], " ", selDay, " \xB7 \u0437\u0430\u043A\u0440\u044B\u043B ", Math.round((dayPct(selDay) || 0) * 100), "% \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A"))));
+  }, MONTHS[mIdx], " ", selDay), " \xB7 \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u043E\u0441\u044C ", selActive, " \u0438\u0437 ", people.length, granular && selAvg != null ? ` · ${selAvg}%` : "") : /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text)"
+    }
+  }, selName), " \xB7 ", MONTHS[mIdx], " ", selDay, " \xB7 ", granular ? `${Math.round((dayPct(selDay) || 0) * 100)}% привычек` : (dayPct(selDay) || 0) > 0 ? "отмечался ✓" : "пропустил"))));
 }
 function TeamDetailScreen() {
   var {
@@ -3357,7 +3369,7 @@ function TeamDetailScreen() {
   var [expandedMember, setExpandedMember] = useCS(null);
   var passed = params?.team || {
     _id: "seed-1",
-    name: "Команда креаторов",
+    name: "Команда создателей",
     emblem: "✨",
     accent: "#fef3c7",
     goal: "50 добрых дел за месяц",
@@ -3992,8 +4004,20 @@ function TeamDetailScreen() {
         strokeWidth: 3
       }));
     })));
-  })), /*#__PURE__*/React.createElement(TeamCalendar, {
-    members: members
+  })), /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
+    people: members.map(m => ({
+      name: m.name,
+      initials: m.initials,
+      color: m.color
+    })),
+    dayFrac: (pi, d, mi) => {
+      var lvl = (members[pi] && members[pi].pct != null ? members[pi].pct : 50) / 100;
+      var n = Math.sin(d * 12.9898 + pi * 78.233 + mi * 37.719) * 43758.5453;
+      var r = n - Math.floor(n);
+      return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
+    },
+    granular: true,
+    label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"
   }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
@@ -5677,7 +5701,7 @@ function TeamChatScreen() {
   var isDark = app?.themeOverride === "dark";
   var team = params?.team || {
     _id: "seed-1",
-    name: "Команда креаторов",
+    name: "Команда создателей",
     emblem: "✨",
     members: []
   };

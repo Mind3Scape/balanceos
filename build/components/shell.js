@@ -1002,7 +1002,7 @@ var SEED_GOALS = [{
 }];
 var SEED_TEAMS = [{
   _id: "seed-1",
-  name: "Команда креаторов",
+  name: "Команда создателей",
   emblem: "✨",
   goal: "50 добрых дел",
   date: "1 — 31 дек",

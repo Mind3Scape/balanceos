@@ -888,7 +888,7 @@ function NotificationsScreen() {
     new: true
   }, {
     i: "👥",
-    t: "Ник пригласил тебя в «Команду креаторов»",
+    t: "Ник пригласил тебя в «Команду создателей»",
     b: "Нажми, чтобы принять и присоединиться к цели.",
     w: "2 ч",
     new: true,
@@ -1074,8 +1074,8 @@ function HistoryScreen() {
     cellIdle: "rgba(255,255,255,0.10)",
     ringTrack: "rgba(255,255,255,0.13)",
     cellSelBg: "rgba(255,255,255,0.16)",
-    todayBg: "#ffffff",
-    todayFg: "#0a0a0a",
+    todayBg: "rgba(255,255,255,0.14)",
+    todayFg: "#fff",
     cellBorder: "rgba(255,255,255,0.10)",
     cellText: "#fff",
     cellMuted: "rgba(255,255,255,0.45)",
@@ -1092,8 +1092,8 @@ function HistoryScreen() {
     cellIdle: "#f5f5f5",
     ringTrack: "rgba(0,0,0,0.09)",
     cellSelBg: "rgba(0,0,0,0.07)",
-    todayBg: "#0a0a0a",
-    todayFg: "#ffffff",
+    todayBg: "rgba(0,0,0,0.07)",
+    todayFg: "var(--text)",
     cellBorder: "rgba(0,0,0,0.06)",
     cellText: "var(--text)",
     cellMuted: "var(--text-4)",
@@ -1358,7 +1358,7 @@ function HistoryScreen() {
         background: "transparent",
         color: future ? TH.cellMuted : isToday ? TH.todayFg : TH.cellText
       }
-    }, isToday ? /*#__PURE__*/React.createElement("span", {
+    }, isToday && /*#__PURE__*/React.createElement("span", {
       "aria-hidden": true,
       style: {
         position: "absolute",
@@ -1367,14 +1367,14 @@ function HistoryScreen() {
         borderRadius: "50%",
         background: TH.todayBg
       }
-    }) : isSelected && /*#__PURE__*/React.createElement("span", {
+    }), isSelected && !isToday && /*#__PURE__*/React.createElement("span", {
       "aria-hidden": true,
       style: {
         position: "absolute",
-        width: "64%",
+        width: "66%",
         aspectRatio: "1/1",
         borderRadius: "50%",
-        background: TH.cellSelBg
+        border: "1.5px solid " + (isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)")
       }
     }), future ? /*#__PURE__*/React.createElement("span", {
       "aria-hidden": true,

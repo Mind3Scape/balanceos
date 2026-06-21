@@ -280,7 +280,7 @@ function NotificationsScreen() {
   const { navigate, params } = useNav();
   const [items, setItems] = useP([
     { i: "🔥", t: "7 дней подряд!", b: "Ты в огне — продолжай завтра.", w: "Только что", new: true },
-    { i: "👥", t: "Ник пригласил тебя в «Команду креаторов»", b: "Нажми, чтобы принять и присоединиться к цели.", w: "2 ч", new: true, go: "community" },
+    { i: "👥", t: "Ник пригласил тебя в «Команду создателей»", b: "Нажми, чтобы принять и присоединиться к цели.", w: "2 ч", new: true, go: "community" },
     { i: "🧘🏼‍♀️", t: "Напоминание о медитации", b: "Твоя сегодняшняя сессия в 09:30.", w: "5 ч" },
     { i: "✨", t: "Готов новый ИИ-инсайт", b: "Вечером у тебя самая высокая энергия.", w: "1 д", go: "ai" },
     { i: "📚", t: "Новый курс: Основы привычек", b: "2 минуты — начни когда угодно.", w: "2 д", go: "community" },
@@ -353,7 +353,7 @@ function HistoryScreen() {
     cellIdle:  "rgba(255,255,255,0.10)",
     ringTrack: "rgba(255,255,255,0.13)",
     cellSelBg: "rgba(255,255,255,0.16)",
-    todayBg: "#ffffff", todayFg: "#0a0a0a",
+    todayBg: "rgba(255,255,255,0.14)", todayFg: "#fff",
     cellBorder:"rgba(255,255,255,0.10)",
     cellText:  "#fff",
     cellMuted: "rgba(255,255,255,0.45)",
@@ -370,7 +370,7 @@ function HistoryScreen() {
     cellIdle:  "#f5f5f5",
     ringTrack: "rgba(0,0,0,0.09)",
     cellSelBg: "rgba(0,0,0,0.07)",
-    todayBg: "#0a0a0a", todayFg: "#ffffff",
+    todayBg: "rgba(0,0,0,0.07)", todayFg: "var(--text)",
     cellBorder:"rgba(0,0,0,0.06)",
     cellText:  "var(--text)",
     cellMuted: "var(--text-4)",
@@ -499,9 +499,8 @@ function HistoryScreen() {
                   background: "transparent",
                   color: future ? TH.cellMuted : (isToday ? TH.todayFg : TH.cellText),
                 }}>
-                {isToday
-                  ? <span aria-hidden style={{ position: "absolute", width: "62%", aspectRatio: "1/1", borderRadius: "50%", background: TH.todayBg }}/>
-                  : isSelected && <span aria-hidden style={{ position: "absolute", width: "64%", aspectRatio: "1/1", borderRadius: "50%", background: TH.cellSelBg }}/>}
+                {isToday && <span aria-hidden style={{ position: "absolute", width: "62%", aspectRatio: "1/1", borderRadius: "50%", background: TH.todayBg }}/>}
+                {isSelected && !isToday && <span aria-hidden style={{ position: "absolute", width: "66%", aspectRatio: "1/1", borderRadius: "50%", border: "1.5px solid " + (isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)") }}/>}
                 {future
                   ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px dashed " + TH.cellBorder }}/>
                   : <DayRing pct={pct} track={TH.ringTrack} glow={pct === 1} />}

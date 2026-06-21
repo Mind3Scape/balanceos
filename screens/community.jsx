@@ -934,7 +934,7 @@ function TeamCreateScreen() {
         }}>{emblem}</div>
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Название команды</div>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Команда креаторов"
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Команда создателей"
             style={{ width: "100%", marginTop: 6, fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap", position: "relative" }}>
@@ -1139,62 +1139,63 @@ function TeamRing({ pct, color = "#FFC400", track, sw = 3, glow }) {
   );
 }
 
-/* TEAM CALENDAR — the FULL month calendar (paged, like History), but multi-user:
-   "Вся команда" → each day's ring shows how much of the team showed up; tap a member
-   → their whole month in their colour. Tap a day → the trainer's read-out for it.
-   Trainers needed more than the last 5 weeks, so months page back and forth. */
-function TeamCalendar({ members }) {
+/* PEOPLE MONTH CALENDAR — ONE shared full-month calendar (paged, like History), used
+   by BOTH a team and an individual habit so the whole app reads the same way. Pass
+   people [{name,initials,color,you?}] and dayFrac(personIdx, day, month)→0..1. With
+   >1 person it shows a "Все" density view + a per-person selector; 1 person = just
+   that month. Selection can be controlled (selPerson/onSelPerson) to sync with a
+   leaderboard, else internal. `granular` shows %-completion in the read-out (teams). */
+function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
   const DIM = [31,28,31,30,31,30,31,31,30,31,30,31];
   const CUR_M = 3, today = 28, year = 2026;
+  const solo = people.length <= 1;
   const [mIdx, setMIdx] = useCS(CUR_M);
-  const [selMember, setSelMember] = useCS(null); // null = Вся команда
+  const [selInner, setSelInner] = useCS(solo ? 0 : null);
+  const selPerson = selProp !== undefined ? selProp : selInner;
+  const setSelPerson = (v) => { if (onSelPerson) onSelPerson(v); else setSelInner(v); };
   const [selDay, setSelDay] = useCS(today);
   const daysInMonth = DIM[mIdx];
   const startWeekday = (mIdx * 3 + 3) % 7;
   const isCurMonth = mIdx === CUR_M;
   const lastLogged = isCurMonth ? today : (mIdx > CUR_M ? 0 : daysInMonth);
   const future = (d) => mIdx > CUR_M || d > lastLogged;
-  // Deterministic per-member, per-day completion (0..1) — higher for higher-% members.
-  const memFrac = (mi, d) => {
-    if (future(d)) return null;
-    const lvl = (members[mi] && members[mi].pct != null ? members[mi].pct : 50) / 100;
-    const n = Math.sin(d * 12.9898 + mi * 78.233 + mIdx * 37.719) * 43758.5453;
-    const r = n - Math.floor(n);
-    return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
-  };
-  const allFrac = (d) => { if (future(d)) return null; const v = members.map((_, mi) => memFrac(mi, d)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; };
-  const dayPct = (d) => (selMember == null ? allFrac(d) : memFrac(selMember, d));
+  const pf = (pi, d) => (future(d) ? null : dayFrac(pi, d, mIdx));
+  const allFrac = (d) => { if (future(d)) return null; const v = people.map((_, i) => pf(i, d)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; };
+  const dayPct = (d) => (selPerson == null ? allFrac(d) : pf(selPerson, d));
   const track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
-  const selColor = selMember == null ? "#FFC400" : (members[selMember]?.color || "#FFC400");
+  const selColor = selPerson == null ? "#FFC400" : (people[selPerson]?.color || "#FFC400");
+  const todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)"; // soft grey — not a hard black fill
+  const selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
   const chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
   const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 6px", borderRadius: 999, background: active ? (isDark ? "#fff" : "#0a0a0a") : chipBg, color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)", border: 0, flexShrink: 0, fontSize: 13, fontWeight: active ? 700 : 500, whiteSpace: "nowrap", cursor: "pointer" });
   const weekday = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
   const cells = [...Array.from({ length: startWeekday }, (_, i) => ({ blank: true, key: "b" + i })), ...Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, key: "d" + (i + 1) }))];
-  const selDone = future(selDay) ? null : members.filter((_, mi) => (memFrac(mi, selDay) ?? 0) >= 0.5).length;
+  const selActive = future(selDay) ? null : people.filter((_, i) => (pf(i, selDay) ?? 0) >= 0.5).length;
   const selAvg = future(selDay) ? null : Math.round((allFrac(selDay) || 0) * 100);
+  const selName = (selPerson != null && people[selPerson]) ? people[selPerson].name : null;
 
   return (
     <>
-      <div className="section-label" style={{ marginTop: 22 }}>Календарь команды</div>
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
-        {/* who you're looking at — whole team or one member */}
-        <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2, marginBottom: 14 }}>
-          <button onClick={() => setSelMember(null)} className="tap" style={chip(selMember == null)}>
-            <span style={{ width: 18, height: 18, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)", display: "grid", placeItems: "center", fontSize: 10 }}>👥</span>
-            Вся команда
-          </button>
-          {members.map((m, i) => (
-            <button key={i} onClick={() => setSelMember(i)} className="tap" style={chip(selMember === i)}>
-              <span style={{ width: 18, height: 18, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{m.initials}</span>
-              {(m.name || "").split(" ")[0]}
+      {label && <div className="section-label" style={{ marginTop: 22 }}>{label}</div>}
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: label ? 8 : 0, boxShadow: "var(--card-shadow)" }}>
+        {!solo && (
+          <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2, marginBottom: 14 }}>
+            <button onClick={() => setSelPerson(null)} className="tap" style={chip(selPerson == null)}>
+              <span style={{ width: 18, height: 18, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)", display: "grid", placeItems: "center", fontSize: 10 }}>👥</span>
+              Все
             </button>
-          ))}
-        </div>
+            {people.map((m, i) => (
+              <button key={i} onClick={() => setSelPerson(i)} className="tap" style={chip(selPerson === i)}>
+                <span style={{ width: 18, height: 18, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{m.initials}</span>
+                {m.you ? "Ты" : (m.name || "").split(" ")[0]}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* month pager */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={() => setMIdx((m) => Math.max(0, m - 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}><I.ChevronLeft size={16} /></button>
           <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{MONTHS[mIdx]} {year}</div>
@@ -1212,9 +1213,9 @@ function TeamCalendar({ members }) {
             const isToday = isCurMonth && c.d === today;
             const isSel = selDay === c.d;
             return (
-              <button key={c.key} onClick={() => setSelDay(c.d)} className="tap" style={{ aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, display: "grid", placeItems: "center", position: "relative", fontSize: 13, fontWeight: isToday ? 700 : 500, cursor: "pointer", background: "transparent", color: fut ? "var(--text-4)" : (isToday ? (isDark ? "#0a0a0a" : "#fff") : (isDark ? "#fff" : "var(--text)")) }}>
-                {isToday ? <span aria-hidden style={{ position: "absolute", width: "62%", aspectRatio: "1/1", borderRadius: "50%", background: isDark ? "#fff" : "#0a0a0a" }} />
-                  : isSel && <span aria-hidden style={{ position: "absolute", width: "64%", aspectRatio: "1/1", borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.07)" }} />}
+              <button key={c.key} onClick={() => setSelDay(c.d)} className="tap" style={{ aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, display: "grid", placeItems: "center", position: "relative", fontSize: 13, fontWeight: isToday ? 700 : 500, cursor: "pointer", background: "transparent", color: fut ? "var(--text-4)" : (isDark ? "#fff" : "var(--text)") }}>
+                {isToday && <span aria-hidden style={{ position: "absolute", width: "62%", aspectRatio: "1/1", borderRadius: "50%", background: todayBg }} />}
+                {isSel && !isToday && <span aria-hidden style={{ position: "absolute", width: "66%", aspectRatio: "1/1", borderRadius: "50%", border: "1.5px solid " + selRing }} />}
                 {fut ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)") }} />
                   : <TeamRing pct={pct} color={selColor} track={track} glow={pct === 1} />}
                 <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>
@@ -1223,12 +1224,13 @@ function TeamCalendar({ members }) {
           })}
         </div>
 
-        {/* the trainer's read-out for the tapped day */}
         <div style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid var(--line)", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.45 }}>
           {future(selDay) ? `${MONTHS[mIdx]} ${selDay} — ещё впереди`
-            : selMember == null
-              ? <span><b style={{ color: "var(--text)" }}>{MONTHS[mIdx]} {selDay}</b> · команда отметилась на {selAvg}% · {selDone} из {members.length} были активны</span>
-              : <span><b style={{ color: "var(--text)" }}>{members[selMember].name}</b> · {MONTHS[mIdx]} {selDay} · закрыл {Math.round((dayPct(selDay) || 0) * 100)}% привычек</span>}
+            : solo
+              ? <span><b style={{ color: "var(--text)" }}>{MONTHS[mIdx]} {selDay}</b> · {(dayPct(selDay) || 0) > 0 ? "выполнено ✓" : "пропущено"}</span>
+              : selPerson == null
+                ? <span><b style={{ color: "var(--text)" }}>{MONTHS[mIdx]} {selDay}</b> · отметилось {selActive} из {people.length}{granular && selAvg != null ? ` · ${selAvg}%` : ""}</span>
+                : <span><b style={{ color: "var(--text)" }}>{selName}</b> · {MONTHS[mIdx]} {selDay} · {granular ? `${Math.round((dayPct(selDay) || 0) * 100)}% привычек` : ((dayPct(selDay) || 0) > 0 ? "отмечался ✓" : "пропустил")}</span>}
         </div>
       </div>
     </>
@@ -1240,7 +1242,7 @@ function TeamDetailScreen() {
   const app = useApp();
   const { open: openSheet } = useSheet();
   const [expandedMember, setExpandedMember] = useCS(null);
-  const passed = params?.team || { _id: "seed-1", name: "Команда креаторов", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0.62, members: [] };
+  const passed = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0.62, members: [] };
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   const accent = t.accent || "#fef3c7";
@@ -1415,7 +1417,15 @@ function TeamDetailScreen() {
         })}
       </div>
 
-      <TeamCalendar members={members} />
+      <PeopleMonthCalendar
+        people={members.map((m) => ({ name: m.name, initials: m.initials, color: m.color }))}
+        dayFrac={(pi, d, mi) => {
+          const lvl = (members[pi] && members[pi].pct != null ? members[pi].pct : 50) / 100;
+          const n = Math.sin(d * 12.9898 + pi * 78.233 + mi * 37.719) * 43758.5453;
+          const r = n - Math.floor(n);
+          return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
+        }}
+        granular label="Календарь команды" />
 
       <div className="section-label" style={{ marginTop: 22 }}>Активность</div>
       <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 8, display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--card-shadow)" }}>
@@ -1968,7 +1978,7 @@ function TeamChatScreen() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
-  const team = params?.team || { _id: "seed-1", name: "Команда креаторов", emblem: "✨", members: [] };
+  const team = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", members: [] };
   const SEED = [
     { who: "Светлана", c: "#F4A574", t: "Доброе утро, команда! ☀️ Кто уже отметил доброе дело?", time: "8:14" },
     { who: "Вадим",    c: "#74CFE0", t: "Я помог соседке с покупками 💪", time: "8:31" },

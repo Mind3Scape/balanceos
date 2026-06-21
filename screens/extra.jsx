@@ -68,12 +68,18 @@ function HabitDetailScreen() {
   const aggFrac  = cells.map((_, i) => fullRoster.length ? aggCount[i] / fullRoster.length : 0);
   // ONE common team ring (the density fill below) + per-person rings on tap — no more
   // stacked concentric rings (unreadable past 3, David cut them). Works for any size.
-  const chipStyle = (active) => ({
-    display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 6px", borderRadius: 999,
-    background: active ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
-    color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)",
-    border: 0, flexShrink: 0, fontSize: 13, fontWeight: active ? 700 : 500, whiteSpace: "nowrap", cursor: "pointer",
-  });
+  // People + per-day completion feeding the shared PeopleMonthCalendar (same calendar
+  // the team uses → one consistent look). dayFrac: did this person do the habit that day.
+  const calPeople = isShared
+    ? fullRoster.map((p) => ({ name: p.name, initials: p.initials, color: p.color, you: p.you }))
+    : [{ name: "Ты", initials: "Я", color: h.color || "#FFC400", you: true }];
+  const habitFrac = (pi, d, mi) => {
+    const p = isShared ? fullRoster[pi] : { you: true, streak };
+    const lvl = p.you ? Math.min(1, Math.max(0.4, (rate || 70) / 100)) : Math.min(1, (p.streak || 10) / 26);
+    const n = Math.sin(d * 9.137 + pi * 53.7 + mi * 21.3 + (h.id || 1) * 7.1) * 43758.5453;
+    const r = n - Math.floor(n);
+    return (lvl * 0.55 + r * 0.5) > 0.55 ? 1 : 0; // a single habit on a given day → done or not
+  };
 
   const card = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
@@ -149,97 +155,10 @@ function HabitDetailScreen() {
         );
       })()}
 
-      {/* Per-habit calendar — a full ring on days you did it, an empty ring if not */}
-      <div className="section-label" style={{ marginTop: 22 }}>{isShared ? (selP ? `Дни · ${selP.you ? "ты" : selP.name}` : "Последние 5 недель · вся команда") : "Последние 5 недель"}</div>
-      <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8 }}>
-        {isShared && (
-          <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", marginBottom: 13, paddingBottom: 2 }}>
-            <button onClick={() => setSelPerson(null)} className="tap" style={chipStyle(selPerson == null)}>
-              <span style={{ width: 18, height: 18, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)", display: "grid", placeItems: "center", fontSize: 10 }}>👥</span>
-              Все
-            </button>
-            {fullRoster.map((p, i) => (
-              <button key={i} onClick={() => setSelPerson(i)} className="tap" style={chipStyle(selPerson === i)}>
-                <span style={{ width: 18, height: 18, borderRadius: "50%", background: p.color, display: "grid", placeItems: "center", fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{p.initials}</span>
-                {p.you ? "Ты" : p.name.split(" ")[0]}
-              </button>
-            ))}
-          </div>
-        )}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 7 }}>
-          {WD.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, color: "var(--text-4)", letterSpacing: 0.4 }}>{d}</div>)}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-          {!isShared
-            ? cells.map((done, i) => {
-                const mins = done ? dayMins(i) : 0;
-                const frac = !done ? 0 : (h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1);
-                const C = 2 * Math.PI * 15.5;
-                return (
-                  <span key={i} title={!done ? "пропущено" : (h.duration ? mins + " мин" : "выполнено")} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
-                    <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-                      <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
-                      {frac > 0 && <circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="3.4"
-                        strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)}
-                        transform="rotate(-90 20 20)" style={{ filter: `drop-shadow(0 0 1.6px ${ringColor}aa)` }} />}
-                    </svg>
-                  </span>
-                );
-              })
-            : selP
-              ? cells.map((_, i) => {
-                  // One selected person — their days light up in their own colour.
-                  const done = selP.cells[i];
-                  return (
-                    <span key={i} title={done ? "отметил" : "пропустил"} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
-                      <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-                        <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
-                        {done && <circle cx="20" cy="20" r="15.5" fill="none" stroke={selP.color} strokeWidth="3.4" style={{ filter: `drop-shadow(0 0 1.6px ${selP.color}aa)` }} />}
-                      </svg>
-                    </span>
-                  );
-                })
-              : cells.map((_, i) => {
-                    // ONE common team ring — fills by how much of the team showed up that day.
-                    const frac = aggFrac[i]; const C = 2 * Math.PI * 15.5;
-                    return (
-                      <span key={i} title={`${aggCount[i]} из ${fullRoster.length} отметились`} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
-                        <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-                          <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
-                          {frac > 0 && <circle cx="20" cy="20" r="15.5" fill="none" stroke="#FFC400" strokeWidth="3.4" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform="rotate(-90 20 20)" style={{ filter: "drop-shadow(0 0 1.6px #FFC400aa)" }} />}
-                        </svg>
-                      </span>
-                    );
-                  })}
-        </div>
-        {!isShared ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="6" /></svg> выполнено</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="6" /></svg> пропущено</span>
-            </span>
-            <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
-          </div>
-        ) : selP ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 13, fontSize: 11, color: "var(--text-4)", lineHeight: 1.4 }}>
-            <span style={{ width: 9, height: 9, borderRadius: "50%", background: selP.color, boxShadow: `0 0 3px ${selP.color}aa`, flexShrink: 0 }} />
-            <span>Цветом — дни, когда {selP.you ? "ты закрывал" : selP.name + " закрывал"} эту привычку. Пусто — пропуск.</span>
-          </div>
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)", gap: 10 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, lineHeight: 1.4 }}>
-              <svg width="13" height="13" viewBox="0 0 40 40" aria-hidden style={{ flexShrink: 0 }}><circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="6" /><circle cx="20" cy="20" r="15.5" fill="none" stroke="#FFC400" strokeWidth="6" strokeLinecap="round" strokeDasharray={2 * Math.PI * 15.5} strokeDashoffset={2 * Math.PI * 15.5 * 0.4} transform="rotate(-90 20 20)" /></svg>
-              Общее кольцо — насколько дружно команда отметилась в этот день. Нажми на человека, чтобы увидеть его дни.
-            </span>
-            <span style={{ flexShrink: 0 }}><b style={{ color: "var(--text-2)" }}>{fullRoster.length}</b> чел.</span>
-          </div>
-        )}
-        {h.duration && !isShared && (
-          <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 9, lineHeight: 1.4 }}>
-            Кольцо тем полнее, чем дольше была сессия в этот день.
-          </div>
-        )}
-      </div>
+      {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
+         so the whole app reads one way. Shared habits keep the person selector. */}
+      <PeopleMonthCalendar people={calPeople} dayFrac={habitFrac} label="Календарь привычки"
+        selPerson={isShared ? selPerson : undefined} onSelPerson={isShared ? setSelPerson : undefined} />
 
       {/* Insight — neutral surface, streak-driven copy */}
       <div className="section-label" style={{ marginTop: 22 }}>Инсайт</div>

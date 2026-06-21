@@ -94,21 +94,29 @@ function HabitDetailScreen() {
   var aggFrac = cells.map((_, i) => fullRoster.length ? aggCount[i] / fullRoster.length : 0);
   // ONE common team ring (the density fill below) + per-person rings on tap — no more
   // stacked concentric rings (unreadable past 3, David cut them). Works for any size.
-  var chipStyle = active => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "5px 11px 5px 6px",
-    borderRadius: 999,
-    background: active ? isDark ? "#fff" : "#0a0a0a" : isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)",
-    color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)",
-    border: 0,
-    flexShrink: 0,
-    fontSize: 13,
-    fontWeight: active ? 700 : 500,
-    whiteSpace: "nowrap",
-    cursor: "pointer"
-  });
+  // People + per-day completion feeding the shared PeopleMonthCalendar (same calendar
+  // the team uses → one consistent look). dayFrac: did this person do the habit that day.
+  var calPeople = isShared ? fullRoster.map(p => ({
+    name: p.name,
+    initials: p.initials,
+    color: p.color,
+    you: p.you
+  })) : [{
+    name: "Ты",
+    initials: "Я",
+    color: h.color || "#FFC400",
+    you: true
+  }];
+  var habitFrac = (pi, d, mi) => {
+    var p = isShared ? fullRoster[pi] : {
+      you: true,
+      streak
+    };
+    var lvl = p.you ? Math.min(1, Math.max(0.4, (rate || 70) / 100)) : Math.min(1, (p.streak || 10) / 26);
+    var n = Math.sin(d * 9.137 + pi * 53.7 + mi * 21.3 + (h.id || 1) * 7.1) * 43758.5453;
+    var r = n - Math.floor(n);
+    return lvl * 0.55 + r * 0.5 > 0.55 ? 1 : 0; // a single habit on a given day → done or not
+  };
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -332,339 +340,13 @@ function HabitDetailScreen() {
         lineHeight: 1.4
       }
     }, selP ? `Внизу — дни, когда ${selP.you ? "ты отмечал" : selP.name + " отмечал"} привычку. Нажми ещё раз, чтобы снять.` : myRank === 1 ? "Ты лидируешь! Нажми на любого — внизу покажу его дни." : `Ты на ${myRank}-м месте. Нажми на любого — внизу покажу его дни.`)));
-  })(), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, isShared ? selP ? `Дни · ${selP.you ? "ты" : selP.name}` : "Последние 5 недель · вся команда" : "Последние 5 недель"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...card,
-      borderRadius: 18,
-      padding: 14,
-      marginTop: 8
-    }
-  }, isShared && /*#__PURE__*/React.createElement("div", {
-    className: "screen-scroll",
-    style: {
-      display: "flex",
-      gap: 7,
-      overflowX: "auto",
-      marginBottom: 13,
-      paddingBottom: 2
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setSelPerson(null),
-    className: "tap",
-    style: chipStyle(selPerson == null)
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 18,
-      height: 18,
-      borderRadius: "50%",
-      background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 10
-    }
-  }, "\uD83D\uDC65"), "\u0412\u0441\u0435"), fullRoster.map((p, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    onClick: () => setSelPerson(i),
-    className: "tap",
-    style: chipStyle(selPerson === i)
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 18,
-      height: 18,
-      borderRadius: "50%",
-      background: p.color,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 9,
-      fontWeight: 700,
-      color: "rgba(0,0,0,0.6)"
-    }
-  }, p.initials), p.you ? "Ты" : p.name.split(" ")[0]))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(7,1fr)",
-      gap: 6,
-      marginBottom: 7
-    }
-  }, WD.map((d, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      textAlign: "center",
-      fontSize: 9.5,
-      fontWeight: 600,
-      color: "var(--text-4)",
-      letterSpacing: 0.4
-    }
-  }, d))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(7,1fr)",
-      gap: 6
-    }
-  }, !isShared ? cells.map((done, i) => {
-    var mins = done ? dayMins(i) : 0;
-    var frac = !done ? 0 : h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1;
-    var C = 2 * Math.PI * 15.5;
-    return /*#__PURE__*/React.createElement("span", {
-      key: i,
-      title: !done ? "пропущено" : h.duration ? mins + " мин" : "выполнено",
-      style: {
-        position: "relative",
-        aspectRatio: "1/1",
-        display: "block"
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      viewBox: "0 0 40 40",
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%"
-      }
-    }, /*#__PURE__*/React.createElement("circle", {
-      cx: "20",
-      cy: "20",
-      r: "15.5",
-      fill: "none",
-      stroke: emptyBd,
-      strokeWidth: "3.4"
-    }), frac > 0 && /*#__PURE__*/React.createElement("circle", {
-      cx: "20",
-      cy: "20",
-      r: "15.5",
-      fill: "none",
-      stroke: ringColor,
-      strokeWidth: "3.4",
-      strokeLinecap: "round",
-      strokeDasharray: C,
-      strokeDashoffset: C * (1 - frac),
-      transform: "rotate(-90 20 20)",
-      style: {
-        filter: `drop-shadow(0 0 1.6px ${ringColor}aa)`
-      }
-    })));
-  }) : selP ? cells.map((_, i) => {
-    // One selected person — their days light up in their own colour.
-    var done = selP.cells[i];
-    return /*#__PURE__*/React.createElement("span", {
-      key: i,
-      title: done ? "отметил" : "пропустил",
-      style: {
-        position: "relative",
-        aspectRatio: "1/1",
-        display: "block"
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      viewBox: "0 0 40 40",
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%"
-      }
-    }, /*#__PURE__*/React.createElement("circle", {
-      cx: "20",
-      cy: "20",
-      r: "15.5",
-      fill: "none",
-      stroke: emptyBd,
-      strokeWidth: "3.4"
-    }), done && /*#__PURE__*/React.createElement("circle", {
-      cx: "20",
-      cy: "20",
-      r: "15.5",
-      fill: "none",
-      stroke: selP.color,
-      strokeWidth: "3.4",
-      style: {
-        filter: `drop-shadow(0 0 1.6px ${selP.color}aa)`
-      }
-    })));
-  }) : cells.map((_, i) => {
-    // ONE common team ring — fills by how much of the team showed up that day.
-    var frac = aggFrac[i];
-    var C = 2 * Math.PI * 15.5;
-    return /*#__PURE__*/React.createElement("span", {
-      key: i,
-      title: `${aggCount[i]} из ${fullRoster.length} отметились`,
-      style: {
-        position: "relative",
-        aspectRatio: "1/1",
-        display: "block"
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      viewBox: "0 0 40 40",
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%"
-      }
-    }, /*#__PURE__*/React.createElement("circle", {
-      cx: "20",
-      cy: "20",
-      r: "15.5",
-      fill: "none",
-      stroke: emptyBd,
-      strokeWidth: "3.4"
-    }), frac > 0 && /*#__PURE__*/React.createElement("circle", {
-      cx: "20",
-      cy: "20",
-      r: "15.5",
-      fill: "none",
-      stroke: "#FFC400",
-      strokeWidth: "3.4",
-      strokeLinecap: "round",
-      strokeDasharray: C,
-      strokeDashoffset: C * (1 - frac),
-      transform: "rotate(-90 20 20)",
-      style: {
-        filter: "drop-shadow(0 0 1.6px #FFC400aa)"
-      }
-    })));
-  })), !isShared ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginTop: 13,
-      fontSize: 11,
-      color: "var(--text-4)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "13",
-    height: "13",
-    viewBox: "0 0 40 40",
-    "aria-hidden": true
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "20",
-    cy: "20",
-    r: "15.5",
-    fill: "none",
-    stroke: ringColor,
-    strokeWidth: "6"
-  })), " \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "13",
-    height: "13",
-    viewBox: "0 0 40 40",
-    "aria-hidden": true
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "20",
-    cy: "20",
-    r: "15.5",
-    fill: "none",
-    stroke: emptyBd,
-    strokeWidth: "6"
-  })), " \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u043E")), /*#__PURE__*/React.createElement("span", null, "\u041F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "var(--text-2)"
-    }
-  }, /*#__PURE__*/React.createElement(Count, {
-    value: rate
-  }), "%"))) : selP ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7,
-      marginTop: 13,
-      fontSize: 11,
-      color: "var(--text-4)",
-      lineHeight: 1.4
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 9,
-      height: 9,
-      borderRadius: "50%",
-      background: selP.color,
-      boxShadow: `0 0 3px ${selP.color}aa`,
-      flexShrink: 0
-    }
-  }), /*#__PURE__*/React.createElement("span", null, "\u0426\u0432\u0435\u0442\u043E\u043C \u2014 \u0434\u043D\u0438, \u043A\u043E\u0433\u0434\u0430 ", selP.you ? "ты закрывал" : selP.name + " закрывал", " \u044D\u0442\u0443 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443. \u041F\u0443\u0441\u0442\u043E \u2014 \u043F\u0440\u043E\u043F\u0443\u0441\u043A.")) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginTop: 13,
-      fontSize: 11,
-      color: "var(--text-4)",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      lineHeight: 1.4
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "13",
-    height: "13",
-    viewBox: "0 0 40 40",
-    "aria-hidden": true,
-    style: {
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "20",
-    cy: "20",
-    r: "15.5",
-    fill: "none",
-    stroke: emptyBd,
-    strokeWidth: "6"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "20",
-    cy: "20",
-    r: "15.5",
-    fill: "none",
-    stroke: "#FFC400",
-    strokeWidth: "6",
-    strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * 15.5,
-    strokeDashoffset: 2 * Math.PI * 15.5 * 0.4,
-    transform: "rotate(-90 20 20)"
-  })), "\u041E\u0431\u0449\u0435\u0435 \u043A\u043E\u043B\u044C\u0446\u043E \u2014 \u043D\u0430\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0434\u0440\u0443\u0436\u043D\u043E \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u0430\u0441\u044C \u0432 \u044D\u0442\u043E\u0442 \u0434\u0435\u043D\u044C. \u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430, \u0447\u0442\u043E\u0431\u044B \u0443\u0432\u0438\u0434\u0435\u0442\u044C \u0435\u0433\u043E \u0434\u043D\u0438."), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "var(--text-2)"
-    }
-  }, fullRoster.length), " \u0447\u0435\u043B.")), h.duration && !isShared && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      marginTop: 9,
-      lineHeight: 1.4
-    }
-  }, "\u041A\u043E\u043B\u044C\u0446\u043E \u0442\u0435\u043C \u043F\u043E\u043B\u043D\u0435\u0435, \u0447\u0435\u043C \u0434\u043E\u043B\u044C\u0448\u0435 \u0431\u044B\u043B\u0430 \u0441\u0435\u0441\u0441\u0438\u044F \u0432 \u044D\u0442\u043E\u0442 \u0434\u0435\u043D\u044C.")), /*#__PURE__*/React.createElement("div", {
+  })(), /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
+    people: calPeople,
+    dayFrac: habitFrac,
+    label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438",
+    selPerson: isShared ? selPerson : undefined,
+    onSelPerson: isShared ? setSelPerson : undefined
+  }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
