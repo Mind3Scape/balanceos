@@ -764,8 +764,8 @@ var SCENE = {
     tint: ["#cfe1ff", "#7aa4d0", "#1a2c48"]
   },
   mood: {
-    size: 72,
-    intensity: 1.4,
+    size: 62,
+    intensity: 1.25,
     tint: ["#e8f0ff", "#9bbfe8", "#2c4d76"]
   }
 };
@@ -834,7 +834,7 @@ function hueShift(hex, deg) {
 // takes the colour; the face is the hero. One value 0..1 drives all three.
 var MOOD_SPECTRUM_STOPS = ["#FF5A5F", "#FF9F43", "#FFCE3A", "#34C759", "#19B6E8"];
 var MOOD_FACES = ["😣", "😕", "😐", "🙂", "🤩"];
-var MOOD_WORDS = ["Накрывает", "Так себе", "Ровно", "В потоке", "На крыльях"];
+var MOOD_WORDS = ["Тяжело", "Неважно", "Нормально", "Хорошо", "Отлично"];
 function moodSpectrum(v) {
   var x = Math.max(0, Math.min(1, isFinite(v) ? v : 0.5)) * (MOOD_SPECTRUM_STOPS.length - 1);
   var i = Math.min(MOOD_SPECTRUM_STOPS.length - 2, Math.floor(x));
@@ -991,16 +991,7 @@ function IntroScreen() {
   // Onboarding state slider: 0 = heavy, 0.5 = base/ровно, 1 = on the rise. The orb
   // tint EASES toward the value each frame so the colour flows instead of snapping.
   var [moodVal, setMoodVal] = useIS(0.5);
-  var moodEase = useIR({
-    t: 0,
-    val: 0.5
-  });
-  var me = moodEase.current;
-  var mdt = Math.max(0, Math.min(0.05, t - me.t));
-  me.t = t;
-  me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
-  var moodTint = tintFromMood(moodSpectrum(me.val));
-  var moodMain = moodSpectrum(moodVal); // crisp colour for the track fill (un-eased)
+  var moodMain = moodSpectrum(moodVal); // colour for the slider track fill only — the orb stays calm
   var moodIdx = moodBucket(moodVal);
   var moodFace = MOOD_FACES[moodIdx];
   var moodWordTxt = MOOD_WORDS[moodIdx];
@@ -1046,7 +1037,7 @@ function IntroScreen() {
     mode: "mood",
     eyebrow: "Точка отсчёта",
     title: "Как ты сейчас?",
-    sub: "Подвинь точку к своему состоянию — орб подхватит цвет. Отсюда и начнём.",
+    sub: "Подвинь точку к своему состоянию — отсюда и начнём.",
     glow: "rgba(180,210,240,0.45)"
   }];
   var cur = slides[step];
@@ -1210,8 +1201,7 @@ function IntroScreen() {
     mode: cur.mode,
     prevMode: effectivePrev,
     blend: blend,
-    dark: dark,
-    tintOverride: moodTint
+    dark: dark
   })), cur.mode === "mood" && /*#__PURE__*/React.createElement("div", {
     key: moodIdx,
     style: {
@@ -1224,7 +1214,7 @@ function IntroScreen() {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 58,
+      fontSize: 50,
       lineHeight: 1,
       animation: "moodFacePop 0.42s cubic-bezier(0.34,1.56,0.64,1) both",
       filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.35))"
