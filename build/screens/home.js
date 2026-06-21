@@ -635,6 +635,11 @@ function HomeScreen() {
       h = n % 100;
     return m === 1 && h !== 11 ? "привычку" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "привычки" : "привычек";
   };
+  var ruTeam = n => {
+    var m = n % 10,
+      h = n % 100;
+    return m === 1 && h !== 11 ? "команда" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "команды" : "команд";
+  };
   var dayStreak = app?.mode === "fresh" ? 0 : 27;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
@@ -1013,44 +1018,33 @@ function HomeScreen() {
       letterSpacing: 1,
       fontWeight: 600
     }
-  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u0430"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
       color: "var(--text-2)",
       marginTop: 4,
       fontWeight: 500
     }
-  }, teams.length ? teams.length + " активны" : "Создай команду")), teams.length > 0 ? /*#__PURE__*/React.createElement("div", {
+  }, teams.length ? teams.length + " " + ruTeam(teams.length) : "Создай команду")), teams.length > 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, teams.slice(0, 4).map((t, i) => /*#__PURE__*/React.createElement("span", {
+    key: t._id || i,
+    title: t.name,
     style: {
       width: 28,
       height: 28,
       borderRadius: "50%",
-      background: "#e8a8a8",
-      border: "2px solid " + (isDark ? "#0a0a0a" : "#fff")
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: "50%",
-      background: "#a8d4a8",
+      background: t.accent || "var(--surface-3)",
       border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
-      marginLeft: -10
+      marginLeft: i ? -10 : 0,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 14,
+      lineHeight: 1
     }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: "50%",
-      background: "#c8b9e8",
-      border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
-      marginLeft: -10
-    }
-  })) : /*#__PURE__*/React.createElement("span", {
+  }, t.emblem || "👥"))) : /*#__PURE__*/React.createElement("span", {
     style: {
       width: 30,
       height: 30,
@@ -1470,7 +1464,7 @@ function HomeScreen() {
       marginTop: 2,
       lineHeight: 1.4
     }
-  }, "\u041E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438: \u043A\u043E\u043C\u0430\u043D\u0434\u044B, \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0438, \u0446\u0435\u043B\u0438 \u2014 \u0432\u0441\u044F \u0441\u0443\u0442\u044C \u043D\u0430 \u043E\u0434\u043D\u043E\u0439 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B, \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0438, \u0446\u0435\u043B\u0438 \u2014 \u043E\u0431\u043E \u0432\u0441\u0451\u043C \u043A\u043E\u0440\u043E\u0442\u043A\u043E \u043D\u0430 \u043E\u0434\u043D\u043E\u0439 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 20,
     color: "var(--text-4)"
   })), widgets.energy !== false && /*#__PURE__*/React.createElement("div", {

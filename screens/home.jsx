@@ -273,6 +273,7 @@ function HomeScreen() {
   const dayAllDone = totalCount > 0 && leftCount === 0;
   const xpEarnedToday = doneCount * XP_PER_HABIT + (dayAllDone ? XP_IDEAL_DAY : 0);
   const ruHab = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "привычку" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "привычки" : "привычек"; };
+  const ruTeam = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "команда" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "команды" : "команд"; };
   const dayStreak = app?.mode === "fresh" ? 0 : 27;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
@@ -393,14 +394,14 @@ function HomeScreen() {
         <button className="tap" onClick={() => navigate("community")}
           style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
           <div>
-            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Команда</div>
-            <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{teams.length ? teams.length + " активны" : "Создай команду"}</div>
+            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Команды</div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{teams.length ? teams.length + " " + ruTeam(teams.length) : "Создай команду"}</div>
           </div>
           {teams.length > 0 ? (
           <div style={{ display: "flex" }}>
-            <span style={{ width: 28, height: 28, borderRadius: "50%", background: "#e8a8a8", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
-            <span style={{ width: 28, height: 28, borderRadius: "50%", background: "#a8d4a8", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: -10 }} />
-            <span style={{ width: 28, height: 28, borderRadius: "50%", background: "#c8b9e8", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: -10 }} />
+            {teams.slice(0, 4).map((t, i) => (
+              <span key={t._id || i} title={t.name} style={{ width: 28, height: 28, borderRadius: "50%", background: t.accent || "var(--surface-3)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: i ? -10 : 0, display: "grid", placeItems: "center", fontSize: 14, lineHeight: 1 }}>{t.emblem || "👥"}</span>
+            ))}
           </div>
           ) : (
           <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", color: "var(--text-3)" }}><I.Plus size={16}/></span>
@@ -515,7 +516,7 @@ function HomeScreen() {
           <span style={{ width: 44, height: 44, borderRadius: 14, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22, boxShadow: isDark ? "none" : "0 2px 8px rgba(120,150,200,0.2)" }}>🧭</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Что дальше?</div>
-            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.4 }}>О приложении: команды, тренинги, цели — вся суть на одной странице</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.4 }}>Команды, тренинги, цели — обо всём коротко на одной странице</div>
           </div>
           <I.ChevronRight size={20} color="var(--text-4)" />
         </button>

@@ -58,7 +58,7 @@ function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock
     },
     {
       i: "🤝", t: "Воспользуйся услугой партнёра",
-      d: "Запишись на сессию к коучу Balance или партнёру — это засчитывается в XP.",
+      d: "Запишись к коучу Balance или партнёру — занятие принесёт XP.",
       cta: "Смотреть партнёров", action: () => onSwitchToCommunity(),
       meta: "+250 XP / сессия",
       accent: "#9bd0ff",
@@ -96,7 +96,7 @@ function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock
               Создан для<br/>преданных делу.
             </div>
             <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5 }}>
-              Знакомься с реальными людьми в своём городе — когда докажешь практику.
+              Знакомься вживую с людьми из своего города — когда наберёшь практику.
             </div>
           </div>
         </div>
@@ -162,7 +162,7 @@ function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", letterSpacing: 0.2 }}>Почему Нетворк закрыт?</span>
         </div>
         <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.5 }}>
-          Нам нужно сообщество преданных делу людей, а не шум. Когда вход надо заслужить, пространство остаётся сфокусированным, безопасным и полным тех, с кем правда хочется встретиться.
+          Нам важны люди, преданные делу, а не случайный шум. Когда вход нужно заслужить, здесь остаются только те, с кем правда хочется познакомиться.
         </div>
       </div>
 
@@ -213,7 +213,7 @@ function YourImpactCard({ level }) {
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", letterSpacing: 0.4 }}>XP вклада · Уровень {level}</span>
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.5, marginTop: 4 }}>
-            Каждое выполненное для сообщества предложение приносит вклад. Обменяй его на XP или повышай свой статус.
+            Помогаешь другим — растёт твой вклад. Его можно обменять на XP или поднять статус.
           </div>
         </div>
       </div>
@@ -222,7 +222,7 @@ function YourImpactCard({ level }) {
       <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700, marginBottom: 8 }}>Что ты можешь предложить</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {unlocked.length === 0 && <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>Достигни 3 уровня, чтобы открыть первое предложение.</span>}
+          {unlocked.length === 0 && <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>С 3-го уровня сможешь предлагать свою помощь другим.</span>}
           {unlocked.map((u, i) => (
             <span key={i} style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -240,7 +240,7 @@ function YourImpactCard({ level }) {
         <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255,222,52,0.08)", borderRadius: 14, display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ width: 30, height: 30, borderRadius: 999, background: "rgba(254,222,52,0.18)", display: "grid", placeItems: "center", fontSize: 16, color: "#FEDE34" }}>{next.i}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>Уровень {next.lvl} откроет · {next.t}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>Откроется на {next.lvl} уровне · {next.t}</div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>{next.d}</div>
           </div>
           <I.ChevronRight size={14} color="rgba(255,255,255,0.5)"/>
@@ -501,7 +501,7 @@ function CommunityScreen() {
           <YourImpactCard level={userLevel} />
           {/* Network header */}
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 0" }}>
-            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Рядом в твоём кругу</div>
+            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Люди рядом с тобой</div>
             <div style={{ fontSize: 11, color: "var(--text-4)" }}>По вкладу</div>
           </div>
           {network.map((p, i) => <div key={i} data-tour={i === 0 ? "contacts" : undefined}><NetworkPersonCard p={p} userLevel={userLevel} /></div>)}
@@ -1009,7 +1009,7 @@ function TeamCreateScreen() {
       <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500, lineHeight: 1.4 }}>Двигай это привычками</div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500, lineHeight: 1.4 }}>Двигать цель привычками</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Отметка каждого участника по этим привычкам = +1 к цели. Участники также могут добавлять своё число вручную.</div>
           </div>
           <span style={{ fontSize: 11, fontWeight: 700, color: linkedCount > 0 ? "#1e6b3a" : "var(--text-4)", background: linkedCount > 0 ? "#e5f5ea" : "#e8e8e8", padding: "3px 9px", borderRadius: 999, flexShrink: 0 }}>{linkedCount} привязано</span>
@@ -1060,7 +1060,7 @@ function TeamCreateScreen() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Если команда достигает цели — банк делится 2× обратно. Если нет — XP сгорают. Необязательно, но мощно.</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Дойдёте до цели — банк вернётся вдвое больше. Не дойдёте — ставки сгорают. Необязательно, но азартно.</div>
           </div>
           <Switch on={stakes} onChange={setStakes}/>
         </div>
@@ -1717,7 +1717,7 @@ function CourseDetailScreen() {
     overload: [
       { wk: "День 1", h: "Найди шум", b: "Определи, что выбивает тебя из равновесия — и во что это обходится." },
       { wk: "День 2", h: "Убери три", b: "Убери три главных утечки энергии. Замени каждую на 60-секундную перезагрузку." },
-      { wk: "День 3", h: "Задай минимум", b: "Собери минимальный ежедневный ритуал, который выдержишь в самый худой день." },
+      { wk: "День 3", h: "Задай минимум", b: "Собери минимальный ежедневный ритуал, который выдержишь даже в самый трудный день." },
     ],
     breakthrough: [
       { wk: "Дни 1–2", h: "Аудит", b: "Определи свой потолок и убеждение, которое его поставило." },
