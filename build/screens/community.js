@@ -1496,10 +1496,18 @@ function CommunityScreen() {
       alignItems: "flex-start",
       gap: 12
     }
-  }, /*#__PURE__*/React.createElement(CourseGlass, {
-    c: c,
-    size: 46
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: "50%",
+      background: c.accent,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22,
+      flexShrink: 0
+    }
+  }, c.i), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
@@ -4961,10 +4969,18 @@ function CourseDetailScreen() {
       alignItems: "flex-start",
       gap: 14
     }
-  }, /*#__PURE__*/React.createElement(CourseGlass, {
-    c: c,
-    size: 58
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 58,
+      height: 58,
+      borderRadius: "50%",
+      background: c.accent,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 28,
+      flexShrink: 0
+    }
+  }, c.i), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0

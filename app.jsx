@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v91";
+const APP_VERSION = "v92";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -184,14 +184,14 @@ const HABIT_INVITE_STOP = { kind: "spot", tab: "habit-settings", params: { mode:
 const INFLUENCE_MULT_STOP = { kind: "spot", tab: "levels", sel: '[data-tour="influence-mult"]', radius: 18, eyebrow: "Множитель влияния", title: "Вовлекаешь — растёшь быстрее всех",
   body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — растёт с кругом до ×1.25 (дальше потолок, чтобы игра была честной). Привёл людей — растёшь быстрее одиночки даже на тех же привычках." };
 
-// The balance wheel lives on home hero page 2 — the demo flips the deck to it and
-// makes clear the AI sorts every habit into the right life-sphere automatically.
-const BALANCE_WHEEL_STOP = { kind: "spot", tab: "home", heroPage: 1, sel: '[data-tour="balance-wheel"]', radius: 14, eyebrow: "Колесо баланса", title: "ИИ раскладывает жизнь по сферам",
-  body: "Это твоё колесо баланса: тело, разум, карьера, отношения, отдых. ИИ сам относит каждую привычку к нужной сфере и следит, где густо, а где проседает — оранжевое значит, что эта часть жизни просит внимания." };
+// Shown at the END of the habits guide (right after creating a habit): flips the
+// home hero deck to the balance wheel and explains habits → balance, AI-sorted.
+const BALANCE_WHEEL_STOP = { kind: "spot", tab: "home", heroPage: 1, sel: '[data-tour="balance-wheel"]', radius: 14, eyebrow: "Баланс жизни", title: "Привычки питают твой баланс",
+  body: "Каждая привычка, что ты заводишь, ложится в одну из сфер жизни — тело, разум, карьера, отношения. ИИ сам относит её в нужную сферу и ведёт твой баланс: видно, где густо, а где проседает (оранжевое просит внимания)." };
 
 const SCREEN_TOURS = {
-  home: [BALANCE_WHEEL_STOP, ...TOUR_STOPS.slice(2, 6), INFLUENCE_MULT_STOP, TOUR_STOPS[6], HOME_SHARE_STOP],  // wheel, aihints, state, level, levels-peek, MULTIPLIER, ach-peek, share
-  habits: [...TOUR_STOPS.slice(8, 10), HABIT_INVITE_STOP, HABIT_PEEK_STOP],  // presets, add, invite-while-creating, leaderboard peek
+  home: [...TOUR_STOPS.slice(2, 6), INFLUENCE_MULT_STOP, TOUR_STOPS[6], HOME_SHARE_STOP],  // aihints, state, level, levels-peek, MULTIPLIER, ach-peek, share
+  habits: [...TOUR_STOPS.slice(8, 10), HABIT_INVITE_STOP, HABIT_PEEK_STOP, BALANCE_WHEEL_STOP],  // presets, add, invite-while-creating, leaderboard peek, balance wheel (habits→balance)
   community: TOUR_STOPS.slice(11, 19),                    // make-team … course (teams, chat, network, courses)
   ai: [
     { kind: "spot", tab: "ai", sel: '[data-tour="ai-hero"]', radius: 24, eyebrow: "Чтение дня", title: "Главный инсайт дня",
@@ -250,7 +250,11 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
         const key = [m.x, m.y, m.w, m.h].map(n => Math.round(n)).join(",");
         if (key === lastKey) stable++; else { stable = 0; lastKey = key; }
         const apply = () => { if (key !== lastSet) { setSpot(m); lastSet = key; } };
-        if (stable >= 2) committed = true;
+        // First reveal waits longer on a tab/view switch (5 stable frames) so async
+        // reflow above the target — team cards loading, lists settling — finishes
+        // BEFORE the highlight appears. Otherwise it flashes at a pre-reflow spot and
+        // then visibly jumps. frames>40 is a safety net so it always eventually shows.
+        if (stable >= (sameCtx ? 2 : 5) || frames > 40) committed = true;
         // Reveal once stable (fades in at the right place after a context switch),
         // then KEEP following late layout shifts (avatars/lists settling, async
         // reflow) so the highlight can't end up half-covering the target — the

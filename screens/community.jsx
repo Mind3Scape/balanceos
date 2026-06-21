@@ -528,7 +528,7 @@ function CommunityScreen() {
             <button key={i} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
               style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left" }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <CourseGlass c={c} size={46} />
+                <div style={{ width: 46, height: 46, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{c.i}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-0.3px" }}>{c.t}</span>
@@ -1737,7 +1737,7 @@ function CourseDetailScreen() {
       {/* HERO */}
       <div style={{ background: "var(--card)", borderRadius: 24, padding: "22px 20px 20px", boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-          <CourseGlass c={c} size={58} />
+          <div style={{ width: 58, height: 58, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0 }}>{c.i}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, padding: "2px 8px", background: "var(--card-2)", borderRadius: 999, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600 }}>{c.lvl}</span>
