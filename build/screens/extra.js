@@ -1601,7 +1601,7 @@ function LevelUpScreen() {
     style: {
       color: "#FEDE34"
     }
-  }, "+250 \u043A\u0440\u0435\u0434\u0438\u0442\u043E\u0432"), " \u0438 \u043E\u0442\u043A\u0440\u044B\u043B \u043D\u043E\u0432\u044B\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u043D\u0430\u0433\u0440\u0430\u0434."), /*#__PURE__*/React.createElement("div", {
+  }, "+250 XP"), " \u0438 \u043E\u0442\u043A\u0440\u044B\u043B \u043D\u043E\u0432\u044B\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u043D\u0430\u0433\u0440\u0430\u0434."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,

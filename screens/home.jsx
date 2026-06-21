@@ -591,7 +591,7 @@ function ShareAppSheet({ dark = false }) {
 
       {/* Reward hero — the first thing the eye lands on: what you earn + the multiplier */}
       <div style={{ marginTop: 18 }}>
-        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" maxMult="1.5" dark={dark} />
+        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" maxMult="1.25" dark={dark} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.tile, borderRadius: 14, padding: "11px 14px", marginTop: 14 }}>

@@ -603,73 +603,63 @@ function CountUp({
   return /*#__PURE__*/React.createElement(React.Fragment, null, decimals ? Number(disp).toFixed(decimals) : Math.round(disp));
 }
 
-/* ── XP reward hero — the focal "what you earn" tile inside share sheets.
-   A big gold XP number (same gradient as the home energy ring, so energy = XP
-   reads visually) with the Влияние multiplier as a teal capsule beneath. Built
-   to catch the eye the instant a share sheet opens. Reused by ShareAppSheet &
-   ShareHabitSheet so both share moments tell the same story. */
+/* ── XP reward banner — modelled on the gold "Посмотреть демо" CTA: ONE golden
+   surface, dark ink, soft gold shadow, a faint concentric "influence ripple" on
+   the back for depth (single tone, not multi-colour). Big XP number + an
+   understated, capped multiplier line. The first thing the eye lands on when a
+   share sheet opens. Reused by ShareAppSheet (+150) & ShareHabitSheet (+75). */
 function XPRewardCard({
-  amount = 50,
-  reason = "когда друг присоединится",
-  maxMult = "1.5",
-  footer = null,
+  amount = 150,
+  reason = "когда друг начнёт пользоваться приложением",
+  maxMult = "1.25",
   dark = false
 }) {
-  var C = dark ? {
-    card: "rgba(255,255,255,0.055)",
-    line: "rgba(255,255,255,0.10)",
-    text: "#fff",
-    sub: "rgba(255,255,255,0.56)",
-    boltBg: "rgba(255,196,60,0.16)"
-  } : {
-    card: "#fff",
-    line: "rgba(0,0,0,0.05)",
-    text: "#0a0a0a",
-    sub: "rgba(0,0,0,0.5)",
-    boltBg: "#fff4dd"
-  };
-  var goldGrad = "linear-gradient(135deg,#FFB02E,#FF7A59)";
-  var inflGrad = "linear-gradient(135deg,#5FA8FF,#46E6DC)";
-  var goldText = {
-    background: goldGrad,
-    WebkitBackgroundClip: "text",
-    backgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    color: "#FF8A3D"
-  };
+  var ink = "#0a0a0a";
+  var inkSub = "rgba(0,0,0,0.62)";
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       overflow: "hidden",
       borderRadius: 20,
       padding: "16px 17px",
-      background: C.card,
-      border: "1px solid " + C.line,
-      boxShadow: dark ? "none" : "0 8px 24px rgba(255,150,40,0.13)"
+      background: "linear-gradient(135deg, #FEDE34 0%, #FFC400 100%)",
+      color: ink,
+      boxShadow: "0 12px 30px rgba(254,222,52,0.34)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: "absolute",
-      top: -46,
-      left: -26,
-      width: 170,
-      height: 170,
+      right: -34,
+      top: -38,
+      width: 168,
+      height: 168,
       borderRadius: "50%",
-      background: "radial-gradient(circle, rgba(255,176,46,0.30), transparent 68%)",
+      border: "20px solid rgba(255,255,255,0.18)",
+      boxShadow: "0 0 0 20px rgba(255,255,255,0.09)",
       pointerEvents: "none"
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
+      position: "relative",
       display: "flex",
       alignItems: "center",
-      gap: 10
+      gap: 13
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: 14,
+      background: "rgba(255,255,255,0.6)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Sparkles, {
+    size: 23,
+    color: ink
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -682,74 +672,58 @@ function XPRewardCard({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 42,
+      fontSize: 33,
       fontWeight: 800,
-      letterSpacing: "-1.5px",
-      lineHeight: 1,
-      ...goldText
+      letterSpacing: "-1.2px",
+      lineHeight: 1
     }
   }, "+", /*#__PURE__*/React.createElement(CountUp, {
     value: amount
   })), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 19,
+      fontSize: 17,
       fontWeight: 800,
-      letterSpacing: "-0.5px",
-      ...goldText
+      letterSpacing: "-0.3px"
     }
   }, "XP")), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
-      color: C.sub,
+      fontSize: 12.5,
+      color: inkSub,
       marginTop: 3,
       lineHeight: 1.35
     }
-  }, reason)), /*#__PURE__*/React.createElement("span", {
+  }, reason))), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 46,
-      height: 46,
-      borderRadius: 14,
-      background: C.boltBg,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 24,
-      flexShrink: 0
-    }
-  }, "\u26A1\uFE0F")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: C.line,
-      margin: "13px 0 12px"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
+      position: "relative",
       display: "flex",
       alignItems: "center",
-      gap: 11
+      gap: 9,
+      marginTop: 13,
+      paddingTop: 12,
+      borderTop: "1px solid rgba(0,0,0,0.10)"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       flexShrink: 0,
-      background: inflGrad,
-      color: "#fff",
-      fontWeight: 800,
-      fontSize: 15,
-      letterSpacing: "-0.3px",
-      borderRadius: 12,
-      padding: "7px 11px",
-      boxShadow: "0 4px 12px rgba(70,150,230,0.30)"
+      background: "rgba(0,0,0,0.10)",
+      color: ink,
+      fontWeight: 700,
+      fontSize: 12.5,
+      letterSpacing: "-0.2px",
+      borderRadius: 999,
+      padding: "4px 11px"
     }
-  }, "\xD7", maxMult), /*#__PURE__*/React.createElement("div", {
+  }, "\u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: C.sub,
+      color: inkSub,
       lineHeight: 1.4
     }
-  }, /*#__PURE__*/React.createElement("b", {
+  }, "\u041A\u0430\u0436\u0434\u044B\u0439 \u0434\u0440\u0443\u0433 \u0443\u0441\u043A\u043E\u0440\u044F\u0435\u0442 ", /*#__PURE__*/React.createElement("b", {
     style: {
-      color: C.text
+      color: ink
     }
-  }, "\u041C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C \u0432\u043B\u0438\u044F\u043D\u0438\u044F."), " \u0427\u0435\u043C \u0431\u043E\u043B\u044C\u0448\u0435 \u0434\u0440\u0443\u0437\u0435\u0439 \u0432 \u0434\u0435\u043B\u0435 \u2014 \u0442\u0435\u043C \u0431\u044B\u0441\u0442\u0440\u0435\u0435 \u0440\u0430\u0441\u0442\u0451\u0442 ", /*#__PURE__*/React.createElement("i", null, "\u0432\u0435\u0441\u044C"), " \u0442\u0432\u043E\u0439 XP, \u0434\u043E \xD7", maxMult, ".")), footer));
+  }, "\u0432\u0435\u0441\u044C"), " \u0442\u0432\u043E\u0439 XP \u2014 \u0440\u0430\u0441\u0442\u0451\u0442 \u0441 \u043A\u0440\u0443\u0433\u043E\u043C, \u0434\u043E \xD7", maxMult, ".")));
 }
 Object.assign(window, {
   Phone,

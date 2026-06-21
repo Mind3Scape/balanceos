@@ -213,7 +213,7 @@ function YourImpactCard({ level }) {
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", letterSpacing: 0.4 }}>XP вклада · Уровень {level}</span>
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.5, marginTop: 4 }}>
-            Каждое выполненное для сообщества предложение приносит вклад. Обменяй его на кредиты или повышай свой статус.
+            Каждое выполненное для сообщества предложение приносит вклад. Обменяй его на XP или повышай свой статус.
           </div>
         </div>
       </div>
@@ -1519,17 +1519,19 @@ function LevelsScreen() {
   const app = useApp ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const invited = app?.mode === "demo" ? 2 : 0; // people you've drawn into the app
-  // Влияние multiplier — the more active people in your circle, the faster ALL
-  // your XP grows. This is the "big bonus relative to grinding points".
-  const multTier = invited >= 10 ? 1.5 : invited >= 3 ? 1.25 : invited >= 1 ? 1.1 : 1.0;
-  const nextMult = invited < 3 ? { n: 3, m: 1.25 } : invited < 10 ? { n: 10, m: 1.5 } : null;
+  // Влияние multiplier — diminishing tiers with a HARD CAP so whales (100/1000
+  // invites) can't break the economy. Grows from the first few friends, tops out
+  // at ×1.25. The "big bonus" — meaningful, not game-breaking.
+  const MULT_TIERS = [{ n: 1, m: 1.05 }, { n: 3, m: 1.10 }, { n: 5, m: 1.15 }, { n: 10, m: 1.20 }, { n: 25, m: 1.25 }];
+  let multTier = 1.0; for (const t of MULT_TIERS) { if (invited >= t.n) multTier = t.m; }
+  const nextMult = MULT_TIERS.find(t => t.n > invited) || null; // null = at the cap
   const ruPpl = (n, a) => { const m = n % 10, h = n % 100; return a[(m === 1 && h !== 11) ? 0 : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? 1 : 2]; };
   const ach = (typeof window !== "undefined" && window.ACHIEVEMENTS) || [];
   const achEarned = ach.filter(a => a.earned);
   const lvl = 7;
   const xp = 1240;
   const next = 1500;
-  const credits = 1240;
+  const credits = 980; // spendable XP balance (lifetime/level XP is separate, 1240)
   const rewards = [
     { i: "🎁", t: "Коробка-сюрприз", c: 200, lvl: 5, unlocked: true },
     { i: "🧘🏼‍♀️", t: "Персональная медитация", c: 500, lvl: 6, unlocked: true },
@@ -1608,7 +1610,7 @@ function LevelsScreen() {
           </div>
         </div>
 
-        {nextMult && (
+        {nextMult ? (
           <div style={{ marginTop: 14 }}>
             <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden" }}>
               <span style={{ display: "block", height: "100%", width: Math.min(100, invited / nextMult.n * 100) + "%", background: "linear-gradient(90deg,#5FA8FF,#46E6DC)", borderRadius: 999 }} />
@@ -1616,6 +1618,10 @@ function LevelsScreen() {
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
               Ещё <b style={{ color: "var(--text-2)" }}>{nextMult.n - invited}</b> {ruPpl(nextMult.n - invited, ["человек", "человека", "человек"])} → множитель <b style={{ color: "var(--text-2)" }}>×{nextMult.m}</b> на всё, что ты делаешь.
             </div>
+          </div>
+        ) : (
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 14, lineHeight: 1.45 }}>
+            Максимум — <b style={{ color: "var(--text-2)" }}>×1.25</b>. Выше не растёт: потолок, чтобы игра оставалась честной для всех.
           </div>
         )}
 
@@ -1642,18 +1648,20 @@ function LevelsScreen() {
         <I.ChevronRight size={18} className="bos-sys-text-2"/>
       </SysCard>
 
-      {/* Credits — spendable on contacts' services in the Network */}
+      {/* Spendable XP balance — Variant A: one currency. Lifetime XP drives the
+          level (never spent); this balance is what you spend on rewards & mentors.
+          Spending it does NOT lower your level. */}
       <SysCard style={{ padding: 16, marginTop: 22, display: "flex", alignItems: "center", gap: 14, borderRadius: 18 }}>
         <span className="bos-sys-chip-bg" style={{ width: 50, height: 50, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 24 }}>🪙</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Кредиты</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Баланс XP</div>
           <div style={{ fontSize: 26, fontWeight: 700, marginTop: 2 }}>{credits.toLocaleString()}</div>
-          <div className="bos-sys-text-3" style={{ fontSize: 11.5, marginTop: 1 }}>на услуги наставников в Нетворке</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 11.5, marginTop: 1 }}>можно потратить · уровень от траты не падает</div>
         </div>
         <button onClick={() => { app?.setCommunityView?.({ section: "discover", discTab: "network" }); navigate("community"); }} className="tap" style={{ background: "#FEDE34", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>В Нетворк</button>
       </SysCard>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Награды за кредиты</div>
+      <div className="section-label" style={{ marginTop: 22 }}>Награды за XP</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {rewards.map((r, i) => (
           <SysCard key={i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, opacity: r.unlocked ? 1 : 0.55 }}>
@@ -1661,7 +1669,7 @@ function LevelsScreen() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{r.t}</div>
               <div className="bos-sys-text-3" style={{ fontSize: 11, marginTop: 2 }}>
-                {r.unlocked ? `${r.c} кредитов` : `Откроется на уровне ${r.lvl}`}
+                {r.unlocked ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`}
               </div>
             </div>
             <button disabled={!r.unlocked || credits < r.c} className="tap" style={{ background: r.unlocked && credits >= r.c ? "#FEDE34" : "var(--surface-3)", color: r.unlocked && credits >= r.c ? "#0a0a0a" : "var(--text-4)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>

@@ -237,7 +237,7 @@ function ShareHabitSheet({
   }, /*#__PURE__*/React.createElement(XPRewardCard, {
     amount: 75,
     reason: "\u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F \u043A \u044D\u0442\u043E\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0435",
-    maxMult: "1.5",
+    maxMult: "1.25",
     dark: dark
   })), /*#__PURE__*/React.createElement("div", {
     style: {

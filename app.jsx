@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v89";
+const APP_VERSION = "v90";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -135,7 +135,7 @@ const TOUR_STOPS = [
   { kind: "spot", tab: "home", sel: '[data-tour="level"]', radius: 18, eyebrow: "Геймификация", title: "Уровень растёт с первого дня",
     body: "Каждая отметка с самого начала качает опыт и уровень. Загляни — покажу, как это устроено." },
   { kind: "peek", tab: "levels", eyebrow: "Геймификация", title: "Опыт, ачивки, награды",
-    body: "Вот сердце прогресса: сверху — за что капает XP, ниже — ачивки (открывают новые круги людей) и награды за кредиты. Растёшь — открывается больше." },
+    body: "Вот сердце прогресса: сверху — за что капает XP, ниже — ачивки (открывают новые круги людей) и награды за XP. Растёшь — открывается больше." },
   { kind: "peek", tab: "achievements", eyebrow: "Ачивки вживую", title: "Каждая открывает свой круг",
     body: "Вот они: «Перегрузка» открыла наставников по фокусу, «Капитан команды» — лидеров. Каждая ачивка — ключ к новым людям и +уровень доступа." },
   { kind: "spot", tab: "habits", sel: '.bos-tabbar button:nth-of-type(2)', radius: 16, eyebrow: "Привычки и цели", title: "Тут ты всё создаёшь",
@@ -182,7 +182,7 @@ const HABIT_INVITE_STOP = { kind: "spot", tab: "habit-settings", params: { mode:
   body: "Любую привычку можно делать вдвоём. Друг присоединился → +75 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг." };
 // The heart of the economy — a small focus on the influence MULTIPLIER.
 const INFLUENCE_MULT_STOP = { kind: "spot", tab: "levels", sel: '[data-tour="influence-mult"]', radius: 18, eyebrow: "Множитель влияния", title: "Вовлекаешь — растёшь быстрее всех",
-  body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — до ×1.5. Привёл людей — качаешься в полтора раза быстрее, даже на тех же привычках." };
+  body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — растёт с кругом до ×1.25 (дальше потолок, чтобы игра была честной). Привёл людей — растёшь быстрее одиночки даже на тех же привычках." };
 
 const SCREEN_TOURS = {
   home: [...TOUR_STOPS.slice(2, 6), INFLUENCE_MULT_STOP, TOUR_STOPS[6], HOME_SHARE_STOP],  // aihints, state, level, levels-peek, MULTIPLIER, ach-peek, share
@@ -398,7 +398,7 @@ const TAB_INTROS = {
 const DEMO_INTROS = {
   home: { eyebrow: "Главная", title: "Твой экран дня", detail: true,
     body: "Состояние, баланс, серии и уровень — что важно, то наверху. Собери под себя.",
-    pills: [ { emoji: "😌", label: "Состояние" }, { emoji: "🔥", label: "Серии" }, { emoji: "🏆", label: "Уровень" }, { emoji: "🤝", label: "Влияние ×1.5" } ] },
+    pills: [ { emoji: "😌", label: "Состояние" }, { emoji: "🔥", label: "Серии" }, { emoji: "🏆", label: "Уровень" }, { emoji: "🤝", label: "Влияние ×1.25" } ] },
   habits: { eyebrow: "Практика", title: "Тут ты всё создаёшь", detail: true,
     body: "Привычки и цели — одному или вместе. Шаблоны для быстрого старта.",
     pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "🎯", label: "Цели" }, { emoji: "👥", label: "Вместе" } ] },

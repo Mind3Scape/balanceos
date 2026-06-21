@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v89";
+var APP_VERSION = "v90";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -181,7 +181,7 @@ var TOUR_STOPS = [{
   tab: "levels",
   eyebrow: "Геймификация",
   title: "Опыт, ачивки, награды",
-  body: "Вот сердце прогресса: сверху — за что капает XP, ниже — ачивки (открывают новые круги людей) и награды за кредиты. Растёшь — открывается больше."
+  body: "Вот сердце прогресса: сверху — за что капает XP, ниже — ачивки (открывают новые круги людей) и награды за XP. Растёшь — открывается больше."
 }, {
   kind: "peek",
   tab: "achievements",
@@ -376,7 +376,7 @@ var INFLUENCE_MULT_STOP = {
   radius: 18,
   eyebrow: "Множитель влияния",
   title: "Вовлекаешь — растёшь быстрее всех",
-  body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — до ×1.5. Привёл людей — качаешься в полтора раза быстрее, даже на тех же привычках."
+  body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — растёт с кругом до ×1.25 (дальше потолок, чтобы игра была честной). Привёл людей — растёшь быстрее одиночки даже на тех же привычках."
 };
 var SCREEN_TOURS = {
   home: [...TOUR_STOPS.slice(2, 6), INFLUENCE_MULT_STOP, TOUR_STOPS[6], HOME_SHARE_STOP],
@@ -996,7 +996,7 @@ var DEMO_INTROS = {
       label: "Уровень"
     }, {
       emoji: "🤝",
-      label: "Влияние ×1.5"
+      label: "Влияние ×1.25"
     }]
   },
   habits: {

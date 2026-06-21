@@ -1762,7 +1762,7 @@ function ShareAppSheet({
   }, /*#__PURE__*/React.createElement(XPRewardCard, {
     amount: 150,
     reason: "\u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u043D\u0451\u0442 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u043C",
-    maxMult: "1.5",
+    maxMult: "1.25",
     dark: dark
   })), /*#__PURE__*/React.createElement("div", {
     style: {

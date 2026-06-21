@@ -552,7 +552,7 @@ function YourImpactCard({
       lineHeight: 1.5,
       marginTop: 4
     }
-  }, "\u041A\u0430\u0436\u0434\u043E\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u043E\u0435 \u0434\u043B\u044F \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0430 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u043F\u0440\u0438\u043D\u043E\u0441\u0438\u0442 \u0432\u043A\u043B\u0430\u0434. \u041E\u0431\u043C\u0435\u043D\u044F\u0439 \u0435\u0433\u043E \u043D\u0430 \u043A\u0440\u0435\u0434\u0438\u0442\u044B \u0438\u043B\u0438 \u043F\u043E\u0432\u044B\u0448\u0430\u0439 \u0441\u0432\u043E\u0439 \u0441\u0442\u0430\u0442\u0443\u0441."))), /*#__PURE__*/React.createElement("div", {
+  }, "\u041A\u0430\u0436\u0434\u043E\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u043E\u0435 \u0434\u043B\u044F \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0430 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u043F\u0440\u0438\u043D\u043E\u0441\u0438\u0442 \u0432\u043A\u043B\u0430\u0434. \u041E\u0431\u043C\u0435\u043D\u044F\u0439 \u0435\u0433\u043E \u043D\u0430 XP \u0438\u043B\u0438 \u043F\u043E\u0432\u044B\u0448\u0430\u0439 \u0441\u0432\u043E\u0439 \u0441\u0442\u0430\u0442\u0443\u0441."))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       paddingTop: 14,
@@ -4255,16 +4255,30 @@ function LevelsScreen() {
   var app = useApp ? useApp() : null;
   var isDark = app?.themeOverride === "dark";
   var invited = app?.mode === "demo" ? 2 : 0; // people you've drawn into the app
-  // Влияние multiplier — the more active people in your circle, the faster ALL
-  // your XP grows. This is the "big bonus relative to grinding points".
-  var multTier = invited >= 10 ? 1.5 : invited >= 3 ? 1.25 : invited >= 1 ? 1.1 : 1.0;
-  var nextMult = invited < 3 ? {
+  // Влияние multiplier — diminishing tiers with a HARD CAP so whales (100/1000
+  // invites) can't break the economy. Grows from the first few friends, tops out
+  // at ×1.25. The "big bonus" — meaningful, not game-breaking.
+  var MULT_TIERS = [{
+    n: 1,
+    m: 1.05
+  }, {
     n: 3,
-    m: 1.25
-  } : invited < 10 ? {
+    m: 1.10
+  }, {
+    n: 5,
+    m: 1.15
+  }, {
     n: 10,
-    m: 1.5
-  } : null;
+    m: 1.20
+  }, {
+    n: 25,
+    m: 1.25
+  }];
+  var multTier = 1.0;
+  for (var t of MULT_TIERS) {
+    if (invited >= t.n) multTier = t.m;
+  }
+  var nextMult = MULT_TIERS.find(t => t.n > invited) || null; // null = at the cap
   var ruPpl = (n, a) => {
     var m = n % 10,
       h = n % 100;
@@ -4275,7 +4289,7 @@ function LevelsScreen() {
   var lvl = 7;
   var xp = 1240;
   var next = 1500;
-  var credits = 1240;
+  var credits = 980; // spendable XP balance (lifetime/level XP is separate, 1240)
   var rewards = [{
     i: "🎁",
     t: "Коробка-сюрприз",
@@ -4541,7 +4555,7 @@ function LevelsScreen() {
     style: {
       color: "var(--text-2)"
     }
-  }, "+", Math.round((multTier - 1) * 100), "% XP"), " \u2014 \u0432 \u0434\u0435\u043B\u0435 ", invited, " ", ruPpl(invited, ["друг", "друга", "друзей"]), ".") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u043F\u0435\u0440\u0432\u043E\u0433\u043E \u0434\u0440\u0443\u0433\u0430 \u2014 \u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0448\u044C \u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C \u043D\u0430 \u0432\u0435\u0441\u044C \u0441\u0432\u043E\u0439 XP.")))), nextMult && /*#__PURE__*/React.createElement("div", {
+  }, "+", Math.round((multTier - 1) * 100), "% XP"), " \u2014 \u0432 \u0434\u0435\u043B\u0435 ", invited, " ", ruPpl(invited, ["друг", "друга", "друзей"]), ".") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u043F\u0435\u0440\u0432\u043E\u0433\u043E \u0434\u0440\u0443\u0433\u0430 \u2014 \u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0448\u044C \u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C \u043D\u0430 \u0432\u0435\u0441\u044C \u0441\u0432\u043E\u0439 XP.")))), nextMult ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14
     }
@@ -4575,7 +4589,18 @@ function LevelsScreen() {
     style: {
       color: "var(--text-2)"
     }
-  }, "\xD7", nextMult.m), " \u043D\u0430 \u0432\u0441\u0451, \u0447\u0442\u043E \u0442\u044B \u0434\u0435\u043B\u0430\u0435\u0448\u044C.")), /*#__PURE__*/React.createElement("div", {
+  }, "\xD7", nextMult.m), " \u043D\u0430 \u0432\u0441\u0451, \u0447\u0442\u043E \u0442\u044B \u0434\u0435\u043B\u0430\u0435\u0448\u044C.")) : /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 14,
+      lineHeight: 1.45
+    }
+  }, "\u041C\u0430\u043A\u0441\u0438\u043C\u0443\u043C \u2014 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "\xD71.25"), ". \u0412\u044B\u0448\u0435 \u043D\u0435 \u0440\u0430\u0441\u0442\u0451\u0442: \u043F\u043E\u0442\u043E\u043B\u043E\u043A, \u0447\u0442\u043E\u0431\u044B \u0438\u0433\u0440\u0430 \u043E\u0441\u0442\u0430\u0432\u0430\u043B\u0430\u0441\u044C \u0447\u0435\u0441\u0442\u043D\u043E\u0439 \u0434\u043B\u044F \u0432\u0441\u0435\u0445."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -4710,7 +4735,7 @@ function LevelsScreen() {
       letterSpacing: 1,
       fontWeight: 600
     }
-  }, "\u041A\u0440\u0435\u0434\u0438\u0442\u044B"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0411\u0430\u043B\u0430\u043D\u0441 XP"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 26,
       fontWeight: 700,
@@ -4722,7 +4747,7 @@ function LevelsScreen() {
       fontSize: 11.5,
       marginTop: 1
     }
-  }, "\u043D\u0430 \u0443\u0441\u043B\u0443\u0433\u0438 \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A\u043E\u0432 \u0432 \u041D\u0435\u0442\u0432\u043E\u0440\u043A\u0435")), /*#__PURE__*/React.createElement("button", {
+  }, "\u043C\u043E\u0436\u043D\u043E \u043F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C \xB7 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u043E\u0442 \u0442\u0440\u0430\u0442\u044B \u043D\u0435 \u043F\u0430\u0434\u0430\u0435\u0442")), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       app?.setCommunityView?.({
         section: "discover",
@@ -4746,7 +4771,7 @@ function LevelsScreen() {
     style: {
       marginTop: 22
     }
-  }, "\u041D\u0430\u0433\u0440\u0430\u0434\u044B \u0437\u0430 \u043A\u0440\u0435\u0434\u0438\u0442\u044B"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041D\u0430\u0433\u0440\u0430\u0434\u044B \u0437\u0430 XP"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -4787,7 +4812,7 @@ function LevelsScreen() {
       fontSize: 11,
       marginTop: 2
     }
-  }, r.unlocked ? `${r.c} кредитов` : `Откроется на уровне ${r.lvl}`)), /*#__PURE__*/React.createElement("button", {
+  }, r.unlocked ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`)), /*#__PURE__*/React.createElement("button", {
     disabled: !r.unlocked || credits < r.c,
     className: "tap",
     style: {

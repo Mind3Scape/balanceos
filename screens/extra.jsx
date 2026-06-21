@@ -606,7 +606,7 @@ function LevelUpScreen() {
         <div style={{ fontSize: 110, fontWeight: 800, letterSpacing: "-4px", lineHeight: 1, marginTop: 6, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>8</div>
         <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>Сосредоточенный</div>
         <div style={{ fontSize: 14, color: "#9f9fa9", marginTop: 14, maxWidth: 280, lineHeight: 1.5 }}>
-          Ты заработал <b style={{ color: "#FEDE34" }}>+250 кредитов</b> и открыл новый уровень наград.
+          Ты заработал <b style={{ color: "#FEDE34" }}>+250 XP</b> и открыл новый уровень наград.
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
           {["🔥","🏆","✨"].map((e,i)=>(<span key={i} style={{ width: 50, height: 50, borderRadius: 14, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", display: "grid", placeItems: "center", fontSize: 26 }}>{e}</span>))}
