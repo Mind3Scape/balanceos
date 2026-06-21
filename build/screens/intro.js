@@ -828,11 +828,25 @@ function hueShift(hex, deg) {
   var to = v => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0");
   return "#" + to(R) + to(G) + to(B);
 }
+
+// Emotional spectrum for the onboarding state slider: heavy slate (far left) →
+// calm blue (centre = base) → fresh green → energised gold (far right). A single
+// value 0..1 maps to the colour the orb morphs through as the slider is dragged.
+var MOOD_SPECTRUM_STOPS = ["#586A8F", "#6E90C4", "#5EA8E8", "#5BC57E", "#FFC22E"];
+function moodSpectrum(v) {
+  var x = Math.max(0, Math.min(1, isFinite(v) ? v : 0.5)) * (MOOD_SPECTRUM_STOPS.length - 1);
+  var i = Math.min(MOOD_SPECTRUM_STOPS.length - 2, Math.floor(x));
+  return lerpColor(MOOD_SPECTRUM_STOPS[i], MOOD_SPECTRUM_STOPS[i + 1], x - i);
+}
+function moodWord(v) {
+  return v < 0.16 ? "Тяжело" : v < 0.4 ? "Спад" : v < 0.62 ? "Ровно" : v < 0.84 ? "Хорошо" : "На подъёме";
+}
 function Stage({
   mode,
   prevMode,
   blend,
-  dark = true
+  dark = true,
+  tintOverride
 }) {
   var t = useT();
   var cur = SCENE[mode];
@@ -840,7 +854,11 @@ function Stage({
   var k = prev ? blend : 1;
   var size = prev ? lerp(prev.size, cur.size, k) : cur.size;
   var intensity = prev ? lerp(prev.intensity, cur.intensity, k) : cur.intensity;
-  var tint = prev ? cur.tint.map((c, i) => lerpColor(prev.tint[i], c, k)) : cur.tint;
+  // The mood slide drives the orb tint from its slider (so colour morphs live);
+  // every other scene keeps its fixed palette. Transitions still blend cleanly.
+  var curTint = mode === "mood" && tintOverride ? tintOverride : cur.tint;
+  var prevTint = prevMode === "mood" && tintOverride ? tintOverride : prev ? prev.tint : null;
+  var tint = prev ? curTint.map((c, i) => lerpColor(prevTint[i], c, k)) : curTint;
   var aComfort = mode === "comfort" ? 1 : prevMode === "comfort" ? 1 - blend : 0;
   var aState = mode === "state" ? 1 : prevMode === "state" ? 1 - blend : 0;
   var aComp = mode === "compound" ? 1 : prevMode === "compound" ? 1 - blend : 0;
@@ -967,6 +985,28 @@ function IntroScreen() {
   var t = useT();
   var blend = Math.min(1, (t - blendStart) / 1.2);
   var effectivePrev = blend < 1 ? prev : null;
+
+  // Onboarding state slider: 0 = heavy, 0.5 = base/ровно, 1 = on the rise. The orb
+  // tint EASES toward the value each frame so the colour flows instead of snapping.
+  var [moodVal, setMoodVal] = useIS(0.5);
+  var moodEase = useIR({
+    t: 0,
+    val: 0.5
+  });
+  var me = moodEase.current;
+  var mdt = Math.max(0, Math.min(0.05, t - me.t));
+  me.t = t;
+  me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
+  var moodTint = tintFromMood(moodSpectrum(me.val));
+  var moodMain = moodSpectrum(moodVal); // crisp colour for labels/thumb (un-eased)
+  var trackRef = useIR(null);
+  var moodDrag = useIR(false);
+  var setMoodFromX = clientX => {
+    var el = trackRef.current;
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    setMoodVal(Math.max(0, Math.min(1, (clientX - r.left) / r.width)));
+  };
   var slides = [{
     mode: "awake",
     eyebrow: "Состояние",
@@ -1001,7 +1041,7 @@ function IntroScreen() {
     mode: "mood",
     eyebrow: "Точка отсчёта",
     title: "Как ты сейчас?",
-    sub: "Состояние не вырастить, не замечая его. Отметь, как ты прямо сейчас — отсюда и начнём.",
+    sub: "Подвинь точку к своему состоянию — орб подхватит цвет. Отсюда и начнём.",
     glow: "rgba(180,210,240,0.45)"
   }];
   var cur = slides[step];
@@ -1064,31 +1104,6 @@ function IntroScreen() {
     moodText: "#15233c",
     moodTile: "rgba(70,120,190,0.07)"
   };
-  var moods = [{
-    i: "🤩",
-    t: "Энергия",
-    c: "rgba(255,221,90,0.18)"
-  }, {
-    i: "😊",
-    t: "Радость",
-    c: "rgba(120,210,150,0.18)"
-  }, {
-    i: "😌",
-    t: "Спокойствие",
-    c: "rgba(150,200,245,0.18)"
-  }, {
-    i: "😣",
-    t: "Тревога",
-    c: "rgba(255,140,150,0.16)"
-  }, {
-    i: "😔",
-    t: "Упадок",
-    c: "rgba(130,150,185,0.16)"
-  }, {
-    i: "😮‍💨",
-    t: "Усталость",
-    c: "rgba(160,165,180,0.16)"
-  }];
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
     className: "page-in",
@@ -1190,7 +1205,8 @@ function IntroScreen() {
     mode: cur.mode,
     prevMode: effectivePrev,
     blend: blend,
-    dark: dark
+    dark: dark,
+    tintOverride: moodTint
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -1256,52 +1272,107 @@ function IntroScreen() {
       margin: "0 auto"
     }
   }, cur.sub))), cur.mode === "mood" && /*#__PURE__*/React.createElement(Reveal, {
-    k: "moodgrid",
+    k: "moodslider",
     delay: 0.5,
     style: {
       position: "relative",
-      padding: "20px 20px 0",
+      padding: "14px 30px 0",
       zIndex: 2
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 8
+      textAlign: "center",
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px",
+      color: moodMain,
+      transition: "color 0.25s",
+      marginBottom: 14
     }
-  }, moods.map((m, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    onClick: finish,
+  }, moodWord(moodVal)), /*#__PURE__*/React.createElement("div", {
+    ref: trackRef,
     className: "tap",
+    onPointerDown: e => {
+      moodDrag.current = true;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      setMoodFromX(e.clientX);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (_) {}
+      }
+    },
+    onPointerMove: e => {
+      if (moodDrag.current) setMoodFromX(e.clientX);
+    },
+    onPointerUp: () => {
+      moodDrag.current = false;
+    },
+    onPointerCancel: () => {
+      moodDrag.current = false;
+    },
     style: {
-      background: pal.moodTile,
-      border: "1px solid " + pal.moodBorder,
-      borderRadius: 18,
-      padding: "14px 8px",
-      color: pal.moodText,
+      position: "relative",
+      height: 40,
       display: "flex",
-      flexDirection: "column",
       alignItems: "center",
-      gap: 6,
-      animation: `moodIn 0.5s ${0.55 + i * 0.06}s ease both`
+      touchAction: "none",
+      cursor: "pointer"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 26
+      position: "absolute",
+      left: 0,
+      right: 0,
+      height: 6,
+      borderRadius: 999,
+      background: `linear-gradient(90deg, ${MOOD_SPECTRUM_STOPS.join(",")})`,
+      opacity: 0.92
     }
-  }, m.i), /*#__PURE__*/React.createElement("span", {
+  }), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
     style: {
-      fontSize: 12,
-      opacity: 0.85
+      position: "absolute",
+      left: "50%",
+      top: "50%",
+      width: 2,
+      height: 16,
+      borderRadius: 2,
+      background: dark ? "rgba(255,255,255,0.5)" : "rgba(21,35,60,0.38)",
+      transform: "translate(-50%,-50%)"
     }
-  }, m.t))))), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: `${moodVal * 100}%`,
+      top: "50%",
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      background: "#fff",
+      border: `2.5px solid ${moodMain}`,
+      boxShadow: `0 3px 10px rgba(0,0,0,0.28), 0 0 0 6px ${moodMain}33`,
+      transform: "translate(-50%,-50%)",
+      transition: moodDrag.current ? "none" : "border-color 0.25s, box-shadow 0.25s"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 11,
+      color: pal.count,
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "\u0442\u044F\u0436\u0435\u043B\u043E"), /*#__PURE__*/React.createElement("span", null, "\u0440\u043E\u0432\u043D\u043E"), /*#__PURE__*/React.createElement("span", null, "\u043D\u0430 \u043F\u043E\u0434\u044A\u0451\u043C\u0435"))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       padding: "20px 24px 28px",
       zIndex: 2
     }
-  }, cur.mode !== "mood" && /*#__PURE__*/React.createElement("button", {
-    onClick: () => last ? finish() : go(step + 1),
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => cur.mode === "mood" || last ? finish() : go(step + 1),
     className: "tap",
     style: {
       width: "100%",
@@ -1315,7 +1386,7 @@ function IntroScreen() {
       letterSpacing: "-0.1px",
       boxShadow: pal.btnShadow
     }
-  }, step === 0 ? "Начать" : "Далее"), /*#__PURE__*/React.createElement("div", {
+  }, cur.mode === "mood" ? "Продолжить" : step === 0 ? "Начать" : "Далее"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "center",

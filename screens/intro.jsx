@@ -433,14 +433,31 @@ function hueShift(hex, deg) {
   return "#" + to(R) + to(G) + to(B);
 }
 
-function Stage({ mode, prevMode, blend, dark = true }) {
+// Emotional spectrum for the onboarding state slider: heavy slate (far left) →
+// calm blue (centre = base) → fresh green → energised gold (far right). A single
+// value 0..1 maps to the colour the orb morphs through as the slider is dragged.
+const MOOD_SPECTRUM_STOPS = ["#586A8F", "#6E90C4", "#5EA8E8", "#5BC57E", "#FFC22E"];
+function moodSpectrum(v) {
+  const x = Math.max(0, Math.min(1, isFinite(v) ? v : 0.5)) * (MOOD_SPECTRUM_STOPS.length - 1);
+  const i = Math.min(MOOD_SPECTRUM_STOPS.length - 2, Math.floor(x));
+  return lerpColor(MOOD_SPECTRUM_STOPS[i], MOOD_SPECTRUM_STOPS[i + 1], x - i);
+}
+function moodWord(v) {
+  return v < 0.16 ? "Тяжело" : v < 0.4 ? "Спад" : v < 0.62 ? "Ровно" : v < 0.84 ? "Хорошо" : "На подъёме";
+}
+
+function Stage({ mode, prevMode, blend, dark = true, tintOverride }) {
   const t = useT();
   const cur = SCENE[mode];
   const prev = prevMode ? SCENE[prevMode] : null;
   const k = prev ? blend : 1;
   const size = prev ? lerp(prev.size, cur.size, k) : cur.size;
   const intensity = prev ? lerp(prev.intensity, cur.intensity, k) : cur.intensity;
-  const tint = prev ? cur.tint.map((c, i) => lerpColor(prev.tint[i], c, k)) : cur.tint;
+  // The mood slide drives the orb tint from its slider (so colour morphs live);
+  // every other scene keeps its fixed palette. Transitions still blend cleanly.
+  const curTint  = (mode === "mood" && tintOverride) ? tintOverride : cur.tint;
+  const prevTint = (prevMode === "mood" && tintOverride) ? tintOverride : (prev ? prev.tint : null);
+  const tint = prev ? curTint.map((c, i) => lerpColor(prevTint[i], c, k)) : curTint;
 
   const aComfort = mode === "comfort" ? 1 : (prevMode === "comfort" ? 1 - blend : 0);
   const aState   = mode === "state"   ? 1 : (prevMode === "state"   ? 1 - blend : 0);
@@ -505,13 +522,30 @@ function IntroScreen() {
   const blend = Math.min(1, (t - blendStart) / 1.2);
   const effectivePrev = blend < 1 ? prev : null;
 
+  // Onboarding state slider: 0 = heavy, 0.5 = base/ровно, 1 = on the rise. The orb
+  // tint EASES toward the value each frame so the colour flows instead of snapping.
+  const [moodVal, setMoodVal] = useIS(0.5);
+  const moodEase = useIR({ t: 0, val: 0.5 });
+  const me = moodEase.current;
+  const mdt = Math.max(0, Math.min(0.05, t - me.t)); me.t = t;
+  me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
+  const moodTint = tintFromMood(moodSpectrum(me.val));
+  const moodMain = moodSpectrum(moodVal); // crisp colour for labels/thumb (un-eased)
+  const trackRef = useIR(null);
+  const moodDrag = useIR(false);
+  const setMoodFromX = (clientX) => {
+    const el = trackRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    setMoodVal(Math.max(0, Math.min(1, (clientX - r.left) / r.width)));
+  };
+
   const slides = [
     { mode: "awake",    eyebrow: "Состояние",         title: "Ты не видишь мир таким, какой он есть", sub: "Ты видишь мир таким, в каком состоянии находишься.", glow: "rgba(160,200,240,0.46)" },
     { mode: "comfort",  eyebrow: "Когда сил мало",     title: "В слабом состоянии мир сжимается", sub: "Всё кажется невозможным. Ты живёшь в узком круге привычного — на автопилоте.", glow: "rgba(96,120,150,0.34)" },
     { mode: "state",    eyebrow: "Когда ты наполнен",  title: "В сильном — раскрывается", sub: "Граница раздвигается сама. Ты видишь решения, которые были рядом всё это время.", glow: "rgba(160,205,245,0.52)" },
     { mode: "compound", eyebrow: "Твой выбор",         title: "Состоянием можно управлять", sub: "Не обстоятельствами, а собой. Большинство отдают этот выбор страхам и чужому мнению — здесь ты учишься выбирать сам.", glow: "rgba(180,210,240,0.45)" },
     { mode: "together", eyebrow: "Не в одиночку",      title: "С близкими — пространство шире", sub: "Рядом со своими граница раздвигается дальше. Объединяйтесь в команды, делитесь привычками, держите друг друга.", glow: "rgba(150,185,225,0.42)" },
-    { mode: "mood",     eyebrow: "Точка отсчёта",      title: "Как ты сейчас?", sub: "Состояние не вырастить, не замечая его. Отметь, как ты прямо сейчас — отсюда и начнём.", glow: "rgba(180,210,240,0.45)" },
+    { mode: "mood",     eyebrow: "Точка отсчёта",      title: "Как ты сейчас?", sub: "Подвинь точку к своему состоянию — орб подхватит цвет. Отсюда и начнём.", glow: "rgba(180,210,240,0.45)" },
   ];
   const cur = slides[step];
   const last = step === slides.length - 1;
@@ -548,15 +582,6 @@ function IntroScreen() {
     moodBorder: "rgba(20,40,80,0.1)", moodText: "#15233c", moodTile: "rgba(70,120,190,0.07)",
   };
 
-  const moods = [
-    { i: "🤩", t: "Энергия",     c: "rgba(255,221,90,0.18)" },
-    { i: "😊", t: "Радость",      c: "rgba(120,210,150,0.18)" },
-    { i: "😌", t: "Спокойствие",  c: "rgba(150,200,245,0.18)" },
-    { i: "😣", t: "Тревога",      c: "rgba(255,140,150,0.16)" },
-    { i: "😔", t: "Упадок",       c: "rgba(130,150,185,0.16)" },
-    { i: "😮‍💨", t: "Усталость",   c: "rgba(160,165,180,0.16)" },
-  ];
-
   return (
     <div ref={wrapRef} className="page-in" style={{
       height: "100%", color: pal.title, position: "relative", overflow: "hidden",
@@ -586,7 +611,7 @@ function IntroScreen() {
         {/* soft ring radiating outward as the orb settles in from the splash */}
         <div aria-hidden style={{ position: "absolute", inset: 0, margin: "auto", width: 168, height: 168, borderRadius: "50%", border: "1.5px solid " + (dark ? "rgba(180,210,255,0.38)" : "rgba(90,130,190,0.32)"), animation: "orbBurst 1.5s 0.25s ease-out both", pointerEvents: "none" }}/>
         <div style={{ animation: "orbIntro 0.9s cubic-bezier(0.22,0.8,0.32,1) both" }}>
-          <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark}/>
+          <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark} tintOverride={moodTint}/>
         </div>
       </div>
 
@@ -609,24 +634,34 @@ function IntroScreen() {
       </div>
 
       {cur.mode === "mood" && (
-        <Reveal k="moodgrid" delay={0.5} style={{ position: "relative", padding: "20px 20px 0", zIndex: 2 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-            {moods.map((m, i) => (
-              <button key={i} onClick={finish} className="tap" style={{ background: pal.moodTile, border: "1px solid " + pal.moodBorder, borderRadius: 18, padding: "14px 8px", color: pal.moodText, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: `moodIn 0.5s ${0.55+i*0.06}s ease both` }}>
-                <span style={{ fontSize: 26 }}>{m.i}</span>
-                <span style={{ fontSize: 12, opacity: 0.85 }}>{m.t}</span>
-              </button>
-            ))}
+        <Reveal k="moodslider" delay={0.5} style={{ position: "relative", padding: "14px 30px 0", zIndex: 2 }}>
+          {/* current-state word — colour follows the slider */}
+          <div style={{ textAlign: "center", fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px", color: moodMain, transition: "color 0.25s", marginBottom: 14 }}>{moodWord(moodVal)}</div>
+          {/* draggable track */}
+          <div ref={trackRef} className="tap"
+            onPointerDown={(e) => { moodDrag.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setMoodFromX(e.clientX); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } }}
+            onPointerMove={(e) => { if (moodDrag.current) setMoodFromX(e.clientX); }}
+            onPointerUp={() => { moodDrag.current = false; }}
+            onPointerCancel={() => { moodDrag.current = false; }}
+            style={{ position: "relative", height: 40, display: "flex", alignItems: "center", touchAction: "none", cursor: "pointer" }}>
+            {/* spectrum rail */}
+            <div style={{ position: "absolute", left: 0, right: 0, height: 6, borderRadius: 999, background: `linear-gradient(90deg, ${MOOD_SPECTRUM_STOPS.join(",")})`, opacity: 0.92 }} />
+            {/* centre (base) tick */}
+            <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 2, height: 16, borderRadius: 2, background: dark ? "rgba(255,255,255,0.5)" : "rgba(21,35,60,0.38)", transform: "translate(-50%,-50%)" }} />
+            {/* thumb */}
+            <div style={{ position: "absolute", left: `${moodVal * 100}%`, top: "50%", width: 30, height: 30, borderRadius: "50%", background: "#fff", border: `2.5px solid ${moodMain}`, boxShadow: `0 3px 10px rgba(0,0,0,0.28), 0 0 0 6px ${moodMain}33`, transform: "translate(-50%,-50%)", transition: moodDrag.current ? "none" : "border-color 0.25s, box-shadow 0.25s" }} />
+          </div>
+          {/* end captions */}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: pal.count, marginTop: 8 }}>
+            <span>тяжело</span><span>ровно</span><span>на подъёме</span>
           </div>
         </Reveal>
       )}
 
       <div style={{ position: "relative", padding: "20px 24px 28px", zIndex: 2 }}>
-        {cur.mode !== "mood" && (
-          <button onClick={() => last ? finish() : go(step+1)} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
-            {step === 0 ? "Начать" : "Далее"}
-          </button>
-        )}
+        <button onClick={() => (cur.mode === "mood" || last) ? finish() : go(step+1)} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
+          {cur.mode === "mood" ? "Продолжить" : step === 0 ? "Начать" : "Далее"}
+        </button>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 12 }}>
           <button onClick={() => navigate("signup")} className="tap" style={{ background: "transparent", border: 0, color: pal.ghost, fontSize: 12 }}>Пропустить</button>
         </div>
