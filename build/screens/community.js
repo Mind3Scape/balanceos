@@ -3026,6 +3026,325 @@ function TeamCreateScreen() {
     }
   }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"));
 }
+
+/* Colored progress ring for a calendar day — like History's DayRing but any colour
+   (per-member tint), so a member's month reads in their own colour. */
+function TeamRing({
+  pct,
+  color = "#FFC400",
+  track,
+  sw = 3,
+  glow
+}) {
+  var r = 16,
+    C = 2 * Math.PI * r;
+  return /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 40 40",
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      transform: "rotate(-90deg)"
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "20",
+    cy: "20",
+    r: r,
+    fill: "none",
+    stroke: track,
+    strokeWidth: sw
+  }), pct > 0 && /*#__PURE__*/React.createElement("circle", {
+    cx: "20",
+    cy: "20",
+    r: r,
+    fill: "none",
+    stroke: color,
+    strokeWidth: sw,
+    strokeLinecap: "round",
+    strokeDasharray: C,
+    strokeDashoffset: C * (1 - pct),
+    style: glow ? {
+      filter: `drop-shadow(0 0 1.5px ${color}bf)`
+    } : undefined
+  }));
+}
+
+/* TEAM CALENDAR — the FULL month calendar (paged, like History), but multi-user:
+   "Вся команда" → each day's ring shows how much of the team showed up; tap a member
+   → their whole month in their colour. Tap a day → the trainer's read-out for it.
+   Trainers needed more than the last 5 weeks, so months page back and forth. */
+function TeamCalendar({
+  members
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isDark = app?.themeOverride === "dark";
+  var MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+  var DIM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  var CUR_M = 3,
+    today = 28,
+    year = 2026;
+  var [mIdx, setMIdx] = useCS(CUR_M);
+  var [selMember, setSelMember] = useCS(null); // null = Вся команда
+  var [selDay, setSelDay] = useCS(today);
+  var daysInMonth = DIM[mIdx];
+  var startWeekday = (mIdx * 3 + 3) % 7;
+  var isCurMonth = mIdx === CUR_M;
+  var lastLogged = isCurMonth ? today : mIdx > CUR_M ? 0 : daysInMonth;
+  var future = d => mIdx > CUR_M || d > lastLogged;
+  // Deterministic per-member, per-day completion (0..1) — higher for higher-% members.
+  var memFrac = (mi, d) => {
+    if (future(d)) return null;
+    var lvl = (members[mi] && members[mi].pct != null ? members[mi].pct : 50) / 100;
+    var n = Math.sin(d * 12.9898 + mi * 78.233 + mIdx * 37.719) * 43758.5453;
+    var r = n - Math.floor(n);
+    return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
+  };
+  var allFrac = d => {
+    if (future(d)) return null;
+    var v = members.map((_, mi) => memFrac(mi, d));
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+  };
+  var dayPct = d => selMember == null ? allFrac(d) : memFrac(selMember, d);
+  var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
+  var selColor = selMember == null ? "#FFC400" : members[selMember]?.color || "#FFC400";
+  var chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
+  var chip = active => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "5px 11px 5px 6px",
+    borderRadius: 999,
+    background: active ? isDark ? "#fff" : "#0a0a0a" : chipBg,
+    color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)",
+    border: 0,
+    flexShrink: 0,
+    fontSize: 13,
+    fontWeight: active ? 700 : 500,
+    whiteSpace: "nowrap",
+    cursor: "pointer"
+  });
+  var weekday = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  var cells = [...Array.from({
+    length: startWeekday
+  }, (_, i) => ({
+    blank: true,
+    key: "b" + i
+  })), ...Array.from({
+    length: daysInMonth
+  }, (_, i) => ({
+    d: i + 1,
+    key: "d" + (i + 1)
+  }))];
+  var selDone = future(selDay) ? null : members.filter((_, mi) => (memFrac(mi, selDay) ?? 0) >= 0.5).length;
+  var selAvg = future(selDay) ? null : Math.round((allFrac(selDay) || 0) * 100);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "screen-scroll",
+    style: {
+      display: "flex",
+      gap: 7,
+      overflowX: "auto",
+      paddingBottom: 2,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSelMember(null),
+    className: "tap",
+    style: chip(selMember == null)
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 18,
+      height: 18,
+      borderRadius: "50%",
+      background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 10
+    }
+  }, "\uD83D\uDC65"), "\u0412\u0441\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u0430"), members.map((m, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => setSelMember(i),
+    className: "tap",
+    style: chip(selMember === i)
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 18,
+      height: 18,
+      borderRadius: "50%",
+      background: m.color,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 9,
+      fontWeight: 700,
+      color: "rgba(0,0,0,0.6)"
+    }
+  }, m.initials), (m.name || "").split(" ")[0]))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMIdx(m => Math.max(0, m - 1)),
+    className: "tap",
+    style: {
+      background: chipBg,
+      border: 0,
+      borderRadius: 999,
+      width: 32,
+      height: 32,
+      display: "grid",
+      placeItems: "center",
+      color: "inherit",
+      opacity: mIdx === 0 ? 0.35 : 1
+    }
+  }, /*#__PURE__*/React.createElement(I.ChevronLeft, {
+    size: 16
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, MONTHS[mIdx], " ", year), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMIdx(m => Math.min(11, m + 1)),
+    className: "tap",
+    style: {
+      background: chipBg,
+      border: 0,
+      borderRadius: 999,
+      width: 32,
+      height: 32,
+      display: "grid",
+      placeItems: "center",
+      color: "inherit",
+      opacity: mIdx === 11 ? 0.35 : 1
+    }
+  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7,1fr)",
+      gap: 4,
+      marginTop: 14
+    }
+  }, weekday.map((w, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      textAlign: "center",
+      fontSize: 10.5,
+      fontWeight: 600,
+      letterSpacing: 0.6,
+      color: "var(--text-4)"
+    }
+  }, w))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7,1fr)",
+      gap: 4,
+      marginTop: 6
+    }
+  }, cells.map(c => {
+    if (c.blank) return /*#__PURE__*/React.createElement("span", {
+      key: c.key,
+      "aria-hidden": true,
+      style: {
+        aspectRatio: "1/1"
+      }
+    });
+    var pct = dayPct(c.d);
+    var fut = pct == null;
+    var isToday = isCurMonth && c.d === today;
+    var isSel = selDay === c.d;
+    return /*#__PURE__*/React.createElement("button", {
+      key: c.key,
+      onClick: () => setSelDay(c.d),
+      className: "tap",
+      style: {
+        aspectRatio: "1/1",
+        border: 0,
+        borderRadius: "50%",
+        padding: 0,
+        display: "grid",
+        placeItems: "center",
+        position: "relative",
+        fontSize: 13,
+        fontWeight: isToday ? 700 : 500,
+        cursor: "pointer",
+        background: "transparent",
+        color: fut ? "var(--text-4)" : isToday ? isDark ? "#0a0a0a" : "#fff" : isDark ? "#fff" : "var(--text)"
+      }
+    }, isToday ? /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        width: "62%",
+        aspectRatio: "1/1",
+        borderRadius: "50%",
+        background: isDark ? "#fff" : "#0a0a0a"
+      }
+    }) : isSel && /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        width: "64%",
+        aspectRatio: "1/1",
+        borderRadius: "50%",
+        background: isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.07)"
+      }
+    }), fut ? /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        inset: "17%",
+        borderRadius: "50%",
+        border: "1px dashed " + (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)")
+      }
+    }) : /*#__PURE__*/React.createElement(TeamRing, {
+      pct: pct,
+      color: selColor,
+      track: track,
+      glow: pct === 1
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "relative",
+        zIndex: 1
+      }
+    }, c.d));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      paddingTop: 13,
+      borderTop: "1px solid var(--line)",
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      lineHeight: 1.45
+    }
+  }, future(selDay) ? `${MONTHS[mIdx]} ${selDay} — ещё впереди` : selMember == null ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text)"
+    }
+  }, MONTHS[mIdx], " ", selDay), " \xB7 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u0430\u0441\u044C \u043D\u0430 ", selAvg, "% \xB7 ", selDone, " \u0438\u0437 ", members.length, " \u0431\u044B\u043B\u0438 \u0430\u043A\u0442\u0438\u0432\u043D\u044B") : /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text)"
+    }
+  }, members[selMember].name), " \xB7 ", MONTHS[mIdx], " ", selDay, " \xB7 \u0437\u0430\u043A\u0440\u044B\u043B ", Math.round((dayPct(selDay) || 0) * 100), "% \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A"))));
+}
 function TeamDetailScreen() {
   var {
     navigate,
@@ -3673,7 +3992,9 @@ function TeamDetailScreen() {
         strokeWidth: 3
       }));
     })));
-  })), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement(TeamCalendar, {
+    members: members
+  }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
