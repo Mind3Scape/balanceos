@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v96";
+var APP_VERSION = "v97";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -342,11 +342,11 @@ var HABIT_PEEK_STOP = {
       friends: [{
         name: "Анна",
         initials: "А",
-        color: "#e8c8a8"
+        color: "#F4A574"
       }, {
         name: "Марк",
         initials: "М",
-        color: "#a8b9d4"
+        color: "#7FB3F2"
       }]
     },
     from: "habits"
@@ -422,6 +422,14 @@ var SCREEN_TOURS = {
     eyebrow: "Чат",
     title: "Спроси что угодно",
     body: "А тут — живой чат. Спланировать день, разобрать неделю, спросить совет: ИИ держит в уме весь твой контекст."
+  }, {
+    kind: "card",
+    emoji: "🧭",
+    title: "Где узнать больше",
+    body: "«О приложении» и манифест — во что мы верим и зачем всё это — всегда живут в профиле, в Настройках. Открыть «О приложении» сейчас?",
+    cta: "Открыть «О приложении»",
+    openAbout: true,
+    alt: "Позже"
   }]
 };
 
@@ -566,6 +574,13 @@ function GuidedTour({
       // This screen's spotlights are done → flow straight into the NEXT screen's
       // sheet + spotlights (one continuous guide), or finish if this was the last.
       resetHero();
+      // The closing "Где узнать больше" card sends the user straight into the
+      // «О приложении» page (and ends the guide for good) so they SEE where it lives.
+      if (stop.openAbout) {
+        if (onDismiss) onDismiss();
+        navigate("guide");
+        return;
+      }
       if (onAdvance) onAdvance(tourScreen);else {
         endTour();
         navigate(baseTab);
@@ -671,7 +686,7 @@ function GuidedTour({
         fontSize: 15.5,
         fontWeight: 700
       }
-    }, stop.cta), !last && /*#__PURE__*/React.createElement("button", {
+    }, stop.cta), (!last || stop.alt) && /*#__PURE__*/React.createElement("button", {
       onClick: skip,
       className: "tap",
       style: {
@@ -683,7 +698,7 @@ function GuidedTour({
         fontSize: 13,
         padding: 8
       }
-    }, "\u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C"), dots), tourStyle);
+    }, stop.alt || "Пропустить"), dots), tourStyle);
   }
 
   // ── Peek: open a real screen and show a bottom tooltip with NO dim, so the

@@ -1859,12 +1859,15 @@ function TeamChatScreen() {
   const isDark = app?.themeOverride === "dark";
   const team = params?.team || { _id: "seed-1", name: "Команда креаторов", emblem: "✨", members: [] };
   const SEED = [
-    { who: "Светлана", c: "#e8c8a8", t: "Доброе утро, команда! ☀️ Кто уже отметил доброе дело?", time: "8:14" },
-    { who: "Вадим",    c: "#a8d4e8", t: "Я помог соседке с покупками 💪", time: "8:31" },
-    { who: "Вадим",    c: "#a8d4e8", photo: { e: "🌅", g: "linear-gradient(135deg,#ffd28a,#ff9a6b)" }, cap: "И пробежку засчитал", time: "8:32" },
-    { who: "Ник",      c: "#a8b9d4", t: "Красиво! Тоже выхожу 🏃", time: "8:40" },
+    { who: "Светлана", c: "#F4A574", t: "Доброе утро, команда! ☀️ Кто уже отметил доброе дело?", time: "8:14" },
+    { who: "Вадим",    c: "#74CFE0", t: "Я помог соседке с покупками 💪", time: "8:31" },
+    { who: "Вадим",    c: "#74CFE0", photo: { e: "🌅", g: "linear-gradient(135deg,#ffd28a,#ff9a6b)" }, cap: "И пробежку засчитал", time: "8:32" },
+    { who: "Ник",      c: "#7FB3F2", t: "Красиво! Тоже выхожу 🏃", time: "8:40" },
+    { who: "Сергей",   c: "#76D3A0", t: "Перевёл бабушку через дорогу 😄 плюс одно доброе дело", time: "8:52" },
     { who: "Павел",    me: true, c: "#FEDE34", t: "Вы лучшие 🙌 Сегодня закрываем 50 добрых дел!", time: "9:02" },
-    { who: "Сергей",   c: "#c8e8a8", t: "До цели 8 дел — добьём к вечеру 🔥", time: "9:10" },
+    { who: "Светлана", c: "#F4A574", t: "Я в деле — несу обед волонтёрам в приют 🐾", time: "9:07" },
+    { who: "Сергей",   c: "#76D3A0", t: "До цели 8 дел — добьём к вечеру 🔥", time: "9:10" },
+    { who: "Ник",      c: "#7FB3F2", t: "Давайте! После работы ещё пару добрых дел успею 🙌", time: "9:15" },
   ];
   const [msgs, setMsgs] = useCS(SEED);
   const [text, setText] = useCS("");
@@ -1885,13 +1888,13 @@ function TeamChatScreen() {
   );
 
   return (
-    <div className="page-in" style={{ minHeight: "100%", display: "flex", flexDirection: "column", padding: 0 }}>
+    <div className="page-in" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: 0, paddingTop: "max(60px, var(--tg-top-inset, 0px))", overflow: "hidden" }}>
       <div style={{ padding: "0 14px" }}>
         <PageHeader title={team.name} onBack={() => navigate("team-detail", { team })}
           right={<span style={{ fontSize: 12, color: "var(--text-4)", whiteSpace: "nowrap" }}>{(team.members?.length || 4)} 👥</span>} />
       </div>
 
-      <div style={{ flex: 1, padding: "2px 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="screen-scroll" style={{ flex: 1, minHeight: 0, padding: "2px 14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-4)", margin: "2px 0 2px" }}>Сегодня</div>
         {msgs.map((m, i) => m.me ? (
           <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -1913,12 +1916,14 @@ function TeamChatScreen() {
         <div ref={bottomRef} />
       </div>
 
-      <div style={{ position: "sticky", bottom: 0, background: isDark ? "rgba(12,12,14,0.92)" : "rgba(244,244,246,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderTop: "1px solid var(--line)", padding: "10px 12px calc(10px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "center", gap: 8 }}>
-        <button onClick={sendPhoto} className="tap" aria-label="Фото" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 18 }}>📷</button>
+      <div style={{ flexShrink: 0, background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)", padding: "9px 12px calc(9px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "flex-end", gap: 8 }}>
+        <button onClick={sendPhoto} className="tap" aria-label="Прикрепить" style={{ width: 38, height: 38, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.14)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
         <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} placeholder="Сообщение команде…"
-          style={{ flex: 1, minWidth: 0, background: "var(--surface-3)", border: 0, borderRadius: 999, padding: "11px 16px", fontSize: 14.5, color: "var(--text)", outline: "none" }} />
-        <button onClick={send} className="tap" aria-label="Отправить" style={{ width: 40, height: 40, borderRadius: "50%", background: text.trim() ? "#0a0a0a" : "var(--surface-3)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, transition: "background 0.2s" }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? "#fff" : "var(--text-4)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          style={{ flex: 1, minWidth: 0, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(120,120,128,0.10)", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)", borderRadius: 20, padding: "10px 15px", fontSize: 16, color: "var(--text)", outline: "none", lineHeight: 1.3 }} />
+        <button onClick={send} className="tap" aria-label="Отправить" style={{ width: 38, height: 38, borderRadius: "50%", background: text.trim() ? "#FEDE34" : (isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.18)"), border: 0, display: "grid", placeItems: "center", flexShrink: 0, transition: "background 0.2s, transform 0.2s", transform: text.trim() ? "scale(1)" : "scale(0.94)" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? "#0a0a0a" : "var(--text-4)"} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
         </button>
       </div>
     </div>

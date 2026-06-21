@@ -404,12 +404,12 @@ const DEFAULT_SPHERES = ["body", "mind", "career", "money", "friends", "rest"];
    held in ordinary React state, so a full reload always snaps back to
    this pristine demo (intentional — no persistence, easy to present). */
 const SEED_HABITS = [
-  { id: 1, emoji: "🙏", name: "Помогать другим", done: true,  streak: 12, friends: [{name:"Анна",initials:"А",color:"#e8c8a8"},{name:"Марк",initials:"М",color:"#a8b9d4"}] },
-  { id: 2, emoji: "🧘🏼‍♀️", name: "Медитация", done: true, streak: 27, duration: 10, friends: [{name:"Лена",initials:"Л",color:"#d4b8e8"},{name:"Вик",initials:"В",color:"#a8d4e8"},{name:"Том",initials:"Т",color:"#b8e8c8"}] },
-  { id: 3, emoji: "🏃🏼‍♀️", name: "Утренняя пробежка", done: true, streak: 5, duration: 25, friends: [{name:"Анна",initials:"А",color:"#e8c8a8"}] },
+  { id: 1, emoji: "🙏", name: "Помогать другим", done: true,  streak: 12, friends: [{name:"Анна",initials:"А",color:"#F4A574"},{name:"Марк",initials:"М",color:"#7FB3F2"}] },
+  { id: 2, emoji: "🧘🏼‍♀️", name: "Медитация", done: true, streak: 27, duration: 10, friends: [{name:"Лена",initials:"Л",color:"#B89AF0"},{name:"Вик",initials:"В",color:"#74CFE0"},{name:"Том",initials:"Т",color:"#76D3A0"}] },
+  { id: 3, emoji: "🏃🏼‍♀️", name: "Утренняя пробежка", done: true, streak: 5, duration: 25, friends: [{name:"Анна",initials:"А",color:"#F4A574"}] },
   { id: 4, emoji: "📚", name: "Читать книгу", done: false, streak: 3, duration: 20 },
   { id: 5, emoji: "✍🏼", name: "Бумажный дневник", done: false, streak: 8, duration: 5 },
-  { id: 6, emoji: "🥊", name: "Бокс", done: true, streak: 9, duration: 30, friends: [{name:"Марк",initials:"М",color:"#a8b9d4"}] },
+  { id: 6, emoji: "🥊", name: "Бокс", done: true, streak: 9, duration: 30, friends: [{name:"Марк",initials:"М",color:"#7FB3F2"}] },
   { id: 7, emoji: "🥗", name: "Здоровое питание", done: true, streak: 15 },
 ];
 const SEED_GOALS = [
@@ -421,10 +421,10 @@ const SEED_GOALS = [
 const SEED_TEAMS = [
   { _id: "seed-1", name: "Команда креаторов", emblem: "✨", goal: "50 добрых дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
     members: [
-      { name: "Ник",     initials: "Н",  color: "#a8b9d4", pct: 19, streak: 6,  todayDone: 1, todayTotal: 4 },
-      { name: "Светлана", initials: "С",  color: "#e8c8a8", pct: 50, streak: 12, todayDone: 2, todayTotal: 4 },
-      { name: "Вадим",    initials: "В",  color: "#a8d4e8", pct: 92, streak: 21, todayDone: 4, todayTotal: 4 },
-      { name: "Сергей",   initials: "Сг", color: "#c8e8a8", pct: 67, streak: 9,  todayDone: 3, todayTotal: 4 },
+      { name: "Ник",     initials: "Н",  color: "#7FB3F2", pct: 19, streak: 6,  todayDone: 1, todayTotal: 4 },
+      { name: "Светлана", initials: "С",  color: "#F4A574", pct: 50, streak: 12, todayDone: 2, todayTotal: 4 },
+      { name: "Вадим",    initials: "В",  color: "#74CFE0", pct: 92, streak: 21, todayDone: 4, todayTotal: 4 },
+      { name: "Сергей",   initials: "Сг", color: "#76D3A0", pct: 67, streak: 9,  todayDone: 3, todayTotal: 4 },
     ],
     habits: [
       { id: 201, emoji: "🙏", name: "Добрые дела",         isMain: true,  doneToday: 3, total: 4, weekPct: 0.78, week: [1,1,0,1,1,1,1] },
@@ -434,8 +434,8 @@ const SEED_TEAMS = [
     ] },
   { _id: "seed-2", name: "Добрые дела", emblem: "🌱", goal: "21-дневный спринт доброты", date: "1 — 21 апр", progress: 0.41, accent: "#d6f3df",
     members: [
-      { name: "Анна", initials: "А", color: "#e8a8c8", pct: 33, streak: 4, todayDone: 1, todayTotal: 2 },
-      { name: "Миша", initials: "М", color: "#a8e8d4", pct: 71, streak: 15, todayDone: 2, todayTotal: 2 },
+      { name: "Анна", initials: "А", color: "#F4A574", pct: 33, streak: 4, todayDone: 1, todayTotal: 2 },
+      { name: "Миша", initials: "М", color: "#B89AF0", pct: 71, streak: 15, todayDone: 2, todayTotal: 2 },
     ],
     habits: [
       { id: 211, emoji: "🌱", name: "Доброе дело дня", isMain: true,  doneToday: 2, total: 2, weekPct: 0.70, week: [1,1,1,0,1,1,0] },

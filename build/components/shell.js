@@ -880,11 +880,11 @@ var SEED_HABITS = [{
   friends: [{
     name: "Анна",
     initials: "А",
-    color: "#e8c8a8"
+    color: "#F4A574"
   }, {
     name: "Марк",
     initials: "М",
-    color: "#a8b9d4"
+    color: "#7FB3F2"
   }]
 }, {
   id: 2,
@@ -896,15 +896,15 @@ var SEED_HABITS = [{
   friends: [{
     name: "Лена",
     initials: "Л",
-    color: "#d4b8e8"
+    color: "#B89AF0"
   }, {
     name: "Вик",
     initials: "В",
-    color: "#a8d4e8"
+    color: "#74CFE0"
   }, {
     name: "Том",
     initials: "Т",
-    color: "#b8e8c8"
+    color: "#76D3A0"
   }]
 }, {
   id: 3,
@@ -916,7 +916,7 @@ var SEED_HABITS = [{
   friends: [{
     name: "Анна",
     initials: "А",
-    color: "#e8c8a8"
+    color: "#F4A574"
   }]
 }, {
   id: 4,
@@ -942,7 +942,7 @@ var SEED_HABITS = [{
   friends: [{
     name: "Марк",
     initials: "М",
-    color: "#a8b9d4"
+    color: "#7FB3F2"
   }]
 }, {
   id: 7,
@@ -999,7 +999,7 @@ var SEED_TEAMS = [{
   members: [{
     name: "Ник",
     initials: "Н",
-    color: "#a8b9d4",
+    color: "#7FB3F2",
     pct: 19,
     streak: 6,
     todayDone: 1,
@@ -1007,7 +1007,7 @@ var SEED_TEAMS = [{
   }, {
     name: "Светлана",
     initials: "С",
-    color: "#e8c8a8",
+    color: "#F4A574",
     pct: 50,
     streak: 12,
     todayDone: 2,
@@ -1015,7 +1015,7 @@ var SEED_TEAMS = [{
   }, {
     name: "Вадим",
     initials: "В",
-    color: "#a8d4e8",
+    color: "#74CFE0",
     pct: 92,
     streak: 21,
     todayDone: 4,
@@ -1023,7 +1023,7 @@ var SEED_TEAMS = [{
   }, {
     name: "Сергей",
     initials: "Сг",
-    color: "#c8e8a8",
+    color: "#76D3A0",
     pct: 67,
     streak: 9,
     todayDone: 3,
@@ -1077,7 +1077,7 @@ var SEED_TEAMS = [{
   members: [{
     name: "Анна",
     initials: "А",
-    color: "#e8a8c8",
+    color: "#F4A574",
     pct: 33,
     streak: 4,
     todayDone: 1,
@@ -1085,7 +1085,7 @@ var SEED_TEAMS = [{
   }, {
     name: "Миша",
     initials: "М",
-    color: "#a8e8d4",
+    color: "#B89AF0",
     pct: 71,
     streak: 15,
     todayDone: 2,

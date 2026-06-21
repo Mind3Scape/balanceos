@@ -249,6 +249,11 @@ function SettingsScreen() {
 
       <div className="section-label" style={{ marginTop: 22 }}>О приложении</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        <SysBtn onClick={() => navigate("guide", { from: "settings" })} style={{ padding: 14 }}>
+          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Compass size={16} /></span>
+          <span style={{ flex: 1, fontSize: 15 }}>О приложении</span>
+          <I.ChevronRight size={16} className="bos-sys-text-2" />
+        </SysBtn>
         <SysBtn onClick={() => navigate("manifest", { from: "settings" })} style={{ padding: 14 }}>
           <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={16} /></span>
           <span style={{ flex: 1, fontSize: 15 }}>Манифест</span>

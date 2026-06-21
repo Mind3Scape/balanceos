@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v96";
+const APP_VERSION = "v97";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -175,7 +175,7 @@ const TOUR_STOPS = [
 const HOME_SHARE_STOP = { kind: "spot", tab: "home", sel: '[data-tour="share-app"]', radius: 20, eyebrow: "Качай уровень", title: "Начни с простого — поделись",
   body: "Поделись приложением: +150 XP за каждого друга, а соберёшь троих — ещё +300 XP сверху.", cta: "Показать «Поделиться»", openShare: true };
 // Dive into a SHARED habit so the demo shows the «кто с тобой» competition.
-const HABIT_PEEK_STOP = { kind: "peek", tab: "habit-detail", params: { habit: { id: 1, emoji: "🙏", name: "Помогать другим", streak: 12, friends: [{ name: "Анна", initials: "А", color: "#e8c8a8" }, { name: "Марк", initials: "М", color: "#a8b9d4" }] }, from: "habits" }, eyebrow: "Внутри привычки", title: "Кто с тобой — соревнование",
+const HABIT_PEEK_STOP = { kind: "peek", tab: "habit-detail", params: { habit: { id: 1, emoji: "🙏", name: "Помогать другим", streak: 12, friends: [{ name: "Анна", initials: "А", color: "#F4A574" }, { name: "Марк", initials: "М", color: "#7FB3F2" }] }, from: "habits" }, eyebrow: "Внутри привычки", title: "Кто с тобой — соревнование",
   body: "Заходишь в привычку — видишь, кто её делает с тобой, серии у каждого и кто лидирует. Азарт держит ритм." };
 // The natural referral: while CREATING a habit you can invite any friend → +XP.
 const HABIT_INVITE_STOP = { kind: "spot", tab: "habit-settings", params: { mode: "create" }, sel: '[data-tour="invite-friend"]', radius: 18, eyebrow: "Вместе с другом", title: "Создавая — позови друга",
@@ -200,6 +200,9 @@ const SCREEN_TOURS = {
       body: "Ежедневные советы: перенести привычку, опереться на друга, перезагрузиться. Тапни любую — раскроется и можно принять." },
     { kind: "spot", tab: "ai", sel: '[data-tour="ai-chat-btn"]', radius: 999, eyebrow: "Чат", title: "Спроси что угодно",
       body: "А тут — живой чат. Спланировать день, разобрать неделю, спросить совет: ИИ держит в уме весь твой контекст." },
+    { kind: "card", emoji: "🧭", title: "Где узнать больше",
+      body: "«О приложении» и манифест — во что мы верим и зачем всё это — всегда живут в профиле, в Настройках. Открыть «О приложении» сейчас?",
+      cta: "Открыть «О приложении»", openAbout: true, alt: "Позже" },
   ],
 };
 
@@ -285,6 +288,9 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
       // This screen's spotlights are done → flow straight into the NEXT screen's
       // sheet + spotlights (one continuous guide), or finish if this was the last.
       resetHero();
+      // The closing "Где узнать больше" card sends the user straight into the
+      // «О приложении» page (and ends the guide for good) so they SEE where it lives.
+      if (stop.openAbout) { if (onDismiss) onDismiss(); navigate("guide"); return; }
       if (onAdvance) onAdvance(tourScreen); else { endTour(); navigate(baseTab); }
     } else setStep(step + 1);
   };
@@ -320,7 +326,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
           <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: "-0.4px", color: titleC, lineHeight: 1.2 }}>{stop.title}</div>
           <div style={{ fontSize: 14.5, color: bodyC, lineHeight: 1.5, marginTop: 10 }}>{stop.body}</div>
           <button onClick={next} className="tap" style={{ width: "100%", marginTop: 22, background: "linear-gradient(135deg,#FEDE34,#FFC400)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: 15, fontSize: 15.5, fontWeight: 700 }}>{stop.cta}</button>
-          {!last && <button onClick={skip} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: 8 }}>Пропустить</button>}
+          {(!last || stop.alt) && <button onClick={skip} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: 8 }}>{stop.alt || "Пропустить"}</button>}
           {dots}
         </div>
         {tourStyle}

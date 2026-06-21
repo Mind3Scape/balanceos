@@ -5355,17 +5355,17 @@ function TeamChatScreen() {
   };
   var SEED = [{
     who: "Светлана",
-    c: "#e8c8a8",
+    c: "#F4A574",
     t: "Доброе утро, команда! ☀️ Кто уже отметил доброе дело?",
     time: "8:14"
   }, {
     who: "Вадим",
-    c: "#a8d4e8",
+    c: "#74CFE0",
     t: "Я помог соседке с покупками 💪",
     time: "8:31"
   }, {
     who: "Вадим",
-    c: "#a8d4e8",
+    c: "#74CFE0",
     photo: {
       e: "🌅",
       g: "linear-gradient(135deg,#ffd28a,#ff9a6b)"
@@ -5374,9 +5374,14 @@ function TeamChatScreen() {
     time: "8:32"
   }, {
     who: "Ник",
-    c: "#a8b9d4",
+    c: "#7FB3F2",
     t: "Красиво! Тоже выхожу 🏃",
     time: "8:40"
+  }, {
+    who: "Сергей",
+    c: "#76D3A0",
+    t: "Перевёл бабушку через дорогу 😄 плюс одно доброе дело",
+    time: "8:52"
   }, {
     who: "Павел",
     me: true,
@@ -5384,10 +5389,20 @@ function TeamChatScreen() {
     t: "Вы лучшие 🙌 Сегодня закрываем 50 добрых дел!",
     time: "9:02"
   }, {
+    who: "Светлана",
+    c: "#F4A574",
+    t: "Я в деле — несу обед волонтёрам в приют 🐾",
+    time: "9:07"
+  }, {
     who: "Сергей",
-    c: "#c8e8a8",
+    c: "#76D3A0",
     t: "До цели 8 дел — добьём к вечеру 🔥",
     time: "9:10"
+  }, {
+    who: "Ник",
+    c: "#7FB3F2",
+    t: "Давайте! После работы ещё пару добрых дел успею 🙌",
+    time: "9:15"
   }];
   var [msgs, setMsgs] = useCS(SEED);
   var [text, setText] = useCS("");
@@ -5452,10 +5467,13 @@ function TeamChatScreen() {
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
-      minHeight: "100%",
+      position: "absolute",
+      inset: 0,
       display: "flex",
       flexDirection: "column",
-      padding: 0
+      padding: 0,
+      paddingTop: "max(60px, var(--tg-top-inset, 0px))",
+      overflow: "hidden"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5474,9 +5492,11 @@ function TeamChatScreen() {
       }
     }, team.members?.length || 4, " \uD83D\uDC65")
   })), /*#__PURE__*/React.createElement("div", {
+    className: "screen-scroll",
     style: {
       flex: 1,
-      padding: "2px 14px 14px",
+      minHeight: 0,
+      padding: "2px 14px 16px",
       display: "flex",
       flexDirection: "column",
       gap: 10
@@ -5573,33 +5593,42 @@ function TeamChatScreen() {
     ref: bottomRef
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "sticky",
-      bottom: 0,
-      background: isDark ? "rgba(12,12,14,0.92)" : "rgba(244,244,246,0.92)",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
-      borderTop: "1px solid var(--line)",
-      padding: "10px 12px calc(10px + var(--bos-safe-bottom, 0px))",
+      flexShrink: 0,
+      background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)",
+      backdropFilter: "blur(28px) saturate(180%)",
+      WebkitBackdropFilter: "blur(28px) saturate(180%)",
+      borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)",
+      padding: "9px 12px calc(9px + var(--bos-safe-bottom, 0px))",
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-end",
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: sendPhoto,
     className: "tap",
-    "aria-label": "\u0424\u043E\u0442\u043E",
+    "aria-label": "\u041F\u0440\u0438\u043A\u0440\u0435\u043F\u0438\u0442\u044C",
     style: {
-      width: 40,
-      height: 40,
+      width: 38,
+      height: 38,
       borderRadius: "50%",
-      background: "var(--surface-3)",
+      background: isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.14)",
       border: 0,
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
-      fontSize: 18
+      color: "var(--text-2)"
     }
-  }, "\uD83D\uDCF7"), /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "20",
+    height: "20",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.2",
+    strokeLinecap: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 5v14M5 12h14"
+  }))), /*#__PURE__*/React.createElement("input", {
     value: text,
     onChange: e => setText(e.target.value),
     onKeyDown: e => {
@@ -5609,40 +5638,42 @@ function TeamChatScreen() {
     style: {
       flex: 1,
       minWidth: 0,
-      background: "var(--surface-3)",
-      border: 0,
-      borderRadius: 999,
-      padding: "11px 16px",
-      fontSize: 14.5,
+      background: isDark ? "rgba(255,255,255,0.07)" : "rgba(120,120,128,0.10)",
+      border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)",
+      borderRadius: 20,
+      padding: "10px 15px",
+      fontSize: 16,
       color: "var(--text)",
-      outline: "none"
+      outline: "none",
+      lineHeight: 1.3
     }
   }), /*#__PURE__*/React.createElement("button", {
     onClick: send,
     className: "tap",
     "aria-label": "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C",
     style: {
-      width: 40,
-      height: 40,
+      width: 38,
+      height: 38,
       borderRadius: "50%",
-      background: text.trim() ? "#0a0a0a" : "var(--surface-3)",
+      background: text.trim() ? "#FEDE34" : isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.18)",
       border: 0,
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
-      transition: "background 0.2s"
+      transition: "background 0.2s, transform 0.2s",
+      transform: text.trim() ? "scale(1)" : "scale(0.94)"
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "17",
-    height: "17",
+    width: "18",
+    height: "18",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: text.trim() ? "#fff" : "var(--text-4)",
-    strokeWidth: "2",
+    stroke: text.trim() ? "#0a0a0a" : "var(--text-4)",
+    strokeWidth: "2.6",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("path", {
-    d: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+    d: "M12 19V5M6 11l6-6 6 6"
   })))));
 }
 window.TeamChatScreen = TeamChatScreen;

@@ -792,6 +792,33 @@ function SettingsScreen() {
       marginTop: 8
     }
   }, /*#__PURE__*/React.createElement(SysBtn, {
+    onClick: () => navigate("guide", {
+      from: "settings"
+    }),
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Compass, {
+    size: 16
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 15
+    }
+  }, "\u041E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438"), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-2"
+  })), /*#__PURE__*/React.createElement(SysBtn, {
     onClick: () => navigate("manifest", {
       from: "settings"
     }),

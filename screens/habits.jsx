@@ -8,8 +8,12 @@ const EMOJI_CHIPS = [
   { i: "👟", t: "Бег" }, { i: "🧁", t: "Без сахара" }, { i: "📞", t: "Чаще звонить родителям" },
 ];
 
-/* Avatar stack — small face pile showing who else is doing this habit */
-const AVATAR_PALETTE = ["#a8b9d4","#e8c8a8","#a8d4e8","#d4b8e8","#b8e8c8","#e8b8b8","#c8c8e8"];
+/* Avatar stack — small face pile showing who else is doing this habit.
+   Soft pastels with enough saturation to read as real colours (the old set
+   was so pale it looked grey). Dark initials still sit readably on top, and
+   these same hues drive the shared-habit calendar rings so each person is
+   recognisable at a glance — blue = Марк, peach = Анна, etc. */
+const AVATAR_PALETTE = ["#7FB3F2","#F4A574","#76D3A0","#B89AF0","#F291AC","#74CFE0","#F5C56B"];
 
 /* Per-habit accent. `null` = base (neutral gray, the project default); a value
    softly tints the icon tile everywhere and fills the stats grid. Kept to calm
