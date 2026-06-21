@@ -1059,6 +1059,14 @@ function IntroScreen() {
   }];
   var cur = slides[step];
   var last = step === slides.length - 1;
+
+  // First frame plays on its own meaning. For the first ~2.6s the focus sits on
+  // the top line ("ты не видишь мир таким, какой он есть"); then it SWAPS — the
+  // top line shrinks to a caption while the bottom line ("…в каком состоянии
+  // находишься") grows bold into the headline. The truer line takes over.
+  var swapScene = step === 0;
+  var swapped = swapScene && t - blendStart > 2.6;
+  var SWAP_TR = "font-size 0.95s cubic-bezier(0.33,0,0.2,1), font-weight 0.95s ease, color 0.9s ease, letter-spacing 0.95s ease, line-height 0.95s ease";
   var go = next => {
     if (next === step) return;
     setPrev(slides[step].mode);
@@ -1277,29 +1285,34 @@ function IntroScreen() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",
-      fontSize: 30,
-      fontWeight: 600,
-      lineHeight: 1.12,
-      letterSpacing: "-0.8px",
       textWrap: "balance",
-      maxWidth: 300,
       margin: "0 auto",
-      color: pal.title
+      transition: swapScene ? SWAP_TR : undefined,
+      maxWidth: swapped ? 312 : 300,
+      fontSize: swapped ? 15 : 30,
+      fontWeight: swapped ? 400 : 600,
+      lineHeight: swapped ? 1.5 : 1.12,
+      letterSpacing: swapped ? "0px" : "-0.8px",
+      color: swapped ? pal.sub : pal.title
     }
   }, cur.title)), cur.sub && /*#__PURE__*/React.createElement(Reveal, {
     k: "su" + step,
     delay: 0.45,
     style: {
-      marginTop: 12
+      marginTop: swapped ? 14 : 12
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 14.5,
-      color: pal.sub,
-      lineHeight: 1.55,
-      textWrap: "pretty",
-      maxWidth: 312,
-      margin: "0 auto"
+      fontFamily: swapped ? "var(--bos-title-font)" : "inherit",
+      margin: "0 auto",
+      transition: swapScene ? SWAP_TR : undefined,
+      maxWidth: swapped ? 300 : 312,
+      fontSize: swapped ? 26 : 14.5,
+      fontWeight: swapped ? 600 : 400,
+      lineHeight: swapped ? 1.18 : 1.55,
+      letterSpacing: swapped ? "-0.6px" : "0px",
+      textWrap: swapped ? "balance" : "pretty",
+      color: swapped ? pal.title : pal.sub
     }
   }, cur.sub))), cur.mode === "mood" && /*#__PURE__*/React.createElement(Reveal, {
     k: "moodslider",

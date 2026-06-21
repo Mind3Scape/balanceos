@@ -470,7 +470,7 @@ function HabitSettingsScreen() {
       </div>
 
       {/* Add */}
-      <button className="bos-btn light" style={{ marginTop: 28 }} onClick={() => {
+      <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
         const nm = name.trim() || "Новая привычка";
         if (editing) app?.updateHabit(params.habit.id, { emoji: iconPick, name: nm, color });
         else app?.addHabit({ emoji: iconPick, name: nm, color });
@@ -605,7 +605,7 @@ function GoalSettingsScreen() {
         )}
       </div>
 
-      <button className="bos-btn light" style={{ marginTop: 28 }} onClick={() => {
+      <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
         const data = { emoji: iconPick, name: name.trim() || "Новая цель", target, unit, deadline };
         if (editing) app?.updateGoal(g0.id, data);
         else app?.addGoal(data);

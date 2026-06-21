@@ -1433,9 +1433,9 @@ function HabitSettingsScreen() {
       label: "Бросить"
     }]
   })), /*#__PURE__*/React.createElement("button", {
-    className: "bos-btn light",
+    className: "bos-btn",
     style: {
-      marginTop: 28
+      marginTop: 20
     },
     onClick: () => {
       var nm = name.trim() || "Новая привычка";
@@ -1794,9 +1794,9 @@ function GoalSettingsScreen() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 12
   }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("button", {
-    className: "bos-btn light",
+    className: "bos-btn",
     style: {
-      marginTop: 28
+      marginTop: 20
     },
     onClick: () => {
       var data = {

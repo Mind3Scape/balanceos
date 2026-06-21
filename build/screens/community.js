@@ -2999,7 +2999,7 @@ function TeamCreateScreen() {
   }), " \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C"))), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
-      marginTop: 28
+      marginTop: 20
     },
     onClick: () => {
       var dur = {
@@ -4374,7 +4374,7 @@ function TeamSettingsScreen() {
   })))), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
-      marginTop: 28
+      marginTop: 20
     },
     onClick: save
   }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C"), /*#__PURE__*/React.createElement("button", {

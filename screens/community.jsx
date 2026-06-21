@@ -1111,7 +1111,7 @@ function TeamCreateScreen() {
         </div>
       </div>
 
-      <button className="bos-btn" style={{ marginTop: 28 }} onClick={() => {
+      <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
         const dur = { week: "Эта неделя", month: "Этот месяц", quarter: "3 месяца", year: "Год" }[duration] || "Этот месяц";
         app?.addTeam({
           name: name.trim() || "Новая команда",
@@ -1537,7 +1537,7 @@ function TeamSettingsScreen() {
         </div>
       )}
 
-      <button className="bos-btn" style={{ marginTop: 28 }} onClick={save}>Сохранить</button>
+      <button className="bos-btn" style={{ marginTop: 20 }} onClick={save}>Сохранить</button>
       <button onClick={del} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
         Удалить команду
       </button>
