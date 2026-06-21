@@ -53,6 +53,45 @@ function HabitDetailScreen() {
   // 30-min session reads fuller than a 10-min one. Deterministic per cell.
   var MIN_FACTORS = [1, 0.5, 1.5, 1, 2, 0.8, 3, 1.2, 0.7, 1];
   var dayMins = i => h.duration ? Math.round(h.duration * MIN_FACTORS[(i * 5 + (h.id || 1) * 3) % MIN_FACTORS.length]) : 0;
+
+  // ── Shared habit → a roster (you + friends) with deterministic streaks, shared
+  //    by BOTH the leaderboard and the calendar so the rings match the standings.
+  var isShared = h.friends?.length > 0;
+  var mkStreak = seed => 3 + Math.abs(seed) * 7 % 24; // deterministic 3..26
+  var roster = isShared ? [{
+    name: "Ты",
+    initials: "Я",
+    color: h.color || "#FFC400",
+    streak,
+    you: true
+  }, ...h.friends.map((f, i) => ({
+    name: f.name,
+    initials: f.initials || (f.name || "?")[0],
+    color: f.color,
+    streak: mkStreak((f.name || "X").charCodeAt(0) + i * 5 + (h.id || 1))
+  }))] : [];
+  // Each person's own 5-week pattern: recent `streak` days done, older scattered by
+  // a per-person seed. Your row reuses the main `cells`, so it always matches above.
+  var personCells = p => p.you ? cells : Array.from({
+    length: 35
+  }, (_, i) => {
+    var fromEnd = 34 - i;
+    if (fromEnd < p.streak) return true;
+    return (i * 7 + (p.name || "X").charCodeAt(0) * 13 + (h.id || 1) * 5) % 10 > 6;
+  });
+  // Up to 3 rings per calendar day (you outer, friends inward) — more is unreadable;
+  // the full standings live in the leaderboard. Radii/stroke tuned to nest cleanly.
+  var ringRoster = roster.slice(0, 3).map(p => ({
+    ...p,
+    cells: personCells(p)
+  }));
+  var RING_GEOM = {
+    1: [15.5],
+    2: [16, 10.5],
+    3: [16.5, 11.2, 6]
+  };
+  var ringRadii = RING_GEOM[Math.max(1, Math.min(3, ringRoster.length))] || RING_GEOM[3];
+  var ringSW = ringRoster.length >= 3 ? 2.5 : 3.2;
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -167,20 +206,8 @@ function HabitDetailScreen() {
       fontWeight: 600,
       marginTop: 3
     }
-  }, s.l)))), h.friends?.length > 0 && (() => {
-    var mkStreak = seed => 3 + Math.abs(seed) * 7 % 24; // deterministic 3..26
-    var people = [{
-      name: "Ты",
-      initials: "Я",
-      color: h.color || "#FFC400",
-      streak,
-      you: true
-    }, ...h.friends.map((f, i) => ({
-      name: f.name,
-      initials: f.initials || (f.name || "?")[0],
-      color: f.color,
-      streak: mkStreak((f.name || "X").charCodeAt(0) + i * 5 + (h.id || 1))
-    }))].sort((a, b) => b.streak - a.streak);
+  }, s.l)))), isShared && (() => {
+    var people = [...roster].sort((a, b) => b.streak - a.streak);
     var maxStreak = Math.max(...people.map(p => p.streak), 1);
     var myRank = people.findIndex(p => p.you) + 1;
     return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -284,7 +311,7 @@ function HabitDetailScreen() {
     style: {
       marginTop: 22
     }
-  }, "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435 5 \u043D\u0435\u0434\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
+  }, isShared ? "Последние 5 недель · кто отмечался" : "Последние 5 недель"), /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
       borderRadius: 18,
@@ -313,7 +340,48 @@ function HabitDetailScreen() {
       gridTemplateColumns: "repeat(7,1fr)",
       gap: 6
     }
-  }, cells.map((done, i) => {
+  }, isShared ? cells.map((_, i) => {
+    // One ring per person (Apple-activity style): filled if they marked
+    // the habit that day → you can read who showed up and who skipped.
+    var did = ringRoster.filter(p => p.cells[i]).map(p => p.name);
+    return /*#__PURE__*/React.createElement("span", {
+      key: i,
+      title: did.length ? "Отметились: " + did.join(", ") : "никто не отметил",
+      style: {
+        position: "relative",
+        aspectRatio: "1/1",
+        display: "block"
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      viewBox: "0 0 40 40",
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%"
+      }
+    }, ringRoster.map((p, r) => /*#__PURE__*/React.createElement("g", {
+      key: r
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "20",
+      cy: "20",
+      r: ringRadii[r],
+      fill: "none",
+      stroke: p.color + "26",
+      strokeWidth: ringSW
+    }), p.cells[i] && /*#__PURE__*/React.createElement("circle", {
+      cx: "20",
+      cy: "20",
+      r: ringRadii[r],
+      fill: "none",
+      stroke: p.color,
+      strokeWidth: ringSW,
+      style: {
+        filter: `drop-shadow(0 0 1.3px ${p.color}99)`
+      }
+    })))));
+  }) : cells.map((done, i) => {
     var mins = done ? dayMins(i) : 0;
     var frac = !done ? 0 : h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1;
     var C = 2 * Math.PI * 15.5;
@@ -356,7 +424,45 @@ function HabitDetailScreen() {
         filter: `drop-shadow(0 0 1.6px ${ringColor}aa)`
       }
     })));
-  })), /*#__PURE__*/React.createElement("div", {
+  })), isShared ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 13,
+      fontSize: 11,
+      color: "var(--text-4)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: "7px 13px"
+    }
+  }, ringRoster.map((p, r) => /*#__PURE__*/React.createElement("span", {
+    key: r,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 9,
+      height: 9,
+      borderRadius: "50%",
+      background: p.color,
+      boxShadow: `0 0 3px ${p.color}aa`
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text-2)",
+      fontWeight: p.you ? 700 : 500
+    }
+  }, p.name)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      lineHeight: 1.4
+    }
+  }, "\u041A\u0430\u0436\u0434\u043E\u0435 \u043A\u043E\u043B\u044C\u0446\u043E \u0432 \u0434\u043D\u0435 \u2014 \u043E\u0434\u0438\u043D \u0447\u0435\u043B\u043E\u0432\u0435\u043A. \u0412\u0438\u0434\u043D\u043E, \u043A\u0442\u043E \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u0441\u044F, \u0430 \u043A\u0442\u043E \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u043B.")) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",

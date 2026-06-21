@@ -41,6 +41,28 @@ function HabitDetailScreen() {
   const MIN_FACTORS = [1, 0.5, 1.5, 1, 2, 0.8, 3, 1.2, 0.7, 1];
   const dayMins = (i) => h.duration ? Math.round(h.duration * MIN_FACTORS[(i * 5 + (h.id || 1) * 3) % MIN_FACTORS.length]) : 0;
 
+  // ── Shared habit → a roster (you + friends) with deterministic streaks, shared
+  //    by BOTH the leaderboard and the calendar so the rings match the standings.
+  const isShared = h.friends?.length > 0;
+  const mkStreak = (seed) => 3 + (Math.abs(seed) * 7) % 24; // deterministic 3..26
+  const roster = isShared ? [
+    { name: "Ты", initials: "Я", color: h.color || "#FFC400", streak, you: true },
+    ...h.friends.map((f, i) => ({ name: f.name, initials: f.initials || (f.name || "?")[0], color: f.color, streak: mkStreak((f.name || "X").charCodeAt(0) + i * 5 + (h.id || 1)) })),
+  ] : [];
+  // Each person's own 5-week pattern: recent `streak` days done, older scattered by
+  // a per-person seed. Your row reuses the main `cells`, so it always matches above.
+  const personCells = (p) => p.you ? cells : Array.from({ length: 35 }, (_, i) => {
+    const fromEnd = 34 - i;
+    if (fromEnd < p.streak) return true;
+    return ((i * 7 + (p.name || "X").charCodeAt(0) * 13 + (h.id || 1) * 5) % 10) > 6;
+  });
+  // Up to 3 rings per calendar day (you outer, friends inward) — more is unreadable;
+  // the full standings live in the leaderboard. Radii/stroke tuned to nest cleanly.
+  const ringRoster = roster.slice(0, 3).map((p) => ({ ...p, cells: personCells(p) }));
+  const RING_GEOM = { 1: [15.5], 2: [16, 10.5], 3: [16.5, 11.2, 6 ] };
+  const ringRadii = RING_GEOM[Math.max(1, Math.min(3, ringRoster.length))] || RING_GEOM[3];
+  const ringSW = ringRoster.length >= 3 ? 2.5 : 3.2;
+
   const card = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
     : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
@@ -79,12 +101,8 @@ function HabitDetailScreen() {
 
       {/* Shared habit (not a team) → a friendly competition: everyone doing it,
          ranked by streak, so you can see who's leading and feel the nudge. */}
-      {h.friends?.length > 0 && (() => {
-        const mkStreak = (seed) => 3 + (Math.abs(seed) * 7) % 24; // deterministic 3..26
-        const people = [
-          { name: "Ты", initials: "Я", color: h.color || "#FFC400", streak, you: true },
-          ...h.friends.map((f, i) => ({ name: f.name, initials: f.initials || (f.name || "?")[0], color: f.color, streak: mkStreak((f.name || "X").charCodeAt(0) + i * 5 + (h.id || 1)) })),
-        ].sort((a, b) => b.streak - a.streak);
+      {isShared && (() => {
+        const people = [...roster].sort((a, b) => b.streak - a.streak);
         const maxStreak = Math.max(...people.map((p) => p.streak), 1);
         const myRank = people.findIndex((p) => p.you) + 1;
         return (
@@ -116,35 +134,68 @@ function HabitDetailScreen() {
       })()}
 
       {/* Per-habit calendar — a full ring on days you did it, an empty ring if not */}
-      <div className="section-label" style={{ marginTop: 22 }}>Последние 5 недель</div>
+      <div className="section-label" style={{ marginTop: 22 }}>{isShared ? "Последние 5 недель · кто отмечался" : "Последние 5 недель"}</div>
       <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 7 }}>
           {WD.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, color: "var(--text-4)", letterSpacing: 0.4 }}>{d}</div>)}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-          {cells.map((done, i) => {
-            const mins = done ? dayMins(i) : 0;
-            const frac = !done ? 0 : (h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1);
-            const C = 2 * Math.PI * 15.5;
-            return (
-              <span key={i} title={!done ? "пропущено" : (h.duration ? mins + " мин" : "выполнено")} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
-                <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-                  <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
-                  {frac > 0 && <circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="3.4"
-                    strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)}
-                    transform="rotate(-90 20 20)" style={{ filter: `drop-shadow(0 0 1.6px ${ringColor}aa)` }} />}
-                </svg>
-              </span>
-            );
-          })}
+          {isShared
+            ? cells.map((_, i) => {
+                // One ring per person (Apple-activity style): filled if they marked
+                // the habit that day → you can read who showed up and who skipped.
+                const did = ringRoster.filter((p) => p.cells[i]).map((p) => p.name);
+                return (
+                  <span key={i} title={did.length ? "Отметились: " + did.join(", ") : "никто не отметил"} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
+                    <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+                      {ringRoster.map((p, r) => (
+                        <g key={r}>
+                          <circle cx="20" cy="20" r={ringRadii[r]} fill="none" stroke={p.color + "26"} strokeWidth={ringSW} />
+                          {p.cells[i] && <circle cx="20" cy="20" r={ringRadii[r]} fill="none" stroke={p.color} strokeWidth={ringSW}
+                            style={{ filter: `drop-shadow(0 0 1.3px ${p.color}99)` }} />}
+                        </g>
+                      ))}
+                    </svg>
+                  </span>
+                );
+              })
+            : cells.map((done, i) => {
+                const mins = done ? dayMins(i) : 0;
+                const frac = !done ? 0 : (h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1);
+                const C = 2 * Math.PI * 15.5;
+                return (
+                  <span key={i} title={!done ? "пропущено" : (h.duration ? mins + " мин" : "выполнено")} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
+                    <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+                      <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
+                      {frac > 0 && <circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="3.4"
+                        strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)}
+                        transform="rotate(-90 20 20)" style={{ filter: `drop-shadow(0 0 1.6px ${ringColor}aa)` }} />}
+                    </svg>
+                  </span>
+                );
+              })}
         </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="6" /></svg> выполнено</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="6" /></svg> пропущено</span>
-          </span>
-          <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
-        </div>
+        {isShared ? (
+          <div style={{ marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "7px 13px" }}>
+              {ringRoster.map((p, r) => (
+                <span key={r} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: p.color, boxShadow: `0 0 3px ${p.color}aa` }} />
+                  <span style={{ color: "var(--text-2)", fontWeight: p.you ? 700 : 500 }}>{p.name}</span>
+                </span>
+              ))}
+            </div>
+            <div style={{ marginTop: 8, lineHeight: 1.4 }}>Каждое кольцо в дне — один человек. Видно, кто отметился, а кто пропустил.</div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="6" /></svg> выполнено</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="6" /></svg> пропущено</span>
+            </span>
+            <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
+          </div>
+        )}
         {h.duration && (
           <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 9, lineHeight: 1.4 }}>
             Кольцо тем полнее, чем дольше была сессия в этот день.
