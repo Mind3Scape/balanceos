@@ -65,6 +65,10 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   // Ring grows from 0 on appear (and eases to its new value on change).
   const [ringShown, setRingShown] = useHomeState(0);
   React.useEffect(() => { const t = setTimeout(() => setRingShown(ringPct), 80); return () => clearTimeout(t); }, [ringPct]);
+  // Stable global handle so the guided tour can flip this deck (e.g. to the
+  // balance wheel) — always calls the latest setPage via a ref.
+  const setPageRef = React.useRef(setPage); setPageRef.current = setPage;
+  React.useEffect(() => { window.__bosHeroPage = (p) => setPageRef.current(p); return () => { if (window.__bosHeroPage) window.__bosHeroPage = null; }; }, []);
   const heroApp = useApp ? useApp() : null;
   // The avatar ring + the glow under it follow the current state orb's colour.
   const mood = heroApp?.mood;
@@ -194,7 +198,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
     ),
     /* Page 2: Balance — clean radar (kept) + per-sphere breakdown that fills the
        space and shows what each sphere is + its % level. Original card height. */
-    <div key="wheel" style={{ position: "relative", height: "100%", padding: "14px 16px 14px 8px", boxSizing: "border-box", display: "flex", gap: 6, alignItems: "center" }}>
+    <div key="wheel" data-tour="balance-wheel" style={{ position: "relative", height: "100%", padding: "14px 16px 14px 8px", boxSizing: "border-box", display: "flex", gap: 6, alignItems: "center" }}>
       <div style={{ flexShrink: 0 }}><BalanceWheel size={112} isDark={isDark} /></div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>

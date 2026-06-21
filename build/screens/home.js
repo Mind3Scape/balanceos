@@ -124,6 +124,16 @@ function HomeHeroSwipe({
     var t = setTimeout(() => setRingShown(ringPct), 80);
     return () => clearTimeout(t);
   }, [ringPct]);
+  // Stable global handle so the guided tour can flip this deck (e.g. to the
+  // balance wheel) — always calls the latest setPage via a ref.
+  var setPageRef = React.useRef(setPage);
+  setPageRef.current = setPage;
+  React.useEffect(() => {
+    window.__bosHeroPage = p => setPageRef.current(p);
+    return () => {
+      if (window.__bosHeroPage) window.__bosHeroPage = null;
+    };
+  }, []);
   var heroApp = useApp ? useApp() : null;
   // The avatar ring + the glow under it follow the current state orb's colour.
   var mood = heroApp?.mood;
@@ -434,6 +444,7 @@ function HomeHeroSwipe({
      space and shows what each sphere is + its % level. Original card height. */
   React.createElement("div", {
     key: "wheel",
+    "data-tour": "balance-wheel",
     style: {
       position: "relative",
       height: "100%",

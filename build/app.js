@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v90";
+var APP_VERSION = "v91";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -378,9 +378,22 @@ var INFLUENCE_MULT_STOP = {
   title: "Вовлекаешь — растёшь быстрее всех",
   body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — растёт с кругом до ×1.25 (дальше потолок, чтобы игра была честной). Привёл людей — растёшь быстрее одиночки даже на тех же привычках."
 };
+
+// The balance wheel lives on home hero page 2 — the demo flips the deck to it and
+// makes clear the AI sorts every habit into the right life-sphere automatically.
+var BALANCE_WHEEL_STOP = {
+  kind: "spot",
+  tab: "home",
+  heroPage: 1,
+  sel: '[data-tour="balance-wheel"]',
+  radius: 14,
+  eyebrow: "Колесо баланса",
+  title: "ИИ раскладывает жизнь по сферам",
+  body: "Это твоё колесо баланса: тело, разум, карьера, отношения, отдых. ИИ сам относит каждую привычку к нужной сфере и следит, где густо, а где проседает — оранжевое значит, что эта часть жизни просит внимания."
+};
 var SCREEN_TOURS = {
-  home: [...TOUR_STOPS.slice(2, 6), INFLUENCE_MULT_STOP, TOUR_STOPS[6], HOME_SHARE_STOP],
-  // aihints, state, level, levels-peek, MULTIPLIER, ach-peek, share
+  home: [BALANCE_WHEEL_STOP, ...TOUR_STOPS.slice(2, 6), INFLUENCE_MULT_STOP, TOUR_STOPS[6], HOME_SHARE_STOP],
+  // wheel, aihints, state, level, levels-peek, MULTIPLIER, ach-peek, share
   habits: [...TOUR_STOPS.slice(8, 10), HABIT_INVITE_STOP, HABIT_PEEK_STOP],
   // presets, add, invite-while-creating, leaderboard peek
   community: TOUR_STOPS.slice(11, 19),
@@ -440,6 +453,9 @@ function GuidedTour({
         instant: true
       }); // instant: no fade/slide under the dim
       if (stop.view && setCommunityView) setCommunityView(stop.view);
+      // Flip the home hero deck to the page a stop wants (e.g. the balance wheel),
+      // and back to the reading page (0) for every other stop.
+      if (typeof window !== "undefined" && window.__bosHeroPage) window.__bosHeroPage(stop.heroPage != null ? stop.heroPage : 0);
     }
   }, [step]); // eslint-disable-line
 
@@ -518,6 +534,9 @@ function GuidedTour({
 
   if (!stop) return null;
   var last = step >= STOPS.length - 1;
+  var resetHero = () => {
+    if (typeof window !== "undefined" && window.__bosHeroPage) window.__bosHeroPage(0);
+  };
   var next = () => {
     if (last) {
       // A stop can open a real bottom sheet as its finale (e.g. demonstrate
@@ -529,11 +548,13 @@ function GuidedTour({
           }));
         } catch (_) {}
       }
+      resetHero();
       endTour();
       navigate(baseTab);
     } else setStep(step + 1);
   };
   var skip = () => {
+    resetHero();
     endTour();
     navigate(baseTab);
   };
