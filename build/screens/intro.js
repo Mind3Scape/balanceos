@@ -764,8 +764,8 @@ var SCENE = {
     tint: ["#cfe1ff", "#7aa4d0", "#1a2c48"]
   },
   mood: {
-    size: 62,
-    intensity: 1.25,
+    size: 56,
+    intensity: 0.9,
     tint: ["#e8f0ff", "#9bbfe8", "#2c4d76"]
   }
 };
@@ -833,7 +833,7 @@ function hueShift(hex, deg) {
 // paired with a morphing mood face + a native word. Centre = «Ровно». The orb
 // takes the colour; the face is the hero. One value 0..1 drives all three.
 var MOOD_SPECTRUM_STOPS = ["#FF5A5F", "#FF9F43", "#FFCE3A", "#34C759", "#19B6E8"];
-var MOOD_FACES = ["😣", "😕", "😐", "🙂", "🤩"];
+var MOOD_FACES = ["😣", "😕", "😐", "😄", "🤩"];
 var MOOD_WORDS = ["Тяжело", "Неважно", "Нормально", "Хорошо", "Отлично"];
 function moodSpectrum(v) {
   var x = Math.max(0, Math.min(1, isFinite(v) ? v : 0.5)) * (MOOD_SPECTRUM_STOPS.length - 1);
@@ -990,8 +990,17 @@ function IntroScreen() {
 
   // Onboarding state slider: 0 = heavy, 0.5 = base/ровно, 1 = on the rise. The orb
   // tint EASES toward the value each frame so the colour flows instead of snapping.
-  var [moodVal, setMoodVal] = useIS(0.5);
-  var moodMain = moodSpectrum(moodVal); // colour for the slider track fill only — the orb stays calm
+  var [moodVal, setMoodVal] = useIS(0.7); // start already on «Хорошо» — nudge up to «Отлично» or down
+  var moodEase = useIR({
+    t: 0,
+    val: 0.7
+  });
+  var me = moodEase.current;
+  var mdt = Math.max(0, Math.min(0.05, t - me.t));
+  me.t = t;
+  me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
+  var moodTint = tintFromMood(moodSpectrum(me.val)); // orb colour eases with the slider (contained aura)
+  var moodMain = moodSpectrum(moodVal); // crisp colour for the track fill
   var moodIdx = moodBucket(moodVal);
   var moodFace = MOOD_FACES[moodIdx];
   var moodWordTxt = MOOD_WORDS[moodIdx];
@@ -1201,7 +1210,8 @@ function IntroScreen() {
     mode: cur.mode,
     prevMode: effectivePrev,
     blend: blend,
-    dark: dark
+    dark: dark,
+    tintOverride: moodTint
   })), cur.mode === "mood" && /*#__PURE__*/React.createElement("div", {
     key: moodIdx,
     style: {

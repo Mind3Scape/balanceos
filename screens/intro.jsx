@@ -402,7 +402,7 @@ const SCENE = {
   compound: { size: 56, intensity: 1.0,  tint: ["#dde8f7", "#8fb5dc", "#1f3a60"] },
   together: { size: 54, intensity: 0.95, tint: ["#cfe1ff", "#a6c0e2", "#2a4670"] },
   habits:   { size: 52, intensity: 1.1,  tint: ["#cfe1ff", "#7aa4d0", "#1a2c48"] },
-  mood:     { size: 62, intensity: 1.25, tint: ["#e8f0ff", "#9bbfe8", "#2c4d76"] },
+  mood:     { size: 56, intensity: 0.9,  tint: ["#e8f0ff", "#9bbfe8", "#2c4d76"] },
 };
 function lerp(a, b, k) { return a + (b - a) * k; }
 function lerpArr(a, b, k) { return a.map((v, i) => lerp(v, b[i], k)); }
@@ -437,7 +437,7 @@ function hueShift(hex, deg) {
 // paired with a morphing mood face + a native word. Centre = «Ровно». The orb
 // takes the colour; the face is the hero. One value 0..1 drives all three.
 const MOOD_SPECTRUM_STOPS = ["#FF5A5F", "#FF9F43", "#FFCE3A", "#34C759", "#19B6E8"];
-const MOOD_FACES = ["😣", "😕", "😐", "🙂", "🤩"];
+const MOOD_FACES = ["😣", "😕", "😐", "😄", "🤩"];
 const MOOD_WORDS = ["Тяжело", "Неважно", "Нормально", "Хорошо", "Отлично"];
 function moodSpectrum(v) {
   const x = Math.max(0, Math.min(1, isFinite(v) ? v : 0.5)) * (MOOD_SPECTRUM_STOPS.length - 1);
@@ -526,8 +526,13 @@ function IntroScreen() {
 
   // Onboarding state slider: 0 = heavy, 0.5 = base/ровно, 1 = on the rise. The orb
   // tint EASES toward the value each frame so the colour flows instead of snapping.
-  const [moodVal, setMoodVal] = useIS(0.5);
-  const moodMain = moodSpectrum(moodVal); // colour for the slider track fill only — the orb stays calm
+  const [moodVal, setMoodVal] = useIS(0.7);   // start already on «Хорошо» — nudge up to «Отлично» or down
+  const moodEase = useIR({ t: 0, val: 0.7 });
+  const me = moodEase.current;
+  const mdt = Math.max(0, Math.min(0.05, t - me.t)); me.t = t;
+  me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
+  const moodTint = tintFromMood(moodSpectrum(me.val)); // orb colour eases with the slider (contained aura)
+  const moodMain = moodSpectrum(moodVal);              // crisp colour for the track fill
   const moodIdx = moodBucket(moodVal);
   const moodFace = MOOD_FACES[moodIdx];
   const moodWordTxt = MOOD_WORDS[moodIdx];
@@ -611,7 +616,7 @@ function IntroScreen() {
         {/* soft ring radiating outward as the orb settles in from the splash */}
         <div aria-hidden style={{ position: "absolute", inset: 0, margin: "auto", width: 168, height: 168, borderRadius: "50%", border: "1.5px solid " + (dark ? "rgba(180,210,255,0.38)" : "rgba(90,130,190,0.32)"), animation: "orbBurst 1.5s 0.25s ease-out both", pointerEvents: "none" }}/>
         <div style={{ animation: "orbIntro 0.9s cubic-bezier(0.22,0.8,0.32,1) both" }}>
-          <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark}/>
+          <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark} tintOverride={moodTint}/>
         </div>
         {/* Mood face floating in the orb — pops to the next emoji as the slider moves */}
         {cur.mode === "mood" && (
