@@ -3170,102 +3170,76 @@ function SignUpScreen() {
       fontSize: 12,
       color: pal.sub
     }
-  }, "\u0438\u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u0439 \u0441\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442"), /*#__PURE__*/React.createElement("span", {
+  }, "\u0438\u043B\u0438"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,
       height: 1,
       background: pal.line
     }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: name,
-    onChange: e => setName(e.target.value),
-    placeholder: "\u0418\u043C\u044F",
-    style: inp
-  }), /*#__PURE__*/React.createElement("input", {
-    value: email,
-    onChange: e => setEmail(e.target.value),
-    placeholder: "E-mail \u0438\u043B\u0438 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
-    style: inp
-  }), /*#__PURE__*/React.createElement("input", {
-    type: "password",
-    value: pwd,
-    onChange: e => setPwd(e.target.value),
-    placeholder: "\u041F\u0430\u0440\u043E\u043B\u044C",
-    style: inp
   })), /*#__PURE__*/React.createElement("button", {
     onClick: goFresh,
     className: "tap",
     style: {
       width: "100%",
-      marginTop: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      textAlign: "left",
       background: pal.btnBg,
       color: pal.btnFg,
       border: 0,
-      borderRadius: 999,
-      padding: 16,
+      borderRadius: 20,
+      padding: "15px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.22)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 22,
+    color: pal.btnFg
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       fontSize: 16,
-      fontWeight: 600
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
     }
   }, "\u041D\u0430\u0447\u0430\u0442\u044C \u0441 \u0447\u0438\u0441\u0442\u043E\u0433\u043E \u043B\u0438\u0441\u0442\u0430"), /*#__PURE__*/React.createElement("div", {
     style: {
+      fontSize: 12.5,
+      opacity: 0.6,
+      marginTop: 2,
+      lineHeight: 1.35
+    }
+  }, "\u041F\u0443\u0441\u0442\u043E\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u0435\u0440\u0432\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0441\u043E\u0437\u0434\u0430\u0448\u044C \u0441\u0430\u043C")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      opacity: 0.5,
+      display: "flex",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 20,
+    color: pal.btnFg
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
       textAlign: "center",
-      fontSize: 12,
+      fontSize: 11.5,
       color: pal.sub,
-      marginTop: 9
+      marginTop: 16,
+      lineHeight: 1.45
     }
-  }, "\u041F\u0443\u0441\u0442\u043E\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u0435\u0440\u0432\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0441\u043E\u0437\u0434\u0430\u0448\u044C \u0441\u0430\u043C."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      marginTop: 16
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: goFresh,
-    className: "tap",
-    style: {
-      flex: 1,
-      background: pal.socialBg,
-      border: pal.socialBorder,
-      borderRadius: 999,
-      padding: 13,
-      color: pal.socialText,
-      fontSize: 14,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 18
-    }
-  }, "G"), " Google"), /*#__PURE__*/React.createElement("button", {
-    onClick: goFresh,
-    className: "tap",
-    style: {
-      flex: 1,
-      background: pal.socialBg,
-      border: pal.socialBorder,
-      borderRadius: 999,
-      padding: 13,
-      color: pal.socialText,
-      fontSize: 14,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 18
-    }
-  }), " Apple"))));
+  }, "\u0412\u0445\u043E\u0434 \u043F\u043E \u043F\u043E\u0447\u0442\u0435, Google \u0438\u043B\u0438 Apple \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0432 \u043F\u043E\u043B\u043D\u043E\u0439 \u0432\u0435\u0440\u0441\u0438\u0438.")));
 }
 function IconPickerScreen() {
   var {

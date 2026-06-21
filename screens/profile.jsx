@@ -1115,29 +1115,23 @@ function SignUpScreen() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 16px" }}>
           <span style={{ flex: 1, height: 1, background: pal.line }}/>
-          <span style={{ fontSize: 12, color: pal.sub }}>или создай свой аккаунт</span>
+          <span style={{ fontSize: 12, color: pal.sub }}>или</span>
           <span style={{ flex: 1, height: 1, background: pal.line }}/>
         </div>
 
-        {/* Door 2 — Real registration (clean slate) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Имя" style={inp}/>
-          <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="E-mail или номер телефона" style={inp}/>
-          <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="Пароль" style={inp}/>
-        </div>
-        <button onClick={goFresh} className="tap" style={{ width: "100%", marginTop: 16, background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 16, fontWeight: 600 }}>
-          Начать с чистого листа
+        {/* Door 2 — new user (clean slate). The real registration form (имя / e-mail /
+            Google / Apple) is intentionally hidden for now so the demo never asks for
+            real data — it'll live right here in the released app. */}
+        <button onClick={goFresh} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 20, padding: "15px 16px" }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.22)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Plus size={22} color={pal.btnFg}/></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Начать с чистого листа</div>
+            <div style={{ fontSize: 12.5, opacity: 0.6, marginTop: 2, lineHeight: 1.35 }}>Пустое приложение — первую привычку создашь сам</div>
+          </div>
+          <span style={{ opacity: 0.5, display: "flex", flexShrink: 0 }}><I.ChevronRight size={20} color={pal.btnFg} /></span>
         </button>
-        <div style={{ textAlign: "center", fontSize: 12, color: pal.sub, marginTop: 9 }}>Пустое приложение — первую привычку создашь сам.</div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button onClick={goFresh} className="tap" style={{ flex: 1, background: pal.socialBg, border: pal.socialBorder, borderRadius: 999, padding: 13, color: pal.socialText, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <span style={{ fontSize: 18 }}>G</span> Google
-          </button>
-          <button onClick={goFresh} className="tap" style={{ flex: 1, background: pal.socialBg, border: pal.socialBorder, borderRadius: 999, padding: 13, color: pal.socialText, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <span style={{ fontSize: 18 }}></span> Apple
-          </button>
-        </div>
+        <div style={{ textAlign: "center", fontSize: 11.5, color: pal.sub, marginTop: 16, lineHeight: 1.45 }}>Вход по почте, Google или Apple появится в полной версии.</div>
       </div>
     </div>
   );

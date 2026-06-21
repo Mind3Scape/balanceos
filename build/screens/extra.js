@@ -92,17 +92,8 @@ function HabitDetailScreen() {
   // where individual rings would be unreadable: the ring fills by how many showed up.
   var aggCount = cells.map((_, i) => fullRoster.filter(p => p.cells[i]).length);
   var aggFrac = cells.map((_, i) => fullRoster.length ? aggCount[i] / fullRoster.length : 0);
-  // Small circles (≤3) keep the pretty concentric rings in the team view; bigger ones
-  // switch to the density fill. Either way you can tap a person to isolate their days.
-  var smallTeam = fullRoster.length <= 3;
-  var ringRoster = fullRoster.slice(0, 3);
-  var RING_GEOM = {
-    1: [15.5],
-    2: [16, 10.5],
-    3: [16.5, 11.2, 6]
-  };
-  var ringRadii = RING_GEOM[Math.max(1, Math.min(3, ringRoster.length))] || RING_GEOM[3];
-  var ringSW = ringRoster.length >= 3 ? 2.5 : 3.2;
+  // ONE common team ring (the density fill below) + per-person rings on tap — no more
+  // stacked concentric rings (unreadable past 3, David cut them). Works for any size.
   var chipStyle = active => ({
     display: "inline-flex",
     alignItems: "center",
@@ -496,48 +487,8 @@ function HabitDetailScreen() {
         filter: `drop-shadow(0 0 1.6px ${selP.color}aa)`
       }
     })));
-  }) : smallTeam ? cells.map((_, i) => {
-    // Small circle — a ring per person (Apple-activity style).
-    var did = ringRoster.filter(p => p.cells[i]).map(p => p.name);
-    return /*#__PURE__*/React.createElement("span", {
-      key: i,
-      title: did.length ? "Отметились: " + did.join(", ") : "никто не отметил",
-      style: {
-        position: "relative",
-        aspectRatio: "1/1",
-        display: "block"
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      viewBox: "0 0 40 40",
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%"
-      }
-    }, ringRoster.map((p, r) => /*#__PURE__*/React.createElement("g", {
-      key: r
-    }, /*#__PURE__*/React.createElement("circle", {
-      cx: "20",
-      cy: "20",
-      r: ringRadii[r],
-      fill: "none",
-      stroke: p.color + "26",
-      strokeWidth: ringSW
-    }), p.cells[i] && /*#__PURE__*/React.createElement("circle", {
-      cx: "20",
-      cy: "20",
-      r: ringRadii[r],
-      fill: "none",
-      stroke: p.color,
-      strokeWidth: ringSW,
-      style: {
-        filter: `drop-shadow(0 0 1.3px ${p.color}99)`
-      }
-    })))));
   }) : cells.map((_, i) => {
-    // Big circle — ring fills by how much of the team showed up that day.
+    // ONE common team ring — fills by how much of the team showed up that day.
     var frac = aggFrac[i];
     var C = 2 * Math.PI * 15.5;
     return /*#__PURE__*/React.createElement("span", {
@@ -655,45 +606,7 @@ function HabitDetailScreen() {
       boxShadow: `0 0 3px ${selP.color}aa`,
       flexShrink: 0
     }
-  }), /*#__PURE__*/React.createElement("span", null, "\u0426\u0432\u0435\u0442\u043E\u043C \u2014 \u0434\u043D\u0438, \u043A\u043E\u0433\u0434\u0430 ", selP.you ? "ты закрывал" : selP.name + " закрывал", " \u044D\u0442\u0443 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443. \u041F\u0443\u0441\u0442\u043E \u2014 \u043F\u0440\u043E\u043F\u0443\u0441\u043A.")) : smallTeam ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 13,
-      fontSize: 11,
-      color: "var(--text-4)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      alignItems: "center",
-      gap: "7px 13px"
-    }
-  }, ringRoster.map((p, r) => /*#__PURE__*/React.createElement("span", {
-    key: r,
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 9,
-      height: 9,
-      borderRadius: "50%",
-      background: p.color,
-      boxShadow: `0 0 3px ${p.color}aa`
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text-2)",
-      fontWeight: p.you ? 700 : 500
-    }
-  }, p.name)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8,
-      lineHeight: 1.4
-    }
-  }, "\u041A\u0430\u0436\u0434\u043E\u0435 \u043A\u043E\u043B\u044C\u0446\u043E \u2014 \u043E\u0434\u0438\u043D \u0447\u0435\u043B\u043E\u0432\u0435\u043A. \u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0438\u043C\u044F \u0432\u044B\u0448\u0435, \u0447\u0442\u043E\u0431\u044B \u043F\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043A\u043E\u0433\u043E-\u0442\u043E \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E.")) : /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", null, "\u0426\u0432\u0435\u0442\u043E\u043C \u2014 \u0434\u043D\u0438, \u043A\u043E\u0433\u0434\u0430 ", selP.you ? "ты закрывал" : selP.name + " закрывал", " \u044D\u0442\u0443 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443. \u041F\u0443\u0441\u0442\u043E \u2014 \u043F\u0440\u043E\u043F\u0443\u0441\u043A.")) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -736,7 +649,7 @@ function HabitDetailScreen() {
     strokeDasharray: 2 * Math.PI * 15.5,
     strokeDashoffset: 2 * Math.PI * 15.5 * 0.4,
     transform: "rotate(-90 20 20)"
-  })), "\u0427\u0435\u043C \u043F\u043E\u043B\u043D\u0435\u0435 \u043A\u043E\u043B\u044C\u0446\u043E \u2014 \u0442\u0435\u043C \u0434\u0440\u0443\u0436\u043D\u0435\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u0430\u0441\u044C"), /*#__PURE__*/React.createElement("span", {
+  })), "\u041E\u0431\u0449\u0435\u0435 \u043A\u043E\u043B\u044C\u0446\u043E \u2014 \u043D\u0430\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0434\u0440\u0443\u0436\u043D\u043E \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u0430\u0441\u044C \u0432 \u044D\u0442\u043E\u0442 \u0434\u0435\u043D\u044C. \u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430, \u0447\u0442\u043E\u0431\u044B \u0443\u0432\u0438\u0434\u0435\u0442\u044C \u0435\u0433\u043E \u0434\u043D\u0438."), /*#__PURE__*/React.createElement("span", {
     style: {
       flexShrink: 0
     }

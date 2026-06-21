@@ -765,7 +765,7 @@ var SCENE = {
   },
   mood: {
     size: 56,
-    intensity: 0.9,
+    intensity: 0.62,
     tint: ["#e8f0ff", "#9bbfe8", "#2c4d76"]
   }
 };
@@ -842,6 +842,14 @@ function moodSpectrum(v) {
 }
 function moodBucket(v) {
   return Math.max(0, Math.min(MOOD_FACES.length - 1, Math.floor((isFinite(v) ? v : 0.5) * MOOD_FACES.length)));
+}
+// Mute a colour heavily toward its own luminance-grey: keeps the hue but strips the
+// saturation, so the orb only WHISPERS the mood colour (no multi-hue shimmer/flicker).
+function muteGrey(hex, k) {
+  var p = [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+  var g = p[0] * 0.299 + p[1] * 0.587 + p[2] * 0.114;
+  var to = arr => "#" + arr.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+  return to(p.map(v => v + (g - v) * k));
 }
 function Stage({
   mode,
@@ -999,7 +1007,7 @@ function IntroScreen() {
   var mdt = Math.max(0, Math.min(0.05, t - me.t));
   me.t = t;
   me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
-  var moodTint = tintFromMood(moodSpectrum(me.val)); // orb colour eases with the slider (contained aura)
+  var moodTint = tintFromMood(muteGrey(moodSpectrum(me.val), 0.8)); // еле-еле single-hue cast, no shimmer
   var moodMain = moodSpectrum(moodVal); // crisp colour for the track fill
   var moodIdx = moodBucket(moodVal);
   var moodFace = MOOD_FACES[moodIdx];

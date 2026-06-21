@@ -402,7 +402,7 @@ const SCENE = {
   compound: { size: 56, intensity: 1.0,  tint: ["#dde8f7", "#8fb5dc", "#1f3a60"] },
   together: { size: 54, intensity: 0.95, tint: ["#cfe1ff", "#a6c0e2", "#2a4670"] },
   habits:   { size: 52, intensity: 1.1,  tint: ["#cfe1ff", "#7aa4d0", "#1a2c48"] },
-  mood:     { size: 56, intensity: 0.9,  tint: ["#e8f0ff", "#9bbfe8", "#2c4d76"] },
+  mood:     { size: 56, intensity: 0.62, tint: ["#e8f0ff", "#9bbfe8", "#2c4d76"] },
 };
 function lerp(a, b, k) { return a + (b - a) * k; }
 function lerpArr(a, b, k) { return a.map((v, i) => lerp(v, b[i], k)); }
@@ -446,6 +446,14 @@ function moodSpectrum(v) {
 }
 function moodBucket(v) {
   return Math.max(0, Math.min(MOOD_FACES.length - 1, Math.floor((isFinite(v) ? v : 0.5) * MOOD_FACES.length)));
+}
+// Mute a colour heavily toward its own luminance-grey: keeps the hue but strips the
+// saturation, so the orb only WHISPERS the mood colour (no multi-hue shimmer/flicker).
+function muteGrey(hex, k) {
+  const p = [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+  const g = p[0] * 0.299 + p[1] * 0.587 + p[2] * 0.114;
+  const to = (arr) => "#" + arr.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+  return to(p.map((v) => v + (g - v) * k));
 }
 
 function Stage({ mode, prevMode, blend, dark = true, tintOverride }) {
@@ -531,7 +539,7 @@ function IntroScreen() {
   const me = moodEase.current;
   const mdt = Math.max(0, Math.min(0.05, t - me.t)); me.t = t;
   me.val += (moodVal - me.val) * Math.min(1, mdt * 9);
-  const moodTint = tintFromMood(moodSpectrum(me.val)); // orb colour eases with the slider (contained aura)
+  const moodTint = tintFromMood(muteGrey(moodSpectrum(me.val), 0.8)); // еле-еле single-hue cast, no shimmer
   const moodMain = moodSpectrum(moodVal);              // crisp colour for the track fill
   const moodIdx = moodBucket(moodVal);
   const moodFace = MOOD_FACES[moodIdx];
