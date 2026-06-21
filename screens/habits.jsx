@@ -75,7 +75,7 @@ function ShareHabitSheet({ habit, dark = false }) {
 
       {/* Reward hero — the eye lands on what you earn + the influence multiplier */}
       <div style={{ marginTop: 16 }}>
-        <XPRewardCard amount={75} reason="когда друг присоединится к этой привычке" dark={dark} />
+        <XPRewardCard amount={75} reason="когда друг присоединится к этой привычке" mode="habit" dark={dark} />
       </div>
 
       <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "22px 0 12px" }}>Делать вместе</div>

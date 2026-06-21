@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v93";
+const APP_VERSION = "v94";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -179,10 +179,10 @@ const HABIT_PEEK_STOP = { kind: "peek", tab: "habit-detail", params: { habit: { 
   body: "Заходишь в привычку — видишь, кто её делает с тобой, серии у каждого и кто лидирует. Азарт держит ритм." };
 // The natural referral: while CREATING a habit you can invite any friend → +XP.
 const HABIT_INVITE_STOP = { kind: "spot", tab: "habit-settings", params: { mode: "create" }, sel: '[data-tour="invite-friend"]', radius: 18, eyebrow: "Вместе с другом", title: "Создавая — позови друга",
-  body: "Любую привычку можно делать вдвоём. Друг присоединился → +75 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг." };
+  body: "Привычку можно вести вместе с другом. Он присоединится — ты получишь +75 XP, и друг теперь в приложении." };
 // The heart of the economy — a small focus on the influence MULTIPLIER.
 const INFLUENCE_MULT_STOP = { kind: "spot", tab: "levels", sel: '[data-tour="influence-mult"]', radius: 18, eyebrow: "Множитель влияния", title: "Вовлекаешь — растёшь быстрее",
-  body: "Вот главный секрет: твой круг делает каждый шаг дороже. Привычка в одиночку +10, та же вдвоём +15. А позовёшь троих — круг подарит +300 XP сверху. Чем больше круг, тем быстрее растёшь даже на тех же привычках." };
+  body: "Главный секрет простой: чем больше друзей рядом, тем больше XP. Привычку делаешь один — +10, с другом — +15. А пригласишь троих в приложение — получишь +300 XP разом." };
 
 // Shown at the END of the habits guide (right after creating a habit): flips the
 // home hero deck to the balance wheel and explains habits → balance, AI-sorted.
@@ -211,6 +211,8 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
   const baseTab = TAB_ROUTES.has(tourScreen) ? tourScreen : "home";
   const rootRef = useRef(null);
   const [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
+  const [revealed, setRevealed] = useState(false); // this step's target measured → show the card
+  const [late, setLate] = useState(false); // fallback: target never measured → reveal the card anyway
   const prevCtxRef = useRef(null);        // last stop's tab|view — detect page switches
   const stop = (step >= 0 && step < STOPS.length) ? STOPS[step] : null;
   const ctxKey = stop ? stop.tab + "|" + (stop.view ? (stop.view.discTab || stop.view.commTab || stop.view.section || "") : "") : "";
@@ -232,41 +234,47 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
   // first, so it fades in fresh at the new spot instead of sliding across the
   // screen and visibly "catching up" (the laggy/glitchy adjust on the contacts page).
   useEffect(() => {
-    if (!stop || stop.kind !== "spot") { setSpot(null); return undefined; }
+    if (!stop || stop.kind !== "spot") { setSpot(null); setRevealed(false); setLate(false); return undefined; }
     const sameCtx = prevCtxRef.current === ctxKey;
     prevCtxRef.current = ctxKey;
-    if (!sameCtx) setSpot(null); // drop the stale highlight during the page switch
+    // Cross-screen: drop the stale highlight so it fades in fresh instead of sliding
+    // across to catch up. Same-screen: keep it so the hole glides to the next target.
+    if (!sameCtx) setSpot(null);
+    // Hide the tooltip card until THIS step's target is measured, so it always lands at
+    // its final spot — never parked at the bottom (or the old spot) and then jumping.
+    setRevealed(false);
+    setLate(false);
 
     let raf, cancelled = false, frames = 0, stable = 0, lastKey = "", lastSet = "", committed = false;
+    // Safety net: if the target is never found (unmounted / bad selector), reveal the
+    // card on its own after a beat so the user is never stranded on a blank screen.
+    const lateTimer = setTimeout(() => { if (!cancelled) setLate(true); }, 1100);
     const tick = () => {
       if (cancelled) return;
       frames++;
       const shell = rootRef.current && rootRef.current.parentElement;
       const el = shell && shell.querySelector(stop.sel);
       if (el) {
-        try { el.scrollIntoView({ block: "center", inline: "nearest" }); } catch (_) {}
+        if (!committed) { try { el.scrollIntoView({ block: "center", inline: "nearest" }); } catch (_) {} }
         const s = shell.getBoundingClientRect(), b = el.getBoundingClientRect();
         const m = { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, sw: s.width, sh: s.height };
         const key = [m.x, m.y, m.w, m.h].map(n => Math.round(n)).join(",");
         if (key === lastKey) stable++; else { stable = 0; lastKey = key; }
         const apply = () => { if (key !== lastSet) { setSpot(m); lastSet = key; } };
-        // First reveal waits longer on a tab/view switch (5 stable frames) so async
-        // reflow above the target — team cards loading, lists settling — finishes
-        // BEFORE the highlight appears. Otherwise it flashes at a pre-reflow spot and
-        // then visibly jumps. frames>40 is a safety net so it always eventually shows.
-        if (stable >= (sameCtx ? 2 : 5) || frames > 40) committed = true;
-        // Reveal once stable (fades in at the right place after a context switch),
-        // then KEEP following late layout shifts (avatars/lists settling, async
-        // reflow) so the highlight can't end up half-covering the target — the
-        // make-team CTA used to. The cutout's CSS transition smooths each nudge.
-        if (sameCtx || committed) apply();
+        // Hold the FIRST reveal until the layout is stable for a few frames (longer on
+        // a page switch, where lists/avatars reflow) so the spotlight lands once at its
+        // final spot. frames>44 is a safety net so it always eventually shows.
+        if (stable >= (sameCtx ? 3 : 7) || frames > 44) { if (!committed) setRevealed(true); committed = true; }
+        // After the reveal, keep tracking late layout shifts so the hole can never end
+        // up half-covering the target; the cutout's CSS transition smooths each nudge.
+        if (committed) apply();
       }
       if (frames > 200) return;                  // ~3.3s window for late shifts, then stop
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     window.addEventListener("resize", tick);
-    return () => { cancelled = true; cancelAnimationFrame(raf); window.removeEventListener("resize", tick); };
+    return () => { cancelled = true; cancelAnimationFrame(raf); clearTimeout(lateTimer); window.removeEventListener("resize", tick); };
   }, [step]); // eslint-disable-line
 
   if (!stop) return null;
@@ -351,12 +359,15 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
   const caretLeft = spot ? Math.max(16, Math.min(tcx - 21, spot.sw - 28 - 22)) : 180;
   return (
     <div ref={rootRef} style={{ position: "absolute", inset: 0, zIndex: 500 }}>
-      {/* tap blocker — transparent so there's no black flash before the spotlight;
-          the dim arrives WITH the cutout (below) as one clean reveal. */}
-      <div style={{ position: "absolute", inset: 0, background: "transparent" }} />
+      {/* tap blocker — transparent while measuring (no black flash); the dim arrives
+          WITH the cutout as one reveal. Flat dim only in the rare never-found fallback. */}
+      <div style={{ position: "absolute", inset: 0, background: (!cutout && late) ? "rgba(4,6,12,0.62)" : "transparent" }} />
       {/* cutout: dims everything except the target via a huge ring-shadow */}
       {cutout && <div key={ctxKey} style={{ position: "absolute", left: cutout.left, top: cutout.top, width: cutout.width, height: cutout.height, borderRadius: stop.radius, boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)", border: "1.5px solid rgba(254,222,52,0.85)", transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)", animation: "bosTourCut 0.3s ease both", pointerEvents: "none" }} />}
-      <div className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, top: cardTop, bottom: cardBottom, background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+      {/* tooltip card — only once THIS step's target is measured (or the fallback fires),
+          so it lands at its final spot instead of parked at the old spot then jumping. */}
+      {(revealed || late) && (
+      <div key={step} className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, top: cardTop, bottom: cardBottom, background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{stop.eyebrow}</div>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: titleC, marginTop: 3 }}>{stop.title}</div>
         <div style={{ fontSize: 13.5, color: bodyC, lineHeight: 1.45, marginTop: 6 }}>{stop.body}</div>
@@ -369,6 +380,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
           ? <span aria-hidden style={{ position: "absolute", top: -7, left: caretLeft, width: 14, height: 14, background: cardBg, transform: "rotate(45deg)", borderRadius: 3, borderLeft: dark ? "1px solid rgba(255,255,255,0.08)" : "none", borderTop: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }} />
           : <span aria-hidden style={{ position: "absolute", bottom: -7, left: caretLeft, width: 14, height: 14, background: cardBg, transform: "rotate(45deg)", borderRadius: 3, borderRight: dark ? "1px solid rgba(255,255,255,0.08)" : "none", borderBottom: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }} />}
       </div>
+      )}
       {tourStyle}
     </div>
   );

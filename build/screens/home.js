@@ -1585,7 +1585,7 @@ function HomeScreen() {
     style: {
       color: "var(--text-2)"
     }
-  }, "+", leftCount * XP_PER_HABIT, " XP"), " \u0437\u0430 ", leftCount, " ", ruHab(leftCount), " \u2014 \u0430 \u0437\u0430 \u0432\u0441\u0435 \u0441\u0440\u0430\u0437\u0443 \u0435\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
+  }, "+", leftCount * XP_PER_HABIT, " XP"), " \u0437\u0430 ", leftCount, " ", ruHab(leftCount), ". \u0410 \u0437\u0430\u043A\u0440\u043E\u0435\u0448\u044C \u0432\u0441\u0435 \u2014 \u0435\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: "var(--text-2)"
     }

@@ -317,10 +317,9 @@ function CountUp({ value, duration = 800, decimals = 0 }) {
    the back for depth (single tone, not multi-colour). Big XP number + an
    understated, capped multiplier line. The first thing the eye lands on when a
    share sheet opens. Reused by ShareAppSheet (+150) & ShareHabitSheet (+75). */
-function XPRewardCard({ amount = 150, reason = "когда друг начнёт пользоваться приложением", dark = false, circleNow = 2, circleGoal = 3, circleBonus = 300 }) {
+function XPRewardCard({ amount = 150, reason = "когда друг начнёт пользоваться приложением", dark = false, mode = "app", circleNow = 2, circleGoal = 3, circleBonus = 300 }) {
   const ink = "#0a0a0a";
   const inkSub = "rgba(0,0,0,0.62)";
-  const ruPpl = (n, a) => { const m = n % 10, h = n % 100; return a[(m === 1 && h !== 11) ? 0 : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? 1 : 2]; };
   const left = Math.max(0, circleGoal - circleNow);
   return (
     <div style={{ position: "relative", overflow: "hidden", borderRadius: 20, padding: "16px 17px",
@@ -340,21 +339,28 @@ function XPRewardCard({ amount = 150, reason = "когда друг начнёт
           <div style={{ fontSize: 12.5, color: inkSub, marginTop: 3, lineHeight: 1.35 }}>{reason}</div>
         </div>
       </div>
-      {/* Circle milestone — what the circle unlocks, in plain XP (no ×/%) */}
-      <div style={{ position: "relative", marginTop: 13, paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.10)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5, fontWeight: 700 }}>
-          <span>До бонуса круга</span>
-          <span>{circleNow} из {circleGoal}</span>
+      {mode === "app" ? (
+        /* App invite — invite 3 friends → a lump bonus. Plain XP, no ×/%. */
+        <div style={{ position: "relative", marginTop: 13, paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.10)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5, fontWeight: 700 }}>
+            <span>Приглашено друзей</span>
+            <span>{circleNow} из {circleGoal}</span>
+          </div>
+          <div style={{ height: 6, background: "rgba(0,0,0,0.14)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
+            <span style={{ display: "block", height: "100%", width: Math.min(100, Math.max(8, circleNow / circleGoal * 100)) + "%", background: ink, borderRadius: 999 }} />
+          </div>
+          <div style={{ fontSize: 12, color: inkSub, lineHeight: 1.4, marginTop: 8 }}>
+            {left > 0
+              ? <>Ещё <b style={{ color: ink }}>{left}</b> — и получишь <b style={{ color: ink }}>+{circleBonus} XP</b> разом.</>
+              : <>Все приглашены — <b style={{ color: ink }}>+{circleBonus} XP</b> твои!</>}
+          </div>
         </div>
-        <div style={{ height: 6, background: "rgba(0,0,0,0.14)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
-          <span style={{ display: "block", height: "100%", width: Math.min(100, Math.max(8, circleNow / circleGoal * 100)) + "%", background: ink, borderRadius: 999 }} />
+      ) : (
+        /* Habit invite — reinforce that doing it together is worth more. */
+        <div style={{ position: "relative", marginTop: 13, paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.10)", fontSize: 12, color: inkSub, lineHeight: 1.4 }}>
+          А когда ведёте привычку вместе — каждая отметка приносит <b style={{ color: ink }}>+15 XP</b> вместо +10.
         </div>
-        <div style={{ fontSize: 12, color: inkSub, lineHeight: 1.4, marginTop: 8 }}>
-          {left > 0
-            ? <>Ещё <b style={{ color: ink }}>{left}</b> {ruPpl(left, ["друг", "друга", "друзей"])} — и круг даёт <b style={{ color: ink }}>+{circleBonus} XP</b> сверху. Ведёте привычку вместе? Каждый шаг <b style={{ color: ink }}>+15</b> вместо +10.</>
-            : <>Круг собран — <b style={{ color: ink }}>+{circleBonus} XP</b> твои. А вместе каждый шаг <b style={{ color: ink }}>+15</b> вместо +10.</>}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

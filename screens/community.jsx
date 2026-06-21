@@ -1590,7 +1590,7 @@ function LevelsScreen() {
         ))}
       </SysCard>
       <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 8, padding: "0 4px", lineHeight: 1.45 }}>
-        За вовлечение людей платим щедрее всего — так растёт твой круг влияния ниже.
+        За приглашённых друзей платим щедрее всего — так растёт твой круг.
       </div>
 
       {/* Круг влияния — your people make every step richer. Concrete XP only
@@ -1606,8 +1606,8 @@ function LevelsScreen() {
             <div style={{ fontSize: 15.5, fontWeight: 700 }}>Множитель влияния</div>
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 3, lineHeight: 1.4 }}>
               {invited > 0
-                ? <>В твоём круге <b style={{ color: "var(--text-2)" }}>{invited} {ruPpl(invited, ["человек", "человека", "человек"])}</b> — каждый делает твой XP богаче.</>
-                : <>Собери круг — и каждый шаг станет дороже.</>}
+                ? <>Рядом с тобой уже <b style={{ color: "var(--text-2)" }}>{invited} {ruPpl(invited, ["человек", "человека", "человек"])}</b>. Чем больше друзей — тем больше XP ты получаешь.</>
+                : <>Позови друзей — и каждый поможет тебе получать больше XP.</>}
             </div>
           </div>
         </div>
@@ -1619,11 +1619,11 @@ function LevelsScreen() {
             <span style={{ fontWeight: 700, color: "#c99a1a" }}>+10 XP</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, marginTop: 7 }}>
-            <span className="bos-sys-text-2">Та же привычка вдвоём</span>
+            <span className="bos-sys-text-2">Привычка с другом</span>
             <span style={{ fontWeight: 800, color: "#c99a1a" }}>+15 XP</span>
           </div>
           <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 9, lineHeight: 1.4 }}>
-            Позвал друга и ведёте вместе — растёт и круг, и каждый ваш шаг.
+            Одни и те же привычки с друзьями приносят больше XP.
           </div>
         </div>
 
@@ -1631,19 +1631,19 @@ function LevelsScreen() {
         {nextMile ? (
           <div style={{ marginTop: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5 }}>
-              <span className="bos-sys-text-3">До бонуса круга</span>
+              <span className="bos-sys-text-3">Приглашено друзей</span>
               <span><b style={{ color: "var(--text-2)", fontWeight: 700 }}>{invited}</b> <span className="bos-sys-text-3">из {nextMile.n}</span></span>
             </div>
             <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden", marginTop: 7 }}>
               <span style={{ display: "block", height: "100%", width: Math.min(100, Math.max(6, (invited - prevMileN) / (nextMile.n - prevMileN) * 100)) + "%", background: "linear-gradient(90deg,#FEDE34,#F0B400)", borderRadius: 999 }} />
             </div>
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
-              Ещё <b style={{ color: "var(--text-2)" }}>{nextMile.n - invited}</b> {ruPpl(nextMile.n - invited, ["друг", "друга", "друзей"])} — и круг из {nextMile.n} принесёт <b style={{ color: "#c99a1a" }}>+{nextMile.bonus} XP</b> сверху.
+              Ещё <b style={{ color: "var(--text-2)" }}>{nextMile.n - invited}</b> — и получишь <b style={{ color: "#c99a1a" }}>+{nextMile.bonus} XP</b> разом.
             </div>
           </div>
         ) : (
           <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 14, lineHeight: 1.45 }}>
-            Круг растёт без потолка — каждый новый друг всё так же приносит <b style={{ color: "#c99a1a" }}>+150 XP</b>.
+            Круг можно растить бесконечно — и каждый новый друг приносит тебе <b style={{ color: "#c99a1a" }}>+150 XP</b>.
           </div>
         )}
 

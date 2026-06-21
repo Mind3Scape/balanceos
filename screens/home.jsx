@@ -543,7 +543,7 @@ function HomeScreen() {
               ? "Заведи привычку — и начни копить XP сегодня."
               : dayAllDone
                 ? "Идеальный день! Все привычки закрыты — +30 XP сверху."
-                : <>Ещё <b style={{ color: "var(--text-2)" }}>+{leftCount * XP_PER_HABIT} XP</b> за {leftCount} {ruHab(leftCount)} — а за все сразу ещё <b style={{ color: "var(--text-2)" }}>+30</b> за идеальный день.</>}
+                : <>Ещё <b style={{ color: "var(--text-2)" }}>+{leftCount * XP_PER_HABIT} XP</b> за {leftCount} {ruHab(leftCount)}. А закроешь все — ещё <b style={{ color: "var(--text-2)" }}>+30</b> за идеальный день.</>}
           </div>
         </div>
       </div>

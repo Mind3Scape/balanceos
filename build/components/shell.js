@@ -613,17 +613,13 @@ function XPRewardCard({
   amount = 150,
   reason = "когда друг начнёт пользоваться приложением",
   dark = false,
+  mode = "app",
   circleNow = 2,
   circleGoal = 3,
   circleBonus = 300
 }) {
   var ink = "#0a0a0a";
   var inkSub = "rgba(0,0,0,0.62)";
-  var ruPpl = (n, a) => {
-    var m = n % 10,
-      h = n % 100;
-    return a[m === 1 && h !== 11 ? 0 : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? 1 : 2];
-  };
   var left = Math.max(0, circleGoal - circleNow);
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -701,7 +697,10 @@ function XPRewardCard({
       marginTop: 3,
       lineHeight: 1.35
     }
-  }, reason))), /*#__PURE__*/React.createElement("div", {
+  }, reason))), mode === "app" ?
+  /*#__PURE__*/
+  /* App invite — invite 3 friends → a lump bonus. Plain XP, no ×/%. */
+  React.createElement("div", {
     style: {
       position: "relative",
       marginTop: 13,
@@ -716,7 +715,7 @@ function XPRewardCard({
       fontSize: 12.5,
       fontWeight: 700
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\u0414\u043E \u0431\u043E\u043D\u0443\u0441\u0430 \u043A\u0440\u0443\u0433\u0430"), /*#__PURE__*/React.createElement("span", null, circleNow, " \u0438\u0437 ", circleGoal)), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, "\u041F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u043E \u0434\u0440\u0443\u0437\u0435\u0439"), /*#__PURE__*/React.createElement("span", null, circleNow, " \u0438\u0437 ", circleGoal)), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 6,
       background: "rgba(0,0,0,0.14)",
@@ -743,23 +742,32 @@ function XPRewardCard({
     style: {
       color: ink
     }
-  }, left), " ", ruPpl(left, ["друг", "друга", "друзей"]), " \u2014 \u0438 \u043A\u0440\u0443\u0433 \u0434\u0430\u0451\u0442 ", /*#__PURE__*/React.createElement("b", {
+  }, left), " \u2014 \u0438 \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: ink
     }
-  }, "+", circleBonus, " XP"), " \u0441\u0432\u0435\u0440\u0445\u0443. \u0412\u0435\u0434\u0451\u0442\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0432\u043C\u0435\u0441\u0442\u0435? \u041A\u0430\u0436\u0434\u044B\u0439 \u0448\u0430\u0433 ", /*#__PURE__*/React.createElement("b", {
+  }, "+", circleBonus, " XP"), " \u0440\u0430\u0437\u043E\u043C.") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0412\u0441\u0435 \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u044B \u2014 ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: ink
     }
-  }, "+15"), " \u0432\u043C\u0435\u0441\u0442\u043E +10.") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041A\u0440\u0443\u0433 \u0441\u043E\u0431\u0440\u0430\u043D \u2014 ", /*#__PURE__*/React.createElement("b", {
+  }, "+", circleBonus, " XP"), " \u0442\u0432\u043E\u0438!"))) :
+  /*#__PURE__*/
+  /* Habit invite — reinforce that doing it together is worth more. */
+  React.createElement("div", {
+    style: {
+      position: "relative",
+      marginTop: 13,
+      paddingTop: 12,
+      borderTop: "1px solid rgba(0,0,0,0.10)",
+      fontSize: 12,
+      color: inkSub,
+      lineHeight: 1.4
+    }
+  }, "\u0410 \u043A\u043E\u0433\u0434\u0430 \u0432\u0435\u0434\u0451\u0442\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 \u043A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u043D\u043E\u0441\u0438\u0442 ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: ink
     }
-  }, "+", circleBonus, " XP"), " \u0442\u0432\u043E\u0438. \u0410 \u0432\u043C\u0435\u0441\u0442\u0435 \u043A\u0430\u0436\u0434\u044B\u0439 \u0448\u0430\u0433 ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: ink
-    }
-  }, "+15"), " \u0432\u043C\u0435\u0441\u0442\u043E +10."))));
+  }, "+15 XP"), " \u0432\u043C\u0435\u0441\u0442\u043E +10."));
 }
 Object.assign(window, {
   Phone,

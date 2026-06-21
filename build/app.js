@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v93";
+var APP_VERSION = "v94";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -366,7 +366,7 @@ var HABIT_INVITE_STOP = {
   radius: 18,
   eyebrow: "Вместе с другом",
   title: "Создавая — позови друга",
-  body: "Любую привычку можно делать вдвоём. Друг присоединился → +75 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг."
+  body: "Привычку можно вести вместе с другом. Он присоединится — ты получишь +75 XP, и друг теперь в приложении."
 };
 // The heart of the economy — a small focus on the influence MULTIPLIER.
 var INFLUENCE_MULT_STOP = {
@@ -376,7 +376,7 @@ var INFLUENCE_MULT_STOP = {
   radius: 18,
   eyebrow: "Множитель влияния",
   title: "Вовлекаешь — растёшь быстрее",
-  body: "Вот главный секрет: твой круг делает каждый шаг дороже. Привычка в одиночку +10, та же вдвоём +15. А позовёшь троих — круг подарит +300 XP сверху. Чем больше круг, тем быстрее растёшь даже на тех же привычках."
+  body: "Главный секрет простой: чем больше друзей рядом, тем больше XP. Привычку делаешь один — +10, с другом — +15. А пригласишь троих в приложение — получишь +300 XP разом."
 };
 
 // Shown at the END of the habits guide (right after creating a habit): flips the
@@ -442,6 +442,8 @@ function GuidedTour({
   var baseTab = TAB_ROUTES.has(tourScreen) ? tourScreen : "home";
   var rootRef = useRef(null);
   var [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
+  var [revealed, setRevealed] = useState(false); // this step's target measured → show the card
+  var [late, setLate] = useState(false); // fallback: target never measured → reveal the card anyway
   var prevCtxRef = useRef(null); // last stop's tab|view — detect page switches
   var stop = step >= 0 && step < STOPS.length ? STOPS[step] : null;
   var ctxKey = stop ? stop.tab + "|" + (stop.view ? stop.view.discTab || stop.view.commTab || stop.view.section || "" : "") : "";
@@ -467,12 +469,19 @@ function GuidedTour({
   useEffect(() => {
     if (!stop || stop.kind !== "spot") {
       setSpot(null);
+      setRevealed(false);
+      setLate(false);
       return undefined;
     }
     var sameCtx = prevCtxRef.current === ctxKey;
     prevCtxRef.current = ctxKey;
-    if (!sameCtx) setSpot(null); // drop the stale highlight during the page switch
-
+    // Cross-screen: drop the stale highlight so it fades in fresh instead of sliding
+    // across to catch up. Same-screen: keep it so the hole glides to the next target.
+    if (!sameCtx) setSpot(null);
+    // Hide the tooltip card until THIS step's target is measured, so it always lands at
+    // its final spot — never parked at the bottom (or the old spot) and then jumping.
+    setRevealed(false);
+    setLate(false);
     var raf,
       cancelled = false,
       frames = 0,
@@ -480,18 +489,25 @@ function GuidedTour({
       lastKey = "",
       lastSet = "",
       committed = false;
+    // Safety net: if the target is never found (unmounted / bad selector), reveal the
+    // card on its own after a beat so the user is never stranded on a blank screen.
+    var lateTimer = setTimeout(() => {
+      if (!cancelled) setLate(true);
+    }, 1100);
     var tick = () => {
       if (cancelled) return;
       frames++;
       var shell = rootRef.current && rootRef.current.parentElement;
       var el = shell && shell.querySelector(stop.sel);
       if (el) {
-        try {
-          el.scrollIntoView({
-            block: "center",
-            inline: "nearest"
-          });
-        } catch (_) {}
+        if (!committed) {
+          try {
+            el.scrollIntoView({
+              block: "center",
+              inline: "nearest"
+            });
+          } catch (_) {}
+        }
         var s = shell.getBoundingClientRect(),
           b = el.getBoundingClientRect();
         var m = {
@@ -513,16 +529,16 @@ function GuidedTour({
             lastSet = key;
           }
         };
-        // First reveal waits longer on a tab/view switch (5 stable frames) so async
-        // reflow above the target — team cards loading, lists settling — finishes
-        // BEFORE the highlight appears. Otherwise it flashes at a pre-reflow spot and
-        // then visibly jumps. frames>40 is a safety net so it always eventually shows.
-        if (stable >= (sameCtx ? 2 : 5) || frames > 40) committed = true;
-        // Reveal once stable (fades in at the right place after a context switch),
-        // then KEEP following late layout shifts (avatars/lists settling, async
-        // reflow) so the highlight can't end up half-covering the target — the
-        // make-team CTA used to. The cutout's CSS transition smooths each nudge.
-        if (sameCtx || committed) apply();
+        // Hold the FIRST reveal until the layout is stable for a few frames (longer on
+        // a page switch, where lists/avatars reflow) so the spotlight lands once at its
+        // final spot. frames>44 is a safety net so it always eventually shows.
+        if (stable >= (sameCtx ? 3 : 7) || frames > 44) {
+          if (!committed) setRevealed(true);
+          committed = true;
+        }
+        // After the reveal, keep tracking late layout shifts so the hole can never end
+        // up half-covering the target; the cutout's CSS transition smooths each nudge.
+        if (committed) apply();
       }
       if (frames > 200) return; // ~3.3s window for late shifts, then stop
       raf = requestAnimationFrame(tick);
@@ -532,6 +548,7 @@ function GuidedTour({
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
+      clearTimeout(lateTimer);
       window.removeEventListener("resize", tick);
     };
   }, [step]); // eslint-disable-line
@@ -780,7 +797,7 @@ function GuidedTour({
     style: {
       position: "absolute",
       inset: 0,
-      background: "transparent"
+      background: !cutout && late ? "rgba(4,6,12,0.62)" : "transparent"
     }
   }), cutout && /*#__PURE__*/React.createElement("div", {
     key: ctxKey,
@@ -797,7 +814,8 @@ function GuidedTour({
       animation: "bosTourCut 0.3s ease both",
       pointerEvents: "none"
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }), (revealed || late) && /*#__PURE__*/React.createElement("div", {
+    key: step,
     className: "bos-tour-pop",
     style: {
       position: "absolute",

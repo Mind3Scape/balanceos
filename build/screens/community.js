@@ -4504,7 +4504,7 @@ function LevelsScreen() {
       padding: "0 4px",
       lineHeight: 1.45
     }
-  }, "\u0417\u0430 \u0432\u043E\u0432\u043B\u0435\u0447\u0435\u043D\u0438\u0435 \u043B\u044E\u0434\u0435\u0439 \u043F\u043B\u0430\u0442\u0438\u043C \u0449\u0435\u0434\u0440\u0435\u0435 \u0432\u0441\u0435\u0433\u043E \u2014 \u0442\u0430\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u0442\u0432\u043E\u0439 \u043A\u0440\u0443\u0433 \u0432\u043B\u0438\u044F\u043D\u0438\u044F \u043D\u0438\u0436\u0435."), /*#__PURE__*/React.createElement("div", {
+  }, "\u0417\u0430 \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0451\u043D\u043D\u044B\u0445 \u0434\u0440\u0443\u0437\u0435\u0439 \u043F\u043B\u0430\u0442\u0438\u043C \u0449\u0435\u0434\u0440\u0435\u0435 \u0432\u0441\u0435\u0433\u043E \u2014 \u0442\u0430\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u0442\u0432\u043E\u0439 \u043A\u0440\u0443\u0433."), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -4552,11 +4552,11 @@ function LevelsScreen() {
       marginTop: 3,
       lineHeight: 1.4
     }
-  }, invited > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0412 \u0442\u0432\u043E\u0451\u043C \u043A\u0440\u0443\u0433\u0435 ", /*#__PURE__*/React.createElement("b", {
+  }, invited > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0420\u044F\u0434\u043E\u043C \u0441 \u0442\u043E\u0431\u043E\u0439 \u0443\u0436\u0435 ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: "var(--text-2)"
     }
-  }, invited, " ", ruPpl(invited, ["человек", "человека", "человек"])), " \u2014 \u043A\u0430\u0436\u0434\u044B\u0439 \u0434\u0435\u043B\u0430\u0435\u0442 \u0442\u0432\u043E\u0439 XP \u0431\u043E\u0433\u0430\u0447\u0435.") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0421\u043E\u0431\u0435\u0440\u0438 \u043A\u0440\u0443\u0433 \u2014 \u0438 \u043A\u0430\u0436\u0434\u044B\u0439 \u0448\u0430\u0433 \u0441\u0442\u0430\u043D\u0435\u0442 \u0434\u043E\u0440\u043E\u0436\u0435.")))), /*#__PURE__*/React.createElement("div", {
+  }, invited, " ", ruPpl(invited, ["человек", "человека", "человек"])), ". \u0427\u0435\u043C \u0431\u043E\u043B\u044C\u0448\u0435 \u0434\u0440\u0443\u0437\u0435\u0439 \u2014 \u0442\u0435\u043C \u0431\u043E\u043B\u044C\u0448\u0435 XP \u0442\u044B \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0448\u044C.") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0437\u0435\u0439 \u2014 \u0438 \u043A\u0430\u0436\u0434\u044B\u0439 \u043F\u043E\u043C\u043E\u0436\u0435\u0442 \u0442\u0435\u0431\u0435 \u043F\u043E\u043B\u0443\u0447\u0430\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435 XP.")))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       padding: "12px 13px",
@@ -4587,7 +4587,7 @@ function LevelsScreen() {
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-text-2"
-  }, "\u0422\u0430 \u0436\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0432\u0434\u0432\u043E\u0451\u043C"), /*#__PURE__*/React.createElement("span", {
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0441 \u0434\u0440\u0443\u0433\u043E\u043C"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 800,
       color: "#c99a1a"
@@ -4599,7 +4599,7 @@ function LevelsScreen() {
       marginTop: 9,
       lineHeight: 1.4
     }
-  }, "\u041F\u043E\u0437\u0432\u0430\u043B \u0434\u0440\u0443\u0433\u0430 \u0438 \u0432\u0435\u0434\u0451\u0442\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 \u0440\u0430\u0441\u0442\u0451\u0442 \u0438 \u043A\u0440\u0443\u0433, \u0438 \u043A\u0430\u0436\u0434\u044B\u0439 \u0432\u0430\u0448 \u0448\u0430\u0433.")), nextMile ? /*#__PURE__*/React.createElement("div", {
+  }, "\u041E\u0434\u043D\u0438 \u0438 \u0442\u0435 \u0436\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438 \u043F\u0440\u0438\u043D\u043E\u0441\u044F\u0442 \u0431\u043E\u043B\u044C\u0448\u0435 XP.")), nextMile ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14
     }
@@ -4612,7 +4612,7 @@ function LevelsScreen() {
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-text-3"
-  }, "\u0414\u043E \u0431\u043E\u043D\u0443\u0441\u0430 \u043A\u0440\u0443\u0433\u0430"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u043E \u0434\u0440\u0443\u0437\u0435\u0439"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
     style: {
       color: "var(--text-2)",
       fontWeight: 700
@@ -4646,18 +4646,18 @@ function LevelsScreen() {
     style: {
       color: "var(--text-2)"
     }
-  }, nextMile.n - invited), " ", ruPpl(nextMile.n - invited, ["друг", "друга", "друзей"]), " \u2014 \u0438 \u043A\u0440\u0443\u0433 \u0438\u0437 ", nextMile.n, " \u043F\u0440\u0438\u043D\u0435\u0441\u0451\u0442 ", /*#__PURE__*/React.createElement("b", {
+  }, nextMile.n - invited), " \u2014 \u0438 \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: "#c99a1a"
     }
-  }, "+", nextMile.bonus, " XP"), " \u0441\u0432\u0435\u0440\u0445\u0443.")) : /*#__PURE__*/React.createElement("div", {
+  }, "+", nextMile.bonus, " XP"), " \u0440\u0430\u0437\u043E\u043C.")) : /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
     style: {
       fontSize: 12.5,
       marginTop: 14,
       lineHeight: 1.45
     }
-  }, "\u041A\u0440\u0443\u0433 \u0440\u0430\u0441\u0442\u0451\u0442 \u0431\u0435\u0437 \u043F\u043E\u0442\u043E\u043B\u043A\u0430 \u2014 \u043A\u0430\u0436\u0434\u044B\u0439 \u043D\u043E\u0432\u044B\u0439 \u0434\u0440\u0443\u0433 \u0432\u0441\u0451 \u0442\u0430\u043A \u0436\u0435 \u043F\u0440\u0438\u043D\u043E\u0441\u0438\u0442 ", /*#__PURE__*/React.createElement("b", {
+  }, "\u041A\u0440\u0443\u0433 \u043C\u043E\u0436\u043D\u043E \u0440\u0430\u0441\u0442\u0438\u0442\u044C \u0431\u0435\u0441\u043A\u043E\u043D\u0435\u0447\u043D\u043E \u2014 \u0438 \u043A\u0430\u0436\u0434\u044B\u0439 \u043D\u043E\u0432\u044B\u0439 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u043D\u043E\u0441\u0438\u0442 \u0442\u0435\u0431\u0435 ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: "#c99a1a"
     }
