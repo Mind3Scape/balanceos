@@ -1515,7 +1515,10 @@ function TeamHabitSheet({ team, members = [], onAdd }) {
 /* LEVELS / CREDITS — gamification (theme-aware) */
 function LevelsScreen() {
   const { navigate } = useNav();
+  const { open: openSheet } = useSheet();
   const app = useApp ? useApp() : null;
+  const isDark = app?.themeOverride === "dark";
+  const invited = app?.mode === "demo" ? 2 : 0; // people you've drawn into the app
   const ach = (typeof window !== "undefined" && window.ACHIEVEMENTS) || [];
   const achEarned = ach.filter(a => a.earned);
   const lvl = 7;
@@ -1568,6 +1571,8 @@ function LevelsScreen() {
           { t: "Выполнить привычку", v: "+5 XP" },
           { t: "Серия 7 дней", v: "+50 XP" },
           { t: "Помочь товарищу по команде", v: "+15 XP" },
+          { t: "Вовлечь друга в привычку", v: "+30 XP" },
+          { t: "Пригласить нового друга", v: "+50 XP" },
           { t: "Достичь цели", v: "+200 XP" },
         ].map((r, i, arr) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
@@ -1575,6 +1580,27 @@ function LevelsScreen() {
             <span style={{ color: "#c99a1a", fontWeight: 600 }}>{r.v}</span>
           </div>
         ))}
+      </SysCard>
+
+      {/* Круг влияния — referrals framed as a good deed, with XP + milestones */}
+      <div className="section-label" style={{ marginTop: 22 }}>Круг влияния</div>
+      <SysCard style={{ padding: 16, marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span className="bos-sys-chip-bg" style={{ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🤝</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 600 }}>Вовлекай других в хорошее</div>
+            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>Вовлечено {invited} · заработано +{invited * 50} XP</div>
+          </div>
+        </div>
+        <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden", marginTop: 13 }}>
+          <span style={{ display: "block", height: "100%", width: Math.min(100, invited / 3 * 100) + "%", background: "linear-gradient(90deg,#5FA8FF,#46E6DC)", borderRadius: 999 }} />
+        </div>
+        <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
+          {invited >= 3
+            ? "Бейдж «Вдохновитель» твой! Следующая ступень — 10 человек (+400 XP)."
+            : <>Вовлеки ещё {3 - invited} — получишь <b style={{ color: "var(--text-2)" }}>+100 XP</b> и бейдж «Вдохновитель».</>}
+        </div>
+        <button onClick={() => openSheet(<ShareAppSheet dark={isDark} />)} className="tap" style={{ width: "100%", marginTop: 14, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 12, fontSize: 14.5, fontWeight: 600 }}>Пригласить друга</button>
       </SysCard>
 
       <div className="section-label" style={{ marginTop: 22 }}>Достижения</div>

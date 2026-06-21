@@ -557,6 +557,8 @@ function HomeScreen() {
 /* ── Share-the-app sheet (slides up from the home "Поделиться приложением") ── */
 function ShareAppSheet({ dark = false }) {
   const { close } = useSheet();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const invited = app?.mode === "demo" ? 2 : 0; // demo: 1 away from the 3-milestone
   const [copied, setCopied] = useHomeState(false);
   // The real, live web app — works on any phone, also opens fine from Telegram.
   const APP_URL = "https://mind3scape.github.io/balanceos";
@@ -591,6 +593,22 @@ function ShareAppSheet({ dark = false }) {
         <span style={{ fontSize: 16 }}>🔗</span>
         <div style={{ flex: 1, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>mind3scape.github.io/balanceos</div>
         <button onClick={copyLink} className="tap" style={{ background: copied ? "#34C759" : (dark ? "#fff" : "#0a0a0a"), color: copied ? "#fff" : (dark ? "#0a0a0a" : "#fff"), border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 600, transition: "background 0.2s", whiteSpace: "nowrap" }}>{copied ? "Скопировано ✓" : "Копировать"}</button>
+      </div>
+
+      {/* Influence reward — sharing is framed as a good deed that earns XP */}
+      <div style={{ marginTop: 16, borderRadius: 16, padding: "13px 14px", background: dark ? "rgba(94,168,255,0.12)" : "linear-gradient(135deg,#eef3fc,#e3edfb)", border: dark ? 0 : "1px solid rgba(70,120,190,0.12)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 700, color: C.text }}>
+          <span style={{ fontSize: 16 }}>🤝</span> Доброе дело влияния
+        </div>
+        <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.45, marginTop: 5 }}>
+          Вовлекать других в хорошее — тоже доброе дело. <b style={{ color: C.text }}>+50 XP</b> за каждого друга, кто присоединится. Вовлёк троих — ещё <b style={{ color: C.text }}>+100 XP</b> и бейдж «Вдохновитель».
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 10 }}>
+          <div style={{ flex: 1, height: 6, background: dark ? "rgba(255,255,255,0.1)" : "rgba(70,120,190,0.16)", borderRadius: 999, overflow: "hidden" }}>
+            <span style={{ display: "block", height: "100%", width: Math.min(100, invited / 3 * 100) + "%", background: "linear-gradient(90deg,#5FA8FF,#46E6DC)", borderRadius: 999 }} />
+          </div>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.sub, whiteSpace: "nowrap" }}>{invited}/3 · {invited >= 3 ? "бонус ваш!" : `ещё ${3 - invited}`}</span>
+        </div>
       </div>
 
       <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "20px 0 12px" }}>Предложить друзьям</div>

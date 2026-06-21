@@ -232,6 +232,26 @@ function ShareHabitSheet({
     }
   }, "\xAB", habit?.name || "Привычка", "\xBB \u2014 \u0437\u043E\u0432\u0438\u0442\u0435 \u0434\u0440\u0443\u0437\u0435\u0439 \u0434\u0435\u043B\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435")), /*#__PURE__*/React.createElement("div", {
     style: {
+      marginTop: 16,
+      borderRadius: 14,
+      padding: "11px 13px",
+      background: dark ? "rgba(52,199,89,0.12)" : "#eafaef",
+      display: "flex",
+      alignItems: "center",
+      gap: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "\u2728"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: dark ? "rgba(255,255,255,0.72)" : "#1a7a3a",
+      lineHeight: 1.4
+    }
+  }, /*#__PURE__*/React.createElement("b", null, "+30 XP"), ", \u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F \u2014 \u0432\u043E\u0432\u043B\u0435\u043A\u0430\u0442\u044C \u0432 \u0445\u043E\u0440\u043E\u0448\u0435\u0435 \u0442\u043E\u0436\u0435 \u0434\u043E\u0431\u0440\u043E\u0435 \u0434\u0435\u043B\u043E.")), /*#__PURE__*/React.createElement("div", {
+    style: {
       fontSize: 12,
       color: C.sub,
       textTransform: "uppercase",

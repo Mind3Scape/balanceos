@@ -4249,7 +4249,12 @@ function LevelsScreen() {
   var {
     navigate
   } = useNav();
+  var {
+    open: openSheet
+  } = useSheet();
   var app = useApp ? useApp() : null;
+  var isDark = app?.themeOverride === "dark";
+  var invited = app?.mode === "demo" ? 2 : 0; // people you've drawn into the app
   var ach = typeof window !== "undefined" && window.ACHIEVEMENTS || [];
   var achEarned = ach.filter(a => a.earned);
   var lvl = 7;
@@ -4422,6 +4427,12 @@ function LevelsScreen() {
     t: "Помочь товарищу по команде",
     v: "+15 XP"
   }, {
+    t: "Вовлечь друга в привычку",
+    v: "+30 XP"
+  }, {
+    t: "Пригласить нового друга",
+    v: "+50 XP"
+  }, {
     t: "Достичь цели",
     v: "+200 XP"
   }].map((r, i, arr) => /*#__PURE__*/React.createElement("div", {
@@ -4439,6 +4450,92 @@ function LevelsScreen() {
       fontWeight: 600
     }
   }, r.v)))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u041A\u0440\u0443\u0433 \u0432\u043B\u0438\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement(SysCard, {
+    style: {
+      padding: 16,
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: 13,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22,
+      flexShrink: 0
+    }
+  }, "\uD83E\uDD1D"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 600
+    }
+  }, "\u0412\u043E\u0432\u043B\u0435\u043A\u0430\u0439 \u0434\u0440\u0443\u0433\u0438\u0445 \u0432 \u0445\u043E\u0440\u043E\u0448\u0435\u0435"), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 2
+    }
+  }, "\u0412\u043E\u0432\u043B\u0435\u0447\u0435\u043D\u043E ", invited, " \xB7 \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043E +", invited * 50, " XP"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 7,
+      background: "var(--surface-3)",
+      borderRadius: 999,
+      overflow: "hidden",
+      marginTop: 13
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: Math.min(100, invited / 3 * 100) + "%",
+      background: "linear-gradient(90deg,#5FA8FF,#46E6DC)",
+      borderRadius: 999
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 8,
+      lineHeight: 1.45
+    }
+  }, invited >= 3 ? "Бейдж «Вдохновитель» твой! Следующая ступень — 10 человек (+400 XP)." : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0412\u043E\u0432\u043B\u0435\u043A\u0438 \u0435\u0449\u0451 ", 3 - invited, " \u2014 \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "+100 XP"), " \u0438 \u0431\u0435\u0439\u0434\u0436 \xAB\u0412\u0434\u043E\u0445\u043D\u043E\u0432\u0438\u0442\u0435\u043B\u044C\xBB.")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheet, {
+      dark: isDark
+    })),
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 14,
+      background: isDark ? "#fff" : "#0a0a0a",
+      color: isDark ? "#0a0a0a" : "#fff",
+      border: 0,
+      borderRadius: 999,
+      padding: 12,
+      fontSize: 14.5,
+      fontWeight: 600
+    }
+  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0434\u0440\u0443\u0433\u0430")), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22

@@ -73,6 +73,14 @@ function ShareHabitSheet({ habit, dark = false }) {
         <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>«{habit?.name || "Привычка"}» — зовите друзей делать вместе</div>
       </div>
 
+      {/* Influence reward — bringing someone into a good habit earns XP */}
+      <div style={{ marginTop: 16, borderRadius: 14, padding: "11px 13px", background: dark ? "rgba(52,199,89,0.12)" : "#eafaef", display: "flex", alignItems: "center", gap: 9 }}>
+        <span style={{ fontSize: 16 }}>✨</span>
+        <div style={{ fontSize: 12.5, color: dark ? "rgba(255,255,255,0.72)" : "#1a7a3a", lineHeight: 1.4 }}>
+          <b>+30 XP</b>, когда друг присоединится — вовлекать в хорошее тоже доброе дело.
+        </div>
+      </div>
+
       <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "22px 0 12px" }}>Делать вместе</div>
       <div style={{ display: "flex", gap: 14, overflowX: "auto", margin: "0 -20px", padding: "0 20px 4px", scrollbarWidth: "none" }}>
         {friends.map((p, i) => (

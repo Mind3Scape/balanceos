@@ -1647,6 +1647,8 @@ function ShareAppSheet({
   var {
     close
   } = useSheet();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var invited = app?.mode === "demo" ? 2 : 0; // demo: 1 away from the 3-milestone
   var [copied, setCopied] = useHomeState(false);
   // The real, live web app — works on any phone, also opens fine from Telegram.
   var APP_URL = "https://mind3scape.github.io/balanceos";
@@ -1790,6 +1792,72 @@ function ShareAppSheet({
       whiteSpace: "nowrap"
     }
   }, copied ? "Скопировано ✓" : "Копировать")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      borderRadius: 16,
+      padding: "13px 14px",
+      background: dark ? "rgba(94,168,255,0.12)" : "linear-gradient(135deg,#eef3fc,#e3edfb)",
+      border: dark ? 0 : "1px solid rgba(70,120,190,0.12)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "\uD83E\uDD1D"), " \u0414\u043E\u0431\u0440\u043E\u0435 \u0434\u0435\u043B\u043E \u0432\u043B\u0438\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: C.sub,
+      lineHeight: 1.45,
+      marginTop: 5
+    }
+  }, "\u0412\u043E\u0432\u043B\u0435\u043A\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0438\u0445 \u0432 \u0445\u043E\u0440\u043E\u0448\u0435\u0435 \u2014 \u0442\u043E\u0436\u0435 \u0434\u043E\u0431\u0440\u043E\u0435 \u0434\u0435\u043B\u043E. ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: C.text
+    }
+  }, "+50 XP"), " \u0437\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0434\u0440\u0443\u0433\u0430, \u043A\u0442\u043E \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F. \u0412\u043E\u0432\u043B\u0451\u043A \u0442\u0440\u043E\u0438\u0445 \u2014 \u0435\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: C.text
+    }
+  }, "+100 XP"), " \u0438 \u0431\u0435\u0439\u0434\u0436 \xAB\u0412\u0434\u043E\u0445\u043D\u043E\u0432\u0438\u0442\u0435\u043B\u044C\xBB."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      height: 6,
+      background: dark ? "rgba(255,255,255,0.1)" : "rgba(70,120,190,0.16)",
+      borderRadius: 999,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: Math.min(100, invited / 3 * 100) + "%",
+      background: "linear-gradient(90deg,#5FA8FF,#46E6DC)",
+      borderRadius: 999
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: C.sub,
+      whiteSpace: "nowrap"
+    }
+  }, invited, "/3 \xB7 ", invited >= 3 ? "бонус ваш!" : `ещё ${3 - invited}`))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: C.sub,
