@@ -405,7 +405,7 @@ const DEFAULT_SPHERES = ["body", "mind", "career", "money", "friends", "rest"];
    this pristine demo (intentional — no persistence, easy to present). */
 const SEED_HABITS = [
   { id: 1, emoji: "🙏", name: "Помогать другим", done: true,  streak: 12, friends: [{name:"Анна",initials:"А",color:"#F4A574"},{name:"Марк",initials:"М",color:"#7FB3F2"}] },
-  { id: 2, emoji: "🧘🏼‍♀️", name: "Медитация", done: true, streak: 27, duration: 10, friends: [{name:"Лена",initials:"Л",color:"#B89AF0"},{name:"Вик",initials:"В",color:"#74CFE0"},{name:"Том",initials:"Т",color:"#76D3A0"}] },
+  { id: 2, emoji: "🧘🏼‍♀️", name: "Медитация", done: true, streak: 27, duration: 10, friends: [{name:"Лена",initials:"Л",color:"#B89AF0"},{name:"Вик",initials:"В",color:"#74CFE0"},{name:"Том",initials:"Т",color:"#76D3A0"},{name:"Катя",initials:"К",color:"#F291AC"},{name:"Игорь",initials:"И",color:"#7FB3F2"},{name:"Соня",initials:"С",color:"#F5C56B"}] },
   { id: 3, emoji: "🏃🏼‍♀️", name: "Утренняя пробежка", done: true, streak: 5, duration: 25, friends: [{name:"Анна",initials:"А",color:"#F4A574"}] },
   { id: 4, emoji: "📚", name: "Читать книгу", done: false, streak: 3, duration: 20 },
   { id: 5, emoji: "✍🏼", name: "Бумажный дневник", done: false, streak: 8, duration: 5 },

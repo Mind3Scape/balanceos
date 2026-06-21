@@ -56,12 +56,29 @@ function HabitDetailScreen() {
     if (fromEnd < p.streak) return true;
     return ((i * 7 + (p.name || "X").charCodeAt(0) * 13 + (h.id || 1) * 5) % 10) > 6;
   });
-  // Up to 3 rings per calendar day (you outer, friends inward) — more is unreadable;
-  // the full standings live in the leaderboard. Radii/stroke tuned to nest cleanly.
-  const ringRoster = roster.slice(0, 3).map((p) => ({ ...p, cells: personCells(p) }));
+  // Everyone (you + friends) with their own 5-week pattern. Scales past the old
+  // 3-ring limit: `selPerson` = null → "Вся команда"; an index → that person's days.
+  // (David's flow: I see the team, tap Марк, see exactly which days HE closed.)
+  const fullRoster = roster.map((p) => ({ ...p, cells: personCells(p) }));
+  const [selPerson, setSelPerson] = useM(null);
+  const selP = (selPerson != null && fullRoster[selPerson]) ? fullRoster[selPerson] : null;
+  // Per-day team participation — the "Вся команда" view for big circles (5–30 people)
+  // where individual rings would be unreadable: the ring fills by how many showed up.
+  const aggCount = cells.map((_, i) => fullRoster.filter((p) => p.cells[i]).length);
+  const aggFrac  = cells.map((_, i) => fullRoster.length ? aggCount[i] / fullRoster.length : 0);
+  // Small circles (≤3) keep the pretty concentric rings in the team view; bigger ones
+  // switch to the density fill. Either way you can tap a person to isolate their days.
+  const smallTeam = fullRoster.length <= 3;
+  const ringRoster = fullRoster.slice(0, 3);
   const RING_GEOM = { 1: [15.5], 2: [16, 10.5], 3: [16.5, 11.2, 6 ] };
   const ringRadii = RING_GEOM[Math.max(1, Math.min(3, ringRoster.length))] || RING_GEOM[3];
   const ringSW = ringRoster.length >= 3 ? 2.5 : 3.2;
+  const chipStyle = (active) => ({
+    display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 6px", borderRadius: 999,
+    background: active ? (isDark ? "#fff" : "#0a0a0a") : (isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)"),
+    color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)",
+    border: 0, flexShrink: 0, fontSize: 13, fontWeight: active ? 700 : 500, whiteSpace: "nowrap", cursor: "pointer",
+  });
 
   const card = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
@@ -109,8 +126,11 @@ function HabitDetailScreen() {
           <>
             <div className="section-label" style={{ marginTop: 22 }}>Кто с тобой · соревнование</div>
             <div style={{ ...card, borderRadius: 18, padding: 8, marginTop: 8 }}>
-              {people.map((p, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 8px", borderRadius: 12, background: p.you ? (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)") : "transparent" }}>
+              {people.map((p, i) => {
+                const fi = fullRoster.findIndex((x) => x.name === p.name);
+                const sel = selPerson === fi;
+                return (
+                <div key={i} onClick={() => setSelPerson(sel ? null : fi)} className="tap" style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 8px", borderRadius: 12, cursor: "pointer", transition: "background 0.15s", background: sel ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)") : (p.you ? (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)") : "transparent"), boxShadow: sel ? `inset 0 0 0 1.5px ${p.color}` : "none" }}>
                   <span style={{ width: 22, textAlign: "center", fontSize: i === 0 ? 15 : 13, fontWeight: 700, color: i === 0 ? "#E0A500" : "var(--text-4)" }}>{i === 0 ? "👑" : i + 1}</span>
                   <span style={{ width: 34, height: 34, borderRadius: "50%", background: p.color, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{p.initials}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -124,9 +144,10 @@ function HabitDetailScreen() {
                     <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{p.streak}</span>
                   </span>
                 </div>
-              ))}
+                );
+              })}
               <div style={{ fontSize: 12, color: "var(--text-4)", textAlign: "center", padding: "8px 4px 4px", lineHeight: 1.4 }}>
-                {myRank === 1 ? "Ты лидируешь — не сбавляй! 🔥" : `Ты на ${myRank}-м месте · до лидера ${people[0].streak - streak} дн. серии`}
+                {selP ? `Внизу — дни, когда ${selP.you ? "ты отмечал" : selP.name + " отмечал"} привычку. Нажми ещё раз, чтобы снять.` : (myRank === 1 ? "Ты лидируешь! Нажми на любого — внизу покажу его дни." : `Ты на ${myRank}-м месте. Нажми на любого — внизу покажу его дни.`)}
               </div>
             </div>
           </>
@@ -134,32 +155,28 @@ function HabitDetailScreen() {
       })()}
 
       {/* Per-habit calendar — a full ring on days you did it, an empty ring if not */}
-      <div className="section-label" style={{ marginTop: 22 }}>{isShared ? "Последние 5 недель · кто отмечался" : "Последние 5 недель"}</div>
+      <div className="section-label" style={{ marginTop: 22 }}>{isShared ? (selP ? `Дни · ${selP.you ? "ты" : selP.name}` : "Последние 5 недель · вся команда") : "Последние 5 недель"}</div>
       <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8 }}>
+        {isShared && (
+          <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", marginBottom: 13, paddingBottom: 2 }}>
+            <button onClick={() => setSelPerson(null)} className="tap" style={chipStyle(selPerson == null)}>
+              <span style={{ width: 18, height: 18, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)", display: "grid", placeItems: "center", fontSize: 10 }}>👥</span>
+              Все
+            </button>
+            {fullRoster.map((p, i) => (
+              <button key={i} onClick={() => setSelPerson(i)} className="tap" style={chipStyle(selPerson === i)}>
+                <span style={{ width: 18, height: 18, borderRadius: "50%", background: p.color, display: "grid", placeItems: "center", fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{p.initials}</span>
+                {p.you ? "Ты" : p.name.split(" ")[0]}
+              </button>
+            ))}
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 7 }}>
           {WD.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, color: "var(--text-4)", letterSpacing: 0.4 }}>{d}</div>)}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-          {isShared
-            ? cells.map((_, i) => {
-                // One ring per person (Apple-activity style): filled if they marked
-                // the habit that day → you can read who showed up and who skipped.
-                const did = ringRoster.filter((p) => p.cells[i]).map((p) => p.name);
-                return (
-                  <span key={i} title={did.length ? "Отметились: " + did.join(", ") : "никто не отметил"} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
-                    <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-                      {ringRoster.map((p, r) => (
-                        <g key={r}>
-                          <circle cx="20" cy="20" r={ringRadii[r]} fill="none" stroke={p.color + "26"} strokeWidth={ringSW} />
-                          {p.cells[i] && <circle cx="20" cy="20" r={ringRadii[r]} fill="none" stroke={p.color} strokeWidth={ringSW}
-                            style={{ filter: `drop-shadow(0 0 1.3px ${p.color}99)` }} />}
-                        </g>
-                      ))}
-                    </svg>
-                  </span>
-                );
-              })
-            : cells.map((done, i) => {
+          {!isShared
+            ? cells.map((done, i) => {
                 const mins = done ? dayMins(i) : 0;
                 const frac = !done ? 0 : (h.duration ? Math.max(0.18, Math.min(1, mins / (h.duration * 2))) : 1);
                 const C = 2 * Math.PI * 15.5;
@@ -173,9 +190,64 @@ function HabitDetailScreen() {
                     </svg>
                   </span>
                 );
-              })}
+              })
+            : selP
+              ? cells.map((_, i) => {
+                  // One selected person — their days light up in their own colour.
+                  const done = selP.cells[i];
+                  return (
+                    <span key={i} title={done ? "отметил" : "пропустил"} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
+                      <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+                        <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
+                        {done && <circle cx="20" cy="20" r="15.5" fill="none" stroke={selP.color} strokeWidth="3.4" style={{ filter: `drop-shadow(0 0 1.6px ${selP.color}aa)` }} />}
+                      </svg>
+                    </span>
+                  );
+                })
+              : smallTeam
+                ? cells.map((_, i) => {
+                    // Small circle — a ring per person (Apple-activity style).
+                    const did = ringRoster.filter((p) => p.cells[i]).map((p) => p.name);
+                    return (
+                      <span key={i} title={did.length ? "Отметились: " + did.join(", ") : "никто не отметил"} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
+                        <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+                          {ringRoster.map((p, r) => (
+                            <g key={r}>
+                              <circle cx="20" cy="20" r={ringRadii[r]} fill="none" stroke={p.color + "26"} strokeWidth={ringSW} />
+                              {p.cells[i] && <circle cx="20" cy="20" r={ringRadii[r]} fill="none" stroke={p.color} strokeWidth={ringSW} style={{ filter: `drop-shadow(0 0 1.3px ${p.color}99)` }} />}
+                            </g>
+                          ))}
+                        </svg>
+                      </span>
+                    );
+                  })
+                : cells.map((_, i) => {
+                    // Big circle — ring fills by how much of the team showed up that day.
+                    const frac = aggFrac[i]; const C = 2 * Math.PI * 15.5;
+                    return (
+                      <span key={i} title={`${aggCount[i]} из ${fullRoster.length} отметились`} style={{ position: "relative", aspectRatio: "1/1", display: "block" }}>
+                        <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+                          <circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="3.4" />
+                          {frac > 0 && <circle cx="20" cy="20" r="15.5" fill="none" stroke="#FFC400" strokeWidth="3.4" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform="rotate(-90 20 20)" style={{ filter: "drop-shadow(0 0 1.6px #FFC400aa)" }} />}
+                        </svg>
+                      </span>
+                    );
+                  })}
         </div>
-        {isShared ? (
+        {!isShared ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="6" /></svg> выполнено</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="6" /></svg> пропущено</span>
+            </span>
+            <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
+          </div>
+        ) : selP ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 13, fontSize: 11, color: "var(--text-4)", lineHeight: 1.4 }}>
+            <span style={{ width: 9, height: 9, borderRadius: "50%", background: selP.color, boxShadow: `0 0 3px ${selP.color}aa`, flexShrink: 0 }} />
+            <span>Цветом — дни, когда {selP.you ? "ты закрывал" : selP.name + " закрывал"} эту привычку. Пусто — пропуск.</span>
+          </div>
+        ) : smallTeam ? (
           <div style={{ marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "7px 13px" }}>
               {ringRoster.map((p, r) => (
@@ -185,18 +257,18 @@ function HabitDetailScreen() {
                 </span>
               ))}
             </div>
-            <div style={{ marginTop: 8, lineHeight: 1.4 }}>Каждое кольцо в дне — один человек. Видно, кто отметился, а кто пропустил.</div>
+            <div style={{ marginTop: 8, lineHeight: 1.4 }}>Каждое кольцо — один человек. Нажми на имя выше, чтобы посмотреть кого-то отдельно.</div>
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={ringColor} strokeWidth="6" /></svg> выполнено</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><svg width="13" height="13" viewBox="0 0 40 40" aria-hidden><circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="6" /></svg> пропущено</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, fontSize: 11, color: "var(--text-4)", gap: 10 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, lineHeight: 1.4 }}>
+              <svg width="13" height="13" viewBox="0 0 40 40" aria-hidden style={{ flexShrink: 0 }}><circle cx="20" cy="20" r="15.5" fill="none" stroke={emptyBd} strokeWidth="6" /><circle cx="20" cy="20" r="15.5" fill="none" stroke="#FFC400" strokeWidth="6" strokeLinecap="round" strokeDasharray={2 * Math.PI * 15.5} strokeDashoffset={2 * Math.PI * 15.5 * 0.4} transform="rotate(-90 20 20)" /></svg>
+              Чем полнее кольцо — тем дружнее команда отметилась
             </span>
-            <span>Постоянство <b style={{ color: "var(--text-2)" }}><Count value={rate} />%</b></span>
+            <span style={{ flexShrink: 0 }}><b style={{ color: "var(--text-2)" }}>{fullRoster.length}</b> чел.</span>
           </div>
         )}
-        {h.duration && (
+        {h.duration && !isShared && (
           <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 9, lineHeight: 1.4 }}>
             Кольцо тем полнее, чем дольше была сессия в этот день.
           </div>

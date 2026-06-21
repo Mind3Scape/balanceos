@@ -905,6 +905,18 @@ var SEED_HABITS = [{
     name: "Том",
     initials: "Т",
     color: "#76D3A0"
+  }, {
+    name: "Катя",
+    initials: "К",
+    color: "#F291AC"
+  }, {
+    name: "Игорь",
+    initials: "И",
+    color: "#7FB3F2"
+  }, {
+    name: "Соня",
+    initials: "С",
+    color: "#F5C56B"
   }]
 }, {
   id: 3,
