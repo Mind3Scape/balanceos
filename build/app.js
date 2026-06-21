@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v84";
+var APP_VERSION = "v85";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -314,19 +314,33 @@ var TOUR_STOPS = [{
   cta: "Начать"
 }];
 
-/* The fresh-user experience no longer uses this coach-mark tour at all — it now
-   opens with gentle iOS bottom-sheets (FreshOnboarding) and per-tab intro sheets.
-   GuidedTour is the rich DEMO walkthrough only. */
+/* Per-screen slices of the tour, launched from a demo intro sheet's "Показать
+   детально". The welcome/closing cards and the redundant "this is the X tab"
+   spots are skipped — the sheet already introduces the screen. */
+var SCREEN_TOURS = {
+  home: TOUR_STOPS.slice(2, 7),
+  // aihints, state, level, levels-peek, ach-peek
+  habits: TOUR_STOPS.slice(8, 10),
+  // presets, add
+  community: TOUR_STOPS.slice(11, 19),
+  // make-team … course (teams, chat, network, courses)
+  ai: []
+};
+
+/* GuidedTour renders ONE screen's stops (SCREEN_TOURS[tourScreen]); the demo
+   greets each screen with a sheet, and "Показать детально" launches these. On
+   finish it returns to that screen's base tab, leaving the user free to explore. */
 function GuidedTour({
   step,
   setStep,
   endTour,
   navigate,
   setCommunityView,
-  tourMode,
+  tourScreen,
   dark
 }) {
-  var STOPS = TOUR_STOPS;
+  var STOPS = SCREEN_TOURS[tourScreen] || [];
+  var baseTab = TAB_ROUTES.has(tourScreen) ? tourScreen : "home";
   var rootRef = useRef(null);
   var [spot, setSpot] = useState(null); // {cx, cy, top, w, shellH}
   var prevCtxRef = useRef(null); // last stop's tab|view — detect page switches
@@ -412,12 +426,12 @@ function GuidedTour({
   var next = () => {
     if (last) {
       endTour();
-      navigate("home");
+      navigate(baseTab);
     } else setStep(step + 1);
   };
   var skip = () => {
     endTour();
-    navigate("home");
+    navigate(baseTab);
   };
   var dots = /*#__PURE__*/React.createElement("div", {
     style: {
@@ -858,6 +872,76 @@ var TAB_INTROS = {
   }
 };
 
+/* Demo intros — richer per-screen sheets shown when the demo user opens each tab.
+   Same look as the fresh intros, but each (except AI) offers "Показать детально"
+   → that screen's button-by-button spotlights (SCREEN_TOURS). */
+var DEMO_INTROS = {
+  home: {
+    eyebrow: "Главная",
+    title: "Твой экран дня",
+    detail: true,
+    body: "Состояние, баланс, серии и уровень — что важно, то наверху. Собери под себя.",
+    pills: [{
+      emoji: "😌",
+      label: "Состояние"
+    }, {
+      emoji: "🔥",
+      label: "Серии"
+    }, {
+      emoji: "🏆",
+      label: "Уровень"
+    }]
+  },
+  habits: {
+    eyebrow: "Практика",
+    title: "Тут ты всё создаёшь",
+    detail: true,
+    body: "Привычки и цели — одному или вместе. Шаблоны для быстрого старта.",
+    pills: [{
+      emoji: "⚡",
+      label: "Привычки"
+    }, {
+      emoji: "🎯",
+      label: "Цели"
+    }, {
+      emoji: "👥",
+      label: "Вместе"
+    }]
+  },
+  community: {
+    eyebrow: "Сообщество",
+    title: "Сердце экосистемы",
+    detail: true,
+    body: "Команды с близкими, нетворк наставников, курсы. Самая глубина — здесь.",
+    pills: [{
+      emoji: "👥",
+      label: "Команды"
+    }, {
+      emoji: "🧭",
+      label: "Нетворк"
+    }, {
+      emoji: "🎓",
+      label: "Курсы"
+    }]
+  },
+  ai: {
+    eyebrow: "Помощник",
+    title: "ИИ всегда рядом",
+    detail: false,
+    body: "Совет, разбор дня, план на завтра — держит в уме твой контекст и подсказывает по делу.",
+    pills: [{
+      emoji: "💡",
+      label: "Совет"
+    }, {
+      emoji: "📊",
+      label: "Разбор"
+    }, {
+      emoji: "🗓️",
+      label: "План"
+    }]
+  }
+};
+
 /* The same brand orb on every onboarding sheet — identical size, position and
    tint on every step, so it reads as ONE persistent orb while only the text
    changes (orb-continuity). Pills below carry the per-screen meaning via colourful
@@ -890,6 +974,7 @@ function OnbSheet({
   cta,
   onCta,
   onSkip,
+  skipLabel = "Я разберусь сам",
   total,
   index,
   dark
@@ -1014,7 +1099,7 @@ function OnbSheet({
       fontSize: 13.5,
       padding: 9
     }
-  }, "\u042F \u0440\u0430\u0437\u0431\u0435\u0440\u0443\u0441\u044C \u0441\u0430\u043C") : total > 1 ? /*#__PURE__*/React.createElement("div", {
+  }, skipLabel) : total > 1 ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 6,
       height: 34
@@ -1048,7 +1133,12 @@ function FreshOnboarding({
   useEffect(() => {
     if (welcome) setWStep(0);
   }, [welcome]);
-  var tab = !welcome && app.onbTab ? TAB_INTROS[app.onbTab] : null;
+
+  // Demo greets each screen with the richer DEMO_INTROS (offering "Показать
+  // детально"); a fresh user gets the calm TAB_INTROS.
+  var intros = app.mode === "demo" ? DEMO_INTROS : TAB_INTROS;
+  var tabKey = app.onbTab;
+  var tab = !welcome && tabKey ? intros[tabKey] : null;
   // Keep the last tab content mounted through the close animation (so it slides
   // down with text intact instead of emptying first).
   var lastTab = useRef(null);
@@ -1084,8 +1174,13 @@ function FreshOnboarding({
     title: tabView.title,
     body: tabView.body,
     dark: dark,
-    cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
-    onCta: closeTab,
+    cta: tabView.detail ? "Показать детально" : "Понятно",
+    onCta: tabView.detail ? () => {
+      app.startScreenTour(tabKey);
+      closeTab();
+    } : closeTab,
+    onSkip: tabView.detail ? closeTab : undefined,
+    skipLabel: "\u041E\u0441\u043C\u043E\u0442\u0440\u044E\u0441\u044C \u0441\u0430\u043C",
     pills: tabView.pills && tabView.pills.map(p => ({
       emoji: p.emoji,
       label: p.label,
@@ -1390,13 +1485,15 @@ function PhoneApp() {
     if (window.tgBackButton) window.tgBackButton(frames.length > 1, goBack);
   }, [frames.length, goBack]);
 
-  // Fresh-user: the first time they open a tab THEMSELVES, raise a one-time
-  // intro sheet for that page (home is pre-seen — the welcome sheets cover it).
+  // The first time the user opens a tab THEMSELVES, raise a one-time intro sheet
+  // for that page. Fresh: calm intro (home pre-seen — welcome covers it). Demo:
+  // richer intro with "Показать детально" (home included). Never while the
+  // welcome sequence or a spotlight tour is running.
   useEffect(() => {
-    if (app.mode === "fresh" && !app.onbWelcome && TAB_ROUTES.has(top.route)) {
+    if (TAB_ROUTES.has(top.route) && !app.onbWelcome && app.tourStep < 0 && (app.mode === "fresh" || app.mode === "demo")) {
       app.showTabIntro(top.route);
     }
-  }, [top.route, app.mode, app.onbWelcome]); // eslint-disable-line
+  }, [top.route, app.mode, app.onbWelcome, app.tourStep]); // eslint-disable-line
 
   // Safety net: clear the transition even if `animationend` never fires — e.g.
   // the installed PWA is backgrounded mid-animation (iOS freezes the animation
@@ -1571,7 +1668,7 @@ function PhoneApp() {
     endTour: app.endTour,
     navigate: navigate,
     setCommunityView: app.setCommunityView,
-    tourMode: app.tourMode,
+    tourScreen: app.tourScreen,
     dark: topDark
   }))));
 }

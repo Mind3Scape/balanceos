@@ -2971,7 +2971,6 @@ function SignUpScreen() {
   var app = useApp ? useApp() : null;
   var goDemo = () => {
     app?.enterDemo?.();
-    app?.startTour?.();
     navigate("home");
   };
   // Fresh start: enter empty mode and let the gentle bottom-sheet welcome take

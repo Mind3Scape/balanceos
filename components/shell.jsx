@@ -433,6 +433,10 @@ function AppProvider({ children }) {
     seenTabs.current[route] = true;
     setOnbTab(route);
   };
+  // Per-screen spotlight guide (demo): a demo intro sheet's "Показать детально"
+  // launches just that screen's stops; on finish the tour returns to the screen.
+  const [tourScreen, setTourScreen] = useState(null);
+  const startScreenTour = (key) => { setTourScreen(key); setTourStep(0); };
 
   // Shared habit / goal store + mutators (the app's single source of truth).
   const [habits, setHabits] = useState(SEED_HABITS);
@@ -469,7 +473,9 @@ function AppProvider({ children }) {
     setHabits(SEED_HABITS); setGoals(SEED_GOALS); setTeams(SEED_TEAMS);
     setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(DEMO_WIDGETS);
     setCommunityView({ networkUnlocked: true, discTab: "teams", section: "discover" });
-    setOnbWelcome(false); setOnbTab(null);
+    // Demo greets each screen with its own intro sheet → clear "seen" so home
+    // (and every tab) shows one. No forced linear tour anymore.
+    setOnbWelcome(false); setOnbTab(null); seenTabs.current = {}; setTourStep(-1); setTourScreen(null);
   };
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim());
@@ -478,7 +484,7 @@ function AppProvider({ children }) {
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "courses" });
     // Arm the welcome sheets; mark home as already-introduced so only the OTHER
     // tabs trigger a contextual intro when the user first opens them.
-    setOnbWelcome(true); setOnbTab(null); seenTabs.current = { home: true };
+    setOnbWelcome(true); setOnbTab(null); seenTabs.current = { home: true }; setTourStep(-1); setTourScreen(null);
   };
   const startTour = (mode) => { setTourMode(mode || "demo"); setTourStep(0); };
   const endTour = () => setTourStep(-1);
@@ -498,6 +504,7 @@ function AppProvider({ children }) {
     mode, userName, enterDemo, enterFresh,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
+    tourScreen, startScreenTour,
     habits, goals,
     toggleHabit, addHabit, updateHabit, removeHabit,
     addGoal, updateGoal, removeGoal,

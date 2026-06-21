@@ -1071,7 +1071,7 @@ function SignUpScreen() {
   };
   const inp = { background: pal.inputBg, border: pal.inputBorder, borderRadius: 14, padding: "14px 16px", color: pal.inputText, fontSize: 16, outline: 0 };
   const app = useApp ? useApp() : null;
-  const goDemo = () => { app?.enterDemo?.(); app?.startTour?.(); navigate("home"); };
+  const goDemo = () => { app?.enterDemo?.(); navigate("home"); };
   // Fresh start: enter empty mode and let the gentle bottom-sheet welcome take
   // over on home (no more forced coach-mark tour).
   const goFresh = () => { app?.enterFresh?.(name); navigate("home"); };

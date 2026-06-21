@@ -1034,6 +1034,13 @@ function AppProvider({
     seenTabs.current[route] = true;
     setOnbTab(route);
   };
+  // Per-screen spotlight guide (demo): a demo intro sheet's "Показать детально"
+  // launches just that screen's stops; on finish the tour returns to the screen.
+  var [tourScreen, setTourScreen] = useState(null);
+  var startScreenTour = key => {
+    setTourScreen(key);
+    setTourStep(0);
+  };
 
   // Shared habit / goal store + mutators (the app's single source of truth).
   var [habits, setHabits] = useState(SEED_HABITS);
@@ -1134,8 +1141,13 @@ function AppProvider({
       discTab: "teams",
       section: "discover"
     });
+    // Demo greets each screen with its own intro sheet → clear "seen" so home
+    // (and every tab) shows one. No forced linear tour anymore.
     setOnbWelcome(false);
     setOnbTab(null);
+    seenTabs.current = {};
+    setTourStep(-1);
+    setTourScreen(null);
   };
   var enterFresh = (name = "") => {
     setMode("fresh");
@@ -1161,6 +1173,8 @@ function AppProvider({
     seenTabs.current = {
       home: true
     };
+    setTourStep(-1);
+    setTourScreen(null);
   };
   var startTour = mode => {
     setTourMode(mode || "demo");
@@ -1208,6 +1222,8 @@ function AppProvider({
       onbTab,
       setOnbTab,
       showTabIntro,
+      tourScreen,
+      startScreenTour,
       habits,
       goals,
       toggleHabit,
