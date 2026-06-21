@@ -623,6 +623,18 @@ function HomeScreen() {
   var doneCount = habits.filter(h => h.done).length;
   var totalCount = habits.length;
   var ringPct = totalCount ? doneCount / totalCount : 0;
+  // Daily XP — real and legible: each habit is +10, closing the whole day adds
+  // the +30 "ideal day" bonus. Show what's earned vs. what's still on the table.
+  var XP_PER_HABIT = 10,
+    XP_IDEAL_DAY = 30;
+  var leftCount = Math.max(0, totalCount - doneCount);
+  var dayAllDone = totalCount > 0 && leftCount === 0;
+  var xpEarnedToday = doneCount * XP_PER_HABIT + (dayAllDone ? XP_IDEAL_DAY : 0);
+  var ruHab = n => {
+    var m = n % 10,
+      h = n % 100;
+    return m === 1 && h !== 11 ? "привычку" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "привычки" : "привычек";
+  };
   var dayStreak = app?.mode === "fresh" ? 0 : 27;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
@@ -633,7 +645,7 @@ function HomeScreen() {
     if (doneCount > prevDoneRef.current) {
       var full = totalCount > 0 && doneCount === totalCount;
       setCelebrate({
-        xp: full ? 100 : 15,
+        xp: full ? totalCount * 10 + 30 : 10,
         full,
         key: Date.now() + ":" + doneCount
       });
@@ -1555,7 +1567,7 @@ function HomeScreen() {
       color: "var(--text)"
     }
   }, "+", /*#__PURE__*/React.createElement(CountUp, {
-    value: Math.round(ringPct * 92)
+    value: xpEarnedToday
   }), " ", /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
@@ -1569,7 +1581,15 @@ function HomeScreen() {
       lineHeight: 1.4,
       marginTop: 3
     }
-  }, totalCount === 0 ? "Отметь первую привычку — и счёт пойдёт." : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0422\u044B \u043F\u0440\u043E\u0448\u0451\u043B ", Math.round(ringPct * 100), "%. \u0422\u0430\u043A \u0434\u0435\u0440\u0436\u0430\u0442\u044C.")))), /*#__PURE__*/React.createElement("button", {
+  }, totalCount === 0 ? "Заведи привычку — и начни копить XP сегодня." : dayAllDone ? "Идеальный день! Все привычки закрыты — +30 XP сверху." : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0415\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "+", leftCount * XP_PER_HABIT, " XP"), " \u0437\u0430 ", leftCount, " ", ruHab(leftCount), " \u2014 \u0430 \u0437\u0430 \u0432\u0441\u0435 \u0441\u0440\u0430\u0437\u0443 \u0435\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "+30"), " \u0437\u0430 \u0438\u0434\u0435\u0430\u043B\u044C\u043D\u044B\u0439 \u0434\u0435\u043D\u044C.")))), /*#__PURE__*/React.createElement("button", {
     "data-tour": "share-app",
     className: "tap",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheet, {
@@ -1773,7 +1793,6 @@ function ShareAppSheet({
   }, /*#__PURE__*/React.createElement(XPRewardCard, {
     amount: 150,
     reason: "\u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u043D\u0451\u0442 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u043C",
-    maxMult: "1.25",
     dark: dark
   })), /*#__PURE__*/React.createElement("div", {
     style: {

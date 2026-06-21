@@ -316,7 +316,8 @@ function SwipeRow({
     style: {
       position: "relative",
       overflow: "hidden",
-      touchAction: "pan-y"
+      touchAction: "pan-y",
+      background: track
     },
     onPointerDown: onDown,
     onPointerMove: onMove,
@@ -611,11 +612,19 @@ function CountUp({
 function XPRewardCard({
   amount = 150,
   reason = "когда друг начнёт пользоваться приложением",
-  maxMult = "1.25",
-  dark = false
+  dark = false,
+  circleNow = 2,
+  circleGoal = 3,
+  circleBonus = 300
 }) {
   var ink = "#0a0a0a";
   var inkSub = "rgba(0,0,0,0.62)";
+  var ruPpl = (n, a) => {
+    var m = n % 10,
+      h = n % 100;
+    return a[m === 1 && h !== 11 ? 0 : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? 1 : 2];
+  };
+  var left = Math.max(0, circleGoal - circleNow);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -695,35 +704,62 @@ function XPRewardCard({
   }, reason))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      display: "flex",
-      alignItems: "center",
-      gap: 9,
       marginTop: 13,
       paddingTop: 12,
       borderTop: "1px solid rgba(0,0,0,0.10)"
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      fontSize: 12.5,
+      fontWeight: 700
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "\u0414\u043E \u0431\u043E\u043D\u0443\u0441\u0430 \u043A\u0440\u0443\u0433\u0430"), /*#__PURE__*/React.createElement("span", null, circleNow, " \u0438\u0437 ", circleGoal)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 6,
+      background: "rgba(0,0,0,0.14)",
+      borderRadius: 999,
+      overflow: "hidden",
+      marginTop: 6
+    }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      flexShrink: 0,
-      background: "rgba(0,0,0,0.10)",
-      color: ink,
-      fontWeight: 700,
-      fontSize: 12.5,
-      letterSpacing: "-0.2px",
-      borderRadius: 999,
-      padding: "4px 11px"
+      display: "block",
+      height: "100%",
+      width: Math.min(100, Math.max(8, circleNow / circleGoal * 100)) + "%",
+      background: ink,
+      borderRadius: 999
     }
-  }, "\u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: inkSub,
-      lineHeight: 1.4
+      lineHeight: 1.4,
+      marginTop: 8
     }
-  }, "\u041A\u0430\u0436\u0434\u044B\u0439 \u0434\u0440\u0443\u0433 \u0443\u0441\u043A\u043E\u0440\u044F\u0435\u0442 ", /*#__PURE__*/React.createElement("b", {
+  }, left > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0415\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: ink
     }
-  }, "\u0432\u0435\u0441\u044C"), " \u0442\u0432\u043E\u0439 XP \u2014 \u0440\u0430\u0441\u0442\u0451\u0442 \u0441 \u043A\u0440\u0443\u0433\u043E\u043C, \u0434\u043E \xD7", maxMult, ".")));
+  }, left), " ", ruPpl(left, ["друг", "друга", "друзей"]), " \u2014 \u0438 \u043A\u0440\u0443\u0433 \u0434\u0430\u0451\u0442 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: ink
+    }
+  }, "+", circleBonus, " XP"), " \u0441\u0432\u0435\u0440\u0445\u0443. \u0412\u0435\u0434\u0451\u0442\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0432\u043C\u0435\u0441\u0442\u0435? \u041A\u0430\u0436\u0434\u044B\u0439 \u0448\u0430\u0433 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: ink
+    }
+  }, "+15"), " \u0432\u043C\u0435\u0441\u0442\u043E +10.") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041A\u0440\u0443\u0433 \u0441\u043E\u0431\u0440\u0430\u043D \u2014 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: ink
+    }
+  }, "+", circleBonus, " XP"), " \u0442\u0432\u043E\u0438. \u0410 \u0432\u043C\u0435\u0441\u0442\u0435 \u043A\u0430\u0436\u0434\u044B\u0439 \u0448\u0430\u0433 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: ink
+    }
+  }, "+15"), " \u0432\u043C\u0435\u0441\u0442\u043E +10."))));
 }
 Object.assign(window, {
   Phone,

@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v92";
+const APP_VERSION = "v93";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -181,8 +181,8 @@ const HABIT_PEEK_STOP = { kind: "peek", tab: "habit-detail", params: { habit: { 
 const HABIT_INVITE_STOP = { kind: "spot", tab: "habit-settings", params: { mode: "create" }, sel: '[data-tour="invite-friend"]', radius: 18, eyebrow: "Вместе с другом", title: "Создавая — позови друга",
   body: "Любую привычку можно делать вдвоём. Друг присоединился → +75 XP тебе, и он уже в приложении. Так растёшь ты — и твой круг." };
 // The heart of the economy — a small focus on the influence MULTIPLIER.
-const INFLUENCE_MULT_STOP = { kind: "spot", tab: "levels", sel: '[data-tour="influence-mult"]', radius: 18, eyebrow: "Множитель влияния", title: "Вовлекаешь — растёшь быстрее всех",
-  body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — растёт с кругом до ×1.25 (дальше потолок, чтобы игра была честной). Привёл людей — растёшь быстрее одиночки даже на тех же привычках." };
+const INFLUENCE_MULT_STOP = { kind: "spot", tab: "levels", sel: '[data-tour="influence-mult"]', radius: 18, eyebrow: "Множитель влияния", title: "Вовлекаешь — растёшь быстрее",
+  body: "Вот главный секрет: твой круг делает каждый шаг дороже. Привычка в одиночку +10, та же вдвоём +15. А позовёшь троих — круг подарит +300 XP сверху. Чем больше круг, тем быстрее растёшь даже на тех же привычках." };
 
 // Shown at the END of the habits guide (right after creating a habit): flips the
 // home hero deck to the balance wheel and explains habits → balance, AI-sorted.
@@ -351,10 +351,11 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
   const caretLeft = spot ? Math.max(16, Math.min(tcx - 21, spot.sw - 28 - 22)) : 180;
   return (
     <div ref={rootRef} style={{ position: "absolute", inset: 0, zIndex: 500 }}>
-      {/* tap blocker (and a flat dim until the target is measured) */}
-      <div style={{ position: "absolute", inset: 0, background: cutout ? "transparent" : "rgba(4,6,12,0.66)" }} />
+      {/* tap blocker — transparent so there's no black flash before the spotlight;
+          the dim arrives WITH the cutout (below) as one clean reveal. */}
+      <div style={{ position: "absolute", inset: 0, background: "transparent" }} />
       {/* cutout: dims everything except the target via a huge ring-shadow */}
-      {cutout && <div key={ctxKey} style={{ position: "absolute", left: cutout.left, top: cutout.top, width: cutout.width, height: cutout.height, borderRadius: stop.radius, boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)", border: "1.5px solid rgba(254,222,52,0.85)", transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }} />}
+      {cutout && <div key={ctxKey} style={{ position: "absolute", left: cutout.left, top: cutout.top, width: cutout.width, height: cutout.height, borderRadius: stop.radius, boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)", border: "1.5px solid rgba(254,222,52,0.85)", transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)", animation: "bosTourCut 0.3s ease both", pointerEvents: "none" }} />}
       <div className="bos-tour-pop" style={{ position: "absolute", left: 14, right: 14, top: cardTop, bottom: cardBottom, background: cardBg, borderRadius: 22, padding: "16px 18px 14px", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "#E0A500" }}>{stop.eyebrow}</div>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: titleC, marginTop: 3 }}>{stop.title}</div>
@@ -411,7 +412,7 @@ const TAB_INTROS = {
 const DEMO_INTROS = {
   home: { eyebrow: "Главная", title: "Твой экран дня", detail: true,
     body: "Состояние, баланс, серии и уровень — что важно, то наверху. Собери под себя.",
-    pills: [ { emoji: "😌", label: "Состояние" }, { emoji: "🔥", label: "Серии" }, { emoji: "🏆", label: "Уровень" }, { emoji: "🤝", label: "Влияние ×1.25" } ] },
+    pills: [ { emoji: "😌", label: "Состояние" }, { emoji: "🔥", label: "Серии" }, { emoji: "🏆", label: "Уровень" }, { emoji: "🤝", label: "Круг влияния" } ] },
   habits: { eyebrow: "Практика", title: "Тут ты всё создаёшь", detail: true,
     body: "Привычки и цели — одному или вместе. Шаблоны для быстрого старта.",
     pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "🎯", label: "Цели" }, { emoji: "👥", label: "Вместе" } ] },

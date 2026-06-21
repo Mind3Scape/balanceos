@@ -1519,12 +1519,13 @@ function LevelsScreen() {
   const app = useApp ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const invited = app?.mode === "demo" ? 2 : 0; // people you've drawn into the app
-  // Влияние multiplier — diminishing tiers with a HARD CAP so whales (100/1000
-  // invites) can't break the economy. Grows from the first few friends, tops out
-  // at ×1.25. The "big bonus" — meaningful, not game-breaking.
-  const MULT_TIERS = [{ n: 1, m: 1.05 }, { n: 3, m: 1.10 }, { n: 5, m: 1.15 }, { n: 10, m: 1.20 }, { n: 25, m: 1.25 }];
-  let multTier = 1.0; for (const t of MULT_TIERS) { if (invited >= t.n) multTier = t.m; }
-  const nextMult = MULT_TIERS.find(t => t.n > invited) || null; // null = at the cap
+  // Круг влияния — concrete XP, no abstract ×/%. The felt "multiplier" is two
+  // plain things: shared habits pay more (+15 vs +10), and growing your circle
+  // hits milestones that drop a big lump bonus. No ceiling — milestones keep
+  // climbing and every friend always pays +150.
+  const CIRCLE_MILESTONES = [{ n: 3, bonus: 300 }, { n: 7, bonus: 700 }, { n: 15, bonus: 1500 }, { n: 30, bonus: 3000 }];
+  const nextMile = CIRCLE_MILESTONES.find(t => t.n > invited) || null; // null = past the last listed milestone
+  const prevMileN = ([...CIRCLE_MILESTONES].reverse().find(t => t.n <= invited) || { n: 0 }).n;
   const ruPpl = (n, a) => { const m = n % 10, h = n % 100; return a[(m === 1 && h !== 11) ? 0 : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? 1 : 2]; };
   const ach = (typeof window !== "undefined" && window.ACHIEVEMENTS) || [];
   const achEarned = ach.filter(a => a.earned);
@@ -1589,48 +1590,62 @@ function LevelsScreen() {
         ))}
       </SysCard>
       <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 8, padding: "0 4px", lineHeight: 1.45 }}>
-        За вовлечение людей платим щедрее всего — это растит и твой множитель ниже.
+        За вовлечение людей платим щедрее всего — так растёт твой круг влияния ниже.
       </div>
 
-      {/* Круг влияния — the influence MULTIPLIER is the hero: involve people →
-         everything you earn grows faster. data-tour drives the demo spotlight. */}
+      {/* Круг влияния — your people make every step richer. Concrete XP only
+         (no ×/%): shared habits pay more, and growing the circle unlocks milestone
+         bonuses. Brand-gold accents on a neutral card. data-tour drives the demo. */}
       <div className="section-label" style={{ marginTop: 22 }}>Круг влияния</div>
       <SysCard data-tour="influence-mult" style={{ padding: 16, marginTop: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
-          <div style={{ width: 60, height: 60, borderRadius: 17, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(140deg,#5FA8FF,#46E6DC)", boxShadow: "0 7px 18px rgba(70,150,230,0.34)", color: "#fff" }}>
-            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}>×{multTier}</span>
+          <div style={{ width: 56, height: 56, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#FFC400)", boxShadow: "0 7px 18px rgba(254,222,52,0.34)" }}>
+            <I.Users size={25} color="#0a0a0a" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15.5, fontWeight: 700 }}>Множитель влияния</div>
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 3, lineHeight: 1.4 }}>
-              {multTier > 1
-                ? <>Каждое действие приносит <b style={{ color: "var(--text-2)" }}>+{Math.round((multTier - 1) * 100)}% XP</b> — в деле {invited} {ruPpl(invited, ["друг", "друга", "друзей"])}.</>
-                : <>Пригласи первого друга — и запустишь множитель на весь свой XP.</>}
+              {invited > 0
+                ? <>В твоём круге <b style={{ color: "var(--text-2)" }}>{invited} {ruPpl(invited, ["человек", "человека", "человек"])}</b> — каждый делает твой XP богаче.</>
+                : <>Собери круг — и каждый шаг станет дороже.</>}
             </div>
           </div>
         </div>
 
-        {nextMult ? (
+        {/* Together is richer — the felt "multiplier", in plain XP */}
+        <div style={{ marginTop: 14, padding: "12px 13px", borderRadius: 14, background: isDark ? "rgba(254,222,52,0.10)" : "#FFF7DC" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5 }}>
+            <span className="bos-sys-text-2">Привычка в одиночку</span>
+            <span style={{ fontWeight: 700, color: "#c99a1a" }}>+10 XP</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, marginTop: 7 }}>
+            <span className="bos-sys-text-2">Та же привычка вдвоём</span>
+            <span style={{ fontWeight: 800, color: "#c99a1a" }}>+15 XP</span>
+          </div>
+          <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 9, lineHeight: 1.4 }}>
+            Позвал друга и ведёте вместе — растёт и круг, и каждый ваш шаг.
+          </div>
+        </div>
+
+        {/* Milestone progress — the "2 из 3 до бонуса" carrot. No ceiling. */}
+        {nextMile ? (
           <div style={{ marginTop: 14 }}>
-            <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden" }}>
-              <span style={{ display: "block", height: "100%", width: Math.min(100, invited / nextMult.n * 100) + "%", background: "linear-gradient(90deg,#5FA8FF,#46E6DC)", borderRadius: 999 }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5 }}>
+              <span className="bos-sys-text-3">До бонуса круга</span>
+              <span><b style={{ color: "var(--text-2)", fontWeight: 700 }}>{invited}</b> <span className="bos-sys-text-3">из {nextMile.n}</span></span>
+            </div>
+            <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden", marginTop: 7 }}>
+              <span style={{ display: "block", height: "100%", width: Math.min(100, Math.max(6, (invited - prevMileN) / (nextMile.n - prevMileN) * 100)) + "%", background: "linear-gradient(90deg,#FEDE34,#F0B400)", borderRadius: 999 }} />
             </div>
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
-              Ещё <b style={{ color: "var(--text-2)" }}>{nextMult.n - invited}</b> {ruPpl(nextMult.n - invited, ["человек", "человека", "человек"])} → множитель <b style={{ color: "var(--text-2)" }}>×{nextMult.m}</b> на всё, что ты делаешь.
+              Ещё <b style={{ color: "var(--text-2)" }}>{nextMile.n - invited}</b> {ruPpl(nextMile.n - invited, ["друг", "друга", "друзей"])} — и круг из {nextMile.n} принесёт <b style={{ color: "#c99a1a" }}>+{nextMile.bonus} XP</b> сверху.
             </div>
           </div>
         ) : (
           <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 14, lineHeight: 1.45 }}>
-            Максимум — <b style={{ color: "var(--text-2)" }}>×1.25</b>. Выше не растёт: потолок, чтобы игра оставалась честной для всех.
+            Круг растёт без потолка — каждый новый друг всё так же приносит <b style={{ color: "#c99a1a" }}>+150 XP</b>.
           </div>
         )}
-
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 13, padding: "10px 12px", borderRadius: 12, background: isDark ? "rgba(94,168,255,0.10)" : "#eef4fd" }}>
-          <span style={{ fontSize: 15 }}>🤝</span>
-          <div className="bos-sys-text-3" style={{ fontSize: 12.5, lineHeight: 1.4, color: isDark ? "rgba(255,255,255,0.74)" : "#2c5b96" }}>
-            <b>+150 XP</b> за каждого друга в приложении · вовлечено {invited} — это <b>+{invited * 150} XP</b>.
-          </div>
-        </div>
 
         <button onClick={() => openSheet(<ShareAppSheet dark={isDark} />)} className="tap" style={{ width: "100%", marginTop: 14, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 12, fontSize: 14.5, fontWeight: 600 }}>Пригласить друга</button>
       </SysCard>

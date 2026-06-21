@@ -266,6 +266,13 @@ function HomeScreen() {
   const doneCount = habits.filter(h => h.done).length;
   const totalCount = habits.length;
   const ringPct = totalCount ? doneCount / totalCount : 0;
+  // Daily XP — real and legible: each habit is +10, closing the whole day adds
+  // the +30 "ideal day" bonus. Show what's earned vs. what's still on the table.
+  const XP_PER_HABIT = 10, XP_IDEAL_DAY = 30;
+  const leftCount = Math.max(0, totalCount - doneCount);
+  const dayAllDone = totalCount > 0 && leftCount === 0;
+  const xpEarnedToday = doneCount * XP_PER_HABIT + (dayAllDone ? XP_IDEAL_DAY : 0);
+  const ruHab = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "привычку" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "привычки" : "привычек"; };
   const dayStreak = app?.mode === "fresh" ? 0 : 27;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
@@ -275,7 +282,7 @@ function HomeScreen() {
   React.useEffect(() => {
     if (doneCount > prevDoneRef.current) {
       const full = totalCount > 0 && doneCount === totalCount;
-      setCelebrate({ xp: full ? 100 : 15, full, key: Date.now() + ":" + doneCount });
+      setCelebrate({ xp: full ? totalCount * 10 + 30 : 10, full, key: Date.now() + ":" + doneCount });
       if (window.tgHaptic) { try { window.tgHaptic(full ? "heavy" : "light"); } catch (e) {} }
       const t = window.setTimeout(() => setCelebrate(null), full ? 2000 : 1200);
       prevDoneRef.current = doneCount;
@@ -530,9 +537,13 @@ function HomeScreen() {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, color: "var(--text-4)", letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>XP сегодня</div>
-          <div style={{ fontSize: 27, fontWeight: 700, marginTop: 1, letterSpacing: "-0.5px", color: "var(--text)" }}>+<CountUp value={Math.round(ringPct * 92)} /> <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-4)" }}>XP</span></div>
+          <div style={{ fontSize: 27, fontWeight: 700, marginTop: 1, letterSpacing: "-0.5px", color: "var(--text)" }}>+<CountUp value={xpEarnedToday} /> <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-4)" }}>XP</span></div>
           <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4, marginTop: 3 }}>
-            {totalCount === 0 ? "Отметь первую привычку — и счёт пойдёт." : <>Ты прошёл {Math.round(ringPct * 100)}%. Так держать.</>}
+            {totalCount === 0
+              ? "Заведи привычку — и начни копить XP сегодня."
+              : dayAllDone
+                ? "Идеальный день! Все привычки закрыты — +30 XP сверху."
+                : <>Ещё <b style={{ color: "var(--text-2)" }}>+{leftCount * XP_PER_HABIT} XP</b> за {leftCount} {ruHab(leftCount)} — а за все сразу ещё <b style={{ color: "var(--text-2)" }}>+30</b> за идеальный день.</>}
           </div>
         </div>
       </div>
@@ -595,7 +606,7 @@ function ShareAppSheet({ dark = false }) {
 
       {/* Reward hero — the first thing the eye lands on: what you earn + the multiplier */}
       <div style={{ marginTop: 18 }}>
-        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" maxMult="1.25" dark={dark} />
+        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" dark={dark} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.tile, borderRadius: 14, padding: "11px 14px", marginTop: 14 }}>

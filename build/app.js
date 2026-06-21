@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v92";
+var APP_VERSION = "v93";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -375,8 +375,8 @@ var INFLUENCE_MULT_STOP = {
   sel: '[data-tour="influence-mult"]',
   radius: 18,
   eyebrow: "Множитель влияния",
-  title: "Вовлекаешь — растёшь быстрее всех",
-  body: "Вот главный секрет: чем больше друзей в деле, тем выше множитель на ВЕСЬ твой XP — растёт с кругом до ×1.25 (дальше потолок, чтобы игра была честной). Привёл людей — растёшь быстрее одиночки даже на тех же привычках."
+  title: "Вовлекаешь — растёшь быстрее",
+  body: "Вот главный секрет: твой круг делает каждый шаг дороже. Привычка в одиночку +10, та же вдвоём +15. А позовёшь троих — круг подарит +300 XP сверху. Чем больше круг, тем быстрее растёшь даже на тех же привычках."
 };
 
 // Shown at the END of the habits guide (right after creating a habit): flips the
@@ -780,7 +780,7 @@ function GuidedTour({
     style: {
       position: "absolute",
       inset: 0,
-      background: cutout ? "transparent" : "rgba(4,6,12,0.66)"
+      background: "transparent"
     }
   }), cutout && /*#__PURE__*/React.createElement("div", {
     key: ctxKey,
@@ -794,6 +794,7 @@ function GuidedTour({
       boxShadow: "0 0 0 9999px rgba(4,6,12,0.66)",
       border: "1.5px solid rgba(254,222,52,0.85)",
       transition: "all 0.34s cubic-bezier(0.32,0.72,0,1)",
+      animation: "bosTourCut 0.3s ease both",
       pointerEvents: "none"
     }
   }), /*#__PURE__*/React.createElement("div", {
@@ -1021,7 +1022,7 @@ var DEMO_INTROS = {
       label: "Уровень"
     }, {
       emoji: "🤝",
-      label: "Влияние ×1.25"
+      label: "Круг влияния"
     }]
   },
   habits: {

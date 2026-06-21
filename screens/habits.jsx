@@ -75,7 +75,7 @@ function ShareHabitSheet({ habit, dark = false }) {
 
       {/* Reward hero — the eye lands on what you earn + the influence multiplier */}
       <div style={{ marginTop: 16 }}>
-        <XPRewardCard amount={75} reason="когда друг присоединится к этой привычке" maxMult="1.25" dark={dark} />
+        <XPRewardCard amount={75} reason="когда друг присоединится к этой привычке" dark={dark} />
       </div>
 
       <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "22px 0 12px" }}>Делать вместе</div>
@@ -407,9 +407,9 @@ function HabitSettingsScreen() {
           </div>
           <Switch on={shareOn} onChange={setShareOn} />
         </div>
-        <div style={{ marginTop: 12, borderRadius: 12, padding: "9px 12px", background: "#eafaef", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 15 }}>✨</span>
-          <div style={{ fontSize: 12.5, color: "#1a7a3a", lineHeight: 1.4 }}><b>+75 XP</b>, когда друг присоединится — и он уже в приложении. Растёт круг — растёт твой множитель XP.</div>
+        <div style={{ marginTop: 12, borderRadius: 14, padding: "11px 12px", background: "#edfaf0", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#d6f3df", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🤝</span>
+          <div style={{ fontSize: 12.5, color: "#1a7a3a", lineHeight: 1.4 }}><b>+75 XP</b>, когда друг присоединится. А ведёте вместе — каждый шаг <b>+15</b> вместо +10.</div>
         </div>
         {shareOn && <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
           {shareFriends.map((p, i) => (

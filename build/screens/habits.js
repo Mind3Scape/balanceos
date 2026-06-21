@@ -237,7 +237,6 @@ function ShareHabitSheet({
   }, /*#__PURE__*/React.createElement(XPRewardCard, {
     amount: 75,
     reason: "\u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F \u043A \u044D\u0442\u043E\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0435",
-    maxMult: "1.25",
     dark: dark
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1272,24 +1271,31 @@ function HabitSettingsScreen() {
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
-      borderRadius: 12,
-      padding: "9px 12px",
-      background: "#eafaef",
+      borderRadius: 14,
+      padding: "11px 12px",
+      background: "#edfaf0",
       display: "flex",
       alignItems: "center",
-      gap: 8
+      gap: 10
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      background: "#d6f3df",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
       fontSize: 15
     }
-  }, "\u2728"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83E\uDD1D"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "#1a7a3a",
       lineHeight: 1.4
     }
-  }, /*#__PURE__*/React.createElement("b", null, "+75 XP"), ", \u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F \u2014 \u0438 \u043E\u043D \u0443\u0436\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438. \u0420\u0430\u0441\u0442\u0451\u0442 \u043A\u0440\u0443\u0433 \u2014 \u0440\u0430\u0441\u0442\u0451\u0442 \u0442\u0432\u043E\u0439 \u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C XP.")), shareOn && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, "+75 XP"), ", \u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F. \u0410 \u0432\u0435\u0434\u0451\u0442\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 \u043A\u0430\u0436\u0434\u044B\u0439 \u0448\u0430\u0433 ", /*#__PURE__*/React.createElement("b", null, "+15"), " \u0432\u043C\u0435\u0441\u0442\u043E +10.")), shareOn && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
