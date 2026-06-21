@@ -1065,8 +1065,8 @@ function IntroScreen() {
   // top line shrinks to a caption while the bottom line ("…в каком состоянии
   // находишься") grows bold into the headline. The truer line takes over.
   var swapScene = step === 0;
-  var swapped = swapScene && t - blendStart > 2.6;
-  var SWAP_TR = "font-size 0.95s cubic-bezier(0.33,0,0.2,1), font-weight 0.95s ease, color 0.9s ease, letter-spacing 0.95s ease, line-height 0.95s ease";
+  var swapped = swapScene && t - blendStart > 2.5;
+  var SWAP_TR = "font-size 1.15s cubic-bezier(0.45,0,0.12,1), font-weight 1.15s ease, color 1s ease, letter-spacing 1.15s ease";
   var go = next => {
     if (next === step) return;
     setPrev(slides[step].mode);
@@ -1279,42 +1279,83 @@ function IntroScreen() {
       background: pal.eyebrowStrong,
       boxShadow: `0 0 8px ${pal.eyebrowStrong}`
     }
-  }), cur.eyebrow)), /*#__PURE__*/React.createElement(Reveal, {
+  }), cur.eyebrow)), swapScene ?
+  /*#__PURE__*/
+  /* First frame — focus SWAPS from the premise to the truth. Both lines
+     are absolutely anchored around the centre (premise grows UP, truth
+     grows DOWN), so the gap between them stays put and nothing reflows.
+     Each phrase is locked to exactly two lines. */
+  React.createElement(Reveal, {
+    k: "swap0",
+    delay: 0.22
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      height: 124,
+      maxWidth: 340,
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: "calc(50% + 6px)",
+      transition: SWAP_TR,
+      fontFamily: "var(--bos-title-font)",
+      lineHeight: 1.22,
+      textWrap: "balance",
+      fontSize: swapped ? 14.5 : 23,
+      fontWeight: swapped ? 400 : 600,
+      letterSpacing: swapped ? "0px" : "-0.4px",
+      color: swapped ? pal.sub : pal.title
+    }
+  }, "\u0422\u044B \u043D\u0435 \u0432\u0438\u0434\u0438\u0448\u044C \u043C\u0438\u0440 \u0442\u0430\u043A\u0438\u043C,", /*#__PURE__*/React.createElement("br", null), "\u043A\u0430\u043A\u043E\u0439 \u043E\u043D \u0435\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      top: "calc(50% + 6px)",
+      transition: SWAP_TR,
+      fontFamily: "var(--bos-title-font)",
+      lineHeight: 1.22,
+      textWrap: "balance",
+      fontSize: swapped ? 23 : 14.5,
+      fontWeight: swapped ? 600 : 400,
+      letterSpacing: swapped ? "-0.4px" : "0px",
+      color: swapped ? pal.title : pal.sub
+    }
+  }, "\u0422\u044B \u0432\u0438\u0434\u0438\u0448\u044C \u043C\u0438\u0440 \u0442\u0430\u043A\u0438\u043C,", /*#__PURE__*/React.createElement("br", null), "\u0432 \u043A\u0430\u043A\u043E\u043C \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0438 \u043D\u0430\u0445\u043E\u0434\u0438\u0448\u044C\u0441\u044F"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Reveal, {
     k: "ti" + step,
     delay: 0.25
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",
+      fontSize: 30,
+      fontWeight: 600,
+      lineHeight: 1.12,
+      letterSpacing: "-0.8px",
       textWrap: "balance",
+      maxWidth: 300,
       margin: "0 auto",
-      transition: swapScene ? SWAP_TR : undefined,
-      maxWidth: swapped ? 312 : 300,
-      fontSize: swapped ? 15 : 30,
-      fontWeight: swapped ? 400 : 600,
-      lineHeight: swapped ? 1.5 : 1.12,
-      letterSpacing: swapped ? "0px" : "-0.8px",
-      color: swapped ? pal.sub : pal.title
+      color: pal.title
     }
   }, cur.title)), cur.sub && /*#__PURE__*/React.createElement(Reveal, {
     k: "su" + step,
     delay: 0.45,
     style: {
-      marginTop: swapped ? 14 : 12
+      marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: swapped ? "var(--bos-title-font)" : "inherit",
-      margin: "0 auto",
-      transition: swapScene ? SWAP_TR : undefined,
-      maxWidth: swapped ? 300 : 312,
-      fontSize: swapped ? 26 : 14.5,
-      fontWeight: swapped ? 600 : 400,
-      lineHeight: swapped ? 1.18 : 1.55,
-      letterSpacing: swapped ? "-0.6px" : "0px",
-      textWrap: swapped ? "balance" : "pretty",
-      color: swapped ? pal.title : pal.sub
+      fontSize: 14.5,
+      color: pal.sub,
+      lineHeight: 1.55,
+      textWrap: "pretty",
+      maxWidth: 312,
+      margin: "0 auto"
     }
-  }, cur.sub))), cur.mode === "mood" && /*#__PURE__*/React.createElement(Reveal, {
+  }, cur.sub)))), cur.mode === "mood" && /*#__PURE__*/React.createElement(Reveal, {
     k: "moodslider",
     delay: 0.5,
     style: {
