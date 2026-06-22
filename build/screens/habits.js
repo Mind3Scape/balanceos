@@ -1472,8 +1472,9 @@ window.HabitSettingsScreen = HabitSettingsScreen;
 window.AvatarStack = AvatarStack;
 window.ShareHabitSheet = ShareHabitSheet;
 
-/* Inline month calendar in the app's style — pick a custom goal deadline by
-   tapping a day. Returns a short date like "14 окт". 2026 demo year. */
+/* Inline month calendar in the app's style — pick a goal PERIOD by tapping a
+   start day, then an end day (like a booking date range). The distance between
+   them is the goal's срок. Returns "14 окт – 21 ноя". 2026 demo year. */
 function DeadlineCalendar({
   onPick
 }) {
@@ -1484,12 +1485,65 @@ function DeadlineCalendar({
     TODAY_D = 28,
     YEAR = 2026; // demo "today" = 28 апр 2026
   var [m, setM] = useHS(TODAY_M);
+  var [start, setStart] = useHS(null); // { m, d }
+  var [end, setEnd] = useHS(null);
   var startWeekday = (m * 3 + 3) % 7; // same synthetic alignment the app's other calendars use
   var cells = [];
   for (var i = 0; i < startWeekday; i++) cells.push(null);
   for (var d = 1; d <= DAYS_IN[m]; d++) cells.push(d);
+  var idx = p => p.m * 40 + p.d; // monotonic, for ordering
+  var doy = p => DAYS_IN.slice(0, p.m).reduce((a, b) => a + b, 0) + p.d; // day-of-year, for duration
   var past = d => m === TODAY_M && d < TODAY_D;
-  var isToday = d => m === TODAY_M && d === TODAY_D;
+  var eqp = (p, d) => p && p.m === m && p.d === d;
+  var inRange = d => start && end && idx({
+    m,
+    d
+  }) > idx(start) && idx({
+    m,
+    d
+  }) < idx(end);
+  var fmt = p => `${p.d} ${MON_SHORT[p.m]}`;
+  var pick = d => {
+    var p = {
+      m,
+      d
+    };
+    if (!start || end) {
+      setStart(p);
+      setEnd(null);
+      return;
+    } // begin a fresh range
+    if (idx(p) <= idx(start)) {
+      setStart(p);
+      setEnd(null);
+      return;
+    } // tapped before start → restart
+    setEnd(p); // complete the range
+  };
+  var span = start && end ? doy(end) - doy(start) : 0;
+  var durTxt = span <= 0 ? "" : span < 14 ? `${span} дн.` : span < 60 ? `${Math.round(span / 7)} нед.` : `${Math.round(span / 30)} мес.`;
+  var hint = !start ? "Выберите начало срока" : !end ? "Теперь — дату окончания" : `${fmt(start)} – ${fmt(end)} · ${durTxt}`;
+  var pager = dir => /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    "data-no-haptic": true,
+    disabled: dir < 0 ? m <= TODAY_M : m >= 11,
+    onClick: () => setM(Math.max(TODAY_M, Math.min(11, m + dir))),
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      border: 0,
+      background: "var(--surface-3)",
+      opacity: (dir < 0 ? m <= TODAY_M : m >= 11) ? 0.3 : 1,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    style: dir < 0 ? {
+      transform: "rotate(180deg)"
+    } : undefined
+  }));
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
@@ -1505,50 +1559,13 @@ function DeadlineCalendar({
       justifyContent: "space-between",
       marginBottom: 12
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    "data-no-haptic": true,
-    disabled: m <= TODAY_M,
-    onClick: () => setM(Math.max(TODAY_M, m - 1)),
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
-      border: 0,
-      background: "var(--surface-3)",
-      opacity: m <= TODAY_M ? 0.3 : 1,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    style: {
-      transform: "rotate(180deg)"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
+  }, pager(-1), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 15,
       fontWeight: 600,
       color: "var(--text)"
     }
-  }, MON_TITLE[m], " ", YEAR), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    "data-no-haptic": true,
-    disabled: m >= 11,
-    onClick: () => setM(Math.min(11, m + 1)),
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
-      border: 0,
-      background: "var(--surface-3)",
-      opacity: m >= 11 ? 0.3 : 1,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, MON_TITLE[m], " ", YEAR), pager(1)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
@@ -1569,27 +1586,64 @@ function DeadlineCalendar({
       gridTemplateColumns: "repeat(7,1fr)",
       gap: 3
     }
-  }, cells.map((d, i) => d === null ? /*#__PURE__*/React.createElement("div", {
-    key: i
-  }) : /*#__PURE__*/React.createElement("button", {
-    key: i,
-    className: "tap",
-    "data-no-haptic": true,
-    disabled: past(d),
-    onClick: () => onPick(`${d} ${MON_SHORT[m]}`),
+  }, cells.map((d, i) => {
+    if (d === null) return /*#__PURE__*/React.createElement("div", {
+      key: i
+    });
+    var ends = eqp(start, d) || eqp(end, d);
+    var mid = inRange(d);
+    var today = m === TODAY_M && d === TODAY_D;
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      className: "tap",
+      "data-no-haptic": true,
+      disabled: past(d),
+      onClick: () => pick(d),
+      style: {
+        aspectRatio: "1/1",
+        border: 0,
+        borderRadius: ends ? 999 : mid ? 7 : 10,
+        cursor: past(d) ? "default" : "pointer",
+        background: ends ? "#0a0a0a" : mid ? "rgba(10,10,10,0.08)" : "transparent",
+        color: ends ? "#fff" : "var(--text)",
+        opacity: past(d) ? 0.3 : 1,
+        fontSize: 13.5,
+        fontWeight: ends || today ? 700 : 400,
+        boxShadow: today && !ends ? "inset 0 0 0 1.5px rgba(0,0,0,0.16)" : "none"
+      }
+    }, d);
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
-      aspectRatio: "1/1",
-      border: 0,
-      borderRadius: 10,
-      background: "transparent",
-      cursor: past(d) ? "default" : "pointer",
-      fontSize: 13.5,
-      color: "var(--text)",
-      opacity: past(d) ? 0.32 : 1,
-      fontWeight: isToday(d) ? 700 : 400,
-      boxShadow: isToday(d) ? "inset 0 0 0 1.5px rgba(0,0,0,0.16)" : "none"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      marginTop: 12,
+      paddingTop: 11,
+      borderTop: "1px solid rgba(0,0,0,0.06)"
     }
-  }, d))));
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: start && end ? "var(--text)" : "var(--text-4)",
+      fontWeight: start && end ? 600 : 400,
+      minWidth: 0
+    }
+  }, hint), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    disabled: !(start && end),
+    onClick: () => onPick(`${fmt(start)} – ${fmt(end)}`),
+    style: {
+      flexShrink: 0,
+      background: start && end ? "#0a0a0a" : "var(--surface-3)",
+      color: start && end ? "#fff" : "var(--text-4)",
+      border: 0,
+      borderRadius: 999,
+      padding: "8px 16px",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E")));
 }
 
 /* ─── GOAL SETTINGS — create / edit a goal ─────────────────────── */
@@ -1606,7 +1660,7 @@ function GoalSettingsScreen() {
   var [showIcons, setShowIcons] = useHS(false);
   var [target, setTarget] = useHS(g0?.target || 22);
   var [unit, setUnit] = useHS(g0?.unit || "недель");
-  var [deadline, setDeadline] = useHS(g0?.deadline || "14 окт");
+  var [deadline, setDeadline] = useHS(g0?.deadline || "Месяц");
   var [showCal, setShowCal] = useHS(false);
   var [linkHabit, setLinkHabit] = useHS(true);
   var [linkedHabits, setLinkedHabits] = useHS([{
@@ -1626,6 +1680,9 @@ function GoalSettingsScreen() {
     ...h,
     on: !h.on
   } : h));
+  var QUICK_TERMS = ["Неделя", "Месяц", "1 год"];
+  var svoyActive = showCal || !!deadline && !QUICK_TERMS.includes(deadline); // custom date/range → highlight «Свой срок»
+
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1815,42 +1872,51 @@ function GoalSettingsScreen() {
     style: {
       display: "flex",
       gap: 6,
-      marginTop: 8,
-      flexWrap: "wrap"
+      marginTop: 8
     }
-  }, ["Эта неделя", "Этот месяц", "3 месяца", "1 год"].map((q, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    onClick: () => {
-      setDeadline(q);
-      setShowCal(false);
-    },
-    className: "tap",
-    style: {
-      background: "#fff",
-      border: "1px solid rgba(0,0,0,0.05)",
-      borderRadius: 999,
-      padding: "6px 12px",
-      fontSize: 12,
-      color: "var(--text-3)"
-    }
-  }, q)), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowCal(v => !v),
     className: "tap",
     "data-no-haptic": true,
     style: {
+      flex: 1,
       display: "inline-flex",
       alignItems: "center",
-      gap: 5,
+      justifyContent: "center",
+      gap: 4,
       borderRadius: 999,
-      padding: "6px 12px",
-      fontSize: 12,
-      background: showCal ? "#0a0a0a" : "#fff",
-      color: showCal ? "#fff" : "var(--text-3)",
-      border: showCal ? "0" : "1px solid rgba(0,0,0,0.05)"
+      padding: "8px 4px",
+      fontSize: 12.5,
+      whiteSpace: "nowrap",
+      background: svoyActive ? "#0a0a0a" : "#fff",
+      color: svoyActive ? "#fff" : "var(--text-3)",
+      border: svoyActive ? "0" : "1px solid rgba(0,0,0,0.06)"
     }
   }, /*#__PURE__*/React.createElement(I.Calendar, {
     size: 12
-  }), " \u0421\u0432\u043E\u0439 \u0441\u0440\u043E\u043A")), showCal && /*#__PURE__*/React.createElement(DeadlineCalendar, {
+  }), " \u0421\u0432\u043E\u0439 \u0441\u0440\u043E\u043A"), QUICK_TERMS.map(q => {
+    var active = !showCal && deadline === q;
+    return /*#__PURE__*/React.createElement("button", {
+      key: q,
+      onClick: () => {
+        setDeadline(q);
+        setShowCal(false);
+      },
+      className: "tap",
+      "data-no-haptic": true,
+      style: {
+        flex: 1,
+        borderRadius: 999,
+        padding: "8px 4px",
+        fontSize: 12.5,
+        whiteSpace: "nowrap",
+        textAlign: "center",
+        background: active ? "#0a0a0a" : "#fff",
+        color: active ? "#fff" : "var(--text-3)",
+        border: active ? "0" : "1px solid rgba(0,0,0,0.06)"
+      }
+    }, q);
+  })), showCal && /*#__PURE__*/React.createElement(DeadlineCalendar, {
     onPick: s => {
       setDeadline(s);
       setShowCal(false);

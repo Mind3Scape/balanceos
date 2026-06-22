@@ -493,28 +493,46 @@ window.HabitSettingsScreen = HabitSettingsScreen;
 window.AvatarStack = AvatarStack;
 window.ShareHabitSheet = ShareHabitSheet;
 
-/* Inline month calendar in the app's style — pick a custom goal deadline by
-   tapping a day. Returns a short date like "14 окт". 2026 demo year. */
+/* Inline month calendar in the app's style — pick a goal PERIOD by tapping a
+   start day, then an end day (like a booking date range). The distance between
+   them is the goal's срок. Returns "14 окт – 21 ноя". 2026 demo year. */
 function DeadlineCalendar({ onPick }) {
   const MON_SHORT = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
   const MON_TITLE = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
   const DAYS_IN = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   const TODAY_M = 3, TODAY_D = 28, YEAR = 2026; // demo "today" = 28 апр 2026
   const [m, setM] = useHS(TODAY_M);
+  const [start, setStart] = useHS(null); // { m, d }
+  const [end, setEnd] = useHS(null);
   const startWeekday = (m * 3 + 3) % 7; // same synthetic alignment the app's other calendars use
   const cells = [];
   for (let i = 0; i < startWeekday; i++) cells.push(null);
   for (let d = 1; d <= DAYS_IN[m]; d++) cells.push(d);
+  const idx = (p) => p.m * 40 + p.d;                 // monotonic, for ordering
+  const doy = (p) => DAYS_IN.slice(0, p.m).reduce((a, b) => a + b, 0) + p.d; // day-of-year, for duration
   const past = (d) => m === TODAY_M && d < TODAY_D;
-  const isToday = (d) => m === TODAY_M && d === TODAY_D;
+  const eqp = (p, d) => p && p.m === m && p.d === d;
+  const inRange = (d) => start && end && idx({ m, d }) > idx(start) && idx({ m, d }) < idx(end);
+  const fmt = (p) => `${p.d} ${MON_SHORT[p.m]}`;
+  const pick = (d) => {
+    const p = { m, d };
+    if (!start || end) { setStart(p); setEnd(null); return; }     // begin a fresh range
+    if (idx(p) <= idx(start)) { setStart(p); setEnd(null); return; } // tapped before start → restart
+    setEnd(p);                                                     // complete the range
+  };
+  const span = start && end ? doy(end) - doy(start) : 0;
+  const durTxt = span <= 0 ? "" : span < 14 ? `${span} дн.` : span < 60 ? `${Math.round(span / 7)} нед.` : `${Math.round(span / 30)} мес.`;
+  const hint = !start ? "Выберите начало срока" : !end ? "Теперь — дату окончания" : `${fmt(start)} – ${fmt(end)} · ${durTxt}`;
+  const pager = (dir) => (
+    <button className="tap" data-no-haptic disabled={dir < 0 ? m <= TODAY_M : m >= 11} onClick={() => setM(Math.max(TODAY_M, Math.min(11, m + dir)))}
+      style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "var(--surface-3)", opacity: (dir < 0 ? m <= TODAY_M : m >= 11) ? 0.3 : 1, display: "grid", placeItems: "center" }}><I.ChevronRight size={16} style={dir < 0 ? { transform: "rotate(180deg)" } : undefined} /></button>
+  );
   return (
     <div style={{ background: "#fff", borderRadius: 18, padding: 14, marginTop: 10, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <button className="tap" data-no-haptic disabled={m <= TODAY_M} onClick={() => setM(Math.max(TODAY_M, m - 1))}
-          style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "var(--surface-3)", opacity: m <= TODAY_M ? 0.3 : 1, display: "grid", placeItems: "center" }}><I.ChevronRight size={16} style={{ transform: "rotate(180deg)" }} /></button>
+        {pager(-1)}
         <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{MON_TITLE[m]} {YEAR}</div>
-        <button className="tap" data-no-haptic disabled={m >= 11} onClick={() => setM(Math.min(11, m + 1))}
-          style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "var(--surface-3)", opacity: m >= 11 ? 0.3 : 1, display: "grid", placeItems: "center" }}><I.ChevronRight size={16} /></button>
+        {pager(1)}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 4 }}>
         {["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"].map((w) => (
@@ -522,13 +540,25 @@ function DeadlineCalendar({ onPick }) {
         ))}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
-        {cells.map((d, i) => d === null ? <div key={i} /> : (
-          <button key={i} className="tap" data-no-haptic disabled={past(d)} onClick={() => onPick(`${d} ${MON_SHORT[m]}`)}
-            style={{ aspectRatio: "1/1", border: 0, borderRadius: 10, background: "transparent", cursor: past(d) ? "default" : "pointer",
-              fontSize: 13.5, color: "var(--text)", opacity: past(d) ? 0.32 : 1,
-              fontWeight: isToday(d) ? 700 : 400,
-              boxShadow: isToday(d) ? "inset 0 0 0 1.5px rgba(0,0,0,0.16)" : "none" }}>{d}</button>
-        ))}
+        {cells.map((d, i) => {
+          if (d === null) return <div key={i} />;
+          const ends = eqp(start, d) || eqp(end, d);
+          const mid = inRange(d);
+          const today = m === TODAY_M && d === TODAY_D;
+          return (
+            <button key={i} className="tap" data-no-haptic disabled={past(d)} onClick={() => pick(d)}
+              style={{ aspectRatio: "1/1", border: 0, borderRadius: ends ? 999 : (mid ? 7 : 10), cursor: past(d) ? "default" : "pointer",
+                background: ends ? "#0a0a0a" : (mid ? "rgba(10,10,10,0.08)" : "transparent"),
+                color: ends ? "#fff" : "var(--text)", opacity: past(d) ? 0.3 : 1,
+                fontSize: 13.5, fontWeight: (ends || today) ? 700 : 400,
+                boxShadow: (today && !ends) ? "inset 0 0 0 1.5px rgba(0,0,0,0.16)" : "none" }}>{d}</button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12, paddingTop: 11, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+        <div style={{ fontSize: 12.5, color: (start && end) ? "var(--text)" : "var(--text-4)", fontWeight: (start && end) ? 600 : 400, minWidth: 0 }}>{hint}</div>
+        <button className="tap" disabled={!(start && end)} onClick={() => onPick(`${fmt(start)} – ${fmt(end)}`)}
+          style={{ flexShrink: 0, background: (start && end) ? "#0a0a0a" : "var(--surface-3)", color: (start && end) ? "#fff" : "var(--text-4)", border: 0, borderRadius: 999, padding: "8px 16px", fontSize: 13, fontWeight: 600 }}>Готово</button>
       </div>
     </div>
   );
@@ -545,7 +575,7 @@ function GoalSettingsScreen() {
   const [showIcons, setShowIcons] = useHS(false);
   const [target, setTarget] = useHS(g0?.target || 22);
   const [unit, setUnit] = useHS(g0?.unit || "недель");
-  const [deadline, setDeadline] = useHS(g0?.deadline || "14 окт");
+  const [deadline, setDeadline] = useHS(g0?.deadline || "Месяц");
   const [showCal, setShowCal] = useHS(false);
   const [linkHabit, setLinkHabit] = useHS(true);
   const [linkedHabits, setLinkedHabits] = useHS([
@@ -554,6 +584,8 @@ function GoalSettingsScreen() {
     { e: "📚", n: "читать книгу", on: false },
   ]);
   const toggleLinked = (i) => setLinkedHabits((hs) => hs.map((h, j) => (j === i ? { ...h, on: !h.on } : h)));
+  const QUICK_TERMS = ["Неделя", "Месяц", "1 год"];
+  const svoyActive = showCal || (!!deadline && !QUICK_TERMS.includes(deadline)); // custom date/range → highlight «Свой срок»
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -608,16 +640,20 @@ function GoalSettingsScreen() {
         <input value={deadline} onChange={e => setDeadline(e.target.value)} placeholder="напр. 14 окт"
           style={{ flex: 1, fontSize: 16, border: 0, outline: 0, background: "transparent" }}/>
       </div>
-      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-        {["Эта неделя","Этот месяц","3 месяца","1 год"].map((q,i)=>(
-          <button key={i} onClick={() => { setDeadline(q); setShowCal(false); }} className="tap"
-            style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.05)", borderRadius: 999, padding: "6px 12px", fontSize: 12, color: "var(--text-3)" }}>{q}</button>
-        ))}
+      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
         <button onClick={() => setShowCal(v => !v)} className="tap" data-no-haptic
-          style={{ display: "inline-flex", alignItems: "center", gap: 5, borderRadius: 999, padding: "6px 12px", fontSize: 12,
-            background: showCal ? "#0a0a0a" : "#fff", color: showCal ? "#fff" : "var(--text-3)", border: showCal ? "0" : "1px solid rgba(0,0,0,0.05)" }}>
+          style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 999, padding: "8px 4px", fontSize: 12.5, whiteSpace: "nowrap",
+            background: svoyActive ? "#0a0a0a" : "#fff", color: svoyActive ? "#fff" : "var(--text-3)", border: svoyActive ? "0" : "1px solid rgba(0,0,0,0.06)" }}>
           <I.Calendar size={12}/> Свой срок
         </button>
+        {QUICK_TERMS.map((q) => {
+          const active = !showCal && deadline === q;
+          return (
+            <button key={q} onClick={() => { setDeadline(q); setShowCal(false); }} className="tap" data-no-haptic
+              style={{ flex: 1, borderRadius: 999, padding: "8px 4px", fontSize: 12.5, whiteSpace: "nowrap", textAlign: "center",
+                background: active ? "#0a0a0a" : "#fff", color: active ? "#fff" : "var(--text-3)", border: active ? "0" : "1px solid rgba(0,0,0,0.06)" }}>{q}</button>
+          );
+        })}
       </div>
       {showCal && <DeadlineCalendar onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
 
