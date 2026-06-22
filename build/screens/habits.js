@@ -774,7 +774,7 @@ function HabitsScreen() {
       marginTop: 12,
       display: "flex",
       flexDirection: "column",
-      gap: 10,
+      gap: 8,
       color: "var(--text)"
     }
   }, habits.map(h => /*#__PURE__*/React.createElement("div", {
@@ -938,16 +938,21 @@ function HabitsScreen() {
   }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
-      background: TH.cardBg,
-      borderRadius: 22,
-      overflow: "hidden",
-      boxShadow: cardShadow,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
       color: "var(--text)"
     }
-  }, goals.map((g, idx) => {
+  }, goals.map(g => {
     var pct = g.current / g.target;
     return /*#__PURE__*/React.createElement("div", {
-      key: g.id
+      key: g.id,
+      style: {
+        borderRadius: 18,
+        overflow: "hidden",
+        boxShadow: cardShadow,
+        background: TH.cardBg
+      }
     }, /*#__PURE__*/React.createElement("button", {
       className: "tap",
       onClick: () => navigate("goal-detail", {
@@ -1015,12 +1020,7 @@ function HabitsScreen() {
       style: {
         width: pct * 100 + "%"
       }
-    }))), idx < goals.length - 1 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        height: 1,
-        background: TH.divider
-      }
-    }));
+    }))));
   })), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {

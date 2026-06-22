@@ -289,7 +289,7 @@ function HabitsScreen() {
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать привычку</span>
           </button>
         ) : (
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10, color: "var(--text)" }}>
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
           {habits.map((h) => (
             <div key={h.id} style={{ borderRadius: 18, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
@@ -332,11 +332,11 @@ function HabitsScreen() {
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Поставить цель</span>
           </button>
         ) : (
-        <div style={{ marginTop: 12, background: TH.cardBg, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, color: "var(--text)" }}>
-          {goals.map((g, idx) => {
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
+          {goals.map((g) => {
             const pct = g.current / g.target;
             return (
-              <div key={g.id}>
+              <div key={g.id} style={{ borderRadius: 18, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>
                 <button className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ width: "100%", background: "transparent", border: 0, padding: "14px 16px", textAlign: "left", color: "var(--text)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -353,7 +353,6 @@ function HabitsScreen() {
                   </div>
                   <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (pct * 100) + "%" }}/></div>
                 </button>
-                {idx < goals.length - 1 && <div style={{ height: 1, background: TH.divider }} />}
               </div>
             );
           })}
