@@ -833,8 +833,8 @@ function hueShift(hex, deg) {
 // paired with a morphing mood face + a native word. Centre = «Ровно». The orb
 // takes the colour; the face is the hero. One value 0..1 drives all three.
 var MOOD_SPECTRUM_STOPS = ["#FF5A5F", "#FF9F43", "#FFCE3A", "#34C759", "#19B6E8"];
-var MOOD_FACES = ["😣", "😕", "😐", "😄", "🤩"];
-var MOOD_WORDS = ["Тяжело", "Неважно", "Нормально", "Хорошо", "Отлично"];
+var MOOD_FACES = ["😣", "😞", "😕", "😐", "🙂", "😄", "🤩"];
+var MOOD_WORDS = ["Тяжело", "Плохо", "Так себе", "Нормально", "Неплохо", "Хорошо", "Отлично"];
 function moodSpectrum(v) {
   var x = Math.max(0, Math.min(1, isFinite(v) ? v : 0.5)) * (MOOD_SPECTRUM_STOPS.length - 1);
   var i = Math.min(MOOD_SPECTRUM_STOPS.length - 2, Math.floor(x));
@@ -998,10 +998,10 @@ function IntroScreen() {
 
   // Onboarding state slider: 0 = heavy, 0.5 = base/ровно, 1 = on the rise. The orb
   // tint EASES toward the value each frame so the colour flows instead of snapping.
-  var [moodVal, setMoodVal] = useIS(0.7); // start already on «Хорошо» — nudge up to «Отлично» or down
+  var [moodVal, setMoodVal] = useIS(0.78); // start already on «Хорошо» — turn up to «Отлично» or down
   var moodEase = useIR({
     t: 0,
-    val: 0.7
+    val: 0.78
   });
   var me = moodEase.current;
   var mdt = Math.max(0, Math.min(0.05, t - me.t));
@@ -1014,11 +1014,31 @@ function IntroScreen() {
   var moodWordTxt = MOOD_WORDS[moodIdx];
   var trackRef = useIR(null);
   var moodDrag = useIR(false);
-  var setMoodFromX = clientX => {
+  var lastBucket = useIR(moodBucket(0.78));
+  var moodHaptic = () => {
+    try {
+      if (window.tgHaptic) window.tgHaptic("light");else if (navigator.vibrate) navigator.vibrate(7);
+    } catch (_) {}
+  };
+  // Radial gauge: map a pointer to a value 0..1 along a 180° arc (viewBox 300×172,
+  // centre 150,150). Below the centre line snaps to the nearer end. Haptic ticks
+  // each time the value crosses into a new state bucket.
+  var setMoodFromArc = (clientX, clientY) => {
     var el = trackRef.current;
     if (!el) return;
     var r = el.getBoundingClientRect();
-    setMoodVal(Math.max(0, Math.min(1, (clientX - r.left) / r.width)));
+    var sx = (clientX - r.left) / r.width * 300;
+    var sy = (clientY - r.top) / r.height * 172;
+    var dx = sx - 150,
+      dy = 150 - sy;
+    var v;
+    if (dy <= 0) v = dx < 0 ? 0 : 1;else v = Math.max(0, Math.min(1, 1 - Math.atan2(dy, dx) / Math.PI));
+    setMoodVal(v);
+    var b = moodBucket(v);
+    if (b !== lastBucket.current) {
+      lastBucket.current = b;
+      moodHaptic();
+    }
   };
   var slides = [{
     mode: "awake",
@@ -1384,19 +1404,29 @@ function IntroScreen() {
     delay: 0.5,
     style: {
       position: "relative",
-      padding: "12px 30px 0",
+      padding: "2px 24px 0",
       zIndex: 2
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center",
-      fontSize: 21,
-      fontWeight: 700,
-      letterSpacing: "-0.3px",
-      color: pal.title,
-      marginBottom: 16
+      display: "flex",
+      justifyContent: "center",
+      marginBottom: 2
     }
-  }, moodWordTxt), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    key: moodIdx,
+    style: {
+      background: dark ? "rgba(255,255,255,0.1)" : "#fff",
+      color: pal.title,
+      fontSize: 15,
+      fontWeight: 700,
+      letterSpacing: "-0.2px",
+      padding: "7px 18px",
+      borderRadius: 999,
+      boxShadow: dark ? "none" : "0 3px 12px rgba(20,40,80,0.12)",
+      animation: "moodWordPop 0.32s cubic-bezier(0.34,1.56,0.64,1) both"
+    }
+  }, moodWordTxt)), /*#__PURE__*/React.createElement("div", {
     ref: trackRef,
     className: "tap",
     onPointerDown: e => {
@@ -1404,15 +1434,11 @@ function IntroScreen() {
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch (_) {}
-      setMoodFromX(e.clientX);
-      if (window.tgHaptic) {
-        try {
-          window.tgHaptic("light");
-        } catch (_) {}
-      }
+      setMoodFromArc(e.clientX, e.clientY);
+      moodHaptic();
     },
     onPointerMove: e => {
-      if (moodDrag.current) setMoodFromX(e.clientX);
+      if (moodDrag.current) setMoodFromArc(e.clientX, e.clientY);
     },
     onPointerUp: () => {
       moodDrag.current = false;
@@ -1422,54 +1448,84 @@ function IntroScreen() {
     },
     style: {
       position: "relative",
-      height: 40,
-      display: "flex",
-      alignItems: "center",
+      maxWidth: 320,
+      margin: "0 auto",
       touchAction: "none",
-      cursor: "pointer"
+      cursor: "pointer",
+      userSelect: "none",
+      WebkitUserSelect: "none"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 300 172",
+    style: {
+      width: "100%",
+      display: "block",
+      overflow: "visible"
+    }
+  }, Array.from({
+    length: 15
+  }).map((_, i) => {
+    var tv = i / 14,
+      phi = (1 - tv) * Math.PI,
+      c = Math.cos(phi),
+      s = Math.sin(phi);
+    var near = Math.abs(tv - me.val) < 0.05;
+    return /*#__PURE__*/React.createElement("line", {
+      key: i,
+      x1: 150 + 99 * c,
+      y1: 150 - 99 * s,
+      x2: 150 + 113 * c,
+      y2: 150 - 113 * s,
+      stroke: near ? moodMain : dark ? "rgba(255,255,255,0.22)" : "rgba(21,35,60,0.16)",
+      strokeWidth: near ? 2.6 : 1.4,
+      strokeLinecap: "round"
+    });
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 38 150 A 112 112 0 0 1 262 150",
+    fill: "none",
+    stroke: dark ? "rgba(255,255,255,0.12)" : "rgba(21,35,60,0.09)",
+    strokeWidth: "6",
+    strokeLinecap: "round"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 38 150 A 112 112 0 0 1 262 150",
+    fill: "none",
+    stroke: moodMain,
+    strokeWidth: "6",
+    strokeLinecap: "round",
+    strokeDasharray: Math.PI * 112,
+    strokeDashoffset: Math.PI * 112 * (1 - me.val)
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: 150 + 112 * Math.cos((1 - me.val) * Math.PI),
+    cy: 150 - 112 * Math.sin((1 - me.val) * Math.PI),
+    r: "16",
+    fill: dark ? "#fff" : "#0a0a0a",
+    style: {
+      filter: "drop-shadow(0 3px 9px rgba(0,0,0,0.28))"
+    }
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: 150 + 112 * Math.cos((1 - me.val) * Math.PI),
+    cy: 150 - 112 * Math.sin((1 - me.val) * Math.PI),
+    r: "5",
+    fill: moodMain
+  })), /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
-      left: 0,
-      right: 0,
-      height: 5,
-      borderRadius: 999,
-      background: dark ? "rgba(255,255,255,0.16)" : "rgba(21,35,60,0.13)"
+      left: "8%",
+      bottom: 2,
+      fontSize: 18,
+      opacity: 0.5,
+      pointerEvents: "none"
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }, MOOD_FACES[0]), /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
-      left: 0,
-      width: `${moodVal * 100}%`,
-      height: 5,
-      borderRadius: 999,
-      background: moodMain,
-      transition: moodDrag.current ? "none" : "width 0.18s, background 0.25s"
+      right: "8%",
+      bottom: 2,
+      fontSize: 18,
+      opacity: 0.5,
+      pointerEvents: "none"
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      left: `${moodVal * 100}%`,
-      top: "50%",
-      width: 28,
-      height: 28,
-      borderRadius: "50%",
-      background: "#fff",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.22), 0 4px 11px rgba(0,0,0,0.13)",
-      transform: "translate(-50%,-50%)",
-      transition: moodDrag.current ? "none" : "left 0.18s"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginTop: 7,
-      fontSize: 19,
-      opacity: 0.75
-    }
-  }, /*#__PURE__*/React.createElement("span", null, MOOD_FACES[0]), /*#__PURE__*/React.createElement("span", null, MOOD_FACES[MOOD_FACES.length - 1]))), /*#__PURE__*/React.createElement("div", {
+  }, MOOD_FACES[MOOD_FACES.length - 1]))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       padding: "20px 24px 28px",
@@ -1510,6 +1566,7 @@ function IntroScreen() {
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
         @keyframes moodFacePop { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes moodWordPop { 0% { opacity: 0; transform: scale(0.82) translateY(4px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.9); } 55% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
         @keyframes orbBurst { 0% { opacity: 0.4; transform: scale(0.55); } 70% { opacity: 0.1; } 100% { opacity: 0; transform: scale(1.7); } }
       `));
