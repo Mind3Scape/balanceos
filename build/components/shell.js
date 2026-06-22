@@ -1184,6 +1184,18 @@ var FRESH_WIDGETS = {
   weather: false,
   books: false
 };
+
+/* Promo render (the 3-phone marketing composite in promo.html): keep the filled
+   demo data, but start with the guided tour already "done" so no intro sheet
+   auto-rises over the screens — they must read clean in the small welcome image.
+   Inert for real users (the flag is only ever set by promo.html's iframes). */
+var IS_PROMO = (() => {
+  try {
+    return new URLSearchParams(window.location.search).get("promo") === "1";
+  } catch (e) {
+    return false;
+  }
+})();
 function AppProvider({
   children
 }) {
@@ -1224,7 +1236,7 @@ function AppProvider({
   };
   // Once the guided tour is finished OR dismissed once, NOTHING auto-pops again — no
   // per-tab sheet jumps in your face. The whole guide is one all-or-nothing thing.
-  var [guideDone, setGuideDone] = useState(false);
+  var [guideDone, setGuideDone] = useState(IS_PROMO);
   var finishGuide = () => {
     setGuideDone(true);
     setTourScreen(null);

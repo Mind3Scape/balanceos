@@ -461,6 +461,12 @@ const _nid = () => ++_bosNextId;
 const DEMO_WIDGETS  = { quote: true, mood: true, streak: true,  level: true,  calendar: true,  team: true,  energy: true,  ai: true,  weather: false, books: false };
 const FRESH_WIDGETS = { quote: true, mood: true, streak: false, level: true, calendar: false, team: false, energy: false, ai: false, weather: false, books: false };
 
+/* Promo render (the 3-phone marketing composite in promo.html): keep the filled
+   demo data, but start with the guided tour already "done" so no intro sheet
+   auto-rises over the screens — they must read clean in the small welcome image.
+   Inert for real users (the flag is only ever set by promo.html's iframes). */
+const IS_PROMO = (() => { try { return new URLSearchParams(window.location.search).get("promo") === "1"; } catch (e) { return false; } })();
+
 function AppProvider({ children }) {
   const [mood, setMood] = useState(MOOD_OPTIONS[1]);
   const [dayMoods, setDayMoods] = useState(SEED_DAYMOODS);
@@ -496,7 +502,7 @@ function AppProvider({ children }) {
   const startScreenTour = (key) => { setTourScreen(key); setTourStep(0); };
   // Once the guided tour is finished OR dismissed once, NOTHING auto-pops again — no
   // per-tab sheet jumps in your face. The whole guide is one all-or-nothing thing.
-  const [guideDone, setGuideDone] = useState(false);
+  const [guideDone, setGuideDone] = useState(IS_PROMO);
   const finishGuide = () => { setGuideDone(true); setTourScreen(null); setTourStep(-1); setOnbTab(null); };
 
   // Shared habit / goal store + mutators (the app's single source of truth).
