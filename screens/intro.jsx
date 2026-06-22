@@ -574,7 +574,7 @@ function IntroScreen() {
   // flows in and gently settles. The morph itself is transform:scale (GPU).
   const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
   const smootherstep = (x) => { x = clamp01(x); return x * x * x * (x * (x * 6 - 15) + 10); };
-  const SWAP_AT = 2.4, SWAP_DUR = 1.7;
+  const SWAP_AT = 2.8, SWAP_DUR = 3.1;
   const sp = swapScene ? smootherstep((t - blendStart - SWAP_AT) / SWAP_DUR) : 0;
   const go = (next) => {
     if (next === step) return;

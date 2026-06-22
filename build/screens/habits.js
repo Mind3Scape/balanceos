@@ -1472,6 +1472,126 @@ window.HabitSettingsScreen = HabitSettingsScreen;
 window.AvatarStack = AvatarStack;
 window.ShareHabitSheet = ShareHabitSheet;
 
+/* Inline month calendar in the app's style — pick a custom goal deadline by
+   tapping a day. Returns a short date like "14 окт". 2026 demo year. */
+function DeadlineCalendar({
+  onPick
+}) {
+  var MON_SHORT = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  var MON_TITLE = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+  var DAYS_IN = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  var TODAY_M = 3,
+    TODAY_D = 28,
+    YEAR = 2026; // demo "today" = 28 апр 2026
+  var [m, setM] = useHS(TODAY_M);
+  var startWeekday = (m * 3 + 3) % 7; // same synthetic alignment the app's other calendars use
+  var cells = [];
+  for (var i = 0; i < startWeekday; i++) cells.push(null);
+  for (var d = 1; d <= DAYS_IN[m]; d++) cells.push(d);
+  var past = d => m === TODAY_M && d < TODAY_D;
+  var isToday = d => m === TODAY_M && d === TODAY_D;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 18,
+      padding: 14,
+      marginTop: 10,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    "data-no-haptic": true,
+    disabled: m <= TODAY_M,
+    onClick: () => setM(Math.max(TODAY_M, m - 1)),
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      border: 0,
+      background: "var(--surface-3)",
+      opacity: m <= TODAY_M ? 0.3 : 1,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    style: {
+      transform: "rotate(180deg)"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, MON_TITLE[m], " ", YEAR), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    "data-no-haptic": true,
+    disabled: m >= 11,
+    onClick: () => setM(Math.min(11, m + 1)),
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      border: 0,
+      background: "var(--surface-3)",
+      opacity: m >= 11 ? 0.3 : 1,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7,1fr)",
+      gap: 3,
+      marginBottom: 4
+    }
+  }, ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"].map(w => /*#__PURE__*/React.createElement("div", {
+    key: w,
+    style: {
+      textAlign: "center",
+      fontSize: 10.5,
+      color: "var(--text-4)",
+      fontWeight: 600
+    }
+  }, w))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7,1fr)",
+      gap: 3
+    }
+  }, cells.map((d, i) => d === null ? /*#__PURE__*/React.createElement("div", {
+    key: i
+  }) : /*#__PURE__*/React.createElement("button", {
+    key: i,
+    className: "tap",
+    "data-no-haptic": true,
+    disabled: past(d),
+    onClick: () => onPick(`${d} ${MON_SHORT[m]}`),
+    style: {
+      aspectRatio: "1/1",
+      border: 0,
+      borderRadius: 10,
+      background: "transparent",
+      cursor: past(d) ? "default" : "pointer",
+      fontSize: 13.5,
+      color: "var(--text)",
+      opacity: past(d) ? 0.32 : 1,
+      fontWeight: isToday(d) ? 700 : 400,
+      boxShadow: isToday(d) ? "inset 0 0 0 1.5px rgba(0,0,0,0.16)" : "none"
+    }
+  }, d))));
+}
+
 /* ─── GOAL SETTINGS — create / edit a goal ─────────────────────── */
 function GoalSettingsScreen() {
   var {
@@ -1487,7 +1607,25 @@ function GoalSettingsScreen() {
   var [target, setTarget] = useHS(g0?.target || 22);
   var [unit, setUnit] = useHS(g0?.unit || "недель");
   var [deadline, setDeadline] = useHS(g0?.deadline || "14 окт");
+  var [showCal, setShowCal] = useHS(false);
   var [linkHabit, setLinkHabit] = useHS(true);
+  var [linkedHabits, setLinkedHabits] = useHS([{
+    e: "🏃",
+    n: "утренняя пробежка",
+    on: true
+  }, {
+    e: "🧘",
+    n: "медитация",
+    on: false
+  }, {
+    e: "📚",
+    n: "читать книгу",
+    on: false
+  }]);
+  var toggleLinked = i => setLinkedHabits(hs => hs.map((h, j) => j === i ? {
+    ...h,
+    on: !h.on
+  } : h));
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1682,7 +1820,10 @@ function GoalSettingsScreen() {
     }
   }, ["Эта неделя", "Этот месяц", "3 месяца", "1 год"].map((q, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
-    onClick: () => setDeadline(q),
+    onClick: () => {
+      setDeadline(q);
+      setShowCal(false);
+    },
     className: "tap",
     style: {
       background: "#fff",
@@ -1692,7 +1833,29 @@ function GoalSettingsScreen() {
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, q))), /*#__PURE__*/React.createElement("div", {
+  }, q)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowCal(v => !v),
+    className: "tap",
+    "data-no-haptic": true,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      borderRadius: 999,
+      padding: "6px 12px",
+      fontSize: 12,
+      background: showCal ? "#0a0a0a" : "#fff",
+      color: showCal ? "#fff" : "var(--text-3)",
+      border: showCal ? "0" : "1px solid rgba(0,0,0,0.05)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Calendar, {
+    size: 12
+  }), " \u0421\u0432\u043E\u0439 \u0441\u0440\u043E\u043A")), showCal && /*#__PURE__*/React.createElement(DeadlineCalendar, {
+    onPick: s => {
+      setDeadline(s);
+      setShowCal(false);
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -1737,21 +1900,11 @@ function GoalSettingsScreen() {
       marginTop: 14,
       flexWrap: "wrap"
     }
-  }, [{
-    e: "🏃🏼‍♀️",
-    n: "утренняя пробежка",
-    on: true
-  }, {
-    e: "🧘🏼‍♀️",
-    n: "медитация",
-    on: false
-  }, {
-    e: "📚",
-    n: "читать книгу",
-    on: false
-  }].map((h, i) => /*#__PURE__*/React.createElement("button", {
+  }, linkedHabits.map((h, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     className: "tap",
+    "data-no-haptic": true,
+    onClick: () => toggleLinked(i),
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -1762,7 +1915,8 @@ function GoalSettingsScreen() {
       color: h.on ? "#fff" : "var(--text-3)",
       border: 0,
       fontSize: 12,
-      fontWeight: 500
+      fontWeight: 500,
+      transition: "background 0.15s, color 0.15s"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {

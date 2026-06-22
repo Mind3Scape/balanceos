@@ -493,6 +493,47 @@ window.HabitSettingsScreen = HabitSettingsScreen;
 window.AvatarStack = AvatarStack;
 window.ShareHabitSheet = ShareHabitSheet;
 
+/* Inline month calendar in the app's style — pick a custom goal deadline by
+   tapping a day. Returns a short date like "14 окт". 2026 demo year. */
+function DeadlineCalendar({ onPick }) {
+  const MON_SHORT = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  const MON_TITLE = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+  const DAYS_IN = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const TODAY_M = 3, TODAY_D = 28, YEAR = 2026; // demo "today" = 28 апр 2026
+  const [m, setM] = useHS(TODAY_M);
+  const startWeekday = (m * 3 + 3) % 7; // same synthetic alignment the app's other calendars use
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= DAYS_IN[m]; d++) cells.push(d);
+  const past = (d) => m === TODAY_M && d < TODAY_D;
+  const isToday = (d) => m === TODAY_M && d === TODAY_D;
+  return (
+    <div style={{ background: "#fff", borderRadius: 18, padding: 14, marginTop: 10, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <button className="tap" data-no-haptic disabled={m <= TODAY_M} onClick={() => setM(Math.max(TODAY_M, m - 1))}
+          style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "var(--surface-3)", opacity: m <= TODAY_M ? 0.3 : 1, display: "grid", placeItems: "center" }}><I.ChevronRight size={16} style={{ transform: "rotate(180deg)" }} /></button>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{MON_TITLE[m]} {YEAR}</div>
+        <button className="tap" data-no-haptic disabled={m >= 11} onClick={() => setM(Math.min(11, m + 1))}
+          style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "var(--surface-3)", opacity: m >= 11 ? 0.3 : 1, display: "grid", placeItems: "center" }}><I.ChevronRight size={16} /></button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 4 }}>
+        {["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"].map((w) => (
+          <div key={w} style={{ textAlign: "center", fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>{w}</div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+        {cells.map((d, i) => d === null ? <div key={i} /> : (
+          <button key={i} className="tap" data-no-haptic disabled={past(d)} onClick={() => onPick(`${d} ${MON_SHORT[m]}`)}
+            style={{ aspectRatio: "1/1", border: 0, borderRadius: 10, background: "transparent", cursor: past(d) ? "default" : "pointer",
+              fontSize: 13.5, color: "var(--text)", opacity: past(d) ? 0.32 : 1,
+              fontWeight: isToday(d) ? 700 : 400,
+              boxShadow: isToday(d) ? "inset 0 0 0 1.5px rgba(0,0,0,0.16)" : "none" }}>{d}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── GOAL SETTINGS — create / edit a goal ─────────────────────── */
 function GoalSettingsScreen() {
   const { navigate, params } = useNav();
@@ -505,7 +546,14 @@ function GoalSettingsScreen() {
   const [target, setTarget] = useHS(g0?.target || 22);
   const [unit, setUnit] = useHS(g0?.unit || "недель");
   const [deadline, setDeadline] = useHS(g0?.deadline || "14 окт");
+  const [showCal, setShowCal] = useHS(false);
   const [linkHabit, setLinkHabit] = useHS(true);
+  const [linkedHabits, setLinkedHabits] = useHS([
+    { e: "🏃", n: "утренняя пробежка", on: true },
+    { e: "🧘", n: "медитация", on: false },
+    { e: "📚", n: "читать книгу", on: false },
+  ]);
+  const toggleLinked = (i) => setLinkedHabits((hs) => hs.map((h, j) => (j === i ? { ...h, on: !h.on } : h)));
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -562,10 +610,16 @@ function GoalSettingsScreen() {
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
         {["Эта неделя","Этот месяц","3 месяца","1 год"].map((q,i)=>(
-          <button key={i} onClick={() => setDeadline(q)} className="tap"
+          <button key={i} onClick={() => { setDeadline(q); setShowCal(false); }} className="tap"
             style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.05)", borderRadius: 999, padding: "6px 12px", fontSize: 12, color: "var(--text-3)" }}>{q}</button>
         ))}
+        <button onClick={() => setShowCal(v => !v)} className="tap" data-no-haptic
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, borderRadius: 999, padding: "6px 12px", fontSize: 12,
+            background: showCal ? "#0a0a0a" : "#fff", color: showCal ? "#fff" : "var(--text-3)", border: showCal ? "0" : "1px solid rgba(0,0,0,0.05)" }}>
+          <I.Calendar size={12}/> Свой срок
+        </button>
       </div>
+      {showCal && <DeadlineCalendar onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
 
       <div className="section-label" style={{ marginTop: 22 }}>Привязать привычку</div>
       <div style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
@@ -578,17 +632,13 @@ function GoalSettingsScreen() {
         </div>
         {linkHabit && (
           <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-            {[
-              { e: "🏃🏼‍♀️", n: "утренняя пробежка", on: true },
-              { e: "🧘🏼‍♀️", n: "медитация", on: false },
-              { e: "📚", n: "читать книгу", on: false },
-            ].map((h,i)=>(
-              <button key={i} className="tap" style={{
+            {linkedHabits.map((h,i)=>(
+              <button key={i} className="tap" data-no-haptic onClick={() => toggleLinked(i)} style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "5px 11px 5px 5px", borderRadius: 999,
                 background: h.on ? "#0a0a0a" : "#e8e8e8",
                 color: h.on ? "#fff" : "var(--text-3)",
-                border: 0, fontSize: 12, fontWeight: 500,
+                border: 0, fontSize: 12, fontWeight: 500, transition: "background 0.15s, color 0.15s",
               }}>
                 <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", fontSize: 13 }}>{h.e}</span>
                 {h.n}

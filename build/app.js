@@ -113,7 +113,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v110";
+var APP_VERSION = "v111";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -494,20 +494,21 @@ function GuidedTour({
     setRevealed(false);
     setLate(false);
     var raf,
+      startTimer,
       cancelled = false,
       frames = 0,
       stable = 0,
       lastKey = "",
       lastSet = "",
-      committed = false;
+      committed = false,
+      scrolled = false;
     // Safety net: if the target is NEVER found (unmounted / bad selector), reveal the
     // card on its own so the user isn't stranded. The moment the target IS found we
-    // cancel this — otherwise a slow first render (e.g. the community screen settling
-    // after its sheet closes) flashes the card centred, then it visibly jumps onto the
-    // target. That was the "Создавай свои команды" glitch. Generous window for the race.
+    // cancel this — otherwise a slow first render flashes the card centred, then it
+    // visibly jumps onto the target. Generous window for the race.
     var lateTimer = setTimeout(() => {
       if (!cancelled) setLate(true);
-    }, 1800);
+    }, 2400);
     var tick = () => {
       if (cancelled) return;
       frames++;
@@ -515,13 +516,17 @@ function GuidedTour({
       var el = shell && shell.querySelector(stop.sel);
       if (el) {
         clearTimeout(lateTimer); // target exists — never fall back to the centred card
-        if (!committed) {
+        // Scroll into view ONCE. Doing it every frame keeps nudging the layout, so the
+        // rect never settles and the spotlight commits mid-shift, then glides — the
+        // "Создавай свои команды" jump. One scroll, then let it settle.
+        if (!scrolled) {
           try {
             el.scrollIntoView({
               block: "center",
               inline: "nearest"
             });
           } catch (_) {}
+          scrolled = true;
         }
         var s = shell.getBoundingClientRect(),
           b = el.getBoundingClientRect();
@@ -544,10 +549,10 @@ function GuidedTour({
             lastSet = key;
           }
         };
-        // Hold the FIRST reveal until the layout is stable for a few frames (longer on
-        // a page switch, where lists/avatars reflow) so the spotlight lands once at its
-        // final spot. frames>44 is a safety net so it always eventually shows.
-        if (stable >= (sameCtx ? 3 : 7) || frames > 44) {
+        // Hold the FIRST reveal until the layout is stable for several frames (much
+        // longer on a cross-screen switch, where the new screen + its lists/avatars
+        // are still reflowing) so the spotlight lands ONCE at its final spot — no jump.
+        if (stable >= (sameCtx ? 4 : 12) || frames > 90) {
           if (!committed) setRevealed(true);
           committed = true;
         }
@@ -555,15 +560,21 @@ function GuidedTour({
         // up half-covering the target; the cutout's CSS transition smooths each nudge.
         if (committed) apply();
       }
-      if (frames > 200) return; // ~3.3s window for late shifts, then stop
+      if (frames > 240) return; // window for late shifts, then stop
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+    // On a cross-screen switch, wait a beat for the new screen/view to mount and
+    // settle BEFORE the first measurement, so we never read a mid-animation position.
+    var beginDelay = sameCtx ? 0 : 300;
+    startTimer = setTimeout(() => {
+      if (!cancelled) raf = requestAnimationFrame(tick);
+    }, beginDelay);
     window.addEventListener("resize", tick);
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
       clearTimeout(lateTimer);
+      clearTimeout(startTimer);
       window.removeEventListener("resize", tick);
     };
   }, [step]); // eslint-disable-line

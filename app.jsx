@@ -109,7 +109,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v110";
+const APP_VERSION = "v111";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -248,13 +248,12 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
     setRevealed(false);
     setLate(false);
 
-    let raf, cancelled = false, frames = 0, stable = 0, lastKey = "", lastSet = "", committed = false;
+    let raf, startTimer, cancelled = false, frames = 0, stable = 0, lastKey = "", lastSet = "", committed = false, scrolled = false;
     // Safety net: if the target is NEVER found (unmounted / bad selector), reveal the
     // card on its own so the user isn't stranded. The moment the target IS found we
-    // cancel this — otherwise a slow first render (e.g. the community screen settling
-    // after its sheet closes) flashes the card centred, then it visibly jumps onto the
-    // target. That was the "Создавай свои команды" glitch. Generous window for the race.
-    const lateTimer = setTimeout(() => { if (!cancelled) setLate(true); }, 1800);
+    // cancel this — otherwise a slow first render flashes the card centred, then it
+    // visibly jumps onto the target. Generous window for the race.
+    const lateTimer = setTimeout(() => { if (!cancelled) setLate(true); }, 2400);
     const tick = () => {
       if (cancelled) return;
       frames++;
@@ -262,26 +261,32 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
       const el = shell && shell.querySelector(stop.sel);
       if (el) {
         clearTimeout(lateTimer);   // target exists — never fall back to the centred card
-        if (!committed) { try { el.scrollIntoView({ block: "center", inline: "nearest" }); } catch (_) {} }
+        // Scroll into view ONCE. Doing it every frame keeps nudging the layout, so the
+        // rect never settles and the spotlight commits mid-shift, then glides — the
+        // "Создавай свои команды" jump. One scroll, then let it settle.
+        if (!scrolled) { try { el.scrollIntoView({ block: "center", inline: "nearest" }); } catch (_) {} scrolled = true; }
         const s = shell.getBoundingClientRect(), b = el.getBoundingClientRect();
         const m = { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, sw: s.width, sh: s.height };
         const key = [m.x, m.y, m.w, m.h].map(n => Math.round(n)).join(",");
         if (key === lastKey) stable++; else { stable = 0; lastKey = key; }
         const apply = () => { if (key !== lastSet) { setSpot(m); lastSet = key; } };
-        // Hold the FIRST reveal until the layout is stable for a few frames (longer on
-        // a page switch, where lists/avatars reflow) so the spotlight lands once at its
-        // final spot. frames>44 is a safety net so it always eventually shows.
-        if (stable >= (sameCtx ? 3 : 7) || frames > 44) { if (!committed) setRevealed(true); committed = true; }
+        // Hold the FIRST reveal until the layout is stable for several frames (much
+        // longer on a cross-screen switch, where the new screen + its lists/avatars
+        // are still reflowing) so the spotlight lands ONCE at its final spot — no jump.
+        if (stable >= (sameCtx ? 4 : 12) || frames > 90) { if (!committed) setRevealed(true); committed = true; }
         // After the reveal, keep tracking late layout shifts so the hole can never end
         // up half-covering the target; the cutout's CSS transition smooths each nudge.
         if (committed) apply();
       }
-      if (frames > 200) return;                  // ~3.3s window for late shifts, then stop
+      if (frames > 240) return;                  // window for late shifts, then stop
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+    // On a cross-screen switch, wait a beat for the new screen/view to mount and
+    // settle BEFORE the first measurement, so we never read a mid-animation position.
+    const beginDelay = sameCtx ? 0 : 300;
+    startTimer = setTimeout(() => { if (!cancelled) raf = requestAnimationFrame(tick); }, beginDelay);
     window.addEventListener("resize", tick);
-    return () => { cancelled = true; cancelAnimationFrame(raf); clearTimeout(lateTimer); window.removeEventListener("resize", tick); };
+    return () => { cancelled = true; cancelAnimationFrame(raf); clearTimeout(lateTimer); clearTimeout(startTimer); window.removeEventListener("resize", tick); };
   }, [step]); // eslint-disable-line
 
   if (!stop) return null;

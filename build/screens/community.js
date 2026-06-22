@@ -3767,7 +3767,21 @@ function TeamDetailScreen() {
       fontSize: 11,
       fontWeight: 700
     }
-  }, i < main.doneToday ? "✓" : ""))))), /*#__PURE__*/React.createElement("div", {
+  }, i < main.doneToday ? "✓" : ""))))), /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
+    people: members.map(m => ({
+      name: m.name,
+      initials: m.initials,
+      color: m.color
+    })),
+    dayFrac: (pi, d, mi) => {
+      var lvl = (members[pi] && members[pi].pct != null ? members[pi].pct : 50) / 100;
+      var n = Math.sin(d * 12.9898 + pi * 78.233 + mi * 37.719) * 43758.5453;
+      var r = n - Math.floor(n);
+      return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
+    },
+    granular: true,
+    label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"
+  }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -3822,19 +3836,33 @@ function TeamDetailScreen() {
   }, h.name), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 4,
+      alignItems: "center",
+      gap: 8,
       marginTop: 7
     }
-  }, (h.week || [0, 0, 0, 0, 0, 0, 0]).map((d, di) => /*#__PURE__*/React.createElement("span", {
-    key: di,
-    title: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][di],
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 13,
-      height: 13,
-      borderRadius: 4,
-      background: d ? "#34C759" : "var(--surface-3)"
+      flex: 1,
+      maxWidth: 110,
+      height: 5,
+      borderRadius: 999,
+      background: "var(--surface-3)",
+      overflow: "hidden"
     }
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: Math.round((h.weekPct || 0) * 100) + "%",
+      background: "#0a0a0a",
+      borderRadius: 999
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)"
+    }
+  }, Math.round((h.weekPct || 0) * 100), "% \u0437\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"))), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "right",
       flexShrink: 0
@@ -4004,21 +4032,7 @@ function TeamDetailScreen() {
         strokeWidth: 3
       }));
     })));
-  })), /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
-    people: members.map(m => ({
-      name: m.name,
-      initials: m.initials,
-      color: m.color
-    })),
-    dayFrac: (pi, d, mi) => {
-      var lvl = (members[pi] && members[pi].pct != null ? members[pi].pct : 50) / 100;
-      var n = Math.sin(d * 12.9898 + pi * 78.233 + mi * 37.719) * 43758.5453;
-      var r = n - Math.floor(n);
-      return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
-    },
-    granular: true,
-    label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22

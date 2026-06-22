@@ -1074,8 +1074,8 @@ function IntroScreen() {
     x = clamp01(x);
     return x * x * x * (x * (x * 6 - 15) + 10);
   };
-  var SWAP_AT = 2.4,
-    SWAP_DUR = 1.7;
+  var SWAP_AT = 2.8,
+    SWAP_DUR = 3.1;
   var sp = swapScene ? smootherstep((t - blendStart - SWAP_AT) / SWAP_DUR) : 0;
   var go = next => {
     if (next === step) return;

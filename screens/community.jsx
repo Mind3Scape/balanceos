@@ -1340,6 +1340,16 @@ function TeamDetailScreen() {
       </>)}
 
       {/* Other team habits */}
+      <PeopleMonthCalendar
+        people={members.map((m) => ({ name: m.name, initials: m.initials, color: m.color }))}
+        dayFrac={(pi, d, mi) => {
+          const lvl = (members[pi] && members[pi].pct != null ? members[pi].pct : 50) / 100;
+          const n = Math.sin(d * 12.9898 + pi * 78.233 + mi * 37.719) * 43758.5453;
+          const r = n - Math.floor(n);
+          return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
+        }}
+        granular label="Календарь команды" />
+
       <div className="section-label" style={{ marginTop: 22 }}>Привычки команды ({others.length})</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {teamHabits.length === 0 && (
@@ -1350,14 +1360,12 @@ function TeamDetailScreen() {
             <span style={{ width: 40, height: 40, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{h.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: "var(--text)" }}>{h.name}</div>
-              {/* Last 7 days — green when the team hit it that day */}
-              <div style={{ display: "flex", gap: 4, marginTop: 7 }}>
-                {(h.week || [0,0,0,0,0,0,0]).map((d, di) => (
-                  <span key={di} title={["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][di]} style={{
-                    width: 13, height: 13, borderRadius: 4,
-                    background: d ? "#34C759" : "var(--surface-3)",
-                  }}/>
-                ))}
+              {/* Aggregate weekly consistency — the day-by-day view lives in the calendar above */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7 }}>
+                <div style={{ flex: 1, maxWidth: 110, height: 5, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
+                  <span style={{ display: "block", height: "100%", width: Math.round((h.weekPct || 0) * 100) + "%", background: "#0a0a0a", borderRadius: 999 }} />
+                </div>
+                <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>{Math.round((h.weekPct || 0) * 100)}% за неделю</span>
               </div>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -1416,16 +1424,6 @@ function TeamDetailScreen() {
           );
         })}
       </div>
-
-      <PeopleMonthCalendar
-        people={members.map((m) => ({ name: m.name, initials: m.initials, color: m.color }))}
-        dayFrac={(pi, d, mi) => {
-          const lvl = (members[pi] && members[pi].pct != null ? members[pi].pct : 50) / 100;
-          const n = Math.sin(d * 12.9898 + pi * 78.233 + mi * 37.719) * 43758.5453;
-          const r = n - Math.floor(n);
-          return Math.max(0, Math.min(1, Math.round((lvl * 0.5 + r * 0.55) * 5) / 5));
-        }}
-        granular label="Календарь команды" />
 
       <div className="section-label" style={{ marginTop: 22 }}>Активность</div>
       <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 8, display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--card-shadow)" }}>
