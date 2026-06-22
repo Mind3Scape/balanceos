@@ -111,7 +111,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v121";
+var APP_VERSION = "v122";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -947,6 +947,7 @@ function GuidedTour({
    on the first home screen; then, when the user opens a tab THEMSELVES for the
    first time, a one-line intro sheet rises to orient them — never a forced march. */
 var WELCOME_SHEETS = [{
+  hero: "🚀",
   eyebrow: "Добро пожаловать",
   title: "Это не трекер. Это платформа.",
   body: "Привычки, люди и рост — в одном месте. Маленькие шаги каждый день складываются в большое.",
@@ -961,6 +962,7 @@ var WELCOME_SHEETS = [{
     label: "Тренинги"
   }]
 }, {
+  hero: "🧑‍🤝‍🧑",
   eyebrow: "Вместе",
   title: "Привычки — с близкими",
   body: "Делай привычки вдвоём, собирай команды, проходи тренинги с наставниками. Вместе — крепче.",
@@ -975,6 +977,7 @@ var WELCOME_SHEETS = [{
     label: "Чат"
   }]
 }, {
+  hero: "🌱",
   eyebrow: "Твой темп",
   title: "Расти, как тебе удобно",
   body: "Выполняй привычки — уровень растёт, открываются люди и возможности. Гид «Что дальше?» ждёт внизу.",
@@ -991,6 +994,7 @@ var WELCOME_SHEETS = [{
 }];
 var TAB_INTROS = {
   habits: {
+    hero: "🎯",
     eyebrow: "Практика",
     title: "Тут ты всё создаёшь",
     body: "Привычки и цели живут здесь. Делай их один или вместе с близкими, держа общую серию.",
@@ -1006,6 +1010,7 @@ var TAB_INTROS = {
     }]
   },
   community: {
+    hero: "💛",
     eyebrow: "Сообщество",
     title: "Сердце приложения",
     body: "Команды с близкими, курсы и тренинги, нетворк наставников. Вместе держим ритм сильнее.",
@@ -1033,6 +1038,7 @@ var TAB_INTROS = {
     }]
   },
   ai: {
+    hero: "🤖",
     eyebrow: "Помощник",
     title: "ИИ всегда рядом",
     body: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст и подсказывает по делу.",
@@ -1054,6 +1060,7 @@ var TAB_INTROS = {
    → that screen's button-by-button spotlights (SCREEN_TOURS). */
 var DEMO_INTROS = {
   home: {
+    hero: "☀️",
     eyebrow: "Главная",
     title: "Твой экран дня",
     detail: true,
@@ -1073,6 +1080,7 @@ var DEMO_INTROS = {
     }]
   },
   habits: {
+    hero: "🎯",
     eyebrow: "Практика",
     title: "Тут ты всё создаёшь",
     detail: true,
@@ -1089,6 +1097,7 @@ var DEMO_INTROS = {
     }]
   },
   community: {
+    hero: "💛",
     eyebrow: "Сообщество",
     title: "Сердце экосистемы",
     detail: true,
@@ -1105,6 +1114,7 @@ var DEMO_INTROS = {
     }]
   },
   ai: {
+    hero: "🤖",
     eyebrow: "Помощник",
     title: "ИИ всегда рядом",
     detail: true,
@@ -1126,20 +1136,56 @@ var DEMO_INTROS = {
    tint on every step, so it reads as ONE persistent orb while only the text
    changes (orb-continuity). Pills below carry the per-screen meaning via colourful
    iOS emoji. (Richer bespoke imagery is a later design pass, together with David.) */
-function OnbHero() {
+function OnbHero({
+  emoji,
+  dark
+}) {
+  // A bright, topical emoji per sheet (replacing the brand orb) — it floats in the
+  // SAME soft glow the orb sat in, so the hero still reads as one designed object,
+  // just expressive of what THIS screen is about. Falls back to the orb if a sheet
+  // doesn't name an emoji.
+  if (!emoji) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 92,
+        display: "grid",
+        placeItems: "center",
+        margin: "0 auto"
+      }
+    }, /*#__PURE__*/React.createElement(StaticOrb, {
+      size: 88,
+      tint: tintFromMood("#5FA8FF"),
+      seed: 2.0,
+      intensity: 0.5
+    }));
+  }
   return /*#__PURE__*/React.createElement("div", {
     style: {
       height: 92,
       display: "grid",
       placeItems: "center",
-      margin: "0 auto"
+      margin: "0 auto",
+      position: "relative"
     }
-  }, /*#__PURE__*/React.createElement(StaticOrb, {
-    size: 88,
-    tint: tintFromMood("#5FA8FF"),
-    seed: 2.0,
-    intensity: 0.5
-  }));
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      width: 90,
+      height: 90,
+      borderRadius: "50%",
+      background: dark ? "radial-gradient(circle, rgba(150,180,235,0.26), transparent 68%)" : "radial-gradient(circle, rgba(120,170,230,0.22), transparent 68%)",
+      filter: "blur(5px)"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    key: emoji,
+    className: "onb-emoji",
+    style: {
+      position: "relative",
+      fontSize: 62,
+      lineHeight: 1,
+      filter: "drop-shadow(0 7px 15px rgba(60,90,140,0.24))"
+    }
+  }, emoji));
 }
 
 /* Presentational content for one onboarding bottom-sheet. Fixed minHeight + a
@@ -1147,6 +1193,7 @@ function OnbHero() {
    nothing jumps between steps. `pills` (always shown) surface the key things on
    the screen; a pill with onClick jumps there. */
 function OnbSheet({
+  hero,
   eyebrow,
   title,
   body,
@@ -1176,7 +1223,10 @@ function OnbSheet({
       marginTop: 4,
       marginBottom: 14
     }
-  }, /*#__PURE__*/React.createElement(OnbHero, null)), eyebrow && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(OnbHero, {
+    emoji: hero,
+    dark: dark
+  })), eyebrow && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       fontWeight: 700,
@@ -1333,6 +1383,7 @@ function FreshOnboarding({
     onClose: closeWelcome,
     dark: dark
   }, /*#__PURE__*/React.createElement(OnbSheet, {
+    hero: ws.hero,
     eyebrow: ws.eyebrow,
     title: ws.title,
     body: ws.body,
@@ -1350,6 +1401,7 @@ function FreshOnboarding({
     onClose: () => app.finishGuide(),
     dark: dark
   }, tabView && /*#__PURE__*/React.createElement(OnbSheet, {
+    hero: tabView.hero,
     eyebrow: tabView.eyebrow,
     title: tabView.title,
     body: tabView.body,

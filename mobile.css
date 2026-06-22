@@ -326,9 +326,18 @@ body.app-ready #splash { opacity: 0; pointer-events: none; }
   }
 }
 
+/* Onboarding hero emoji — a gentle spring pop as each sheet's emoji appears. */
+@keyframes onbHeroPop {
+  0%   { transform: scale(0.72); opacity: 0; }
+  58%  { transform: scale(1.07); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.onb-emoji { display: inline-block; animation: onbHeroPop 0.44s cubic-bezier(0.34, 1.56, 0.64, 1) both; will-change: transform; }
+
 /* Respect reduced-motion users — kill the slide/fade choreography. */
 @media (prefers-reduced-motion: reduce) {
   .anim-push-in, .anim-push-out, .anim-pop-in, .anim-pop-out,
   .anim-fade-in, .anim-fade-out, .bos-tabbar { animation-duration: 0.01ms !important; }
+  .onb-emoji { animation: none !important; }
   #splash .orb { animation: none; }
 }
