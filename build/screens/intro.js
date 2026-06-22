@@ -1484,15 +1484,29 @@ function IntroScreen() {
       strokeLinecap: "round",
       opacity: (filled ? 0.95 : 0.55) * fade
     });
-  }), /*#__PURE__*/React.createElement("circle", {
+  }), /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("radialGradient", {
+    id: "moodThumbG",
+    cx: "0.5",
+    cy: "0.3",
+    r: "0.85"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0%",
+    stopColor: "#ffffff"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "56%",
+    stopColor: dark ? "#f4f5f7" : "#ffffff"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "100%",
+    stopColor: dark ? "#c9ccd2" : "#e7e9ee"
+  }))), /*#__PURE__*/React.createElement("circle", {
     cx: 150 + 105 * Math.cos((1 - me.val) * Math.PI),
     cy: 150 - 105 * Math.sin((1 - me.val) * Math.PI),
     r: "13",
-    fill: dark ? "#2c2c2e" : "#fff",
-    stroke: moodMain,
-    strokeWidth: "2.5",
+    fill: "url(#moodThumbG)",
+    stroke: dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.06)",
+    strokeWidth: "1",
     style: {
-      filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.22))"
+      filter: "drop-shadow(0 2px 9px rgba(0,0,0,0.22))"
     }
   })))), /*#__PURE__*/React.createElement("div", {
     style: {

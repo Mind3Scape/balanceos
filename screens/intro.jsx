@@ -742,9 +742,18 @@ function IntroScreen() {
                 return <line key={i} x1={150 + 99 * c} y1={150 - 99 * s} x2={150 + 111 * c} y2={150 - 111 * s}
                   stroke={col} strokeWidth="1.8" strokeLinecap="round" opacity={(filled ? 0.95 : 0.55) * fade} />;
               })}
-              {/* clean iOS-style thumb riding the dial */}
+              {/* clean liquid-glass thumb — neutral glass bead, NO coloured ring
+                  (the dial itself carries the colour). Radial sheen + bright rim. */}
+              <defs>
+                <radialGradient id="moodThumbG" cx="0.5" cy="0.3" r="0.85">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="56%" stopColor={dark ? "#f4f5f7" : "#ffffff"} />
+                  <stop offset="100%" stopColor={dark ? "#c9ccd2" : "#e7e9ee"} />
+                </radialGradient>
+              </defs>
               <circle cx={150 + 105 * Math.cos((1 - me.val) * Math.PI)} cy={150 - 105 * Math.sin((1 - me.val) * Math.PI)} r="13"
-                fill={dark ? "#2c2c2e" : "#fff"} stroke={moodMain} strokeWidth="2.5" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.22))" }} />
+                fill="url(#moodThumbG)" stroke={dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.06)"} strokeWidth="1"
+                style={{ filter: "drop-shadow(0 2px 9px rgba(0,0,0,0.22))" }} />
             </svg>
           </div>
         </Reveal>
