@@ -1223,29 +1223,13 @@ function HomeScreen() {
     size: 16,
     max: 3,
     label: false
-  }))), h.duration && !h.done && /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    "data-no-haptic": true,
-    onClick: e => {
-      e.stopPropagation();
-      navigate("focus", {
-        habit: h
-      });
-    },
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      background: isDark ? "#fff" : "var(--text-2)",
-      border: 0,
-      color: isDark ? "#0a0a0a" : "#fff",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+  }))), h.duration && !h.done && /*#__PURE__*/React.createElement(HabitRing, {
+    habit: h,
+    dark: isDark,
+    onComplete: () => {
+      if (!h.done) toggle(h.id);
     }
-  }, /*#__PURE__*/React.createElement(I.Play, {
-    size: 11
-  })), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("button", {
     className: "check-btn " + (h.done ? "" : "unchecked"),
     "data-no-haptic": true,
     onClick: e => {

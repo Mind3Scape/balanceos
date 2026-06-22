@@ -454,10 +454,7 @@ function HomeScreen() {
                   </div>
                 </div>
                 {h.duration && !h.done && (
-                  <button className="tap" data-no-haptic onClick={(e) => { e.stopPropagation(); navigate("focus", { habit: h }); }}
-                    style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "#fff" : "var(--text-2)", border: 0, color: isDark ? "#0a0a0a" : "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <I.Play size={11}/>
-                  </button>
+                  <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                 )}
                 <button className={"check-btn " + (h.done ? "" : "unchecked")} data-no-haptic
                   onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>

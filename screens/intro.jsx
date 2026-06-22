@@ -536,7 +536,7 @@ function Stage({ mode, prevMode, blend, dark = true, tintOverride }) {
   const aHab     = mode === "habits"  ? 1 : (prevMode === "habits"  ? 1 - blend : 0);
 
   return (
-    <svg viewBox="-160 -160 320 320" style={{ width: 320, height: 320, overflow: "visible", transition: "filter 0.6s" }}>
+    <svg viewBox="-160 -160 320 320" style={{ width: 320, height: 320, display: "block", overflow: "visible", transition: "filter 0.6s" }}>
       <LayerComfort  t={t} alpha={aComfort} R={size} dark={dark}/>
       <LayerState    t={t} alpha={aState} dark={dark}/>
       <LayerCompound t={t} alpha={aComp} dark={dark}/>
@@ -710,15 +710,16 @@ function IntroScreen() {
       <div style={{ flex: 1, minHeight: 0, display: "grid", placeItems: "center", position: "relative", zIndex: 2, pointerEvents: "none" }}>
         {/* soft ring radiating outward as the orb settles in from the splash */}
         <div aria-hidden style={{ position: "absolute", inset: 0, margin: "auto", width: 168, height: 168, borderRadius: "50%", border: "1.5px solid " + (dark ? "rgba(180,210,255,0.38)" : "rgba(90,130,190,0.32)"), animation: "orbBurst 1.5s 0.25s ease-out both", pointerEvents: "none" }}/>
-        <div style={{ animation: "orbIntro 0.9s cubic-bezier(0.22,0.8,0.32,1) both" }}>
+        <div style={{ position: "relative", animation: "orbIntro 0.9s cubic-bezier(0.22,0.8,0.32,1) both" }}>
           <Stage mode={cur.mode} prevMode={effectivePrev} blend={blend} dark={dark} tintOverride={moodTint}/>
+          {/* Mood face — anchored to the orb itself (not the grid), so it stays
+             dead-centre on the sphere no matter how short the screen is */}
+          {cur.mode === "mood" && (
+            <div key={moodIdx} style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none", zIndex: 3 }}>
+              <span style={{ fontSize: 50, lineHeight: 1, animation: "moodFacePop 0.42s cubic-bezier(0.34,1.56,0.64,1) both", filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.35))" }}>{moodFace}</span>
+            </div>
+          )}
         </div>
-        {/* Mood face floating in the orb — pops to the next emoji as the slider moves */}
-        {cur.mode === "mood" && (
-          <div key={moodIdx} style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none", zIndex: 3 }}>
-            <span style={{ fontSize: 50, lineHeight: 1, animation: "moodFacePop 0.42s cubic-bezier(0.34,1.56,0.64,1) both", filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.35))" }}>{moodFace}</span>
-          </div>
-        )}
       </div>
 
       <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 150, pointerEvents: "none" }}>

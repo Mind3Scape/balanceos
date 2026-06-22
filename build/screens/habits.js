@@ -80,6 +80,161 @@ var HABIT_COLOR_NAMES = {
   "#FF2D55": "Маджента",
   "#30B0C7": "Бирюза"
 };
+
+/* ── Inline habit timer ───────────────────────────────────────────────────────
+   A segmented "bezel" ring that ticks in place — replaces the old solid play
+   button AND the separate dark focus screen. Tap to start a real countdown right
+   in the row (хопс — пошло), tap again to pause (хопс — стоп). The bezel is N
+   segments (≈ a chunk of the duration each); they light up as the timer fills,
+   and on completion the habit auto-checks. Same radial-tick DNA as the mood dial,
+   liquid-glass and iOS-native. */
+function fmtClock(sec) {
+  var s = Math.max(0, Math.ceil(sec));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+function ringHaptic(kind) {
+  try {
+    if (window.tgHaptic) window.tgHaptic(kind);else if (navigator.vibrate) navigator.vibrate(kind === "success" ? [10, 40, 12] : 7);
+  } catch (_) {}
+}
+function HabitRing({
+  habit,
+  dark,
+  onComplete
+}) {
+  var total = Math.max(1, Math.round(habit?.duration || 1)) * 60; // seconds
+  var [running, setRunning] = React.useState(false);
+  var [elapsed, setElapsed] = React.useState(0);
+  var done = elapsed >= total;
+  React.useEffect(() => {
+    if (!running) return;
+    var base = elapsed,
+      start = Date.now(); // timestamp-based → no drift
+    var id = setInterval(() => {
+      var e = base + (Date.now() - start) / 1000;
+      if (e >= total) {
+        setElapsed(total);
+        setRunning(false);
+        ringHaptic("success");
+        onComplete && onComplete();
+      } else setElapsed(e);
+    }, 200);
+    return () => clearInterval(id);
+  }, [running]);
+  var frac = Math.min(1, elapsed / total);
+  var toggle = e => {
+    e.stopPropagation();
+    ringHaptic("light");
+    setRunning(r => !r);
+  };
+
+  // segmented "dashed ring": SEG arcs along the circle with small gaps, lighting
+  // up as the timer fills (segment 0 lights the instant you start → immediate feel)
+  var SEG = Math.min(12, Math.max(5, Math.round(habit?.duration || 6)));
+  var size = 38,
+    cx = size / 2,
+    cy = size / 2,
+    R = 14.5;
+  var accent = habit?.color || (dark ? "#ffffff" : "#0a0a0a");
+  var dim = dark ? "rgba(255,255,255,0.20)" : "rgba(10,10,10,0.14)";
+  var pitch = 360 / SEG,
+    gap = pitch * 0.36;
+  var arc = (a0, a1) => {
+    var p = d => {
+      var a = d * Math.PI / 180;
+      return [(cx + R * Math.cos(a)).toFixed(2), (cy + R * Math.sin(a)).toFixed(2)];
+    };
+    var [x0, y0] = p(a0),
+      [x1, y1] = p(a1);
+    return "M " + x0 + " " + y0 + " A " + R + " " + R + " 0 " + (a1 - a0 > 180 ? 1 : 0) + " 1 " + x1 + " " + y1;
+  };
+  var segs = [];
+  for (var i = 0; i < SEG; i++) {
+    var lit = frac * SEG > i;
+    segs.push(/*#__PURE__*/React.createElement("path", {
+      key: i,
+      d: arc(-90 + i * pitch + gap / 2, -90 + (i + 1) * pitch - gap / 2),
+      fill: "none",
+      stroke: lit ? accent : dim,
+      strokeWidth: "2.4",
+      strokeLinecap: "round",
+      style: {
+        transition: "stroke 0.3s"
+      }
+    }));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      flexShrink: 0
+    }
+  }, (running || elapsed > 0 && !done) && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums",
+      letterSpacing: "-0.3px",
+      color: "var(--text-3)"
+    }
+  }, fmtClock(total - elapsed)), /*#__PURE__*/React.createElement("button", {
+    onClick: toggle,
+    className: "tap",
+    "data-no-haptic": true,
+    "aria-label": running ? "Пауза" : "Старт",
+    style: {
+      position: "relative",
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      background: "transparent",
+      border: 0,
+      padding: 0,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      color: accent
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 " + size + " " + size,
+    style: {
+      position: "absolute",
+      inset: 0
+    }
+  }, running && /*#__PURE__*/React.createElement("circle", {
+    cx: cx,
+    cy: cy,
+    r: R,
+    fill: "none",
+    stroke: accent,
+    strokeWidth: "2.4",
+    style: {
+      animation: "habitPulse 1.8s ease-in-out infinite"
+    }
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: cx,
+    cy: cy,
+    r: R - 4.5,
+    fill: dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.045)"
+  }), segs), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "relative",
+      display: "grid",
+      placeItems: "center",
+      transform: running || done ? "none" : "translateX(0.5px)"
+    }
+  }, done ? /*#__PURE__*/React.createElement(I.Check, {
+    size: 14,
+    strokeWidth: 3
+  }) : running ? /*#__PURE__*/React.createElement(I.Pause, {
+    size: 13
+  }) : /*#__PURE__*/React.createElement(I.Play, {
+    size: 12
+  }))));
+}
 function AvatarStack({
   people = [],
   size = 18,
@@ -718,29 +873,13 @@ function HabitsScreen() {
     size: 16,
     max: 3,
     label: false
-  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration && !h.done && /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    "data-no-haptic": true,
-    onClick: e => {
-      e.stopPropagation();
-      navigate("focus", {
-        habit: h
-      });
-    },
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      background: TH.playBtnBg,
-      border: 0,
-      color: TH.playBtnFg,
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration && !h.done && /*#__PURE__*/React.createElement(HabitRing, {
+    habit: h,
+    dark: isDark,
+    onComplete: () => {
+      if (!h.done) toggle(h.id);
     }
-  }, /*#__PURE__*/React.createElement(I.Play, {
-    size: 11
-  })), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("button", {
     className: "check-btn " + (h.done ? "" : "unchecked"),
     "data-no-haptic": true,
     onClick: e => {

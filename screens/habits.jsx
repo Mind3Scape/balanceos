@@ -23,6 +23,82 @@ const HABIT_COLORS = [
   { id: "amber", val: "#FF9500" }, { id: "purple", val: "#AF52DE" }, { id: "pink", val: "#FF2D55" }, { id: "teal", val: "#30B0C7" },
 ];
 const HABIT_COLOR_NAMES = { "#0A84FF": "Океан", "#34C759": "Лес", "#FF9500": "Янтарь", "#AF52DE": "Аметист", "#FF2D55": "Маджента", "#30B0C7": "Бирюза" };
+
+/* ── Inline habit timer ───────────────────────────────────────────────────────
+   A segmented "bezel" ring that ticks in place — replaces the old solid play
+   button AND the separate dark focus screen. Tap to start a real countdown right
+   in the row (хопс — пошло), tap again to pause (хопс — стоп). The bezel is N
+   segments (≈ a chunk of the duration each); they light up as the timer fills,
+   and on completion the habit auto-checks. Same radial-tick DNA as the mood dial,
+   liquid-glass and iOS-native. */
+function fmtClock(sec) {
+  const s = Math.max(0, Math.ceil(sec));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+function ringHaptic(kind) {
+  try { if (window.tgHaptic) window.tgHaptic(kind); else if (navigator.vibrate) navigator.vibrate(kind === "success" ? [10, 40, 12] : 7); } catch (_) {}
+}
+function HabitRing({ habit, dark, onComplete }) {
+  const total = Math.max(1, Math.round(habit?.duration || 1)) * 60;   // seconds
+  const [running, setRunning] = React.useState(false);
+  const [elapsed, setElapsed] = React.useState(0);
+  const done = elapsed >= total;
+
+  React.useEffect(() => {
+    if (!running) return;
+    const base = elapsed, start = Date.now();           // timestamp-based → no drift
+    const id = setInterval(() => {
+      const e = base + (Date.now() - start) / 1000;
+      if (e >= total) {
+        setElapsed(total); setRunning(false); ringHaptic("success");
+        onComplete && onComplete();
+      } else setElapsed(e);
+    }, 200);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const frac = Math.min(1, elapsed / total);
+  const toggle = (e) => { e.stopPropagation(); ringHaptic("light"); setRunning((r) => !r); };
+
+  // segmented "dashed ring": SEG arcs along the circle with small gaps, lighting
+  // up as the timer fills (segment 0 lights the instant you start → immediate feel)
+  const SEG = Math.min(12, Math.max(5, Math.round(habit?.duration || 6)));
+  const size = 38, cx = size / 2, cy = size / 2, R = 14.5;
+  const accent = habit?.color || (dark ? "#ffffff" : "#0a0a0a");
+  const dim = dark ? "rgba(255,255,255,0.20)" : "rgba(10,10,10,0.14)";
+  const pitch = 360 / SEG, gap = pitch * 0.36;
+  const arc = (a0, a1) => {
+    const p = (d) => { const a = (d * Math.PI) / 180; return [(cx + R * Math.cos(a)).toFixed(2), (cy + R * Math.sin(a)).toFixed(2)]; };
+    const [x0, y0] = p(a0), [x1, y1] = p(a1);
+    return "M " + x0 + " " + y0 + " A " + R + " " + R + " 0 " + (a1 - a0 > 180 ? 1 : 0) + " 1 " + x1 + " " + y1;
+  };
+  const segs = [];
+  for (let i = 0; i < SEG; i++) {
+    const lit = frac * SEG > i;
+    segs.push(<path key={i} d={arc(-90 + i * pitch + gap / 2, -90 + (i + 1) * pitch - gap / 2)} fill="none"
+      stroke={lit ? accent : dim} strokeWidth="2.4" strokeLinecap="round" style={{ transition: "stroke 0.3s" }} />);
+  }
+
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+      {(running || (elapsed > 0 && !done)) && (
+        <span style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.3px", color: "var(--text-3)" }}>{fmtClock(total - elapsed)}</span>
+      )}
+      <button onClick={toggle} className="tap" data-no-haptic aria-label={running ? "Пауза" : "Старт"}
+        style={{ position: "relative", width: size, height: size, borderRadius: "50%", background: "transparent", border: 0, padding: 0, flexShrink: 0, display: "grid", placeItems: "center", color: accent }}>
+        <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0 }}>
+          {running && <circle cx={cx} cy={cy} r={R} fill="none" stroke={accent} strokeWidth="2.4" style={{ animation: "habitPulse 1.8s ease-in-out infinite" }} />}
+          <circle cx={cx} cy={cy} r={R - 4.5} fill={dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.045)"} />
+          {segs}
+        </svg>
+        <span style={{ position: "relative", display: "grid", placeItems: "center", transform: running || done ? "none" : "translateX(0.5px)" }}>
+          {done ? <I.Check size={14} strokeWidth={3} /> : running ? <I.Pause size={13} /> : <I.Play size={12} />}
+        </span>
+      </button>
+    </div>
+  );
+}
+
 function AvatarStack({ people = [], size = 18, max = 3, label = true }) {
   if (!people.length) return null;
   const visible = people.slice(0, max);
@@ -233,10 +309,7 @@ function HabitsScreen() {
                     )}
                   </div>
                   {h.duration && !h.done && (
-                    <button className="tap" data-no-haptic onClick={(e) => { e.stopPropagation(); navigate("focus", { habit: h }); }}
-                      style={{ width: 30, height: 30, borderRadius: "50%", background: TH.playBtnBg, border: 0, color: TH.playBtnFg, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                      <I.Play size={11}/>
-                    </button>
+                    <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                   )}
                   <button className={"check-btn " + (h.done ? "" : "unchecked")} data-no-haptic
                     onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>

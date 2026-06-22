@@ -1017,6 +1017,7 @@ function Stage({
     style: {
       width: 320,
       height: 320,
+      display: "block",
       overflow: "visible",
       transition: "filter 0.6s"
     }
@@ -1389,6 +1390,7 @@ function IntroScreen() {
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
+      position: "relative",
       animation: "orbIntro 0.9s cubic-bezier(0.22,0.8,0.32,1) both"
     }
   }, /*#__PURE__*/React.createElement(Stage, {
@@ -1397,7 +1399,7 @@ function IntroScreen() {
     blend: blend,
     dark: dark,
     tintOverride: moodTint
-  })), cur.mode === "mood" && /*#__PURE__*/React.createElement("div", {
+  }), cur.mode === "mood" && /*#__PURE__*/React.createElement("div", {
     key: moodIdx,
     style: {
       position: "absolute",
@@ -1414,7 +1416,7 @@ function IntroScreen() {
       animation: "moodFacePop 0.42s cubic-bezier(0.34,1.56,0.64,1) both",
       filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.35))"
     }
-  }, moodFace))), /*#__PURE__*/React.createElement("div", {
+  }, moodFace)))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       padding: "0 28px",
