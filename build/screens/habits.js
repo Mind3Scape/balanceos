@@ -617,25 +617,6 @@ function HabitsScreen() {
       padding: "0 12px 24px"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "4px 4px 12px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-4)",
-      letterSpacing: 0.4
-    }
-  }, "\u0422\u0432\u043E\u0439 \u0434\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 24,
-      fontWeight: 800,
-      letterSpacing: "-0.6px",
-      color: "var(--text)",
-      marginTop: 2,
-      fontFamily: "var(--bos-title-font)"
-    }
-  }, "\u041F\u0440\u0430\u043A\u0442\u0438\u043A\u0430")), /*#__PURE__*/React.createElement("div", {
     "data-tour": "presets",
     style: {
       marginBottom: 16
@@ -791,14 +772,18 @@ function HabitsScreen() {
   }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
-      background: TH.cardBg,
-      borderRadius: 22,
-      overflow: "hidden",
-      boxShadow: cardShadow,
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
       color: "var(--text)"
     }
-  }, habits.map((h, idx) => /*#__PURE__*/React.createElement("div", {
-    key: h.id
+  }, habits.map(h => /*#__PURE__*/React.createElement("div", {
+    key: h.id,
+    style: {
+      borderRadius: 18,
+      overflow: "hidden",
+      boxShadow: cardShadow
+    }
   }, /*#__PURE__*/React.createElement(SwipeRow, {
     rowBg: rowBg,
     dark: isDark,
@@ -892,12 +877,7 @@ function HabitsScreen() {
     size: 18,
     strokeWidth: 2.5,
     color: "#fff"
-  })))), idx < habits.length - 1 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: TH.divider
-    }
-  })))) : goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  }))))))) : goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"

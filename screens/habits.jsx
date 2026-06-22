@@ -245,11 +245,8 @@ function HabitsScreen() {
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
-      {/* Page header */}
-      <div style={{ padding: "4px 4px 12px" }}>
-        <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Твой день</div>
-        <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.6px", color: "var(--text)", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>Практика</div>
-      </div>
+      {/* Page header removed (experiment) — the «Привычки / Цели» control below
+          already names the context; the tab bar shows the section. */}
 
       {/* Quick add chips — flush, no panel */}
       <div data-tour="presets" style={{ marginBottom: 16 }}>
@@ -292,9 +289,9 @@ function HabitsScreen() {
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать привычку</span>
           </button>
         ) : (
-        <div style={{ marginTop: 12, background: TH.cardBg, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, color: "var(--text)" }}>
-          {habits.map((h, idx) => (
-            <div key={h.id}>
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10, color: "var(--text)" }}>
+          {habits.map((h) => (
+            <div key={h.id} style={{ borderRadius: 18, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                 { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
@@ -322,7 +319,6 @@ function HabitsScreen() {
                   </button>
                 </div>
               </SwipeRow>
-              {idx < habits.length - 1 && <div style={{ height: 1, background: TH.divider }} />}
             </div>
           ))}
         </div>
