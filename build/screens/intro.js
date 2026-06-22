@@ -1010,7 +1010,12 @@ function Stage({
   var aComfort = mode === "comfort" ? 1 : prevMode === "comfort" ? 1 - blend : 0;
   var aState = mode === "state" ? 1 : prevMode === "state" ? 1 - blend : 0;
   var aComp = mode === "compound" ? 1 : prevMode === "compound" ? 1 - blend : 0;
-  var aTog = mode === "together" ? 1 : prevMode === "together" ? 1 - blend : 0;
+  // The together orbits+people are too prominent to cross-fade like the abstract
+  // layers — fading them over the 1.2s blend made them ride up onto the NEXT
+  // (mood) screen and linger. So they show ONLY while together is the live scene:
+  // the bloom gives a graceful entrance, and they clear at once on exit (hidden
+  // under the full scene swap), leaving the mood screen clean from frame one.
+  var aTog = mode === "together" ? 1 : 0;
   var aHab = mode === "habits" ? 1 : prevMode === "habits" ? 1 - blend : 0;
   return /*#__PURE__*/React.createElement("svg", {
     viewBox: "-160 -160 320 320",
