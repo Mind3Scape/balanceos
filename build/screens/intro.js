@@ -332,17 +332,18 @@ function targetFor(mode, p, t, R) {
       }
     case "together":
       {
-        var k = p.i % 4;
-        var cs = [[0, 0], [Math.cos(t * 0.35) * 85, Math.sin(t * 0.35) * 85], [Math.cos(t * 0.35 + 2.1) * 95, Math.sin(t * 0.35 + 2.1) * 70], [Math.cos(t * 0.35 + 4.2) * 80, Math.sin(t * 0.35 + 4.2) * 95]];
-        var [cx, cy] = cs[k];
-        var lr = 14 + p.i % 3 * 5;
-        var la = a0 * 3 + t * 0.7;
-        return [cx + Math.cos(la) * lr, cy + Math.sin(la) * lr, 0.7];
+        // faint dust evenly tracing the three orbits (matches LayerTogether radii
+        // + spins) — reinforces the solar-system feel without cluttering it
+        var ri = p.i % 3;
+        var _rr3 = [68, 100, 132][ri];
+        var spin = [0.10, -0.068, 0.046][ri];
+        var _a = a0 + t * spin;
+        return [Math.cos(_a) * _rr3, Math.sin(_a) * _rr3, 0.16];
       }
     default:
       {
-        var _rr3 = R + 12 + p.i % 7 * 3 + Math.sin(t + p.seed) * 2;
-        return [Math.cos(a0 + t * 0.4) * _rr3, Math.sin(a0 + t * 0.4) * _rr3, 0.55];
+        var _rr4 = R + 12 + p.i % 7 * 3 + Math.sin(t + p.seed) * 2;
+        return [Math.cos(a0 + t * 0.4) * _rr4, Math.sin(a0 + t * 0.4) * _rr4, 0.55];
       }
   }
 }
@@ -529,59 +530,196 @@ function LayerCompound({
     });
   }));
 }
+/* «Together» — a little solar system. Three concentric glass orbits BLOOM out of
+   the central orb in sequence (bum-bum-bum), each carrying companions (memoji)
+   and a few small "planet" dots that then orbit slowly. Clean liquid-glass, not
+   overloaded: 3 rings, 3 people, a handful of dots. Entrance is driven off a
+   per-entry clock (`te`) so it replays each time the scene blooms in. */
 function LayerTogether({
   t,
   alpha,
   dark = true
 }) {
-  if (alpha <= 0) return null;
-  // Three companions held at FIXED points around you (top, lower-left,
-  // lower-right) — they breathe gently in place instead of whirling chaotically,
-  // each linked to the centre by a clean line. (Memoji faces land here next.)
-  // Young, hatless companions — each a memoji set INSIDE a glass orb (cohesive
-  // with your central orb), the trio slowly orbiting around you.
-  // One guy + two women (one in glasses), young & hatless. They float cleanly
-  // with just a soft glow + a link to you — no hard orb frames or outlines.
-  var TOP = -Math.PI / 2;
-  var PICS = ["./assets/people/m13.png", "./assets/people/m2.png", "./assets/people/m5.png"];
-  var friends = (dark ? ["#cfe1ff", "#9bbfe8", "#a9c4e8"] : ["#5a85bd", "#4f7bb0", "#6f9ad1"]).map((c, i) => ({
-    c,
-    pic: PICS[i],
-    a: TOP + i * (Math.PI * 2 / 3)
+  var entry = useIR(null);
+  if (alpha > 0 && entry.current == null) entry.current = t; // stamp bloom start
+  if (alpha <= 0) {
+    entry.current = null;
+    return null;
+  } // reset when we leave
+  var te = t - entry.current; // seconds since bloom
+
+  var clamp = x => x < 0 ? 0 : x > 1 ? 1 : x;
+  var smooth = x => {
+    x = clamp(x);
+    return x * x * (3 - 2 * x);
+  };
+  // ease-out-back → the "boom" overshoot as a ring snaps outward then settles
+  var back = x => {
+    x = clamp(x);
+    var c = 1.45,
+      d = c + 1;
+    return 1 + d * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2);
+  };
+  var ringRGB = dark ? "186,210,248" : "74,120,176";
+  // radius · orbit speed (rad/s, alternating for parallax) · entry delay · base opacity
+  var RINGS = [{
+    r: 68,
+    spin: 0.10,
+    delay: 0.00,
+    op: 0.20
+  }, {
+    r: 100,
+    spin: -0.068,
+    delay: 0.24,
+    op: 0.16
+  }, {
+    r: 132,
+    spin: 0.046,
+    delay: 0.48,
+    op: 0.13
+  }];
+  var bloom = RINGS.map(r => ({
+    s: back((te - r.delay) / 0.62),
+    o: smooth((te - r.delay) / 0.5)
   }));
+  var PICS = ["./assets/people/m13.png", "./assets/people/m2.png", "./assets/people/m5.png"];
+  // each companion rides a ring at a base angle — a clean triangle on entry
+  // (top / lower-right / lower-left); they drift gently from there
+  var AV = [{
+    ri: 2,
+    a: -1.571,
+    pic: PICS[0],
+    c: dark ? "#cfe1ff" : "#5a85bd"
+  }, {
+    ri: 1,
+    a: 0.524,
+    pic: PICS[1],
+    c: dark ? "#9bbfe8" : "#4f7bb0"
+  }, {
+    ri: 2,
+    a: 2.618,
+    pic: PICS[2],
+    c: dark ? "#a9c4e8" : "#6f9ad1"
+  }];
+  var DOTS = [{
+    ri: 0,
+    a: 1.7,
+    rad: 2.8,
+    c: dark ? "#ffffff" : "#5a85bd"
+  }, {
+    ri: 0,
+    a: 4.7,
+    rad: 2.1,
+    c: dark ? "#cfe1ff" : "#7aa0c8"
+  }, {
+    ri: 1,
+    a: -0.7,
+    rad: 2.6,
+    c: dark ? "#e6eeff" : "#6f9ad1"
+  }, {
+    ri: 1,
+    a: 3.7,
+    rad: 2.0,
+    c: dark ? "#bcd8ff" : "#8398b5"
+  }, {
+    ri: 2,
+    a: 0.42,
+    rad: 2.4,
+    c: dark ? "#cfe1ff" : "#4f7bb0"
+  }];
   return /*#__PURE__*/React.createElement("g", {
     opacity: alpha
-  }, friends.map((f, i) => {
-    var rr = 95 + Math.sin(t * 0.9 + i * 2.1) * 4; // gentle breathing
-    var ang = f.a + t * 0.08; // slow orbit around you
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
+    id: "togAvClip"
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: "18.5"
+  }))), RINGS.map((ring, i) => bloom[i].s <= 0.002 ? null : /*#__PURE__*/React.createElement("circle", {
+    key: "ring" + i,
+    cx: "0",
+    cy: "0",
+    r: (ring.r * bloom[i].s).toFixed(2),
+    fill: "none",
+    stroke: `rgba(${ringRGB},${(ring.op * bloom[i].o).toFixed(3)})`,
+    strokeWidth: "1"
+  })), DOTS.map((d, i) => {
+    var bl = bloom[d.ri],
+      ring = RINGS[d.ri];
+    if (bl.s <= 0.05) return null;
+    var ang = d.a + te * ring.spin,
+      rr = ring.r * bl.s;
     var x = Math.cos(ang) * rr,
       y = Math.sin(ang) * rr;
+    var pop = smooth((te - ring.delay - 0.18) / 0.4);
     return /*#__PURE__*/React.createElement("g", {
-      key: i
-    }, /*#__PURE__*/React.createElement("line", {
-      x1: "0",
-      y1: "0",
-      x2: x,
-      y2: y,
-      stroke: f.c,
-      strokeOpacity: dark ? 0.32 : 0.38,
-      strokeWidth: "1"
+      key: "dot" + i,
+      opacity: pop
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: x,
+      cy: y,
+      r: d.rad * 2.3,
+      fill: d.c,
+      opacity: "0.16",
+      style: {
+        filter: "blur(3px)"
+      }
     }), /*#__PURE__*/React.createElement("circle", {
       cx: x,
       cy: y,
+      r: d.rad,
+      fill: d.c
+    }));
+  }), AV.map((f, i) => {
+    var bl = bloom[f.ri],
+      ring = RINGS[f.ri];
+    var pop = back((te - ring.delay - 0.22) / 0.5);
+    if (pop <= 0.002) return null;
+    var ang = f.a + te * ring.spin;
+    var breathe = 1 + Math.sin(t * 0.8 + i * 2.1) * 0.02;
+    var rr = ring.r * bl.s * breathe;
+    var x = (Math.cos(ang) * rr).toFixed(2),
+      y = (Math.sin(ang) * rr).toFixed(2);
+    return /*#__PURE__*/React.createElement("g", {
+      key: "av" + i,
+      transform: `translate(${x} ${y}) scale(${Math.max(0, pop).toFixed(3)})`
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
       r: "22",
       fill: f.c,
-      opacity: dark ? 0.2 : 0.24,
+      opacity: dark ? 0.26 : 0.3,
       style: {
         filter: "blur(8px)"
       }
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "18.5",
+      fill: dark ? "rgba(18,30,52,0.5)" : "rgba(255,255,255,0.62)"
     }), /*#__PURE__*/React.createElement("image", {
       href: f.pic,
-      x: x - 23,
-      y: y - 23,
-      width: "46",
-      height: "46",
-      preserveAspectRatio: "xMidYMid meet"
+      x: "-18.5",
+      y: "-18.5",
+      width: "37",
+      height: "37",
+      preserveAspectRatio: "xMidYMid slice",
+      clipPath: "url(#togAvClip)"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "19.4",
+      fill: "none",
+      stroke: f.c,
+      strokeOpacity: dark ? 0.55 : 0.62,
+      strokeWidth: "1.4"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "18.4",
+      fill: "none",
+      stroke: dark ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.95)",
+      strokeWidth: "1"
     }));
   }));
 }
@@ -1229,6 +1367,7 @@ function IntroScreen() {
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
+      minHeight: 0,
       display: "grid",
       placeItems: "center",
       position: "relative",
