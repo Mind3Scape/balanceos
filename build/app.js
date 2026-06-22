@@ -111,7 +111,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v122";
+var APP_VERSION = "v123";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -962,7 +962,7 @@ var WELCOME_SHEETS = [{
     label: "Тренинги"
   }]
 }, {
-  hero: "🧑‍🤝‍🧑",
+  hero: "🤗",
   eyebrow: "Вместе",
   title: "Привычки — с близкими",
   body: "Делай привычки вдвоём, собирай команды, проходи тренинги с наставниками. Вместе — крепче.",
@@ -1038,7 +1038,6 @@ var TAB_INTROS = {
     }]
   },
   ai: {
-    hero: "🤖",
     eyebrow: "Помощник",
     title: "ИИ всегда рядом",
     body: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст и подсказывает по делу.",
@@ -1114,7 +1113,6 @@ var DEMO_INTROS = {
     }]
   },
   ai: {
-    hero: "🤖",
     eyebrow: "Помощник",
     title: "ИИ всегда рядом",
     detail: true,

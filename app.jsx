@@ -108,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v122";
+const APP_VERSION = "v123";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -409,7 +409,7 @@ const WELCOME_SHEETS = [
   { hero: "🚀", eyebrow: "Добро пожаловать", title: "Это не трекер. Это платформа.",
     body: "Привычки, люди и рост — в одном месте. Маленькие шаги каждый день складываются в большое.",
     pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "👥", label: "Команды" }, { emoji: "🎓", label: "Тренинги" } ] },
-  { hero: "🧑‍🤝‍🧑", eyebrow: "Вместе", title: "Привычки — с близкими",
+  { hero: "🤗", eyebrow: "Вместе", title: "Привычки — с близкими",
     body: "Делай привычки вдвоём, собирай команды, проходи тренинги с наставниками. Вместе — крепче.",
     pills: [ { emoji: "👥", label: "Команды" }, { emoji: "🤝", label: "Вдвоём" }, { emoji: "💬", label: "Чат" } ] },
   { hero: "🌱", eyebrow: "Твой темп", title: "Расти, как тебе удобно",
@@ -428,7 +428,7 @@ const TAB_INTROS = {
       { emoji: "🎓", label: "Курсы", view: { section: "community", commTab: "courses" } },
       { emoji: "🧭", label: "Нетворк", view: { section: "discover", discTab: "network" } },
     ] },
-  ai: { hero: "🤖", eyebrow: "Помощник", title: "ИИ всегда рядом",
+  ai: { eyebrow: "Помощник", title: "ИИ всегда рядом",
     body: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст и подсказывает по делу.",
     pills: [ { emoji: "💡", label: "Совет дня" }, { emoji: "📊", label: "Разбор" }, { emoji: "🗓️", label: "План" } ] },
 };
@@ -446,7 +446,7 @@ const DEMO_INTROS = {
   community: { hero: "💛", eyebrow: "Сообщество", title: "Сердце экосистемы", detail: true,
     body: "Команды с близкими, нетворк наставников, курсы. Самая глубина — здесь.",
     pills: [ { emoji: "👥", label: "Команды" }, { emoji: "🧭", label: "Нетворк" }, { emoji: "🎓", label: "Курсы" } ] },
-  ai: { hero: "🤖", eyebrow: "Помощник", title: "ИИ всегда рядом", detail: true,
+  ai: { eyebrow: "Помощник", title: "ИИ всегда рядом", detail: true,
     body: "Совет, разбор дня, план на завтра — держит в уме твой контекст и подсказывает по делу.",
     pills: [ { emoji: "💡", label: "Совет" }, { emoji: "📊", label: "Разбор" }, { emoji: "🗓️", label: "План" } ] },
 };
