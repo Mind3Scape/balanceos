@@ -16,7 +16,7 @@ const { useState, useRef, useEffect, useCallback } = React;
 // the user forces dark) — each already ships both palettes. Only the cinematic
 // in-app immersive screens stay always-dark.
 const DARK_ROUTES = new Set([
-  "mood", "focus", "level-up", "ai-chat",
+  "mood", "level-up", "ai-chat",
 ]);
 const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
 const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
@@ -25,7 +25,7 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 // colour so the home-indicator safe area is never a mismatched dark bar
 // (belt-and-suspenders alongside the full-height, no-fixed layout).
 const ROOT_BG = {
-  mood: "#050505", focus: "#05060a", "level-up": "#0a0a0a", "ai-chat": "#0a0a0a",
+  mood: "#050505", "level-up": "#0a0a0a", "ai-chat": "#0a0a0a",
 };
 
 const SCREENS = {
@@ -41,7 +41,6 @@ const SCREENS = {
   "goal-detail": () => GoalDetailScreen,
   mood: () => MoodScreen,
   journal: () => JournalScreen,
-  focus: () => FocusScreen,
   "level-up": () => LevelUpScreen,
   "ai-chat": () => AIChatScreen,
   community: () => CommunityScreen,
@@ -109,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v118";
+const APP_VERSION = "v119";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */

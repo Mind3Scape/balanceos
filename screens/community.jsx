@@ -1990,8 +1990,10 @@ function TeamChatScreen() {
   ];
   const [msgs, setMsgs] = useCS(SEED);
   const [text, setText] = useCS("");
-  const bottomRef = React.useRef(null);
-  React.useEffect(() => { const el = bottomRef.current; if (el && el.scrollIntoView) el.scrollIntoView({ block: "end" }); }, [msgs.length]);
+  const scrollRef = React.useRef(null);
+  // Pin to the latest message by scrolling the chat's OWN container — NOT
+  // scrollIntoView, which bubbles up and yanked the page mid open-transition.
+  React.useLayoutEffect(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs.length]);
   const push = (m) => setMsgs(list => [...list, { who: "Павел", me: true, c: "#FEDE34", time: "сейчас", ...m }]);
   const send = () => { const v = text.trim(); if (!v) return; push({ t: v }); setText(""); };
   const sendPhoto = () => push({ photo: { e: "📸", g: "linear-gradient(135deg,#cfe6ff,#9bbef0)" }, cap: "Мой прогресс сегодня" });
@@ -2007,13 +2009,13 @@ function TeamChatScreen() {
   );
 
   return (
-    <div className="page-in" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: 0, paddingTop: "max(60px, var(--tg-top-inset, 0px))", overflow: "hidden" }}>
+    <div className="page-in" style={{ height: "calc(100% + 90px)", margin: "-60px 0 -30px", display: "flex", flexDirection: "column", paddingTop: "max(60px, var(--tg-top-inset, 0px))", overflow: "hidden" }}>
       <div style={{ padding: "0 14px" }}>
         <PageHeader title={team.name} onBack={() => navigate("team-detail", { team })}
           right={<span style={{ fontSize: 12, color: "var(--text-4)", whiteSpace: "nowrap" }}>{(team.members?.length || 4)} 👥</span>} />
       </div>
 
-      <div className="screen-scroll" style={{ flex: 1, minHeight: 0, padding: "2px 14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div ref={scrollRef} className="screen-scroll" style={{ flex: 1, minHeight: 0, padding: "2px 14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-4)", margin: "2px 0 2px" }}>Сегодня</div>
         {msgs.map((m, i) => m.me ? (
           <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -2032,7 +2034,6 @@ function TeamChatScreen() {
             </div>
           </div>
         ))}
-        <div ref={bottomRef} />
       </div>
 
       <div style={{ flexShrink: 0, background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)", padding: "9px 12px calc(9px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "flex-end", gap: 8 }}>

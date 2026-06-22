@@ -175,11 +175,6 @@ function HabitDetailScreen() {
       <button onClick={() => app?.toggleHabit && app.toggleHabit(h.id)} className="bos-btn" style={{ marginTop: 22, background: h.done ? (isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)") : undefined, color: h.done ? "var(--text-2)" : undefined }}>
         {h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"}
       </button>
-      {h.duration && (
-        <button onClick={() => navigate("focus", { habit: h })} className="tap" style={{ marginTop: 10, width: "100%", background: "transparent", border: 0, color: "var(--text-2)", fontSize: 14, fontWeight: 500, padding: 8 }}>
-          Начать фокус-сессию →
-        </button>
-      )}
     </div>
   );
 }
@@ -565,39 +560,8 @@ function JournalScreen() {
 }
 
 /* FOCUS SESSION — pomodoro-ish */
-function FocusScreen() {
-  const { navigate, params } = useNav();
-  const h = params?.habit || { emoji: "🧘🏼‍♀️", name: "Медитация" };
-  const [secs] = useM(15 * 60);
-  const m = Math.floor(secs/60).toString().padStart(2,"0");
-  const s = (secs%60).toString().padStart(2,"0");
-  return (
-    <div className="page-in" style={{ height: "100%", color: "#fff", display: "flex", flexDirection: "column", padding: "0 16px 24px" }}>
-      <PageHeader title="" onBack={() => navigate("habits")} dark right={
-        <button className="tap" style={{ background: "transparent", border: 0, color: "#9f9fa9", fontSize: 13 }}>Завершить</button>
-      }/>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-        <div style={{ fontSize: 50, marginBottom: 30 }}>{h.emoji}</div>
-        <div style={{ fontSize: 14, color: "#9f9fa9", marginBottom: 8 }}>{h.name}</div>
-        <div style={{ width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,222,52,0.12), transparent 70%)", display: "grid", placeItems: "center", border: "2px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ fontSize: 56, fontWeight: 300, letterSpacing: "-2px", fontVariantNumeric: "tabular-nums" }}>{m}:{s}</div>
-        </div>
-        <div style={{ fontSize: 12, color: "#9f9fa9", marginTop: 24, letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>Фокус · 15 мин</div>
-      </div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 20 }}>
-        <button className="tap" style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: 0, color: "#fff", display: "grid", placeItems: "center" }}>
-          <I.Refresh size={20}/>
-        </button>
-        <button className="tap" style={{ width: 76, height: 76, borderRadius: "50%", background: "#fff", border: 0, display: "grid", placeItems: "center" }}>
-          <I.Play size={28} color="#0a0a0a"/>
-        </button>
-        <button className="tap" style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: 0, color: "#fff", display: "grid", placeItems: "center" }}>
-          <I.Volume size={20}/>
-        </button>
-      </div>
-    </div>
-  );
-}
+/* (FocusScreen removed — habit sessions now run inline as a segmented ring timer
+   right in the habit row; see HabitRing in habits.jsx.) */
 
 /* LEVEL-UP modal screen — celebratory in-app moment */
 function LevelUpScreen() {
@@ -834,7 +798,7 @@ function AIChatScreen() {
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.5, marginTop: 8 }}>{m.body}</div>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button className="tap" onClick={() => navigate("focus", { habit: { emoji: "👟", name: "7-минутная прогулка" } })} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>{m.action.label}</button>
+                <button className="tap" onClick={() => navigate("habits")} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>{m.action.label}</button>
                 <button className="tap" style={{ background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 12, padding: "10px 14px", fontSize: 13 }}>Пропустить</button>
               </div>
             </>
@@ -938,4 +902,4 @@ function AIChatScreen() {
   );
 }
 
-Object.assign(window, { HabitDetailScreen, GoalDetailScreen, MoodScreen, JournalScreen, FocusScreen, LevelUpScreen, AIChatScreen });
+Object.assign(window, { HabitDetailScreen, GoalDetailScreen, MoodScreen, JournalScreen, LevelUpScreen, AIChatScreen });

@@ -378,22 +378,7 @@ function HabitDetailScreen() {
       background: h.done ? isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)" : undefined,
       color: h.done ? "var(--text-2)" : undefined
     }
-  }, h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"), h.duration && /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("focus", {
-      habit: h
-    }),
-    className: "tap",
-    style: {
-      marginTop: 10,
-      width: "100%",
-      background: "transparent",
-      border: 0,
-      color: "var(--text-2)",
-      fontSize: 14,
-      fontWeight: 500,
-      padding: 8
-    }
-  }, "\u041D\u0430\u0447\u0430\u0442\u044C \u0444\u043E\u043A\u0443\u0441-\u0441\u0435\u0441\u0441\u0438\u044E \u2192"));
+  }, h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"));
 }
 
 /* GOAL DETAIL — progress ring, the habits it's built from (cross-linked into
@@ -1317,137 +1302,8 @@ function JournalScreen() {
 }
 
 /* FOCUS SESSION — pomodoro-ish */
-function FocusScreen() {
-  var {
-    navigate,
-    params
-  } = useNav();
-  var h = params?.habit || {
-    emoji: "🧘🏼‍♀️",
-    name: "Медитация"
-  };
-  var [secs] = useM(15 * 60);
-  var m = Math.floor(secs / 60).toString().padStart(2, "0");
-  var s = (secs % 60).toString().padStart(2, "0");
-  return /*#__PURE__*/React.createElement("div", {
-    className: "page-in",
-    style: {
-      height: "100%",
-      color: "#fff",
-      display: "flex",
-      flexDirection: "column",
-      padding: "0 16px 24px"
-    }
-  }, /*#__PURE__*/React.createElement(PageHeader, {
-    title: "",
-    onBack: () => navigate("habits"),
-    dark: true,
-    right: /*#__PURE__*/React.createElement("button", {
-      className: "tap",
-      style: {
-        background: "transparent",
-        border: 0,
-        color: "#9f9fa9",
-        fontSize: 13
-      }
-    }, "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C")
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 50,
-      marginBottom: 30
-    }
-  }, h.emoji), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "#9f9fa9",
-      marginBottom: 8
-    }
-  }, h.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 220,
-      height: 220,
-      borderRadius: "50%",
-      background: "radial-gradient(circle, rgba(255,222,52,0.12), transparent 70%)",
-      display: "grid",
-      placeItems: "center",
-      border: "2px solid rgba(255,255,255,0.08)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 56,
-      fontWeight: 300,
-      letterSpacing: "-2px",
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, m, ":", s)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9f9fa9",
-      marginTop: 24,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      fontWeight: 600
-    }
-  }, "\u0424\u043E\u043A\u0443\u0441 \xB7 15 \u043C\u0438\u043D")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "center",
-      gap: 16,
-      marginTop: 20
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    style: {
-      width: 56,
-      height: 56,
-      borderRadius: "50%",
-      background: "rgba(255,255,255,0.08)",
-      border: 0,
-      color: "#fff",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Refresh, {
-    size: 20
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    style: {
-      width: 76,
-      height: 76,
-      borderRadius: "50%",
-      background: "#fff",
-      border: 0,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Play, {
-    size: 28,
-    color: "#0a0a0a"
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    style: {
-      width: 56,
-      height: 56,
-      borderRadius: "50%",
-      background: "rgba(255,255,255,0.08)",
-      border: 0,
-      color: "#fff",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Volume, {
-    size: 20
-  }))));
-}
+/* (FocusScreen removed — habit sessions now run inline as a segmented ring timer
+   right in the habit row; see HabitRing in habits.jsx.) */
 
 /* LEVEL-UP modal screen — celebratory in-app moment */
 function LevelUpScreen() {
@@ -1992,12 +1848,7 @@ function AIChatScreen() {
       }
     }, /*#__PURE__*/React.createElement("button", {
       className: "tap",
-      onClick: () => navigate("focus", {
-        habit: {
-          emoji: "👟",
-          name: "7-минутная прогулка"
-        }
-      }),
+      onClick: () => navigate("habits"),
       style: {
         flex: 1,
         background: TH.primary,
@@ -2343,7 +2194,6 @@ Object.assign(window, {
   GoalDetailScreen,
   MoodScreen,
   JournalScreen,
-  FocusScreen,
   LevelUpScreen,
   AIChatScreen
 });

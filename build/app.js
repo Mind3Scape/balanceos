@@ -20,7 +20,7 @@ var {
 // Onboarding/intro/signup now FOLLOW the app theme (light by default, dark when
 // the user forces dark) — each already ships both palettes. Only the cinematic
 // in-app immersive screens stay always-dark.
-var DARK_ROUTES = new Set(["mood", "focus", "level-up", "ai-chat"]);
+var DARK_ROUTES = new Set(["mood", "level-up", "ai-chat"]);
 var TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
 var FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 
@@ -29,7 +29,6 @@ var FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 // (belt-and-suspenders alongside the full-height, no-fixed layout).
 var ROOT_BG = {
   mood: "#050505",
-  focus: "#05060a",
   "level-up": "#0a0a0a",
   "ai-chat": "#0a0a0a"
 };
@@ -46,7 +45,6 @@ var SCREENS = {
   "goal-detail": () => GoalDetailScreen,
   mood: () => MoodScreen,
   journal: () => JournalScreen,
-  focus: () => FocusScreen,
   "level-up": () => LevelUpScreen,
   "ai-chat": () => AIChatScreen,
   community: () => CommunityScreen,
@@ -113,7 +111,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v118";
+var APP_VERSION = "v119";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}

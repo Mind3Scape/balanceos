@@ -5772,12 +5772,12 @@ function TeamChatScreen() {
   }];
   var [msgs, setMsgs] = useCS(SEED);
   var [text, setText] = useCS("");
-  var bottomRef = React.useRef(null);
-  React.useEffect(() => {
-    var el = bottomRef.current;
-    if (el && el.scrollIntoView) el.scrollIntoView({
-      block: "end"
-    });
+  var scrollRef = React.useRef(null);
+  // Pin to the latest message by scrolling the chat's OWN container — NOT
+  // scrollIntoView, which bubbles up and yanked the page mid open-transition.
+  React.useLayoutEffect(() => {
+    var el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [msgs.length]);
   var push = m => setMsgs(list => [...list, {
     who: "Павел",
@@ -5833,11 +5833,10 @@ function TeamChatScreen() {
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
-      position: "absolute",
-      inset: 0,
+      height: "calc(100% + 90px)",
+      margin: "-60px 0 -30px",
       display: "flex",
       flexDirection: "column",
-      padding: 0,
       paddingTop: "max(60px, var(--tg-top-inset, 0px))",
       overflow: "hidden"
     }
@@ -5858,6 +5857,7 @@ function TeamChatScreen() {
       }
     }, team.members?.length || 4, " \uD83D\uDC65")
   })), /*#__PURE__*/React.createElement("div", {
+    ref: scrollRef,
     className: "screen-scroll",
     style: {
       flex: 1,
@@ -5955,9 +5955,7 @@ function TeamChatScreen() {
       textAlign: "right",
       marginTop: 3
     }
-  }, m.time)))), /*#__PURE__*/React.createElement("div", {
-    ref: bottomRef
-  })), /*#__PURE__*/React.createElement("div", {
+  }, m.time))))), /*#__PURE__*/React.createElement("div", {
     style: {
       flexShrink: 0,
       background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)",
