@@ -72,11 +72,16 @@ function HabitRing({ habit, dark, onComplete }) {
     const [x0, y0] = p(a0), [x1, y1] = p(a1);
     return "M " + x0 + " " + y0 + " A " + R + " " + R + " 0 " + (a1 - a0 > 180 ? 1 : 0) + " 1 " + x1 + " " + y1;
   };
-  const segs = [];
+  // live fill: every segment has a dim base; an accent overlay covers exactly the
+  // elapsed share — whole for passed segments, PARTIAL for the current one, so you
+  // literally watch it fill with time (no pulse, no guessing).
+  const pos = frac * SEG;
+  const base = [], fill = [];
   for (let i = 0; i < SEG; i++) {
-    const lit = frac * SEG > i;
-    segs.push(<path key={i} d={arc(-90 + i * pitch + gap / 2, -90 + (i + 1) * pitch - gap / 2)} fill="none"
-      stroke={lit ? accent : dim} strokeWidth="2.4" strokeLinecap="round" style={{ transition: "stroke 0.3s" }} />);
+    const a0 = -90 + i * pitch + gap / 2, a1 = -90 + (i + 1) * pitch - gap / 2;
+    base.push(<path key={"b" + i} d={arc(a0, a1)} fill="none" stroke={dim} strokeWidth="2.4" strokeLinecap="round" />);
+    const f = Math.max(0, Math.min(1, pos - i));
+    if (f > 0.001) fill.push(<path key={"f" + i} d={arc(a0, a0 + (a1 - a0) * f)} fill="none" stroke={accent} strokeWidth="2.4" strokeLinecap="round" />);
   }
 
   return (
@@ -87,9 +92,9 @@ function HabitRing({ habit, dark, onComplete }) {
       <button onClick={toggle} className="tap" data-no-haptic aria-label={running ? "Пауза" : "Старт"}
         style={{ position: "relative", width: size, height: size, borderRadius: "50%", background: "transparent", border: 0, padding: 0, flexShrink: 0, display: "grid", placeItems: "center", color: accent }}>
         <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0 }}>
-          {running && <circle cx={cx} cy={cy} r={R} fill="none" stroke={accent} strokeWidth="2.4" style={{ animation: "habitPulse 1.8s ease-in-out infinite" }} />}
           <circle cx={cx} cy={cy} r={R - 4.5} fill={dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.045)"} />
-          {segs}
+          {base}
+          {fill}
         </svg>
         <span style={{ position: "relative", display: "grid", placeItems: "center", transform: running || done ? "none" : "translateX(0.5px)" }}>
           {done ? <I.Check size={14} strokeWidth={3} /> : running ? <I.Pause size={13} /> : <I.Play size={12} />}

@@ -148,19 +148,31 @@ function HabitRing({
       [x1, y1] = p(a1);
     return "M " + x0 + " " + y0 + " A " + R + " " + R + " 0 " + (a1 - a0 > 180 ? 1 : 0) + " 1 " + x1 + " " + y1;
   };
-  var segs = [];
+  // live fill: every segment has a dim base; an accent overlay covers exactly the
+  // elapsed share — whole for passed segments, PARTIAL for the current one, so you
+  // literally watch it fill with time (no pulse, no guessing).
+  var pos = frac * SEG;
+  var base = [],
+    fill = [];
   for (var i = 0; i < SEG; i++) {
-    var lit = frac * SEG > i;
-    segs.push(/*#__PURE__*/React.createElement("path", {
-      key: i,
-      d: arc(-90 + i * pitch + gap / 2, -90 + (i + 1) * pitch - gap / 2),
+    var a0 = -90 + i * pitch + gap / 2,
+      a1 = -90 + (i + 1) * pitch - gap / 2;
+    base.push(/*#__PURE__*/React.createElement("path", {
+      key: "b" + i,
+      d: arc(a0, a1),
       fill: "none",
-      stroke: lit ? accent : dim,
+      stroke: dim,
       strokeWidth: "2.4",
-      strokeLinecap: "round",
-      style: {
-        transition: "stroke 0.3s"
-      }
+      strokeLinecap: "round"
+    }));
+    var f = Math.max(0, Math.min(1, pos - i));
+    if (f > 0.001) fill.push(/*#__PURE__*/React.createElement("path", {
+      key: "f" + i,
+      d: arc(a0, a0 + (a1 - a0) * f),
+      fill: "none",
+      stroke: accent,
+      strokeWidth: "2.4",
+      strokeLinecap: "round"
     }));
   }
   return /*#__PURE__*/React.createElement("div", {
@@ -204,22 +216,12 @@ function HabitRing({
       position: "absolute",
       inset: 0
     }
-  }, running && /*#__PURE__*/React.createElement("circle", {
-    cx: cx,
-    cy: cy,
-    r: R,
-    fill: "none",
-    stroke: accent,
-    strokeWidth: "2.4",
-    style: {
-      animation: "habitPulse 1.8s ease-in-out infinite"
-    }
-  }), /*#__PURE__*/React.createElement("circle", {
+  }, /*#__PURE__*/React.createElement("circle", {
     cx: cx,
     cy: cy,
     r: R - 4.5,
     fill: dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,10,0.045)"
-  }), segs), /*#__PURE__*/React.createElement("span", {
+  }), base, fill), /*#__PURE__*/React.createElement("span", {
     style: {
       position: "relative",
       display: "grid",
