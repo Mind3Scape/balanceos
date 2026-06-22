@@ -1094,7 +1094,7 @@ function IntroScreen() {
     x = clamp01(x);
     return x * x * x * (x * (x * 6 - 15) + 10);
   };
-  var SWAP_AT = 2.8,
+  var SWAP_AT = 1.5,
     SWAP_DUR = 3.1;
   var sp = swapScene ? smootherstep((t - blendStart - SWAP_AT) / SWAP_DUR) : 0;
   var go = next => {
@@ -1463,69 +1463,38 @@ function IntroScreen() {
       overflow: "visible"
     }
   }, Array.from({
-    length: 15
+    length: 29
   }).map((_, i) => {
-    var tv = i / 14,
-      phi = (1 - tv) * Math.PI,
+    var tv = i / 28;
+    var phi = (1 - tv) * Math.PI,
       c = Math.cos(phi),
       s = Math.sin(phi);
-    var near = Math.abs(tv - me.val) < 0.05;
+    var edge = Math.min(1, Math.min(tv, 1 - tv) / 0.14);
+    var fade = edge * edge * (3 - 2 * edge); // smooth fade-out at the ends
+    var filled = tv <= me.val + 0.005;
+    var col = filled ? moodMain : dark ? "rgba(255,255,255,0.5)" : "rgba(21,35,60,0.3)";
     return /*#__PURE__*/React.createElement("line", {
       key: i,
       x1: 150 + 99 * c,
       y1: 150 - 99 * s,
-      x2: 150 + 113 * c,
-      y2: 150 - 113 * s,
-      stroke: near ? moodMain : dark ? "rgba(255,255,255,0.22)" : "rgba(21,35,60,0.16)",
-      strokeWidth: near ? 2.6 : 1.4,
-      strokeLinecap: "round"
+      x2: 150 + 111 * c,
+      y2: 150 - 111 * s,
+      stroke: col,
+      strokeWidth: "1.8",
+      strokeLinecap: "round",
+      opacity: (filled ? 0.95 : 0.55) * fade
     });
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M 38 150 A 112 112 0 0 1 262 150",
-    fill: "none",
-    stroke: dark ? "rgba(255,255,255,0.12)" : "rgba(21,35,60,0.09)",
-    strokeWidth: "6",
-    strokeLinecap: "round"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M 38 150 A 112 112 0 0 1 262 150",
-    fill: "none",
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: 150 + 105 * Math.cos((1 - me.val) * Math.PI),
+    cy: 150 - 105 * Math.sin((1 - me.val) * Math.PI),
+    r: "13",
+    fill: dark ? "#2c2c2e" : "#fff",
     stroke: moodMain,
-    strokeWidth: "6",
-    strokeLinecap: "round",
-    strokeDasharray: Math.PI * 112,
-    strokeDashoffset: Math.PI * 112 * (1 - me.val)
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: 150 + 112 * Math.cos((1 - me.val) * Math.PI),
-    cy: 150 - 112 * Math.sin((1 - me.val) * Math.PI),
-    r: "16",
-    fill: dark ? "#fff" : "#0a0a0a",
+    strokeWidth: "2.5",
     style: {
-      filter: "drop-shadow(0 3px 9px rgba(0,0,0,0.28))"
+      filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.22))"
     }
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: 150 + 112 * Math.cos((1 - me.val) * Math.PI),
-    cy: 150 - 112 * Math.sin((1 - me.val) * Math.PI),
-    r: "5",
-    fill: moodMain
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      left: "8%",
-      bottom: 2,
-      fontSize: 18,
-      opacity: 0.5,
-      pointerEvents: "none"
-    }
-  }, MOOD_FACES[0]), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      right: "8%",
-      bottom: 2,
-      fontSize: 18,
-      opacity: 0.5,
-      pointerEvents: "none"
-    }
-  }, MOOD_FACES[MOOD_FACES.length - 1]))), /*#__PURE__*/React.createElement("div", {
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       padding: "20px 24px 28px",

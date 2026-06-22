@@ -587,7 +587,7 @@ function IntroScreen() {
   // flows in and gently settles. The morph itself is transform:scale (GPU).
   const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
   const smootherstep = (x) => { x = clamp01(x); return x * x * x * (x * (x * 6 - 15) + 10); };
-  const SWAP_AT = 2.8, SWAP_DUR = 3.1;
+  const SWAP_AT = 1.5, SWAP_DUR = 3.1;
   const sp = swapScene ? smootherstep((t - blendStart - SWAP_AT) / SWAP_DUR) : 0;
   const go = (next) => {
     if (next === step) return;
@@ -730,24 +730,22 @@ function IntroScreen() {
             onPointerCancel={() => { moodDrag.current = false; }}
             style={{ position: "relative", maxWidth: 320, margin: "0 auto", touchAction: "none", cursor: "pointer", userSelect: "none", WebkitUserSelect: "none" }}>
             <svg viewBox="0 0 300 172" style={{ width: "100%", display: "block", overflow: "visible" }}>
-              {/* tick marks fanning along the arc; the one under the knob lights up */}
-              {Array.from({ length: 15 }).map((_, i) => {
-                const tv = i / 14, phi = (1 - tv) * Math.PI, c = Math.cos(phi), s = Math.sin(phi);
-                const near = Math.abs(tv - me.val) < 0.05;
-                return <line key={i} x1={150 + 99 * c} y1={150 - 99 * s} x2={150 + 113 * c} y2={150 - 113 * s}
-                  stroke={near ? moodMain : (dark ? "rgba(255,255,255,0.22)" : "rgba(21,35,60,0.16)")} strokeWidth={near ? 2.6 : 1.4} strokeLinecap="round" />;
+              {/* fine ticks fanning along the arc — coloured up to the value, faint
+                  grey after, and softly fading to nothing at both ends */}
+              {Array.from({ length: 29 }).map((_, i) => {
+                const tv = i / 28;
+                const phi = (1 - tv) * Math.PI, c = Math.cos(phi), s = Math.sin(phi);
+                const edge = Math.min(1, Math.min(tv, 1 - tv) / 0.14);
+                const fade = edge * edge * (3 - 2 * edge);          // smooth fade-out at the ends
+                const filled = tv <= me.val + 0.005;
+                const col = filled ? moodMain : (dark ? "rgba(255,255,255,0.5)" : "rgba(21,35,60,0.3)");
+                return <line key={i} x1={150 + 99 * c} y1={150 - 99 * s} x2={150 + 111 * c} y2={150 - 111 * s}
+                  stroke={col} strokeWidth="1.8" strokeLinecap="round" opacity={(filled ? 0.95 : 0.55) * fade} />;
               })}
-              {/* track */}
-              <path d="M 38 150 A 112 112 0 0 1 262 150" fill="none" stroke={dark ? "rgba(255,255,255,0.12)" : "rgba(21,35,60,0.09)"} strokeWidth="6" strokeLinecap="round" />
-              {/* coloured progress from the left end to the knob */}
-              <path d="M 38 150 A 112 112 0 0 1 262 150" fill="none" stroke={moodMain} strokeWidth="6" strokeLinecap="round" strokeDasharray={Math.PI * 112} strokeDashoffset={Math.PI * 112 * (1 - me.val)} />
-              {/* knob */}
-              <circle cx={150 + 112 * Math.cos((1 - me.val) * Math.PI)} cy={150 - 112 * Math.sin((1 - me.val) * Math.PI)} r="16" fill={dark ? "#fff" : "#0a0a0a"} style={{ filter: "drop-shadow(0 3px 9px rgba(0,0,0,0.28))" }} />
-              <circle cx={150 + 112 * Math.cos((1 - me.val) * Math.PI)} cy={150 - 112 * Math.sin((1 - me.val) * Math.PI)} r="5" fill={moodMain} />
+              {/* clean iOS-style thumb riding the dial */}
+              <circle cx={150 + 105 * Math.cos((1 - me.val) * Math.PI)} cy={150 - 105 * Math.sin((1 - me.val) * Math.PI)} r="13"
+                fill={dark ? "#2c2c2e" : "#fff"} stroke={moodMain} strokeWidth="2.5" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.22))" }} />
             </svg>
-            {/* the two extremes of the scale, at the arc ends */}
-            <span style={{ position: "absolute", left: "8%", bottom: 2, fontSize: 18, opacity: 0.5, pointerEvents: "none" }}>{MOOD_FACES[0]}</span>
-            <span style={{ position: "absolute", right: "8%", bottom: 2, fontSize: 18, opacity: 0.5, pointerEvents: "none" }}>{MOOD_FACES[MOOD_FACES.length - 1]}</span>
           </div>
         </Reveal>
       )}

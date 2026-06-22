@@ -2080,7 +2080,7 @@ function MoodWidget({
   var subMuted = isDark ? "rgba(255,255,255,0.60)" : "rgba(0,0,0,0.55)";
   var titleColor = isDark ? "#fff" : "var(--text)";
   var trailIdle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  var trailRing = isDark ? "rgba(255,255,255,0.85)" : "#0a0a0a";
+  var trailRing = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.28)"; // soft grey, not a harsh black ring
   var chipBg = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
   var fresh = app?.mode === "fresh";
   return /*#__PURE__*/React.createElement("button", {

@@ -719,7 +719,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
   const subMuted   = isDark ? "rgba(255,255,255,0.60)" : "rgba(0,0,0,0.55)";
   const titleColor = isDark ? "#fff" : "var(--text)";
   const trailIdle  = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const trailRing  = isDark ? "rgba(255,255,255,0.85)" : "#0a0a0a";
+  const trailRing  = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.28)"; // soft grey, not a harsh black ring
   const chipBg     = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
   const fresh = app?.mode === "fresh";
 
