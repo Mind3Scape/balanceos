@@ -254,59 +254,18 @@ body {
 .bos-acc-in { animation: bosAccIn 0.26s cubic-bezier(0.22,0.61,0.36,1) both; }
 @keyframes bosAccIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ── Launch splash — pure CSS breathing orb, paints before React mounts ──── */
+/* ── Launch screen — a calm light wash that matches onboarding's background, so
+   the app's own cinematic intro animates in over it with NO orb/text to
+   cross-fade against (kills the old first-second flicker). Paints instantly
+   before the JS loads; fades out the moment the app is ready. ──────────────── */
 #splash {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 30px;
-  padding-bottom: 4vh;
   background: radial-gradient(120% 90% at 50% 18%, #eef3fc 0%, #e3eaf6 45%, #d9e2f0 100%);
-  transition: opacity 0.7s ease;
+  transition: opacity 0.45s ease;
 }
 body.app-ready #splash { opacity: 0; pointer-events: none; }
-
-/* Glass orb that matches the in-app SiriOrb (airy slate, white catchlight, a
-   hint of living colour mist) — so the splash hands off seamlessly to onboarding,
-   not as a different, electric-blue ball. */
-#splash .orb {
-  position: relative;
-  width: 104px; height: 104px;
-  border-radius: 50%;
-  background:
-    radial-gradient(42% 38% at 70% 30%, rgba(150,224,228,0.5), transparent 60%),
-    radial-gradient(46% 44% at 28% 72%, rgba(150,162,236,0.46), transparent 62%),
-    radial-gradient(circle at 37% 29%, #ffffff 0%, #dbe6f6 14%, #7aa4d0 46%, #3f5f86 72%, #243b5c 100%);
-  box-shadow: 0 0 58px 10px rgba(122,164,208,0.42), inset -8px -10px 26px rgba(20,32,56,0.5), inset 8px 8px 22px rgba(255,255,255,0.34);
-  animation: orbBreath 3.4s ease-in-out infinite;
-}
-#splash .orb::after {
-  content: "";
-  position: absolute; left: 26%; top: 17%;
-  width: 30%; height: 22%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.92), rgba(255,255,255,0) 70%);
-  filter: blur(2px);
-}
-@keyframes orbBreath {
-  0%, 100% { transform: scale(0.95); box-shadow: 0 0 48px 8px rgba(122,164,208,0.32), inset -8px -10px 26px rgba(20,32,56,0.5), inset 8px 8px 22px rgba(255,255,255,0.34); }
-  50%      { transform: scale(1.04); box-shadow: 0 0 78px 18px rgba(140,180,222,0.5), inset -8px -10px 26px rgba(20,32,56,0.5), inset 8px 8px 22px rgba(255,255,255,0.38); }
-}
-#splash .wordmark {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-  font-size: 25px; font-weight: 600; letter-spacing: 0.5px; color: #15233c; opacity: 0.95;
-}
-#splash .wordmark b { font-weight: 700; }
-#splash .tagline {
-  margin-top: -14px;
-  max-width: 252px; text-align: center; text-wrap: balance;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  font-size: 14px; line-height: 1.46; letter-spacing: 0.1px; color: rgba(21,35,60,0.54);
-}
 
 /* ── Desktop / large viewport: show it inside a phone frame ──────────────── */
 @media (min-width: 600px) and (min-height: 720px) {
