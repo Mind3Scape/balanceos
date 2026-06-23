@@ -773,7 +773,7 @@ function ProfileScreen() {
     dark: app?.themeOverride === "dark"
   }));
   var _isLive = app?.mode === "live";
-  var _xp = _isLive ? bosTotalXP(app?.habits) : 0;
+  var _xp = _isLive ? bosLiveXP(app) : 0;
   var _li = bosLevelInfo(_xp);
   var lvlNum = app?.mode === "demo" ? 7 : _isLive ? _li.level : 1;
   var lvlPct = app?.mode === "demo" ? 72 : _isLive ? _li.pct : 2;

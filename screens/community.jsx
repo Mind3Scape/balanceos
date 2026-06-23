@@ -1745,7 +1745,7 @@ function LevelsScreen() {
   // LIVE: real numbers from the date-keyed habit model (T0.2). DEMO: curated showcase.
   // Fresh demo: a clean level 1. Titles are shared so demo's "Преданный делу" still maps to 7.
   const _isLive = app?.mode === "live";
-  const _xpLive = _isLive ? bosTotalXP(app?.habits) : 0;
+  const _xpLive = _isLive ? bosLiveXP(app) : 0;
   const _li = bosLevelInfo(_xpLive);
   const LEVEL_TITLES = ["Новичок", "Первые шаги", "Набираю ритм", "В потоке", "Стойкость", "Уверенность", "Преданный делу", "Сосредоточенный", "Мастер привычек", "Вдохновитель", "Наставник", "Легенда"];
   const titleFor = (l) => LEVEL_TITLES[Math.min(Math.max(1, l), LEVEL_TITLES.length) - 1];

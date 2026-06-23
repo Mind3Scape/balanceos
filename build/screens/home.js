@@ -764,7 +764,7 @@ function HomeScreen() {
   // Live profiles get REAL numbers from the date-keyed habit model (T0.2); demo stays a
   // curated showcase (level 7 / 1240 XP / 27-day streak); a fresh demo shows blanks.
   var _isLive = app?.mode === "live";
-  var _liveXP = _isLive ? bosTotalXP(habits) : 0;
+  var _liveXP = _isLive ? bosLiveXP(app) : 0;
   var _lvl = bosLevelInfo(_liveXP);
   var dayStreak = app?.mode === "demo" ? 27 : _isLive ? bosMaxStreak(habits) : 0;
 
@@ -2113,12 +2113,28 @@ function MoodWidget({
   isDark,
   navigate
 }) {
-  // Last 7 days (mock); use real app.dayMoods if present
-  var today = 28;
-  var last7 = [22, 23, 24, 25, 26, 27, 28].map(d => ({
+  // Last 7 days. Live → REAL date keys (so state marks accumulate per real day);
+  // demo → curated numeric days. Each item carries its own weekday letter.
+  var _WD = ["В", "П", "В", "С", "Ч", "П", "С"];
+  var _liveTrail = app?.mode === "live";
+  var last7 = _liveTrail ? [6, 5, 4, 3, 2, 1, 0].map(off => {
+    var key = typeof bosDayKeyOffset === "function" ? bosDayKeyOffset(off) : "" + (28 - off);
+    var di = app?.dayMoods && app.dayMoods[key] != null ? app.dayMoods[key] : null;
+    var wd = "";
+    try {
+      wd = _WD[new Date(key + "T00:00:00").getDay()];
+    } catch (e) {}
+    return {
+      key,
+      today: off === 0,
+      wd,
+      m: di != null ? MOOD_OPTIONS[di] : null
+    };
+  }) : [22, 23, 24, 25, 26, 27, 28].map(d => ({
     d,
-    m: app?.dayMoods && app.dayMoods[d] != null ? MOOD_OPTIONS[app.dayMoods[d]] : null,
-    today: d === today
+    today: d === 28,
+    wd: _WD[(d - 22 + 1) % 7],
+    m: app?.dayMoods && app.dayMoods[d] != null ? MOOD_OPTIONS[app.dayMoods[d]] : null
   }));
   var logged = last7.filter(d => d.m).length;
   var sameAsToday = last7.filter(d => d.m && d.m.t === mood.t).length;
@@ -2143,6 +2159,8 @@ function MoodWidget({
   var trailRing = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.28)"; // soft grey, not a harsh black ring
   var chipBg = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
   var fresh = app?.mode === "fresh";
+  var live = app?.mode === "live"; // L3 — real users earn XP for checking in / journaling
+
   return /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("mood"),
     className: "tap",
@@ -2227,7 +2245,7 @@ function MoodWidget({
       color: subMuted,
       marginTop: 4
     }
-  }, fresh ? "Нажми, чтобы отметить первое состояние." : "Нажми, чтобы обновить — сфера следует за твоим состоянием."))), !fresh && /*#__PURE__*/React.createElement("div", {
+  }, live ? fresh ? "Отметь первое состояние — и начни копить опыт. +5 XP." : "Отмечай каждый день — это опыт: +5 XP за отметку, +10 со строкой в дневник." : fresh ? "Нажми, чтобы отметить первое состояние." : "Нажми, чтобы обновить — сфера следует за твоим состоянием."))), !fresh && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       paddingTop: 14,
@@ -2273,7 +2291,7 @@ function MoodWidget({
       color: labelMuted,
       fontWeight: 600
     }
-  }, ["В", "П", "В", "С", "Ч", "П", "С"][(d.d - 22 + 1) % 7]))), /*#__PURE__*/React.createElement("span", {
+  }, d.wd))), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10,
       fontWeight: 600,

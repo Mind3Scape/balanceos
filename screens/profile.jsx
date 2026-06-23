@@ -262,7 +262,7 @@ function ProfileScreen() {
   const { open: openSheet } = useSheet();
   const openAvatar = () => openSheet(<AvatarPickerSheet dark={app?.themeOverride === "dark"} />);
   const _isLive = app?.mode === "live";
-  const _xp = _isLive ? bosTotalXP(app?.habits) : 0;
+  const _xp = _isLive ? bosLiveXP(app) : 0;
   const _li = bosLevelInfo(_xp);
   const lvlNum = app?.mode === "demo" ? 7 : (_isLive ? _li.level : 1);
   const lvlPct = app?.mode === "demo" ? 72 : (_isLive ? _li.pct : 2);

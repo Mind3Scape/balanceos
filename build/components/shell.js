@@ -1247,14 +1247,32 @@ function bosStreak(log) {
   }
   return n;
 }
-// Total earned XP for a live profile: every recorded completion is +10 XP. Monotonic and
-// impossible to corrupt — it's just a count of (habit, day) entries.
-function bosTotalXP(habits) {
+// Total earned XP for a live profile. Every habit completion is +10 XP. Engagement also
+// pays: +5 per day you check in your state, +10 per day you write a journal line — so
+// the orb/journal "pay" XP, which the app communicates. Monotonic (just counts of entries).
+function bosTotalXP(habits, extras) {
   var n = 0;
   (habits || []).forEach(function (h) {
     if (h && h.log) n += Object.keys(h.log).length;
   });
-  return n * 10;
+  var xp = n * 10;
+  if (extras) {
+    xp += Object.keys(extras.moods || {}).length * 5; // +5 за отметку состояния
+    var notes = extras.notes || {};
+    Object.keys(notes).forEach(function (k) {
+      // +10 за запись в дневник
+      var e = notes[k];
+      if (e && (e.note != null && ("" + e.note).trim() || e.tags && e.tags.length)) xp += 10;
+    });
+  }
+  return xp;
+}
+// Live XP including state + journaling engagement — use this everywhere for live profiles.
+function bosLiveXP(app) {
+  return app ? bosTotalXP(app.habits, {
+    moods: app.dayMoods,
+    notes: app.dayNotes
+  }) : 0;
 }
 // XP → level. Each level costs a little more than the last (100, 150, 200…): a gentle curve
 // so the first wins come fast and later levels feel earned.

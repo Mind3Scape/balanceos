@@ -770,14 +770,16 @@ function MoodScreen() {
   var toggleTag = tg => setTags(ts => ts.includes(tg) ? ts.filter(x => x !== tg) : [...ts, tg]);
   var onSave = () => {
     if (picked < 0 || !app) return navigate("home");
+    // Live → key by the REAL date (so check-ins accumulate per day & pay XP); demo → curated day.
+    var dayKey = app.mode === "live" && typeof bosTodayKey === "function" ? bosTodayKey() : TODAY;
     app.setMood && app.setMood(moods[picked]);
     app.setDayMoods && app.setDayMoods({
       ...(app.dayMoods || {}),
-      [TODAY]: picked
+      [dayKey]: picked
     });
     app.setDayNotes && app.setDayNotes({
       ...(app.dayNotes || {}),
-      [TODAY]: {
+      [dayKey]: {
         tags,
         note: note.trim()
       }
@@ -1594,7 +1596,10 @@ function buildAiContext(app) {
     }).filter(Boolean).slice(0, 5);
     if (goals.length) parts.push("Цели: " + goals.join("; ") + ".");
     if (app.mode === "live" && typeof bosTotalXP === "function") {
-      var xp = bosTotalXP(habits);
+      var xp = bosTotalXP(habits, {
+        moods: app.dayMoods,
+        notes: app.dayNotes
+      });
       var li = typeof bosLevelInfo === "function" ? bosLevelInfo(xp) : null;
       if (li) parts.push("Уровень " + li.level + " (" + xp + " XP).");
     }
