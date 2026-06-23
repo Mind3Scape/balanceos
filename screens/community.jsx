@@ -1332,7 +1332,11 @@ function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь
 function TeamShareSheet({ team }) {
   const [copied, setCopied] = React.useState(false);
   const isPublic = team?.vis === "public";
-  const link = "https://mind3scape.github.io/balanceos/?join=" + (team?._id || "");
+  // Real cross-device invite for cloud teams → ?team=<cloudId> (enterLive joins on open).
+  // Demo/local-only teams keep the placeholder ?join link.
+  const link = team?.cloudId
+    ? ("https://mind3scape.github.io/balanceos/?team=" + team.cloudId)
+    : ("https://mind3scape.github.io/balanceos/?join=" + (team?._id || ""));
   const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
   const shareLink = async () => { try { if (navigator.share) { await navigator.share({ title: team?.name || "Команда", text: "Присоединяйся к команде «" + (team?.name || "") + "» в BalanceOS", url: link }); return; } } catch (e) { return; } copyLink(); };
   return (

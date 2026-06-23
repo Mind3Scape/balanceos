@@ -3630,7 +3630,9 @@ function TeamShareSheet({
 }) {
   var [copied, setCopied] = React.useState(false);
   var isPublic = team?.vis === "public";
-  var link = "https://mind3scape.github.io/balanceos/?join=" + (team?._id || "");
+  // Real cross-device invite for cloud teams → ?team=<cloudId> (enterLive joins on open).
+  // Demo/local-only teams keep the placeholder ?join link.
+  var link = team?.cloudId ? "https://mind3scape.github.io/balanceos/?team=" + team.cloudId : "https://mind3scape.github.io/balanceos/?join=" + (team?._id || "");
   var copyLink = () => {
     try {
       navigator.clipboard.writeText(link);

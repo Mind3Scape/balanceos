@@ -752,6 +752,7 @@ function AppProvider({ children }) {
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
         var _refBy = null; try { _refBy = new URLSearchParams(window.location.search).get("ref") || null; } catch (e) {}
+        var _joinTeamId = null; try { _joinTeamId = new URLSearchParams(window.location.search).get("team") || null; } catch (e) {}
         var _locName = saved ? (saved.userName || name) : name;
         var _locAv = saved ? (saved.avatar || avatar || null) : (avatar || null);
         window.bosCloud.signIn(_refBy).then(function (u) {
@@ -781,6 +782,16 @@ function AppProvider({ children }) {
             } else {
               var src = saved || {};
               window.bosCloud.saveSnapshot({ habits: src.habits || [], goals: src.goals || [], teams: src.teams || [], dayMoods: src.dayMoods || {}, dayNotes: src.dayNotes || {}, wheelSpheres: src.wheelSpheres, widgets: src.widgets });
+            }
+            // ?team= invite link → join that team instantly («по ссылке — сразу»),
+            // append it on top of whatever teams we just hydrated, and clean the URL.
+            if (_joinTeamId) {
+              window.bosCloud.joinTeam(_joinTeamId).then(function (row) {
+                if (!row) return;
+                var lt = { _id: "cloud-" + row.id, cloudId: row.id, joined: true, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: "", members: [], target: row.goal_target || 0, current: 0, progress: 0 };
+                setTeams(function (prev) { return (prev || []).some(function (x) { return x.cloudId === row.id; }) ? prev : [lt].concat(prev || []); });
+                try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+              });
             }
           });
         });
