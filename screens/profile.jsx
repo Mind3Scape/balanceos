@@ -479,6 +479,8 @@ function SettingsScreen() {
 
 function NotificationsScreen() {
   const { navigate, params } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const live = app?.mode === "live";
   const [items, setItems] = useP([
     { i: "🔥", t: "7 дней подряд!", b: "Ты в огне — продолжай завтра.", w: "Только что", new: true },
     { i: "👥", t: "Ник пригласил тебя в «Команду создателей»", b: "Нажми, чтобы принять и присоединиться к цели.", w: "2 ч", new: true, go: "community" },
@@ -486,23 +488,53 @@ function NotificationsScreen() {
     { i: "✨", t: "Готов новый ИИ-инсайт", b: "Вечером у тебя самая высокая энергия.", w: "1 д", go: "ai" },
     { i: "📚", t: "Новый курс: Основы привычек", b: "2 минуты — начни когда угодно.", w: "2 д", go: "community" },
   ]);
+  // LIVE: real notifications computed from the cloud — unread team-chat messages.
+  // Demo keeps its sample list above; nothing fake reaches a real user.
+  const [liveItems, setLiveItems] = React.useState([]);
+  React.useEffect(() => {
+    if (!live || !(window.bosCloud && window.bosCloud.enabled())) return;
+    let on = true;
+    (async () => {
+      try {
+        const me = await window.bosCloud.uid();
+        const teams = (app?.teams || []).filter((t) => t.cloudId);
+        const out = [];
+        for (const t of teams) {
+          const rows = await window.bosCloud.loadMessages(t.cloudId);
+          if (!Array.isArray(rows) || !rows.length) continue;
+          const lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
+          const unread = rows.filter((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead);
+          if (unread.length) {
+            const last = unread[unread.length - 1];
+            const word = unread.length === 1 ? "новое сообщение" : (unread.length < 5 ? "новых сообщения" : "новых сообщений");
+            out.push({ i: "💬", t: unread.length + " " + word + " в «" + t.name + "»", b: last.text || "📷 Фото", w: "сейчас", new: true, goChat: t });
+          }
+        }
+        if (on) setLiveItems(out);
+      } catch (e) {}
+    })();
+    return () => { on = false; };
+  }, [live]);
+  const shown = live ? liveItems : items;
+  const clearAll = () => { if (live) setLiveItems([]); else setItems([]); };
   const tap = (n, idx) => {
-    setItems(list => list.map((x, j) => j === idx ? { ...x, new: false } : x));
-    if (n.go) navigate(n.go);
+    if (!live) setItems(list => list.map((x, j) => j === idx ? { ...x, new: false } : x));
+    if (n.goChat) { try { localStorage.setItem("bos:chatread:" + n.goChat.cloudId, String(Date.now())); } catch (e) {} navigate("team-chat", { team: n.goChat }); }
+    else if (n.go) navigate(n.go);
   };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Уведомления" onBack={() => navigate(params?.from || "profile")} right={
-        items.length > 0 ? <button onClick={() => setItems([])} className="tap bos-sys-text-2" style={{ background: "transparent", border: 0, fontSize: 13 }}>Очистить</button> : null
+        shown.length > 0 ? <button onClick={clearAll} className="tap bos-sys-text-2" style={{ background: "transparent", border: 0, fontSize: 13 }}>Очистить</button> : null
       }/>
-      {items.length === 0 ? (
+      {shown.length === 0 ? (
         <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "60px 20px", fontSize: 14 }}>
           <div style={{ fontSize: 34, marginBottom: 10 }}>🔔</div>
           Новых уведомлений нет
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {items.map((n, i) => (
+          {shown.map((n, i) => (
             <SysCard key={i} onClick={() => tap(n, i)} style={{ padding: 14, display: "flex", gap: 12, cursor: "pointer" }}>
               <span style={{ fontSize: 26 }}>{n.i}</span>
               <div style={{ flex: 1 }}>

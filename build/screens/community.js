@@ -3813,13 +3813,40 @@ function TeamDetailScreen() {
       unread: 0
     } : p);
   };
-  var members = t.members?.length ? t.members : [{
+
+  // LIVE teams: load the REAL roster (real names + avatars + roles) from the cloud, so the
+  // member list is honest — real teammates, no fabricated standings until real progress exists.
+  var _rosterLive = app?.mode === "live" && !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+  var [cloudRoster, setCloudRoster] = React.useState(null);
+  React.useEffect(() => {
+    if (!_rosterLive) return;
+    var on = true;
+    window.bosCloud.teamMembers(t.cloudId).then(mem => {
+      if (!on || !Array.isArray(mem)) return;
+      var palette = ["#a8b9d4", "#d4b8e8", "#a8d4e8", "#e8c8a8", "#b8e8c8", "#e8b8d4"];
+      // owner first, then members, in join order
+      var sorted = mem.slice().sort((a, b) => a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0);
+      setCloudRoster(sorted.map((m, i) => ({
+        id: m.id,
+        name: m.name || "Участник",
+        avatar: m.avatar,
+        role: m.role,
+        initials: (m.name || "У").slice(0, 1).toUpperCase(),
+        color: palette[i % palette.length]
+      })));
+    }).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [_rosterLive, t.cloudId]);
+  var liveRoster = _rosterLive && cloudRoster;
+  var members = liveRoster ? cloudRoster : t.members?.length ? t.members : [{
     name: "Ник",
     initials: "Н",
     pct: 19,
     color: "#a8b9d4"
   }];
-  var ranked = [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // leaderboard
+  var ranked = liveRoster ? members : [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // demo: by contribution; live: roster order (owner first)
   var DEFAULT_TEAM_HABITS = [{
     id: 1,
     emoji: "🙏",
@@ -3857,7 +3884,7 @@ function TeamDetailScreen() {
     weekPct: 0.81,
     week: [1, 1, 1, 1, 0, 1, 1]
   }];
-  var teamHabits = Array.isArray(t.habits) ? t.habits : DEFAULT_TEAM_HABITS;
+  var teamHabits = Array.isArray(t.habits) ? t.habits : _rosterLive ? [] : DEFAULT_TEAM_HABITS;
   var main = teamHabits.find(h => h.isMain);
   var others = teamHabits.filter(h => !h.isMain);
   var aggregate = teamHabits.length ? Math.round(teamHabits.reduce((s, h) => s + (h.weekPct || 0), 0) / teamHabits.length * 100) : 0;
@@ -4077,7 +4104,7 @@ function TeamDetailScreen() {
       marginTop: 2,
       color: "var(--text)"
     }
-  }, "14\u0434 \uD83D\uDD25"))))), /*#__PURE__*/React.createElement("button", {
+  }, _rosterLive ? "—" : "14д 🔥"))))), /*#__PURE__*/React.createElement("button", {
     "data-tour": "team-chat",
     onClick: () => {
       markChatRead();
@@ -4268,7 +4295,7 @@ function TeamDetailScreen() {
       fontSize: 11,
       fontWeight: 700
     }
-  }, i < main.doneToday ? "✓" : ""))))), /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
+  }, i < main.doneToday ? "✓" : ""))))), !_rosterLive && /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
     people: members.map(m => ({
       name: m.name,
       initials: m.initials,
@@ -4398,7 +4425,7 @@ function TeamDetailScreen() {
     style: {
       marginTop: 22
     }
-  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 (", members.length, ") \xB7 \u043F\u043E \u0432\u043A\u043B\u0430\u0434\u0443"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 (", members.length, ")", liveRoster ? "" : " · по вкладу"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -4406,7 +4433,7 @@ function TeamDetailScreen() {
       marginTop: 8
     }
   }, ranked.map((m, i) => {
-    var isLeader = i === 0 && (m.pct || 0) > 0;
+    var isLeader = !liveRoster && i === 0 && (m.pct || 0) > 0;
     var expanded = expandedMember === m.name;
     var todayDone = m.todayDone ?? 0;
     var todayTotal = m.todayTotal ?? teamHabits.length;
@@ -4445,12 +4472,21 @@ function TeamDetailScreen() {
         fontWeight: 600,
         flexShrink: 0
       }
-    }, m.initials, isLeader && /*#__PURE__*/React.createElement("span", {
+    }, m.avatar && typeof BosAvatar === "function" ? /*#__PURE__*/React.createElement(BosAvatar, {
+      avatar: m.avatar,
+      size: 40,
+      style: {
+        position: "absolute",
+        inset: 0,
+        borderRadius: "50%"
+      }
+    }) : m.initials, isLeader && /*#__PURE__*/React.createElement("span", {
       style: {
         position: "absolute",
         top: -7,
         right: -5,
-        fontSize: 14
+        fontSize: 14,
+        zIndex: 2
       }
     }, "\uD83D\uDC51")), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -4483,7 +4519,7 @@ function TeamDetailScreen() {
         display: "flex",
         gap: 10
       }
-    }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDD25 ", m.streak ?? 0), /*#__PURE__*/React.createElement("span", null, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F ", todayDone, "/", todayTotal))), /*#__PURE__*/React.createElement("span", {
+    }, liveRoster ? /*#__PURE__*/React.createElement("span", null, m.role === "owner" ? "Создатель команды" : "Участник") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDD25 ", m.streak ?? 0), /*#__PURE__*/React.createElement("span", null, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F ", todayDone, "/", todayTotal)))), !liveRoster && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14,
         fontWeight: 700,
@@ -4498,7 +4534,7 @@ function TeamDetailScreen() {
         transform: expanded ? "rotate(90deg)" : "none",
         transition: "transform 0.2s"
       }
-    })), expanded && /*#__PURE__*/React.createElement("div", {
+    })), !liveRoster && expanded && /*#__PURE__*/React.createElement("div", {
       style: {
         padding: "0 14px 14px 64px",
         display: "flex",
@@ -4533,7 +4569,7 @@ function TeamDetailScreen() {
         strokeWidth: 3
       }));
     })));
-  })), /*#__PURE__*/React.createElement("div", {
+  })), !liveRoster && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -4586,7 +4622,7 @@ function TeamDetailScreen() {
       fontSize: 12,
       color: "var(--text-4)"
     }
-  }, a.when)))));
+  }, a.when))))));
 }
 
 /* Team settings — full screen opened from the gear in Team detail. Edits are

@@ -1393,6 +1393,8 @@ function NotificationsScreen() {
     navigate,
     params
   } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var live = app?.mode === "live";
   var [items, setItems] = useP([{
     i: "🔥",
     t: "7 дней подряд!",
@@ -1424,12 +1426,62 @@ function NotificationsScreen() {
     w: "2 д",
     go: "community"
   }]);
+  // LIVE: real notifications computed from the cloud — unread team-chat messages.
+  // Demo keeps its sample list above; nothing fake reaches a real user.
+  var [liveItems, setLiveItems] = React.useState([]);
+  React.useEffect(() => {
+    if (!live || !(window.bosCloud && window.bosCloud.enabled())) return;
+    var on = true;
+    (async () => {
+      try {
+        var me = await window.bosCloud.uid();
+        var teams = (app?.teams || []).filter(t => t.cloudId);
+        var out = [];
+        var _loop = async function () {
+          var rows = await window.bosCloud.loadMessages(t.cloudId);
+          if (!Array.isArray(rows) || !rows.length) return 1; // continue
+          var lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
+          var unread = rows.filter(r => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead);
+          if (unread.length) {
+            var last = unread[unread.length - 1];
+            var word = unread.length === 1 ? "новое сообщение" : unread.length < 5 ? "новых сообщения" : "новых сообщений";
+            out.push({
+              i: "💬",
+              t: unread.length + " " + word + " в «" + t.name + "»",
+              b: last.text || "📷 Фото",
+              w: "сейчас",
+              new: true,
+              goChat: t
+            });
+          }
+        };
+        for (var t of teams) {
+          if (await _loop()) continue;
+        }
+        if (on) setLiveItems(out);
+      } catch (e) {}
+    })();
+    return () => {
+      on = false;
+    };
+  }, [live]);
+  var shown = live ? liveItems : items;
+  var clearAll = () => {
+    if (live) setLiveItems([]);else setItems([]);
+  };
   var tap = (n, idx) => {
-    setItems(list => list.map((x, j) => j === idx ? {
+    if (!live) setItems(list => list.map((x, j) => j === idx ? {
       ...x,
       new: false
     } : x));
-    if (n.go) navigate(n.go);
+    if (n.goChat) {
+      try {
+        localStorage.setItem("bos:chatread:" + n.goChat.cloudId, String(Date.now()));
+      } catch (e) {}
+      navigate("team-chat", {
+        team: n.goChat
+      });
+    } else if (n.go) navigate(n.go);
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
@@ -1439,8 +1491,8 @@ function NotificationsScreen() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F",
     onBack: () => navigate(params?.from || "profile"),
-    right: items.length > 0 ? /*#__PURE__*/React.createElement("button", {
-      onClick: () => setItems([]),
+    right: shown.length > 0 ? /*#__PURE__*/React.createElement("button", {
+      onClick: clearAll,
       className: "tap bos-sys-text-2",
       style: {
         background: "transparent",
@@ -1448,7 +1500,7 @@ function NotificationsScreen() {
         fontSize: 13
       }
     }, "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C") : null
-  }), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }), shown.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
     style: {
       textAlign: "center",
@@ -1466,7 +1518,7 @@ function NotificationsScreen() {
       flexDirection: "column",
       gap: 10
     }
-  }, items.map((n, i) => /*#__PURE__*/React.createElement(SysCard, {
+  }, shown.map((n, i) => /*#__PURE__*/React.createElement(SysCard, {
     key: i,
     onClick: () => tap(n, i),
     style: {
