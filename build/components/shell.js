@@ -815,6 +815,18 @@ var MOOD_OPTIONS = [{
   t: "Усталость",
   c: "#8B8FA3"
 }];
+// Map the onboarding state-slider (0..1 valence, set in intro.jsx) → one of the
+// app's mood options, so the state the user picked at signup shows in the home
+// widget right away. Returns null when nothing was picked (→ caller's default).
+var _onbMood = () => {
+  var v = window.__bosOnbMood;
+  if (typeof v !== "number") return null;
+  return v >= 0.80 ? MOOD_OPTIONS[0] // Энергия
+  : v >= 0.60 ? MOOD_OPTIONS[1] // Радость
+  : v >= 0.40 ? MOOD_OPTIONS[2] // Спокойствие
+  : v >= 0.22 ? MOOD_OPTIONS[5] // Усталость
+  : MOOD_OPTIONS[4]; // Упадок
+};
 
 /* ── App-wide ephemeral state ───────────────────────────────────────
    Theme, current mood, enabled home widgets, day-mood history.
@@ -1396,7 +1408,7 @@ function AppProvider({
     setTeams([]);
     setDayMoods({});
     setDayNotes({});
-    setMood(MOOD_OPTIONS[2]);
+    setMood(_onbMood() || MOOD_OPTIONS[2]);
     setWheelSpheres(DEFAULT_SPHERES);
     setWidgets(FRESH_WIDGETS);
     setCommunityView({
@@ -1442,7 +1454,7 @@ function AppProvider({
       setDayNotes(saved.dayNotes || {});
       setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES);
       setWidgets(saved.widgets || FRESH_WIDGETS);
-      setMood(MOOD_OPTIONS[2]); // live mood isn't persisted yet — start neutral
+      setMood(_onbMood() || MOOD_OPTIONS[2]); // live mood isn't persisted yet — start neutral
     } else {
       setUserName(name);
       setHabits([]);
@@ -1450,7 +1462,7 @@ function AppProvider({
       setTeams([]);
       setDayMoods({});
       setDayNotes({});
-      setMood(MOOD_OPTIONS[2]);
+      setMood(_onbMood() || MOOD_OPTIONS[2]);
       setWheelSpheres(DEFAULT_SPHERES);
       setWidgets(FRESH_WIDGETS);
     }

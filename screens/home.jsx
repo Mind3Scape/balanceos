@@ -298,6 +298,14 @@ function HomeScreen() {
   const goals = app?.goals || [];
   const teams = app?.teams || [];
   const userName = app?.userName ?? "";
+  // Greeting follows the user's OWN local clock — real morning for whoever opens
+  // it in the morning, evening in the evening. No server sync needed: each device
+  // already knows its local time.
+  const _hr = new Date().getHours();
+  const greeting = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
+  // A brand-new account (the fresh demo, or a real Telegram user with no habits yet):
+  // gets the get-started hero + an engaging level BANNER instead of the dense stat strip.
+  const isNewbie = app?.mode === "fresh" || (app?.mode === "live" && ((app?.habits?.length) || 0) === 0);
   const toggle = app?.toggleHabit || (() => {});
   const remove = app?.removeHabit || (() => {});
   const doneCount = habits.filter(h => h.done).length;
@@ -352,7 +360,7 @@ function HomeScreen() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Вторник · 28 апреля</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? "Доброе утро, " + userName : "Доброе утро 👋"}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
         </div>
         <button onClick={() => navigate("notifications", { from: "home" })} className="tap"
           style={{ width: 42, height: 42, borderRadius: 14, background: iconBg, border: 0, display: "grid", placeItems: "center", position: "relative" }}>
@@ -381,11 +389,35 @@ function HomeScreen() {
         )}
       </div>
 
+      {/* New user: an engaging gold LEVEL banner right under "С чего начать" — turns
+          the bare stat into a hook ("every habit is XP — learn how to grow"). */}
+      {isNewbie && (
+        <button onClick={() => navigate("levels")} className="tap" style={{
+          marginTop: 12, width: "100%", border: 0, borderRadius: 22, padding: "15px 17px",
+          background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a",
+          display: "flex", alignItems: "center", gap: 13, textAlign: "left", boxShadow: "0 10px 26px rgba(239,159,20,0.30)",
+        }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22 }}>🏆</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px" }}>Уровень 1</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.55 }}>0 XP</span>
+            </div>
+            <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.62)", marginTop: 2, lineHeight: 1.35 }}>Каждая привычка — это опыт. Узнай, как расти →</div>
+            <span style={{ display: "block", height: 5, borderRadius: 999, background: "rgba(0,0,0,0.14)", overflow: "hidden", marginTop: 8 }}>
+              <span style={{ display: "block", height: "100%", width: "4%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
+            </span>
+          </div>
+          <I.ChevronRight size={20} color="rgba(0,0,0,0.45)" />
+        </button>
+      )}
+
       {/* MOOD WIDGET — living card with breathing orb + last-7-days mood trail */}
       {widgets.mood !== false && mood && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
 
-      {/* Stat strip */}
-      {(widgets.streak !== false || widgets.level !== false) && (
+      {/* Stat strip — full strip for demo / users with data. A newbie gets the
+          engaging level banner above instead (no bare "Сегодня 0/0" to deflate them). */}
+      {!isNewbie && (widgets.streak !== false || widgets.level !== false) && (
       <div style={{ display: "grid", gridTemplateColumns: widgets.streak !== false && widgets.level !== false ? "1.2fr 1fr 1fr" : (widgets.streak !== false || widgets.level !== false ? "1fr 1fr" : "1fr"), gap: 8, marginTop: 12 }}>
         {widgets.streak !== false && (
         <button onClick={() => navigate("history")} className="tap" style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, boxShadow: cardShadow, color: "var(--text)" }}>

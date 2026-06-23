@@ -3238,56 +3238,37 @@ function SignUpScreen() {
       width: "100%",
       display: "flex",
       alignItems: "center",
-      gap: 13,
-      textAlign: "left",
+      justifyContent: "center",
+      gap: 9,
       background: "linear-gradient(150deg, #20242c 0%, #0a0a0a 62%)",
       color: "#fff",
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 20,
-      padding: "15px 16px",
+      border: "1px solid rgba(255,255,255,0.09)",
+      borderRadius: 999,
+      padding: "16px 18px",
+      fontSize: 15.5,
+      fontWeight: 600,
+      letterSpacing: "-0.1px",
       boxShadow: "0 14px 32px rgba(0,0,0,0.30)"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
+      width: 26,
+      height: 26,
+      borderRadius: 8,
       background: "#229ED9",
       display: "grid",
       placeItems: "center",
-      flexShrink: 0,
-      boxShadow: "0 4px 12px rgba(34,158,217,0.45)"
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "24",
-    height: "24",
+    width: "16",
+    height: "16",
     viewBox: "0 0 24 24",
     fill: "#fff",
     "aria-hidden": true
   }, /*#__PURE__*/React.createElement("path", {
     d: "M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 700,
-      letterSpacing: "-0.3px"
-    }
-  }, "\u0412\u043E\u0439\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 Telegram"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "rgba(255,255,255,0.6)",
-      marginTop: 2,
-      lineHeight: 1.35
-    }
-  }, "\u0422\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 \u2014 \u0432\u0441\u0451 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u043F\u043E-\u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0435\u043C\u0443")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 20,
-    color: "rgba(255,255,255,0.55)"
-  }))));
+  }))), "\u0412\u043E\u0439\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 Telegram")));
 }
 function IconPickerScreen() {
   var {

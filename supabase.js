@@ -11,4 +11,4 @@
 window.SUPABASE_URL = "https://vnkjsqvtgybqlfnhdijf.supabase.co";
 
 // 👇 ВСТАВЬ СЮДА anon / public ключ из Supabase → Settings → API Keys (между кавычками)
-window.SUPABASE_ANON_KEY = "";
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZua2pzcXZ0Z3licWxmbmhkaWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMDkyMTcsImV4cCI6MjA5Nzc4NTIxN30.kd2g44Gchb10Pw4OrDjx1mCsO9pjVK6Qaf1p22d47k4";

@@ -378,6 +378,18 @@ const MOOD_OPTIONS = [
   { i: "😔", t: "Упадок",       c: "#6B7A99" },
   { i: "😮‍💨", t: "Усталость",   c: "#8B8FA3" },
 ];
+// Map the onboarding state-slider (0..1 valence, set in intro.jsx) → one of the
+// app's mood options, so the state the user picked at signup shows in the home
+// widget right away. Returns null when nothing was picked (→ caller's default).
+const _onbMood = () => {
+  const v = window.__bosOnbMood;
+  if (typeof v !== "number") return null;
+  return v >= 0.80 ? MOOD_OPTIONS[0]   // Энергия
+       : v >= 0.60 ? MOOD_OPTIONS[1]   // Радость
+       : v >= 0.40 ? MOOD_OPTIONS[2]   // Спокойствие
+       : v >= 0.22 ? MOOD_OPTIONS[5]   // Усталость
+       :             MOOD_OPTIONS[4];  // Упадок
+};
 
 /* ── App-wide ephemeral state ───────────────────────────────────────
    Theme, current mood, enabled home widgets, day-mood history.
@@ -565,7 +577,7 @@ function AppProvider({ children }) {
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim());
     setHabits([]); setGoals([]); setTeams([]);
-    setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
+    setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // Arm the welcome sheets; mark home as already-introduced so only the OTHER
     // tabs trigger a contextual intro when the user first opens them.
@@ -591,11 +603,11 @@ function AppProvider({ children }) {
       setHabits(saved.habits || []); setGoals(saved.goals || []); setTeams(saved.teams || []);
       setDayMoods(saved.dayMoods || {}); setDayNotes(saved.dayNotes || {});
       setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS);
-      setMood(MOOD_OPTIONS[2]); // live mood isn't persisted yet — start neutral
+      setMood(_onbMood() || MOOD_OPTIONS[2]); // live mood isn't persisted yet — start neutral
     } else {
       setUserName(name);
       setHabits([]); setGoals([]); setTeams([]);
-      setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
+      setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
     }
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // First-time real users get the welcome sheets; returning ones skip straight in.

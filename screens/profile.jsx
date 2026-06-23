@@ -1127,19 +1127,18 @@ function SignUpScreen() {
 
         {/* ── Group 2 — THE REAL APP: your Telegram account, saved for real ── */}
         <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase", color: pal.sub, margin: "24px 0 11px 4px" }}>Войти по-настоящему</div>
+        {/* A pill — same long, rounded shape as onboarding's «Далее» (continuity),
+            so it reads as THE action and stands apart from the two demo cards above. */}
         <button onClick={goLive} className="tap" style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
           background: "linear-gradient(150deg, #20242c 0%, #0a0a0a 62%)", color: "#fff",
-          border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "15px 16px", boxShadow: "0 14px 32px rgba(0,0,0,0.30)",
+          border: "1px solid rgba(255,255,255,0.09)", borderRadius: 999, padding: "16px 18px",
+          fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: "0 14px 32px rgba(0,0,0,0.30)",
         }}>
-          <span style={{ width: 44, height: 44, borderRadius: 14, background: "#229ED9", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(34,158,217,0.45)" }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-hidden><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+          <span style={{ width: 26, height: 26, borderRadius: 8, background: "#229ED9", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
           </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Войти через Telegram</div>
-            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.6)", marginTop: 2, lineHeight: 1.35 }}>Твой аккаунт — всё сохранится по-настоящему</div>
-          </div>
-          <I.ChevronRight size={20} color="rgba(255,255,255,0.55)" />
+          Войти через Telegram
         </button>
       </div>
     </div>

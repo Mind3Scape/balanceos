@@ -1509,6 +1509,9 @@ function IntroScreen() {
         window.tgHaptic("light");
       } catch (e) {}
     }
+    try {
+      window.__bosOnbMood = moodVal;
+    } catch (e) {} // carry the chosen state → home widget
     navigate("signup");
   };
 

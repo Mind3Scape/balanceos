@@ -694,6 +694,14 @@ function HomeScreen() {
   var goals = app?.goals || [];
   var teams = app?.teams || [];
   var userName = app?.userName ?? "";
+  // Greeting follows the user's OWN local clock — real morning for whoever opens
+  // it in the morning, evening in the evening. No server sync needed: each device
+  // already knows its local time.
+  var _hr = new Date().getHours();
+  var greeting = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
+  // A brand-new account (the fresh demo, or a real Telegram user with no habits yet):
+  // gets the get-started hero + an engaging level BANNER instead of the dense stat strip.
+  var isNewbie = app?.mode === "fresh" || app?.mode === "live" && (app?.habits?.length || 0) === 0;
   var toggle = app?.toggleHabit || (() => {});
   var remove = app?.removeHabit || (() => {});
   var doneCount = habits.filter(h => h.done).length;
@@ -789,7 +797,7 @@ function HomeScreen() {
       marginTop: 2,
       fontFamily: "var(--bos-title-font)"
     }
-  }, userName ? "Доброе утро, " + userName : "Доброе утро 👋")), /*#__PURE__*/React.createElement("button", {
+  }, userName ? greeting + ", " + userName : greeting + " 👋")), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("notifications", {
       from: "home"
     }),
@@ -875,12 +883,90 @@ function HomeScreen() {
         ["--sy"]: Math.sin(a) * 44 + "px"
       }
     });
-  }))), widgets.mood !== false && mood && /*#__PURE__*/React.createElement(MoodWidget, {
+  }))), isNewbie && /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("levels"),
+    className: "tap",
+    style: {
+      marginTop: 12,
+      width: "100%",
+      border: 0,
+      borderRadius: 22,
+      padding: "15px 17px",
+      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+      color: "#0a0a0a",
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      textAlign: "left",
+      boxShadow: "0 10px 26px rgba(239,159,20,0.30)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: "rgba(255,255,255,0.5)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      fontSize: 22
+    }
+  }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 700,
+      letterSpacing: "-0.2px"
+    }
+  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 1"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      opacity: 0.55
+    }
+  }, "0 XP")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "rgba(0,0,0,0.62)",
+      marginTop: 2,
+      lineHeight: 1.35
+    }
+  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u2014 \u044D\u0442\u043E \u043E\u043F\u044B\u0442. \u0423\u0437\u043D\u0430\u0439, \u043A\u0430\u043A \u0440\u0430\u0441\u0442\u0438 \u2192"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: 5,
+      borderRadius: 999,
+      background: "rgba(0,0,0,0.14)",
+      overflow: "hidden",
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: "4%",
+      borderRadius: 999,
+      background: "rgba(0,0,0,0.82)"
+    }
+  }))), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 20,
+    color: "rgba(0,0,0,0.45)"
+  })), widgets.mood !== false && mood && /*#__PURE__*/React.createElement(MoodWidget, {
     mood: mood,
     app: app,
     isDark: isDark,
     navigate: navigate
-  }), (widgets.streak !== false || widgets.level !== false) && /*#__PURE__*/React.createElement("div", {
+  }), !isNewbie && (widgets.streak !== false || widgets.level !== false) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: widgets.streak !== false && widgets.level !== false ? "1.2fr 1fr 1fr" : widgets.streak !== false || widgets.level !== false ? "1fr 1fr" : "1fr",
