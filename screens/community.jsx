@@ -1679,10 +1679,19 @@ function LevelsScreen() {
   const ruPpl = (n, a) => { const m = n % 10, h = n % 100; return a[(m === 1 && h !== 11) ? 0 : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? 1 : 2]; };
   const ach = (typeof window !== "undefined" && window.ACHIEVEMENTS) || [];
   const achEarned = ach.filter(a => a.earned);
-  const lvl = 7;
-  const xp = 1240;
-  const next = 1500;
-  const credits = 980; // spendable XP balance (lifetime/level XP is separate, 1240)
+  // LIVE: real numbers from the date-keyed habit model (T0.2). DEMO: curated showcase.
+  // Fresh demo: a clean level 1. Titles are shared so demo's "Преданный делу" still maps to 7.
+  const _isLive = app?.mode === "live";
+  const _xpLive = _isLive ? bosTotalXP(app?.habits) : 0;
+  const _li = bosLevelInfo(_xpLive);
+  const LEVEL_TITLES = ["Новичок", "Первые шаги", "Набираю ритм", "В потоке", "Стойкость", "Уверенность", "Преданный делу", "Сосредоточенный", "Мастер привычек", "Вдохновитель", "Наставник", "Легенда"];
+  const titleFor = (l) => LEVEL_TITLES[Math.min(Math.max(1, l), LEVEL_TITLES.length) - 1];
+  const lvl = app?.mode === "demo" ? 7 : (_isLive ? _li.level : 1);
+  const xp = app?.mode === "demo" ? 1240 : (_isLive ? _xpLive : 0);
+  const next = app?.mode === "demo" ? 1500 : (_isLive ? _li.next : 100);
+  const pctBar = app?.mode === "demo" ? Math.round(1240 / 1500 * 100) : (_isLive ? _li.pct : 4);
+  const credits = app?.mode === "demo" ? 980 : (_isLive ? _xpLive : 0); // spendable balance = earned XP for live
+  const rUnlocked = (r) => lvl >= r.lvl;
   const rewards = [
     { i: "🎁", t: "Коробка-сюрприз", c: 200, lvl: 5, unlocked: true },
     { i: "🧘🏼‍♀️", t: "Персональная медитация", c: 500, lvl: 6, unlocked: true },
@@ -1708,15 +1717,15 @@ function LevelsScreen() {
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, opacity: 0.7 }}>Текущий уровень</div>
           <div style={{ fontSize: 64, fontWeight: 800, letterSpacing: "-2px", lineHeight: 1, marginTop: 6 }}>{lvl}</div>
-          <div style={{ fontSize: 14, fontWeight: 500, marginTop: 4 }}>Преданный делу</div>
+          <div style={{ fontSize: 14, fontWeight: 500, marginTop: 4 }}>{titleFor(lvl)}</div>
           <div style={{ marginTop: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
               <span>{xp} XP</span><span>{next} XP</span>
             </div>
             <div style={{ height: 8, background: "rgba(0,0,0,0.15)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
-              <span style={{ display: "block", height: "100%", width: (xp/next*100)+"%", background: "#0a0a0a" }} />
+              <span style={{ display: "block", height: "100%", width: pctBar+"%", background: "#0a0a0a" }} />
             </div>
-            <div style={{ fontSize: 12, marginTop: 6, opacity: 0.7 }}>{next-xp} XP до 8 уровня · Сосредоточенный</div>
+            <div style={{ fontSize: 12, marginTop: 6, opacity: 0.7 }}>{Math.max(0, next-xp)} XP до {lvl+1} уровня · {titleFor(lvl+1)}</div>
           </div>
         </div>
       </div>
@@ -1829,16 +1838,16 @@ function LevelsScreen() {
       <div className="section-label" style={{ marginTop: 22 }}>Награды за XP</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {rewards.map((r, i) => (
-          <SysCard key={i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, opacity: r.unlocked ? 1 : 0.55 }}>
+          <SysCard key={i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, opacity: rUnlocked(r) ? 1 : 0.55 }}>
             <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 12, display: "grid", placeItems: "center", fontSize: 22 }}>{r.i}</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{r.t}</div>
               <div className="bos-sys-text-3" style={{ fontSize: 11, marginTop: 2 }}>
-                {r.unlocked ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`}
+                {rUnlocked(r) ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`}
               </div>
             </div>
-            <button disabled={!r.unlocked || credits < r.c} className="tap" style={{ background: r.unlocked && credits >= r.c ? "#FEDE34" : "var(--surface-3)", color: r.unlocked && credits >= r.c ? "#0a0a0a" : "var(--text-4)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>
-              {r.unlocked ? (credits >= r.c ? "Получить" : "Нужно больше") : "🔒"}
+            <button disabled={!rUnlocked(r) || credits < r.c} className="tap" style={{ background: rUnlocked(r) && credits >= r.c ? "#FEDE34" : "var(--surface-3)", color: rUnlocked(r) && credits >= r.c ? "#0a0a0a" : "var(--text-4)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>
+              {rUnlocked(r) ? (credits >= r.c ? "Получить" : "Нужно больше") : "🔒"}
             </button>
           </SysCard>
         ))}

@@ -724,7 +724,12 @@ function HomeScreen() {
       h = n % 100;
     return m === 1 && h !== 11 ? "команда" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "команды" : "команд";
   };
-  var dayStreak = app?.mode === "demo" ? 27 : 0; // demo showcase only; real streak comes with T0.2
+  // Live profiles get REAL numbers from the date-keyed habit model (T0.2); demo stays a
+  // curated showcase (level 7 / 1240 XP / 27-day streak); a fresh demo shows blanks.
+  var _isLive = app?.mode === "live";
+  var _liveXP = _isLive ? bosTotalXP(habits) : 0;
+  var _lvl = bosLevelInfo(_liveXP);
+  var dayStreak = app?.mode === "demo" ? 27 : _isLive ? bosMaxStreak(habits) : 0;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
   // sparkle burst when the whole day closes (doneCount reaches total).
@@ -1096,14 +1101,14 @@ function HomeScreen() {
       letterSpacing: "-0.5px"
     }
   }, /*#__PURE__*/React.createElement(CountUp, {
-    value: app?.mode === "demo" ? 7 : 1
+    value: app?.mode === "demo" ? 7 : _isLive ? _lvl.level : 1
   })), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10.5,
       opacity: 0.62,
       fontWeight: 700
     }
-  }, app?.mode === "demo" ? "1 240 XP" : "0 XP")), /*#__PURE__*/React.createElement("span", {
+  }, app?.mode === "demo" ? "1 240 XP" : _isLive ? _liveXP + " XP" : "0 XP")), /*#__PURE__*/React.createElement("span", {
     style: {
       display: "block",
       height: 4,
@@ -1116,7 +1121,7 @@ function HomeScreen() {
     style: {
       display: "block",
       height: "100%",
-      width: (app?.mode === "demo" ? 83 : 4) + "%",
+      width: (app?.mode === "demo" ? 83 : _isLive ? _lvl.pct : 4) + "%",
       borderRadius: 999,
       background: "rgba(0,0,0,0.82)"
     }

@@ -1216,6 +1216,89 @@ var IS_PROMO = (() => {
     return false;
   }
 })();
+
+/* ── T0.2 — bulletproof, date-keyed habit model (LIVE profiles only) ──
+   A live habit records each completion as a date key in `h.log` ({ "2026-06-23": true }) —
+   an idempotent UPSERT by (habit, day). `done` and `streak` are DERIVED from that log, so a
+   new day clears yesterday's checkmarks while the streak & XP history persist; toggling the
+   same day twice can't double-count or corrupt anything. The demo stays a frozen showcase
+   (curated `done`/`streak`), untouched by all of this. At T1 the same log syncs to Supabase. */
+function bosTodayKey(d) {
+  var x = d || new Date();
+  // local-date key (not UTC) so "today" matches the user's own clock
+  var m = x.getMonth() + 1,
+    day = x.getDate();
+  return x.getFullYear() + "-" + (m < 10 ? "0" + m : m) + "-" + (day < 10 ? "0" + day : day);
+}
+function bosDayKeyOffset(n) {
+  var x = new Date();
+  x.setDate(x.getDate() - n);
+  return bosTodayKey(x);
+}
+// Consecutive-day streak from a {dateKey:true} log: counts back from today, or from yesterday
+// if today isn't done yet (an open day doesn't break a streak — only a fully missed day does).
+function bosStreak(log) {
+  if (!log) return 0;
+  var start = log[bosTodayKey()] ? 0 : 1;
+  if (start === 1 && !log[bosDayKeyOffset(1)]) return 0;
+  var n = 0;
+  for (var i = start; i < 3650; i++) {
+    if (log[bosDayKeyOffset(i)]) n++;else break;
+  }
+  return n;
+}
+// Total earned XP for a live profile: every recorded completion is +10 XP. Monotonic and
+// impossible to corrupt — it's just a count of (habit, day) entries.
+function bosTotalXP(habits) {
+  var n = 0;
+  (habits || []).forEach(function (h) {
+    if (h && h.log) n += Object.keys(h.log).length;
+  });
+  return n * 10;
+}
+// XP → level. Each level costs a little more than the last (100, 150, 200…): a gentle curve
+// so the first wins come fast and later levels feel earned.
+function bosLevelInfo(xp) {
+  xp = xp || 0;
+  var L = 1,
+    floor = 0,
+    step = 100;
+  while (xp >= floor + step) {
+    floor += step;
+    L++;
+    step += 50;
+  }
+  return {
+    level: L,
+    xp: xp,
+    floor: floor,
+    next: floor + step,
+    into: xp - floor,
+    span: step,
+    pct: Math.max(2, Math.round((xp - floor) / step * 100))
+  };
+}
+// Highest current streak across a profile's habits (the "🔥 Серия" headline number).
+function bosMaxStreak(habits) {
+  var m = 0;
+  (habits || []).forEach(function (h) {
+    if (h && h.streak > m) m = h.streak;
+  });
+  return m;
+}
+// Re-derive a live habit's `done`/`streak` from its log for TODAY. Also migrates a pre-model
+// habit (had `done`, no `log`) forward so a currently-checked habit isn't lost on upgrade.
+function bosRollHabit(h) {
+  if (!h) return h;
+  var tk = bosTodayKey();
+  var log = h.log ? Object.assign({}, h.log) : {};
+  if (!h.log && h.done) log[tk] = true; // one-time migration
+  return Object.assign({}, h, {
+    log: log,
+    done: !!log[tk],
+    streak: bosStreak(log)
+  });
+}
 function AppProvider({
   children
 }) {
@@ -1267,10 +1350,24 @@ function AppProvider({
   // Shared habit / goal store + mutators (the app's single source of truth).
   var [habits, setHabits] = useState(SEED_HABITS);
   var [goals, setGoals] = useState(SEED_GOALS);
-  var toggleHabit = id => setHabits(hs => hs.map(h => h.id === id ? {
-    ...h,
-    done: !h.done
-  } : h));
+
+  // Demo/fresh: simple boolean flip (curated showcase). Live: idempotent date-keyed
+  // UPSERT into the habit's log, with done/streak re-derived from it (T0.2).
+  var toggleHabit = id => setHabits(hs => hs.map(h => {
+    if (h.id !== id) return h;
+    if (mode !== "live") return {
+      ...h,
+      done: !h.done
+    };
+    var tk = bosTodayKey();
+    var log = h.log ? Object.assign({}, h.log) : {};
+    if (log[tk]) delete log[tk];else log[tk] = true;
+    return Object.assign({}, h, {
+      log: log,
+      done: !!log[tk],
+      streak: bosStreak(log)
+    });
+  }));
   var addHabit = h => {
     var nh = {
       id: _nid(),
@@ -1286,6 +1383,25 @@ function AppProvider({
     ...patch
   } : h));
   var removeHabit = id => setHabits(hs => hs.filter(h => h.id !== id));
+
+  // Live profiles: when the app (re)gains focus, re-derive today's checkmarks from each
+  // habit's log — a habit checked yesterday shows unchecked today, while streak/XP persist.
+  // No-op unless something actually changed, so it won't churn renders or saves.
+  useEffect(() => {
+    if (mode !== "live") return;
+    var roll = () => setHabits(hs => {
+      var next = hs.map(bosRollHabit);
+      var changed = next.some((h, i) => h.done !== hs[i].done || h.streak !== hs[i].streak);
+      return changed ? next : hs;
+    });
+    roll();
+    window.addEventListener("focus", roll);
+    document.addEventListener("visibilitychange", roll);
+    return () => {
+      window.removeEventListener("focus", roll);
+      document.removeEventListener("visibilitychange", roll);
+    };
+  }, [mode]);
   var addGoal = g => {
     var ng = {
       id: _nid(),
@@ -1449,7 +1565,7 @@ function AppProvider({
     var saved = window.bosStore && window.bosStore.has(pid) ? window.bosStore.load(pid) : null;
     if (saved) {
       setUserName(saved.userName || name);
-      setHabits(saved.habits || []);
+      setHabits((saved.habits || []).map(bosRollHabit));
       setGoals(saved.goals || []);
       setTeams(saved.teams || []);
       setDayMoods(saved.dayMoods || {});

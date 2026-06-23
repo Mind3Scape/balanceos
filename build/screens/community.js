@@ -4897,10 +4897,19 @@ function LevelsScreen() {
   };
   var ach = typeof window !== "undefined" && window.ACHIEVEMENTS || [];
   var achEarned = ach.filter(a => a.earned);
-  var lvl = 7;
-  var xp = 1240;
-  var next = 1500;
-  var credits = 980; // spendable XP balance (lifetime/level XP is separate, 1240)
+  // LIVE: real numbers from the date-keyed habit model (T0.2). DEMO: curated showcase.
+  // Fresh demo: a clean level 1. Titles are shared so demo's "Преданный делу" still maps to 7.
+  var _isLive = app?.mode === "live";
+  var _xpLive = _isLive ? bosTotalXP(app?.habits) : 0;
+  var _li = bosLevelInfo(_xpLive);
+  var LEVEL_TITLES = ["Новичок", "Первые шаги", "Набираю ритм", "В потоке", "Стойкость", "Уверенность", "Преданный делу", "Сосредоточенный", "Мастер привычек", "Вдохновитель", "Наставник", "Легенда"];
+  var titleFor = l => LEVEL_TITLES[Math.min(Math.max(1, l), LEVEL_TITLES.length) - 1];
+  var lvl = app?.mode === "demo" ? 7 : _isLive ? _li.level : 1;
+  var xp = app?.mode === "demo" ? 1240 : _isLive ? _xpLive : 0;
+  var next = app?.mode === "demo" ? 1500 : _isLive ? _li.next : 100;
+  var pctBar = app?.mode === "demo" ? Math.round(1240 / 1500 * 100) : _isLive ? _li.pct : 4;
+  var credits = app?.mode === "demo" ? 980 : _isLive ? _xpLive : 0; // spendable balance = earned XP for live
+  var rUnlocked = r => lvl >= r.lvl;
   var rewards = [{
     i: "🎁",
     t: "Коробка-сюрприз",
@@ -5015,7 +5024,7 @@ function LevelsScreen() {
       fontWeight: 500,
       marginTop: 4
     }
-  }, "\u041F\u0440\u0435\u0434\u0430\u043D\u043D\u044B\u0439 \u0434\u0435\u043B\u0443"), /*#__PURE__*/React.createElement("div", {
+  }, titleFor(lvl)), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16
     }
@@ -5038,7 +5047,7 @@ function LevelsScreen() {
     style: {
       display: "block",
       height: "100%",
-      width: xp / next * 100 + "%",
+      width: pctBar + "%",
       background: "#0a0a0a"
     }
   })), /*#__PURE__*/React.createElement("div", {
@@ -5047,7 +5056,7 @@ function LevelsScreen() {
       marginTop: 6,
       opacity: 0.7
     }
-  }, next - xp, " XP \u0434\u043E 8 \u0443\u0440\u043E\u0432\u043D\u044F \xB7 \u0421\u043E\u0441\u0440\u0435\u0434\u043E\u0442\u043E\u0447\u0435\u043D\u043D\u044B\u0439")))), /*#__PURE__*/React.createElement("div", {
+  }, Math.max(0, next - xp), " XP \u0434\u043E ", lvl + 1, " \u0443\u0440\u043E\u0432\u043D\u044F \xB7 ", titleFor(lvl + 1))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 20
@@ -5431,7 +5440,7 @@ function LevelsScreen() {
       display: "flex",
       alignItems: "center",
       gap: 12,
-      opacity: r.unlocked ? 1 : 0.55
+      opacity: rUnlocked(r) ? 1 : 0.55
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
@@ -5458,19 +5467,19 @@ function LevelsScreen() {
       fontSize: 11,
       marginTop: 2
     }
-  }, r.unlocked ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`)), /*#__PURE__*/React.createElement("button", {
-    disabled: !r.unlocked || credits < r.c,
+  }, rUnlocked(r) ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`)), /*#__PURE__*/React.createElement("button", {
+    disabled: !rUnlocked(r) || credits < r.c,
     className: "tap",
     style: {
-      background: r.unlocked && credits >= r.c ? "#FEDE34" : "var(--surface-3)",
-      color: r.unlocked && credits >= r.c ? "#0a0a0a" : "var(--text-4)",
+      background: rUnlocked(r) && credits >= r.c ? "#FEDE34" : "var(--surface-3)",
+      color: rUnlocked(r) && credits >= r.c ? "#0a0a0a" : "var(--text-4)",
       border: 0,
       borderRadius: 999,
       padding: "8px 14px",
       fontSize: 12,
       fontWeight: 600
     }
-  }, r.unlocked ? credits >= r.c ? "Получить" : "Нужно больше" : "🔒")))));
+  }, rUnlocked(r) ? credits >= r.c ? "Получить" : "Нужно больше" : "🔒")))));
 }
 
 /* ─── COURSE DETAIL — full programme description ─── */

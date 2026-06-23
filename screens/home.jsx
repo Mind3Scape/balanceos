@@ -319,7 +319,12 @@ function HomeScreen() {
   const xpEarnedToday = doneCount * XP_PER_HABIT + (dayAllDone ? XP_IDEAL_DAY : 0);
   const ruHab = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "привычку" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "привычки" : "привычек"; };
   const ruTeam = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "команда" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "команды" : "команд"; };
-  const dayStreak = app?.mode === "demo" ? 27 : 0; // demo showcase only; real streak comes with T0.2
+  // Live profiles get REAL numbers from the date-keyed habit model (T0.2); demo stays a
+  // curated showcase (level 7 / 1240 XP / 27-day streak); a fresh demo shows blanks.
+  const _isLive = app?.mode === "live";
+  const _liveXP = _isLive ? bosTotalXP(habits) : 0;
+  const _lvl = bosLevelInfo(_liveXP);
+  const dayStreak = app?.mode === "demo" ? 27 : (_isLive ? bosMaxStreak(habits) : 0);
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
   // sparkle burst when the whole day closes (doneCount reaches total).
@@ -439,11 +444,11 @@ function HomeScreen() {
         <button data-tour="level" onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, opacity: 0.7 }}>Уровень</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={app?.mode === "demo" ? 7 : 1}/></span>
-            <span style={{ fontSize: 10.5, opacity: 0.62, fontWeight: 700 }}>{app?.mode === "demo" ? "1 240 XP" : "0 XP"}</span>
+            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={app?.mode === "demo" ? 7 : (_isLive ? _lvl.level : 1)}/></span>
+            <span style={{ fontSize: 10.5, opacity: 0.62, fontWeight: 700 }}>{app?.mode === "demo" ? "1 240 XP" : (_isLive ? (_liveXP + " XP") : "0 XP")}</span>
           </div>
           <span style={{ display: "block", height: 4, borderRadius: 999, background: "rgba(0,0,0,0.16)", overflow: "hidden", marginTop: 1 }}>
-            <span style={{ display: "block", height: "100%", width: (app?.mode === "demo" ? 83 : 4) + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
+            <span style={{ display: "block", height: "100%", width: (app?.mode === "demo" ? 83 : (_isLive ? _lvl.pct : 4)) + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
           </span>
         </button>
         )}
