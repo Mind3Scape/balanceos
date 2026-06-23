@@ -1523,6 +1523,12 @@ function AppProvider({
         widgets,
         wheelSpheres
       });
+      try {
+        if (window.bosCloud && window.bosCloud.enabled()) window.bosCloud.saveProfile({
+          username: userName,
+          avatar: avatar
+        });
+      } catch (e) {}
     }, 400);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -1645,6 +1651,32 @@ function AppProvider({
     setTourScreen(null);
     setGuideDone(!!saved);
     setPersistId(pid); // from here on, every change is saved under this real profile
+    // ── Cloud (T1): sign in (Telegram identity or anonymous web fallback) and sync the
+    // profile in the background. Fully guarded — if cloud is off/unreachable, stays local.
+    try {
+      if (window.bosCloud && window.bosCloud.enabled()) {
+        var _refBy = null;
+        try {
+          _refBy = new URLSearchParams(window.location.search).get("ref") || null;
+        } catch (e) {}
+        var _locName = saved ? saved.userName || name : name;
+        var _locAv = saved ? saved.avatar || avatar || null : avatar || null;
+        window.bosCloud.signIn(_refBy).then(function (u) {
+          if (!u) return;
+          window.bosCloud.loadProfile().then(function (prof) {
+            if (prof && (prof.username || prof.avatar)) {
+              if (prof.username) setUserName(prof.username);
+              if (prof.avatar) setAvatar(prof.avatar);
+            } else {
+              window.bosCloud.saveProfile({
+                username: _locName,
+                avatar: _locAv
+              });
+            }
+          });
+        });
+      }
+    } catch (e) {}
   };
   var startTour = mode => {
     setTourMode(mode || "demo");
