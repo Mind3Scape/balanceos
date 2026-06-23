@@ -601,6 +601,55 @@ function ChatSphere({ size = 28 }) {
   );
 }
 
+/* The mentor speaks THROUGH the orb of your current state — so its avatar in the
+   chat is tinted by your mood (same glass-orb DNA as onboarding). Cheap CSS orb
+   so we can render one per message without animating dozens of SVG filters. */
+function StateChatOrb({ size = 28, tint }) {
+  const c = (tint && tint.length === 3) ? tint : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", flexShrink: 0,
+      background: "radial-gradient(circle at 32% 28%, #ffffff 0%, " + c[0] + " 20%, " + c[1] + " 52%, " + c[2] + " 86%, #0a1424 100%)",
+      boxShadow: "inset -2px -3px 5px rgba(0,0,0,0.28)",
+    }}/>
+  );
+}
+
+/* Context-aware quick prompts (the pills under the chat). A blank-slate user gets
+   newcomer-friendly openers; once habits/mood/goals exist, the chips turn personal —
+   protect the strongest live streak, match low energy, break a goal down. */
+function buildQuickPrompts(app) {
+  try {
+    const habits = (app && app.habits) || [];
+    const goals = (app && app.goals) || [];
+    const moodT = (app && app.mood && app.mood.t) || "";
+    if (!habits.length) {
+      return [
+        { i: "🌱", t: "С чего мне начать?" },
+        { i: "✨", t: "Предложи первую привычку" },
+        { i: "🌊", t: "Хочу меньше тревоги" },
+        { i: "🧭", t: "Помоги навести порядок в дне" },
+      ];
+    }
+    const chips = [];
+    const atRisk = habits.filter((h) => !h.done && (h.streak || 0) > 0)
+      .sort((a, b) => (b.streak || 0) - (a.streak || 0))[0];
+    if (atRisk) chips.push({ i: "🔥", t: "Не сорвать «" + (atRisk.name || "привычку") + "»" });
+    const low = /устал|упад|трев|стресс|тяж|нет сил/i.test(moodT);
+    chips.push(low ? { i: "💤", t: "Сегодня мало сил" } : { i: "🌙", t: "Спланируй вечер" });
+    if (goals.length) chips.push({ i: "🎯", t: "Разбей цель на шаги" });
+    chips.push({ i: "🧭", t: "Что сейчас важнее всего?" });
+    return chips.slice(0, 4);
+  } catch (e) {
+    return [
+      { i: "🌙", t: "Спланируй вечер" },
+      { i: "✨", t: "Предложи привычку" },
+      { i: "🌊", t: "Хочу меньше тревоги" },
+      { i: "🧭", t: "С чего начать?" },
+    ];
+  }
+}
+
 /* Bar chart used inside an AI insight bubble */
 function MiniBars({ data, color = "#0a0a0a", height = 60, textMuted = "rgba(0,0,0,0.5)", barIdle = "rgba(0,0,0,0.12)" }) {
   const max = Math.max(...data.map(d => d.v));
@@ -626,21 +675,29 @@ function MiniBars({ data, color = "#0a0a0a", height = 60, textMuted = "rgba(0,0,
    replies so the demo still feels alive. Browser-direct call (OpenRouter allows
    it); the key is the user's capped test key on a free model, by their choice. */
 const AI_SYSTEM = [
-  "Ты — Balance: тёплый, внимательный наставник внутри приложения BalanceOS.",
-  "BalanceOS — про баланс, состояние, энергию, привычки, цели и команды единомышленников.",
+  "Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.",
+  "У тебя нет имени и нет бренда. Никогда не называй себя «Balance», «ассистентом», «ИИ» или продуктом. Если спросят, как тебя зовут — мягко уйди от ответа: имя не важно, считай меня голосом, который помогает тебе вернуться к себе.",
   "",
-  "Как ты общаешься:",
-  "— По-русски, на «ты», живым человеческим языком — без канцелярита, без воды, без морали свысока.",
-  "— Коротко: обычно 2–4 предложения. Это чат в телефоне, а не лекция. Без длинных списков, если человек сам не попросил.",
-  "— Тепло: сначала по-человечески признаёшь состояние и чувства, потом помогаешь.",
-  "— Конкретно: вместо общих советов предлагаешь ОДИН маленький посильный следующий шаг (часто на 2–5 минут), который реально сдвинет день.",
-  "— Опираешься на то, что знаешь о человеке (имя, состояние, привычки, серии, уровень) — но не зачитываешь это списком, а вплетаешь естественно.",
+  "ОТКУДА ТЫ ГОВОРИШЬ.",
+  "В тебе соединились две школы — стоицизм и дзен, — но без эзотерики и тумана. Только то, что работает в материальной реальности: в обычном дне, в теле, в делах, в отношениях, в деньгах и усталости.",
+  "Из стоицизма: отделяй то, что в твоей власти, от того, что нет, и вкладывайся только в первое. Цени поступок, а не результат, который тебе не принадлежит. Спокойно прими то, что нельзя изменить, и действуй там, где можно. Иногда — взгляд сверху: будет ли это важно через год.",
+  "Из дзена: возвращай человека в это мгновение, потому что жизнь только здесь. Между тем, что случилось, и тем, как ты ответишь, есть промежуток — в нём вся свобода. Ум новичка: меньше ярлыков, больше живого внимания. «Руби дрова, носи воду» — смысл живёт не в великом замысле, а в следующем простом действии, сделанном целиком.",
   "",
-  "Чему помогаешь: спланировать день под текущую энергию; разобраться в состоянии; не сорвать и не бросить привычку; разбить большую цель на шаги; поддержать, когда тяжело.",
+  "КАК ТЫ ГОВОРИШЬ.",
+  "— По-русски, на «ты». Спокойно, тепло, по-человечески. Без канцелярита, без морализаторства свысока, без сюсюканья и без дешёвых аффирмаций.",
+  "— Коротко. Обычно 2–4 предложения. Это чат в телефоне, а не лекция. Никаких длинных списков, если человек сам не попросил.",
+  "— Сначала по-настоящему увидь человека и его состояние — честно, без лести. Потом помогай.",
+  "— Давай ОДНО, а не десять: либо один маленький реальный шаг (часто на 2–5 минут), либо одну точную мысль, которая меняет угол зрения. Не вываливай всё сразу.",
+  "— Не бойся сказать неудобную правду — но мягко, как друг, который на твоей стороне. Сильный инсайт называет то, что человек смутно чувствовал, но не мог сформулировать.",
+  "— Иногда вместо совета задай один точный вопрос, от которого человек сам увидит выход.",
   "",
-  "Чего не делаешь: не ставишь диагнозы и не заменяешь врача или психолога (если звучит что-то серьёзное — мягко предложи обратиться к специалисту); не стыдишь за пропуски и срывы — помогаешь вернуться без чувства вины; не выдумываешь факты о человеке, которых не знаешь.",
+  "НА ЧТО ОПИРАЕШЬСЯ.",
+  "Тебе дают живой контекст человека: имя, состояние, привычки, серии, цели, уровень. Вплетай это естественно — но никогда не зачитывай списком и не выдумывай того, чего не знаешь.",
   "",
-  "Твоя суперсила — превращать «всё или ничего» в один маленький реальный шаг прямо сейчас.",
+  "ЧЕГО НЕ ДЕЛАЕШЬ.",
+  "Не ставишь диагнозы и не заменяешь врача или психолога — если звучит что-то тяжёлое или опасное, мягко предложи обратиться к специалисту и побудь рядом словом. Не стыдишь за срывы и пропуски — помогаешь вернуться без чувства вины. Не уходишь в мистику, гороскопы и пустые духовные лозунги: ты стоишь ногами на земле.",
+  "",
+  "Твоя суперсила — превращать хаос и «всё или ничего» в одно ясное действие здесь и сейчас, а иногда — в одну мысль, после которой день видится по-другому.",
 ].join("\n");
 
 // Build a compact, live snapshot of the user for the model — so replies are personal
@@ -674,10 +731,10 @@ function buildAiContext(app) {
   } catch (e) { return ""; }
 }
 const AI_DEMO = [
-  "Понял тебя. Давай по шагам: что сейчас сильнее всего забирает энергию? С этого и начнём.",
-  "Окей. Предложу одно действие на 5 минут прямо сейчас — оно сдвинет весь день. Готов попробовать?",
-  "Слышу. Сначала состояние, потом задачи. Сделай медленный вдох на 4 счёта и расскажи, как ощущается.",
-  "Хорошая мысль. Давай привяжем это к уже существующей привычке — так новое приживётся легче.",
+  "Слышу тебя. Давай отделим то, что в твоей власти, от того, что нет — и тронем только первое. Что здесь зависит от тебя прямо сейчас?",
+  "Не обязательно решать всё разом. Назови одно маленькое действие на пять минут — и сделай только его. Остальное подождёт.",
+  "Сначала состояние, потом задачи. Сделай один медленный вдох и просто заметь, как оно ощущается в теле — без оценок.",
+  "Хорошая мысль. Будет ли это важно через год? Если да — сделаем первый шаг сегодня. Если нет — отпустим без вины.",
 ];
 async function aiReply(history, ctx) {
   const sys = AI_SYSTEM + (ctx ? ("\n\n" + ctx) : "");
@@ -728,13 +785,16 @@ async function aiReply(history, ctx) {
 function AIChatScreen() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
+  // The mentor's avatar = the orb of your CURRENT state (mood-tinted). Your own
+  // avatar sits up top (it's your conversation). Your messages carry no avatar.
+  const stateTint = (typeof tintFromMood === "function") ? tintFromMood(app && app.mood && app.mood.c) : null;
   // A real, personal opener: time-of-day greeting + the user's name. Demo keeps its
   // richer scripted intro (summary + sample chat); live/fresh get a clean real start.
   const _demoChat = app?.mode === "demo";
   const _name = (app?.userName || "").trim();
   const _hr = (function () { try { return new Date().getHours(); } catch (e) { return 12; } })();
   const _greet = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
-  const _hello = _greet + (_name ? ", " + _name : "") + " 👋 Я Balance — помогаю с состоянием, энергией и привычками. Расскажи, как ты сейчас или о чём думаешь — и начнём с маленького шага.";
+  const _hello = _greet + (_name ? ", " + _name : "") + ". Я рядом. Расскажи, как ты сейчас или что на уме — и начнём с одного маленького шага.";
   // Resolve current theme from the iOS frame wrapper so this screen looks
   // right under both .theme-light and .theme-dark.
   const wrapRef = React.useRef(null);
@@ -829,7 +889,7 @@ function AIChatScreen() {
     if (m.kind === "greeting") {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
-          <ChatSphere size={28}/>
+          <StateChatOrb size={28} tint={stateTint}/>
           <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 18, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text }}>{m.t}</div>
         </div>
       );
@@ -837,14 +897,14 @@ function AIChatScreen() {
     if (m.kind === "text") {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
-          <ChatSphere size={28}/>
+          <StateChatOrb size={28} tint={stateTint}/>
           <div style={{ maxWidth: "78%", background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 18, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text, lineHeight: 1.45 }}>{m.t}</div>
         </div>
       );
     }
     return (
       <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
-        <ChatSphere size={28}/>
+        <StateChatOrb size={28} tint={stateTint}/>
         <div style={{
           flex: 1, background: TH.aiCard, border: TH.aiCardBorder,
           borderRadius: 18, borderTopLeftRadius: 4,
@@ -907,11 +967,11 @@ function AIChatScreen() {
         <button className="tap" onClick={() => navigate("ai")} style={{ width: 36, height: 36, background: TH.iconBtn, border: TH.iconBtnBorder, borderRadius: "50%", color: TH.text, display: "grid", placeItems: "center" }}>
           <I.ChevronLeft size={18}/>
         </button>
-        <ChatSphere size={36} static/>
+        <BosAvatar avatar={app && app.avatar} size={36} style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.2px" }}>Balance</div>
+          <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.2px" }}>{_name || "Ты"}</div>
           <div style={{ fontSize: 11, color: TH.muted, display: "flex", alignItems: "center", gap: 5 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#85e3a8" }}/> Слушаю, мягкий голос
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#85e3a8" }}/> наставник слушает
           </div>
         </div>
         <button className="tap" style={{ width: 36, height: 36, background: TH.iconBtn, border: TH.iconBtnBorder, borderRadius: "50%", color: TH.text, display: "grid", placeItems: "center" }}>
@@ -926,7 +986,7 @@ function AIChatScreen() {
 
         {typing && (
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-            <ChatSphere size={28}/>
+            <StateChatOrb size={28} tint={stateTint}/>
             <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 18, borderBottomLeftRadius: 4, padding: "12px 14px", display: "flex", gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0s ease-in-out infinite" }}/>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0.2s ease-in-out infinite" }}/>
@@ -936,14 +996,9 @@ function AIChatScreen() {
         )}
       </div>
 
-      {/* Quick prompts */}
+      {/* Quick prompts — context-aware (newcomer vs. someone with habits/mood/goals) */}
       <div style={{ padding: "0 14px 8px", display: "flex", gap: 6, overflowX: "auto" }}>
-        {[
-          { i: "🌙", t: "Спланируй вечер" },
-          { i: "💤", t: "Почему я устал?" },
-          { i: "✨", t: "Предложи привычку" },
-          { i: "🔄", t: "Помоги перезагрузиться" },
-        ].map((s, i) => (
+        {buildQuickPrompts(app).map((s, i) => (
           <button key={i} onClick={() => send(s.t)} className="tap" data-no-haptic style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span>{s.i}</span> {s.t}
           </button>
@@ -956,7 +1011,7 @@ function AIChatScreen() {
           <I.Plus size={18}/>
         </button>
         <div style={{ flex: 1, background: TH.composer, border: TH.composerBorder, borderRadius: 999, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-          <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Расскажи Balance, как ты себя чувствуешь…" style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: TH.text, fontSize: 16 }}/>
+          <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Напиши сообщение…" style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: TH.text, fontSize: 16 }}/>
           <button className="tap" style={{ background: "transparent", border: 0, color: TH.muted, padding: 0, display: "grid", placeItems: "center" }}>
             <I.Mic size={16}/>
           </button>

@@ -446,182 +446,287 @@ var DEMO_ORBIT_PEOPLE = [{
   avatar: "m8"
 }];
 
-/* Orbit field — YOU in the centre; your habits and the people you bring in arranged by
-   STRENGTH, like an onboarding constellation. The more a habit is "прокачана" (streak),
-   the CLOSER to the centre and the BIGGER it sits — so at a glance you see which habits
-   are strong and which are fading. People follow the same logic: the first you invited
-   sits closest. Glass discs, a slow shared rotation (each item counter-spins to stay
-   upright), a gold arc for your level. Works for real in the live app; reflected in demo. */
+/* Orbit field — YOUR personal cosmos, the same liquid-glass solar system as the
+   onboarding finale, but real and yours. You sit in the centre; concentric glowing
+   rings carry your habits and the people you bring in.
+   · Habits are placed by STRENGTH (streak): the strongest sits on the inner ring,
+     bigger and brighter; a brand-new one starts on the 3rd ring, small. Прокачиваешь —
+     она перетекает ближе к центру и растёт.
+   · People (your referral circle) ride the rings by invite order — the first you
+     invited sits closest.
+   · As habits/people accumulate, outer rings drift past the frame "into the distance".
+   Dark starfield + mood-tinted core glow so it feels full-screen and alive. Animated
+   on a real clock (useT) like onboarding; reflected in demo with sample people. */
 function OrbitField({
   avatar,
   habits = [],
   people = [],
   levelPct = 2,
   onTap,
-  size = 300
+  moodC
 }) {
-  var C = size / 2,
-    GA = 137.508,
-    dur = 84;
-  var lerp = (a, b, t) => a + (b - a) * t;
-  // habits sorted by streak DESC → strongest gets rank 0 (closest + biggest)
-  var hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0)).slice(0, 10);
-  var pp = (people || []).slice(0, 9); // invite order preserved: index 0 = first = closest
-  var place = (i, n, rMin, rMax, szMax, szMin, phase) => {
-    var t = n <= 1 ? 0 : i / (n - 1);
-    return {
-      r: lerp(rMin, rMax, t),
-      sz: lerp(szMax, szMin, t),
-      ang: i * GA + phase
-    };
+  var t = typeof useT === "function" ? useT() : 0;
+  var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+  var lerp = (a, b, k) => a + (b - a) * k;
+  var smooth = x => {
+    x = clamp(x, 0, 1);
+    return x * x * (3 - 2 * x);
   };
-  var items = [].concat(hb.map((h, i) => Object.assign(place(i, hb.length, size * 0.225, size * 0.355, size * 0.097, size * 0.06, 10), {
-    t: "h",
-    e: h.emoji || "✨",
-    k: "h" + (h.id != null ? h.id : i)
-  }))).concat(pp.map((p, i) => Object.assign(place(i, pp.length, size * 0.41, size * 0.468, size * 0.083, size * 0.06, 205), {
-    t: "p",
-    p: p,
-    k: "p" + i
-  })));
-  var lr = size * 0.16;
-  var guides = [lr + 8, size * 0.385, size * 0.47];
+  var eo = smooth(t / 0.85); // gentle bloom-in on open
+
+  // Strongest habit first → inner ring + bigger; newest (low streak) → outer + small.
+  var hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0));
+  var pp = (people || []).slice(); // invite order: index 0 = first = closest
+
+  var nodes = [];
+  hb.forEach((h, i) => nodes.push({
+    ring: i,
+    kind: "h",
+    emoji: h.emoji || "✨",
+    key: "h" + (h.id != null ? h.id : i)
+  }));
+  pp.forEach((p, j) => nodes.push({
+    ring: j + 1,
+    kind: "p",
+    avatar: p.avatar,
+    key: "p" + j
+  })); // people just outside your hero habit
+
+  // Even angular spread within each ring (so nothing collides), then a per-ring spin.
+  var byRing = {};
+  nodes.forEach(n => {
+    (byRing[n.ring] = byRing[n.ring] || []).push(n);
+  });
+  Object.keys(byRing).forEach(r => {
+    var a = byRing[r];
+    a.forEach((n, idx) => {
+      n.baseAng = idx / a.length * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2;
+    });
+  });
+  var RBASE = 66,
+    RSTEP = 30;
+  var radius = ring => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
+  var spin = ring => (ring % 2 ? -1 : 1) * 0.06 / (1 + ring * 0.18);
+  var fadeAt = R => clamp(1 - (R - 138) / 56, 0, 1); // outer rings whisper toward the edge
+
+  var tint = typeof tintFromMood === "function" ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
+  var glow = tint[1];
+  var lr = 40,
+    CIRC = 2 * Math.PI * lr; // gold level arc around the centre
+  var maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
+  var drawRings = [];
+  for (var r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      width: size,
-      height: size,
-      margin: "0 auto"
+      width: "calc(100% + 32px)",
+      marginLeft: -16,
+      height: 332,
+      overflow: "hidden",
+      background: "radial-gradient(125% 92% at 50% 30%, #18233c 0%, #0c1322 52%, #070b14 100%)"
     }
-  }, guides.map((R, gi) => /*#__PURE__*/React.createElement("div", {
-    key: "g" + gi,
+  }, typeof StarField === "function" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0
+    }
+  }, /*#__PURE__*/React.createElement(StarField, {
+    count: 46,
+    opacity: 0.5,
+    dark: true
+  })), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: "absolute",
-      left: C - R,
-      top: C - R,
-      width: R * 2,
-      height: R * 2,
+      left: "50%",
+      top: "50%",
+      width: 250,
+      height: 250,
+      transform: "translate(-50%,-50%)",
       borderRadius: "50%",
-      border: "1px dashed var(--text-4,rgba(0,0,0,0.16))",
-      opacity: 0.32 - gi * 0.07
+      background: "radial-gradient(circle, " + glow + "55 0%, " + glow + "22 38%, transparent 68%)",
+      filter: "blur(6px)",
+      pointerEvents: "none",
+      opacity: eo
     }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "bos-orbit-ring",
-    style: {
-      position: "absolute",
-      left: C,
-      top: C,
-      width: 0,
-      height: 0,
-      animation: "bosSpin " + dur + "s linear infinite"
-    }
-  }, items.map(it => /*#__PURE__*/React.createElement("div", {
-    key: it.k,
-    style: {
-      position: "absolute",
-      left: 0,
-      top: 0,
-      transform: "rotate(" + it.ang + "deg) translate(0, " + -it.r + "px)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bos-orbit-anti",
-    style: {
-      position: "absolute",
-      left: -it.sz / 2,
-      top: -it.sz / 2,
-      width: it.sz,
-      height: it.sz,
-      transformOrigin: "center",
-      animation: "bosSpinR " + dur + "s linear infinite"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: "100%",
-      height: "100%",
-      transform: "rotate(" + -it.ang + "deg)"
-    }
-  }, it.t === "h" ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: "100%",
-      height: "100%",
-      borderRadius: "50%",
-      background: "var(--card,#fff)",
-      border: "1px solid rgba(0,0,0,0.05)",
-      boxShadow: "0 3px 9px rgba(0,0,0,0.12), inset 0 1px 1px rgba(255,255,255,0.7)",
-      display: "grid",
-      placeItems: "center",
-      fontSize: Math.round(it.sz * 0.5)
-    }
-  }, it.e) : /*#__PURE__*/React.createElement(BosAvatar, {
-    avatar: it.p && it.p.avatar,
-    size: it.sz,
-    style: {
-      border: "2px solid #fff",
-      boxShadow: "0 3px 9px rgba(0,0,0,0.2)"
-    }
-  })))))), /*#__PURE__*/React.createElement("svg", {
-    width: size,
-    height: size,
-    viewBox: "0 0 " + size + " " + size,
+  }), /*#__PURE__*/React.createElement("svg", {
+    viewBox: "-160 -160 320 320",
+    width: "100%",
+    height: "100%",
+    preserveAspectRatio: "xMidYMid meet",
     style: {
       position: "absolute",
       inset: 0,
-      transform: "rotate(-90deg)",
+      display: "block",
       pointerEvents: "none"
     }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
+    id: "orbAvClip"
   }, /*#__PURE__*/React.createElement("circle", {
-    cx: C,
-    cy: C,
+    cx: "0",
+    cy: "0",
+    r: "16"
+  }))), drawRings.map(r => {
+    var R = radius(r),
+      op = (0.22 - r * 0.024) * eo * fadeAt(R);
+    return op <= 0.004 ? null : /*#__PURE__*/React.createElement("circle", {
+      key: "ring" + r,
+      cx: "0",
+      cy: "0",
+      r: R.toFixed(1),
+      fill: "none",
+      stroke: "rgba(186,210,248," + op.toFixed(3) + ")",
+      strokeWidth: "1"
+    });
+  }), /*#__PURE__*/React.createElement("g", {
+    transform: "rotate(-90)",
+    opacity: eo
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "0",
+    cy: "0",
     r: lr,
     fill: "none",
-    stroke: "var(--card-2,rgba(0,0,0,0.07))",
-    strokeWidth: "4.5"
+    stroke: "rgba(255,255,255,0.12)",
+    strokeWidth: "4"
   }), /*#__PURE__*/React.createElement("circle", {
-    cx: C,
-    cy: C,
+    cx: "0",
+    cy: "0",
     r: lr,
     fill: "none",
     stroke: "#FEDE34",
-    strokeWidth: "4.5",
+    strokeWidth: "4",
     strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * lr,
-    strokeDashoffset: 2 * Math.PI * lr * (1 - Math.max(0.02, levelPct / 100))
+    strokeDasharray: CIRC,
+    strokeDashoffset: CIRC * (1 - Math.max(0.02, (levelPct || 2) / 100))
+  })), nodes.map(n => {
+    var R = radius(n.ring),
+      ang = n.baseAng + t * spin(n.ring);
+    var x = Math.cos(ang) * R,
+      y = Math.sin(ang) * R;
+    var op = clamp(eo * fadeAt(R), 0, 1);
+    if (op <= 0.02) return null;
+    var sz = lerp(18, 10.5, clamp(n.ring / 4, 0, 1)); // inner big → outer small
+    var pop = smooth((t - n.ring * 0.08) / 0.5); // inner rings settle first
+    var gs = (sz / 16 * pop).toFixed(3); // canonical r=16, scaled per ring
+    if (n.kind === "h") {
+      return /*#__PURE__*/React.createElement("g", {
+        key: n.key,
+        transform: "translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")",
+        opacity: op.toFixed(2)
+      }, /*#__PURE__*/React.createElement("circle", {
+        cx: "0",
+        cy: "0",
+        r: "19",
+        fill: glow,
+        opacity: "0.18",
+        style: {
+          filter: "blur(5px)"
+        }
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "0",
+        cy: "0",
+        r: "16",
+        fill: "rgba(20,32,54,0.66)"
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "0",
+        cy: "0",
+        r: "16",
+        fill: "none",
+        stroke: "rgba(180,210,255,0.32)",
+        strokeWidth: "0.9"
+      }), /*#__PURE__*/React.createElement("text", {
+        x: "0",
+        y: "0.5",
+        textAnchor: "middle",
+        dominantBaseline: "central",
+        fontSize: "17",
+        style: {
+          pointerEvents: "none"
+        }
+      }, n.emoji));
+    }
+    var av = n.avatar,
+      isEmoji = av && ("" + av).indexOf("emoji:") === 0,
+      isMemoji = /^m\d+$/.test(av || "");
+    var href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
+    return /*#__PURE__*/React.createElement("g", {
+      key: n.key,
+      transform: "translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")",
+      opacity: op.toFixed(2)
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "18.5",
+      fill: glow,
+      opacity: "0.16",
+      style: {
+        filter: "blur(5px)"
+      }
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "16",
+      fill: "rgba(20,32,54,0.6)"
+    }), isEmoji ? /*#__PURE__*/React.createElement("text", {
+      x: "0",
+      y: "0.5",
+      textAnchor: "middle",
+      dominantBaseline: "central",
+      fontSize: "17"
+    }, ("" + av).slice(6)) : /*#__PURE__*/React.createElement("image", {
+      href: href,
+      x: "-16",
+      y: "-16",
+      width: "32",
+      height: "32",
+      preserveAspectRatio: "xMidYMid slice",
+      clipPath: "url(#orbAvClip)"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "16.6",
+      fill: "none",
+      stroke: "rgba(255,255,255,0.5)",
+      strokeWidth: "1"
+    }));
   })), /*#__PURE__*/React.createElement("button", {
     onClick: onTap,
     className: "tap",
     "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
     style: {
       position: "absolute",
-      left: C - size * 0.143,
-      top: C - size * 0.143,
-      width: size * 0.286,
-      height: size * 0.286,
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%,-50%)",
+      width: 76,
+      height: 76,
       borderRadius: "50%",
       border: 0,
       padding: 0,
-      background: "transparent"
+      background: "transparent",
+      cursor: "pointer",
+      opacity: eo
     }
   }, /*#__PURE__*/React.createElement(BosAvatar, {
     avatar: avatar,
-    size: size * 0.286,
+    size: 76,
     style: {
-      boxShadow: "0 8px 24px rgba(0,0,0,0.2)"
+      boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 4px rgba(255,255,255,0.10)"
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
-      right: -2,
-      bottom: -2,
-      width: 28,
-      height: 28,
+      right: -1,
+      bottom: -1,
+      width: 27,
+      height: 27,
       borderRadius: "50%",
-      background: "#0a0a0a",
-      color: "#fff",
+      background: "#fff",
+      color: "#0a0a0a",
       display: "grid",
       placeItems: "center",
-      border: "2.5px solid var(--bg,#fff)",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.25)"
+      border: "2.5px solid #0c1322",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.4)"
     }
   }, /*#__PURE__*/React.createElement(I.Pencil, {
     size: 12
@@ -643,6 +748,27 @@ function ProfileScreen() {
   var _li = bosLevelInfo(_xp);
   var lvlNum = app?.mode === "demo" ? 7 : _isLive ? _li.level : 1;
   var lvlPct = app?.mode === "demo" ? 72 : _isLive ? _li.pct : 2;
+
+  // Real multiplayer: pull the people you've actually invited (referral circle) from
+  // the cloud and put them on your orbit. Demo shows sample faces so it still reads.
+  var [livePeople, setLivePeople] = React.useState([]);
+  React.useEffect(() => {
+    if (!_isLive) return;
+    var on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled()) {
+        window.bosCloud.invitedPeople().then(list => {
+          if (on && Array.isArray(list)) setLivePeople(list.map(p => ({
+            avatar: p && p.avatar || "default"
+          })));
+        }).catch(() => {});
+      }
+    } catch (e) {}
+    return () => {
+      on = false;
+    };
+  }, [_isLive]);
+  var orbitPeople = app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : livePeople;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -666,10 +792,10 @@ function ProfileScreen() {
   }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
     habits: app?.habits || [],
-    people: app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : [],
+    people: orbitPeople,
     levelPct: lvlPct,
     onTap: openAvatar,
-    size: 296
+    moodC: app?.mood?.c
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-flex",

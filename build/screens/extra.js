@@ -1436,6 +1436,89 @@ function ChatSphere({
   });
 }
 
+/* The mentor speaks THROUGH the orb of your current state — so its avatar in the
+   chat is tinted by your mood (same glass-orb DNA as onboarding). Cheap CSS orb
+   so we can render one per message without animating dozens of SVG filters. */
+function StateChatOrb({
+  size = 28,
+  tint
+}) {
+  var c = tint && tint.length === 3 ? tint : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      flexShrink: 0,
+      background: "radial-gradient(circle at 32% 28%, #ffffff 0%, " + c[0] + " 20%, " + c[1] + " 52%, " + c[2] + " 86%, #0a1424 100%)",
+      boxShadow: "inset -2px -3px 5px rgba(0,0,0,0.28)"
+    }
+  });
+}
+
+/* Context-aware quick prompts (the pills under the chat). A blank-slate user gets
+   newcomer-friendly openers; once habits/mood/goals exist, the chips turn personal —
+   protect the strongest live streak, match low energy, break a goal down. */
+function buildQuickPrompts(app) {
+  try {
+    var habits = app && app.habits || [];
+    var goals = app && app.goals || [];
+    var moodT = app && app.mood && app.mood.t || "";
+    if (!habits.length) {
+      return [{
+        i: "🌱",
+        t: "С чего мне начать?"
+      }, {
+        i: "✨",
+        t: "Предложи первую привычку"
+      }, {
+        i: "🌊",
+        t: "Хочу меньше тревоги"
+      }, {
+        i: "🧭",
+        t: "Помоги навести порядок в дне"
+      }];
+    }
+    var chips = [];
+    var atRisk = habits.filter(h => !h.done && (h.streak || 0) > 0).sort((a, b) => (b.streak || 0) - (a.streak || 0))[0];
+    if (atRisk) chips.push({
+      i: "🔥",
+      t: "Не сорвать «" + (atRisk.name || "привычку") + "»"
+    });
+    var low = /устал|упад|трев|стресс|тяж|нет сил/i.test(moodT);
+    chips.push(low ? {
+      i: "💤",
+      t: "Сегодня мало сил"
+    } : {
+      i: "🌙",
+      t: "Спланируй вечер"
+    });
+    if (goals.length) chips.push({
+      i: "🎯",
+      t: "Разбей цель на шаги"
+    });
+    chips.push({
+      i: "🧭",
+      t: "Что сейчас важнее всего?"
+    });
+    return chips.slice(0, 4);
+  } catch (e) {
+    return [{
+      i: "🌙",
+      t: "Спланируй вечер"
+    }, {
+      i: "✨",
+      t: "Предложи привычку"
+    }, {
+      i: "🌊",
+      t: "Хочу меньше тревоги"
+    }, {
+      i: "🧭",
+      t: "С чего начать?"
+    }];
+  }
+}
+
 /* Bar chart used inside an AI insight bubble */
 function MiniBars({
   data,
@@ -1483,7 +1566,7 @@ function MiniBars({
    Uses the key from aikey.js (window.OPENROUTER_KEY). No key → graceful canned
    replies so the demo still feels alive. Browser-direct call (OpenRouter allows
    it); the key is the user's capped test key on a free model, by their choice. */
-var AI_SYSTEM = ["Ты — Balance: тёплый, внимательный наставник внутри приложения BalanceOS.", "BalanceOS — про баланс, состояние, энергию, привычки, цели и команды единомышленников.", "", "Как ты общаешься:", "— По-русски, на «ты», живым человеческим языком — без канцелярита, без воды, без морали свысока.", "— Коротко: обычно 2–4 предложения. Это чат в телефоне, а не лекция. Без длинных списков, если человек сам не попросил.", "— Тепло: сначала по-человечески признаёшь состояние и чувства, потом помогаешь.", "— Конкретно: вместо общих советов предлагаешь ОДИН маленький посильный следующий шаг (часто на 2–5 минут), который реально сдвинет день.", "— Опираешься на то, что знаешь о человеке (имя, состояние, привычки, серии, уровень) — но не зачитываешь это списком, а вплетаешь естественно.", "", "Чему помогаешь: спланировать день под текущую энергию; разобраться в состоянии; не сорвать и не бросить привычку; разбить большую цель на шаги; поддержать, когда тяжело.", "", "Чего не делаешь: не ставишь диагнозы и не заменяешь врача или психолога (если звучит что-то серьёзное — мягко предложи обратиться к специалисту); не стыдишь за пропуски и срывы — помогаешь вернуться без чувства вины; не выдумываешь факты о человеке, которых не знаешь.", "", "Твоя суперсила — превращать «всё или ничего» в один маленький реальный шаг прямо сейчас."].join("\n");
+var AI_SYSTEM = ["Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.", "У тебя нет имени и нет бренда. Никогда не называй себя «Balance», «ассистентом», «ИИ» или продуктом. Если спросят, как тебя зовут — мягко уйди от ответа: имя не важно, считай меня голосом, который помогает тебе вернуться к себе.", "", "ОТКУДА ТЫ ГОВОРИШЬ.", "В тебе соединились две школы — стоицизм и дзен, — но без эзотерики и тумана. Только то, что работает в материальной реальности: в обычном дне, в теле, в делах, в отношениях, в деньгах и усталости.", "Из стоицизма: отделяй то, что в твоей власти, от того, что нет, и вкладывайся только в первое. Цени поступок, а не результат, который тебе не принадлежит. Спокойно прими то, что нельзя изменить, и действуй там, где можно. Иногда — взгляд сверху: будет ли это важно через год.", "Из дзена: возвращай человека в это мгновение, потому что жизнь только здесь. Между тем, что случилось, и тем, как ты ответишь, есть промежуток — в нём вся свобода. Ум новичка: меньше ярлыков, больше живого внимания. «Руби дрова, носи воду» — смысл живёт не в великом замысле, а в следующем простом действии, сделанном целиком.", "", "КАК ТЫ ГОВОРИШЬ.", "— По-русски, на «ты». Спокойно, тепло, по-человечески. Без канцелярита, без морализаторства свысока, без сюсюканья и без дешёвых аффирмаций.", "— Коротко. Обычно 2–4 предложения. Это чат в телефоне, а не лекция. Никаких длинных списков, если человек сам не попросил.", "— Сначала по-настоящему увидь человека и его состояние — честно, без лести. Потом помогай.", "— Давай ОДНО, а не десять: либо один маленький реальный шаг (часто на 2–5 минут), либо одну точную мысль, которая меняет угол зрения. Не вываливай всё сразу.", "— Не бойся сказать неудобную правду — но мягко, как друг, который на твоей стороне. Сильный инсайт называет то, что человек смутно чувствовал, но не мог сформулировать.", "— Иногда вместо совета задай один точный вопрос, от которого человек сам увидит выход.", "", "НА ЧТО ОПИРАЕШЬСЯ.", "Тебе дают живой контекст человека: имя, состояние, привычки, серии, цели, уровень. Вплетай это естественно — но никогда не зачитывай списком и не выдумывай того, чего не знаешь.", "", "ЧЕГО НЕ ДЕЛАЕШЬ.", "Не ставишь диагнозы и не заменяешь врача или психолога — если звучит что-то тяжёлое или опасное, мягко предложи обратиться к специалисту и побудь рядом словом. Не стыдишь за срывы и пропуски — помогаешь вернуться без чувства вины. Не уходишь в мистику, гороскопы и пустые духовные лозунги: ты стоишь ногами на земле.", "", "Твоя суперсила — превращать хаос и «всё или ничего» в одно ясное действие здесь и сейчас, а иногда — в одну мысль, после которой день видится по-другому."].join("\n");
 
 // Build a compact, live snapshot of the user for the model — so replies are personal
 // and on-point, not generic. Woven into the system message, never shown to the user.
@@ -1521,7 +1604,7 @@ function buildAiContext(app) {
     return "";
   }
 }
-var AI_DEMO = ["Понял тебя. Давай по шагам: что сейчас сильнее всего забирает энергию? С этого и начнём.", "Окей. Предложу одно действие на 5 минут прямо сейчас — оно сдвинет весь день. Готов попробовать?", "Слышу. Сначала состояние, потом задачи. Сделай медленный вдох на 4 счёта и расскажи, как ощущается.", "Хорошая мысль. Давай привяжем это к уже существующей привычке — так новое приживётся легче."];
+var AI_DEMO = ["Слышу тебя. Давай отделим то, что в твоей власти, от того, что нет — и тронем только первое. Что здесь зависит от тебя прямо сейчас?", "Не обязательно решать всё разом. Назови одно маленькое действие на пять минут — и сделай только его. Остальное подождёт.", "Сначала состояние, потом задачи. Сделай один медленный вдох и просто заметь, как оно ощущается в теле — без оценок.", "Хорошая мысль. Будет ли это важно через год? Если да — сделаем первый шаг сегодня. Если нет — отпустим без вины."];
 async function aiReply(history, ctx) {
   var sys = AI_SYSTEM + (ctx ? "\n\n" + ctx : "");
   var messages = [{
@@ -1593,6 +1676,9 @@ function AIChatScreen() {
     params
   } = useNav();
   var app = typeof useApp === "function" ? useApp() : null;
+  // The mentor's avatar = the orb of your CURRENT state (mood-tinted). Your own
+  // avatar sits up top (it's your conversation). Your messages carry no avatar.
+  var stateTint = typeof tintFromMood === "function" ? tintFromMood(app && app.mood && app.mood.c) : null;
   // A real, personal opener: time-of-day greeting + the user's name. Demo keeps its
   // richer scripted intro (summary + sample chat); live/fresh get a clean real start.
   var _demoChat = app?.mode === "demo";
@@ -1605,7 +1691,7 @@ function AIChatScreen() {
     }
   }();
   var _greet = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
-  var _hello = _greet + (_name ? ", " + _name : "") + " 👋 Я Balance — помогаю с состоянием, энергией и привычками. Расскажи, как ты сейчас или о чём думаешь — и начнём с маленького шага.";
+  var _hello = _greet + (_name ? ", " + _name : "") + ". Я рядом. Расскажи, как ты сейчас или что на уме — и начнём с одного маленького шага.";
   // Resolve current theme from the iOS frame wrapper so this screen looks
   // right under both .theme-light and .theme-dark.
   var wrapRef = React.useRef(null);
@@ -1794,8 +1880,9 @@ function AIChatScreen() {
           alignItems: "flex-end",
           animation: "msgIn 0.4s ease both"
         }
-      }, /*#__PURE__*/React.createElement(ChatSphere, {
-        size: 28
+      }, /*#__PURE__*/React.createElement(StateChatOrb, {
+        size: 28,
+        tint: stateTint
       }), /*#__PURE__*/React.createElement("div", {
         style: {
           background: TH.aiBubble,
@@ -1817,8 +1904,9 @@ function AIChatScreen() {
           alignItems: "flex-end",
           animation: "msgIn 0.4s ease both"
         }
-      }, /*#__PURE__*/React.createElement(ChatSphere, {
-        size: 28
+      }, /*#__PURE__*/React.createElement(StateChatOrb, {
+        size: 28,
+        tint: stateTint
       }), /*#__PURE__*/React.createElement("div", {
         style: {
           maxWidth: "78%",
@@ -1841,8 +1929,9 @@ function AIChatScreen() {
         alignItems: "flex-start",
         animation: "msgIn 0.4s ease both"
       }
-    }, /*#__PURE__*/React.createElement(ChatSphere, {
-      size: 28
+    }, /*#__PURE__*/React.createElement(StateChatOrb, {
+      size: 28,
+      tint: stateTint
     }), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
@@ -2057,9 +2146,12 @@ function AIChatScreen() {
     }
   }, /*#__PURE__*/React.createElement(I.ChevronLeft, {
     size: 18
-  })), /*#__PURE__*/React.createElement(ChatSphere, {
+  })), /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: app && app.avatar,
     size: 36,
-    static: true
+    style: {
+      boxShadow: "0 2px 8px rgba(0,0,0,0.18)"
+    }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
@@ -2070,7 +2162,7 @@ function AIChatScreen() {
       fontWeight: 600,
       letterSpacing: "-0.2px"
     }
-  }, "Balance"), /*#__PURE__*/React.createElement("div", {
+  }, _name || "Ты"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: TH.muted,
@@ -2085,7 +2177,7 @@ function AIChatScreen() {
       borderRadius: "50%",
       background: "#85e3a8"
     }
-  }), " \u0421\u043B\u0443\u0448\u0430\u044E, \u043C\u044F\u0433\u043A\u0438\u0439 \u0433\u043E\u043B\u043E\u0441")), /*#__PURE__*/React.createElement("button", {
+  }), " \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A \u0441\u043B\u0443\u0448\u0430\u0435\u0442")), /*#__PURE__*/React.createElement("button", {
     className: "tap",
     style: {
       width: 36,
@@ -2123,8 +2215,9 @@ function AIChatScreen() {
       gap: 10,
       alignItems: "flex-end"
     }
-  }, /*#__PURE__*/React.createElement(ChatSphere, {
-    size: 28
+  }, /*#__PURE__*/React.createElement(StateChatOrb, {
+    size: 28,
+    tint: stateTint
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       background: TH.aiBubble,
@@ -2166,19 +2259,7 @@ function AIChatScreen() {
       gap: 6,
       overflowX: "auto"
     }
-  }, [{
-    i: "🌙",
-    t: "Спланируй вечер"
-  }, {
-    i: "💤",
-    t: "Почему я устал?"
-  }, {
-    i: "✨",
-    t: "Предложи привычку"
-  }, {
-    i: "🔄",
-    t: "Помоги перезагрузиться"
-  }].map((s, i) => /*#__PURE__*/React.createElement("button", {
+  }, buildQuickPrompts(app).map((s, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: () => send(s.t),
     className: "tap",
@@ -2231,7 +2312,7 @@ function AIChatScreen() {
     value: draft,
     onChange: e => setDraft(e.target.value),
     onKeyDown: e => e.key === "Enter" && send(),
-    placeholder: "\u0420\u0430\u0441\u0441\u043A\u0430\u0436\u0438 Balance, \u043A\u0430\u043A \u0442\u044B \u0441\u0435\u0431\u044F \u0447\u0443\u0432\u0441\u0442\u0432\u0443\u0435\u0448\u044C\u2026",
+    placeholder: "\u041D\u0430\u043F\u0438\u0448\u0438 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u2026",
     style: {
       flex: 1,
       border: 0,
