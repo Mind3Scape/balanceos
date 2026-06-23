@@ -627,6 +627,150 @@ function LayerTogether({
     rad: 2.4,
     c: dark ? "#cfe1ff" : "#4f7bb0"
   }];
+
+  // ── FINALE wave: once the core has settled (~te 1.1s) the cosmos keeps OPENING.
+  // Outer rings snap outward one-by-one (bum-bum-bum) until they fill the frame,
+  // each carrying MORE people + habits — the scale of "you're not alone". The
+  // dense life sits on the top/side arcs (open screen); the lower arcs stay sparse
+  // so the title below reads cleanly. Replays via `te`. ─────────────────────────
+  var F0 = 1.5,
+    STEP = 0.32;
+  var OUTER = [{
+    r: 172,
+    delay: F0 + STEP * 0,
+    spin: 0.050,
+    op: 0.125
+  }, {
+    r: 214,
+    delay: F0 + STEP * 1,
+    spin: -0.040,
+    op: 0.100
+  }, {
+    r: 258,
+    delay: F0 + STEP * 2,
+    spin: 0.032,
+    op: 0.082
+  }, {
+    r: 300,
+    delay: F0 + STEP * 3,
+    spin: -0.026,
+    op: 0.066
+  }];
+  var ob = OUTER.map(r => ({
+    s: back((te - r.delay) / 0.74),
+    o: smooth((te - r.delay) / 0.64)
+  }));
+  // Fade any orbiting element as it swings into the title band right below the orb,
+  // so the headline underneath always reads cleanly (no opaque disc on the text).
+  var textClear = (x, y) => 1 - clamp((y - 168) / 74) * clamp(1 - (Math.abs(x) - 64) / 104);
+  var PICS2 = ["./assets/people/m1.png", "./assets/people/m7.png", "./assets/people/m9.png", "./assets/people/m12.png", "./assets/people/m16.png", "./assets/people/m4.png"];
+  // people riding the outer rings — smaller discs for depth (sz = disc radius).
+  // angles favour up / sides (−π/2 is straight up); dead-bottom (~+1.6) is avoided.
+  var AV2 = [{
+    ri: 0,
+    a: -2.30,
+    pic: PICS2[0],
+    c: dark ? "#cfe1ff" : "#5a85bd",
+    sz: 14
+  }, {
+    ri: 0,
+    a: -0.55,
+    pic: PICS2[1],
+    c: dark ? "#a9c4e8" : "#6f9ad1",
+    sz: 13.5
+  }, {
+    ri: 1,
+    a: -1.55,
+    pic: PICS2[2],
+    c: dark ? "#9bbfe8" : "#4f7bb0",
+    sz: 13
+  }, {
+    ri: 1,
+    a: 0.55,
+    pic: PICS2[3],
+    c: dark ? "#cfe1ff" : "#5a85bd",
+    sz: 12.5
+  }, {
+    ri: 2,
+    a: -2.65,
+    pic: PICS2[4],
+    c: dark ? "#a9c4e8" : "#6f9ad1",
+    sz: 12
+  }, {
+    ri: 2,
+    a: -0.20,
+    pic: PICS2[5],
+    c: dark ? "#bcd8ff" : "#4f7bb0",
+    sz: 12
+  }];
+  // habit "planets" — small emoji in glass discs, riding the outer rings too.
+  var HAB2 = [{
+    ri: 0,
+    a: -1.05,
+    e: "🏃",
+    sz: 12
+  }, {
+    ri: 0,
+    a: 2.55,
+    e: "💧",
+    sz: 11
+  }, {
+    ri: 1,
+    a: -2.70,
+    e: "🧘",
+    sz: 12
+  }, {
+    ri: 1,
+    a: -0.05,
+    e: "📚",
+    sz: 11
+  }, {
+    ri: 2,
+    a: -1.15,
+    e: "🥗",
+    sz: 11
+  }, {
+    ri: 2,
+    a: 0.62,
+    e: "🙏",
+    sz: 11
+  }, {
+    ri: 3,
+    a: -2.10,
+    e: "✍️",
+    sz: 11
+  }, {
+    ri: 3,
+    a: -0.62,
+    e: "🥊",
+    sz: 10.5
+  }];
+  var DOTS2 = [{
+    ri: 0,
+    a: 0.3,
+    rad: 2.2,
+    c: dark ? "#cfe1ff" : "#7aa0c8"
+  }, {
+    ri: 1,
+    a: -2.2,
+    rad: 2.0,
+    c: dark ? "#e6eeff" : "#6f9ad1"
+  }, {
+    ri: 2,
+    a: -0.9,
+    rad: 1.9,
+    c: dark ? "#bcd8ff" : "#8398b5"
+  }, {
+    ri: 3,
+    a: -1.7,
+    rad: 1.8,
+    c: dark ? "#cfe1ff" : "#4f7bb0"
+  }, {
+    ri: 3,
+    a: 0.3,
+    rad: 1.7,
+    c: dark ? "#e6eeff" : "#7aa0c8"
+  }];
   return /*#__PURE__*/React.createElement("g", {
     opacity: alpha
   }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
@@ -720,6 +864,110 @@ function LayerTogether({
       fill: "none",
       stroke: dark ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.95)",
       strokeWidth: "1"
+    }));
+  }), OUTER.map((ring, i) => ob[i].s <= 0.002 ? null : /*#__PURE__*/React.createElement("circle", {
+    key: "oring" + i,
+    cx: "0",
+    cy: "0",
+    r: (ring.r * ob[i].s).toFixed(2),
+    fill: "none",
+    stroke: `rgba(${ringRGB},${(ring.op * ob[i].o).toFixed(3)})`,
+    strokeWidth: "1"
+  })), DOTS2.map((d, i) => {
+    var bl = ob[d.ri],
+      ring = OUTER[d.ri];
+    if (bl.s <= 0.05) return null;
+    var ang = d.a + te * ring.spin,
+      rr = ring.r * bl.s;
+    var x = Math.cos(ang) * rr,
+      y = Math.sin(ang) * rr;
+    var pop = smooth((te - ring.delay - 0.16) / 0.4);
+    return /*#__PURE__*/React.createElement("circle", {
+      key: "odot" + i,
+      cx: x.toFixed(2),
+      cy: y.toFixed(2),
+      r: d.rad,
+      fill: d.c,
+      opacity: (pop * 0.85 * textClear(x, y)).toFixed(2)
+    });
+  }), HAB2.map((h, i) => {
+    var bl = ob[h.ri],
+      ring = OUTER[h.ri];
+    var pop = back((te - ring.delay - 0.24) / 0.5);
+    if (pop <= 0.002) return null;
+    var ang = h.a + te * ring.spin,
+      rr = ring.r * bl.s;
+    var x = Math.cos(ang) * rr,
+      y = Math.sin(ang) * rr;
+    return /*#__PURE__*/React.createElement("g", {
+      key: "hab2" + i,
+      transform: `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${Math.max(0, pop).toFixed(3)})`,
+      opacity: (Math.min(1, pop) * textClear(x, y)).toFixed(2)
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: h.sz + 4,
+      fill: dark ? "rgba(18,30,52,0.46)" : "rgba(255,255,255,0.66)"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: h.sz + 4,
+      fill: "none",
+      stroke: dark ? "rgba(180,210,255,0.26)" : "rgba(90,130,190,0.26)",
+      strokeWidth: "0.8"
+    }), /*#__PURE__*/React.createElement("text", {
+      x: "0",
+      y: "0.5",
+      textAnchor: "middle",
+      dominantBaseline: "central",
+      fontSize: h.sz + 3,
+      style: {
+        pointerEvents: "none"
+      }
+    }, h.e));
+  }), AV2.map((f, i) => {
+    var bl = ob[f.ri],
+      ring = OUTER[f.ri];
+    var pop = back((te - ring.delay - 0.20) / 0.52);
+    if (pop <= 0.002) return null;
+    var ang = f.a + te * ring.spin;
+    var breathe = 1 + Math.sin(t * 0.7 + i * 1.7) * 0.018;
+    var rr = ring.r * bl.s * breathe;
+    var x = Math.cos(ang) * rr,
+      y = Math.sin(ang) * rr;
+    var gs = (Math.max(0, pop) * (f.sz / 18.5)).toFixed(3);
+    return /*#__PURE__*/React.createElement("g", {
+      key: "av2" + i,
+      transform: `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${gs})`,
+      opacity: (Math.min(1, pop) * textClear(x, y)).toFixed(2)
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "18.5",
+      fill: dark ? "rgba(18,30,52,0.5)" : "rgba(255,255,255,0.62)"
+    }), /*#__PURE__*/React.createElement("image", {
+      href: f.pic,
+      x: "-18.5",
+      y: "-18.5",
+      width: "37",
+      height: "37",
+      preserveAspectRatio: "xMidYMid slice",
+      clipPath: "url(#togAvClip)"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "19.4",
+      fill: "none",
+      stroke: f.c,
+      strokeOpacity: dark ? 0.52 : 0.6,
+      strokeWidth: "1.4"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "18.4",
+      fill: "none",
+      stroke: dark ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.92)",
+      strokeWidth: "0.9"
     }));
   }));
 }
