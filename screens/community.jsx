@@ -67,31 +67,30 @@ function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock
         background: "linear-gradient(145deg, #26406e 0%, #182c4f 52%, #0c1730 100%)",
         boxShadow: "0 10px 26px rgba(12,23,48,0.42)" }}>
         <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 82% 18%, rgba(150,185,255,0.30) 0%, transparent 46%), radial-gradient(circle at 12% 96%, rgba(120,160,220,0.16) 0%, transparent 44%)", pointerEvents: "none" }} />
-        <div aria-hidden style={{ position: "absolute", top: 14, right: 17, fontSize: 35, lineHeight: 1, pointerEvents: "none", filter: "drop-shadow(0 3px 7px rgba(0,0,0,0.45))" }}>🔒</div>
+        <div aria-hidden style={{ position: "absolute", top: 15, right: 18, fontSize: 34, lineHeight: 1, pointerEvents: "none" }}>👑</div>
         <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(160,196,255,0.9)" }}>Нетворк · откроется с 10 уровня</div>
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#fff", marginTop: 4, maxWidth: 215, lineHeight: 1.2 }}>Закрытый круг своих</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.74)", marginTop: 6, lineHeight: 1.42, maxWidth: 252 }}>Живой круг для тех, кто дошёл: наставники, встречи и помощь — рядом, в твоём городе.</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(160,196,255,0.9)" }}>Нетворк · откроется с 10 уровня</div>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px", color: "#fff", marginTop: 4, maxWidth: 215, lineHeight: 1.18 }}>Закрытый круг своих</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.74)", marginTop: 6, lineHeight: 1.4, maxWidth: 248 }}>Живые встречи и помощь рядом — с людьми твоего города.</div>
 
-          {/* Essence pills — what Нетворк ЕСТЬ (короткие, передающие суть) */}
-          <div style={{ display: "flex", gap: 7, marginTop: 13, flexWrap: "wrap" }}>
-            {[["📍", "Твой город"], ["🤝", "Наставники"], ["💎", "Услуги за XP"]].map(([e, l], i) => (
+          {/* Level progress toward the unlock — sits ~middle (golden ratio) */}
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>Уровень {level} → 10</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.72)" }}>осталось {levelsLeft} {ruLvl(levelsLeft)}</span>
+            </div>
+            <div style={{ height: 9, borderRadius: 999, background: "rgba(255,255,255,0.13)", overflow: "hidden" }}>
+              <span style={{ display: "block", height: "100%", width: progPct + "%", background: "linear-gradient(90deg, #FEDE34, #EF9F14)", borderRadius: 999 }} />
+            </div>
+          </div>
+
+          {/* Essence pills — one row, at the bottom */}
+          <div style={{ display: "flex", gap: 7, marginTop: 13 }}>
+            {[["🤝", "Наставники"], ["💎", "Услуги за XP"]].map(([e, l], i) => (
               <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.13)", borderRadius: 999, padding: "6px 11px", fontSize: 12.5, fontWeight: 700, color: "#fff" }}>
                 <span style={{ fontSize: 13, lineHeight: 1 }}>{e}</span>{l}
               </span>
             ))}
-          </div>
-
-          {/* Level progress toward the unlock — gold accent pops on the dark */}
-          <div style={{ marginTop: 15 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: "#fff" }}>Уровень {level} → 10</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.72)" }}>осталось {levelsLeft} {ruLvl(levelsLeft)}</span>
-            </div>
-            <div style={{ height: 9, borderRadius: 999, background: "rgba(255,255,255,0.13)", overflow: "hidden" }}>
-              <span style={{ display: "block", height: "100%", width: progPct + "%", background: "linear-gradient(90deg, #FEDE34, #EF9F14)", borderRadius: 999, boxShadow: "0 0 12px rgba(254,222,52,0.5)" }} />
-            </div>
-            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.62)", marginTop: 7 }}>{xp.toLocaleString()} XP набрано · около {weeks} недель в твоём темпе</div>
           </div>
         </div>
       </div>
@@ -106,7 +105,6 @@ function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock
             display: "flex", alignItems: "center", gap: 14, textAlign: "left",
             position: "relative", overflow: "hidden",
           }}>
-            <div style={{ position: "absolute", top: -14, right: -14, width: 70, height: 70, borderRadius: "50%", background: p.accent, opacity: 0.18, filter: "blur(10px)" }}/>
             <div style={{ width: 44, height: 44, borderRadius: 14,
               background: `linear-gradient(135deg, ${p.accent}66, ${p.accent}22)`,
               display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0, position: "relative",
@@ -409,36 +407,35 @@ function CommunityScreen() {
 
       {section === "discover" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
-          {teams.map((t, i) => (
-            <div key={i} className="team-card" style={{
-              ["--team-accent"]: t.accent,
-              borderRadius: 22, padding: 18, position: "relative", overflow: "hidden",
-            }}>
-              {/* Big semi-transparent emblem top-right */}
-              <div aria-hidden className="team-card__emblem" style={{
-                position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1,
-                pointerEvents: "none", transform: "rotate(8deg)",
-              }}>{t.emblem}</div>
+          {teams.map((t, i) => {
+            const tgt = t.target || 0;
+            const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+            const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
+            return (
+            <div key={i} className="team-card" style={{ ["--team-accent"]: t.accent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden" }}>
+              {/* soft pastel card + faded emblem watermark — the calmer earlier look (no glow) */}
+              <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{t.emblem}</div>
               <div style={{ position: "relative" }}>
                 <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
                 <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
                 <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date} · {t.members.length} участников</div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
                   <span>{t.target ? "К цели" : "Прогресс команды"}</span>
-                  <span style={{ color: "var(--text)" }}>{t.target ? `${t.current != null ? t.current : Math.round((t.progress||0)*t.target)} / ${t.target} ${t.unit||""}` : Math.round((t.progress||0)*100)+"%"}</span>
+                  <span style={{ color: "var(--text)" }}>{t.target ? `${cur} / ${tgt} ${t.unit || ""}` : Math.round(gp * 100) + "%"}</span>
                 </div>
                 <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
-                  <span className="team-card__fill" style={{ display: "block", height: "100%", width: ((t.target ? Math.min(1,(t.current!=null?t.current:0)/t.target) : (t.progress||0))*100)+"%", borderRadius: 999 }} />
+                  <span className="team-card__fill" style={{ display: "block", height: "100%", width: (gp * 100) + "%", borderRadius: 999 }} />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", marginTop: 14, gap: 8 }}>
-                  <AvatarStack people={t.members} size={16} max={5} label={false}/>
-                  <button onClick={() => navigate("team-detail", { team: t })} className="tap team-card__cta" style={{ marginLeft: "auto", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 500 }}>
+                  <AvatarStack people={t.members} size={28} max={5} label={false}/>
+                  <button onClick={() => navigate("team-detail", { team: t })} className="tap team-card__cta" style={{ marginLeft: "auto", border: 0, borderRadius: 999, padding: "11px 18px", fontSize: 13.5, fontWeight: 600 }}>
                     Открыть команду
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           {teams.length === 0 && (
             <div style={{ textAlign: "center", padding: "8px 18px 2px", color: "var(--text-4)", fontSize: 13.5, lineHeight: 1.5 }}>
               Команды — это привычки вместе с друзьями. Создай первую или дождись приглашения.
@@ -1251,16 +1248,8 @@ function TeamDetailScreen() {
           <I.Settings size={18}/>
         </button>
       }/>
-      <div style={{
-        background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
-        color: "var(--text)", borderRadius: 22, padding: 20,
-        position: "relative", overflow: "hidden",
-      }}>
-        <div aria-hidden style={{
-          position: "absolute", top: -14, right: -10, fontSize: 150, lineHeight: 1,
-          opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)",
-          transform: "rotate(8deg)",
-        }}>{t.emblem || "✨"}</div>
+      <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden" }}>
+        <div aria-hidden style={{ position: "absolute", top: -14, right: -10, fontSize: 150, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{t.emblem || "✨"}</div>
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{t.name}</div>
           <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>

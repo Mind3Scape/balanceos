@@ -313,10 +313,7 @@ function HabitsScreen() {
                   {h.duration && !h.done && (
                     <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                   )}
-                  <button className={"check-btn " + (h.done ? "" : "unchecked")} data-no-haptic
-                    onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>
-                    {h.done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
-                  </button>
+                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} />
                 </div>
               </SwipeRow>
             </div>

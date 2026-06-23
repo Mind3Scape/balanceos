@@ -108,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v128";
+const APP_VERSION = "v129";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -468,9 +468,8 @@ function OnbHero({ emoji, dark }) {
     );
   }
   return (
-    <div style={{ height: 92, display: "grid", placeItems: "center", margin: "0 auto", position: "relative" }}>
-      <div style={{ position: "absolute", width: 90, height: 90, borderRadius: "50%", background: dark ? "radial-gradient(circle, rgba(150,180,235,0.26), transparent 68%)" : "radial-gradient(circle, rgba(120,170,230,0.22), transparent 68%)", filter: "blur(5px)" }} />
-      <span key={emoji} className="onb-emoji" style={{ position: "relative", fontSize: 62, lineHeight: 1, filter: "drop-shadow(0 7px 15px rgba(60,90,140,0.24))" }}>{emoji}</span>
+    <div style={{ height: 92, display: "grid", placeItems: "center", margin: "0 auto" }}>
+      <span key={emoji} className="onb-emoji" style={{ fontSize: 64, lineHeight: 1 }}>{emoji}</span>
     </div>
   );
 }

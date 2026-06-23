@@ -13,6 +13,39 @@ function useThemeFlag(ref) {
   return isDark;
 }
 
+/* Habit checkmark with a floating "+XP" pop on completion — the same reward beat
+   as the day-close celebration, but right ON the checkmark so it's always visible
+   (even when the top of the screen is scrolled off). Shared by Home + Habits. */
+function HabitCheck({ done, onToggle, xp = 10 }) {
+  const [tick, setTick] = React.useState(0);
+  const onClick = (e) => {
+    e.stopPropagation();
+    const willComplete = !done;
+    onToggle();
+    if (willComplete) {
+      setTick((t) => t + 1);
+      if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} }
+    }
+  };
+  return (
+    <div style={{ position: "relative", flexShrink: 0, display: "grid", placeItems: "center" }}>
+      {tick > 0 && (
+        <span key={tick} aria-hidden style={{
+          position: "absolute", bottom: "55%", right: "2px", whiteSpace: "nowrap", zIndex: 6, pointerEvents: "none",
+          display: "inline-flex", alignItems: "center", gap: 3,
+          background: "#0a0a0a", color: "#FEDE34", fontSize: 11.5, fontWeight: 800,
+          padding: "3px 9px", borderRadius: 999, boxShadow: "0 6px 16px rgba(0,0,0,0.3)",
+          animation: "bosXpTick 1.1s cubic-bezier(0.22,1,0.36,1) forwards",
+        }}>+{xp} XP</span>
+      )}
+      <button className={"check-btn " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}>
+        {done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
+      </button>
+    </div>
+  );
+}
+window.HabitCheck = HabitCheck;
+
 /* Balance Wheel — 8-axis radar of life areas with iOS-style icons + zone colors */
 function zoneColor(v) {
   if (v >= 0.70) return "#34C759";   // зелёная зона — в балансе
@@ -283,11 +316,15 @@ function HomeScreen() {
   React.useEffect(() => {
     if (doneCount > prevDoneRef.current) {
       const full = totalCount > 0 && doneCount === totalCount;
-      setCelebrate({ xp: full ? totalCount * 10 + 30 : 10, full, key: Date.now() + ":" + doneCount });
-      if (window.tgHaptic) { try { window.tgHaptic(full ? "heavy" : "light"); } catch (e) {} }
-      const t = window.setTimeout(() => setCelebrate(null), full ? 2000 : 1200);
-      prevDoneRef.current = doneCount;
-      return () => window.clearTimeout(t);
+      // Per-habit XP now pops on the checkmark (HabitCheck); the big top-of-screen
+      // celebration is reserved for the DAY-CLOSE moment so it never double-pops.
+      if (full) {
+        setCelebrate({ xp: totalCount * 10 + 30, full: true, key: Date.now() + ":" + doneCount });
+        if (window.tgHaptic) { try { window.tgHaptic("heavy"); } catch (e) {} }
+        const t = window.setTimeout(() => setCelebrate(null), 2000);
+        prevDoneRef.current = doneCount;
+        return () => window.clearTimeout(t);
+      }
     }
     prevDoneRef.current = doneCount;
   }, [doneCount, totalCount]);
@@ -452,10 +489,7 @@ function HomeScreen() {
                   {h.duration && !h.done && (
                     <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                   )}
-                  <button className={"check-btn " + (h.done ? "" : "unchecked")} data-no-haptic
-                    onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>
-                    {h.done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
-                  </button>
+                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} />
                 </div>
               </SwipeRow>
             </div>
@@ -508,33 +542,6 @@ function HomeScreen() {
         </button>
       )}
 
-      {/* Today's energy — light, native card with an Activity-style progress ring
-         (no dark slab, no orb). The ring fills with today's completion. */}
-      {widgets.energy !== false && (
-      <div style={{ marginTop: 12, padding: 16, background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, color: "var(--text)", display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ position: "relative", width: 66, height: 66, flexShrink: 0 }}>
-          <svg viewBox="0 0 66 66" style={{ width: 66, height: 66, transform: "rotate(-90deg)" }} aria-hidden>
-            <circle cx="33" cy="33" r="28" fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)"} strokeWidth="7" />
-            <circle cx="33" cy="33" r="28" fill="none" stroke="url(#bosEnergyGrad)" strokeWidth="7" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 28} strokeDashoffset={2 * Math.PI * 28 * (1 - Math.max(0.04, ringPct))}
-              style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(0.32,0.72,0,1)" }} />
-            <defs><linearGradient id="bosEnergyGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFB02E" /><stop offset="1" stopColor="#FF7A59" /></linearGradient></defs>
-          </svg>
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 17, fontWeight: 700, color: "var(--text)" }}><CountUp value={Math.round(ringPct * 100)} />%</div>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, color: "var(--text-4)", letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>XP сегодня</div>
-          <div style={{ fontSize: 27, fontWeight: 700, marginTop: 1, letterSpacing: "-0.5px", color: "var(--text)" }}>+<CountUp value={xpEarnedToday} /> <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-4)" }}>XP</span></div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4, marginTop: 3 }}>
-            {totalCount === 0
-              ? "Заведи привычку — и начни копить XP сегодня."
-              : dayAllDone
-                ? "Идеальный день! Все привычки закрыты — +30 XP сверху."
-                : <>Ещё <b style={{ color: "var(--text-2)" }}>+{leftCount * XP_PER_HABIT} XP</b> за {leftCount} {ruHab(leftCount)}. А закроешь все — ещё <b style={{ color: "var(--text-2)" }}>+30</b> за идеальный день.</>}
-          </div>
-        </div>
-      </div>
-      )}
 
       {/* Invite / share the app — friendly card with an avatar pile */}
       <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheet dark={isDark} />)}
@@ -643,7 +650,6 @@ function HomeCustomizeScreen() {
     { id: "level",    i: "🏆", t: "Уровень и опыт", d: "Прогресс и награды" },
     { id: "calendar", i: "📅", t: "Календарь", d: "Сегодняшняя дата" },
     { id: "team",     i: "👥", t: "Команды", d: "Активные команды" },
-    { id: "energy",   i: "⚡", t: "XP за день", d: "Сколько опыта набрал сегодня" },
   ];
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>

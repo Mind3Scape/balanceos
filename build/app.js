@@ -111,7 +111,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v128";
+var APP_VERSION = "v129";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -1164,26 +1164,14 @@ function OnbHero({
       height: 92,
       display: "grid",
       placeItems: "center",
-      margin: "0 auto",
-      position: "relative"
+      margin: "0 auto"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      width: 90,
-      height: 90,
-      borderRadius: "50%",
-      background: dark ? "radial-gradient(circle, rgba(150,180,235,0.26), transparent 68%)" : "radial-gradient(circle, rgba(120,170,230,0.22), transparent 68%)",
-      filter: "blur(5px)"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
     key: emoji,
     className: "onb-emoji",
     style: {
-      position: "relative",
-      fontSize: 62,
-      lineHeight: 1,
-      filter: "drop-shadow(0 7px 15px rgba(60,90,140,0.24))"
+      fontSize: 64,
+      lineHeight: 1
     }
   }, emoji));
 }

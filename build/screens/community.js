@@ -149,51 +149,87 @@ function NetworkLocked({
     "aria-hidden": true,
     style: {
       position: "absolute",
-      top: 14,
-      right: 17,
-      fontSize: 35,
+      top: 15,
+      right: 18,
+      fontSize: 34,
       lineHeight: 1,
-      pointerEvents: "none",
-      filter: "drop-shadow(0 3px 7px rgba(0,0,0,0.45))"
+      pointerEvents: "none"
     }
-  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDC51"), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
-      fontWeight: 800,
+      fontWeight: 700,
       letterSpacing: 1.4,
       textTransform: "uppercase",
       color: "rgba(160,196,255,0.9)"
     }
   }, "\u041D\u0435\u0442\u0432\u043E\u0440\u043A \xB7 \u043E\u0442\u043A\u0440\u043E\u0435\u0442\u0441\u044F \u0441 10 \u0443\u0440\u043E\u0432\u043D\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 19,
-      fontWeight: 800,
+      fontSize: 20,
+      fontWeight: 700,
       letterSpacing: "-0.4px",
       color: "#fff",
       marginTop: 4,
       maxWidth: 215,
-      lineHeight: 1.2
+      lineHeight: 1.18
     }
   }, "\u0417\u0430\u043A\u0440\u044B\u0442\u044B\u0439 \u043A\u0440\u0443\u0433 \u0441\u0432\u043E\u0438\u0445"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       color: "rgba(255,255,255,0.74)",
       marginTop: 6,
-      lineHeight: 1.42,
-      maxWidth: 252
+      lineHeight: 1.4,
+      maxWidth: 248
     }
-  }, "\u0416\u0438\u0432\u043E\u0439 \u043A\u0440\u0443\u0433 \u0434\u043B\u044F \u0442\u0435\u0445, \u043A\u0442\u043E \u0434\u043E\u0448\u0451\u043B: \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A\u0438, \u0432\u0441\u0442\u0440\u0435\u0447\u0438 \u0438 \u043F\u043E\u043C\u043E\u0449\u044C \u2014 \u0440\u044F\u0434\u043E\u043C, \u0432 \u0442\u0432\u043E\u0451\u043C \u0433\u043E\u0440\u043E\u0434\u0435."), /*#__PURE__*/React.createElement("div", {
+  }, "\u0416\u0438\u0432\u044B\u0435 \u0432\u0441\u0442\u0440\u0435\u0447\u0438 \u0438 \u043F\u043E\u043C\u043E\u0449\u044C \u0440\u044F\u0434\u043E\u043C \u2014 \u0441 \u043B\u044E\u0434\u044C\u043C\u0438 \u0442\u0432\u043E\u0435\u0433\u043E \u0433\u043E\u0440\u043E\u0434\u0430."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "#fff"
+    }
+  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", level, " \u2192 10"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: "rgba(255,255,255,0.72)"
+    }
+  }, "\u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", levelsLeft, " ", ruLvl(levelsLeft))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 9,
+      borderRadius: 999,
+      background: "rgba(255,255,255,0.13)",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: progPct + "%",
+      background: "linear-gradient(90deg, #FEDE34, #EF9F14)",
+      borderRadius: 999
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 7,
-      marginTop: 13,
-      flexWrap: "wrap"
+      marginTop: 13
     }
-  }, [["📍", "Твой город"], ["🤝", "Наставники"], ["💎", "Услуги за XP"]].map(([e, l], i) => /*#__PURE__*/React.createElement("span", {
+  }, [["🤝", "Наставники"], ["💎", "Услуги за XP"]].map(([e, l], i) => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
       display: "inline-flex",
@@ -211,52 +247,7 @@ function NetworkLocked({
       fontSize: 13,
       lineHeight: 1
     }
-  }, e), l))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 15
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "baseline",
-      marginBottom: 7
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 800,
-      color: "#fff"
-    }
-  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", level, " \u2192 10"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "rgba(255,255,255,0.72)"
-    }
-  }, "\u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", levelsLeft, " ", ruLvl(levelsLeft))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 9,
-      borderRadius: 999,
-      background: "rgba(255,255,255,0.13)",
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      height: "100%",
-      width: progPct + "%",
-      background: "linear-gradient(90deg, #FEDE34, #EF9F14)",
-      borderRadius: 999,
-      boxShadow: "0 0 12px rgba(254,222,52,0.5)"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "rgba(255,255,255,0.62)",
-      marginTop: 7
-    }
-  }, xp.toLocaleString(), " XP \u043D\u0430\u0431\u0440\u0430\u043D\u043E \xB7 \u043E\u043A\u043E\u043B\u043E ", weeks, " \u043D\u0435\u0434\u0435\u043B\u044C \u0432 \u0442\u0432\u043E\u0451\u043C \u0442\u0435\u043C\u043F\u0435")))), /*#__PURE__*/React.createElement("div", {
+  }, e), l))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 6
@@ -285,18 +276,6 @@ function NetworkLocked({
       overflow: "hidden"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: -14,
-      right: -14,
-      width: 70,
-      height: 70,
-      borderRadius: "50%",
-      background: p.accent,
-      opacity: 0.18,
-      filter: "blur(10px)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 44,
       height: 44,
@@ -1226,110 +1205,115 @@ function CommunityScreen() {
       gap: 12,
       marginTop: 14
     }
-  }, teams.map((t, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    className: "team-card",
-    style: {
-      ["--team-accent"]: t.accent,
-      borderRadius: 22,
-      padding: 18,
-      position: "relative",
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    className: "team-card__emblem",
-    style: {
-      position: "absolute",
-      top: -10,
-      right: -6,
-      fontSize: 110,
-      lineHeight: 1,
-      pointerEvents: "none",
-      transform: "rotate(8deg)"
-    }
-  }, t.emblem), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 700,
-      fontSize: 18,
-      color: "var(--text)",
-      letterSpacing: "-0.4px"
-    }
-  }, t.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-2)",
-      marginTop: 6,
-      fontWeight: 500
-    }
-  }, "\uD83C\uDFAF ", t.goal), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-3)",
-      marginTop: 2
-    }
-  }, t.date, " \xB7 ", t.members.length, " \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginTop: 14,
-      fontSize: 11,
-      color: "var(--text-3)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, /*#__PURE__*/React.createElement("span", null, t.target ? "К цели" : "Прогресс команды"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text)"
-    }
-  }, t.target ? `${t.current != null ? t.current : Math.round((t.progress || 0) * t.target)} / ${t.target} ${t.unit || ""}` : Math.round((t.progress || 0) * 100) + "%")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 6,
-      height: 8,
-      borderRadius: 999,
-      background: "var(--card-track)",
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "team-card__fill",
-    style: {
-      display: "block",
-      height: "100%",
-      width: (t.target ? Math.min(1, (t.current != null ? t.current : 0) / t.target) : t.progress || 0) * 100 + "%",
-      borderRadius: 999
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      marginTop: 14,
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement(AvatarStack, {
-    people: t.members,
-    size: 16,
-    max: 5,
-    label: false
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("team-detail", {
-      team: t
-    }),
-    className: "tap team-card__cta",
-    style: {
-      marginLeft: "auto",
-      border: 0,
-      borderRadius: 999,
-      padding: "10px 16px",
-      fontSize: 13,
-      fontWeight: 500
-    }
-  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"))))), teams.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, teams.map((t, i) => {
+    var tgt = t.target || 0;
+    var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+    var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      className: "team-card",
+      style: {
+        ["--team-accent"]: t.accent,
+        borderRadius: 22,
+        padding: 18,
+        position: "relative",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      "aria-hidden": true,
+      className: "team-card__emblem",
+      style: {
+        position: "absolute",
+        top: -10,
+        right: -6,
+        fontSize: 110,
+        lineHeight: 1,
+        pointerEvents: "none",
+        transform: "rotate(8deg)"
+      }
+    }, t.emblem), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 700,
+        fontSize: 18,
+        color: "var(--text)",
+        letterSpacing: "-0.4px"
+      }
+    }, t.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        color: "var(--text-2)",
+        marginTop: 6,
+        fontWeight: 500
+      }
+    }, "\uD83C\uDFAF ", t.goal), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-3)",
+        marginTop: 2
+      }
+    }, t.date, " \xB7 ", t.members.length, " \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginTop: 14,
+        fontSize: 11,
+        color: "var(--text-3)",
+        textTransform: "uppercase",
+        letterSpacing: 1,
+        fontWeight: 600
+      }
+    }, /*#__PURE__*/React.createElement("span", null, t.target ? "К цели" : "Прогресс команды"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--text)"
+      }
+    }, t.target ? `${cur} / ${tgt} ${t.unit || ""}` : Math.round(gp * 100) + "%")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 6,
+        height: 8,
+        borderRadius: 999,
+        background: "var(--card-track)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "team-card__fill",
+      style: {
+        display: "block",
+        height: "100%",
+        width: gp * 100 + "%",
+        borderRadius: 999
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        marginTop: 14,
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement(AvatarStack, {
+      people: t.members,
+      size: 28,
+      max: 5,
+      label: false
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => navigate("team-detail", {
+        team: t
+      }),
+      className: "tap team-card__cta",
+      style: {
+        marginLeft: "auto",
+        border: 0,
+        borderRadius: 999,
+        padding: "11px 18px",
+        fontSize: 13.5,
+        fontWeight: 600
+      }
+    }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"))));
+  }), teams.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       padding: "8px 18px 2px",

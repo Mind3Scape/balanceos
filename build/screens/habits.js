@@ -866,18 +866,11 @@ function HabitsScreen() {
     onComplete: () => {
       if (!h.done) toggle(h.id);
     }
-  }), /*#__PURE__*/React.createElement("button", {
-    className: "check-btn " + (h.done ? "" : "unchecked"),
-    "data-no-haptic": true,
-    onClick: e => {
-      e.stopPropagation();
-      toggle(h.id);
-    }
-  }, h.done && /*#__PURE__*/React.createElement(I.Check, {
-    size: 18,
-    strokeWidth: 2.5,
-    color: "#fff"
-  }))))))) : goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement(HabitCheck, {
+    done: h.done,
+    onToggle: () => toggle(h.id),
+    xp: 10
+  })))))) : goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"
