@@ -8,7 +8,7 @@
    Bump CACHE on each release so the new worker re-precaches cleanly. */
 const CACHE = "balanceos-v134";
 const PRECACHE = [
-  "./", "index.html", "styles.css", "mobile.css", "haptics.js", "telegram.js", "aikey.js", "store.js",
+  "./", "index.html", "styles.css", "mobile.css", "haptics.js", "telegram.js", "aikey.js", "store.js", "supabase.js",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js",
   // Precompiled UI (no Babel shipped).
   "build/components/icons.js", "build/components/shell.js",
