@@ -988,6 +988,7 @@ function CloudTeamsDiscover({
         window.bosCloud.teamMembers(t.id).then(mem => {
           if (app && app.addTeam) app.addTeam({
             cloudId: row.id,
+            joined: true,
             name: row.name,
             emblem: row.emblem || "✨",
             accent: "#dbe9ff",
@@ -3821,7 +3822,7 @@ function TeamDetailScreen() {
       }
     }, /*#__PURE__*/React.createElement(I.Share, {
       size: 18
-    })), /*#__PURE__*/React.createElement("button", {
+    })), !t.joined && /*#__PURE__*/React.createElement("button", {
       onClick: () => navigate("team-settings", {
         team: t
       }),

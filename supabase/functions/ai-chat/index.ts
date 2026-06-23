@@ -10,7 +10,7 @@
 //      (или через CLI:  supabase functions deploy ai-chat)
 //   2) Project Settings → Edge Functions → Secrets → добавь:
 //        OPENROUTER_KEY = твой ключ sk-or-...        (тут он безопасен, на сервере)
-//      (опционально OPENROUTER_MODEL = openai/gpt-oss-20b:free  — иначе берётся по умолчанию)
+//      (опционально OPENROUTER_MODEL = deepseek/deepseek-v4-flash  — иначе берётся по умолчанию)
 //   Всё. Приложение само начнёт ходить сюда, ИИ заработает у всех. Ключ нигде не виден.
 
 const CORS = {
@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const messages = Array.isArray(body?.messages) ? body.messages : [];
     const key = Deno.env.get("OPENROUTER_KEY");
-    const model = Deno.env.get("OPENROUTER_MODEL") || "openai/gpt-oss-20b:free";
+    const model = Deno.env.get("OPENROUTER_MODEL") || "deepseek/deepseek-v4-flash";
     if (!key) {
       return new Response(JSON.stringify({ error: "OPENROUTER_KEY secret is not set" }),
         { status: 500, headers: { ...CORS, "Content-Type": "application/json" } });

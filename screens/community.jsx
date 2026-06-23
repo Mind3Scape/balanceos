@@ -351,7 +351,7 @@ function CloudTeamsDiscover({ app }) {
         if (!row) { setBusy((b) => Object.assign({}, b, { [t.id]: false })); return; }
         window.bosCloud.teamMembers(t.id).then((mem) => {
           if (app && app.addTeam) app.addTeam({
-            cloudId: row.id, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff",
+            cloudId: row.id, joined: true, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff",
             vis: row.vis, goal: row.goal_kind || "Общая цель", target: row.goal_target || 0,
             current: 0, unit: "", date: "", progress: 0,
             members: (mem || []).map((m) => ({ name: m.name || "Участник", initials: (m.name || "?").slice(0, 1), color: "#cfe1ff", avatar: m.avatar, pct: 0 })),
@@ -1351,9 +1351,12 @@ function TeamDetailScreen() {
           <button onClick={() => openSheet(<TeamShareSheet team={t} />)} className="tap" title="Поделиться командой" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
             <I.Share size={18}/>
           </button>
+          {/* E — only the team's CREATOR can edit settings. A joined guest doesn't see the gear. */}
+          {!t.joined && (
           <button onClick={() => navigate("team-settings", { team: t })} className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
             <I.Settings size={18}/>
           </button>
+          )}
         </div>
       }/>
       <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden" }}>

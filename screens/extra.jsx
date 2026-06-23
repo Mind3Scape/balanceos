@@ -768,7 +768,7 @@ async function aiRaw(messages) {
   }
   const key = W.OPENROUTER_KEY || "";
   if (key) {
-    const model = W.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
+    const model = W.OPENROUTER_MODEL || "deepseek/deepseek-v4-flash";
     try {
       const res = await aiFetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
