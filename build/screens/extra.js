@@ -1483,18 +1483,56 @@ function MiniBars({
    Uses the key from aikey.js (window.OPENROUTER_KEY). No key → graceful canned
    replies so the demo still feels alive. Browser-direct call (OpenRouter allows
    it); the key is the user's capped test key on a free model, by their choice. */
-var AI_SYSTEM = "Ты — Balance, тёплый ИИ-наставник внутри приложения BalanceOS про состояние, энергию и привычки. Отвечай по-русски, коротко и по делу (2–4 предложения), поддерживающе, живым языком без канцелярита. Помогаешь спланировать день, разобраться с состоянием и предложить маленький следующий шаг.";
+var AI_SYSTEM = ["Ты — Balance: тёплый, внимательный наставник внутри приложения BalanceOS.", "BalanceOS — про баланс, состояние, энергию, привычки, цели и команды единомышленников.", "", "Как ты общаешься:", "— По-русски, на «ты», живым человеческим языком — без канцелярита, без воды, без морали свысока.", "— Коротко: обычно 2–4 предложения. Это чат в телефоне, а не лекция. Без длинных списков, если человек сам не попросил.", "— Тепло: сначала по-человечески признаёшь состояние и чувства, потом помогаешь.", "— Конкретно: вместо общих советов предлагаешь ОДИН маленький посильный следующий шаг (часто на 2–5 минут), который реально сдвинет день.", "— Опираешься на то, что знаешь о человеке (имя, состояние, привычки, серии, уровень) — но не зачитываешь это списком, а вплетаешь естественно.", "", "Чему помогаешь: спланировать день под текущую энергию; разобраться в состоянии; не сорвать и не бросить привычку; разбить большую цель на шаги; поддержать, когда тяжело.", "", "Чего не делаешь: не ставишь диагнозы и не заменяешь врача или психолога (если звучит что-то серьёзное — мягко предложи обратиться к специалисту); не стыдишь за пропуски и срывы — помогаешь вернуться без чувства вины; не выдумываешь факты о человеке, которых не знаешь.", "", "Твоя суперсила — превращать «всё или ничего» в один маленький реальный шаг прямо сейчас."].join("\n");
+
+// Build a compact, live snapshot of the user for the model — so replies are personal
+// and on-point, not generic. Woven into the system message, never shown to the user.
+function buildAiContext(app) {
+  try {
+    if (!app) return "";
+    var parts = [];
+    var name = (app.userName || "").trim();
+    if (name) parts.push("Имя: " + name + ".");
+    if (app.mood && app.mood.t) parts.push("Сейчас по ощущениям: " + app.mood.t + ".");
+    var habits = app.habits || [];
+    if (habits.length) {
+      var done = habits.filter(function (h) {
+        return h.done;
+      }).length;
+      var list = habits.slice(0, 8).map(function (h) {
+        return (h.emoji ? h.emoji + " " : "") + (h.name || "") + (h.streak ? " (серия " + h.streak + ")" : "") + (h.done ? " — сегодня сделано" : "");
+      }).join("; ");
+      parts.push("Привычки сегодня " + done + "/" + habits.length + ": " + list + ".");
+    } else {
+      parts.push("Привычек пока нет — помоги выбрать первую: маленькую, конкретную и реалистичную.");
+    }
+    var goals = (app.goals || []).map(function (g) {
+      return g.name || g.title;
+    }).filter(Boolean).slice(0, 5);
+    if (goals.length) parts.push("Цели: " + goals.join("; ") + ".");
+    if (app.mode === "live" && typeof bosTotalXP === "function") {
+      var xp = bosTotalXP(habits);
+      var li = typeof bosLevelInfo === "function" ? bosLevelInfo(xp) : null;
+      if (li) parts.push("Уровень " + li.level + " (" + xp + " XP).");
+    }
+    if (!parts.length) return "";
+    return "Контекст пользователя прямо сейчас (опирайся на него, но не зачитывай как список):\n" + parts.join(" ");
+  } catch (e) {
+    return "";
+  }
+}
 var AI_DEMO = ["Понял тебя. Давай по шагам: что сейчас сильнее всего забирает энергию? С этого и начнём.", "Окей. Предложу одно действие на 5 минут прямо сейчас — оно сдвинет весь день. Готов попробовать?", "Слышу. Сначала состояние, потом задачи. Сделай медленный вдох на 4 счёта и расскажи, как ощущается.", "Хорошая мысль. Давай привяжем это к уже существующей привычке — так новое приживётся легче."];
-async function aiReply(history) {
+async function aiReply(history, ctx) {
   var key = typeof window !== "undefined" && window.OPENROUTER_KEY || "";
   if (!key) {
     await new Promise(r => setTimeout(r, 1100));
     return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
   }
-  var model = typeof window !== "undefined" && window.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free";
+  var model = typeof window !== "undefined" && window.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
+  var sys = AI_SYSTEM + (ctx ? "\n\n" + ctx : "");
   var messages = [{
     role: "system",
-    content: AI_SYSTEM
+    content: sys
   }].concat((history || []).filter(m => m && m.t).map(m => ({
     role: m.who === "me" ? "user" : "assistant",
     content: m.t
@@ -1524,6 +1562,20 @@ function AIChatScreen() {
     navigate,
     params
   } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
+  // A real, personal opener: time-of-day greeting + the user's name. Demo keeps its
+  // richer scripted intro (summary + sample chat); live/fresh get a clean real start.
+  var _demoChat = app?.mode === "demo";
+  var _name = (app?.userName || "").trim();
+  var _hr = function () {
+    try {
+      return new Date().getHours();
+    } catch (e) {
+      return 12;
+    }
+  }();
+  var _greet = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
+  var _hello = _greet + (_name ? ", " + _name : "") + " 👋 Я Balance — помогаю с состоянием, энергией и привычками. Расскажи, как ты сейчас или о чём думаешь — и начнём с маленького шага.";
   // Resolve current theme from the iOS frame wrapper so this screen looks
   // right under both .theme-light and .theme-dark.
   var wrapRef = React.useRef(null);
@@ -1594,7 +1646,7 @@ function AIChatScreen() {
   };
 
   // Each message: { who, kind, t, ...cardData }
-  var [msgs, setMsgs] = useM([{
+  var [msgs, setMsgs] = useM(_demoChat ? [{
     who: "ai",
     kind: "greeting",
     t: "Доброе утро, Павел ☀️"
@@ -1657,6 +1709,10 @@ function AIChatScreen() {
       l: "Вс",
       v: 58
     }]
+  }] : [{
+    who: "ai",
+    kind: "greeting",
+    t: _hello
   }]);
   var [draft, setDraft] = useM("");
   var [typing, setTyping] = useM(false);
@@ -1674,7 +1730,7 @@ function AIChatScreen() {
     setMsgs(history);
     setDraft("");
     setTyping(true);
-    aiReply(history).then(reply => {
+    aiReply(history, buildAiContext(app)).then(reply => {
       setTyping(false);
       setMsgs(m => [...m, {
         who: "ai",
