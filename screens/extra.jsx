@@ -680,30 +680,49 @@ const AI_DEMO = [
   "Хорошая мысль. Давай привяжем это к уже существующей привычке — так новое приживётся легче.",
 ];
 async function aiReply(history, ctx) {
-  const key = (typeof window !== "undefined" && window.OPENROUTER_KEY) || "";
-  if (!key) {
-    await new Promise((r) => setTimeout(r, 1100));
-    return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
-  }
-  const model = (typeof window !== "undefined" && window.OPENROUTER_MODEL) || "openai/gpt-oss-20b:free";
   const sys = AI_SYSTEM + (ctx ? ("\n\n" + ctx) : "");
   const messages = [{ role: "system", content: sys }].concat(
     (history || []).filter((m) => m && m.t).map((m) => ({ role: m.who === "me" ? "user" : "assistant", content: m.t }))
   );
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + key,
-      "HTTP-Referer": "https://mind3scape.github.io/balanceos",
-      "X-Title": "BalanceOS",
-    },
-    body: JSON.stringify({ model, messages, max_tokens: 500, temperature: 0.7 }),
-  });
-  if (!res.ok) throw new Error("AI " + res.status);
-  const data = await res.json();
-  const txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-  return (txt && txt.trim()) || "…";
+  const W = (typeof window !== "undefined") ? window : {};
+  // 1) Preferred: server proxy (Supabase Edge Function) — the OpenRouter key stays on the
+  //    server, so AI works for EVERY user without the key ever shipping in the public site.
+  const sbUrl = (W.SUPABASE_URL || "").replace(/\/$/, "");
+  const sbKey = W.SUPABASE_ANON_KEY || "";
+  if (sbUrl && sbKey) {
+    try {
+      const res = await fetch(sbUrl + "/functions/v1/ai-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sbKey, "apikey": sbKey },
+        body: JSON.stringify({ messages }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const t = data && data.reply;
+        if (t && t.trim()) return t.trim();
+      }
+    } catch (e) { /* proxy not up yet → fall through */ }
+  }
+  // 2) Direct call — only when a key is present locally (aikey.js); used in dev/preview, never live.
+  const key = W.OPENROUTER_KEY || "";
+  if (key) {
+    const model = W.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key, "HTTP-Referer": "https://mind3scape.github.io/balanceos", "X-Title": "BalanceOS" },
+        body: JSON.stringify({ model, messages, max_tokens: 500, temperature: 0.7 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const t = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (t && t.trim()) return t.trim();
+      }
+    } catch (e) { /* fall through */ }
+  }
+  // 3) No working backend yet → graceful canned reply so the chat still feels alive.
+  await new Promise((r) => setTimeout(r, 900));
+  return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
 }
 
 function AIChatScreen() {
