@@ -205,7 +205,10 @@ function HomeHeroSwipe({
   // The avatar ring + the glow under it follow the current state orb's colour.
   var mood = heroApp?.mood;
   var moodTint = mood && typeof tintFromMood === "function" ? tintFromMood(mood.c) : null;
-  var fresh = heroApp?.mode === "fresh";
+  // "Newbie" = a brand-new account with nothing yet: the demo's fresh showcase OR
+  // a real Telegram user (mode "live") who just signed in and has no habits. Both
+  // get the warm get-started hero — not the demo's mood brief + balance wheel.
+  var newbie = heroApp?.mode === "fresh" || heroApp?.mode === "live" && (heroApp?.habits?.length || 0) === 0;
   var enabledW = heroApp?.wheelSpheres && heroApp.wheelSpheres.length >= 3 ? heroApp.wheelSpheres : window.DEFAULT_SPHERES || [];
   var wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
   var avgBalance = wAxes.length ? Math.round(wAxes.reduce((s, a) => s + a.v, 0) / wAxes.length * 100) : 0;
@@ -240,7 +243,7 @@ function HomeHeroSwipe({
   };
   var aiBrief = totalCount && doneCount >= totalCount ? "День закрыт — ты в потоке. Так держи ритм." : AI_BRIEF[mood && mood.t] || "Чтение легче даётся вечером — оставь его на потом.";
   var _pages = [/* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
-  fresh ? /*#__PURE__*/React.createElement("div", {
+  newbie ? /*#__PURE__*/React.createElement("div", {
     key: "hints",
     style: {
       position: "relative",
@@ -269,15 +272,15 @@ function HomeHeroSwipe({
       textTransform: "uppercase",
       letterSpacing: 1.2
     }
-  }, "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u0418\u0418"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421 \u0447\u0435\u0433\u043E \u043D\u0430\u0447\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
+      fontSize: 13.5,
       color: "var(--text-2)",
       marginTop: 3,
       lineHeight: 1.4,
       letterSpacing: "-0.1px"
     }
-  }, "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u0441\u0442\u0430\u043D\u0443\u0442 \u0442\u043E\u0447\u043D\u0435\u0435, \u043A\u043E\u0433\u0434\u0430 \u0440\u0430\u0441\u0441\u043A\u0430\u0436\u0435\u0448\u044C \u043E \u0441\u0435\u0431\u0435.")), /*#__PURE__*/React.createElement("button", {
+  }, "\u0420\u0430\u0441\u0441\u043A\u0430\u0436\u0438 \u043E \u0441\u0435\u0431\u0435 \u2014 \u0438 \u044F \u043F\u043E\u0434\u0441\u043A\u0430\u0436\u0443, \u0441 \u043A\u0430\u043A\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A \u043D\u0430\u0447\u0430\u0442\u044C.")), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("profile"),
     className: "tap",
     title: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C",
@@ -335,20 +338,26 @@ function HomeHeroSwipe({
       gap: 6
     }
   }, [{
-    i: "✨",
-    t: "ИИ: спланируй день"
+    i: "🙋",
+    t: "Рассказать о себе",
+    go: () => navigate("ai")
+  }, {
+    i: "➕",
+    t: "Создать привычку",
+    go: () => navigate("habit-settings", {
+      mode: "create"
+    })
   }, {
     i: "🧭",
-    t: "С чего начать"
+    t: "Как всё устроено",
+    go: () => navigate("guide")
   }, {
-    i: "🧘🏼‍♀️",
-    t: "Медитация 5 мин"
-  }, {
-    i: "🩺",
-    t: "Связать здоровье"
+    i: "✨",
+    t: "Спросить ИИ",
+    go: () => navigate("ai")
   }].map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
-    onClick: () => navigate("ai"),
+    onClick: c.go,
     className: "tap",
     style: {
       padding: "6px 12px",
@@ -614,8 +623,8 @@ function HomeHeroSwipe({
       background: zoneColor(a.v)
     }
   })))))))];
-  // Fresh new user: only the quote/avatar page (no balance wheel until there's data).
-  var pages = fresh ? _pages.slice(0, 1) : _pages;
+  // Newbie: only the get-started page (no balance wheel until there's data).
+  var pages = newbie ? _pages.slice(0, 1) : _pages;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: cardBg,
@@ -633,7 +642,7 @@ function HomeHeroSwipe({
       width: "200%",
       transform: `translateX(${-page * 50}%)`,
       transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)",
-      minHeight: fresh ? 128 : 196
+      minHeight: newbie ? 128 : 196
     }
   }, pages.map((p, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
@@ -707,7 +716,7 @@ function HomeScreen() {
       h = n % 100;
     return m === 1 && h !== 11 ? "команда" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "команды" : "команд";
   };
-  var dayStreak = app?.mode === "fresh" ? 0 : 27;
+  var dayStreak = app?.mode === "demo" ? 27 : 0; // demo showcase only; real streak comes with T0.2
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
   // sparkle burst when the whole day closes (doneCount reaches total).
@@ -1001,14 +1010,14 @@ function HomeScreen() {
       letterSpacing: "-0.5px"
     }
   }, /*#__PURE__*/React.createElement(CountUp, {
-    value: app?.mode === "fresh" ? 1 : 7
+    value: app?.mode === "demo" ? 7 : 1
   })), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10.5,
       opacity: 0.62,
       fontWeight: 700
     }
-  }, app?.mode === "fresh" ? "0 XP" : "1 240 XP")), /*#__PURE__*/React.createElement("span", {
+  }, app?.mode === "demo" ? "1 240 XP" : "0 XP")), /*#__PURE__*/React.createElement("span", {
     style: {
       display: "block",
       height: 4,
@@ -1021,7 +1030,7 @@ function HomeScreen() {
     style: {
       display: "block",
       height: "100%",
-      width: (app?.mode === "fresh" ? 4 : 83) + "%",
+      width: (app?.mode === "demo" ? 83 : 4) + "%",
       borderRadius: 999,
       background: "rgba(0,0,0,0.82)"
     }

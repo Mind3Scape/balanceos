@@ -107,7 +107,10 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   // The avatar ring + the glow under it follow the current state orb's colour.
   const mood = heroApp?.mood;
   const moodTint = (mood && typeof tintFromMood === "function") ? tintFromMood(mood.c) : null;
-  const fresh = heroApp?.mode === "fresh";
+  // "Newbie" = a brand-new account with nothing yet: the demo's fresh showcase OR
+  // a real Telegram user (mode "live") who just signed in and has no habits. Both
+  // get the warm get-started hero — not the demo's mood brief + balance wheel.
+  const newbie = heroApp?.mode === "fresh" || (heroApp?.mode === "live" && (heroApp?.habits?.length || 0) === 0);
   const enabledW = (heroApp?.wheelSpheres && heroApp.wheelSpheres.length >= 3) ? heroApp.wheelSpheres : (window.DEFAULT_SPHERES || []);
   const wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
   const avgBalance = wAxes.length ? Math.round(wAxes.reduce((s, a) => s + a.v, 0) / wAxes.length * 100) : 0;
@@ -145,12 +148,12 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
     : (AI_BRIEF[mood && mood.t] || "Чтение легче даётся вечером — оставь его на потом.");
   const _pages = [
     /* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
-    fresh ? (
+    newbie ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>Подсказки ИИ</div>
-          <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px" }}>Подсказки станут точнее, когда расскажешь о себе.</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>С чего начать</div>
+          <div style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px" }}>Расскажи о себе — и я подскажу, с каких привычек начать.</div>
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 54, height: 54, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
@@ -167,12 +170,12 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
-          { i: "✨", t: "ИИ: спланируй день" },
-          { i: "🧭", t: "С чего начать" },
-          { i: "🧘🏼‍♀️", t: "Медитация 5 мин" },
-          { i: "🩺", t: "Связать здоровье" },
+          { i: "🙋", t: "Рассказать о себе", go: () => navigate("ai") },
+          { i: "➕", t: "Создать привычку",  go: () => navigate("habit-settings", { mode: "create" }) },
+          { i: "🧭", t: "Как всё устроено",  go: () => navigate("guide") },
+          { i: "✨", t: "Спросить ИИ",        go: () => navigate("ai") },
         ].map((c, i) => (
-          <button key={i} onClick={() => navigate("ai")} className="tap" style={{
+          <button key={i} onClick={c.go} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
             background: chipBg, border: chipBd,
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
@@ -253,8 +256,8 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       </div>
     </div>,
   ];
-  // Fresh new user: only the quote/avatar page (no balance wheel until there's data).
-  const pages = fresh ? _pages.slice(0, 1) : _pages;
+  // Newbie: only the get-started page (no balance wheel until there's data).
+  const pages = newbie ? _pages.slice(0, 1) : _pages;
   return (
     <div style={{
       background: cardBg,
@@ -262,7 +265,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       borderRadius: 28, position: "relative", overflow: "hidden",
       boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
     }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div style={{ display: "flex", width: "200%", transform: `translateX(${-page * 50}%)`, transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: fresh ? 128 : 196 }}>
+      <div style={{ display: "flex", width: "200%", transform: `translateX(${-page * 50}%)`, transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: newbie ? 128 : 196 }}>
         {pages.map((p, i) => <div key={i} style={{ width: "50%", flexShrink: 0 }}>{p}</div>)}
       </div>
       {pages.length > 1 && (
@@ -308,7 +311,7 @@ function HomeScreen() {
   const xpEarnedToday = doneCount * XP_PER_HABIT + (dayAllDone ? XP_IDEAL_DAY : 0);
   const ruHab = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "привычку" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "привычки" : "привычек"; };
   const ruTeam = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "команда" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "команды" : "команд"; };
-  const dayStreak = app?.mode === "fresh" ? 0 : 27;
+  const dayStreak = app?.mode === "demo" ? 27 : 0; // demo showcase only; real streak comes with T0.2
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
   // sparkle burst when the whole day closes (doneCount reaches total).
@@ -404,11 +407,11 @@ function HomeScreen() {
         <button data-tour="level" onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, opacity: 0.7 }}>Уровень</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={app?.mode === "fresh" ? 1 : 7}/></span>
-            <span style={{ fontSize: 10.5, opacity: 0.62, fontWeight: 700 }}>{app?.mode === "fresh" ? "0 XP" : "1 240 XP"}</span>
+            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={app?.mode === "demo" ? 7 : 1}/></span>
+            <span style={{ fontSize: 10.5, opacity: 0.62, fontWeight: 700 }}>{app?.mode === "demo" ? "1 240 XP" : "0 XP"}</span>
           </div>
           <span style={{ display: "block", height: 4, borderRadius: 999, background: "rgba(0,0,0,0.16)", overflow: "hidden", marginTop: 1 }}>
-            <span style={{ display: "block", height: "100%", width: (app?.mode === "fresh" ? 4 : 83) + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
+            <span style={{ display: "block", height: "100%", width: (app?.mode === "demo" ? 83 : 4) + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
           </span>
         </button>
         )}
