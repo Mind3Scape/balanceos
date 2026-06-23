@@ -432,55 +432,60 @@ function FeedbackSheet({
   }, "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C")));
 }
 
-/* Orbit field — YOU in the centre, your habits orbiting on the inner ring, and the
-   people you bring into your circle on the outer rings. Empty rings rotate from the
-   start (a living, multiplayer feel); habits appear as you add them; invited people
-   fill the outer rings — real people once the cloud is on (T1). A thin gold arc around
-   the centre shows your level progress. Pure CSS spin; each item counter-spins by the
-   same duration to stay upright. */
+/* A few demo "invited people" (Memoji) so the multiplayer orbit reads in DEMO too —
+   in the live Telegram app these are real people from your referral circle (T1). */
+var DEMO_ORBIT_PEOPLE = [{
+  avatar: "m12"
+}, {
+  avatar: "m14"
+}, {
+  avatar: "m7"
+}, {
+  avatar: "m3"
+}, {
+  avatar: "m8"
+}];
+
+/* Orbit field — YOU in the centre; your habits and the people you bring in arranged by
+   STRENGTH, like an onboarding constellation. The more a habit is "прокачана" (streak),
+   the CLOSER to the centre and the BIGGER it sits — so at a glance you see which habits
+   are strong and which are fading. People follow the same logic: the first you invited
+   sits closest. Glass discs, a slow shared rotation (each item counter-spins to stay
+   upright), a gold arc for your level. Works for real in the live app; reflected in demo. */
 function OrbitField({
   avatar,
   habits = [],
   people = [],
   levelPct = 2,
   onTap,
-  size = 280
+  size = 300
 }) {
-  var C = size / 2;
-  var hb = (habits || []).slice(0, 9);
-  var pp = (people || []).slice(0, 12);
-  var rings = [{
-    R: size * 0.296,
-    dur: 30,
-    dir: 1,
-    sz: size * 0.121,
-    items: hb.map((h, i) => ({
-      t: "h",
-      e: h.emoji || "✨",
-      k: "h" + (h.id != null ? h.id : i)
-    }))
-  }, {
-    R: size * 0.400,
-    dur: 48,
-    dir: -1,
-    sz: size * 0.107,
-    items: pp.slice(0, 7).map((p, i) => ({
-      t: "p",
-      p: p,
-      k: "p" + i
-    }))
-  }, {
-    R: size * 0.464,
-    dur: 66,
-    dir: 1,
-    sz: size * 0.093,
-    items: pp.slice(7).map((p, i) => ({
-      t: "p",
-      p: p,
-      k: "q" + i
-    }))
-  }];
-  var lr = size * 0.189; // level ring radius (hugs the centre avatar)
+  var C = size / 2,
+    GA = 137.508,
+    dur = 84;
+  var lerp = (a, b, t) => a + (b - a) * t;
+  // habits sorted by streak DESC → strongest gets rank 0 (closest + biggest)
+  var hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0)).slice(0, 10);
+  var pp = (people || []).slice(0, 9); // invite order preserved: index 0 = first = closest
+  var place = (i, n, rMin, rMax, szMax, szMin, phase) => {
+    var t = n <= 1 ? 0 : i / (n - 1);
+    return {
+      r: lerp(rMin, rMax, t),
+      sz: lerp(szMax, szMin, t),
+      ang: i * GA + phase
+    };
+  };
+  var items = [].concat(hb.map((h, i) => Object.assign(place(i, hb.length, size * 0.225, size * 0.355, size * 0.097, size * 0.06, 10), {
+    t: "h",
+    e: h.emoji || "✨",
+    k: "h" + (h.id != null ? h.id : i)
+  }))).concat(pp.map((p, i) => Object.assign(place(i, pp.length, size * 0.41, size * 0.468, size * 0.083, size * 0.06, 205), {
+    t: "p",
+    p: p,
+    k: "p" + i
+  })));
+  var lr = size * 0.16;
+  var guides = [lr + 8, size * 0.385, size * 0.47];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -488,81 +493,74 @@ function OrbitField({
       height: size,
       margin: "0 auto"
     }
-  }, rings.map((ring, ri) => {
-    var wrap = ring.dir > 0 ? "bosSpin" : "bosSpinR";
-    var anti = ring.dir > 0 ? "bosSpinR" : "bosSpin";
-    return /*#__PURE__*/React.createElement(React.Fragment, {
-      key: ri
-    }, /*#__PURE__*/React.createElement("div", {
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        left: C - ring.R,
-        top: C - ring.R,
-        width: ring.R * 2,
-        height: ring.R * 2,
-        borderRadius: "50%",
-        border: "1px dashed var(--text-4, rgba(0,0,0,0.22))",
-        opacity: 0.34 - ri * 0.08
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "bos-orbit-ring",
-      style: {
-        position: "absolute",
-        left: C,
-        top: C,
-        width: 0,
-        height: 0,
-        animation: wrap + " " + ring.dur + "s linear infinite"
-      }
-    }, ring.items.map((it, i) => {
-      var ang = 360 / Math.max(ring.items.length, 1) * i;
-      return /*#__PURE__*/React.createElement("div", {
-        key: it.k,
-        style: {
-          position: "absolute",
-          left: 0,
-          top: 0,
-          transform: "rotate(" + ang + "deg) translate(0, " + -ring.R + "px)"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        className: "bos-orbit-anti",
-        style: {
-          position: "absolute",
-          left: -ring.sz / 2,
-          top: -ring.sz / 2,
-          width: ring.sz,
-          height: ring.sz,
-          transformOrigin: "center",
-          animation: anti + " " + ring.dur + "s linear infinite"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          width: "100%",
-          height: "100%",
-          transform: "rotate(" + -ang + "deg)"
-        }
-      }, it.t === "h" ? /*#__PURE__*/React.createElement("div", {
-        style: {
-          width: "100%",
-          height: "100%",
-          borderRadius: "50%",
-          background: "var(--card,#fff)",
-          boxShadow: "0 3px 10px rgba(0,0,0,0.14)",
-          display: "grid",
-          placeItems: "center",
-          fontSize: Math.round(ring.sz * 0.52)
-        }
-      }, it.e) : /*#__PURE__*/React.createElement(BosAvatar, {
-        avatar: it.p && it.p.avatar,
-        size: ring.sz,
-        style: {
-          border: "2px solid #fff",
-          boxShadow: "0 3px 10px rgba(0,0,0,0.18)"
-        }
-      }))));
-    })));
-  }), /*#__PURE__*/React.createElement("svg", {
+  }, guides.map((R, gi) => /*#__PURE__*/React.createElement("div", {
+    key: "g" + gi,
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      left: C - R,
+      top: C - R,
+      width: R * 2,
+      height: R * 2,
+      borderRadius: "50%",
+      border: "1px dashed var(--text-4,rgba(0,0,0,0.16))",
+      opacity: 0.32 - gi * 0.07
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "bos-orbit-ring",
+    style: {
+      position: "absolute",
+      left: C,
+      top: C,
+      width: 0,
+      height: 0,
+      animation: "bosSpin " + dur + "s linear infinite"
+    }
+  }, items.map(it => /*#__PURE__*/React.createElement("div", {
+    key: it.k,
+    style: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      transform: "rotate(" + it.ang + "deg) translate(0, " + -it.r + "px)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bos-orbit-anti",
+    style: {
+      position: "absolute",
+      left: -it.sz / 2,
+      top: -it.sz / 2,
+      width: it.sz,
+      height: it.sz,
+      transformOrigin: "center",
+      animation: "bosSpinR " + dur + "s linear infinite"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "100%",
+      height: "100%",
+      transform: "rotate(" + -it.ang + "deg)"
+    }
+  }, it.t === "h" ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "100%",
+      height: "100%",
+      borderRadius: "50%",
+      background: "var(--card,#fff)",
+      border: "1px solid rgba(0,0,0,0.05)",
+      boxShadow: "0 3px 9px rgba(0,0,0,0.12), inset 0 1px 1px rgba(255,255,255,0.7)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: Math.round(it.sz * 0.5)
+    }
+  }, it.e) : /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: it.p && it.p.avatar,
+    size: it.sz,
+    style: {
+      border: "2px solid #fff",
+      boxShadow: "0 3px 9px rgba(0,0,0,0.2)"
+    }
+  })))))), /*#__PURE__*/React.createElement("svg", {
     width: size,
     height: size,
     viewBox: "0 0 " + size + " " + size,
@@ -595,10 +593,10 @@ function OrbitField({
     "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
     style: {
       position: "absolute",
-      left: C - size * 0.168,
-      top: C - size * 0.168,
-      width: size * 0.336,
-      height: size * 0.336,
+      left: C - size * 0.143,
+      top: C - size * 0.143,
+      width: size * 0.286,
+      height: size * 0.286,
       borderRadius: "50%",
       border: 0,
       padding: 0,
@@ -606,7 +604,7 @@ function OrbitField({
     }
   }, /*#__PURE__*/React.createElement(BosAvatar, {
     avatar: avatar,
-    size: size * 0.336,
+    size: size * 0.286,
     style: {
       boxShadow: "0 8px 24px rgba(0,0,0,0.2)"
     }
@@ -615,8 +613,8 @@ function OrbitField({
       position: "absolute",
       right: -2,
       bottom: -2,
-      width: 30,
-      height: 30,
+      width: 28,
+      height: 28,
       borderRadius: "50%",
       background: "#0a0a0a",
       color: "#fff",
@@ -626,7 +624,7 @@ function OrbitField({
       boxShadow: "0 2px 6px rgba(0,0,0,0.25)"
     }
   }, /*#__PURE__*/React.createElement(I.Pencil, {
-    size: 13
+    size: 12
   }))));
 }
 function ProfileScreen() {
@@ -668,10 +666,10 @@ function ProfileScreen() {
   }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
     habits: app?.habits || [],
-    people: [],
+    people: app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : [],
     levelPct: lvlPct,
     onTap: openAvatar,
-    size: 272
+    size: 296
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-flex",

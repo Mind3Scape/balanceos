@@ -129,58 +129,56 @@ function FeedbackSheet({ title = "Написать в поддержку", dark 
   );
 }
 
-/* Orbit field — YOU in the centre, your habits orbiting on the inner ring, and the
-   people you bring into your circle on the outer rings. Empty rings rotate from the
-   start (a living, multiplayer feel); habits appear as you add them; invited people
-   fill the outer rings — real people once the cloud is on (T1). A thin gold arc around
-   the centre shows your level progress. Pure CSS spin; each item counter-spins by the
-   same duration to stay upright. */
-function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, size = 280 }) {
-  const C = size / 2;
-  const hb = (habits || []).slice(0, 9);
-  const pp = (people || []).slice(0, 12);
-  const rings = [
-    { R: size * 0.296, dur: 30, dir: 1,  sz: size * 0.121, items: hb.map((h, i) => ({ t: "h", e: h.emoji || "✨", k: "h" + (h.id != null ? h.id : i) })) },
-    { R: size * 0.400, dur: 48, dir: -1, sz: size * 0.107, items: pp.slice(0, 7).map((p, i) => ({ t: "p", p: p, k: "p" + i })) },
-    { R: size * 0.464, dur: 66, dir: 1,  sz: size * 0.093, items: pp.slice(7).map((p, i) => ({ t: "p", p: p, k: "q" + i })) },
-  ];
-  const lr = size * 0.189; // level ring radius (hugs the centre avatar)
+/* A few demo "invited people" (Memoji) so the multiplayer orbit reads in DEMO too —
+   in the live Telegram app these are real people from your referral circle (T1). */
+const DEMO_ORBIT_PEOPLE = [{ avatar: "m12" }, { avatar: "m14" }, { avatar: "m7" }, { avatar: "m3" }, { avatar: "m8" }];
+
+/* Orbit field — YOU in the centre; your habits and the people you bring in arranged by
+   STRENGTH, like an onboarding constellation. The more a habit is "прокачана" (streak),
+   the CLOSER to the centre and the BIGGER it sits — so at a glance you see which habits
+   are strong and which are fading. People follow the same logic: the first you invited
+   sits closest. Glass discs, a slow shared rotation (each item counter-spins to stay
+   upright), a gold arc for your level. Works for real in the live app; reflected in demo. */
+function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, size = 300 }) {
+  const C = size / 2, GA = 137.508, dur = 84;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  // habits sorted by streak DESC → strongest gets rank 0 (closest + biggest)
+  const hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0)).slice(0, 10);
+  const pp = (people || []).slice(0, 9); // invite order preserved: index 0 = first = closest
+  const place = (i, n, rMin, rMax, szMax, szMin, phase) => {
+    const t = n <= 1 ? 0 : i / (n - 1);
+    return { r: lerp(rMin, rMax, t), sz: lerp(szMax, szMin, t), ang: i * GA + phase };
+  };
+  const items = []
+    .concat(hb.map((h, i) => Object.assign(place(i, hb.length, size * 0.225, size * 0.355, size * 0.097, size * 0.06, 10), { t: "h", e: h.emoji || "✨", k: "h" + (h.id != null ? h.id : i) })))
+    .concat(pp.map((p, i) => Object.assign(place(i, pp.length, size * 0.41, size * 0.468, size * 0.083, size * 0.06, 205), { t: "p", p: p, k: "p" + i })));
+  const lr = size * 0.16;
+  const guides = [lr + 8, size * 0.385, size * 0.47];
   return (
     <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
-      {rings.map((ring, ri) => {
-        const wrap = ring.dir > 0 ? "bosSpin" : "bosSpinR";
-        const anti = ring.dir > 0 ? "bosSpinR" : "bosSpin";
-        return (
-          <React.Fragment key={ri}>
-            <div aria-hidden style={{ position: "absolute", left: C - ring.R, top: C - ring.R, width: ring.R * 2, height: ring.R * 2, borderRadius: "50%", border: "1px dashed var(--text-4, rgba(0,0,0,0.22))", opacity: 0.34 - ri * 0.08 }} />
-            <div className="bos-orbit-ring" style={{ position: "absolute", left: C, top: C, width: 0, height: 0, animation: wrap + " " + ring.dur + "s linear infinite" }}>
-              {ring.items.map((it, i) => {
-                const ang = (360 / Math.max(ring.items.length, 1)) * i;
-                return (
-                  <div key={it.k} style={{ position: "absolute", left: 0, top: 0, transform: "rotate(" + ang + "deg) translate(0, " + (-ring.R) + "px)" }}>
-                    <div className="bos-orbit-anti" style={{ position: "absolute", left: -ring.sz / 2, top: -ring.sz / 2, width: ring.sz, height: ring.sz, transformOrigin: "center", animation: anti + " " + ring.dur + "s linear infinite" }}>
-                      <div style={{ width: "100%", height: "100%", transform: "rotate(" + (-ang) + "deg)" }}>
-                        {it.t === "h"
-                          ? <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--card,#fff)", boxShadow: "0 3px 10px rgba(0,0,0,0.14)", display: "grid", placeItems: "center", fontSize: Math.round(ring.sz * 0.52) }}>{it.e}</div>
-                          : <BosAvatar avatar={it.p && it.p.avatar} size={ring.sz} style={{ border: "2px solid #fff", boxShadow: "0 3px 10px rgba(0,0,0,0.18)" }} />}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+      {guides.map((R, gi) => <div key={"g" + gi} aria-hidden style={{ position: "absolute", left: C - R, top: C - R, width: R * 2, height: R * 2, borderRadius: "50%", border: "1px dashed var(--text-4,rgba(0,0,0,0.16))", opacity: 0.32 - gi * 0.07 }} />)}
+      <div className="bos-orbit-ring" style={{ position: "absolute", left: C, top: C, width: 0, height: 0, animation: "bosSpin " + dur + "s linear infinite" }}>
+        {items.map((it) => (
+          <div key={it.k} style={{ position: "absolute", left: 0, top: 0, transform: "rotate(" + it.ang + "deg) translate(0, " + (-it.r) + "px)" }}>
+            <div className="bos-orbit-anti" style={{ position: "absolute", left: -it.sz / 2, top: -it.sz / 2, width: it.sz, height: it.sz, transformOrigin: "center", animation: "bosSpinR " + dur + "s linear infinite" }}>
+              <div style={{ width: "100%", height: "100%", transform: "rotate(" + (-it.ang) + "deg)" }}>
+                {it.t === "h"
+                  ? <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--card,#fff)", border: "1px solid rgba(0,0,0,0.05)", boxShadow: "0 3px 9px rgba(0,0,0,0.12), inset 0 1px 1px rgba(255,255,255,0.7)", display: "grid", placeItems: "center", fontSize: Math.round(it.sz * 0.5) }}>{it.e}</div>
+                  : <BosAvatar avatar={it.p && it.p.avatar} size={it.sz} style={{ border: "2px solid #fff", boxShadow: "0 3px 9px rgba(0,0,0,0.2)" }} />}
+              </div>
             </div>
-          </React.Fragment>
-        );
-      })}
+          </div>
+        ))}
+      </div>
       <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", pointerEvents: "none" }}>
         <circle cx={C} cy={C} r={lr} fill="none" stroke="var(--card-2,rgba(0,0,0,0.07))" strokeWidth="4.5" />
         <circle cx={C} cy={C} r={lr} fill="none" stroke="#FEDE34" strokeWidth="4.5" strokeLinecap="round"
           strokeDasharray={2 * Math.PI * lr} strokeDashoffset={2 * Math.PI * lr * (1 - Math.max(0.02, levelPct / 100))} />
       </svg>
-      <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: C - size * 0.168, top: C - size * 0.168, width: size * 0.336, height: size * 0.336, borderRadius: "50%", border: 0, padding: 0, background: "transparent" }}>
-        <BosAvatar avatar={avatar} size={size * 0.336} style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }} />
-        <span style={{ position: "absolute", right: -2, bottom: -2, width: 30, height: 30, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid var(--bg,#fff)", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
-          <I.Pencil size={13} />
+      <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: C - size * 0.143, top: C - size * 0.143, width: size * 0.286, height: size * 0.286, borderRadius: "50%", border: 0, padding: 0, background: "transparent" }}>
+        <BosAvatar avatar={avatar} size={size * 0.286} style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }} />
+        <span style={{ position: "absolute", right: -2, bottom: -2, width: 28, height: 28, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid var(--bg,#fff)", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
+          <I.Pencil size={12} />
         </span>
       </button>
     </div>
@@ -208,7 +206,7 @@ function ProfileScreen() {
 
       <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting, room for the people you bring in */}
-        <OrbitField avatar={app?.avatar} habits={app?.habits || []} people={[]} levelPct={lvlPct} onTap={openAvatar} size={272} />
+        <OrbitField avatar={app?.avatar} habits={app?.habits || []} people={app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : []} levelPct={lvlPct} onTap={openAvatar} size={296} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 2, background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999 }}>
           <I.Sparkles size={11} /> Уровень {lvlNum}
         </div>
