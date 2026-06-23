@@ -532,6 +532,23 @@ function AppProvider({ children }) {
   }));
   const removeTeamHabit = (teamId, habitId) => setTeams(ts => ts.map(t => t._id === teamId ? { ...t, habits: (t.habits || []).filter(h => h.id !== habitId) } : t));
 
+  // ── Local-first persistence (the spine) ────────────────────────────
+  // A real user's life is saved under their profile id; the demo (id = null) is
+  // intentionally NEVER persisted, so a reload always reseeds Павел's showcase.
+  // Today this is localStorage; the cloud (Supabase) later mirrors the same
+  // snapshot behind the very same bosStore.save call — AppProvider won't change.
+  const [persistId, setPersistId] = useState(null);
+  const saveTimer = useRef(null);
+  useEffect(() => {
+    if (!persistId || !window.bosStore) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    // Debounce: a flurry of taps coalesces into one write.
+    saveTimer.current = setTimeout(() => {
+      window.bosStore.save(persistId, { userName, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres });
+    }, 400);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [persistId, userName, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres]);
+
   // ── Entry modes ───────────────────────────────────────────────────
   // enterDemo: fill everything with the seed demo (Павел's filled life).
   // enterFresh: wipe to a clean slate, like a brand-new first user.
@@ -543,15 +560,28 @@ function AppProvider({ children }) {
     // Demo greets each screen with its own intro sheet → clear "seen" so home
     // (and every tab) shows one. No forced linear tour anymore.
     setOnbWelcome(false); setOnbTab(null); seenTabs.current = {}; setTourStep(-1); setTourScreen(null); setGuideDone(false);
+    setPersistId(null); // demo is ephemeral — never written to disk
   };
   const enterFresh = (name = "") => {
-    setMode("fresh"); setUserName((name || "").trim());
-    setHabits([]); setGoals([]); setTeams([]);
-    setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
+    setMode("fresh");
+    // A returning user (their profile already lives on this device) is restored;
+    // a brand-new user starts on a clean slate. Same entry point, both paths.
+    var saved = (window.bosStore && window.bosStore.has("me")) ? window.bosStore.load("me") : null;
+    if (saved) {
+      setUserName(saved.userName || (name || "").trim());
+      setHabits(saved.habits || []); setGoals(saved.goals || []); setTeams(saved.teams || []);
+      setDayMoods(saved.dayMoods || {}); setDayNotes(saved.dayNotes || {});
+      setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS);
+      setMood(MOOD_OPTIONS[2]); // live mood isn't persisted yet — start neutral
+    } else {
+      setUserName((name || "").trim());
+      setHabits([]); setGoals([]); setTeams([]);
+      setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
+    }
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
-    // Arm the welcome sheets; mark home as already-introduced so only the OTHER
-    // tabs trigger a contextual intro when the user first opens them.
-    setOnbWelcome(true); setOnbTab(null); seenTabs.current = { home: true }; setTourStep(-1); setTourScreen(null); setGuideDone(false);
+    // Brand-new users get the welcome sheets; returning users skip straight in.
+    setOnbWelcome(!saved); setOnbTab(null); seenTabs.current = { home: true }; setTourStep(-1); setTourScreen(null); setGuideDone(!!saved);
+    setPersistId("me"); // from here on, every change is saved under this profile
   };
   const startTour = (mode) => { setTourMode(mode || "demo"); setTourStep(0); };
   const endTour = () => setTourStep(-1);

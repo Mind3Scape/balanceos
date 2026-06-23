@@ -111,7 +111,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v132";
+var APP_VERSION = "v133";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
