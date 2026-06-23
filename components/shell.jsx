@@ -652,8 +652,14 @@ function AppProvider({ children }) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     // Debounce: a flurry of taps coalesces into one write.
     saveTimer.current = setTimeout(() => {
-      window.bosStore.save(persistId, { userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres });
-      try { if (window.bosCloud && window.bosCloud.enabled()) window.bosCloud.saveProfile({ username: userName, avatar: avatar }); } catch (e) {}
+      window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres });
+      try {
+        if (window.bosCloud && window.bosCloud.enabled()) {
+          window.bosCloud.saveProfile({ username: userName, avatar: avatar });
+          // D2 — mirror the whole life-blob to the cloud so it follows you across devices.
+          window.bosCloud.saveSnapshot({ habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres });
+        }
+      } catch (e) {}
     }, 400);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres]);
@@ -725,6 +731,25 @@ function AppProvider({ children }) {
               if (prof.avatar) setAvatar(prof.avatar);
             } else {
               window.bosCloud.saveProfile({ username: _locName, avatar: _locAv });
+            }
+          });
+          // D2 — cross-device data: whichever side saved last wins. Cloud newer →
+          // hydrate this device from it; otherwise push our local life up to the cloud.
+          window.bosCloud.loadSnapshot().then(function (snap) {
+            var localAt = saved ? (saved.savedAt || 0) : 0;
+            var cloudAt = (snap && snap.savedAt) || 0;
+            if (snap && snap.data && cloudAt >= localAt) {
+              var d = snap.data;
+              if (Array.isArray(d.habits)) setHabits(d.habits.map(bosRollHabit));
+              if (Array.isArray(d.goals)) setGoals(d.goals);
+              if (Array.isArray(d.teams)) setTeams(d.teams);
+              if (d.dayMoods) setDayMoods(d.dayMoods);
+              if (d.dayNotes) setDayNotes(d.dayNotes);
+              if (d.wheelSpheres) setWheelSpheres(d.wheelSpheres);
+              if (d.widgets) setWidgets(d.widgets);
+            } else {
+              var src = saved || {};
+              window.bosCloud.saveSnapshot({ habits: src.habits || [], goals: src.goals || [], teams: src.teams || [], dayMoods: src.dayMoods || {}, dayNotes: src.dayNotes || {}, wheelSpheres: src.wheelSpheres, widgets: src.widgets });
             }
           });
         });

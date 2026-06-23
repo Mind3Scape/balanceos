@@ -72,11 +72,32 @@
   }
   async function signOut() { var c = client(); _uid = null; if (c) { try { await c.auth.signOut(); } catch (e) {} } }
 
+  // ── D2 · cross-device snapshot ──────────────────────────────────────────────
+  // The whole life-blob (habits, goals, teams, mood history, widgets…) is mirrored
+  // into a single `snapshot jsonb` column on the user's profile row. Last-write-wins
+  // by device save-time. If the column doesn't exist yet (David hasn't run the 1-line
+  // ALTER), these just return false/null and the app stays perfectly local — no break.
+  async function saveSnapshot(data) {
+    var c = client(); var id = await uid(); if (!c || !id) return false;
+    try {
+      var r = await c.from("profiles").update({ snapshot: { savedAt: Date.now(), data: data || {} } }).eq("id", id);
+      return !r.error;
+    } catch (e) { return false; }
+  }
+  async function loadSnapshot() {
+    var c = client(); var id = await uid(); if (!c || !id) return null;
+    try {
+      var r = await c.from("profiles").select("snapshot").eq("id", id).maybeSingle();
+      return (r && r.data && r.data.snapshot) || null; // { savedAt, data } | null
+    } catch (e) { return null; }
+  }
+
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, currentUser: currentUser,
     loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople,
+    saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     signOut: signOut,
     _client: client,
   };

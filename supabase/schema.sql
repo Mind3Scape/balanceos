@@ -14,8 +14,11 @@ create table if not exists public.profiles (
   username    text default '',
   avatar      text,                         -- "default" | "m5" | "emoji:🦊"
   referred_by uuid references public.profiles(id) on delete set null,
+  snapshot    jsonb,                        -- D2: вся жизнь юзера (привычки/цели/команды/настроение) — кросс-девайс
   created_at  timestamptz not null default now()
 );
+-- Если таблица уже создана (Дэвид прогнал schema.sql раньше) — добавить колонку:
+alter table public.profiles add column if not exists snapshot jsonb;
 
 -- ── ПРИВЫЧКИ + ОТМЕТКИ ПО ДАТАМ (модель T0.2 в облаке) ─────────────────────────
 create table if not exists public.habits (
