@@ -3107,7 +3107,16 @@ function SignUpScreen() {
       padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))",
       animation: "suSheetIn 0.62s 0.56s cubic-bezier(0.22,0.8,0.32,1) both"
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      letterSpacing: "0.6px",
+      textTransform: "uppercase",
+      color: pal.sub,
+      margin: "2px 0 11px 4px"
+    }
+  }, "\u0414\u0435\u043C\u043E \u2014 \u043F\u0440\u043E\u0441\u0442\u043E \u043F\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"), /*#__PURE__*/React.createElement("button", {
     onClick: goDemo,
     className: "tap",
     style: {
@@ -3121,7 +3130,8 @@ function SignUpScreen() {
       border: 0,
       borderRadius: 20,
       padding: "15px 16px",
-      boxShadow: "0 12px 30px rgba(254,222,52,0.32)"
+      boxShadow: "0 12px 30px rgba(254,222,52,0.32)",
+      marginBottom: 11
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -3154,33 +3164,9 @@ function SignUpScreen() {
       marginTop: 2,
       lineHeight: 1.35
     }
-  }, "\u0412\u0441\u0451 \u0443\u0436\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043E \u2014 \u043B\u0443\u0447\u0448\u0438\u0439 \u0441\u043F\u043E\u0441\u043E\u0431 \u043F\u043E\u043D\u044F\u0442\u044C, \u043A\u0430\u043A \u044D\u0442\u043E \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\u0417\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0439 \u043F\u0440\u0438\u043C\u0435\u0440 \u2014 \u043A\u0430\u043A \u0443 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 20,
     color: "rgba(0,0,0,0.5)"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      margin: "20px 0 16px"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      height: 1,
-      background: pal.line
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: pal.sub
-    }
-  }, "\u0438\u043B\u0438"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      height: 1,
-      background: pal.line
-    }
   })), /*#__PURE__*/React.createElement("button", {
     onClick: goFresh,
     className: "tap",
@@ -3227,7 +3213,7 @@ function SignUpScreen() {
       marginTop: 2,
       lineHeight: 1.35
     }
-  }, "\u041F\u0443\u0441\u0442\u043E\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u0435\u0440\u0432\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0441\u043E\u0437\u0434\u0430\u0448\u044C \u0441\u0430\u043C")), /*#__PURE__*/React.createElement("span", {
+  }, "\u041F\u0443\u0441\u0442\u043E\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u043E\u043F\u0440\u043E\u0431\u043E\u0432\u0430\u0442\u044C \u043A\u0430\u043A \u043D\u043E\u0432\u0438\u0447\u043E\u043A")), /*#__PURE__*/React.createElement("span", {
     style: {
       opacity: 0.5,
       display: "flex",
@@ -3238,29 +3224,14 @@ function SignUpScreen() {
     color: pal.btnFg
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      margin: "20px 0 16px"
+      fontSize: 11.5,
+      fontWeight: 600,
+      letterSpacing: "0.6px",
+      textTransform: "uppercase",
+      color: pal.sub,
+      margin: "24px 0 11px 4px"
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      height: 1,
-      background: pal.line
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: pal.sub
-    }
-  }, "\u0438\u043B\u0438 \u0432\u043E\u0439\u0434\u0438 \u043F\u043E-\u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0435\u043C\u0443"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      height: 1,
-      background: pal.line
-    }
-  })), /*#__PURE__*/React.createElement("button", {
+  }, "\u0412\u043E\u0439\u0442\u0438 \u043F\u043E-\u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0435\u043C\u0443"), /*#__PURE__*/React.createElement("button", {
     onClick: goLive,
     className: "tap",
     style: {
@@ -3269,22 +3240,23 @@ function SignUpScreen() {
       alignItems: "center",
       gap: 13,
       textAlign: "left",
-      background: "linear-gradient(135deg, #2AABEE 0%, #229ED9 100%)",
+      background: "linear-gradient(150deg, #20242c 0%, #0a0a0a 62%)",
       color: "#fff",
-      border: 0,
+      border: "1px solid rgba(255,255,255,0.08)",
       borderRadius: 20,
       padding: "15px 16px",
-      boxShadow: "0 12px 30px rgba(34,158,217,0.32)"
+      boxShadow: "0 14px 32px rgba(0,0,0,0.30)"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       width: 44,
       height: 44,
       borderRadius: 14,
-      background: "rgba(255,255,255,0.20)",
+      background: "#229ED9",
       display: "grid",
       placeItems: "center",
-      flexShrink: 0
+      flexShrink: 0,
+      boxShadow: "0 4px 12px rgba(34,158,217,0.45)"
     }
   }, /*#__PURE__*/React.createElement("svg", {
     width: "24",
@@ -3308,22 +3280,14 @@ function SignUpScreen() {
   }, "\u0412\u043E\u0439\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 Telegram"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: "rgba(255,255,255,0.82)",
+      color: "rgba(255,255,255,0.6)",
       marginTop: 2,
       lineHeight: 1.35
     }
-  }, "\u041F\u043E-\u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0435\u043C\u0443 \u2014 \u0432\u0441\u0451 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u0432 \u0442\u0432\u043E\u0451\u043C \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0435")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\u0422\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 \u2014 \u0432\u0441\u0451 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u043F\u043E-\u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0435\u043C\u0443")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 20,
-    color: "rgba(255,255,255,0.7)"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      fontSize: 11.5,
-      color: pal.sub,
-      marginTop: 14,
-      lineHeight: 1.45
-    }
-  }, "\u041F\u043E\u0447\u0442\u0430, Google \u0438 Apple \u2014 \u043F\u043E\u0437\u0436\u0435.")));
+    color: "rgba(255,255,255,0.55)"
+  }))));
 }
 function IconPickerScreen() {
   var {

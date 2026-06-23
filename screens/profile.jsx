@@ -1100,60 +1100,47 @@ function SignUpScreen() {
         </div>
       </div>
       <div style={{ background: pal.sheet, borderTop: pal.sheetBorder, borderRadius: "33px 33px 0 0", padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))", animation: "suSheetIn 0.62s 0.56s cubic-bezier(0.22,0.8,0.32,1) both" }}>
-        {/* Door 1 — Demo (where a shared link should land) */}
+        {/* ── Group 1 — DEMO: both doors are showcases, nothing is ever saved ── */}
+        <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase", color: pal.sub, margin: "2px 0 11px 4px" }}>Демо — просто посмотреть</div>
+        {/* Door 1 — filled demo (where a shared link should land) */}
         <button onClick={goDemo} className="tap" style={{
           width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",
           background: "linear-gradient(135deg, #FEDE34 0%, #FFC400 100%)", color: "#0a0a0a",
-          border: 0, borderRadius: 20, padding: "15px 16px", boxShadow: "0 12px 30px rgba(254,222,52,0.32)",
+          border: 0, borderRadius: 20, padding: "15px 16px", boxShadow: "0 12px 30px rgba(254,222,52,0.32)", marginBottom: 11,
         }}>
           <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.55)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={23} color="#0a0a0a"/></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Посмотреть демо</div>
-            <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.6)", marginTop: 2, lineHeight: 1.35 }}>Всё уже настроено — лучший способ понять, как это работает</div>
+            <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.6)", marginTop: 2, lineHeight: 1.35 }}>Заполненный пример — как у активного пользователя</div>
           </div>
           <I.ChevronRight size={20} color="rgba(0,0,0,0.5)" />
         </button>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 16px" }}>
-          <span style={{ flex: 1, height: 1, background: pal.line }}/>
-          <span style={{ fontSize: 12, color: pal.sub }}>или</span>
-          <span style={{ flex: 1, height: 1, background: pal.line }}/>
-        </div>
-
-        {/* Door 2 — new user (clean slate). The real registration form (имя / e-mail /
-            Google / Apple) is intentionally hidden for now so the demo never asks for
-            real data — it'll live right here in the released app. */}
+        {/* Door 2 — new-user onboarding (clean slate). Also a demo: never persists. */}
         <button onClick={goFresh} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 20, padding: "15px 16px" }}>
           <span style={{ width: 44, height: 44, borderRadius: 14, background: dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.22)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Plus size={22} color={pal.btnFg}/></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Начать с чистого листа</div>
-            <div style={{ fontSize: 12.5, opacity: 0.6, marginTop: 2, lineHeight: 1.35 }}>Пустое приложение — первую привычку создашь сам</div>
+            <div style={{ fontSize: 12.5, opacity: 0.6, marginTop: 2, lineHeight: 1.35 }}>Пустое приложение — попробовать как новичок</div>
           </div>
           <span style={{ opacity: 0.5, display: "flex", flexShrink: 0 }}><I.ChevronRight size={20} color={pal.btnFg} /></span>
         </button>
 
-        {/* The REAL door — sign in with Telegram. The two buttons above are
-            showcases (never persisted); this one is the live, saved-for-real app. */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 16px" }}>
-          <span style={{ flex: 1, height: 1, background: pal.line }}/>
-          <span style={{ fontSize: 12, color: pal.sub }}>или войди по-настоящему</span>
-          <span style={{ flex: 1, height: 1, background: pal.line }}/>
-        </div>
+        {/* ── Group 2 — THE REAL APP: your Telegram account, saved for real ── */}
+        <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase", color: pal.sub, margin: "24px 0 11px 4px" }}>Войти по-настоящему</div>
         <button onClick={goLive} className="tap" style={{
           width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",
-          background: "linear-gradient(135deg, #2AABEE 0%, #229ED9 100%)", color: "#fff",
-          border: 0, borderRadius: 20, padding: "15px 16px", boxShadow: "0 12px 30px rgba(34,158,217,0.32)",
+          background: "linear-gradient(150deg, #20242c 0%, #0a0a0a 62%)", color: "#fff",
+          border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "15px 16px", boxShadow: "0 14px 32px rgba(0,0,0,0.30)",
         }}>
-          <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.20)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: "#229ED9", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(34,158,217,0.45)" }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-hidden><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Войти через Telegram</div>
-            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.82)", marginTop: 2, lineHeight: 1.35 }}>По-настоящему — всё сохранится в твоём аккаунте</div>
+            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.6)", marginTop: 2, lineHeight: 1.35 }}>Твой аккаунт — всё сохранится по-настоящему</div>
           </div>
-          <I.ChevronRight size={20} color="rgba(255,255,255,0.7)" />
+          <I.ChevronRight size={20} color="rgba(255,255,255,0.55)" />
         </button>
-        <div style={{ textAlign: "center", fontSize: 11.5, color: pal.sub, marginTop: 14, lineHeight: 1.45 }}>Почта, Google и Apple — позже.</div>
       </div>
     </div>
   );
