@@ -256,7 +256,19 @@ function AvatarStack({
     style: {
       display: "flex"
     }
-  }, visible.map((p, i) => /*#__PURE__*/React.createElement("div", {
+  }, visible.map((p, i) =>
+  // Real avatar (the Memoji/Emoji the person chose) when they have one — so faces
+  // stay consistent everywhere; initials disc only as a fallback.
+  p.avatar && typeof BosAvatar === "function" ? /*#__PURE__*/React.createElement(BosAvatar, {
+    key: i,
+    avatar: p.avatar,
+    size: size,
+    style: {
+      border: "1.5px solid #fff",
+      marginLeft: i ? -size * 0.35 : 0,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.08)"
+    }
+  }) : /*#__PURE__*/React.createElement("div", {
     key: i,
     title: p.name,
     style: {

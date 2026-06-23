@@ -112,6 +112,13 @@ function AvatarStack({ people = [], size = 18, max = 3, label = true }) {
     <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
       <div style={{ display: "flex" }}>
         {visible.map((p, i) => (
+          // Real avatar (the Memoji/Emoji the person chose) when they have one — so faces
+          // stay consistent everywhere; initials disc only as a fallback.
+          (p.avatar && typeof BosAvatar === "function") ? (
+            <BosAvatar key={i} avatar={p.avatar} size={size} style={{
+              border: "1.5px solid #fff", marginLeft: i ? -size*0.35 : 0, boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+            }} />
+          ) : (
           <div key={i} title={p.name} style={{
             width: size, height: size, borderRadius: "50%",
             background: p.color || AVATAR_PALETTE[i % AVATAR_PALETTE.length],
@@ -120,6 +127,7 @@ function AvatarStack({ people = [], size = 18, max = 3, label = true }) {
             fontSize: size * 0.5, fontWeight: 700, color: "rgba(0,0,0,0.55)",
             boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}>{p.initials || p.name?.[0]}</div>
+          )
         ))}
         {overflow > 0 && (
           <div style={{
