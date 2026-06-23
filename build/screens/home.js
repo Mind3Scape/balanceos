@@ -242,6 +242,13 @@ function HomeHeroSwipe({
     "Усталость": "Сбавь темп: закрой одну привычку — и довольно."
   };
   var aiBrief = totalCount && doneCount >= totalCount ? "День закрыт — ты в потоке. Так держи ритм." : AI_BRIEF[mood && mood.t] || "Чтение легче даётся вечером — оставь его на потом.";
+  // L2 — for LIVE users the summary + pills come from the AI login brief (refreshed
+  // at login). Demo keeps its scripted line/chips. The brief always has a heuristic
+  // fallback, so this is never empty.
+  var _liveBrief = heroApp?.mode === "live" ? heroApp?.aiBrief : null;
+  var _homeSummary = _liveBrief && _liveBrief.summary || aiBrief;
+  var _livePills = _liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length ? _liveBrief.pills.slice(0, 4) : null;
+  var _pillsKey = _livePills ? _livePills.map(p => p.t).join("|") : "demo"; // change → re-animate
   var _pages = [/* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
   newbie ? /*#__PURE__*/React.createElement("div", {
     key: "hints",
@@ -272,15 +279,17 @@ function HomeHeroSwipe({
       textTransform: "uppercase",
       letterSpacing: 1.2
     }
-  }, "\u0421 \u0447\u0435\u0433\u043E \u043D\u0430\u0447\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
+  }, _liveBrief ? "Тебе сегодня" : "С чего начать"), /*#__PURE__*/React.createElement("div", {
+    key: _homeSummary,
     style: {
       fontSize: 13.5,
       color: "var(--text-2)",
       marginTop: 3,
       lineHeight: 1.4,
-      letterSpacing: "-0.1px"
+      letterSpacing: "-0.1px",
+      animation: _liveBrief ? "briefFade 0.5s ease both" : undefined
     }
-  }, "\u0420\u0430\u0441\u0441\u043A\u0430\u0436\u0438 \u043E \u0441\u0435\u0431\u0435 \u2014 \u0438 \u044F \u043F\u043E\u0434\u0441\u043A\u0430\u0436\u0443, \u0441 \u043A\u0430\u043A\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A \u043D\u0430\u0447\u0430\u0442\u044C.")), /*#__PURE__*/React.createElement("button", {
+  }, _liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать.")), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("profile"),
     className: "tap",
     title: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C",
@@ -417,15 +426,17 @@ function HomeHeroSwipe({
     style: {
       color: "#E0A500"
     }
-  }, "\u2726"), " \u0421\u043E\u0432\u0435\u0442 \u0434\u043D\u044F"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2726"), " ", _liveBrief ? "Тебе сегодня" : "Совет дня"), /*#__PURE__*/React.createElement("div", {
+    key: _homeSummary,
     style: {
       fontSize: 14,
       color: "var(--text-2)",
       marginTop: 5,
       lineHeight: 1.42,
-      letterSpacing: "-0.1px"
+      letterSpacing: "-0.1px",
+      animation: "briefFade 0.5s ease both"
     }
-  }, aiBrief)), /*#__PURE__*/React.createElement("button", {
+  }, _homeSummary)), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("profile"),
     className: "tap",
     title: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C",
@@ -501,6 +512,7 @@ function HomeHeroSwipe({
       border: "2px solid " + (isDark ? "#0a0a0a" : "#fff")
     }
   }, doneCount, "/", totalCount))), /*#__PURE__*/React.createElement("div", {
+    key: _pillsKey,
     style: {
       display: "flex",
       flexWrap: "wrap",
@@ -509,7 +521,7 @@ function HomeHeroSwipe({
       paddingTop: 12,
       paddingBottom: 14
     }
-  }, [{
+  }, (_livePills || [{
     i: "✨",
     t: "ИИ: спланируй день"
   }, {
@@ -521,9 +533,11 @@ function HomeHeroSwipe({
   }, {
     i: "📖",
     t: "Открыть дневник"
-  }].map((c, i) => /*#__PURE__*/React.createElement("button", {
+  }]).map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
-    onClick: () => navigate("ai"),
+    onClick: () => _livePills ? navigate("ai-chat", {
+      prompt: c.t
+    }) : navigate("ai"),
     className: "tap",
     style: {
       padding: "6px 12px",
@@ -534,7 +548,8 @@ function HomeHeroSwipe({
       borderRadius: 999,
       display: "inline-flex",
       alignItems: "center",
-      gap: 6
+      gap: 6,
+      animation: _livePills ? "briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + i * 0.06 + "s" : undefined
     }
   }, /*#__PURE__*/React.createElement("span", null, c.i), c.t)))),
   /*#__PURE__*/

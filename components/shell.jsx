@@ -646,6 +646,9 @@ function AppProvider({ children }) {
   // Today this is localStorage; the cloud (Supabase) later mirrors the same
   // snapshot behind the very same bosStore.save call — AppProvider won't change.
   const [persistId, setPersistId] = useState(null);
+  // L1 — the AI "login brief" (personal summary + suggestion pills) for LIVE users.
+  // Computed once per login from the real context; cached so it shows instantly.
+  const [aiBrief, setAiBrief] = useState(null);
   const saveTimer = useRef(null);
   useEffect(() => {
     if (!persistId || !window.bosStore) return;
@@ -663,6 +666,22 @@ function AppProvider({ children }) {
     }, 400);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres]);
+
+  // L1 — refresh the AI brief ONCE per login (entering live / identity change). Shows the
+  // cached brief instantly, then refines it via the real AI from the restored context.
+  useEffect(() => {
+    if (mode !== "live") { setAiBrief(null); return; }
+    const cacheKey = "bos:brief:" + (persistId || "live");
+    try { const raw = localStorage.getItem(cacheKey); if (raw) setAiBrief(JSON.parse(raw)); } catch (e) {}
+    if (typeof bosAiBrief !== "function") return;
+    let on = true;
+    bosAiBrief({ mode: "live", userName, mood, habits, goals, dayMoods, dayNotes }).then((brief) => {
+      if (!on || !brief) return;
+      setAiBrief(brief);
+      try { localStorage.setItem(cacheKey, JSON.stringify(brief)); } catch (e) {}
+    }).catch(() => {});
+    return () => { on = false; };
+  }, [mode, persistId]); // once per login by design
 
   // ── Entry modes ───────────────────────────────────────────────────
   // enterDemo: fill everything with the seed demo (Павел's filled life).
@@ -772,6 +791,7 @@ function AppProvider({ children }) {
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
+    aiBrief,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,

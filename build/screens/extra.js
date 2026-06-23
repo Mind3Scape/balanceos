@@ -1605,23 +1605,31 @@ function buildAiContext(app) {
   }
 }
 var AI_DEMO = ["Слышу тебя. Давай отделим то, что в твоей власти, от того, что нет — и тронем только первое. Что здесь зависит от тебя прямо сейчас?", "Не обязательно решать всё разом. Назови одно маленькое действие на пять минут — и сделай только его. Остальное подождёт.", "Сначала состояние, потом задачи. Сделай один медленный вдох и просто заметь, как оно ощущается в теле — без оценок.", "Хорошая мысль. Будет ли это важно через год? Если да — сделаем первый шаг сегодня. Если нет — отпустим без вины."];
-async function aiReply(history, ctx) {
-  var sys = AI_SYSTEM + (ctx ? "\n\n" + ctx : "");
-  var messages = [{
-    role: "system",
-    content: sys
-  }].concat((history || []).filter(m => m && m.t).map(m => ({
-    role: m.who === "me" ? "user" : "assistant",
-    content: m.t
-  })));
+// fetch with an abort timeout so a slow/stuck model never hangs the chat or brief.
+async function aiFetch(url, opts, ms) {
+  var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  var tid = ctl ? setTimeout(() => {
+    try {
+      ctl.abort();
+    } catch (e) {}
+  }, ms || 22000) : null;
+  try {
+    return await fetch(url, ctl ? Object.assign({}, opts, {
+      signal: ctl.signal
+    }) : opts);
+  } finally {
+    if (tid) clearTimeout(tid);
+  }
+}
+// Low-level transport: send a raw `messages` array to the model and return its text
+// (or null). Proxy (server key) → direct (dev key) → null. Reused by chat AND brief.
+async function aiRaw(messages) {
   var W = typeof window !== "undefined" ? window : {};
-  // 1) Preferred: server proxy (Supabase Edge Function) — the OpenRouter key stays on the
-  //    server, so AI works for EVERY user without the key ever shipping in the public site.
   var sbUrl = (W.SUPABASE_URL || "").replace(/\/$/, "");
   var sbKey = W.SUPABASE_ANON_KEY || "";
   if (sbUrl && sbKey) {
     try {
-      var res = await fetch(sbUrl + "/functions/v1/ai-chat", {
+      var res = await aiFetch(sbUrl + "/functions/v1/ai-chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1637,14 +1645,13 @@ async function aiReply(history, ctx) {
         var t = data && data.reply;
         if (t && t.trim()) return t.trim();
       }
-    } catch (e) {/* proxy not up yet → fall through */}
+    } catch (e) {/* fall through */}
   }
-  // 2) Direct call — only when a key is present locally (aikey.js); used in dev/preview, never live.
   var key = W.OPENROUTER_KEY || "";
   if (key) {
     var model = W.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
     try {
-      var _res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      var _res = await aiFetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1666,9 +1673,153 @@ async function aiReply(history, ctx) {
       }
     } catch (e) {/* fall through */}
   }
-  // 3) No working backend yet → graceful canned reply so the chat still feels alive.
+  return null;
+}
+async function aiReply(history, ctx) {
+  var sys = AI_SYSTEM + (ctx ? "\n\n" + ctx : "");
+  var messages = [{
+    role: "system",
+    content: sys
+  }].concat((history || []).filter(m => m && m.t).map(m => ({
+    role: m.who === "me" ? "user" : "assistant",
+    content: m.t
+  })));
+  var t = await aiRaw(messages);
+  if (t && t.trim()) return t.trim();
+  // No working backend → graceful canned reply so the chat still feels alive.
   await new Promise(r => setTimeout(r, 900));
   return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
+}
+
+/* ── L1 · LOGIN BRIEF ────────────────────────────────────────────────────────
+   Once at login the mentor reads the user's real context and returns a compact
+   JSON "brief": a personal summary for the home banner, 3–4 tappable suggestion
+   pills, a one-line greeting and a small next-step hint. We NEVER hard-depend on
+   the model — a heuristic brief is always computed first, and the AI just refines
+   it. So live users always get something personal, even offline. */
+var BRIEF_SYSTEM = ["Ты — тот же тихий наставник (стоицизм + дзен, в материальной реальности, без имени).", "Тебе дают живой контекст человека. Сгенерируй для главного экрана приложения короткий персональный «бриф».", "Верни СТРОГО валидный JSON (и больше ничего) такой формы:", '{ "greeting": "тёплое личное приветствие, 3–6 слов", "summary": "ОДНО предложение «именно тебе сегодня» — опирается на состояние/привычки/серии, по-русски на «ты», без воды", "pills": [ { "i": "эмодзи", "t": "короткое действие-подсказка, ≤4 слов" } ], "hint": "один маленький конкретный следующий шаг" }', "pills: ровно 3–4 штуки, разные, тапабельные (это станет кнопками-подсказками). Без кавычек-ёлочек внутри строк. Только JSON."].join("\n");
+function bosUnescape(s) {
+  try {
+    return JSON.parse('"' + ("" + s).replace(/"/g, '\\"') + '"');
+  } catch (e) {
+    return s;
+  }
+}
+function bosBriefFromObj(obj) {
+  var out = {};
+  if (typeof obj.summary === "string" && obj.summary.trim()) out.summary = obj.summary.trim();
+  if (typeof obj.greeting === "string" && obj.greeting.trim()) out.greeting = obj.greeting.trim();
+  if (typeof obj.hint === "string" && obj.hint.trim()) out.hint = obj.hint.trim();
+  if (Array.isArray(obj.pills)) {
+    out.pills = obj.pills.map(p => typeof p === "string" ? {
+      i: "✨",
+      t: p
+    } : {
+      i: p && p.i || "✨",
+      t: p && (p.t || p.text || p.label) || ""
+    }).filter(p => p.t && ("" + p.t).trim()).slice(0, 4).map(p => ({
+      i: ("" + p.i).slice(0, 3) || "✨",
+      t: ("" + p.t).trim().slice(0, 40)
+    }));
+  }
+  if (!out.summary && (!out.pills || !out.pills.length)) return null;
+  return out;
+}
+// Parse the model's reply into a clean brief object (or null). Two passes: a clean
+// JSON.parse, then a SALVAGE pass (regex) for truncated/partial output — free models
+// often stop mid-JSON, but their summary is usually complete, so we still use it.
+function bosParseBrief(raw) {
+  if (!raw) return null;
+  try {
+    var s = raw.indexOf("{"),
+      e = raw.lastIndexOf("}");
+    if (s >= 0 && e > s) {
+      var out = bosBriefFromObj(JSON.parse(raw.slice(s, e + 1)));
+      if (out) return out;
+    }
+  } catch (e) {/* salvage below */}
+  try {
+    var _out = {};
+    var sm = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (sm) _out.summary = bosUnescape(sm[1]).trim();
+    var hm = raw.match(/"hint"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (hm) _out.hint = bosUnescape(hm[1]).trim();
+    var gm = raw.match(/"greeting"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (gm) _out.greeting = bosUnescape(gm[1]).trim();
+    var pills = [];
+    var re = /\{\s*"i"\s*:\s*"([^"]*)"\s*,\s*"t"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g;
+    var m;
+    while ((m = re.exec(raw)) && pills.length < 4) pills.push({
+      i: (m[1] || "✨").slice(0, 3),
+      t: bosUnescape(m[2]).trim().slice(0, 40)
+    });
+    if (pills.length) _out.pills = pills.filter(p => p.t);
+    if (_out.summary || _out.pills && _out.pills.length) return _out;
+  } catch (e) {}
+  return null;
+}
+
+// Always-available baseline brief from local context (mood line + contextual pills).
+function bosHeuristicBrief(app) {
+  var summary = "";
+  try {
+    var habits = app && app.habits || [];
+    var done = habits.filter(h => h.done).length;
+    var moodT = app && app.mood && app.mood.t || "";
+    var M = {
+      "Энергия": "Энергии много — берись за самое важное прямо сейчас.",
+      "Радость": "Ты в ресурсе — отличный день, чтобы закрыть серию.",
+      "Спокойствие": "Спокойствие — твоё время для одного глубокого дела.",
+      "Тревога": "Начни с двух минут дыхания — и день станет легче.",
+      "Упадок": "Сделай одно маленькое дело — этого сегодня достаточно.",
+      "Усталость": "Сбавь темп: закрой одну привычку — и довольно."
+    };
+    if (habits.length && done >= habits.length) summary = "День закрыт — ты в потоке. Так держи ритм.";else if (M[moodT]) summary = M[moodT];else if (!habits.length) summary = "Начнём с малого: выбери одну привычку, с которой стартуешь.";else summary = "Одно маленькое действие сейчас сдвинет весь день.";
+  } catch (e) {
+    summary = "Один маленький шаг — и день сдвинется.";
+  }
+  return {
+    summary,
+    pills: typeof buildQuickPrompts === "function" ? buildQuickPrompts(app) : [],
+    greeting: "",
+    hint: "",
+    source: "heuristic"
+  };
+}
+
+// The login brief: heuristic baseline, refined by the real AI when reachable.
+async function bosAiBrief(app) {
+  var base = bosHeuristicBrief(app);
+  try {
+    var ctx = typeof buildAiContext === "function" ? buildAiContext(app) : "";
+    var user = (ctx || "Контекста почти нет — человек только начинает в приложении.") + "\n\nСгенерируй бриф. Верни ТОЛЬКО JSON.";
+    var raw = await aiRaw([{
+      role: "system",
+      content: BRIEF_SYSTEM
+    }, {
+      role: "user",
+      content: user
+    }]);
+    var parsed = bosParseBrief(raw);
+    if (parsed) {
+      var out = Object.assign({}, base, parsed, {
+        source: "ai",
+        at: Date.now()
+      });
+      // Free model often truncates → too few AI pills. Keep them, top up from heuristic.
+      if (!out.pills || out.pills.length < 3) {
+        var have = {};
+        (out.pills || []).forEach(p => {
+          have[p.t] = 1;
+        });
+        out.pills = (out.pills || []).concat((base.pills || []).filter(p => !have[p.t])).slice(0, 4);
+      }
+      return out;
+    }
+  } catch (e) {/* keep heuristic */}
+  return Object.assign({}, base, {
+    at: Date.now()
+  });
 }
 function AIChatScreen() {
   var {
@@ -2259,7 +2410,7 @@ function AIChatScreen() {
       gap: 6,
       overflowX: "auto"
     }
-  }, buildQuickPrompts(app).map((s, i) => /*#__PURE__*/React.createElement("button", {
+  }, (app && app.mode === "live" && app.aiBrief && Array.isArray(app.aiBrief.pills) && app.aiBrief.pills.length ? app.aiBrief.pills.slice(0, 4) : buildQuickPrompts(app)).map((s, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: () => send(s.t),
     className: "tap",

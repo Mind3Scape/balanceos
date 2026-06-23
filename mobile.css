@@ -275,6 +275,9 @@ body {
 @keyframes bosSpin  { from { transform: rotate(0deg); }  to { transform: rotate(360deg); } }
 @keyframes bosSpinR { from { transform: rotate(0deg); }  to { transform: rotate(-360deg); } }
 @media (prefers-reduced-motion: reduce) { .bos-orbit-ring, .bos-orbit-anti { animation: none !important; } }
+/* L2 — AI login-brief: summary cross-fades, suggestion pills pop in when the AI refreshes them. */
+@keyframes briefFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes briefPop  { from { opacity: 0; transform: translateY(7px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 /* Accordion reveal — used by expandable AI insights / patterns / reasoning. */
 .bos-acc-in { animation: bosAccIn 0.26s cubic-bezier(0.22,0.61,0.36,1) both; }
 @keyframes bosAccIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }

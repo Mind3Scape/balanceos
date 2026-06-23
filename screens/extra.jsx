@@ -736,50 +736,149 @@ const AI_DEMO = [
   "Сначала состояние, потом задачи. Сделай один медленный вдох и просто заметь, как оно ощущается в теле — без оценок.",
   "Хорошая мысль. Будет ли это важно через год? Если да — сделаем первый шаг сегодня. Если нет — отпустим без вины.",
 ];
+// fetch with an abort timeout so a slow/stuck model never hangs the chat or brief.
+async function aiFetch(url, opts, ms) {
+  const ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+  const tid = ctl ? setTimeout(() => { try { ctl.abort(); } catch (e) {} }, ms || 22000) : null;
+  try { return await fetch(url, ctl ? Object.assign({}, opts, { signal: ctl.signal }) : opts); }
+  finally { if (tid) clearTimeout(tid); }
+}
+// Low-level transport: send a raw `messages` array to the model and return its text
+// (or null). Proxy (server key) → direct (dev key) → null. Reused by chat AND brief.
+async function aiRaw(messages) {
+  const W = (typeof window !== "undefined") ? window : {};
+  const sbUrl = (W.SUPABASE_URL || "").replace(/\/$/, "");
+  const sbKey = W.SUPABASE_ANON_KEY || "";
+  if (sbUrl && sbKey) {
+    try {
+      const res = await aiFetch(sbUrl + "/functions/v1/ai-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sbKey, "apikey": sbKey },
+        body: JSON.stringify({ messages }),
+      });
+      if (res.ok) { const data = await res.json(); const t = data && data.reply; if (t && t.trim()) return t.trim(); }
+    } catch (e) { /* fall through */ }
+  }
+  const key = W.OPENROUTER_KEY || "";
+  if (key) {
+    const model = W.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
+    try {
+      const res = await aiFetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key, "HTTP-Referer": "https://mind3scape.github.io/balanceos", "X-Title": "BalanceOS" },
+        body: JSON.stringify({ model, messages, max_tokens: 500, temperature: 0.7 }),
+      });
+      if (res.ok) { const data = await res.json(); const t = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content; if (t && t.trim()) return t.trim(); }
+    } catch (e) { /* fall through */ }
+  }
+  return null;
+}
+
 async function aiReply(history, ctx) {
   const sys = AI_SYSTEM + (ctx ? ("\n\n" + ctx) : "");
   const messages = [{ role: "system", content: sys }].concat(
     (history || []).filter((m) => m && m.t).map((m) => ({ role: m.who === "me" ? "user" : "assistant", content: m.t }))
   );
-  const W = (typeof window !== "undefined") ? window : {};
-  // 1) Preferred: server proxy (Supabase Edge Function) — the OpenRouter key stays on the
-  //    server, so AI works for EVERY user without the key ever shipping in the public site.
-  const sbUrl = (W.SUPABASE_URL || "").replace(/\/$/, "");
-  const sbKey = W.SUPABASE_ANON_KEY || "";
-  if (sbUrl && sbKey) {
-    try {
-      const res = await fetch(sbUrl + "/functions/v1/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sbKey, "apikey": sbKey },
-        body: JSON.stringify({ messages }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const t = data && data.reply;
-        if (t && t.trim()) return t.trim();
-      }
-    } catch (e) { /* proxy not up yet → fall through */ }
-  }
-  // 2) Direct call — only when a key is present locally (aikey.js); used in dev/preview, never live.
-  const key = W.OPENROUTER_KEY || "";
-  if (key) {
-    const model = W.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
-    try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key, "HTTP-Referer": "https://mind3scape.github.io/balanceos", "X-Title": "BalanceOS" },
-        body: JSON.stringify({ model, messages, max_tokens: 500, temperature: 0.7 }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const t = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-        if (t && t.trim()) return t.trim();
-      }
-    } catch (e) { /* fall through */ }
-  }
-  // 3) No working backend yet → graceful canned reply so the chat still feels alive.
+  const t = await aiRaw(messages);
+  if (t && t.trim()) return t.trim();
+  // No working backend → graceful canned reply so the chat still feels alive.
   await new Promise((r) => setTimeout(r, 900));
   return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
+}
+
+/* ── L1 · LOGIN BRIEF ────────────────────────────────────────────────────────
+   Once at login the mentor reads the user's real context and returns a compact
+   JSON "brief": a personal summary for the home banner, 3–4 tappable suggestion
+   pills, a one-line greeting and a small next-step hint. We NEVER hard-depend on
+   the model — a heuristic brief is always computed first, and the AI just refines
+   it. So live users always get something personal, even offline. */
+const BRIEF_SYSTEM = [
+  "Ты — тот же тихий наставник (стоицизм + дзен, в материальной реальности, без имени).",
+  "Тебе дают живой контекст человека. Сгенерируй для главного экрана приложения короткий персональный «бриф».",
+  "Верни СТРОГО валидный JSON (и больше ничего) такой формы:",
+  '{ "greeting": "тёплое личное приветствие, 3–6 слов", "summary": "ОДНО предложение «именно тебе сегодня» — опирается на состояние/привычки/серии, по-русски на «ты», без воды", "pills": [ { "i": "эмодзи", "t": "короткое действие-подсказка, ≤4 слов" } ], "hint": "один маленький конкретный следующий шаг" }',
+  "pills: ровно 3–4 штуки, разные, тапабельные (это станет кнопками-подсказками). Без кавычек-ёлочек внутри строк. Только JSON.",
+].join("\n");
+
+function bosUnescape(s) { try { return JSON.parse('"' + ("" + s).replace(/"/g, '\\"') + '"'); } catch (e) { return s; } }
+function bosBriefFromObj(obj) {
+  const out = {};
+  if (typeof obj.summary === "string" && obj.summary.trim()) out.summary = obj.summary.trim();
+  if (typeof obj.greeting === "string" && obj.greeting.trim()) out.greeting = obj.greeting.trim();
+  if (typeof obj.hint === "string" && obj.hint.trim()) out.hint = obj.hint.trim();
+  if (Array.isArray(obj.pills)) {
+    out.pills = obj.pills
+      .map((p) => (typeof p === "string" ? { i: "✨", t: p } : { i: (p && p.i) || "✨", t: (p && (p.t || p.text || p.label)) || "" }))
+      .filter((p) => p.t && ("" + p.t).trim()).slice(0, 4)
+      .map((p) => ({ i: ("" + p.i).slice(0, 3) || "✨", t: ("" + p.t).trim().slice(0, 40) }));
+  }
+  if (!out.summary && (!out.pills || !out.pills.length)) return null;
+  return out;
+}
+// Parse the model's reply into a clean brief object (or null). Two passes: a clean
+// JSON.parse, then a SALVAGE pass (regex) for truncated/partial output — free models
+// often stop mid-JSON, but their summary is usually complete, so we still use it.
+function bosParseBrief(raw) {
+  if (!raw) return null;
+  try {
+    const s = raw.indexOf("{"), e = raw.lastIndexOf("}");
+    if (s >= 0 && e > s) { const out = bosBriefFromObj(JSON.parse(raw.slice(s, e + 1))); if (out) return out; }
+  } catch (e) { /* salvage below */ }
+  try {
+    const out = {};
+    const sm = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);  if (sm) out.summary = bosUnescape(sm[1]).trim();
+    const hm = raw.match(/"hint"\s*:\s*"((?:[^"\\]|\\.)*)"/);     if (hm) out.hint = bosUnescape(hm[1]).trim();
+    const gm = raw.match(/"greeting"\s*:\s*"((?:[^"\\]|\\.)*)"/); if (gm) out.greeting = bosUnescape(gm[1]).trim();
+    const pills = []; const re = /\{\s*"i"\s*:\s*"([^"]*)"\s*,\s*"t"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g; let m;
+    while ((m = re.exec(raw)) && pills.length < 4) pills.push({ i: (m[1] || "✨").slice(0, 3), t: bosUnescape(m[2]).trim().slice(0, 40) });
+    if (pills.length) out.pills = pills.filter((p) => p.t);
+    if (out.summary || (out.pills && out.pills.length)) return out;
+  } catch (e) {}
+  return null;
+}
+
+// Always-available baseline brief from local context (mood line + contextual pills).
+function bosHeuristicBrief(app) {
+  let summary = "";
+  try {
+    const habits = (app && app.habits) || [];
+    const done = habits.filter((h) => h.done).length;
+    const moodT = (app && app.mood && app.mood.t) || "";
+    const M = {
+      "Энергия": "Энергии много — берись за самое важное прямо сейчас.",
+      "Радость": "Ты в ресурсе — отличный день, чтобы закрыть серию.",
+      "Спокойствие": "Спокойствие — твоё время для одного глубокого дела.",
+      "Тревога": "Начни с двух минут дыхания — и день станет легче.",
+      "Упадок": "Сделай одно маленькое дело — этого сегодня достаточно.",
+      "Усталость": "Сбавь темп: закрой одну привычку — и довольно.",
+    };
+    if (habits.length && done >= habits.length) summary = "День закрыт — ты в потоке. Так держи ритм.";
+    else if (M[moodT]) summary = M[moodT];
+    else if (!habits.length) summary = "Начнём с малого: выбери одну привычку, с которой стартуешь.";
+    else summary = "Одно маленькое действие сейчас сдвинет весь день.";
+  } catch (e) { summary = "Один маленький шаг — и день сдвинется."; }
+  return { summary, pills: (typeof buildQuickPrompts === "function" ? buildQuickPrompts(app) : []), greeting: "", hint: "", source: "heuristic" };
+}
+
+// The login brief: heuristic baseline, refined by the real AI when reachable.
+async function bosAiBrief(app) {
+  const base = bosHeuristicBrief(app);
+  try {
+    const ctx = (typeof buildAiContext === "function") ? buildAiContext(app) : "";
+    const user = (ctx || "Контекста почти нет — человек только начинает в приложении.") + "\n\nСгенерируй бриф. Верни ТОЛЬКО JSON.";
+    const raw = await aiRaw([{ role: "system", content: BRIEF_SYSTEM }, { role: "user", content: user }]);
+    const parsed = bosParseBrief(raw);
+    if (parsed) {
+      const out = Object.assign({}, base, parsed, { source: "ai", at: Date.now() });
+      // Free model often truncates → too few AI pills. Keep them, top up from heuristic.
+      if (!out.pills || out.pills.length < 3) {
+        const have = {}; (out.pills || []).forEach((p) => { have[p.t] = 1; });
+        out.pills = (out.pills || []).concat((base.pills || []).filter((p) => !have[p.t])).slice(0, 4);
+      }
+      return out;
+    }
+  } catch (e) { /* keep heuristic */ }
+  return Object.assign({}, base, { at: Date.now() });
 }
 
 function AIChatScreen() {
@@ -996,9 +1095,10 @@ function AIChatScreen() {
         )}
       </div>
 
-      {/* Quick prompts — context-aware (newcomer vs. someone with habits/mood/goals) */}
+      {/* Quick prompts — for LIVE users these are the AI login-brief pills (personal);
+          otherwise the context-aware heuristic set. */}
       <div style={{ padding: "0 14px 8px", display: "flex", gap: 6, overflowX: "auto" }}>
-        {buildQuickPrompts(app).map((s, i) => (
+        {((app && app.mode === "live" && app.aiBrief && Array.isArray(app.aiBrief.pills) && app.aiBrief.pills.length) ? app.aiBrief.pills.slice(0, 4) : buildQuickPrompts(app)).map((s, i) => (
           <button key={i} onClick={() => send(s.t)} className="tap" data-no-haptic style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span>{s.i}</span> {s.t}
           </button>

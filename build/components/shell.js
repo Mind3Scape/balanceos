@@ -1506,6 +1506,9 @@ function AppProvider({
   // Today this is localStorage; the cloud (Supabase) later mirrors the same
   // snapshot behind the very same bosStore.save call — AppProvider won't change.
   var [persistId, setPersistId] = useState(null);
+  // L1 — the AI "login brief" (personal summary + suggestion pills) for LIVE users.
+  // Computed once per login from the real context; cached so it shows instantly.
+  var [aiBrief, setAiBrief] = useState(null);
   var saveTimer = useRef(null);
   useEffect(() => {
     if (!persistId || !window.bosStore) return;
@@ -1547,6 +1550,40 @@ function AppProvider({
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres]);
+
+  // L1 — refresh the AI brief ONCE per login (entering live / identity change). Shows the
+  // cached brief instantly, then refines it via the real AI from the restored context.
+  useEffect(() => {
+    if (mode !== "live") {
+      setAiBrief(null);
+      return;
+    }
+    var cacheKey = "bos:brief:" + (persistId || "live");
+    try {
+      var raw = localStorage.getItem(cacheKey);
+      if (raw) setAiBrief(JSON.parse(raw));
+    } catch (e) {}
+    if (typeof bosAiBrief !== "function") return;
+    var on = true;
+    bosAiBrief({
+      mode: "live",
+      userName,
+      mood,
+      habits,
+      goals,
+      dayMoods,
+      dayNotes
+    }).then(brief => {
+      if (!on || !brief) return;
+      setAiBrief(brief);
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(brief));
+      } catch (e) {}
+    }).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [mode, persistId]); // once per login by design
 
   // ── Entry modes ───────────────────────────────────────────────────
   // enterDemo: fill everything with the seed demo (Павел's filled life).
@@ -1759,6 +1796,7 @@ function AppProvider({
       enterDemo,
       enterFresh,
       enterLive,
+      aiBrief,
       tourStep,
       setTourStep,
       startTour,

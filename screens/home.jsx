@@ -146,14 +146,22 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const aiBrief = (totalCount && doneCount >= totalCount)
     ? "День закрыт — ты в потоке. Так держи ритм."
     : (AI_BRIEF[mood && mood.t] || "Чтение легче даётся вечером — оставь его на потом.");
+  // L2 — for LIVE users the summary + pills come from the AI login brief (refreshed
+  // at login). Demo keeps its scripted line/chips. The brief always has a heuristic
+  // fallback, so this is never empty.
+  const _liveBrief = (heroApp?.mode === "live") ? heroApp?.aiBrief : null;
+  const _homeSummary = (_liveBrief && _liveBrief.summary) || aiBrief;
+  const _livePills = (_liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length)
+    ? _liveBrief.pills.slice(0, 4) : null;
+  const _pillsKey = _livePills ? _livePills.map((p) => p.t).join("|") : "demo"; // change → re-animate
   const _pages = [
     /* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
     newbie ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>С чего начать</div>
-          <div style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px" }}>Расскажи о себе — и я подскажу, с каких привычек начать.</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>{_liveBrief ? "Тебе сегодня" : "С чего начать"}</div>
+          <div key={_homeSummary} style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 54, height: 54, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
@@ -190,10 +198,10 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <span style={{ color: "#E0A500" }}>✦</span> Совет дня
+            <span style={{ color: "#E0A500" }}>✦</span> {_liveBrief ? "Тебе сегодня" : "Совет дня"}
           </div>
-          <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 5, lineHeight: 1.42, letterSpacing: "-0.1px" }}>
-            {aiBrief}
+          <div key={_homeSummary} style={{ fontSize: 14, color: "var(--text-2)", marginTop: 5, lineHeight: 1.42, letterSpacing: "-0.1px", animation: "briefFade 0.5s ease both" }}>
+            {_homeSummary}
           </div>
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
@@ -221,17 +229,18 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
           }}>{doneCount}/{totalCount}</div>
         </button>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "auto", paddingTop: 12, paddingBottom: 14 }}>
-        {[
+      <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "auto", paddingTop: 12, paddingBottom: 14 }}>
+        {(_livePills || [
           { i: "✨", t: "ИИ: спланируй день" },
           { i: "🔮", t: "Познай себя" },
           { i: "🧘🏼‍♀️", t: "Медитация 5 мин" },
           { i: "📖", t: "Открыть дневник" },
-        ].map((c, i) => (
-          <button key={i} onClick={() => navigate("ai")} className="tap" style={{
+        ]).map((c, i) => (
+          <button key={i} onClick={() => _livePills ? navigate("ai-chat", { prompt: c.t }) : navigate("ai")} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
             background: chipBg, border: chipBd,
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
+            animation: _livePills ? ("briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.06) + "s") : undefined,
           }}><span>{c.i}</span>{c.t}</button>
         ))}
       </div>
