@@ -1363,7 +1363,7 @@ function CommunityScreen() {
   }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("button", {
     className: "tap " + (section === "community" ? "active" : ""),
     onClick: () => setSection("community")
-  }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), section === "community" && /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), section === "community" && !_isLiveComm && /*#__PURE__*/React.createElement("div", {
     className: "tab-pill tab-pill-sm",
     style: {
       background: "var(--card-2)",
@@ -1571,7 +1571,7 @@ function CommunityScreen() {
     size: 18
   })), app?.mode === "live" && /*#__PURE__*/React.createElement(CloudTeamsDiscover, {
     app: app
-  })), section === "community" && commTab === "network" && (networkUnlocked ? /*#__PURE__*/React.createElement("div", {
+  })), section === "community" && (commTab === "network" || _isLiveComm) && (networkUnlocked ? /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1625,7 +1625,7 @@ function CommunityScreen() {
       setSection("community");
       setCommTab("courses");
     }
-  }))), section === "community" && commTab === "courses" && /*#__PURE__*/React.createElement("div", {
+  }))), section === "community" && commTab === "courses" && !_isLiveComm && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1837,7 +1837,7 @@ function CommunityScreen() {
     }
   }, "\u041E \u043A\u0443\u0440\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 14
-  })))))), section === "community" && commTab === "partners" && /*#__PURE__*/React.createElement("div", {
+  })))))), section === "community" && commTab === "partners" && !_isLiveComm && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -3875,6 +3875,41 @@ function TeamDetailScreen() {
       if (ok) setPending(p => p.filter(x => x.id !== uid));
     });
   };
+
+  // REAL shared team habits for live teams (from the cloud): real names + per-member completion.
+  var [liveTeamHabits, setLiveTeamHabits] = React.useState(null);
+  var [habitsTick, setHabitsTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
+    var on = true;
+    window.bosCloud.teamHabitsFull(t.cloudId).then(hs => {
+      if (on) setLiveTeamHabits(Array.isArray(hs) ? hs : []);
+    }).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [_rosterLive, t.cloudId, habitsTick]);
+  var toggleMyTeamHabit = h => {
+    if (!h || !h.id) return;
+    setLiveTeamHabits(list => (list || []).map(x => x.id === h.id ? {
+      ...x,
+      doneByMe: !x.doneByMe,
+      doneToday: Math.max(0, x.doneToday + (x.doneByMe ? -1 : 1))
+    } : x));
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    window.bosCloud.toggleTeamHabitToday(h.id, !h.doneByMe).then(() => setHabitsTick(n => n + 1));
+  };
+  var addTeamHabitCloud = h => {
+    var first = !(liveTeamHabits && liveTeamHabits.length);
+    window.bosCloud.addTeamHabit(t.cloudId, {
+      ...h,
+      isMain: h && h.isMain || first
+    }).then(() => setHabitsTick(n => n + 1));
+  };
   var liveRoster = _rosterLive && cloudRoster;
   var members = liveRoster ? cloudRoster : t.members?.length ? t.members : [{
     name: "Ник",
@@ -3920,14 +3955,16 @@ function TeamDetailScreen() {
     weekPct: 0.81,
     week: [1, 1, 1, 1, 0, 1, 1]
   }];
-  var teamHabits = Array.isArray(t.habits) ? t.habits : _rosterLive ? [] : DEFAULT_TEAM_HABITS;
+  var teamHabits = _rosterLive ? liveTeamHabits || [] : Array.isArray(t.habits) ? t.habits : DEFAULT_TEAM_HABITS;
   var main = teamHabits.find(h => h.isMain);
   var others = teamHabits.filter(h => !h.isMain);
   var aggregate = teamHabits.length ? Math.round(teamHabits.reduce((s, h) => s + (h.weekPct || 0), 0) / teamHabits.length * 100) : 0;
   var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheet, {
     team: t,
     members: members,
-    onAdd: h => app?.addTeamHabit(t._id, h)
+    onAdd: h => {
+      if (_rosterLive) addTeamHabitCloud(h);else app?.addTeamHabit(t._id, h);
+    }
   }));
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
@@ -4331,7 +4368,21 @@ function TeamDetailScreen() {
       fontSize: 11,
       fontWeight: 700
     }
-  }, i < main.doneToday ? "✓" : ""))))), !_rosterLive && /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
+  }, i < main.doneToday ? "✓" : ""))), _rosterLive && /*#__PURE__*/React.createElement("button", {
+    onClick: () => toggleMyTeamHabit(main),
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 14,
+      border: 0,
+      borderRadius: 999,
+      padding: "11px 14px",
+      fontSize: 14,
+      fontWeight: 700,
+      background: main.doneByMe ? "rgba(0,0,0,0.12)" : "#0a0a0a",
+      color: main.doneByMe ? "#0a0a0a" : "#FEDE34"
+    }
+  }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"))), !_rosterLive && /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
     people: members.map(m => ({
       name: m.name,
       initials: m.initials,
@@ -4444,7 +4495,24 @@ function TeamDetailScreen() {
       textTransform: "uppercase",
       letterSpacing: 1
     }
-  }, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F")))), /*#__PURE__*/React.createElement("button", {
+  }, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F")), _rosterLive && /*#__PURE__*/React.createElement("button", {
+    onClick: () => toggleMyTeamHabit(h),
+    className: "tap",
+    "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C",
+    style: {
+      flexShrink: 0,
+      width: 34,
+      height: 34,
+      borderRadius: "50%",
+      border: h.doneByMe ? "0" : "2px solid var(--surface-3)",
+      background: h.doneByMe ? "#0a0a0a" : "transparent",
+      color: "#fff",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 15,
+      padding: 0
+    }
+  }, h.doneByMe ? "✓" : ""))), /*#__PURE__*/React.createElement("button", {
     onClick: openAddHabit,
     className: "tap",
     style: {
@@ -5010,7 +5078,7 @@ function TeamSettingsScreen() {
       color: "var(--text-4)",
       padding: "6px 0"
     }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439 \u043D\u0438\u0436\u0435.")), SUGGEST.filter(p => !members.some(m => m.name === p.name)).length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439 \u043D\u0438\u0436\u0435.")), app?.mode !== "live" && SUGGEST.filter(p => !members.some(m => m.name === p.name)).length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -5047,7 +5115,45 @@ function TeamSettingsScreen() {
     }
   }, p.initials), p.name, " ", /*#__PURE__*/React.createElement(I.Plus, {
     size: 12
-  })))), /*#__PURE__*/React.createElement("button", {
+  })))), app?.mode === "live" && team.cloudId && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var link = "https://mind3scape.github.io/balanceos/?team=" + team.cloudId;
+      try {
+        if (navigator.share) {
+          navigator.share({
+            title: team.name || "Команда",
+            text: "Присоединяйся к команде в BalanceOS",
+            url: link
+          });
+          return;
+        }
+      } catch (e) {}
+      try {
+        navigator.clipboard.writeText(link);
+      } catch (e) {}
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
+      }
+    },
+    className: "tap",
+    style: {
+      marginTop: 10,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "9px 15px",
+      borderRadius: 999,
+      background: "#0a0a0a",
+      color: "#fff",
+      border: 0,
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, /*#__PURE__*/React.createElement(I.Share, {
+    size: 15
+  }), " \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435"), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
       marginTop: 20

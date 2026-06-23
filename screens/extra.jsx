@@ -523,19 +523,68 @@ function darken(hex, amt = 0.4) {
 }
 
 /* JOURNAL / DAILY REFLECTION */
+// "YYYY-MM-DD" (live day key) → "27 апр". Falls back to the raw key for any other shape.
+const JOURNAL_MONTHS = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+function journalDateLabel(key) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec("" + key);
+  if (!m) return "" + key;
+  return parseInt(m[3], 10) + " " + (JOURNAL_MONTHS[parseInt(m[2], 10) - 1] || "");
+}
 function JournalScreen() {
   const { navigate } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const isDemo = app?.mode === "demo";
   const [a, setA] = useM(""); const [b, setB] = useM(""); const [c, setC] = useM("");
-  const past = [
+
+  // Demo → frozen showcase entries. Live → REAL past notes from app.dayNotes (any day
+  // with a written note or tags), newest first; honest empty state when there are none.
+  const demoPast = [
     { date: "27 апр", w: "Сохранил серию даже после долгого дня.", g: "Не гнать себя во второй половине дня." },
     { date: "26 апр", w: "Помог Нику с пробежкой.", g: "Читать 30 минут перед сном." },
     { date: "25 апр", w: "Заметил, что спокойнее в групповые дни.", g: "Спланировать завтра сегодня вечером." },
   ];
+  const livePast = (() => {
+    const notes = (app && app.dayNotes) || {};
+    return Object.keys(notes)
+      .map((k) => ({ key: k, e: notes[k] }))
+      .filter(({ e }) => e && ((e.note != null && ("" + e.note).trim()) || (e.tags && e.tags.length)))
+      .sort((x, y) => ("" + y.key).localeCompare("" + x.key))
+      .map(({ key, e }) => ({ date: journalDateLabel(key), text: ("" + (e.note || "")).trim(), tags: e.tags || [] }));
+  })();
+
+  // Live header date from the user's real clock; demo keeps its frozen showcase date.
+  const todayKey = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+  const WDAYS = ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+  const liveHeader = (() => { try { const d = new Date(); return journalDateLabel(bosTodayKey(d)) + " · " + WDAYS[d.getDay()]; } catch (e) { return ""; } })();
+
+  // Save (live only): persist into dayNotes[todayKey] as {tags, note} — the SAME shape the
+  // XP formula rewards (+10/day for a journal note) and the calendar reads. Keep any tags a
+  // mood check-in already logged today, so we don't wipe them.
+  const liveSave = () => {
+    if (!app || !app.setDayNotes || !todayKey) return navigate("home");
+    const parts = [];
+    if (a.trim()) parts.push("Хорошо: " + a.trim());
+    if (b.trim()) parts.push("Помешало: " + b.trim());
+    if (c.trim()) parts.push("Завтра: " + c.trim());
+    const note = parts.join("\n");
+    if (note) {
+      const prev = (app.dayNotes && app.dayNotes[todayKey]) || {};
+      app.setDayNotes({ ...(app.dayNotes || {}), [todayKey]: { tags: prev.tags || [], note } });
+    }
+    navigate("home");
+  };
+
+  const hasText = a.trim() || b.trim() || c.trim();
+  // Honest XP: a journal note awards +10 XP/day (mood check-in is a separate +5). Only
+  // promise XP once there's something to save — an empty save earns nothing.
+  const saveLabel = isDemo ? "Сохранить · +15 XP" : (hasText ? "Сохранить · +10 XP" : "Сохранить");
+  const past = isDemo ? demoPast : livePast;
+
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Ежедневная рефлексия" onBack={() => navigate("home")} />
       <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>28 апр · Вторник</div>
+        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>{isDemo ? "28 апр · Вторник" : liveHeader}</div>
         <div className="section-label" style={{ marginTop: 16, color: "var(--text-2)" }}>Что прошло хорошо?</div>
         <textarea value={a} onChange={e=>setA(e.target.value)} placeholder="Максимум три строки."
           style={{ width: "100%", background: "var(--surface-3)", border: 0, borderRadius: 12, padding: 12, marginTop: 8, fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 70, resize: "none" }}/>
@@ -546,17 +595,38 @@ function JournalScreen() {
         <textarea value={c} onChange={e=>setC(e.target.value)} placeholder="Чем меньше, тем лучше."
           style={{ width: "100%", background: "var(--surface-3)", border: 0, borderRadius: 12, padding: 12, marginTop: 8, fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 70, resize: "none" }}/>
       </div>
-      <button className="bos-btn" style={{ marginTop: 16 }} onClick={() => navigate("home")}>Сохранить · +15 XP</button>
+      <button className="bos-btn" style={{ marginTop: 16 }} onClick={() => isDemo ? navigate("home") : liveSave()}>{saveLabel}</button>
       <div className="section-label" style={{ marginTop: 22 }}>Прошлые записи</div>
+      {past.length === 0 ? (
+        <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", fontSize: 14, color: "var(--text-4)", textAlign: "center", lineHeight: 1.5 }}>
+          Пока нет записей — первая появится здесь.
+        </div>
+      ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {past.map((p, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: 14, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             <div style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 600 }}>{p.date}</div>
-            <div style={{ fontSize: 14, marginTop: 6, color: "var(--text-2)" }}><b>Победа:</b> {p.w}</div>
-            <div style={{ fontSize: 14, marginTop: 4, color: "var(--text-3)" }}><b>Завтра:</b> {p.g}</div>
+            {isDemo ? (
+              <>
+                <div style={{ fontSize: 14, marginTop: 6, color: "var(--text-2)" }}><b>Победа:</b> {p.w}</div>
+                <div style={{ fontSize: 14, marginTop: 4, color: "var(--text-3)" }}><b>Завтра:</b> {p.g}</div>
+              </>
+            ) : (
+              <>
+                {p.text && <div style={{ fontSize: 14, marginTop: 6, color: "var(--text-2)", whiteSpace: "pre-line", lineHeight: 1.45 }}>{p.text}</div>}
+                {p.tags && p.tags.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: p.text ? 8 : 6 }}>
+                    {p.tags.map((tg, j) => (
+                      <span key={j} style={{ fontSize: 12, color: "var(--text-3)", background: "var(--surface-3)", borderRadius: 999, padding: "3px 9px" }}>#{("" + tg).replace(/_/g, " ")}</span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
@@ -743,6 +813,9 @@ const AI_DEMO = [
   "Сначала состояние, потом задачи. Сделай один медленный вдох и просто заметь, как оно ощущается в теле — без оценок.",
   "Хорошая мысль. Будет ли это важно через год? Если да — сделаем первый шаг сегодня. Если нет — отпустим без вины.",
 ];
+// Live fallback when the real model returns nothing — an HONEST "try again", never a
+// canned reply pretending to be the mentor. Demo keeps AI_DEMO (a scripted showcase).
+const AI_LIVE_FALLBACK = "Связь с ИИ сейчас нестабильна — попробуй ещё раз через минуту 🙏";
 // fetch with an abort timeout so a slow/stuck model never hangs the chat or brief.
 async function aiFetch(url, opts, ms) {
   const ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
@@ -781,16 +854,17 @@ async function aiRaw(messages) {
   return null;
 }
 
-async function aiReply(history, ctx) {
+async function aiReply(history, ctx, demo) {
   const sys = AI_SYSTEM + (ctx ? ("\n\n" + ctx) : "");
   const messages = [{ role: "system", content: sys }].concat(
     (history || []).filter((m) => m && m.t).map((m) => ({ role: m.who === "me" ? "user" : "assistant", content: m.t }))
   );
   const t = await aiRaw(messages);
   if (t && t.trim()) return t.trim();
-  // No working backend → graceful canned reply so the chat still feels alive.
+  // Model returned nothing. Demo → a scripted canned line so the showcase stays alive.
+  // Live → an HONEST fallback (clearly a connection notice, NOT a pretend-personal reply).
   await new Promise((r) => setTimeout(r, 900));
-  return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
+  return demo ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK;
 }
 
 /* ── L1 · LOGIN BRIEF ────────────────────────────────────────────────────────
@@ -985,9 +1059,9 @@ function AIChatScreen() {
     setMsgs(history);
     setDraft("");
     setTyping(true);
-    aiReply(history, buildAiContext(app))
+    aiReply(history, buildAiContext(app), _demoChat)
       .then((reply) => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: reply }]); })
-      .catch(() => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] }]); });
+      .catch(() => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: _demoChat ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK }]); });
   };
 
   // A prompt passed in from the AI tab / quick chips → auto-send it on open.

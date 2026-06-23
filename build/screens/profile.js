@@ -368,17 +368,32 @@ function AvatarPickerSheet({
     }
   }, "\u0413\u043E\u0442\u043E\u0432\u043E"));
 }
+var BOS_SUPPORT_EMAIL = "support@balanceos.app";
 function FeedbackSheet({
   title = "Написать в поддержку",
   dark = false
 }) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isLive = app?.mode === "live";
   var {
     close
   } = useSheet();
   var C = sheetColors(dark);
   var [txt, setTxt] = useP("");
   var [sent, setSent] = useP(false);
+  // LIVE: actually hand the message to a real channel (the support email composer) —
+  // never a fake "delivered". DEMO: keep the showcase success animation.
   var send = () => {
+    if (isLive) {
+      var body = (txt || "").trim();
+      if (!body) return;
+      try {
+        var url = "mailto:" + BOS_SUPPORT_EMAIL + "?subject=" + encodeURIComponent("BalanceOS · " + title) + "&body=" + encodeURIComponent(body);
+        if (window.__TG && window.__TG.openLink) window.__TG.openLink(url);else window.location.href = url;
+      } catch (e) {}
+      close();
+      return;
+    }
     setSent(true);
     window.setTimeout(close, 1000);
   };
@@ -415,8 +430,16 @@ function FeedbackSheet({
       outline: "none",
       boxSizing: "border-box"
     }
-  }), /*#__PURE__*/React.createElement("button", {
+  }), isLive && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.sub,
+      marginTop: 8,
+      lineHeight: 1.45
+    }
+  }, "\u041E\u0442\u043A\u0440\u043E\u0435\u0442\u0441\u044F \u043F\u0438\u0441\u044C\u043C\u043E \u043D\u0430 ", BOS_SUPPORT_EMAIL, " \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u044C \u0435\u0433\u043E, \u0438 \u043C\u044B \u043E\u0442\u0432\u0435\u0442\u0438\u043C."), /*#__PURE__*/React.createElement("button", {
     onClick: send,
+    disabled: isLive && !txt.trim(),
     className: "tap",
     style: {
       width: "100%",
@@ -427,9 +450,10 @@ function FeedbackSheet({
       borderRadius: 999,
       padding: 13,
       fontSize: 15,
-      fontWeight: 600
+      fontWeight: 600,
+      opacity: isLive && !txt.trim() ? 0.5 : 1
     }
-  }, "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C")));
+  }, isLive ? "Написать письмо" : "Отправить")));
 }
 
 /* A few demo "invited people" (Memoji) so the multiplayer orbit reads in DEMO too —
@@ -828,6 +852,13 @@ function ProfileScreen() {
     };
   }, [_isLive]);
   var orbitPeople = app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : livePeople;
+
+  // Achievements badge — REAL earned set + emojis for live; curated 4/8 for demo.
+  var _liveAch = _isLive ? bosLiveAchievements(app).filter(a => a.earned) : [];
+  var _achTotal = _isLive ? ACHIEVEMENTS.length : 8;
+  var _achEarnedN = _isLive ? _liveAch.length : 4;
+  var _achEmojis = _isLive ? _liveAch.slice(0, 3).map(a => a.i) : ["⚡", "🧘", "🤝"];
+  var _achCircles = _isLive ? livePeople.length : 3;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -965,12 +996,12 @@ function ProfileScreen() {
       fontSize: 12.5,
       marginTop: 2
     }
-  }, "4 \u0438\u0437 8 \xB7 \u043E\u0442\u043A\u0440\u044B\u043B\u0438 3 \u043A\u0440\u0443\u0433\u0430 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043E\u0432")), /*#__PURE__*/React.createElement("div", {
+  }, _isLive ? _achEarnedN + " из " + _achTotal + (_achCircles > 0 ? " · " + _achCircles + (_achCircles === 1 ? " приглашён" : " приглашено") : _achEarnedN === 0 ? " · открой первую" : "") : "4 из 8 · открыли 3 круга контактов")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       marginRight: 4
     }
-  }, ["⚡", "🧘", "🤝"].map((e, i) => /*#__PURE__*/React.createElement("span", {
+  }, _achEmojis.map((e, i) => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
       width: 26,
@@ -1075,8 +1106,28 @@ function SettingsScreen() {
     open: openSheet
   } = useSheet();
   var routeDark = app?.themeOverride !== "light"; // settings is a dark route unless globally forced light
-  var [push, setPush] = useP(true);
-  var [sound, setSound] = useP(true);
+  var isLive = app?.mode === "live";
+  // Push is a REAL saved setting for live users — persisted to localStorage by profile id,
+  // and it gates the Telegram push the bot sends. Demo keeps an in-memory toggle for show.
+  var pushKey = "bos:push:" + (app?.persistId || "live");
+  var [push, setPush] = useP(() => {
+    if (!isLive) return true;
+    try {
+      var v = localStorage.getItem(pushKey);
+      return v == null ? true : v === "1";
+    } catch (e) {
+      return true;
+    }
+  });
+  var setPushPersist = on => {
+    setPush(on);
+    if (isLive) {
+      try {
+        localStorage.setItem(pushKey, on ? "1" : "0");
+      } catch (e) {}
+    }
+  };
+  var [sound, setSound] = useP(true); // demo-only switch (nothing reads it); hidden for live
   var isDark = app?.themeOverride === "dark";
   var setDark = on => app?.setThemeOverride(on ? "dark" : "light");
   var wheel = app?.wheelSpheres || window.DEFAULT_SPHERES || [];
@@ -1098,7 +1149,25 @@ function SettingsScreen() {
       gap: 8,
       marginTop: 8
     }
-  }, [{
+  }, (isLive
+  // LIVE: real Telegram users have no password and no separately-linked Google/Apple —
+  // one honest row explains how the sign-in actually works. No fake "Google подключён".
+  ? [{
+    label: "Редактировать профиль",
+    icon: I.Pencil,
+    on: () => openSheet(/*#__PURE__*/React.createElement(EditProfileSheet, {
+      dark: routeDark
+    }))
+  }, {
+    label: "Вход через Telegram",
+    icon: I.Globe,
+    on: () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
+      title: "\u0412\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 Telegram",
+      body: "\u0422\u044B \u0432\u0445\u043E\u0434\u0438\u0448\u044C \u0447\u0435\u0440\u0435\u0437 \u0441\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 Telegram \u2014 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C \u043D\u0435 \u043D\u0443\u0436\u0435\u043D. \u0422\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u044B \u043A \u043D\u0435\u043C\u0443 \u0438 \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u044F\u0442\u0441\u044F \u043C\u0435\u0436\u0434\u0443 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C\u0438.",
+      cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
+      dark: routeDark
+    }))
+  }] : [{
     label: "Редактировать профиль",
     icon: I.Pencil,
     on: () => openSheet(/*#__PURE__*/React.createElement(EditProfileSheet, {
@@ -1122,7 +1191,7 @@ function SettingsScreen() {
       cta: "\u0413\u043E\u0442\u043E\u0432\u043E",
       dark: routeDark
     }))
-  }].map((r, i) => /*#__PURE__*/React.createElement(SysBtn, {
+  }]).map((r, i) => /*#__PURE__*/React.createElement(SysBtn, {
     key: i,
     onClick: r.on,
     style: {
@@ -1160,17 +1229,22 @@ function SettingsScreen() {
       gap: 8,
       marginTop: 8
     }
-  }, [{
+  }, [
+  // Push is real & persisted for live (gates Telegram push); in-memory for demo.
+  {
     label: "Push-уведомления",
     icon: I.Bell,
     val: push,
-    set: setPush
-  }, {
+    set: isLive ? setPushPersist : setPush
+  },
+  // "Звук" has no consumer yet → keep it only in the demo showcase, hide for live
+  // so a real user never meets a toggle that does nothing.
+  ...(isLive ? [] : [{
     label: "Звук",
     icon: I.Volume,
     val: sound,
     set: setSound
-  }, {
+  }]), {
     label: "Тёмная тема",
     icon: I.Eye,
     val: isDark,
@@ -1362,7 +1436,7 @@ function SettingsScreen() {
     key: i,
     onClick: () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
       title: l,
-      body: "\u042D\u0442\u043E \u0434\u0435\u043C\u043E-\u043C\u0430\u043A\u0435\u0442 BalanceOS. \u041F\u043E\u043B\u043D\u044B\u0439 \u0442\u0435\u043A\u0441\u0442 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0432 \u0440\u0435\u043B\u0438\u0437\u043D\u043E\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F.",
+      body: isLive ? "Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта." : "Это демо-макет BalanceOS. Полный текст документа появится в релизной версии приложения.",
       cta: "\u0413\u043E\u0442\u043E\u0432\u043E",
       dark: routeDark
     })),
@@ -1671,20 +1745,36 @@ function HistoryScreen() {
     outlineToday: "rgba(0,0,0,0.35)",
     moodText: "rgba(0,0,0,0.75)"
   };
+  var isLive = app?.mode === "live";
   var MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
   var DIM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  var CUR_M = 3; // April is "this month" in the demo
-  var today = 28;
-  var year = 2026;
+  // DEMO walks a synthetic April-2026; LIVE walks the user's REAL calendar (today = now).
+  var _now = new Date();
+  var CUR_M = isLive ? _now.getMonth() : 3; // April is "this month" in the demo
+  var year = isLive ? _now.getFullYear() : 2026;
+  var today = isLive ? _now.getDate() : 28;
+  var _leap = y => y % 4 === 0 && y % 100 !== 0 || y % 400 === 0;
   var [mIdx, setMIdx] = useP(CUR_M);
   var monthName = MONTHS[mIdx];
-  var daysInMonth = DIM[mIdx];
-  var startWeekday = (mIdx * 3 + 3) % 7; // synthetic but stable per month
+  var daysInMonth = isLive && mIdx === 1 && _leap(year) ? 29 : DIM[mIdx];
+  // LIVE: real weekday of the 1st of the shown month; DEMO: its stable synthetic offset.
+  var startWeekday = isLive ? new Date(year, mIdx, 1).getDay() : (mIdx * 3 + 3) % 7;
   var isCurMonth = mIdx === CUR_M;
   var isFuture = mIdx > CUR_M;
   var lastLogged = isCurMonth ? today : daysInMonth; // past months fully logged; this one up to today
 
+  // LIVE: a day's completion = share of the user's habits logged on that real date.
+  // h.log is keyed by local ISO date ("2026-06-23"); 0 habits → null (nothing to show).
+  var liveHabits = app?.habits || [];
+  var iso = d => year + "-" + (mIdx + 1 < 10 ? "0" : "") + (mIdx + 1) + "-" + (d < 10 ? "0" : "") + d;
   var completion = d => {
+    if (isLive) {
+      if (isFuture || d > lastLogged) return null;
+      if (!liveHabits.length) return null;
+      var k = iso(d);
+      var done = liveHabits.reduce((s, h) => s + (h && h.log && h.log[k] ? 1 : 0), 0);
+      return done / liveHabits.length;
+    }
     if (isFuture || d > lastLogged) return null;
     var v = (Math.sin((d + mIdx * 7) * 13.37) + 1) / 2;
     return Math.round(v * 6) / 6;
@@ -1728,7 +1818,9 @@ function HistoryScreen() {
   }));
   var cells = [...blanks, ...days];
   var weekday = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  var dayHabits = [{
+
+  // Curated demo habit row vs. the live user's REAL habits (done-state resolved per day below).
+  var demoDayHabits = [{
     e: "🙏",
     n: "Помогать другим",
     on: true
@@ -1753,10 +1845,37 @@ function HistoryScreen() {
     n: "Бокс",
     on: true
   }];
+  // For LIVE day-detail: each real habit + whether it was logged on the selected date.
+  var liveDayHabits = d => liveHabits.map(h => ({
+    e: h.emoji || "✨",
+    n: h.name || "Привычка",
+    on: !!(h && h.log && h.log[iso(d)])
+  }));
+  var dayHabits = isLive ? liveDayHabits(selDay) : demoDayHabits;
   var selPct = completion(selDay);
-  var totalDone = days.reduce((s, d) => s + (completion(d.d) || 0) * dayHabits.length, 0);
-  var perfectDays = days.filter(d => completion(d.d) === 1).length;
-  var bestStreak = 21;
+
+  // Stats — REAL for live (across all logged history), curated for demo.
+  var totalDone, perfectDays, bestStreak;
+  if (isLive) {
+    totalDone = liveHabits.reduce((s, h) => s + (h && h.log ? Object.keys(h.log).length : 0), 0);
+    bestStreak = typeof bosMaxStreak === "function" ? bosMaxStreak(liveHabits) : 0;
+    // A "perfect day" = a date on which every habit was logged. Gather all logged dates,
+    // then count those where the done-count equals the number of habits.
+    var allDates = {};
+    liveHabits.forEach(h => {
+      if (h && h.log) Object.keys(h.log).forEach(k => {
+        allDates[k] = (allDates[k] || 0) + 1;
+      });
+    });
+    perfectDays = liveHabits.length ? Object.keys(allDates).filter(k => allDates[k] >= liveHabits.length).length : 0;
+  } else {
+    totalDone = days.reduce((s, d) => s + (completion(d.d) || 0) * demoDayHabits.length, 0);
+    perfectDays = days.filter(d => completion(d.d) === 1).length;
+    bestStreak = 21;
+  }
+  // LIVE empty state: no habits at all, OR habits but not a single logged day yet.
+  var liveHasHistory = liveHabits.length > 0 && totalDone > 0;
+  var showEmpty = isLive && !liveHasHistory;
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
     className: "page-in",
@@ -1766,7 +1885,30 @@ function HistoryScreen() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "\u0418\u0441\u0442\u043E\u0440\u0438\u044F",
     onBack: () => navigate("home")
-  }), /*#__PURE__*/React.createElement("div", {
+  }), showEmpty ?
+  /*#__PURE__*/
+  /* LIVE & no history yet — honest empty state, never a fake calendar. */
+  React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      textAlign: "center",
+      padding: "70px 24px",
+      fontSize: 14,
+      lineHeight: 1.55
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 38,
+      marginBottom: 12
+    }
+  }, "\uD83D\uDDD3\uFE0F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 600,
+      color: "var(--text)",
+      marginBottom: 6
+    }
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0438\u0441\u0442\u043E\u0440\u0438\u0438"), "\u041E\u0442\u043C\u0435\u0447\u0430\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u0438 \u0442\u0443\u0442 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0442\u0432\u043E\u0439 \u0440\u0438\u0442\u043C.") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(3, 1fr)",
@@ -2067,7 +2209,7 @@ function HistoryScreen() {
       fontWeight: 700,
       letterSpacing: "-0.4px"
     }
-  }, Math.round(selPct * 100), "%")), app?.dayMoods?.[selDay] != null && (() => {
+  }, Math.round(selPct * 100), "%")), (!isLive || isCurMonth) && app?.dayMoods?.[selDay] != null && (() => {
     var dm = MOOD_OPTIONS[app.dayMoods[selDay]];
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2109,7 +2251,7 @@ function HistoryScreen() {
         marginTop: 2
       }
     }, dm.t)));
-  })(), app?.dayNotes?.[selDay] && (app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length || app.dayNotes[selDay].note) && /*#__PURE__*/React.createElement("div", {
+  })(), (!isLive || isCurMonth) && app?.dayNotes?.[selDay] && (app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length || app.dayNotes[selDay].note) && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "12px 16px",
       borderBottom: "1px solid var(--line)"
@@ -2145,7 +2287,8 @@ function HistoryScreen() {
       lineHeight: 1.45
     }
   }, app.dayNotes[selDay].note)), dayHabits.map((h, i) => {
-    var done = i < Math.round(selPct * dayHabits.length);
+    // Live: the habit's OWN logged state for this date; demo: ordered fill.
+    var done = isLive ? h.on : i < Math.round(selPct * dayHabits.length);
     return /*#__PURE__*/React.createElement("div", {
       key: i
     }, /*#__PURE__*/React.createElement("div", {
@@ -2189,7 +2332,7 @@ function HistoryScreen() {
     }))), i < dayHabits.length - 1 && /*#__PURE__*/React.createElement("div", {
       className: "divider"
     }));
-  }))));
+  })))));
 }
 function SupportScreen() {
   var {
@@ -4463,15 +4606,79 @@ var ACHIEVEMENTS = [{
   req: "уровень 20",
   accent: "#a8e8e0"
 }];
+
+// LIVE achievements — earned by REAL signals from this user (level, max streak, teams,
+// journaling/state days). Returns a fresh list shaped exactly like ACHIEVEMENTS so the
+// same screen renders it; demo keeps the curated array above untouched.
+function bosLiveAchievements(app) {
+  var level = typeof bosLevelInfo === "function" && typeof bosLiveXP === "function" ? bosLevelInfo(bosLiveXP(app)).level : 1;
+  var streak = typeof bosMaxStreak === "function" ? bosMaxStreak(app && app.habits) : 0;
+  var teamsJoined = (app && app.teams || []).filter(function (t) {
+    return t && (t.joined || t.cloudId);
+  }).length;
+  // Days of self-tracking = unique days you logged a state OR wrote a journal line.
+  var jdays = {};
+  Object.keys(app && app.dayMoods || {}).forEach(function (k) {
+    jdays[k] = 1;
+  });
+  Object.keys(app && app.dayNotes || {}).forEach(function (k) {
+    var e = app.dayNotes[k];
+    if (e && (e.note != null && ("" + e.note).trim() || e.tags && e.tags.length)) jdays[k] = 1;
+  });
+  var careDays = Object.keys(jdays).length;
+  var cond = [level >= 2,
+  // ⚡ первый реальный прогресс
+  careDays >= 10,
+  // 🧘 10 дней внимания к себе (состояние/дневник)
+  teamsJoined >= 1,
+  // 🤝 ты в команде
+  streak >= 30,
+  // 🔥 месяц без пропусков
+  streak >= 7,
+  // 🚀 серия 7 дней
+  streak >= 21,
+  // 🏃 серия 21 день
+  level >= 10,
+  // 💼 10 уровень
+  level >= 20 // 🌍 20 уровень
+  ];
+  return ACHIEVEMENTS.map(function (a, i) {
+    return Object.assign({}, a, {
+      earned: !!cond[i],
+      date: ""
+    });
+  });
+}
 function AchievementsScreen() {
   var {
     navigate,
     params
   } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
   var back = params?.from || "profile";
-  var earned = ACHIEVEMENTS.filter(a => a.earned);
-  var locked = ACHIEVEMENTS.filter(a => !a.earned);
-  var circles = earned.filter(a => !a.opens.startsWith("+")).length;
+  var isLive = app?.mode === "live";
+  // LIVE: achievements earned by real signals; DEMO: the curated showcase list.
+  var LIST = isLive ? bosLiveAchievements(app) : ACHIEVEMENTS;
+  var earned = LIST.filter(a => a.earned);
+  var locked = LIST.filter(a => !a.earned);
+  // LIVE "circles of contacts" = real people you actually invited (referral circle).
+  var [invited, setInvited] = React.useState(0);
+  React.useEffect(() => {
+    if (!isLive) return;
+    var on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled()) {
+        window.bosCloud.invitedPeople().then(list => {
+          if (on && Array.isArray(list)) setInvited(list.length);
+        }).catch(() => {});
+      }
+    } catch (e) {}
+    return () => {
+      on = false;
+    };
+  }, [isLive]);
+  // Demo's framing: each non-"+1 level" earned badge opened a circle. Live: real invited count.
+  var circles = isLive ? invited : earned.filter(a => !a.opens.startsWith("+")).length;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -4511,14 +4718,14 @@ function AchievementsScreen() {
     style: {
       fontSize: 14
     }
-  }, "\u0438\u0437 ", ACHIEVEMENTS.length, " \u043E\u0442\u043A\u0440\u044B\u0442\u043E")), /*#__PURE__*/React.createElement("div", {
+  }, "\u0438\u0437 ", LIST.length, " \u043E\u0442\u043A\u0440\u044B\u0442\u043E")), /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-2",
     style: {
       fontSize: 13,
       lineHeight: 1.5,
       marginTop: 6
     }
-  }, "\u0410\u0447\u0438\u0432\u043A\u0438 \u2014 \u044D\u0442\u043E \u043A\u043B\u044E\u0447\u0438: \u0437\u0430 \u043A\u0443\u0440\u0441\u044B, \u0443\u0440\u043E\u0432\u043D\u0438 \u0438 \u0434\u043E\u0431\u0440\u044B\u0435 \u0434\u0435\u043B\u0430. \u0423\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u043B\u0438 ", /*#__PURE__*/React.createElement("b", null, circles, " \u043A\u0440\u0443\u0433\u0430 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043E\u0432"), "."), /*#__PURE__*/React.createElement("div", {
+  }, isLive ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0410\u0447\u0438\u0432\u043A\u0438 \u2014 \u044D\u0442\u043E \u043A\u043B\u044E\u0447\u0438: \u0437\u0430 \u0443\u0440\u043E\u0432\u043D\u0438, \u0441\u0435\u0440\u0438\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0440\u044F\u0434\u043E\u043C. ", circles > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0422\u044B \u043F\u0440\u0438\u0432\u0451\u043B ", /*#__PURE__*/React.createElement("b", null, circles, " ", circles === 1 ? "человека" : "чел."), " \u0432 \u0441\u0432\u043E\u0451 \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u043E.") : "Пригласи друга — и откроется твой первый круг контактов.") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0410\u0447\u0438\u0432\u043A\u0438 \u2014 \u044D\u0442\u043E \u043A\u043B\u044E\u0447\u0438: \u0437\u0430 \u043A\u0443\u0440\u0441\u044B, \u0443\u0440\u043E\u0432\u043D\u0438 \u0438 \u0434\u043E\u0431\u0440\u044B\u0435 \u0434\u0435\u043B\u0430. \u0423\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u043B\u0438 ", /*#__PURE__*/React.createElement("b", null, circles, " \u043A\u0440\u0443\u0433\u0430 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043E\u0432"), ".")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -4748,5 +4955,6 @@ Object.assign(window, {
   IconPickerScreen,
   AchievementsScreen,
   ACHIEVEMENTS,
+  bosLiveAchievements,
   ManifestScreen
 });

@@ -191,6 +191,48 @@
     } catch (e) { return []; }
   }
 
+  // ── РЕАЛЬНЫЕ ОБЩИЕ ПРИВЫЧКИ КОМАНДЫ ─────────────────────────────────────────
+  // Each team habit with REAL stats: doneToday (members who marked today), total
+  // (member count), doneByMe, weekPct (avg member-completion over the last 7 days).
+  async function teamHabitsFull(teamId) {
+    var c = client(); var me = await uid(); if (!c || !teamId) return [];
+    try {
+      var hs = await c.from("team_habits").select("id,name,emoji,is_main").eq("team_id", teamId).order("created_at", { ascending: true });
+      var habits = (hs.data) || []; if (!habits.length) return [];
+      var ids = habits.map(function (h) { return h.id; });
+      var since = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+      var lg = await c.from("team_habit_logs").select("team_habit_id,user_id,day").in("team_habit_id", ids).gte("day", since);
+      var rows = (lg.data) || [];
+      var mem = await teamMembers(teamId); var total = mem.length || 1;
+      var today = new Date().toISOString().slice(0, 10);
+      return habits.map(function (h) {
+        var hl = rows.filter(function (r) { return r.team_habit_id === h.id; });
+        var todayUsers = {}; hl.forEach(function (r) { if (r.day === today) todayUsers[r.user_id] = 1; });
+        var weekSum = 0;
+        for (var d = 0; d < 7; d++) {
+          var day = new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
+          var u = {}; hl.forEach(function (r) { if (r.day === day) u[r.user_id] = 1; });
+          weekSum += total ? Object.keys(u).length / total : 0;
+        }
+        return { id: h.id, name: h.name, emoji: h.emoji || "✨", isMain: !!h.is_main, doneToday: Object.keys(todayUsers).length, total: total, doneByMe: !!(me && todayUsers[me]), weekPct: weekSum / 7 };
+      });
+    } catch (e) { return []; }
+  }
+  async function addTeamHabit(teamId, h) {
+    var c = client(); if (!c || !teamId) return null;
+    try { var r = await c.from("team_habits").insert({ team_id: teamId, name: (h && h.name) || "Привычка", emoji: (h && h.emoji) || "✨", is_main: !!(h && h.isMain) }).select().single(); return r.data || null; } catch (e) { return null; }
+  }
+  // Toggle MY "done today" mark on a team habit.
+  async function toggleTeamHabitToday(habitId, on) {
+    var c = client(); var me = await uid(); if (!c || !me || !habitId) return false;
+    var today = new Date().toISOString().slice(0, 10);
+    try {
+      if (on) { await c.from("team_habit_logs").upsert({ team_habit_id: habitId, user_id: me, day: today }, { onConflict: "team_habit_id,user_id,day", ignoreDuplicates: true }); }
+      else { await c.from("team_habit_logs").delete().eq("team_habit_id", habitId).eq("user_id", me).eq("day", today); }
+      return true;
+    } catch (e) { return false; }
+  }
+
   // ── D4 · живой чат команды (сообщения + фото + realtime) ─────────────────────
   async function loadMessages(teamId, limit) {
     var c = client(); if (!c || !teamId) return [];
@@ -233,6 +275,7 @@
     createTeam: createTeam, discoverTeams: discoverTeams, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
     teamMembers: teamMembers, myTeamIds: myTeamIds,
+    teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
     signOut: signOut,
     _client: client,

@@ -316,6 +316,18 @@ function HomeScreen() {
   // already knows its local time.
   const _hr = new Date().getHours();
   const greeting = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
+  // Date line under the greeting. LIVE → the device's REAL current date in Russian
+  // ("Вторник · 28 апреля"); demo keeps its frozen showcase string.
+  let _todayLabel = "Вторник · 28 апреля";
+  let _calLabel = "28 апр"; // short form for the Calendar card
+  if (app?.mode === "live") {
+    try {
+      const _wd = new Intl.DateTimeFormat("ru-RU", { weekday: "long" }).format(new Date());
+      const _dm = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date());
+      _todayLabel = _wd.charAt(0).toUpperCase() + _wd.slice(1) + " · " + _dm;
+      _calLabel = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(new Date()).replace(".", "");
+    } catch (e) {}
+  }
   // A brand-new account (the fresh demo, or a real Telegram user with no habits yet):
   // gets the get-started hero + an engaging level BANNER instead of the dense stat strip.
   const isNewbie = app?.mode === "fresh" || (app?.mode === "live" && ((app?.habits?.length) || 0) === 0);
@@ -338,6 +350,34 @@ function HomeScreen() {
   const _liveXP = _isLive ? bosLiveXP(app) : 0;
   const _lvl = bosLevelInfo(_liveXP);
   const dayStreak = app?.mode === "demo" ? 27 : (_isLive ? bosMaxStreak(habits) : 0);
+
+  // Bell red dot. Demo always shows it (scripted alert). LIVE: only light it when
+  // there are REAL unread team-chat messages — same signal NotificationsScreen uses
+  // (loadMessages per cloud team vs. the per-team "bos:chatread:" timestamp). If the
+  // cloud is off or nothing's unread, the dot stays hidden (no fake alert).
+  const [hasUnread, setHasUnread] = React.useState(false);
+  React.useEffect(() => {
+    if (!_isLive || !(window.bosCloud && window.bosCloud.enabled())) { setHasUnread(false); return; }
+    let on = true;
+    (async () => {
+      try {
+        const me = await window.bosCloud.uid();
+        const cloudTeams = (app?.teams || []).filter((t) => t.cloudId);
+        for (const t of cloudTeams) {
+          const rows = await window.bosCloud.loadMessages(t.cloudId);
+          if (!Array.isArray(rows) || !rows.length) continue;
+          const lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
+          if (rows.some((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead)) {
+            if (on) setHasUnread(true);
+            return;
+          }
+        }
+        if (on) setHasUnread(false);
+      } catch (e) { if (on) setHasUnread(false); }
+    })();
+    return () => { on = false; };
+  }, [_isLive, teams]);
+  const showBellDot = app?.mode === "demo" || hasUnread;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
   // sparkle burst when the whole day closes (doneCount reaches total).
@@ -377,13 +417,15 @@ function HomeScreen() {
       {/* Top bar — greeting + bell */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>Вторник · 28 апреля</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{_todayLabel}</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
         </div>
         <button onClick={() => navigate("notifications", { from: "home" })} className="tap"
           style={{ width: 42, height: 42, borderRadius: 14, background: iconBg, border: 0, display: "grid", placeItems: "center", position: "relative" }}>
           <I.Bell size={18} color={bellIcon}/>
+          {showBellDot && (
           <span style={{ position: "absolute", top: 8, right: 10, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
+          )}
         </button>
       </div>
 
@@ -476,7 +518,7 @@ function HomeScreen() {
           style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
           <div>
             <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Календарь</div>
-            <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>28 апр</div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{_calLabel}</div>
           </div>
           <I.Calendar size={28} color={isDark ? "rgba(255,255,255,0.7)" : "#787878"} strokeWidth={1.5} />
         </button>
@@ -614,10 +656,16 @@ function HomeScreen() {
           </div>
           <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.74)", marginTop: 3, lineHeight: 1.35 }}>Вместе легче — и за каждого друга XP к новому уровню</div>
         </div>
+        {/* Demo shows sample faces (Catя/Вика/Лёша) as a teaser. A LIVE user has no
+            such people yet, so we show a neutral "add people" glyph — never fake names. */}
         <div style={{ display: "flex", flexShrink: 0, position: "relative" }}>
-          {[{ c: "#e8c8a8", i: "А" }, { c: "#a8d4e8", i: "В" }, { c: "#d4b8e8", i: "Л" }].map((p, idx) => (
-            <span key={idx} style={{ width: 30, height: 30, borderRadius: "50%", background: p.c, border: "2px solid #fff", marginLeft: idx ? -10 : 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
-          ))}
+          {app?.mode === "live" ? (
+            <span style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.16)", border: "2px solid rgba(255,255,255,0.3)", display: "grid", placeItems: "center", color: "#fff" }}><I.Plus size={16} strokeWidth={2.5} /></span>
+          ) : (
+            [{ c: "#e8c8a8", i: "А" }, { c: "#a8d4e8", i: "В" }, { c: "#d4b8e8", i: "Л" }].map((p, idx) => (
+              <span key={idx} style={{ width: 30, height: 30, borderRadius: "50%", background: p.c, border: "2px solid #fff", marginLeft: idx ? -10 : 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
+            ))
+          )}
         </div>
       </button>
     </div>
@@ -644,11 +692,35 @@ function ShareAppSheet({ dark = false }) {
   const C = dark
     ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.09)" }
     : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", line: "rgba(0,0,0,0.06)" };
-  const friends = [
+  const _isLive = app?.mode === "live";
+  // Soft pastel palette so each real friend chip still gets a pleasant colour.
+  const _FCOLORS = ["#f0c8a8", "#a8c0e8", "#e8b8d4", "#b8e8c8", "#d4c8e8", "#a8d4e8", "#e8d0a8"];
+  const _demoFriends = [
     { name: "Катя", i: "К", c: "#f0c8a8" }, { name: "Дима", i: "Д", c: "#a8c0e8" },
     { name: "Соня", i: "С", c: "#e8b8d4" }, { name: "Ник", i: "Н", c: "#b8e8c8" }, { name: "Аля", i: "А", c: "#d4c8e8" },
   ];
-  const targets = [{ e: "💬", t: "Сообщения" }, { e: "🔗", t: "Ссылка" }, { e: "📷", t: "Истории" }, { e: "•••", t: "Ещё" }];
+  // LIVE: the user's REAL invited people (referral circle). Demo keeps the 5 faces.
+  const [liveFriends, setLiveFriends] = React.useState([]);
+  React.useEffect(() => {
+    if (!_isLive || !(window.bosCloud && window.bosCloud.enabled())) return;
+    let on = true;
+    try {
+      window.bosCloud.invitedPeople().then((list) => {
+        if (!on || !Array.isArray(list)) return;
+        setLiveFriends(list.map((p, idx) => {
+          const nm = (p && p.username) ? p.username : "Друг";
+          return { name: nm, i: nm.charAt(0).toUpperCase(), c: _FCOLORS[idx % _FCOLORS.length] };
+        }));
+      }).catch(() => {});
+    } catch (e) {}
+    return () => { on = false; };
+  }, [_isLive]);
+  const friends = _isLive ? liveFriends : _demoFriends;
+  // LIVE share targets: only the two that map to a REAL action (the OS share sheet /
+  // clipboard copy of the invite link). Demo keeps the full curated row.
+  const targets = _isLive
+    ? [{ e: "💬", t: "Сообщения" }, { e: "🔗", t: "Ссылка" }]
+    : [{ e: "💬", t: "Сообщения" }, { e: "🔗", t: "Ссылка" }, { e: "📷", t: "Истории" }, { e: "•••", t: "Ещё" }];
   return (
     <div style={{ padding: "2px 20px 0", color: C.text }}>
       <div style={{ textAlign: "center" }}>
@@ -670,21 +742,26 @@ function ShareAppSheet({ dark = false }) {
         <button onClick={copyLink} className="tap" style={{ background: copied ? "#34C759" : (dark ? "#fff" : "#0a0a0a"), color: copied ? "#fff" : (dark ? "#0a0a0a" : "#fff"), border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 600, transition: "background 0.2s", whiteSpace: "nowrap" }}>{copied ? "Скопировано ✓" : "Копировать"}</button>
       </div>
 
-      <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "20px 0 12px" }}>Предложить друзьям</div>
+      {/* Friends row — demo shows sample faces; live shows the real referral circle.
+          Hidden entirely for a live user who hasn't invited anyone yet (only the
+          invite-link + share targets remain). */}
+      {friends.length > 0 && (<>
+      <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "20px 0 12px" }}>{_isLive ? "Твой круг" : "Предложить друзьям"}</div>
       <div style={{ display: "flex", gap: 14, overflowX: "auto", margin: "0 -20px", padding: "0 20px 4px", scrollbarWidth: "none" }}>
         {friends.map((p, i) => (
-          <button key={i} className="tap" data-no-haptic style={{ background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0, width: 56, color: C.text }}>
+          <button key={i} onClick={_isLive ? shareLink : undefined} className="tap" data-no-haptic style={{ background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0, width: 56, color: C.text }}>
             <span style={{ width: 54, height: 54, borderRadius: "50%", background: p.c, display: "grid", placeItems: "center", fontSize: 19, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
-            <span style={{ fontSize: 12, color: C.sub }}>{p.name}</span>
+            <span style={{ fontSize: 12, color: C.sub, maxWidth: 56, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
           </button>
         ))}
       </div>
 
       <div style={{ height: 1, background: C.line, margin: "18px 0" }} />
+      </>)}
 
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: targets.length >= 4 ? "space-between" : "flex-start", gap: targets.length >= 4 ? 8 : 18, marginTop: friends.length > 0 ? 0 : 18 }}>
         {targets.map((t, i) => (
-          <button key={i} onClick={shareLink} className="tap" style={{ flex: 1, background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, color: C.text }}>
+          <button key={i} onClick={shareLink} className="tap" style={{ flex: targets.length >= 4 ? 1 : "0 0 auto", width: targets.length >= 4 ? undefined : 64, background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, color: C.text }}>
             <span style={{ width: 54, height: 54, borderRadius: "50%", background: C.tile, display: "grid", placeItems: "center", fontSize: 22 }}>{t.e}</span>
             <span style={{ fontSize: 11, color: C.sub }}>{t.t}</span>
           </button>

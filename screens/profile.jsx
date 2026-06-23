@@ -110,19 +110,38 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
+const BOS_SUPPORT_EMAIL = "support@balanceos.app";
 function FeedbackSheet({ title = "Написать в поддержку", dark = false }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const isLive = app?.mode === "live";
   const { close } = useSheet();
   const C = sheetColors(dark);
   const [txt, setTxt] = useP("");
   const [sent, setSent] = useP(false);
-  const send = () => { setSent(true); window.setTimeout(close, 1000); };
+  // LIVE: actually hand the message to a real channel (the support email composer) —
+  // never a fake "delivered". DEMO: keep the showcase success animation.
+  const send = () => {
+    if (isLive) {
+      const body = (txt || "").trim();
+      if (!body) return;
+      try {
+        const url = "mailto:" + BOS_SUPPORT_EMAIL + "?subject=" + encodeURIComponent("BalanceOS · " + title) + "&body=" + encodeURIComponent(body);
+        if (window.__TG && window.__TG.openLink) window.__TG.openLink(url);
+        else window.location.href = url;
+      } catch (e) {}
+      close();
+      return;
+    }
+    setSent(true); window.setTimeout(close, 1000);
+  };
   return (
     <div style={{ padding: "2px 20px 6px", color: C.text }}>
       {sent ? <SheetDone C={C} label="Отправлено"/> : (
         <>
           <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>{title}</div>
           <textarea value={txt} onChange={e => setTxt(e.target.value)} placeholder="Опиши вопрос…" rows={4} style={{ width: "100%", marginTop: 14, background: C.field, border: "1px solid " + C.line, borderRadius: 14, padding: 12, fontSize: 14, color: C.text, fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box" }}/>
-          <button onClick={send} className="tap" style={{ width: "100%", marginTop: 12, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>Отправить</button>
+          {isLive && <div style={{ fontSize: 12, color: C.sub, marginTop: 8, lineHeight: 1.45 }}>Откроется письмо на {BOS_SUPPORT_EMAIL} — отправь его, и мы ответим.</div>}
+          <button onClick={send} disabled={isLive && !txt.trim()} className="tap" style={{ width: "100%", marginTop: 12, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600, opacity: (isLive && !txt.trim()) ? 0.5 : 1 }}>{isLive ? "Написать письмо" : "Отправить"}</button>
         </>
       )}
     </div>
@@ -304,6 +323,13 @@ function ProfileScreen() {
     return () => { on = false; };
   }, [_isLive]);
   const orbitPeople = app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : livePeople;
+
+  // Achievements badge — REAL earned set + emojis for live; curated 4/8 for demo.
+  const _liveAch = _isLive ? bosLiveAchievements(app).filter((a) => a.earned) : [];
+  const _achTotal = _isLive ? ACHIEVEMENTS.length : 8;
+  const _achEarnedN = _isLive ? _liveAch.length : 4;
+  const _achEmojis = _isLive ? _liveAch.slice(0, 3).map((a) => a.i) : ["⚡", "🧘", "🤝"];
+  const _achCircles = _isLive ? livePeople.length : 3;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader onBack={() => navigate("home")} title="" />
@@ -334,10 +360,14 @@ function ProfileScreen() {
         <span style={{ width: 42, height: 42, borderRadius: 13, background: "rgba(254,222,52,0.16)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 600 }}>Достижения</div>
-          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>4 из 8 · открыли 3 круга контактов</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>
+            {_isLive
+              ? _achEarnedN + " из " + _achTotal + (_achCircles > 0 ? " · " + _achCircles + (_achCircles === 1 ? " приглашён" : " приглашено") : (_achEarnedN === 0 ? " · открой первую" : ""))
+              : "4 из 8 · открыли 3 круга контактов"}
+          </div>
         </div>
         <div style={{ display: "flex", marginRight: 4 }}>
-          {["⚡","🧘","🤝"].map((e, i) => <span key={i} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 13, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{e}</span>)}
+          {_achEmojis.map((e, i) => <span key={i} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 13, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{e}</span>)}
         </div>
         <I.ChevronRight size={18} className="bos-sys-text-2"/>
       </SysCard>
@@ -374,8 +404,19 @@ function SettingsScreen() {
   const app = useApp();
   const { open: openSheet } = useSheet();
   const routeDark = app?.themeOverride !== "light"; // settings is a dark route unless globally forced light
-  const [push, setPush] = useP(true);
-  const [sound, setSound] = useP(true);
+  const isLive = app?.mode === "live";
+  // Push is a REAL saved setting for live users — persisted to localStorage by profile id,
+  // and it gates the Telegram push the bot sends. Demo keeps an in-memory toggle for show.
+  const pushKey = "bos:push:" + (app?.persistId || "live");
+  const [push, setPush] = useP(() => {
+    if (!isLive) return true;
+    try { const v = localStorage.getItem(pushKey); return v == null ? true : v === "1"; } catch (e) { return true; }
+  });
+  const setPushPersist = (on) => {
+    setPush(on);
+    if (isLive) { try { localStorage.setItem(pushKey, on ? "1" : "0"); } catch (e) {} }
+  };
+  const [sound, setSound] = useP(true); // demo-only switch (nothing reads it); hidden for live
   const isDark = app?.themeOverride === "dark";
   const setDark = (on) => app?.setThemeOverride(on ? "dark" : "light");
   const wheel = app?.wheelSpheres || (window.DEFAULT_SPHERES || []);
@@ -386,11 +427,19 @@ function SettingsScreen() {
 
       <div className="section-label">Аккаунт</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {[
-          { label: "Редактировать профиль", icon: I.Pencil, on: () => openSheet(<EditProfileSheet dark={routeDark}/>) },
-          { label: "Пароль", icon: I.Lock, on: () => openSheet(<InfoSheet title="Сменить пароль" body="Пришлём ссылку для смены пароля на твою почту — открой её на этом устройстве." cta="Отправить ссылку" dark={routeDark}/>) },
-          { label: "Привязанные аккаунты", icon: I.Globe, on: () => openSheet(<InfoSheet title="Привязанные аккаунты" body="Google — подключён. Apple — не подключён. Через них можно входить без пароля." cta="Готово" dark={routeDark}/>) },
-        ].map((r, i) => (
+        {(isLive
+          // LIVE: real Telegram users have no password and no separately-linked Google/Apple —
+          // one honest row explains how the sign-in actually works. No fake "Google подключён".
+          ? [
+            { label: "Редактировать профиль", icon: I.Pencil, on: () => openSheet(<EditProfileSheet dark={routeDark}/>) },
+            { label: "Вход через Telegram", icon: I.Globe, on: () => openSheet(<InfoSheet title="Вход через Telegram" body="Ты входишь через свой аккаунт Telegram — отдельный пароль не нужен. Твои данные привязаны к нему и переносятся между устройствами." cta="Понятно" dark={routeDark}/>) },
+          ]
+          : [
+            { label: "Редактировать профиль", icon: I.Pencil, on: () => openSheet(<EditProfileSheet dark={routeDark}/>) },
+            { label: "Пароль", icon: I.Lock, on: () => openSheet(<InfoSheet title="Сменить пароль" body="Пришлём ссылку для смены пароля на твою почту — открой её на этом устройстве." cta="Отправить ссылку" dark={routeDark}/>) },
+            { label: "Привязанные аккаунты", icon: I.Globe, on: () => openSheet(<InfoSheet title="Привязанные аккаунты" body="Google — подключён. Apple — не подключён. Через них можно входить без пароля." cta="Готово" dark={routeDark}/>) },
+          ]
+        ).map((r, i) => (
           <SysBtn key={i} onClick={r.on} style={{ padding: 14 }}>
             <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
             <span style={{ flex: 1, fontSize: 15 }}>{r.label}</span>
@@ -402,8 +451,11 @@ function SettingsScreen() {
       <div className="section-label" style={{ marginTop: 22 }}>Предпочтения</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {[
-          { label: "Push-уведомления", icon: I.Bell, val: push, set: setPush },
-          { label: "Звук", icon: I.Volume, val: sound, set: setSound },
+          // Push is real & persisted for live (gates Telegram push); in-memory for demo.
+          { label: "Push-уведомления", icon: I.Bell, val: push, set: isLive ? setPushPersist : setPush },
+          // "Звук" has no consumer yet → keep it only in the demo showcase, hide for live
+          // so a real user never meets a toggle that does nothing.
+          ...(isLive ? [] : [{ label: "Звук", icon: I.Volume, val: sound, set: setSound }]),
           { label: "Тёмная тема", icon: I.Eye, val: isDark, set: setDark },
         ].map((r, i) => (
           <div key={i} className="bos-sys-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 14 }}>
@@ -462,7 +514,9 @@ function SettingsScreen() {
         </SysBtn>
         {["Политика конфиденциальности", "Условия использования", "Версия 2.4.1"].map((l, i, a) => (
           i < a.length - 1 ? (
-            <SysBtn key={i} onClick={() => openSheet(<InfoSheet title={l} body="Это демо-макет BalanceOS. Полный текст документа появится в релизной версии приложения." cta="Готово" dark={routeDark}/>)} style={{ padding: 14 }}>
+            <SysBtn key={i} onClick={() => openSheet(<InfoSheet title={l} body={isLive
+              ? "Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта."
+              : "Это демо-макет BalanceOS. Полный текст документа появится в релизной версии приложения."} cta="Готово" dark={routeDark}/>)} style={{ padding: 14 }}>
               <span style={{ flex: 1, fontSize: 15 }}>{l}</span>
               <I.ChevronRight size={16} className="bos-sys-text-2" />
             </SysBtn>
@@ -617,20 +671,36 @@ function HistoryScreen() {
     moodText:  "rgba(0,0,0,0.75)",
   };
 
+  const isLive = app?.mode === "live";
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
   const DIM = [31,28,31,30,31,30,31,31,30,31,30,31];
-  const CUR_M = 3; // April is "this month" in the demo
-  const today = 28;
-  const year = 2026;
+  // DEMO walks a synthetic April-2026; LIVE walks the user's REAL calendar (today = now).
+  const _now = new Date();
+  const CUR_M = isLive ? _now.getMonth() : 3; // April is "this month" in the demo
+  const year = isLive ? _now.getFullYear() : 2026;
+  const today = isLive ? _now.getDate() : 28;
+  const _leap = (y) => (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
   const [mIdx, setMIdx] = useP(CUR_M);
   const monthName = MONTHS[mIdx];
-  const daysInMonth = DIM[mIdx];
-  const startWeekday = (mIdx * 3 + 3) % 7; // synthetic but stable per month
+  const daysInMonth = (isLive && mIdx === 1 && _leap(year)) ? 29 : DIM[mIdx];
+  // LIVE: real weekday of the 1st of the shown month; DEMO: its stable synthetic offset.
+  const startWeekday = isLive ? new Date(year, mIdx, 1).getDay() : (mIdx * 3 + 3) % 7;
   const isCurMonth = mIdx === CUR_M;
   const isFuture = mIdx > CUR_M;
   const lastLogged = isCurMonth ? today : daysInMonth; // past months fully logged; this one up to today
 
+  // LIVE: a day's completion = share of the user's habits logged on that real date.
+  // h.log is keyed by local ISO date ("2026-06-23"); 0 habits → null (nothing to show).
+  const liveHabits = app?.habits || [];
+  const iso = (d) => year + "-" + (mIdx + 1 < 10 ? "0" : "") + (mIdx + 1) + "-" + (d < 10 ? "0" : "") + d;
   const completion = (d) => {
+    if (isLive) {
+      if (isFuture || d > lastLogged) return null;
+      if (!liveHabits.length) return null;
+      const k = iso(d);
+      const done = liveHabits.reduce((s, h) => s + (h && h.log && h.log[k] ? 1 : 0), 0);
+      return done / liveHabits.length;
+    }
     if (isFuture || d > lastLogged) return null;
     const v = (Math.sin((d + mIdx * 7) * 13.37) + 1) / 2;
     return Math.round(v * 6) / 6;
@@ -658,7 +728,8 @@ function HistoryScreen() {
   const cells = [...blanks, ...days];
   const weekday = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
 
-  const dayHabits = [
+  // Curated demo habit row vs. the live user's REAL habits (done-state resolved per day below).
+  const demoDayHabits = [
     { e: "🙏", n: "Помогать другим", on: true },
     { e: "🧘🏼‍♀️", n: "Медитация", on: true },
     { e: "🏃🏼‍♀️", n: "Утренняя пробежка", on: true },
@@ -666,16 +737,42 @@ function HistoryScreen() {
     { e: "✍🏼", n: "Бумажный дневник", on: false },
     { e: "🥊", n: "Бокс", on: true },
   ];
+  // For LIVE day-detail: each real habit + whether it was logged on the selected date.
+  const liveDayHabits = (d) => liveHabits.map((h) => ({ e: h.emoji || "✨", n: h.name || "Привычка", on: !!(h && h.log && h.log[iso(d)]) }));
+  const dayHabits = isLive ? liveDayHabits(selDay) : demoDayHabits;
   const selPct = completion(selDay);
 
-  const totalDone = days.reduce((s, d) => s + (completion(d.d) || 0) * dayHabits.length, 0);
-  const perfectDays = days.filter(d => completion(d.d) === 1).length;
-  const bestStreak = 21;
+  // Stats — REAL for live (across all logged history), curated for demo.
+  let totalDone, perfectDays, bestStreak;
+  if (isLive) {
+    totalDone = liveHabits.reduce((s, h) => s + (h && h.log ? Object.keys(h.log).length : 0), 0);
+    bestStreak = (typeof bosMaxStreak === "function") ? bosMaxStreak(liveHabits) : 0;
+    // A "perfect day" = a date on which every habit was logged. Gather all logged dates,
+    // then count those where the done-count equals the number of habits.
+    const allDates = {};
+    liveHabits.forEach((h) => { if (h && h.log) Object.keys(h.log).forEach((k) => { allDates[k] = (allDates[k] || 0) + 1; }); });
+    perfectDays = liveHabits.length ? Object.keys(allDates).filter((k) => allDates[k] >= liveHabits.length).length : 0;
+  } else {
+    totalDone = days.reduce((s, d) => s + (completion(d.d) || 0) * demoDayHabits.length, 0);
+    perfectDays = days.filter(d => completion(d.d) === 1).length;
+    bestStreak = 21;
+  }
+  // LIVE empty state: no habits at all, OR habits but not a single logged day yet.
+  const liveHasHistory = liveHabits.length > 0 && totalDone > 0;
+  const showEmpty = isLive && !liveHasHistory;
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="История" onBack={() => navigate("home")} />
 
+      {showEmpty ? (
+        /* LIVE & no history yet — honest empty state, never a fake calendar. */
+        <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "70px 24px", fontSize: 14, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 38, marginBottom: 12 }}>🗓️</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>Пока нет истории</div>
+          Отмечай привычки, и тут появится твой ритм.
+        </div>
+      ) : (<>
       {/* Stat strip */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
         {[
@@ -779,7 +876,9 @@ function HistoryScreen() {
               </div>
               <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>{Math.round(selPct * 100)}%</span>
             </div>
-            {app?.dayMoods?.[selDay] != null && (() => {
+            {/* Mood/journal are stored by day-of-month → only meaningful for the month
+                you're actually in. Live shows them for the current month only. */}
+            {(!isLive || isCurMonth) && app?.dayMoods?.[selDay] != null && (() => {
               const dm = MOOD_OPTIONS[app.dayMoods[selDay]];
               return (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
@@ -793,7 +892,7 @@ function HistoryScreen() {
                 </div>
               );
             })()}
-            {app?.dayNotes?.[selDay] && ((app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length) || app.dayNotes[selDay].note) && (
+            {(!isLive || isCurMonth) && app?.dayNotes?.[selDay] && ((app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length) || app.dayNotes[selDay].note) && (
               <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
                 <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Журнал</div>
                 {app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length > 0 && (
@@ -809,7 +908,8 @@ function HistoryScreen() {
               </div>
             )}
             {dayHabits.map((h, i) => {
-              const done = i < Math.round(selPct * dayHabits.length);
+              // Live: the habit's OWN logged state for this date; demo: ordered fill.
+              const done = isLive ? h.on : i < Math.round(selPct * dayHabits.length);
               return (
                 <div key={i}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
@@ -831,6 +931,7 @@ function HistoryScreen() {
           </>
         )}
       </SysCard>
+      </>)}
     </div>
   );
 }
@@ -1591,12 +1692,57 @@ const ACHIEVEMENTS = [
   { i: "🌍", t: "Хранитель ретрита",    d: "Достигни 20 уровня",            earned: false, opens: "организаторы ретритов",  req: "уровень 20",     accent: "#a8e8e0" },
 ];
 
+// LIVE achievements — earned by REAL signals from this user (level, max streak, teams,
+// journaling/state days). Returns a fresh list shaped exactly like ACHIEVEMENTS so the
+// same screen renders it; demo keeps the curated array above untouched.
+function bosLiveAchievements(app) {
+  var level = (typeof bosLevelInfo === "function" && typeof bosLiveXP === "function") ? bosLevelInfo(bosLiveXP(app)).level : 1;
+  var streak = (typeof bosMaxStreak === "function") ? bosMaxStreak(app && app.habits) : 0;
+  var teamsJoined = ((app && app.teams) || []).filter(function (t) { return t && (t.joined || t.cloudId); }).length;
+  // Days of self-tracking = unique days you logged a state OR wrote a journal line.
+  var jdays = {};
+  Object.keys((app && app.dayMoods) || {}).forEach(function (k) { jdays[k] = 1; });
+  Object.keys((app && app.dayNotes) || {}).forEach(function (k) {
+    var e = app.dayNotes[k];
+    if (e && (((e.note != null) && ("" + e.note).trim()) || (e.tags && e.tags.length))) jdays[k] = 1;
+  });
+  var careDays = Object.keys(jdays).length;
+  var cond = [
+    level >= 2,        // ⚡ первый реальный прогресс
+    careDays >= 10,    // 🧘 10 дней внимания к себе (состояние/дневник)
+    teamsJoined >= 1,  // 🤝 ты в команде
+    streak >= 30,      // 🔥 месяц без пропусков
+    streak >= 7,       // 🚀 серия 7 дней
+    streak >= 21,      // 🏃 серия 21 день
+    level >= 10,       // 💼 10 уровень
+    level >= 20,       // 🌍 20 уровень
+  ];
+  return ACHIEVEMENTS.map(function (a, i) { return Object.assign({}, a, { earned: !!cond[i], date: "" }); });
+}
+
 function AchievementsScreen() {
   const { navigate, params } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
   const back = params?.from || "profile";
-  const earned = ACHIEVEMENTS.filter(a => a.earned);
-  const locked = ACHIEVEMENTS.filter(a => !a.earned);
-  const circles = earned.filter(a => !a.opens.startsWith("+")).length;
+  const isLive = app?.mode === "live";
+  // LIVE: achievements earned by real signals; DEMO: the curated showcase list.
+  const LIST = isLive ? bosLiveAchievements(app) : ACHIEVEMENTS;
+  const earned = LIST.filter(a => a.earned);
+  const locked = LIST.filter(a => !a.earned);
+  // LIVE "circles of contacts" = real people you actually invited (referral circle).
+  const [invited, setInvited] = React.useState(0);
+  React.useEffect(() => {
+    if (!isLive) return;
+    let on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled()) {
+        window.bosCloud.invitedPeople().then((list) => { if (on && Array.isArray(list)) setInvited(list.length); }).catch(() => {});
+      }
+    } catch (e) {}
+    return () => { on = false; };
+  }, [isLive]);
+  // Demo's framing: each non-"+1 level" earned badge opened a circle. Live: real invited count.
+  const circles = isLive ? invited : earned.filter(a => !a.opens.startsWith("+")).length;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Достижения" onBack={() => navigate(back)} />
@@ -1606,10 +1752,12 @@ function AchievementsScreen() {
         <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Твои ачивки</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
           <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.6px" }}>{earned.length}</span>
-          <span className="bos-sys-text-2" style={{ fontSize: 14 }}>из {ACHIEVEMENTS.length} открыто</span>
+          <span className="bos-sys-text-2" style={{ fontSize: 14 }}>из {LIST.length} открыто</span>
         </div>
         <div className="bos-sys-text-2" style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
-          Ачивки — это ключи: за курсы, уровни и добрые дела. Уже открыли <b>{circles} круга контактов</b>.
+          {isLive
+            ? <>Ачивки — это ключи: за уровни, серии и людей рядом. {circles > 0 ? <>Ты привёл <b>{circles} {circles === 1 ? "человека" : "чел."}</b> в своё пространство.</> : "Пригласи друга — и откроется твой первый круг контактов."}</>
+            : <>Ачивки — это ключи: за курсы, уровни и добрые дела. Уже открыли <b>{circles} круга контактов</b>.</>}
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
           {earned.map((a, i) => (
@@ -1688,4 +1836,4 @@ function ManifestScreen() {
   );
 }
 
-Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen, AchievementsScreen, ACHIEVEMENTS, ManifestScreen });
+Object.assign(window, { ProfileScreen, SettingsScreen, NotificationsScreen, HistoryScreen, SupportScreen, AIScreen, OnboardingScreen, SignUpScreen, IconPickerScreen, AchievementsScreen, ACHIEVEMENTS, bosLiveAchievements, ManifestScreen });

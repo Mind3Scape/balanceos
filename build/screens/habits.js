@@ -315,6 +315,32 @@ function ShareHabitSheet({
   var {
     close
   } = useSheet();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var _isLive = app?.mode === "live";
+  // The real, live web app — same invite link the «Поделиться приложением» sheet uses.
+  var APP_URL = "https://mind3scape.github.io/balanceos";
+  var shareLink = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "BalanceOS",
+          text: "Делаем привычку «" + (habit?.name || "") + "» вместе в BalanceOS",
+          url: APP_URL
+        });
+        return;
+      }
+    } catch (e) {
+      return;
+    }
+    try {
+      navigator.clipboard.writeText(APP_URL);
+    } catch (e) {}
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+  };
   var C = dark ? {
     text: "#fff",
     sub: "rgba(255,255,255,0.5)",
@@ -328,7 +354,9 @@ function ShareHabitSheet({
     line: "rgba(0,0,0,0.06)",
     ring: "#fff"
   };
-  var [friends, setFriends] = useHS([{
+  // Soft pastel palette so each real friend chip still gets a pleasant colour.
+  var _FCOLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
+  var _demoFriends = [{
     name: "Анна",
     i: "А",
     c: "#e8c8a8",
@@ -353,12 +381,43 @@ function ShareHabitSheet({
     i: "Т",
     c: "#b8e8c8",
     on: false
-  }]);
+  }];
+  // LIVE: the user's REAL invited people (referral circle). Demo keeps the 5 faces.
+  var [friends, setFriends] = useHS(_isLive ? [] : _demoFriends);
+  React.useEffect(() => {
+    if (!_isLive || !(window.bosCloud && window.bosCloud.enabled())) return;
+    var on = true;
+    try {
+      window.bosCloud.invitedPeople().then(list => {
+        if (!on || !Array.isArray(list)) return;
+        setFriends(list.map((p, idx) => {
+          var nm = p && p.username ? p.username : "Друг";
+          return {
+            name: nm,
+            i: nm.charAt(0).toUpperCase(),
+            c: _FCOLORS[idx % _FCOLORS.length],
+            on: false
+          };
+        }));
+      }).catch(() => {});
+    } catch (e) {}
+    return () => {
+      on = false;
+    };
+  }, [_isLive]);
   var toggleF = idx => setFriends(f => f.map((x, i) => i === idx ? {
     ...x,
     on: !x.on
   } : x));
-  var targets = [{
+  // LIVE share targets: only the two that map to a REAL action (OS share sheet /
+  // clipboard copy of the invite link). Demo keeps the full curated row.
+  var targets = _isLive ? [{
+    e: "💬",
+    t: "Сообщения"
+  }, {
+    e: "🔗",
+    t: "Ссылка"
+  }] : [{
     e: "💬",
     t: "Сообщения"
   }, {
@@ -421,7 +480,14 @@ function ShareHabitSheet({
       fontWeight: 600,
       margin: "22px 0 12px"
     }
-  }, "\u0414\u0435\u043B\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0414\u0435\u043B\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435"), _isLive && friends.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: C.sub,
+      lineHeight: 1.45,
+      padding: "2px 2px 4px"
+    }
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u043A\u043E\u0433\u043E \u043F\u043E\u0437\u0432\u0430\u0442\u044C \u2014 \u043F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0433\u0430 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435 \u043D\u0438\u0436\u0435.") : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 14,
@@ -485,6 +551,7 @@ function ShareHabitSheet({
     }
   }, p.name))), /*#__PURE__*/React.createElement("button", {
     className: "tap",
+    onClick: shareLink,
     style: {
       background: "transparent",
       border: 0,
@@ -525,6 +592,7 @@ function ShareHabitSheet({
     }
   }, targets.map((t, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
+    onClick: shareLink,
     className: "tap",
     style: {
       flex: 1,
@@ -1127,7 +1195,11 @@ function HabitSettingsScreen() {
   var [goal, setGoal] = useHS(1);
   var [reminderOn, setReminderOn] = useHS(true);
   var [shareOn, setShareOn] = useHS(true);
-  var [shareFriends, setShareFriends] = useHS([{
+  var _isLive = app?.mode === "live";
+  // Soft pastel palette so each real friend chip still gets a pleasant colour.
+  var _FCOLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
+  // LIVE: real invited people (referral circle), nothing pre-selected. Demo keeps the 4 faces.
+  var [shareFriends, setShareFriends] = useHS(_isLive ? [] : [{
     name: "Анна",
     i: "А",
     c: "#e8c8a8",
@@ -1148,6 +1220,27 @@ function HabitSettingsScreen() {
     c: "#a8d4e8",
     on: false
   }]);
+  React.useEffect(() => {
+    if (!_isLive || !(window.bosCloud && window.bosCloud.enabled())) return;
+    var on = true;
+    try {
+      window.bosCloud.invitedPeople().then(list => {
+        if (!on || !Array.isArray(list)) return;
+        setShareFriends(list.map((p, idx) => {
+          var nm = p && p.username ? p.username : "Друг";
+          return {
+            name: nm,
+            i: nm.charAt(0).toUpperCase(),
+            c: _FCOLORS[idx % _FCOLORS.length],
+            on: false
+          };
+        }));
+      }).catch(() => {});
+    } catch (e) {}
+    return () => {
+      on = false;
+    };
+  }, [_isLive]);
   var [type, setType] = useHS("build");
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
@@ -1388,18 +1481,7 @@ function HabitSettingsScreen() {
     className: "chip"
   }, /*#__PURE__*/React.createElement(I.Bell, {
     size: 14
-  }), " \u041A\u0430\u0436\u0434\u044B\u0439 \u0434\u0435\u043D\u044C"))), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    style: {
-      width: "100%",
-      background: "transparent",
-      border: 0,
-      color: "var(--text-2)",
-      padding: 14,
-      fontSize: 15,
-      fontWeight: 500
-    }
-  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
+  }), " \u041A\u0430\u0436\u0434\u044B\u0439 \u0434\u0435\u043D\u044C"))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 8
@@ -1467,9 +1549,16 @@ function HabitSettingsScreen() {
       display: "flex",
       gap: 8,
       marginTop: 14,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      alignItems: "center"
     }
-  }, shareFriends.map((p, i) => /*#__PURE__*/React.createElement("button", {
+  }, _isLive && shareFriends.length === 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      lineHeight: 1.4
+    }
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u043A\u043E\u0433\u043E \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u2014 \u043F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0433\u0430 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."), shareFriends.map((p, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: () => setShareFriends(fs => fs.map((x, j) => j === i ? {
       ...x,
@@ -1504,26 +1593,56 @@ function HabitSettingsScreen() {
     size: 12,
     strokeWidth: 3
   }))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShareFriends(fs => {
-      var pool = [{
-        name: "Соня",
-        i: "С",
-        c: "#e8b8d4"
-      }, {
-        name: "Дима",
-        i: "Д",
-        c: "#a8c0e8"
-      }, {
-        name: "Аля",
-        i: "А",
-        c: "#d4c8e8"
-      }];
-      var next = pool.find(p => !fs.some(f => f.name === p.name));
-      return next ? [...fs, {
-        ...next,
-        on: true
-      }] : fs;
-    }),
+    onClick: () => {
+      // LIVE: invite a real person via the OS share sheet / link copy (no fake pool).
+      if (_isLive) {
+        var APP_URL = "https://mind3scape.github.io/balanceos";
+        (async () => {
+          try {
+            if (navigator.share) {
+              await navigator.share({
+                title: "BalanceOS",
+                text: "Делаем привычку вместе в BalanceOS",
+                url: APP_URL
+              });
+              return;
+            }
+          } catch (e) {
+            return;
+          }
+          try {
+            navigator.clipboard.writeText(APP_URL);
+          } catch (e) {}
+          if (window.tgHaptic) {
+            try {
+              window.tgHaptic("light");
+            } catch (e) {}
+          }
+        })();
+        return;
+      }
+      // DEMO: cycle through the sample pool so the showcase stays lively.
+      setShareFriends(fs => {
+        var pool = [{
+          name: "Соня",
+          i: "С",
+          c: "#e8b8d4"
+        }, {
+          name: "Дима",
+          i: "Д",
+          c: "#a8c0e8"
+        }, {
+          name: "Аля",
+          i: "А",
+          c: "#d4c8e8"
+        }];
+        var next = pool.find(p => !fs.some(f => f.name === p.name));
+        return next ? [...fs, {
+          ...next,
+          on: true
+        }] : fs;
+      });
+    },
     className: "tap",
     style: {
       display: "inline-flex",
@@ -1602,14 +1721,17 @@ window.ShareHabitSheet = ShareHabitSheet;
    start day, then an end day (like a booking date range). The distance between
    them is the goal's срок. Returns "14 окт – 21 ноя". 2026 demo year. */
 function DeadlineCalendar({
-  onPick
+  onPick,
+  isLive = false
 }) {
   var MON_SHORT = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
   var MON_TITLE = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
   var DAYS_IN = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  var TODAY_M = 3,
-    TODAY_D = 28,
-    YEAR = 2026; // demo "today" = 28 апр 2026
+  // LIVE: real calendar anchored to today. DEMO: frozen "today" = 28 апр 2026 (the showcase date).
+  var _now = new Date();
+  var TODAY_M = isLive ? _now.getMonth() : 3,
+    TODAY_D = isLive ? _now.getDate() : 28,
+    YEAR = isLive ? _now.getFullYear() : 2026;
   var [m, setM] = useHS(TODAY_M);
   var [start, setStart] = useHS(null); // { m, d }
   var [end, setEnd] = useHS(null);
@@ -1789,19 +1911,13 @@ function GoalSettingsScreen() {
   var [deadline, setDeadline] = useHS(g0?.deadline || "Месяц");
   var [showCal, setShowCal] = useHS(false);
   var [linkHabit, setLinkHabit] = useHS(true);
-  var [linkedHabits, setLinkedHabits] = useHS([{
-    e: "🏃",
-    n: "утренняя пробежка",
-    on: true
-  }, {
-    e: "🧘",
-    n: "медитация",
+  // REAL for every mode — the user's own habits, none pre-selected. Demo's store is
+  // already seeded with sample habits, so the showcase still reads.
+  var [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map(h => ({
+    e: h.emoji || "✨",
+    n: h.name,
     on: false
-  }, {
-    e: "📚",
-    n: "читать книгу",
-    on: false
-  }]);
+  })));
   var toggleLinked = i => setLinkedHabits(hs => hs.map((h, j) => j === i ? {
     ...h,
     on: !h.on
@@ -2043,6 +2159,7 @@ function GoalSettingsScreen() {
       }
     }, q);
   })), showCal && /*#__PURE__*/React.createElement(DeadlineCalendar, {
+    isLive: app?.mode === "live",
     onPick: s => {
       setDeadline(s);
       setShowCal(false);
@@ -2090,9 +2207,16 @@ function GoalSettingsScreen() {
       display: "flex",
       gap: 8,
       marginTop: 14,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      alignItems: "center"
     }
-  }, linkedHabits.map((h, i) => /*#__PURE__*/React.createElement("button", {
+  }, linkedHabits.length === 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      lineHeight: 1.4
+    }
+  }, "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u043E\u0437\u0434\u0430\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u2014 \u043F\u043E\u0442\u043E\u043C \u043F\u0440\u0438\u0432\u044F\u0436\u0435\u0448\u044C \u0435\u0451 \u043A \u0446\u0435\u043B\u0438."), linkedHabits.map((h, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     className: "tap",
     "data-no-haptic": true,
@@ -2125,6 +2249,9 @@ function GoalSettingsScreen() {
     strokeWidth: 3
   }))), /*#__PURE__*/React.createElement("button", {
     className: "tap",
+    onClick: () => navigate("habit-settings", {
+      mode: "create"
+    }),
     style: {
       display: "inline-flex",
       alignItems: "center",

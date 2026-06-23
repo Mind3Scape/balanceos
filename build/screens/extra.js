@@ -1144,14 +1144,26 @@ function darken(hex, amt = 0.4) {
 }
 
 /* JOURNAL / DAILY REFLECTION */
+// "YYYY-MM-DD" (live day key) → "27 апр". Falls back to the raw key for any other shape.
+var JOURNAL_MONTHS = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+function journalDateLabel(key) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec("" + key);
+  if (!m) return "" + key;
+  return parseInt(m[3], 10) + " " + (JOURNAL_MONTHS[parseInt(m[2], 10) - 1] || "");
+}
 function JournalScreen() {
   var {
     navigate
   } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isDemo = app?.mode === "demo";
   var [a, setA] = useM("");
   var [b, setB] = useM("");
   var [c, setC] = useM("");
-  var past = [{
+
+  // Demo → frozen showcase entries. Live → REAL past notes from app.dayNotes (any day
+  // with a written note or tags), newest first; honest empty state when there are none.
+  var demoPast = [{
     date: "27 апр",
     w: "Сохранил серию даже после долгого дня.",
     g: "Не гнать себя во второй половине дня."
@@ -1164,6 +1176,62 @@ function JournalScreen() {
     w: "Заметил, что спокойнее в групповые дни.",
     g: "Спланировать завтра сегодня вечером."
   }];
+  var livePast = (() => {
+    var notes = app && app.dayNotes || {};
+    return Object.keys(notes).map(k => ({
+      key: k,
+      e: notes[k]
+    })).filter(({
+      e
+    }) => e && (e.note != null && ("" + e.note).trim() || e.tags && e.tags.length)).sort((x, y) => ("" + y.key).localeCompare("" + x.key)).map(({
+      key,
+      e
+    }) => ({
+      date: journalDateLabel(key),
+      text: ("" + (e.note || "")).trim(),
+      tags: e.tags || []
+    }));
+  })();
+
+  // Live header date from the user's real clock; demo keeps its frozen showcase date.
+  var todayKey = typeof bosTodayKey === "function" ? bosTodayKey() : "";
+  var WDAYS = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+  var liveHeader = (() => {
+    try {
+      var d = new Date();
+      return journalDateLabel(bosTodayKey(d)) + " · " + WDAYS[d.getDay()];
+    } catch (e) {
+      return "";
+    }
+  })();
+
+  // Save (live only): persist into dayNotes[todayKey] as {tags, note} — the SAME shape the
+  // XP formula rewards (+10/day for a journal note) and the calendar reads. Keep any tags a
+  // mood check-in already logged today, so we don't wipe them.
+  var liveSave = () => {
+    if (!app || !app.setDayNotes || !todayKey) return navigate("home");
+    var parts = [];
+    if (a.trim()) parts.push("Хорошо: " + a.trim());
+    if (b.trim()) parts.push("Помешало: " + b.trim());
+    if (c.trim()) parts.push("Завтра: " + c.trim());
+    var note = parts.join("\n");
+    if (note) {
+      var prev = app.dayNotes && app.dayNotes[todayKey] || {};
+      app.setDayNotes({
+        ...(app.dayNotes || {}),
+        [todayKey]: {
+          tags: prev.tags || [],
+          note
+        }
+      });
+    }
+    navigate("home");
+  };
+  var hasText = a.trim() || b.trim() || c.trim();
+  // Honest XP: a journal note awards +10 XP/day (mood check-in is a separate +5). Only
+  // promise XP once there's something to save — an empty save earns nothing.
+  var saveLabel = isDemo ? "Сохранить · +15 XP" : hasText ? "Сохранить · +10 XP" : "Сохранить";
+  var past = isDemo ? demoPast : livePast;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1187,7 +1255,7 @@ function JournalScreen() {
       letterSpacing: 1.4,
       fontWeight: 600
     }
-  }, "28 \u0430\u043F\u0440 \xB7 \u0412\u0442\u043E\u0440\u043D\u0438\u043A"), /*#__PURE__*/React.createElement("div", {
+  }, isDemo ? "28 апр · Вторник" : liveHeader), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 16,
@@ -1261,13 +1329,25 @@ function JournalScreen() {
     style: {
       marginTop: 16
     },
-    onClick: () => navigate("home")
-  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \xB7 +15 XP"), /*#__PURE__*/React.createElement("div", {
+    onClick: () => isDemo ? navigate("home") : liveSave()
+  }, saveLabel), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
     }
-  }, "\u041F\u0440\u043E\u0448\u043B\u044B\u0435 \u0437\u0430\u043F\u0438\u0441\u0438"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u0440\u043E\u0448\u043B\u044B\u0435 \u0437\u0430\u043F\u0438\u0441\u0438"), past.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 14,
+      padding: 18,
+      marginTop: 8,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+      fontSize: 14,
+      color: "var(--text-4)",
+      textAlign: "center",
+      lineHeight: 1.5
+    }
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0437\u0430\u043F\u0438\u0441\u0435\u0439 \u2014 \u043F\u0435\u0440\u0432\u0430\u044F \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C.") : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1288,7 +1368,7 @@ function JournalScreen() {
       color: "var(--text-4)",
       fontWeight: 600
     }
-  }, p.date), /*#__PURE__*/React.createElement("div", {
+  }, p.date), isDemo ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
       marginTop: 6,
@@ -1300,7 +1380,31 @@ function JournalScreen() {
       marginTop: 4,
       color: "var(--text-3)"
     }
-  }, /*#__PURE__*/React.createElement("b", null, "\u0417\u0430\u0432\u0442\u0440\u0430:"), " ", p.g)))));
+  }, /*#__PURE__*/React.createElement("b", null, "\u0417\u0430\u0432\u0442\u0440\u0430:"), " ", p.g)) : /*#__PURE__*/React.createElement(React.Fragment, null, p.text && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      marginTop: 6,
+      color: "var(--text-2)",
+      whiteSpace: "pre-line",
+      lineHeight: 1.45
+    }
+  }, p.text), p.tags && p.tags.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      marginTop: p.text ? 8 : 6
+    }
+  }, p.tags.map((tg, j) => /*#__PURE__*/React.createElement("span", {
+    key: j,
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      background: "var(--surface-3)",
+      borderRadius: 999,
+      padding: "3px 9px"
+    }
+  }, "#", ("" + tg).replace(/_/g, " ")))))))));
 }
 
 /* FOCUS SESSION — pomodoro-ish */
@@ -1614,6 +1718,9 @@ function buildAiContext(app) {
   }
 }
 var AI_DEMO = ["Слышу тебя. Давай отделим то, что в твоей власти, от того, что нет — и тронем только первое. Что здесь зависит от тебя прямо сейчас?", "Не обязательно решать всё разом. Назови одно маленькое действие на пять минут — и сделай только его. Остальное подождёт.", "Сначала состояние, потом задачи. Сделай один медленный вдох и просто заметь, как оно ощущается в теле — без оценок.", "Хорошая мысль. Будет ли это важно через год? Если да — сделаем первый шаг сегодня. Если нет — отпустим без вины."];
+// Live fallback when the real model returns nothing — an HONEST "try again", never a
+// canned reply pretending to be the mentor. Demo keeps AI_DEMO (a scripted showcase).
+var AI_LIVE_FALLBACK = "Связь с ИИ сейчас нестабильна — попробуй ещё раз через минуту 🙏";
 // fetch with an abort timeout so a slow/stuck model never hangs the chat or brief.
 async function aiFetch(url, opts, ms) {
   var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -1684,7 +1791,7 @@ async function aiRaw(messages) {
   }
   return null;
 }
-async function aiReply(history, ctx) {
+async function aiReply(history, ctx, demo) {
   var sys = AI_SYSTEM + (ctx ? "\n\n" + ctx : "");
   var messages = [{
     role: "system",
@@ -1695,9 +1802,10 @@ async function aiReply(history, ctx) {
   })));
   var t = await aiRaw(messages);
   if (t && t.trim()) return t.trim();
-  // No working backend → graceful canned reply so the chat still feels alive.
+  // Model returned nothing. Demo → a scripted canned line so the showcase stays alive.
+  // Live → an HONEST fallback (clearly a connection notice, NOT a pretend-personal reply).
   await new Promise(r => setTimeout(r, 900));
-  return AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)];
+  return demo ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK;
 }
 
 /* ── L1 · LOGIN BRIEF ────────────────────────────────────────────────────────
@@ -2029,7 +2137,7 @@ function AIChatScreen() {
     setMsgs(history);
     setDraft("");
     setTyping(true);
-    aiReply(history, buildAiContext(app)).then(reply => {
+    aiReply(history, buildAiContext(app), _demoChat).then(reply => {
       setTyping(false);
       setMsgs(m => [...m, {
         who: "ai",
@@ -2041,7 +2149,7 @@ function AIChatScreen() {
       setMsgs(m => [...m, {
         who: "ai",
         kind: "text",
-        t: AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)]
+        t: _demoChat ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK
       }]);
     });
   };

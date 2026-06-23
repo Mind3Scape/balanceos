@@ -486,7 +486,7 @@ function CommunityScreen() {
 
       {/* Secondary scope bar — a thinner pill segmented control (same family as the
           Команды/Сообщество pill above), only inside «Сообщество». «Команды» stands alone. */}
-      {section === "community" && (
+      {section === "community" && !_isLiveComm && (
         <div className="tab-pill tab-pill-sm" style={{ background: "var(--card-2)", marginTop: 10, marginBottom: 14 }}>
           {[{ id: "network", t: "Нетворк" }, { id: "courses", t: "Курсы" }, { id: "partners", t: "Партнёры" }].map(tb => (
             <button key={tb.id} className={"tap " + (commTab === tb.id ? "active" : "")} data-tour={tb.id === "network" ? "network" : undefined} onClick={() => setCommTab(tb.id)}>{tb.t}</button>
@@ -548,7 +548,7 @@ function CommunityScreen() {
         </div>
       )}
 
-      {section === "community" && commTab === "network" && (
+      {section === "community" && (commTab === "network" || _isLiveComm) && (
         networkUnlocked ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {/* Your-impact hero — what YOU offer at your current level */}
@@ -577,7 +577,7 @@ function CommunityScreen() {
         )
       )}
 
-      {section === "community" && commTab === "courses" && (
+      {section === "community" && commTab === "courses" && !_isLiveComm && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {/* Gold "why courses" banner — the hook (esp. for a newcomer): a course is
               the fastest level-up — a whole level + an achievement that opens new
@@ -633,7 +633,7 @@ function CommunityScreen() {
         </div>
       )}
 
-      {section === "community" && commTab === "partners" && (
+      {section === "community" && commTab === "partners" && !_isLiveComm && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {partners.map((p, i) => (
             <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)" }}>
@@ -1429,6 +1429,23 @@ function TeamDetailScreen() {
   }, [_rosterLive, _isOwner, t.cloudId, rosterTick]);
   const approveReq = (uid) => { window.bosCloud.approveMember(t.cloudId, uid).then((ok) => { if (ok) { setPending((p) => p.filter((x) => x.id !== uid)); setRosterTick((n) => n + 1); } }); };
   const rejectReq = (uid) => { window.bosCloud.rejectMember(t.cloudId, uid).then((ok) => { if (ok) setPending((p) => p.filter((x) => x.id !== uid)); }); };
+
+  // REAL shared team habits for live teams (from the cloud): real names + per-member completion.
+  const [liveTeamHabits, setLiveTeamHabits] = React.useState(null);
+  const [habitsTick, setHabitsTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
+    let on = true;
+    window.bosCloud.teamHabitsFull(t.cloudId).then((hs) => { if (on) setLiveTeamHabits(Array.isArray(hs) ? hs : []); }).catch(() => {});
+    return () => { on = false; };
+  }, [_rosterLive, t.cloudId, habitsTick]);
+  const toggleMyTeamHabit = (h) => {
+    if (!h || !h.id) return;
+    setLiveTeamHabits((list) => (list || []).map((x) => x.id === h.id ? { ...x, doneByMe: !x.doneByMe, doneToday: Math.max(0, x.doneToday + (x.doneByMe ? -1 : 1)) } : x));
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    window.bosCloud.toggleTeamHabitToday(h.id, !h.doneByMe).then(() => setHabitsTick((n) => n + 1));
+  };
+  const addTeamHabitCloud = (h) => { var first = !(liveTeamHabits && liveTeamHabits.length); window.bosCloud.addTeamHabit(t.cloudId, { ...h, isMain: (h && h.isMain) || first }).then(() => setHabitsTick((n) => n + 1)); };
   const liveRoster = _rosterLive && cloudRoster;
   const members = liveRoster ? cloudRoster : (t.members?.length ? t.members : [{name:"Ник",initials:"Н",pct:19,color:"#a8b9d4"}]);
   const ranked = liveRoster ? members : [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // demo: by contribution; live: roster order (owner first)
@@ -1438,11 +1455,11 @@ function TeamDetailScreen() {
     { id: 3, emoji: "📖", name: "Читаем вместе",       isMain: false, doneToday: 4, total: 9, weekPct: 0.42, week:[0,1,0,1,0,0,1] },
     { id: 4, emoji: "🥗", name: "Здоровое питание",         isMain: false, doneToday: 7, total: 9, weekPct: 0.81, week:[1,1,1,1,0,1,1] },
   ];
-  const teamHabits = Array.isArray(t.habits) ? t.habits : (_rosterLive ? [] : DEFAULT_TEAM_HABITS);
+  const teamHabits = _rosterLive ? (liveTeamHabits || []) : (Array.isArray(t.habits) ? t.habits : DEFAULT_TEAM_HABITS);
   const main = teamHabits.find(h => h.isMain);
   const others = teamHabits.filter(h => !h.isMain);
   const aggregate = teamHabits.length ? Math.round(teamHabits.reduce((s,h) => s + (h.weekPct||0), 0) / teamHabits.length * 100) : 0;
-  const openAddHabit = () => openSheet(<TeamHabitSheet team={t} members={members} onAdd={(h) => app?.addTeamHabit(t._id, h)} />);
+  const openAddHabit = () => openSheet(<TeamHabitSheet team={t} members={members} onAdd={(h) => { if (_rosterLive) addTeamHabitCloud(h); else app?.addTeamHabit(t._id, h); }} />);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
@@ -1538,6 +1555,11 @@ function TeamDetailScreen() {
             }}>{i < main.doneToday ? "✓" : ""}</span>
           ))}
         </div>
+        {_rosterLive && (
+          <button onClick={() => toggleMyTeamHabit(main)} className="tap" style={{ width: "100%", marginTop: 14, border: 0, borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 700, background: main.doneByMe ? "rgba(0,0,0,0.12)" : "#0a0a0a", color: main.doneByMe ? "#0a0a0a" : "#FEDE34" }}>
+            {main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"}
+          </button>
+        )}
       </div>
       </>)}
 
@@ -1574,6 +1596,9 @@ function TeamDetailScreen() {
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{h.doneToday}/{h.total}</div>
               <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1 }}>сегодня</div>
             </div>
+            {_rosterLive && (
+              <button onClick={() => toggleMyTeamHabit(h)} className="tap" aria-label="Отметить" style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", border: h.doneByMe ? "0" : "2px solid var(--surface-3)", background: h.doneByMe ? "#0a0a0a" : "transparent", color: "#fff", display: "grid", placeItems: "center", fontSize: 15, padding: 0 }}>{h.doneByMe ? "✓" : ""}</button>
+            )}
           </div>
         ))}
         <button onClick={openAddHabit} className="tap" style={{ background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 16, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
@@ -1747,7 +1772,7 @@ function TeamSettingsScreen() {
         ))}
         {members.length === 0 && <div style={{ fontSize: 13, color: "var(--text-4)", padding: "6px 0" }}>Пока никого. Пригласи друзей ниже.</div>}
       </div>
-      {SUGGEST.filter(p => !members.some(m => m.name === p.name)).length > 0 && (
+      {app?.mode !== "live" && SUGGEST.filter(p => !members.some(m => m.name === p.name)).length > 0 && (
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
           {SUGGEST.filter(p => !members.some(m => m.name === p.name)).map((p, i) => (
             <button key={i} onClick={() => invite(p)} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 5px", borderRadius: 999, background: "#fff", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-3)", fontSize: 12, fontWeight: 500 }}>
@@ -1756,6 +1781,11 @@ function TeamSettingsScreen() {
             </button>
           ))}
         </div>
+      )}
+      {app?.mode === "live" && team.cloudId && (
+        <button onClick={() => { var link = "https://mind3scape.github.io/balanceos/?team=" + team.cloudId; try { if (navigator.share) { navigator.share({ title: team.name || "Команда", text: "Присоединяйся к команде в BalanceOS", url: link }); return; } } catch (e) {} try { navigator.clipboard.writeText(link); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 15px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 600 }}>
+          <I.Share size={15}/> Пригласить по ссылке
+        </button>
       )}
 
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={save}>Сохранить</button>

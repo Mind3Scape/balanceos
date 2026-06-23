@@ -82,4 +82,47 @@ grant execute on function public.request_join(uuid)    to authenticated;
 grant execute on function public.approve_member(uuid, uuid) to authenticated;
 grant execute on function public.reject_member(uuid, uuid)  to authenticated;
 
--- Готово. По ссылке — сразу; из поиска — заявка → создатель одобряет в настройках команды.
+-- ── РЕАЛЬНЫЕ ОБЩИЕ ПРИВЫЧКИ КОМАНДЫ ──────────────────────────────────────────
+-- Команда заводит общие привычки; каждый участник отмечает «сделал сегодня».
+-- «X из N сегодня» и недельный % становятся настоящими (а не выдуманными).
+create table if not exists public.team_habits (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams(id) on delete cascade,
+  name text not null,
+  emoji text default '✨',
+  is_main boolean default false,
+  created_at timestamptz default now()
+);
+create table if not exists public.team_habit_logs (
+  team_habit_id uuid not null references public.team_habits(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day date not null,
+  created_at timestamptz default now(),
+  primary key (team_habit_id, user_id, day)
+);
+alter table public.team_habits enable row level security;
+alter table public.team_habit_logs enable row level security;
+
+-- привычки видны участникам; добавляет любой участник; удаляет создатель команды
+drop policy if exists team_habits_read on public.team_habits;
+create policy team_habits_read on public.team_habits for select to authenticated
+  using (public.is_member(team_id, auth.uid()));
+drop policy if exists team_habits_add on public.team_habits;
+create policy team_habits_add on public.team_habits for insert to authenticated
+  with check (public.is_member(team_id, auth.uid()));
+drop policy if exists team_habits_del on public.team_habits;
+create policy team_habits_del on public.team_habits for delete to authenticated
+  using (exists (select 1 from public.teams t where t.id = team_id and t.owner_id = auth.uid()));
+
+-- отметки: участник видит отметки своей команды; пишет/удаляет ТОЛЬКО свои
+drop policy if exists team_habit_logs_read on public.team_habit_logs;
+create policy team_habit_logs_read on public.team_habit_logs for select to authenticated
+  using (exists (select 1 from public.team_habits h where h.id = team_habit_id and public.is_member(h.team_id, auth.uid())));
+drop policy if exists team_habit_logs_write on public.team_habit_logs;
+create policy team_habit_logs_write on public.team_habit_logs for insert to authenticated
+  with check (user_id = auth.uid() and exists (select 1 from public.team_habits h where h.id = team_habit_id and public.is_member(h.team_id, auth.uid())));
+drop policy if exists team_habit_logs_unwrite on public.team_habit_logs;
+create policy team_habit_logs_unwrite on public.team_habit_logs for delete to authenticated
+  using (user_id = auth.uid());
+
+-- Готово. По ссылке — сразу; из поиска — заявка → создатель одобряет. Привычки команды — реальные.

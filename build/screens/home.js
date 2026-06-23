@@ -738,6 +738,26 @@ function HomeScreen() {
   // already knows its local time.
   var _hr = new Date().getHours();
   var greeting = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
+  // Date line under the greeting. LIVE → the device's REAL current date in Russian
+  // ("Вторник · 28 апреля"); demo keeps its frozen showcase string.
+  var _todayLabel = "Вторник · 28 апреля";
+  var _calLabel = "28 апр"; // short form for the Calendar card
+  if (app?.mode === "live") {
+    try {
+      var _wd = new Intl.DateTimeFormat("ru-RU", {
+        weekday: "long"
+      }).format(new Date());
+      var _dm = new Intl.DateTimeFormat("ru-RU", {
+        day: "numeric",
+        month: "long"
+      }).format(new Date());
+      _todayLabel = _wd.charAt(0).toUpperCase() + _wd.slice(1) + " · " + _dm;
+      _calLabel = new Intl.DateTimeFormat("ru-RU", {
+        day: "numeric",
+        month: "short"
+      }).format(new Date()).replace(".", "");
+    } catch (e) {}
+  }
   // A brand-new account (the fresh demo, or a real Telegram user with no habits yet):
   // gets the get-started hero + an engaging level BANNER instead of the dense stat strip.
   var isNewbie = app?.mode === "fresh" || app?.mode === "live" && (app?.habits?.length || 0) === 0;
@@ -769,6 +789,49 @@ function HomeScreen() {
   var _liveXP = _isLive ? bosLiveXP(app) : 0;
   var _lvl = bosLevelInfo(_liveXP);
   var dayStreak = app?.mode === "demo" ? 27 : _isLive ? bosMaxStreak(habits) : 0;
+
+  // Bell red dot. Demo always shows it (scripted alert). LIVE: only light it when
+  // there are REAL unread team-chat messages — same signal NotificationsScreen uses
+  // (loadMessages per cloud team vs. the per-team "bos:chatread:" timestamp). If the
+  // cloud is off or nothing's unread, the dot stays hidden (no fake alert).
+  var [hasUnread, setHasUnread] = React.useState(false);
+  React.useEffect(() => {
+    if (!_isLive || !(window.bosCloud && window.bosCloud.enabled())) {
+      setHasUnread(false);
+      return;
+    }
+    var on = true;
+    (async () => {
+      try {
+        var me = await window.bosCloud.uid();
+        var cloudTeams = (app?.teams || []).filter(t => t.cloudId);
+        var _loop = async function () {
+            var rows = await window.bosCloud.loadMessages(t.cloudId);
+            if (!Array.isArray(rows) || !rows.length) return 0; // continue
+            var lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
+            if (rows.some(r => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead)) {
+              if (on) setHasUnread(true);
+              return {
+                v: void 0
+              };
+            }
+          },
+          _ret;
+        for (var t of cloudTeams) {
+          _ret = await _loop();
+          if (_ret === 0) continue;
+          if (_ret) return _ret.v;
+        }
+        if (on) setHasUnread(false);
+      } catch (e) {
+        if (on) setHasUnread(false);
+      }
+    })();
+    return () => {
+      on = false;
+    };
+  }, [_isLive, teams]);
+  var showBellDot = app?.mode === "demo" || hasUnread;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
   // sparkle burst when the whole day closes (doneCount reaches total).
@@ -832,7 +895,7 @@ function HomeScreen() {
       color: "var(--text-4)",
       letterSpacing: 0.4
     }
-  }, "\u0412\u0442\u043E\u0440\u043D\u0438\u043A \xB7 28 \u0430\u043F\u0440\u0435\u043B\u044F"), /*#__PURE__*/React.createElement("div", {
+  }, _todayLabel), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 24,
       fontWeight: 800,
@@ -859,7 +922,7 @@ function HomeScreen() {
   }, /*#__PURE__*/React.createElement(I.Bell, {
     size: 18,
     color: bellIcon
-  }), /*#__PURE__*/React.createElement("span", {
+  }), showBellDot && /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
       top: 8,
@@ -1201,7 +1264,7 @@ function HomeScreen() {
       marginTop: 4,
       fontWeight: 500
     }
-  }, "28 \u0430\u043F\u0440")), /*#__PURE__*/React.createElement(I.Calendar, {
+  }, _calLabel)), /*#__PURE__*/React.createElement(I.Calendar, {
     size: 28,
     color: isDark ? "rgba(255,255,255,0.7)" : "#787878",
     strokeWidth: 1.5
@@ -1706,7 +1769,21 @@ function HomeScreen() {
       flexShrink: 0,
       position: "relative"
     }
-  }, [{
+  }, app?.mode === "live" ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: "50%",
+      background: "rgba(255,255,255,0.16)",
+      border: "2px solid rgba(255,255,255,0.3)",
+      display: "grid",
+      placeItems: "center",
+      color: "#fff"
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 16,
+    strokeWidth: 2.5
+  })) : [{
     c: "#e8c8a8",
     i: "А"
   }, {
@@ -1783,7 +1860,10 @@ function ShareAppSheet({
     tile: "#f1f1f3",
     line: "rgba(0,0,0,0.06)"
   };
-  var friends = [{
+  var _isLive = app?.mode === "live";
+  // Soft pastel palette so each real friend chip still gets a pleasant colour.
+  var _FCOLORS = ["#f0c8a8", "#a8c0e8", "#e8b8d4", "#b8e8c8", "#d4c8e8", "#a8d4e8", "#e8d0a8"];
+  var _demoFriends = [{
     name: "Катя",
     i: "К",
     c: "#f0c8a8"
@@ -1804,7 +1884,38 @@ function ShareAppSheet({
     i: "А",
     c: "#d4c8e8"
   }];
-  var targets = [{
+  // LIVE: the user's REAL invited people (referral circle). Demo keeps the 5 faces.
+  var [liveFriends, setLiveFriends] = React.useState([]);
+  React.useEffect(() => {
+    if (!_isLive || !(window.bosCloud && window.bosCloud.enabled())) return;
+    var on = true;
+    try {
+      window.bosCloud.invitedPeople().then(list => {
+        if (!on || !Array.isArray(list)) return;
+        setLiveFriends(list.map((p, idx) => {
+          var nm = p && p.username ? p.username : "Друг";
+          return {
+            name: nm,
+            i: nm.charAt(0).toUpperCase(),
+            c: _FCOLORS[idx % _FCOLORS.length]
+          };
+        }));
+      }).catch(() => {});
+    } catch (e) {}
+    return () => {
+      on = false;
+    };
+  }, [_isLive]);
+  var friends = _isLive ? liveFriends : _demoFriends;
+  // LIVE share targets: only the two that map to a REAL action (the OS share sheet /
+  // clipboard copy of the invite link). Demo keeps the full curated row.
+  var targets = _isLive ? [{
+    e: "💬",
+    t: "Сообщения"
+  }, {
+    e: "🔗",
+    t: "Ссылка"
+  }] : [{
     e: "💬",
     t: "Сообщения"
   }, {
@@ -1892,7 +2003,7 @@ function ShareAppSheet({
       transition: "background 0.2s",
       whiteSpace: "nowrap"
     }
-  }, copied ? "Скопировано ✓" : "Копировать")), /*#__PURE__*/React.createElement("div", {
+  }, copied ? "Скопировано ✓" : "Копировать")), friends.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: C.sub,
@@ -1901,7 +2012,7 @@ function ShareAppSheet({
       fontWeight: 600,
       margin: "20px 0 12px"
     }
-  }, "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438\u0442\u044C \u0434\u0440\u0443\u0437\u044C\u044F\u043C"), /*#__PURE__*/React.createElement("div", {
+  }, _isLive ? "Твой круг" : "Предложить друзьям"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 14,
@@ -1912,6 +2023,7 @@ function ShareAppSheet({
     }
   }, friends.map((p, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
+    onClick: _isLive ? shareLink : undefined,
     className: "tap",
     "data-no-haptic": true,
     style: {
@@ -1940,7 +2052,11 @@ function ShareAppSheet({
   }, p.i), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 12,
-      color: C.sub
+      color: C.sub,
+      maxWidth: 56,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     }
   }, p.name)))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1948,18 +2064,20 @@ function ShareAppSheet({
       background: C.line,
       margin: "18px 0"
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      justifyContent: "space-between",
-      gap: 8
+      justifyContent: targets.length >= 4 ? "space-between" : "flex-start",
+      gap: targets.length >= 4 ? 8 : 18,
+      marginTop: friends.length > 0 ? 0 : 18
     }
   }, targets.map((t, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: shareLink,
     className: "tap",
     style: {
-      flex: 1,
+      flex: targets.length >= 4 ? 1 : "0 0 auto",
+      width: targets.length >= 4 ? undefined : 64,
       background: "transparent",
       border: 0,
       display: "flex",
