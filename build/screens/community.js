@@ -1237,12 +1237,31 @@ function CommunityScreen() {
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
         fontWeight: 700,
         fontSize: 18,
         color: "var(--text)",
         letterSpacing: "-0.4px"
       }
-    }, t.name), /*#__PURE__*/React.createElement("div", {
+    }, t.name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flexShrink: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        fontSize: 10.5,
+        fontWeight: 600,
+        color: "var(--text-3)",
+        background: "var(--card-track)",
+        padding: "2px 8px",
+        borderRadius: 999
+      }
+    }, t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная")), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 13,
         color: "var(--text-2)",
@@ -3045,6 +3064,8 @@ function TeamCreateScreen() {
         name: name.trim() || "Новая команда",
         emblem,
         accent,
+        vis,
+        // private / public — preserved from the toggle above
         goal: goalTitle || target + " " + unit,
         target: Number(target) || 0,
         current: 0,
@@ -3393,6 +3414,138 @@ function PeopleMonthCalendar({
     }
   }, selName), " \xB7 ", MONTHS[mIdx], " ", selDay, " \xB7 ", granular ? `${Math.round((dayPct(selDay) || 0) * 100)}% привычек` : (dayPct(selDay) || 0) > 0 ? "отмечался ✓" : "пропустил"))));
 }
+
+/* Share a team — invite link + native share. For a PRIVATE team this is the ONLY
+   way someone else gets in (it's invisible otherwise); for a PUBLIC team the link
+   just jumps straight to it. Join-by-link wires to the cloud at T1; the
+   share/copy itself works now. */
+function TeamShareSheet({
+  team
+}) {
+  var [copied, setCopied] = React.useState(false);
+  var isPublic = team?.vis === "public";
+  var link = "https://mind3scape.github.io/balanceos/?join=" + (team?._id || "");
+  var copyLink = () => {
+    try {
+      navigator.clipboard.writeText(link);
+    } catch (e) {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+  };
+  var shareLink = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: team?.name || "Команда",
+          text: "Присоединяйся к команде «" + (team?.name || "") + "» в BalanceOS",
+          url: link
+        });
+        return;
+      }
+    } catch (e) {
+      return;
+    }
+    copyLink();
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 0",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 64,
+      height: 64,
+      borderRadius: 18,
+      margin: "0 auto 12px",
+      background: team?.accent || "#fef3c7",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 34
+    }
+  }, team?.emblem || "✨"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-3)",
+      marginTop: 4,
+      maxWidth: 290,
+      marginInline: "auto",
+      lineHeight: 1.45
+    }
+  }, isPublic ? "Команда открытая — её и так видят все. Ссылка ведёт прямо в неё." : "Команда приватная — её увидят только те, кому ты дашь эту ссылку.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      background: "var(--surface-3)",
+      borderRadius: 14,
+      padding: "11px 8px 11px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 13,
+      color: "var(--text-2)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, link), /*#__PURE__*/React.createElement("button", {
+    onClick: copyLink,
+    className: "tap",
+    style: {
+      flexShrink: 0,
+      border: 0,
+      background: "var(--text)",
+      color: "var(--card)",
+      borderRadius: 999,
+      padding: "8px 15px",
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, copied ? "Готово" : "Копировать")), /*#__PURE__*/React.createElement("button", {
+    onClick: shareLink,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 12,
+      border: 0,
+      borderRadius: 999,
+      padding: 14,
+      background: "var(--text)",
+      color: "var(--card)",
+      fontSize: 15,
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(I.Share, {
+    size: 18
+  }), " \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "max(8px, var(--tg-bottom-inset, 0px))"
+    }
+  }));
+}
 function TeamDetailScreen() {
   var {
     navigate,
@@ -3477,7 +3630,29 @@ function TeamDetailScreen() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430",
     onBack: () => navigate("community"),
-    right: /*#__PURE__*/React.createElement("button", {
+    right: /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheet, {
+        team: t
+      })),
+      className: "tap",
+      title: "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u043E\u0439",
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        background: "var(--surface-3)",
+        border: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement(I.Share, {
+      size: 18
+    })), /*#__PURE__*/React.createElement("button", {
       onClick: () => navigate("team-settings", {
         team: t
       }),
@@ -3493,7 +3668,7 @@ function TeamDetailScreen() {
       }
     }, /*#__PURE__*/React.createElement(I.Settings, {
       size: 18
-    }))
+    })))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
@@ -3540,7 +3715,20 @@ function TeamDetailScreen() {
       color: "var(--text-3)",
       marginTop: 2
     }
-  }, t.date), (() => {
+  }, t.date), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 9,
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      background: "rgba(255,255,255,0.5)",
+      padding: "4px 10px",
+      borderRadius: 999
+    }
+  }, t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"), (() => {
     var tgt = t.target || 0;
     var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
     var done = tgt > 0 && cur >= tgt;

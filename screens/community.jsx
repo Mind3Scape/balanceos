@@ -416,7 +416,10 @@ function CommunityScreen() {
               {/* soft pastel card + faded emblem watermark — the calmer earlier look (no glow) */}
               <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{t.emblem}</div>
               <div style={{ position: "relative" }}>
-                <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
+                  <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", background: "var(--card-track)", padding: "2px 8px", borderRadius: 999 }}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
+                </div>
                 <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
                 <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date} · {t.members.length} участников</div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
@@ -1096,7 +1099,7 @@ function TeamCreateScreen() {
         const dur = { week: "Эта неделя", month: "Этот месяц", quarter: "3 месяца", year: "Год" }[duration] || "Этот месяц";
         app?.addTeam({
           name: name.trim() || "Новая команда",
-          emblem, accent,
+          emblem, accent, vis, // private / public — preserved from the toggle above
           goal: goalTitle || (target + " " + unit),
           target: Number(target) || 0, current: 0, unit,
           date: dur,
@@ -1219,6 +1222,39 @@ function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь
   );
 }
 
+/* Share a team — invite link + native share. For a PRIVATE team this is the ONLY
+   way someone else gets in (it's invisible otherwise); for a PUBLIC team the link
+   just jumps straight to it. Join-by-link wires to the cloud at T1; the
+   share/copy itself works now. */
+function TeamShareSheet({ team }) {
+  const [copied, setCopied] = React.useState(false);
+  const isPublic = team?.vis === "public";
+  const link = "https://mind3scape.github.io/balanceos/?join=" + (team?._id || "");
+  const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  const shareLink = async () => { try { if (navigator.share) { await navigator.share({ title: team?.name || "Команда", text: "Присоединяйся к команде «" + (team?.name || "") + "» в BalanceOS", url: link }); return; } } catch (e) { return; } copyLink(); };
+  return (
+    <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 12px", background: team?.accent || "#fef3c7", display: "grid", placeItems: "center", fontSize: 34 }}>{team?.emblem || "✨"}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться командой</div>
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 4, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>
+          {isPublic
+            ? "Команда открытая — её и так видят все. Ссылка ведёт прямо в неё."
+            : "Команда приватная — её увидят только те, кому ты дашь эту ссылку."}
+        </div>
+      </div>
+      <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10, background: "var(--surface-3)", borderRadius: 14, padding: "11px 8px 11px 14px" }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link}</span>
+        <button onClick={copyLink} className="tap" style={{ flexShrink: 0, border: 0, background: "var(--text)", color: "var(--card)", borderRadius: 999, padding: "8px 15px", fontSize: 12.5, fontWeight: 600 }}>{copied ? "Готово" : "Копировать"}</button>
+      </div>
+      <button onClick={shareLink} className="tap" style={{ width: "100%", marginTop: 12, border: 0, borderRadius: 999, padding: 14, background: "var(--text)", color: "var(--card)", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <I.Share size={18}/> Поделиться
+      </button>
+      <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
+    </div>
+  );
+}
+
 function TeamDetailScreen() {
   const { navigate, params } = useNav();
   const app = useApp();
@@ -1244,9 +1280,14 @@ function TeamDetailScreen() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
-        <button onClick={() => navigate("team-settings", { team: t })} className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
-          <I.Settings size={18}/>
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => openSheet(<TeamShareSheet team={t} />)} className="tap" title="Поделиться командой" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
+            <I.Share size={18}/>
+          </button>
+          <button onClick={() => navigate("team-settings", { team: t })} className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
+            <I.Settings size={18}/>
+          </button>
+        </div>
       }/>
       <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden" }}>
         <div aria-hidden style={{ position: "absolute", top: -14, right: -10, fontSize: 150, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{t.emblem || "✨"}</div>
@@ -1254,6 +1295,9 @@ function TeamDetailScreen() {
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{t.name}</div>
           <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
           <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date}</div>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 9, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 10px", borderRadius: 999 }}>
+            {t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"}
+          </span>
           {/* The GOAL — the team's destination. Real progress toward the target
              (not the weekly habit aggregate), and it COMPLETES at target. */}
           {(() => {

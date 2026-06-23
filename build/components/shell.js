@@ -1015,6 +1015,7 @@ var SEED_GOALS = [{
 var SEED_TEAMS = [{
   _id: "seed-1",
   name: "Команда создателей",
+  vis: "public",
   emblem: "✨",
   goal: "50 добрых дел",
   target: 50,
@@ -1096,6 +1097,7 @@ var SEED_TEAMS = [{
 }, {
   _id: "seed-2",
   name: "Добрые дела",
+  vis: "private",
   emblem: "🌱",
   goal: "21-дневный спринт доброты",
   target: 21,
