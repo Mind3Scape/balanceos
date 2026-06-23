@@ -1546,16 +1546,15 @@ function HomeScreen() {
     style: {
       display: "inline-flex",
       alignItems: "center",
-      gap: 2,
       fontSize: 10.5,
       fontWeight: 800,
       color: "#0a0a0a",
       background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
-      padding: "2px 7px",
+      padding: "2px 8px",
       borderRadius: 999,
       flexShrink: 0
     }
-  }, "\u26A1 +XP")), /*#__PURE__*/React.createElement("div", {
+  }, "+XP")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "rgba(255,255,255,0.74)",
@@ -1584,7 +1583,7 @@ function HomeScreen() {
       height: 30,
       borderRadius: "50%",
       background: p.c,
-      border: "2px solid #1d2c4d",
+      border: "2px solid #fff",
       marginLeft: idx ? -10 : 0,
       display: "grid",
       placeItems: "center",

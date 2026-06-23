@@ -332,7 +332,7 @@ function LayerTogether({ t, alpha, dark = true }) {
   ];
   const bloom = RINGS.map((r) => ({ s: back((te - r.delay) / 0.62), o: smooth((te - r.delay) / 0.5) }));
 
-  const PICS = ["./assets/people/m13.png", "./assets/people/m2.png", "./assets/people/m5.png"];
+  const PICS = ["./assets/people/m12.png", "./assets/people/m14.png", "./assets/people/m18.png"];
   // each companion rides a ring at a base angle — a clean triangle on entry
   // (top / lower-right / lower-left); they drift gently from there
   const AV = [
@@ -361,10 +361,18 @@ function LayerTogether({ t, alpha, dark = true }) {
     { r: 300, delay: F0 + STEP * 3, spin: -0.026, op: 0.066 },
   ];
   const ob = OUTER.map((r) => ({ s: back((te - r.delay) / 0.74), o: smooth((te - r.delay) / 0.64) }));
-  // Fade any orbiting element as it swings into the title band right below the orb,
-  // so the headline underneath always reads cleanly (no opaque disc on the text).
-  const textClear = (x, y) => 1 - clamp((y - 168) / 74) * clamp(1 - (Math.abs(x) - 64) / 104);
-  const PICS2 = ["./assets/people/m1.png", "./assets/people/m7.png", "./assets/people/m9.png", "./assets/people/m12.png", "./assets/people/m16.png", "./assets/people/m4.png"];
+  // Soft mask for the finale orbiters: (1) clears the headline band right below the
+  // orb, and (2) a *very light* vignette easing elements toward the edges — most of
+  // all the top, by the progress bar — into a whisper of transparency, so the eye
+  // settles on the centre. Deliberately subtle; the base scene (r≤132) is untouched.
+  const softMask = (x, y) => {
+    const textF = 1 - clamp((y - 168) / 74) * clamp(1 - (Math.abs(x) - 64) / 104);
+    const dist = Math.sqrt(x * x + y * y);
+    const vign = 1 - 0.22 * clamp((dist - 162) / 150);
+    const topF = 1 - 0.18 * clamp((-y - 148) / 82);
+    return textF * vign * topF;
+  };
+  const PICS2 = ["./assets/people/m2.png", "./assets/people/m13.png", "./assets/people/m7.png", "./assets/people/m3.png", "./assets/people/m8.png", "./assets/people/m10.png"];
   // people riding the outer rings — smaller discs for depth (sz = disc radius).
   // angles favour up / sides (−π/2 is straight up); dead-bottom (~+1.6) is avoided.
   const AV2 = [
@@ -377,7 +385,7 @@ function LayerTogether({ t, alpha, dark = true }) {
   ];
   // habit "planets" — small emoji in glass discs, riding the outer rings too.
   const HAB2 = [
-    { ri: 0, a: -1.05, e: "🏃", sz: 12 }, { ri: 0, a:  2.55, e: "💧", sz: 11 },
+    { ri: 0, a: -1.05, e: "🏃", sz: 12 }, { ri: 0, a:  2.55, e: "🎧", sz: 11 },
     { ri: 1, a: -2.70, e: "🧘", sz: 12 }, { ri: 1, a: -0.05, e: "📚", sz: 11 },
     { ri: 2, a: -1.15, e: "🥗", sz: 11 }, { ri: 2, a:  0.62, e: "🙏", sz: 11 },
     { ri: 3, a: -2.10, e: "✍️", sz: 11 }, { ri: 3, a: -0.62, e: "🥊", sz: 10.5 },
@@ -453,7 +461,7 @@ function LayerTogether({ t, alpha, dark = true }) {
         const ang = d.a + te * ring.spin, rr = ring.r * bl.s;
         const x = Math.cos(ang) * rr, y = Math.sin(ang) * rr;
         const pop = smooth((te - ring.delay - 0.16) / 0.4);
-        return <circle key={"odot" + i} cx={x.toFixed(2)} cy={y.toFixed(2)} r={d.rad} fill={d.c} opacity={(pop * 0.85 * textClear(x, y)).toFixed(2)} />;
+        return <circle key={"odot" + i} cx={x.toFixed(2)} cy={y.toFixed(2)} r={d.rad} fill={d.c} opacity={(pop * 0.85 * softMask(x, y)).toFixed(2)} />;
       })}
       {HAB2.map((h, i) => {
         const bl = ob[h.ri], ring = OUTER[h.ri];
@@ -462,7 +470,7 @@ function LayerTogether({ t, alpha, dark = true }) {
         const ang = h.a + te * ring.spin, rr = ring.r * bl.s;
         const x = Math.cos(ang) * rr, y = Math.sin(ang) * rr;
         return (
-          <g key={"hab2" + i} transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${Math.max(0, pop).toFixed(3)})`} opacity={(Math.min(1, pop) * textClear(x, y)).toFixed(2)}>
+          <g key={"hab2" + i} transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${Math.max(0, pop).toFixed(3)})`} opacity={(Math.min(1, pop) * softMask(x, y)).toFixed(2)}>
             <circle cx="0" cy="0" r={h.sz + 4} fill={dark ? "rgba(18,30,52,0.46)" : "rgba(255,255,255,0.66)"} />
             <circle cx="0" cy="0" r={h.sz + 4} fill="none" stroke={dark ? "rgba(180,210,255,0.26)" : "rgba(90,130,190,0.26)"} strokeWidth="0.8" />
             <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize={h.sz + 3} style={{ pointerEvents: "none" }}>{h.e}</text>
@@ -479,7 +487,7 @@ function LayerTogether({ t, alpha, dark = true }) {
         const x = Math.cos(ang) * rr, y = Math.sin(ang) * rr;
         const gs = (Math.max(0, pop) * (f.sz / 18.5)).toFixed(3);
         return (
-          <g key={"av2" + i} transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${gs})`} opacity={(Math.min(1, pop) * textClear(x, y)).toFixed(2)}>
+          <g key={"av2" + i} transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${gs})`} opacity={(Math.min(1, pop) * softMask(x, y)).toFixed(2)}>
             <circle cx="0" cy="0" r="18.5" fill={dark ? "rgba(18,30,52,0.5)" : "rgba(255,255,255,0.62)"} />
             <image href={f.pic} x="-18.5" y="-18.5" width="37" height="37" preserveAspectRatio="xMidYMid slice" clipPath="url(#togAvClip)" />
             <circle cx="0" cy="0" r="19.4" fill="none" stroke={f.c} strokeOpacity={dark ? 0.52 : 0.6} strokeWidth="1.4" />
@@ -835,15 +843,15 @@ function IntroScreen() {
               <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(50% + 8px)",
                 transformOrigin: "center bottom", transform: `scale(${(1 - sp * 0.38).toFixed(4)})`,
                 opacity: 1 - sp * 0.58, willChange: "transform, opacity",
-                fontFamily: "var(--bos-title-font)", fontSize: 23, fontWeight: 600,
-                lineHeight: 1.24, letterSpacing: "-0.4px", color: pal.title,
+                fontFamily: "var(--bos-title-font)", fontSize: "clamp(17px, 5.5vw, 23px)", fontWeight: 600,
+                lineHeight: 1.24, letterSpacing: "-0.4px", whiteSpace: "nowrap", color: pal.title,
               }}>Ты не видишь мир таким,<br/>какой он есть</div>
               {/* truth — rises into the headline; its words light up in reading order */}
               <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 8px)",
                 transformOrigin: "center top", transform: `scale(${(0.62 + sp * 0.38).toFixed(4)})`,
                 willChange: "transform, opacity",
-                fontFamily: "var(--bos-title-font)", fontSize: 23, fontWeight: 600,
-                lineHeight: 1.24, letterSpacing: "-0.4px", color: pal.title,
+                fontFamily: "var(--bos-title-font)", fontSize: "clamp(17px, 5.5vw, 23px)", fontWeight: 600,
+                lineHeight: 1.24, letterSpacing: "-0.4px", whiteSpace: "nowrap", color: pal.title,
               }}>
                 {[["Ты", "видишь", "мир", "таким,"], ["в", "каком", "состоянии", "находишься"]].map((lineWords, li) => (
                   <div key={li}>

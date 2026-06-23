@@ -582,7 +582,7 @@ function LayerTogether({
     s: back((te - r.delay) / 0.62),
     o: smooth((te - r.delay) / 0.5)
   }));
-  var PICS = ["./assets/people/m13.png", "./assets/people/m2.png", "./assets/people/m5.png"];
+  var PICS = ["./assets/people/m12.png", "./assets/people/m14.png", "./assets/people/m18.png"];
   // each companion rides a ring at a base angle — a clean triangle on entry
   // (top / lower-right / lower-left); they drift gently from there
   var AV = [{
@@ -660,10 +660,18 @@ function LayerTogether({
     s: back((te - r.delay) / 0.74),
     o: smooth((te - r.delay) / 0.64)
   }));
-  // Fade any orbiting element as it swings into the title band right below the orb,
-  // so the headline underneath always reads cleanly (no opaque disc on the text).
-  var textClear = (x, y) => 1 - clamp((y - 168) / 74) * clamp(1 - (Math.abs(x) - 64) / 104);
-  var PICS2 = ["./assets/people/m1.png", "./assets/people/m7.png", "./assets/people/m9.png", "./assets/people/m12.png", "./assets/people/m16.png", "./assets/people/m4.png"];
+  // Soft mask for the finale orbiters: (1) clears the headline band right below the
+  // orb, and (2) a *very light* vignette easing elements toward the edges — most of
+  // all the top, by the progress bar — into a whisper of transparency, so the eye
+  // settles on the centre. Deliberately subtle; the base scene (r≤132) is untouched.
+  var softMask = (x, y) => {
+    var textF = 1 - clamp((y - 168) / 74) * clamp(1 - (Math.abs(x) - 64) / 104);
+    var dist = Math.sqrt(x * x + y * y);
+    var vign = 1 - 0.22 * clamp((dist - 162) / 150);
+    var topF = 1 - 0.18 * clamp((-y - 148) / 82);
+    return textF * vign * topF;
+  };
+  var PICS2 = ["./assets/people/m2.png", "./assets/people/m13.png", "./assets/people/m7.png", "./assets/people/m3.png", "./assets/people/m8.png", "./assets/people/m10.png"];
   // people riding the outer rings — smaller discs for depth (sz = disc radius).
   // angles favour up / sides (−π/2 is straight up); dead-bottom (~+1.6) is avoided.
   var AV2 = [{
@@ -712,7 +720,7 @@ function LayerTogether({
   }, {
     ri: 0,
     a: 2.55,
-    e: "💧",
+    e: "🎧",
     sz: 11
   }, {
     ri: 1,
@@ -888,7 +896,7 @@ function LayerTogether({
       cy: y.toFixed(2),
       r: d.rad,
       fill: d.c,
-      opacity: (pop * 0.85 * textClear(x, y)).toFixed(2)
+      opacity: (pop * 0.85 * softMask(x, y)).toFixed(2)
     });
   }), HAB2.map((h, i) => {
     var bl = ob[h.ri],
@@ -902,7 +910,7 @@ function LayerTogether({
     return /*#__PURE__*/React.createElement("g", {
       key: "hab2" + i,
       transform: `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${Math.max(0, pop).toFixed(3)})`,
-      opacity: (Math.min(1, pop) * textClear(x, y)).toFixed(2)
+      opacity: (Math.min(1, pop) * softMask(x, y)).toFixed(2)
     }, /*#__PURE__*/React.createElement("circle", {
       cx: "0",
       cy: "0",
@@ -939,7 +947,7 @@ function LayerTogether({
     return /*#__PURE__*/React.createElement("g", {
       key: "av2" + i,
       transform: `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${gs})`,
-      opacity: (Math.min(1, pop) * textClear(x, y)).toFixed(2)
+      opacity: (Math.min(1, pop) * softMask(x, y)).toFixed(2)
     }, /*#__PURE__*/React.createElement("circle", {
       cx: "0",
       cy: "0",
@@ -1730,10 +1738,11 @@ function IntroScreen() {
       opacity: 1 - sp * 0.58,
       willChange: "transform, opacity",
       fontFamily: "var(--bos-title-font)",
-      fontSize: 23,
+      fontSize: "clamp(17px, 5.5vw, 23px)",
       fontWeight: 600,
       lineHeight: 1.24,
       letterSpacing: "-0.4px",
+      whiteSpace: "nowrap",
       color: pal.title
     }
   }, "\u0422\u044B \u043D\u0435 \u0432\u0438\u0434\u0438\u0448\u044C \u043C\u0438\u0440 \u0442\u0430\u043A\u0438\u043C,", /*#__PURE__*/React.createElement("br", null), "\u043A\u0430\u043A\u043E\u0439 \u043E\u043D \u0435\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
@@ -1746,10 +1755,11 @@ function IntroScreen() {
       transform: `scale(${(0.62 + sp * 0.38).toFixed(4)})`,
       willChange: "transform, opacity",
       fontFamily: "var(--bos-title-font)",
-      fontSize: 23,
+      fontSize: "clamp(17px, 5.5vw, 23px)",
       fontWeight: 600,
       lineHeight: 1.24,
       letterSpacing: "-0.4px",
+      whiteSpace: "nowrap",
       color: pal.title
     }
   }, [["Ты", "видишь", "мир", "таким,"], ["в", "каком", "состоянии", "находишься"]].map((lineWords, li) => /*#__PURE__*/React.createElement("div", {

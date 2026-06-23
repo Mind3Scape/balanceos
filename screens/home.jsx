@@ -557,13 +557,13 @@ function HomeScreen() {
         <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <div style={{ fontSize: 15.5, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>Позови своих</div>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg, #FEDE34, #EF9F14)", padding: "2px 7px", borderRadius: 999, flexShrink: 0 }}>⚡ +XP</span>
+            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg, #FEDE34, #EF9F14)", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+XP</span>
           </div>
           <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.74)", marginTop: 3, lineHeight: 1.35 }}>Вместе легче — и за каждого друга XP к новому уровню</div>
         </div>
         <div style={{ display: "flex", flexShrink: 0, position: "relative" }}>
           {[{ c: "#e8c8a8", i: "А" }, { c: "#a8d4e8", i: "В" }, { c: "#d4b8e8", i: "Л" }].map((p, idx) => (
-            <span key={idx} style={{ width: 30, height: 30, borderRadius: "50%", background: p.c, border: "2px solid #1d2c4d", marginLeft: idx ? -10 : 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
+            <span key={idx} style={{ width: 30, height: 30, borderRadius: "50%", background: p.c, border: "2px solid #fff", marginLeft: idx ? -10 : 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
           ))}
         </div>
       </button>
