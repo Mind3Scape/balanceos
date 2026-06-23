@@ -360,6 +360,7 @@ function NetworkPersonCard({ p, userLevel }) {
 function CloudTeamsDiscover({ app }) {
   const [list, setList] = React.useState(null);
   const [busy, setBusy] = React.useState({});
+  const [requested, setRequested] = React.useState({});
   React.useEffect(() => {
     let on = true;
     try {
@@ -370,15 +371,20 @@ function CloudTeamsDiscover({ app }) {
     return () => { on = false; };
   }, []);
   if (!list || !list.length) return null;
+  // E: send a JOIN REQUEST («из поиска — по заявке»). The creator approves it later.
+  // Pre-SQL (no approval system yet) the call falls back to an instant join.
   const join = (t) => {
     setBusy((b) => Object.assign({}, b, { [t.id]: true }));
     try {
-      window.bosCloud.joinTeam(t.id).then((row) => {
-        if (!row) { setBusy((b) => Object.assign({}, b, { [t.id]: false })); return; }
+      window.bosCloud.requestJoin(t.id).then((res) => {
+        setBusy((b) => Object.assign({}, b, { [t.id]: false }));
+        if (!res) return;
+        if (res.pending) { setRequested((r) => Object.assign({}, r, { [t.id]: true })); return; }
+        // fallback: actually joined → add to my teams + drop from the discover list
         window.bosCloud.teamMembers(t.id).then((mem) => {
           if (app && app.addTeam) app.addTeam({
-            cloudId: row.id, joined: true, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff",
-            vis: row.vis, goal: row.goal_kind || "Общая цель", target: row.goal_target || 0,
+            cloudId: t.id, joined: true, name: t.name, emblem: t.emblem || "✨", accent: "#dbe9ff",
+            vis: t.vis, goal: "Общая цель", target: t.goalTarget || 0,
             current: 0, unit: "", date: "", progress: 0,
             members: (mem || []).map((m) => ({ name: m.name || "Участник", initials: (m.name || "?").slice(0, 1), color: "#cfe1ff", avatar: m.avatar, pct: 0 })),
           });
@@ -398,7 +404,7 @@ function CloudTeamsDiscover({ app }) {
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
               <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2 }}>🌐 Открытая · {t.members} участ.</div>
             </div>
-            <button onClick={() => join(t)} disabled={busy[t.id]} className="tap" style={{ flexShrink: 0, background: busy[t.id] ? "var(--card-2)" : "#0a0a0a", color: busy[t.id] ? "var(--text-3)" : "#fff", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600 }}>{busy[t.id] ? "…" : "Вступить"}</button>
+            <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "#0a0a0a", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "#fff", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
           </div>
         ))}
       </div>
@@ -1399,6 +1405,7 @@ function TeamDetailScreen() {
   // member list is honest — real teammates, no fabricated standings until real progress exists.
   const _rosterLive = app?.mode === "live" && !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
   const [cloudRoster, setCloudRoster] = React.useState(null);
+  const [rosterTick, setRosterTick] = React.useState(0);
   React.useEffect(() => {
     if (!_rosterLive) return;
     let on = true;
@@ -1410,7 +1417,18 @@ function TeamDetailScreen() {
       setCloudRoster(sorted.map((m, i) => ({ id: m.id, name: m.name || "Участник", avatar: m.avatar, role: m.role, initials: (m.name || "У").slice(0, 1).toUpperCase(), color: palette[i % palette.length] })));
     }).catch(() => {});
     return () => { on = false; };
-  }, [_rosterLive, t.cloudId]);
+  }, [_rosterLive, t.cloudId, rosterTick]);
+  // E: the CREATOR sees pending join requests here and approves / rejects them.
+  const _isOwner = !t.joined; // joined guests have t.joined = true; the creator does not
+  const [pending, setPending] = React.useState([]);
+  React.useEffect(() => {
+    if (!(_rosterLive && _isOwner) || !window.bosCloud.pendingRequests) return;
+    let on = true;
+    window.bosCloud.pendingRequests(t.cloudId).then((p) => { if (on) setPending(Array.isArray(p) ? p : []); }).catch(() => {});
+    return () => { on = false; };
+  }, [_rosterLive, _isOwner, t.cloudId, rosterTick]);
+  const approveReq = (uid) => { window.bosCloud.approveMember(t.cloudId, uid).then((ok) => { if (ok) { setPending((p) => p.filter((x) => x.id !== uid)); setRosterTick((n) => n + 1); } }); };
+  const rejectReq = (uid) => { window.bosCloud.rejectMember(t.cloudId, uid).then((ok) => { if (ok) setPending((p) => p.filter((x) => x.id !== uid)); }); };
   const liveRoster = _rosterLive && cloudRoster;
   const members = liveRoster ? cloudRoster : (t.members?.length ? t.members : [{name:"Ник",initials:"Н",pct:19,color:"#a8b9d4"}]);
   const ranked = liveRoster ? members : [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // demo: by contribution; live: roster order (owner first)
@@ -1563,6 +1581,24 @@ function TeamDetailScreen() {
         </button>
       </div>
 
+      {_isOwner && pending.length > 0 && (<>
+        <div className="section-label" style={{ marginTop: 22 }}>Заявки на вступление ({pending.length})</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          {pending.map((p) => (
+            <div key={p.id} style={{ background: "var(--card)", borderRadius: 16, boxShadow: "var(--card-shadow)", padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: "#cfe1ff", display: "grid", placeItems: "center", color: "#fff", fontWeight: 600, flexShrink: 0, overflow: "hidden" }}>
+                {p.avatar && typeof BosAvatar === "function" ? <BosAvatar avatar={p.avatar} size={40} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} /> : (p.name || "?").slice(0, 1)}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, color: "var(--text)" }}>{p.name || "Гость"}</div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>хочет вступить</div>
+              </div>
+              <button onClick={() => approveReq(p.id)} className="tap" style={{ flexShrink: 0, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 600 }}>Принять</button>
+              <button onClick={() => rejectReq(p.id)} className="tap" aria-label="Отклонить" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 999, width: 34, height: 34, fontSize: 16, lineHeight: 1 }}>✕</button>
+            </div>
+          ))}
+        </div>
+      </>)}
       <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length}){liveRoster ? "" : " · по вкладу"}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {ranked.map((m,i)=>{

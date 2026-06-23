@@ -983,6 +983,7 @@ function CloudTeamsDiscover({
 }) {
   var [list, setList] = React.useState(null);
   var [busy, setBusy] = React.useState({});
+  var [requested, setRequested] = React.useState({});
   React.useEffect(() => {
     var on = true;
     try {
@@ -1001,28 +1002,35 @@ function CloudTeamsDiscover({
     };
   }, []);
   if (!list || !list.length) return null;
+  // E: send a JOIN REQUEST («из поиска — по заявке»). The creator approves it later.
+  // Pre-SQL (no approval system yet) the call falls back to an instant join.
   var join = t => {
     setBusy(b => Object.assign({}, b, {
       [t.id]: true
     }));
     try {
-      window.bosCloud.joinTeam(t.id).then(row => {
-        if (!row) {
-          setBusy(b => Object.assign({}, b, {
-            [t.id]: false
+      window.bosCloud.requestJoin(t.id).then(res => {
+        setBusy(b => Object.assign({}, b, {
+          [t.id]: false
+        }));
+        if (!res) return;
+        if (res.pending) {
+          setRequested(r => Object.assign({}, r, {
+            [t.id]: true
           }));
           return;
         }
+        // fallback: actually joined → add to my teams + drop from the discover list
         window.bosCloud.teamMembers(t.id).then(mem => {
           if (app && app.addTeam) app.addTeam({
-            cloudId: row.id,
+            cloudId: t.id,
             joined: true,
-            name: row.name,
-            emblem: row.emblem || "✨",
+            name: t.name,
+            emblem: t.emblem || "✨",
             accent: "#dbe9ff",
-            vis: row.vis,
-            goal: row.goal_kind || "Общая цель",
-            target: row.goal_target || 0,
+            vis: t.vis,
+            goal: "Общая цель",
+            target: t.goalTarget || 0,
             current: 0,
             unit: "",
             date: "",
@@ -1104,19 +1112,20 @@ function CloudTeamsDiscover({
     }
   }, "\uD83C\uDF10 \u041E\u0442\u043A\u0440\u044B\u0442\u0430\u044F \xB7 ", t.members, " \u0443\u0447\u0430\u0441\u0442.")), /*#__PURE__*/React.createElement("button", {
     onClick: () => join(t),
-    disabled: busy[t.id],
+    disabled: busy[t.id] || requested[t.id],
     className: "tap",
     style: {
       flexShrink: 0,
-      background: busy[t.id] ? "var(--card-2)" : "#0a0a0a",
-      color: busy[t.id] ? "var(--text-3)" : "#fff",
+      background: busy[t.id] || requested[t.id] ? "var(--card-2)" : "#0a0a0a",
+      color: busy[t.id] || requested[t.id] ? "var(--text-3)" : "#fff",
       border: 0,
       borderRadius: 999,
       padding: "9px 16px",
       fontSize: 13,
-      fontWeight: 600
+      fontWeight: 600,
+      whiteSpace: "nowrap"
     }
-  }, busy[t.id] ? "…" : "Вступить")))));
+  }, requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить")))));
 }
 function CommunityScreen() {
   var {
@@ -3818,6 +3827,7 @@ function TeamDetailScreen() {
   // member list is honest — real teammates, no fabricated standings until real progress exists.
   var _rosterLive = app?.mode === "live" && !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
   var [cloudRoster, setCloudRoster] = React.useState(null);
+  var [rosterTick, setRosterTick] = React.useState(0);
   React.useEffect(() => {
     if (!_rosterLive) return;
     var on = true;
@@ -3838,7 +3848,33 @@ function TeamDetailScreen() {
     return () => {
       on = false;
     };
-  }, [_rosterLive, t.cloudId]);
+  }, [_rosterLive, t.cloudId, rosterTick]);
+  // E: the CREATOR sees pending join requests here and approves / rejects them.
+  var _isOwner = !t.joined; // joined guests have t.joined = true; the creator does not
+  var [pending, setPending] = React.useState([]);
+  React.useEffect(() => {
+    if (!(_rosterLive && _isOwner) || !window.bosCloud.pendingRequests) return;
+    var on = true;
+    window.bosCloud.pendingRequests(t.cloudId).then(p => {
+      if (on) setPending(Array.isArray(p) ? p : []);
+    }).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [_rosterLive, _isOwner, t.cloudId, rosterTick]);
+  var approveReq = uid => {
+    window.bosCloud.approveMember(t.cloudId, uid).then(ok => {
+      if (ok) {
+        setPending(p => p.filter(x => x.id !== uid));
+        setRosterTick(n => n + 1);
+      }
+    });
+  };
+  var rejectReq = uid => {
+    window.bosCloud.rejectMember(t.cloudId, uid).then(ok => {
+      if (ok) setPending(p => p.filter(x => x.id !== uid));
+    });
+  };
   var liveRoster = _rosterLive && cloudRoster;
   var members = liveRoster ? cloudRoster : t.members?.length ? t.members : [{
     name: "Ник",
@@ -4420,7 +4456,96 @@ function TeamDetailScreen() {
       fontSize: 14,
       fontWeight: 500
     }
-  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u043A\u043E\u043C\u0430\u043D\u0434\u044B")), /*#__PURE__*/React.createElement("div", {
+  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u043A\u043E\u043C\u0430\u043D\u0434\u044B")), _isOwner && pending.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0417\u0430\u044F\u0432\u043A\u0438 \u043D\u0430 \u0432\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435 (", pending.length, ")"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginTop: 8
+    }
+  }, pending.map(p => /*#__PURE__*/React.createElement("div", {
+    key: p.id,
+    style: {
+      background: "var(--card)",
+      borderRadius: 16,
+      boxShadow: "var(--card-shadow)",
+      padding: 12,
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "relative",
+      width: 40,
+      height: 40,
+      borderRadius: "50%",
+      background: "#cfe1ff",
+      display: "grid",
+      placeItems: "center",
+      color: "#fff",
+      fontWeight: 600,
+      flexShrink: 0,
+      overflow: "hidden"
+    }
+  }, p.avatar && typeof BosAvatar === "function" ? /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: p.avatar,
+    size: 40,
+    style: {
+      position: "absolute",
+      inset: 0,
+      borderRadius: "50%"
+    }
+  }) : (p.name || "?").slice(0, 1)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      color: "var(--text)"
+    }
+  }, p.name || "Гость"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, "\u0445\u043E\u0447\u0435\u0442 \u0432\u0441\u0442\u0443\u043F\u0438\u0442\u044C")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => approveReq(p.id),
+    className: "tap",
+    style: {
+      flexShrink: 0,
+      background: "#0a0a0a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 999,
+      padding: "8px 14px",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, "\u041F\u0440\u0438\u043D\u044F\u0442\u044C"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => rejectReq(p.id),
+    className: "tap",
+    "aria-label": "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C",
+    style: {
+      flexShrink: 0,
+      background: "var(--surface-3)",
+      color: "var(--text-3)",
+      border: 0,
+      borderRadius: 999,
+      width: 34,
+      height: 34,
+      fontSize: 16,
+      lineHeight: 1
+    }
+  }, "\u2715"))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22

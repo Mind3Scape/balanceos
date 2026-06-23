@@ -95,12 +95,18 @@
   // ── D3 · команды в облаке (создать / найти / вступить) ──────────────────────
   async function myTeamIds() {
     var c = client(); var id = await uid(); if (!c || !id) return [];
-    try { var r = await c.from("team_members").select("team_id").eq("user_id", id); return (r.data || []).map(function (m) { return m.team_id; }); }
+    try { var r = await c.from("team_members").select("team_id").eq("user_id", id).neq("role", "pending"); return (r.data || []).map(function (m) { return m.team_id; }); }
     catch (e) { return []; }
   }
   // Create a real cloud team (you become owner + first member). Returns the row (with id).
   async function createTeam(t) {
     var c = client(); var id = await uid(); if (!c || !id) return null;
+    // E: prefer the SECURITY DEFINER function (owner + first member atomically). Falls back
+    // to the old direct insert if the function isn't deployed yet → no breakage pre-SQL.
+    try {
+      var rpc = await c.rpc("create_team", { p_name: (t && t.name) || "Команда", p_emblem: (t && t.emblem) || "✨", p_vis: (t && t.vis) || "private", p_goal_kind: (t && t.goalKind) || null, p_goal_target: (t && t.goalTarget) || null });
+      if (!rpc.error && rpc.data) return Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+    } catch (e) {}
     try {
       var ins = await c.from("teams").insert({ name: (t && t.name) || "Команда", emblem: (t && t.emblem) || "✨", vis: (t && t.vis) || "private", owner_id: id, goal_kind: (t && t.goalKind) || null, goal_target: (t && t.goalTarget) || null }).select().single();
       if (ins.error || !ins.data) return null;
@@ -127,6 +133,54 @@
       var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target").eq("id", teamId).maybeSingle();
       return r.data || null;
     } catch (e) { return null; }
+  }
+  // E: instant join by invite link («по ссылке — сразу»). Returns the team row.
+  async function joinViaLink(teamId) {
+    var c = client(); var id = await uid(); if (!c || !id || !teamId) return null;
+    try {
+      var rpc = await c.rpc("join_team_link", { t: teamId });
+      if (!rpc.error && rpc.data) return Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+    } catch (e) {}
+    // fallback (pre-SQL): direct member upsert + read the team back
+    try {
+      await c.from("team_members").upsert({ team_id: teamId, user_id: id, role: "member" }, { onConflict: "team_id,user_id", ignoreDuplicates: true });
+      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target").eq("id", teamId).maybeSingle();
+      // RLS can lag a beat right after the membership insert — retry the read once.
+      if (!r.data) { await new Promise(function (res) { setTimeout(res, 450); }); r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target").eq("id", teamId).maybeSingle(); }
+      // The join itself succeeded — never return null (so the caller still adds the team + cleans the URL).
+      return r.data || { id: teamId, name: "Команда" };
+    } catch (e) { return { id: teamId, name: "Команда" }; }
+  }
+  // E: request to join from search/discover («из поиска — по заявке»).
+  // Returns { pending:true } when a real request was filed; { joined:true } on the pre-SQL fallback.
+  async function requestJoin(teamId) {
+    var c = client(); var id = await uid(); if (!c || !id || !teamId) return null;
+    try {
+      var rpc = await c.rpc("request_join", { t: teamId });
+      if (!rpc.error) return { pending: true };
+    } catch (e) {}
+    // fallback (pre-SQL): no approval system yet → join directly
+    try {
+      await c.from("team_members").upsert({ team_id: teamId, user_id: id, role: "member" }, { onConflict: "team_id,user_id", ignoreDuplicates: true });
+      return { pending: false, joined: true };
+    } catch (e) { return null; }
+  }
+  // E: owner approves / rejects a pending request.
+  async function approveMember(teamId, userId) {
+    var c = client(); if (!c || !teamId || !userId) return false;
+    try { var r = await c.rpc("approve_member", { t: teamId, u: userId }); return !r.error; } catch (e) { return false; }
+  }
+  async function rejectMember(teamId, userId) {
+    var c = client(); if (!c || !teamId || !userId) return false;
+    try { var r = await c.rpc("reject_member", { t: teamId, u: userId }); return !r.error; } catch (e) { return false; }
+  }
+  // E: pending join requests for a team (the owner sees them via RLS).
+  async function pendingRequests(teamId) {
+    var c = client(); if (!c || !teamId) return [];
+    try {
+      var r = await c.from("team_members").select("user_id,role,profiles(username,avatar)").eq("team_id", teamId).eq("role", "pending");
+      return (r.data || []).map(function (m) { return { id: m.user_id, name: (m.profiles && m.profiles.username) || "Гость", avatar: (m.profiles && m.profiles.avatar) || "default" }; });
+    } catch (e) { return []; }
   }
   // The real people in a team (id, role, name, avatar) — for the roster + chat.
   async function teamMembers(teamId) {
@@ -176,7 +230,9 @@
     signIn: signIn, uid: uid, currentUser: currentUser,
     loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
-    createTeam: createTeam, discoverTeams: discoverTeams, joinTeam: joinTeam, teamMembers: teamMembers, myTeamIds: myTeamIds,
+    createTeam: createTeam, discoverTeams: discoverTeams, joinTeam: joinTeam,
+    joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
+    teamMembers: teamMembers, myTeamIds: myTeamIds,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
     signOut: signOut,
     _client: client,

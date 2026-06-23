@@ -1775,7 +1775,7 @@ function AppProvider({
             // ?team= invite link → join that team instantly («по ссылке — сразу»),
             // append it on top of whatever teams we just hydrated, and clean the URL.
             if (_joinTeamId) {
-              window.bosCloud.joinTeam(_joinTeamId).then(function (row) {
+              window.bosCloud.joinViaLink(_joinTeamId).then(function (row) {
                 if (!row) return;
                 var lt = {
                   _id: "cloud-" + row.id,
