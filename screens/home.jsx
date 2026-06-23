@@ -180,10 +180,10 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
-          { i: "🙋", t: "Рассказать о себе", go: () => navigate("ai") },
+          { i: "🙋", t: "Рассказать о себе", go: () => navigate("ai-chat", { prompt: "Я хочу рассказать о себе — задай мне пару коротких вопросов и подскажи, с каких привычек начать." }) },
           { i: "➕", t: "Создать привычку",  go: () => navigate("habit-settings", { mode: "create" }) },
           { i: "🧭", t: "Как всё устроено",  go: () => navigate("guide") },
-          { i: "✨", t: "Спросить ИИ",        go: () => navigate("ai") },
+          { i: "✨", t: "Спросить ИИ",        go: () => navigate("ai-chat") },
         ].map((c, i) => (
           <button key={i} onClick={c.go} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
@@ -236,7 +236,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
           { i: "🧘🏼‍♀️", t: "Медитация 5 мин" },
           { i: "📖", t: "Открыть дневник" },
         ]).map((c, i) => (
-          <button key={i} onClick={() => _livePills ? navigate("ai-chat", { prompt: c.t }) : navigate("ai")} className="tap" style={{
+          <button key={i} onClick={() => navigate("ai-chat", { prompt: c.t })} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
             background: chipBg, border: chipBd,
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,

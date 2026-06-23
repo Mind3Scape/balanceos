@@ -164,14 +164,14 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
   nodes.forEach((n) => { (byRing[n.ring] = byRing[n.ring] || []).push(n); });
   Object.keys(byRing).forEach((r) => { const a = byRing[r]; a.forEach((n, idx) => { n.baseAng = (idx / a.length) * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2; }); });
 
-  const RBASE = 66, RSTEP = 30;
+  const RBASE = 82, RSTEP = 26;
   const radius = (ring) => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
   const spin = (ring) => ((ring % 2) ? -1 : 1) * 0.06 / (1 + ring * 0.18);
   const fadeAt = (R) => clamp(1 - (R - 138) / 56, 0, 1); // outer rings whisper toward the edge
 
   const tint = (typeof tintFromMood === "function") ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
   const glow = tint[1];
-  const lr = 40, CIRC = 2 * Math.PI * lr; // gold level arc around the centre
+  const lr = 54, CIRC = 2 * Math.PI * lr; // gold level arc hugging the centre orb
   const maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
   const drawRings = []; for (let r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
 
@@ -189,9 +189,6 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
 
   return (
     <div style={{ position: "relative", width: "100%", height: 300, margin: "0 auto", overflow: "visible" }}>
-      {/* mood-tinted core glow (subtle, blends into the page) */}
-      <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 220, height: 220, transform: "translate(-50%,-50%)", borderRadius: "50%", background: "radial-gradient(circle, " + glow + (dark ? "40" : "30") + " 0%, " + glow + "14 40%, transparent 68%)", filter: "blur(7px)", pointerEvents: "none", opacity: eo }} />
-
       <svg viewBox="-160 -160 320 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none" }}>
         <defs>
           <clipPath id="orbAvClip"><circle cx="0" cy="0" r="16" /></clipPath>
@@ -205,7 +202,25 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
             <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(" + PAL.ring + "," + op.toFixed(3) + ")"} strokeWidth="1" />;
         })}
 
-        {/* gold level arc hugging the centre */}
+        {/* small living dots drifting along the orbits — echoes the onboarding cosmos */}
+        {drawRings.map((r) => {
+          const R = radius(r), baseOp = clamp(eo * fadeAt(R), 0, 1);
+          if (baseOp <= 0.02) return null;
+          const ds = ((r % 2) ? -1 : 1) * 0.05 / (1 + r * 0.15);
+          return [0, 1, 2].map((k) => {
+            const ang = (k / 3) * Math.PI * 2 + r * 1.3 + 0.5 + t * ds;
+            const x = (Math.cos(ang) * R).toFixed(1), y = (Math.sin(ang) * R).toFixed(1);
+            const rad = lerp(1.7, 1.05, clamp(r / 4, 0, 1));
+            return (
+              <g key={"dot" + r + "_" + k} opacity={(baseOp * 0.9).toFixed(2)}>
+                <circle cx={x} cy={y} r={(rad * 2.4).toFixed(2)} fill={glow} opacity="0.16" style={{ filter: "blur(2.5px)" }} />
+                <circle cx={x} cy={y} r={rad.toFixed(2)} fill={glow} opacity={dark ? "0.85" : "0.6"} />
+              </g>
+            );
+          });
+        })}
+
+        {/* gold level arc hugging the centre orb */}
         <g transform="rotate(-90)" opacity={eo}>
           <circle cx="0" cy="0" r={lr} fill="none" stroke={PAL.lvlTrack} strokeWidth="4" />
           <circle cx="0" cy="0" r={lr} fill="none" stroke="#FEDE34" strokeWidth="4" strokeLinecap="round"
@@ -245,10 +260,16 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
         })}
       </svg>
 
-      {/* you, in the centre — tap to change avatar */}
-      <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 76, height: 76, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
-        <BosAvatar avatar={avatar} size={76} style={{ boxShadow: PAL.avShadow }} />
-        <span style={{ position: "absolute", right: -1, bottom: -1, width: 27, height: 27, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid " + PAL.badge, boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
+      {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
+          with your avatar nested inside it. tap to change avatar */}
+      <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 96, height: 96, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
+          background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
+          boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (dark ? ", 0 0 18px " + glow + "55" : "") }} />
+        <div style={{ position: "absolute", inset: 8, borderRadius: "50%", overflow: "hidden", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" }}>
+          <BosAvatar avatar={avatar} size={80} />
+        </div>
+        <span style={{ position: "absolute", right: 1, bottom: 1, width: 27, height: 27, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid " + PAL.badge, boxShadow: "0 2px 6px rgba(0,0,0,0.25)", zIndex: 2 }}>
           <I.Pencil size={12} />
         </span>
       </button>
@@ -285,12 +306,7 @@ function ProfileScreen() {
   const orbitPeople = app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : livePeople;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader onBack={() => navigate("home")} title="" right={
-        <button onClick={() => navigate("settings")} className="icon-btn tap"
-          aria-label="Настройки">
-          <I.Settings size={18}/>
-        </button>
-      }/>
+      <PageHeader onBack={() => navigate("home")} title="" />
 
       <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
@@ -919,6 +935,178 @@ function AIScreen() {
 
         <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-4)", marginTop: 18, padding: "0 24px", lineHeight: 1.5 }}>
           Инсайты и закономерности появятся здесь, когда наберётся немного данных.
+        </div>
+      </div>
+    );
+  }
+
+  // ── LIVE user: a REAL coach hub, driven by live data + the AI login-brief ──
+  // No scripted "Павел" insights here — everything below is computed from THIS
+  // person's own habits, state, XP and the brief the AI generated for them at login.
+  // The demo (Павел) keeps its rich scripted showcase further down, untouched.
+  if (app?.mode === "live") {
+    const brief = app.aiBrief || null;
+    const liveHabits = app.habits || [];
+    const doneToday = liveHabits.filter((h) => h && h.done).length;
+    const maxStreak = (typeof bosMaxStreak === "function") ? bosMaxStreak(liveHabits) : 0;
+    const liveXP = (typeof bosLiveXP === "function") ? bosLiveXP(app) : 0;
+    const lvl = (typeof bosLevelInfo === "function") ? bosLevelInfo(liveXP) : { level: 1 };
+    const moodName = (app.mood && app.mood.t) || "";
+    const moodIcon = (app.mood && app.mood.i) || "";
+    // ONE real line about the user today: prefer the AI brief summary; otherwise
+    // derive a specific, TRUE line from their actual completion / streak / state.
+    const briefSummary = (brief && brief.summary && ("" + brief.summary).trim()) || "";
+    // A brand-new live user (no habits AND no real brief) gets an HONEST empty
+    // state below — a check-in / start-chatting invite, never invented advice.
+    const isBlank = liveHabits.length === 0 && !briefSummary;
+
+    // The mentor orb tint follows the user's current state (consistent with the chat).
+    const liveTint = (moodName && typeof tintFromMood === "function") ? tintFromMood(app.mood && app.mood.c) : orbTint;
+
+    let headline = briefSummary;
+    if (!headline) {
+      if (doneToday > 0 && liveHabits.length) headline = "Сегодня закрыто " + doneToday + " из " + liveHabits.length + ". Хороший темп — давай удержим его.";
+      else if (maxStreak >= 2) headline = "Твоя серия — " + maxStreak + " дн. подряд. Одно небольшое действие сейчас её продлит.";
+      else if (liveHabits.length) headline = "Новый день начался. Выбери одну привычку, с которой стартуешь.";
+      else if (moodName) headline = "Состояние сейчас — «" + moodName + "». Начнём с одного маленького шага под него.";
+      else headline = "Я рядом. Расскажи, как ты, — и наметим один маленький шаг на сегодня.";
+    }
+    // The brief's optional one-line next-step hint, shown softly under the headline.
+    const hint = (brief && brief.hint && ("" + brief.hint).trim()) || "";
+
+    // Real next-step suggestions = the brief pills ({ i: emoji, t: text }). The pill
+    // text doubles as the chat prompt — the same contract the chat itself uses.
+    // Fallback to context-aware prompts so a returning user never sees an empty list.
+    let pills = (brief && Array.isArray(brief.pills) && brief.pills.length) ? brief.pills.slice(0, 4) : [];
+    if (!pills.length && !isBlank && typeof buildQuickPrompts === "function") pills = buildQuickPrompts(app).slice(0, 4);
+
+    const planPrompt = "Помоги составить простой план на сегодня по моим привычкам.";
+
+    return (
+      <div className="page-in" style={{ padding: "0 12px 24px" }}>
+        {/* Header — tab-style, no back button */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 14px" }}>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
+          </div>
+          <button data-tour="ai-chat-btn" onClick={() => navigate("ai-chat")} className="tap"
+            style={{ height: 36, padding: "0 14px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <I.MessageCircle size={14}/> Чат
+          </button>
+        </div>
+
+        {/* Warm hero — the user's own state orb + ONE real line about them today */}
+        <div data-tour="ai-hero" style={{
+          position: "relative", overflow: "hidden",
+          background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
+          borderRadius: 28, padding: "22px 22px 24px", color: "#fff",
+        }}>
+          <div aria-hidden style={{ position: "absolute", inset: 0, background:
+            "radial-gradient(circle at 80% 20%, rgba(180,210,255,0.18) 0%, transparent 40%), radial-gradient(circle at 10% 90%, rgba(120,160,210,0.15) 0%, transparent 40%)" }} />
+
+          <div style={{ display: "flex", gap: 16, alignItems: "center", position: "relative" }}>
+            <div style={{ flexShrink: 0, width: 112, height: 112, display: "grid", placeItems: "center" }}>
+              <svg viewBox="-80 -80 160 160" width="112" height="112" style={{ overflow: "visible" }}>
+                <SiriOrb r={42} tint={liveTint} t={t} intensity={1}/>
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: "rgba(180,210,255,0.85)", fontWeight: 600, letterSpacing: 1.4, textTransform: "uppercase" }}>
+                {moodName ? "Сейчас · " + (moodIcon ? moodIcon + " " : "") + moodName : "Сегодня"}
+              </div>
+              <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 19, lineHeight: 1.28, marginTop: 6, letterSpacing: "-0.3px" }}>{headline}</div>
+              {hint && <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5 }}>{hint}</div>}
+            </div>
+          </div>
+
+          {/* Live stat row — only when there's something real to show */}
+          {!isBlank && (
+            <div style={{ display: "flex", gap: 6, marginTop: 16, position: "relative" }}>
+              {[["Сегодня", liveHabits.length ? (doneToday + "/" + liveHabits.length) : "—"], ["Серия", maxStreak ? (maxStreak + " дн") : "—"], ["Уровень", lvl.level]].map((s, i) => (
+                <div key={i} style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{s[1]}</div>
+                  <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.6)", marginTop: 2, letterSpacing: 0.4 }}>{s[0]}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Primary CTA — «Построить план» → opens the chat primed with a real plan ask.
+              Secondary — just talk → opens a free conversation. */}
+          <div style={{ display: "flex", gap: 8, marginTop: 16, position: "relative" }}>
+            <button onClick={() => navigate("ai-chat", { prompt: planPrompt })} className="tap"
+              style={{ flex: 1, background: "var(--card)", color: "#0a1424", border: 0, borderRadius: 999, padding: "12px 14px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <I.Sparkles size={15}/> Построить план
+            </button>
+            <button onClick={() => navigate("ai-chat")} className="tap"
+              style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 999, padding: "12px 16px", fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <I.MessageCircle size={14}/> Поговорить
+            </button>
+          </div>
+        </div>
+
+        {isBlank ? (
+          /* HONEST empty state for a brand-new live user — no fake recommendations.
+             Two real first steps: check in your state, or just start a conversation. */
+          <>
+            <button onClick={() => navigate("mood")} className="tap"
+              style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
+              <span style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(135deg,#e9f1ff,#cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🧭</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 600 }}>Отметить состояние</div>
+                <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Пара секунд — и советы начнут подстраиваться под тебя.</div>
+              </div>
+              <I.ChevronRight size={18} color="var(--text-4)"/>
+            </button>
+            <button onClick={() => navigate("ai-chat", { prompt: "Расскажу немного о себе и своих целях" })} className="tap"
+              style={{ width: "100%", marginTop: 10, background: "var(--card)", border: 0, borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
+              <span style={{ width: 46, height: 46, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 600 }}>Рассказать о себе</div>
+                <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Пара минут — и ИИ узнает твои цели и ритм дня.</div>
+              </div>
+              <I.ChevronRight size={18} color="var(--text-4)"/>
+            </button>
+            <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-4)", marginTop: 18, padding: "0 24px", lineHeight: 1.5 }}>
+              Подсказки появятся здесь, как только наберётся немного твоих данных.
+            </div>
+          </>
+        ) : (
+          /* Real next-step suggestions — the AI brief pills as tappable cards.
+             Tap → open the chat already primed with that step. */
+          pills.length > 0 && (
+            <>
+              <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Следующие шаги</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                {pills.map((p, i) => (
+                  <button key={i} onClick={() => navigate("ai-chat", { prompt: p.t })} className="tap"
+                    style={{ width: "100%", background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", border: 0, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{p.i || "✨"}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{p.t}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Обсудить с помощником →</div>
+                    </div>
+                    <I.ChevronRight size={18} color="var(--text-4)" style={{ flexShrink: 0 }}/>
+                  </button>
+                ))}
+              </div>
+            </>
+          )
+        )}
+
+        {/* Free conversation — always available, even with no data yet */}
+        <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Спроси что угодно</div>
+        <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 6px" }}>
+            <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
+              onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
+              style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "10px 6px" }}/>
+            <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap"
+              style={{ width: 36, height: 36, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center" }}>
+              <I.Send size={14}/>
+            </button>
+          </div>
         </div>
       </div>
     );

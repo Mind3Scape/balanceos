@@ -360,7 +360,9 @@ function HomeHeroSwipe({
   }, [{
     i: "🙋",
     t: "Рассказать о себе",
-    go: () => navigate("ai")
+    go: () => navigate("ai-chat", {
+      prompt: "Я хочу рассказать о себе — задай мне пару коротких вопросов и подскажи, с каких привычек начать."
+    })
   }, {
     i: "➕",
     t: "Создать привычку",
@@ -374,7 +376,7 @@ function HomeHeroSwipe({
   }, {
     i: "✨",
     t: "Спросить ИИ",
-    go: () => navigate("ai")
+    go: () => navigate("ai-chat")
   }].map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: c.go,
@@ -535,9 +537,9 @@ function HomeHeroSwipe({
     t: "Открыть дневник"
   }]).map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
-    onClick: () => _livePills ? navigate("ai-chat", {
+    onClick: () => navigate("ai-chat", {
       prompt: c.t
-    }) : navigate("ai"),
+    }),
     className: "tap",
     style: {
       padding: "6px 12px",
