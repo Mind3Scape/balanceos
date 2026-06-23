@@ -1124,11 +1124,15 @@ function CommunityScreen() {
   });
   var [activated, setActivated] = useCS({}); // partner activations (by index)
 
-  var userLevel = 8;
-  var xpInLevel = 1240;
-  var xpForNext = 2000;
-  var levelsLeft = 10 - userLevel;
-  var weeksToUnlock = 2;
+  // Real level for LIVE users (was hard-coded to 8 — it wrongly told a level-1 user
+  // they were 8/10). Demo keeps its curated numbers.
+  var _isLiveComm = app?.mode === "live";
+  var _commLvl = _isLiveComm && typeof bosLiveXP === "function" ? bosLevelInfo(bosLiveXP(app)) : null;
+  var userLevel = _commLvl ? _commLvl.level : 8;
+  var xpInLevel = _commLvl ? _commLvl.into : 1240;
+  var xpForNext = _commLvl ? _commLvl.span : 2000;
+  var levelsLeft = Math.max(0, 10 - userLevel);
+  var weeksToUnlock = Math.max(1, levelsLeft);
   var teams = app?.teams || []; // shared store — "Создать команду" adds here
   var network = [{
     name: "Александра Иванова",
@@ -1575,7 +1579,9 @@ function CommunityScreen() {
     xpMax: xpForNext,
     levelsLeft: levelsLeft,
     weeks: weeksToUnlock,
-    onUnlock: () => setNetworkUnlocked(true),
+    onUnlock: () => {
+      if (!_isLiveComm || userLevel >= 3) setNetworkUnlocked(true);
+    },
     onSwitchToCommunity: () => {
       setSection("community");
       setCommTab("courses");

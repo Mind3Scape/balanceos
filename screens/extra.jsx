@@ -640,6 +640,7 @@ function buildQuickPrompts(app) {
     const low = /устал|упад|трев|стресс|тяж|нет сил/i.test(moodT);
     chips.push(low ? { i: "💤", t: "Сегодня мало сил" } : { i: "🌙", t: "Спланируй вечер" });
     if (goals.length) chips.push({ i: "🎯", t: "Разбей цель на шаги" });
+    chips.push({ i: "🤝", t: "Позвать друга в привычку" });
     chips.push({ i: "🧭", t: "Что сейчас важнее всего?" });
     return chips.slice(0, 4);
   } catch (e) {
@@ -695,6 +696,10 @@ const AI_SYSTEM = [
   "",
   "НА ЧТО ОПИРАЕШЬСЯ.",
   "Тебе дают живой контекст человека: имя, состояние, привычки, серии, цели, уровень. Вплетай это естественно — но никогда не зачитывай списком и не выдумывай того, чего не знаешь.",
+  "",
+  "КУДА ВЕДЁШЬ.",
+  "Ты живёшь ВНУТРИ этого приложения, а не вместо него. Любой шаг предлагай сделать ЗДЕСЬ: отметить привычку, добавить новую, отметить состояние, записать пару строк в дневник приложения, собрать команду. НИКОГДА не отправляй человека в бумажный блокнот, сторонние заметки или другое приложение — всё это у нас уже есть, мы и есть его инструмент.",
+  "Когда уместно — мягко зови позвать близкого: вместе держать привычку легче. Предложи общую привычку, команду или пригласить друга по ссылке. Один маленький шаг + один человек рядом — твой любимый рецепт.",
   "",
   "ЧЕГО НЕ ДЕЛАЕШЬ.",
   "Не ставишь диагнозы и не заменяешь врача или психолога — если звучит что-то тяжёлое или опасное, мягко предложи обратиться к специалисту и побудь рядом словом. Не стыдишь за срывы и пропуски — помогаешь вернуться без чувства вины. Не уходишь в мистику, гороскопы и пустые духовные лозунги: ты стоишь ногами на земле.",
@@ -799,7 +804,7 @@ const BRIEF_SYSTEM = [
   "Тебе дают живой контекст человека. Сгенерируй для главного экрана приложения короткий персональный «бриф».",
   "Верни СТРОГО валидный JSON (и больше ничего) такой формы:",
   '{ "greeting": "тёплое личное приветствие, 3–6 слов", "summary": "ОДНО предложение «именно тебе сегодня» — опирается на состояние/привычки/серии, по-русски на «ты», без воды", "pills": [ { "i": "эмодзи", "t": "короткое действие-подсказка, ≤4 слов" } ], "hint": "один маленький конкретный следующий шаг" }',
-  "pills: ровно 3–4 штуки, разные, тапабельные (это станет кнопками-подсказками). Без кавычек-ёлочек внутри строк. Только JSON.",
+  "pills: ровно 3–4 штуки, разные, тапабельные (это станет кнопками-подсказками). Это действия ВНУТРИ приложения: отметить/добавить привычку, отметить состояние, записать пару строк в дневник, собрать команду или позвать друга. НЕ предлагай бумажный блокнот или сторонние приложения. Без кавычек-ёлочек внутри строк. Только JSON.",
 ].join("\n");
 
 function bosUnescape(s) { try { return JSON.parse('"' + ("" + s).replace(/"/g, '\\"') + '"'); } catch (e) { return s; } }
@@ -942,8 +947,11 @@ function AIChatScreen() {
     meBubble: "#0a0a0a", meText: "#fff",
   };
 
-  // Each message: { who, kind, t, ...cardData }
-  const [msgs, setMsgs] = useM(_demoChat ? [
+  // Each message: { who, kind, t, ...cardData }. Live chats persist LOCALLY on the
+  // device (private — never leaves the phone), so a real user never loses them.
+  const _aiLive = app?.mode === "live";
+  const _aiChatKey = "bos:aichat:" + (app?.persistId || "live");
+  const [msgs, setMsgs] = useM(function () { if (_demoChat) return [
     { who: "ai", kind: "greeting", t: "Доброе утро, Павел ☀️" },
     { who: "ai", kind: "summary", title: "Сегодня, пока что", body: "Ты прошёл 60%. Состояние: ⚡ Энергия. Осталась одна привычка до полудня — от неё зависит утренняя серия.",
       stats: [{ l: "Готово",  v: "3/5" }, { l: "Серия", v: "12д" }, { l: "XP", v: "+92" }] },
@@ -958,7 +966,7 @@ function AIChatScreen() {
         { l: "Пн", v: 32, h: true }, { l: "Вт", v: 78 }, { l: "Ср", v: 88 }, { l: "Чт", v: 64 },
         { l: "Пт", v: 92 }, { l: "Сб", v: 70 }, { l: "Вс", v: 58 },
       ]},
-  ] : [{ who: "ai", kind: "greeting", t: _hello }]);
+  ]; if (_aiLive) { try { var raw = localStorage.getItem(_aiChatKey); if (raw) { var arr = JSON.parse(raw); if (arr && arr.length) return arr; } } catch (e) {} } return [{ who: "ai", kind: "greeting", t: _hello }]; });
   const [draft, setDraft] = useM("");
   const [typing, setTyping] = useM(false);
   const scrollRef = React.useRef(null);
@@ -966,6 +974,9 @@ function AIChatScreen() {
   React.useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, typing]);
+
+  // Persist the live AI chat locally so it survives reloads & reopening (on-device, private).
+  React.useEffect(() => { if (!_aiLive) return; try { localStorage.setItem(_aiChatKey, JSON.stringify(msgs)); } catch (e) {} }, [msgs, _aiLive, _aiChatKey]);
 
   const send = (text) => {
     const t = (text ?? draft).trim();

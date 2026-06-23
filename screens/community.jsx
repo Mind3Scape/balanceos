@@ -395,11 +395,15 @@ function CommunityScreen() {
   const setNetworkUnlocked = (v) => setView({ networkUnlocked: resolve(v, networkUnlocked) });
   const [activated, setActivated] = useCS({}); // partner activations (by index)
 
-  const userLevel = 8;
-  const xpInLevel = 1240;
-  const xpForNext = 2000;
-  const levelsLeft = 10 - userLevel;
-  const weeksToUnlock = 2;
+  // Real level for LIVE users (was hard-coded to 8 — it wrongly told a level-1 user
+  // they were 8/10). Demo keeps its curated numbers.
+  const _isLiveComm = app?.mode === "live";
+  const _commLvl = (_isLiveComm && typeof bosLiveXP === "function") ? bosLevelInfo(bosLiveXP(app)) : null;
+  const userLevel = _commLvl ? _commLvl.level : 8;
+  const xpInLevel = _commLvl ? _commLvl.into : 1240;
+  const xpForNext = _commLvl ? _commLvl.span : 2000;
+  const levelsLeft = Math.max(0, 10 - userLevel);
+  const weeksToUnlock = Math.max(1, levelsLeft);
 
   const teams = app?.teams || []; // shared store — "Создать команду" adds here
   const network = [
@@ -533,7 +537,7 @@ function CommunityScreen() {
               xpMax={xpForNext}
               levelsLeft={levelsLeft}
               weeks={weeksToUnlock}
-              onUnlock={() => setNetworkUnlocked(true)}
+              onUnlock={() => { if (!_isLiveComm || userLevel >= 3) setNetworkUnlocked(true); }}
               onSwitchToCommunity={() => { setSection("community"); setCommTab("courses"); }}
             />
           </div>
