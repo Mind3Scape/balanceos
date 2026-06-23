@@ -92,12 +92,92 @@
     } catch (e) { return null; }
   }
 
+  // ── D3 · команды в облаке (создать / найти / вступить) ──────────────────────
+  async function myTeamIds() {
+    var c = client(); var id = await uid(); if (!c || !id) return [];
+    try { var r = await c.from("team_members").select("team_id").eq("user_id", id); return (r.data || []).map(function (m) { return m.team_id; }); }
+    catch (e) { return []; }
+  }
+  // Create a real cloud team (you become owner + first member). Returns the row (with id).
+  async function createTeam(t) {
+    var c = client(); var id = await uid(); if (!c || !id) return null;
+    try {
+      var ins = await c.from("teams").insert({ name: (t && t.name) || "Команда", emblem: (t && t.emblem) || "✨", vis: (t && t.vis) || "private", owner_id: id, goal_kind: (t && t.goalKind) || null, goal_target: (t && t.goalTarget) || null }).select().single();
+      if (ins.error || !ins.data) return null;
+      await c.from("team_members").insert({ team_id: ins.data.id, user_id: id, role: "owner" });
+      return ins.data;
+    } catch (e) { return null; }
+  }
+  // Public teams you're NOT in yet (with member counts) — the discovery list.
+  async function discoverTeams() {
+    var c = client(); var id = await uid(); if (!c || !id) return [];
+    try {
+      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(40);
+      var rows = r.data || []; var mine = await myTeamIds();
+      return rows.filter(function (t) { return mine.indexOf(t.id) < 0; }).map(function (t) {
+        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
+      });
+    } catch (e) { return []; }
+  }
+  // Join a team by id (idempotent) — used by the discovery list AND ?team= invite links.
+  async function joinTeam(teamId) {
+    var c = client(); var id = await uid(); if (!c || !id || !teamId) return null;
+    try {
+      await c.from("team_members").upsert({ team_id: teamId, user_id: id, role: "member" }, { onConflict: "team_id,user_id", ignoreDuplicates: true });
+      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target").eq("id", teamId).maybeSingle();
+      return r.data || null;
+    } catch (e) { return null; }
+  }
+  // The real people in a team (id, role, name, avatar) — for the roster + chat.
+  async function teamMembers(teamId) {
+    var c = client(); if (!c || !teamId) return [];
+    try {
+      var r = await c.from("team_members").select("user_id,role,profiles(username,avatar)").eq("team_id", teamId);
+      return (r.data || []).map(function (m) { return { id: m.user_id, role: m.role, name: (m.profiles && m.profiles.username) || "", avatar: (m.profiles && m.profiles.avatar) || "default" }; });
+    } catch (e) { return []; }
+  }
+
+  // ── D4 · живой чат команды (сообщения + фото + realtime) ─────────────────────
+  async function loadMessages(teamId, limit) {
+    var c = client(); if (!c || !teamId) return [];
+    try { var r = await c.from("messages").select("id,user_id,text,image_url,created_at").eq("team_id", teamId).order("created_at", { ascending: true }).limit(limit || 200); return r.data || []; }
+    catch (e) { return []; }
+  }
+  async function sendMessage(teamId, msg) {
+    var c = client(); var id = await uid(); if (!c || !id || !teamId) return null;
+    try { var r = await c.from("messages").insert({ team_id: teamId, user_id: id, text: (msg && msg.text) || null, image_url: (msg && msg.imageUrl) || null }).select().single(); return r.data || null; }
+    catch (e) { return null; }
+  }
+  // Realtime: calls onInsert(row) for every new message in this team. Returns unsubscribe().
+  function subscribeMessages(teamId, onInsert) {
+    var c = client(); if (!c || !teamId) return function () {};
+    try {
+      var ch = c.channel("msg:" + teamId)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "team_id=eq." + teamId }, function (p) { try { onInsert(p.new); } catch (e) {} })
+        .subscribe();
+      return function () { try { c.removeChannel(ch); } catch (e) {} };
+    } catch (e) { return function () {}; }
+  }
+  // Upload a (already-compressed) chat photo → returns its public URL.
+  async function uploadChatPhoto(teamId, blob, ext) {
+    var c = client(); var id = await uid(); if (!c || !id || !blob) return null;
+    try {
+      var path = teamId + "/" + id + "_" + Date.now() + "." + (ext || "jpg");
+      var up = await c.storage.from("chat-photos").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+      if (up.error) return null;
+      var pub = c.storage.from("chat-photos").getPublicUrl(path);
+      return (pub && pub.data && pub.data.publicUrl) || null;
+    } catch (e) { return null; }
+  }
+
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, currentUser: currentUser,
     loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
+    createTeam: createTeam, discoverTeams: discoverTeams, joinTeam: joinTeam, teamMembers: teamMembers, myTeamIds: myTeamIds,
+    loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
     signOut: signOut,
     _client: client,
   };

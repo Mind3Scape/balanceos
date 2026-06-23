@@ -327,6 +327,59 @@ function NetworkPersonCard({ p, userLevel }) {
   );
 }
 
+/* D3 — public teams you can JOIN. Pulls open teams from the cloud (excluding ones
+   you're already in), with live member counts. Joining adds a real cloud-linked
+   team to your list (real roster) and opens up its shared chat (D4). Renders only
+   when there's something to join, so it never clutters an empty community. */
+function CloudTeamsDiscover({ app }) {
+  const [list, setList] = React.useState(null);
+  const [busy, setBusy] = React.useState({});
+  React.useEffect(() => {
+    let on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled()) {
+        window.bosCloud.discoverTeams().then((ts) => { if (on) setList(Array.isArray(ts) ? ts : []); }).catch(() => { if (on) setList([]); });
+      } else setList([]);
+    } catch (e) { setList([]); }
+    return () => { on = false; };
+  }, []);
+  if (!list || !list.length) return null;
+  const join = (t) => {
+    setBusy((b) => Object.assign({}, b, { [t.id]: true }));
+    try {
+      window.bosCloud.joinTeam(t.id).then((row) => {
+        if (!row) { setBusy((b) => Object.assign({}, b, { [t.id]: false })); return; }
+        window.bosCloud.teamMembers(t.id).then((mem) => {
+          if (app && app.addTeam) app.addTeam({
+            cloudId: row.id, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff",
+            vis: row.vis, goal: row.goal_kind || "Общая цель", target: row.goal_target || 0,
+            current: 0, unit: "", date: "", progress: 0,
+            members: (mem || []).map((m) => ({ name: m.name || "Участник", initials: (m.name || "?").slice(0, 1), color: "#cfe1ff", avatar: m.avatar, pct: 0 })),
+          });
+          setList((l) => (l || []).filter((x) => x.id !== t.id));
+        });
+      });
+    } catch (e) { setBusy((b) => Object.assign({}, b, { [t.id]: false })); }
+  };
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>Открытые команды рядом</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {list.map((t) => (
+          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 18, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+            <span style={{ width: 44, height: 44, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{t.emblem || "✨"}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2 }}>🌐 Открытая · {t.members} участ.</div>
+            </div>
+            <button onClick={() => join(t)} disabled={busy[t.id]} className="tap" style={{ flexShrink: 0, background: busy[t.id] ? "var(--card-2)" : "#0a0a0a", color: busy[t.id] ? "var(--text-3)" : "#fff", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600 }}>{busy[t.id] ? "…" : "Вступить"}</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CommunityScreen() {
   const { navigate } = useNav();
   const app = useApp();
@@ -454,6 +507,8 @@ function CommunityScreen() {
             </div>
             <I.ChevronRight size={18}/>
           </button>
+          {/* D3 — open teams from the cloud you can join (live accounts only) */}
+          {app?.mode === "live" && <CloudTeamsDiscover app={app} />}
         </div>
       )}
 
@@ -1097,7 +1152,7 @@ function TeamCreateScreen() {
 
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
         const dur = { week: "Эта неделя", month: "Этот месяц", quarter: "3 месяца", year: "Год" }[duration] || "Этот месяц";
-        app?.addTeam({
+        const nt = app?.addTeam({
           name: name.trim() || "Новая команда",
           emblem, accent, vis, // private / public — preserved from the toggle above
           goal: goalTitle || (target + " " + unit),
@@ -1106,6 +1161,14 @@ function TeamCreateScreen() {
           progress: 0,
           members: activeMembers.map(m => ({ name: m.name, initials: m.initials, color: m.color, pct: 0 })),
         });
+        // D3 — mirror to the cloud so a public team is discoverable by everyone and
+        // can be joined by link. The local team keeps working even if the cloud is off.
+        try {
+          if (nt && app?.mode === "live" && window.bosCloud && window.bosCloud.enabled()) {
+            window.bosCloud.createTeam({ name: nt.name, emblem, vis, goalKind: nt.goal, goalTarget: Number(target) || 0 })
+              .then((row) => { if (row && row.id && app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id }); });
+          }
+        } catch (e) {}
         navigate("community");
       }}>Создать команду</button>
     </div>
@@ -2043,12 +2106,29 @@ function bosCompressImage(file, maxDim, quality) {
    Local-first: in a REAL (live) profile the conversation is saved per team and
    never lost on reload; demo modes show the rich seeded chat (ephemeral). The
    cross-person realtime layer (everyone sees each other) arrives at T1. ─── */
+/* D4 helpers — a stable colour per user id, and HH:MM from an ISO timestamp. */
+function bosUserColor(id) {
+  var str = "" + (id || ""), s = 0;
+  for (var i = 0; i < str.length; i++) s = (s * 31 + str.charCodeAt(i)) >>> 0;
+  var pal = ["#F4A574", "#74CFE0", "#7FB3F2", "#76D3A0", "#C9A0E8", "#E89BC0", "#7BD0C4", "#F2B66B"];
+  return pal[s % pal.length];
+}
+function bosMsgTime(iso) {
+  try { var d = new Date(iso); return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); } catch (e) { return ""; }
+}
+
 function TeamChatScreen() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const team = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", members: [] };
   const live = app?.mode === "live";
+  // D4 — a cloud-linked team gets the REAL shared+realtime chat; everything else
+  // (demo, local-only teams) keeps the local behaviour below, untouched.
+  const cloud = (live && window.bosCloud && window.bosCloud.enabled() && team.cloudId) ? window.bosCloud : null;
+  const cloudId = cloud ? team.cloudId : null;
+  const memberMapRef = React.useRef({});
+  const myUidRef = React.useRef(null);
   const chatKey = "bos:chat:" + (app?.persistId || "live:local") + ":" + (team._id || team.name || "team");
   const SEED = [
     { who: "Светлана", c: "#F4A574", t: "Доброе утро, команда! ☀️ Кто уже отметил доброе дело?", time: "8:14" },
@@ -2061,8 +2141,10 @@ function TeamChatScreen() {
     { who: "Сергей",   c: "#76D3A0", t: "До цели 8 дел — добьём к вечеру 🔥", time: "9:10" },
     { who: "Ник",      c: "#7FB3F2", t: "Давайте! После работы ещё пару добрых дел успею 🙌", time: "9:15" },
   ];
-  // Live profiles: restore saved history (or start empty). Demo/fresh: rich seed.
+  // Cloud chat hydrates from the server (below). Local profiles restore saved
+  // history (or start empty). Demo/fresh: rich seed.
   const [msgs, setMsgs] = useCS(function () {
+    if (cloudId) return [];
     if (live) {
       try { var raw = localStorage.getItem(chatKey); if (raw) return JSON.parse(raw); } catch (e) {}
       return [];
@@ -2076,25 +2158,67 @@ function TeamChatScreen() {
   // reloads and reopening the chat. On a full localStorage quota, drop the oldest
   // photos (keep all text) rather than failing the save.
   React.useEffect(function () {
-    if (!live) return;
+    if (!live || cloudId) return; // cloud chat lives on the server, not localStorage
     try { localStorage.setItem(chatKey, JSON.stringify(msgs)); }
     catch (e) {
       try { localStorage.setItem(chatKey, JSON.stringify(msgs.filter(function (m) { return !m.img; }))); } catch (e2) {}
     }
-  }, [msgs, live, chatKey]);
+  }, [msgs, live, chatKey, cloudId]);
   // Pin to the latest message by scrolling the chat's OWN container — NOT
   // scrollIntoView, which bubbles up and yanked the page mid open-transition.
   React.useLayoutEffect(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs.length]);
   const myName = live ? (app?.userName || "Вы") : "Павел";
   const nowLabel = () => { try { var d = new Date(); return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); } catch (e) { return "сейчас"; } };
+
+  // Map a cloud message row → the UI shape this screen already renders. Uses refs
+  // (member roster + my uid) so the realtime handler always sees the latest.
+  const mapRow = React.useCallback((r) => {
+    const mine = r.user_id === myUidRef.current;
+    const prof = memberMapRef.current[r.user_id];
+    return {
+      id: r.id, _uid: r.user_id, me: mine, cloud: true,
+      who: mine ? myName : (prof ? prof.name : "Участник"),
+      c: prof ? prof.c : bosUserColor(r.user_id), avatar: prof ? prof.avatar : null,
+      t: r.text || undefined, img: r.image_url || undefined, time: bosMsgTime(r.created_at),
+    };
+  }, [myName]);
+
+  // D4 — cloud chat: load the roster + history, then live-subscribe to new messages.
+  React.useEffect(() => {
+    if (!cloudId) return;
+    let on = true, unsub = function () {};
+    cloud.uid().then((u) => { myUidRef.current = u; });
+    cloud.teamMembers(cloudId).then((mem) => {
+      const map = {};
+      (mem || []).forEach((m) => { map[m.id] = { name: m.name || "Участник", avatar: m.avatar, c: bosUserColor(m.id) }; });
+      memberMapRef.current = map;
+      return cloud.loadMessages(cloudId);
+    }).then((rows) => { if (on) setMsgs((rows || []).map(mapRow)); });
+    unsub = cloud.subscribeMessages(cloudId, (row) => {
+      setMsgs((prev) => prev.some((m) => m.id === row.id) ? prev : prev.concat([mapRow(row)]));
+    });
+    return () => { on = false; try { unsub(); } catch (e) {} };
+  }, [cloudId, mapRow]);
+
   const push = (m) => setMsgs(list => [...list, { who: myName, me: true, c: "#FEDE34", time: nowLabel(), ...m }]);
-  const send = () => { const v = text.trim(); if (!v) return; push({ t: v }); setText(""); };
+  // Append a freshly-sent cloud row (in case realtime is slow), de-duped by id.
+  const absorb = (row) => { if (row) setMsgs((prev) => prev.some((m) => m.id === row.id) ? prev : prev.concat([mapRow(row)])); };
+  const send = () => {
+    const v = text.trim(); if (!v) return;
+    setText("");
+    if (cloudId) cloud.sendMessage(cloudId, { text: v }).then(absorb);
+    else push({ t: v });
+  };
   const pickPhoto = () => { if (fileRef.current) fileRef.current.click(); };
   const onFile = (e) => {
     const file = e.target.files && e.target.files[0];
     try { e.target.value = ""; } catch (_) {}
     if (!file) return;
-    bosCompressImage(file, 1280, 0.72).then(src => push({ img: src })).catch(() => {});
+    bosCompressImage(file, 1280, 0.72).then(src => {
+      if (cloudId) {
+        fetch(src).then(r => r.blob()).then(blob => cloud.uploadChatPhoto(cloudId, blob).then(url => { if (url) cloud.sendMessage(cloudId, { imageUrl: url }).then(absorb); }));
+      } else push({ img: src });
+    }).catch(() => {});
   };
 
   const otherBubble = isDark ? "rgba(255,255,255,0.07)" : "#fff";
@@ -2139,7 +2263,9 @@ function TeamChatScreen() {
           </div>
         ) : (
           <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-            <span style={{ width: 30, height: 30, borderRadius: "50%", background: m.c, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{m.who[0]}</span>
+            {m.avatar && typeof BosAvatar === "function"
+              ? <BosAvatar avatar={m.avatar} size={30} style={{ flexShrink: 0 }} />
+              : <span style={{ width: 30, height: 30, borderRadius: "50%", background: m.c, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{(m.who || "?")[0]}</span>}
             <div style={{ maxWidth: "78%", background: otherBubble, borderRadius: "18px 18px 18px 5px", padding: (m.photo || m.img) ? 8 : "9px 13px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: (m.photo || m.img) ? 4 : 2 }}>{m.who}</div>
               {m.img ? <RealPhoto src={m.img} cap={m.cap}/> : m.photo ? <Photo p={m.photo} cap={m.cap}/> : <div style={{ fontSize: 14.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}

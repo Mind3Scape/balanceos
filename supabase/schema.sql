@@ -125,13 +125,21 @@ drop policy if exists goals_own on public.goals;
 create policy goals_own on public.goals for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- ВАЖНО: проверку «я участник команды» выносим в SECURITY DEFINER-функцию. Внутри
+-- неё RLS НЕ применяется, поэтому политики team_members/teams/messages могут её звать
+-- без бесконечной рекурсии (классическая ловушка Postgres RLS на самоссылку).
+create or replace function public.is_member(t uuid, u uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from public.team_members m where m.team_id = t and m.user_id = u);
+$$;
+
 -- команды: видны если публичные ИЛИ ты участник; создаёт любой (он же владелец);
 -- меняет/удаляет владелец
 drop policy if exists teams_read on public.teams;
 create policy teams_read on public.teams for select to authenticated using (
   vis = 'public'
   or owner_id = auth.uid()
-  or exists (select 1 from public.team_members m where m.team_id = teams.id and m.user_id = auth.uid())
+  or public.is_member(id, auth.uid())
 );
 drop policy if exists teams_insert on public.teams;
 create policy teams_insert on public.teams for insert to authenticated with check (owner_id = auth.uid());
@@ -144,7 +152,7 @@ create policy teams_delete on public.teams for delete to authenticated using (ow
 drop policy if exists members_read on public.team_members;
 create policy members_read on public.team_members for select to authenticated using (
   user_id = auth.uid()
-  or exists (select 1 from public.team_members m2 where m2.team_id = team_members.team_id and m2.user_id = auth.uid())
+  or public.is_member(team_id, auth.uid())
   or exists (select 1 from public.teams t where t.id = team_members.team_id and (t.vis = 'public' or t.owner_id = auth.uid()))
 );
 drop policy if exists members_join on public.team_members;
@@ -155,12 +163,11 @@ create policy members_leave on public.team_members for delete to authenticated u
 -- сообщения: читают участники команды; писать — свои сообщения в свою команду
 drop policy if exists messages_read on public.messages;
 create policy messages_read on public.messages for select to authenticated using (
-  exists (select 1 from public.team_members m where m.team_id = messages.team_id and m.user_id = auth.uid())
+  public.is_member(team_id, auth.uid())
 );
 drop policy if exists messages_send on public.messages;
 create policy messages_send on public.messages for insert to authenticated with check (
-  user_id = auth.uid()
-  and exists (select 1 from public.team_members m where m.team_id = messages.team_id and m.user_id = auth.uid())
+  user_id = auth.uid() and public.is_member(team_id, auth.uid())
 );
 
 -- ── REALTIME (живой чат) ──────────────────────────────────────────────────────
