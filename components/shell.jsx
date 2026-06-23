@@ -563,25 +563,44 @@ function AppProvider({ children }) {
     setPersistId(null); // demo is ephemeral — never written to disk
   };
   const enterFresh = (name = "") => {
-    setMode("fresh");
-    // A returning user (their profile already lives on this device) is restored;
-    // a brand-new user starts on a clean slate. Same entry point, both paths.
-    var saved = (window.bosStore && window.bosStore.has("me")) ? window.bosStore.load("me") : null;
+    setMode("fresh"); setUserName((name || "").trim());
+    setHabits([]); setGoals([]); setTeams([]);
+    setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
+    setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
+    // Arm the welcome sheets; mark home as already-introduced so only the OTHER
+    // tabs trigger a contextual intro when the user first opens them.
+    setOnbWelcome(true); setOnbTab(null); seenTabs.current = { home: true }; setTourStep(-1); setTourScreen(null); setGuideDone(false);
+    setPersistId(null); // the new-user experience is a DEMO too — never persisted
+  };
+
+  // ── Real account — the THIRD door: "Войти через Telegram" ──────────
+  // Demo (Павел) and fresh (new-user onboarding) stay untouched showcases that
+  // never persist. THIS is the live app: identity = the Telegram user (inside
+  // Telegram), or a stable local id as a browser/dev fallback, so everything is
+  // saved for real under that profile. The cloud (Supabase) binds to the verified
+  // Telegram id at T1 — same persistId, same code, no rewrite of this provider.
+  const enterLive = () => {
+    var tgUser = null;
+    try { tgUser = window.__TG && window.__TG.initDataUnsafe && window.__TG.initDataUnsafe.user; } catch (e) {}
+    var pid = (tgUser && tgUser.id) ? ("tg:" + tgUser.id) : "live:local";
+    var name = (tgUser && (tgUser.first_name || tgUser.username)) || "";
+    setMode("live");
+    var saved = (window.bosStore && window.bosStore.has(pid)) ? window.bosStore.load(pid) : null;
     if (saved) {
-      setUserName(saved.userName || (name || "").trim());
+      setUserName(saved.userName || name);
       setHabits(saved.habits || []); setGoals(saved.goals || []); setTeams(saved.teams || []);
       setDayMoods(saved.dayMoods || {}); setDayNotes(saved.dayNotes || {});
       setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS);
       setMood(MOOD_OPTIONS[2]); // live mood isn't persisted yet — start neutral
     } else {
-      setUserName((name || "").trim());
+      setUserName(name);
       setHabits([]); setGoals([]); setTeams([]);
       setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
     }
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
-    // Brand-new users get the welcome sheets; returning users skip straight in.
+    // First-time real users get the welcome sheets; returning ones skip straight in.
     setOnbWelcome(!saved); setOnbTab(null); seenTabs.current = { home: true }; setTourStep(-1); setTourScreen(null); setGuideDone(!!saved);
-    setPersistId("me"); // from here on, every change is saved under this profile
+    setPersistId(pid); // from here on, every change is saved under this real profile
   };
   const startTour = (mode) => { setTourMode(mode || "demo"); setTourStep(0); };
   const endTour = () => setTourStep(-1);
@@ -598,7 +617,7 @@ function AppProvider({ children }) {
     widgets, setWidgets,
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
-    mode, userName, enterDemo, enterFresh,
+    mode, userName, enterDemo, enterFresh, enterLive,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,

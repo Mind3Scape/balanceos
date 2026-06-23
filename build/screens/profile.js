@@ -3009,6 +3009,11 @@ function SignUpScreen() {
     app?.enterFresh?.(name);
     navigate("home");
   };
+  // The real door: sign in with the Telegram account → everything persists.
+  var goLive = () => {
+    app?.enterLive?.();
+    navigate("home");
+  };
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
     className: "page-in",
@@ -3233,13 +3238,92 @@ function SignUpScreen() {
     color: pal.btnFg
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      margin: "20px 0 16px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      height: 1,
+      background: pal.line
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: pal.sub
+    }
+  }, "\u0438\u043B\u0438 \u0432\u043E\u0439\u0434\u0438 \u043F\u043E-\u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0435\u043C\u0443"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      height: 1,
+      background: pal.line
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: goLive,
+    className: "tap",
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      textAlign: "left",
+      background: "linear-gradient(135deg, #2AABEE 0%, #229ED9 100%)",
+      color: "#fff",
+      border: 0,
+      borderRadius: 20,
+      padding: "15px 16px",
+      boxShadow: "0 12px 30px rgba(34,158,217,0.32)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: "rgba(255,255,255,0.20)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "24",
+    height: "24",
+    viewBox: "0 0 24 24",
+    fill: "#fff",
+    "aria-hidden": true
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0412\u043E\u0439\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 Telegram"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "rgba(255,255,255,0.82)",
+      marginTop: 2,
+      lineHeight: 1.35
+    }
+  }, "\u041F\u043E-\u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0435\u043C\u0443 \u2014 \u0432\u0441\u0451 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u0432 \u0442\u0432\u043E\u0451\u043C \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0435")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 20,
+    color: "rgba(255,255,255,0.7)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
       textAlign: "center",
       fontSize: 11.5,
       color: pal.sub,
-      marginTop: 16,
+      marginTop: 14,
       lineHeight: 1.45
     }
-  }, "\u0412\u0445\u043E\u0434 \u043F\u043E \u043F\u043E\u0447\u0442\u0435, Google \u0438\u043B\u0438 Apple \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0432 \u043F\u043E\u043B\u043D\u043E\u0439 \u0432\u0435\u0440\u0441\u0438\u0438.")));
+  }, "\u041F\u043E\u0447\u0442\u0430, Google \u0438 Apple \u2014 \u043F\u043E\u0437\u0436\u0435.")));
 }
 function IconPickerScreen() {
   var {

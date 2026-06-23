@@ -1079,6 +1079,8 @@ function SignUpScreen() {
   // Fresh start: enter empty mode and let the gentle bottom-sheet welcome take
   // over on home (no more forced coach-mark tour).
   const goFresh = () => { app?.enterFresh?.(name); navigate("home"); };
+  // The real door: sign in with the Telegram account → everything persists.
+  const goLive = () => { app?.enterLive?.(); navigate("home"); };
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "100%", color: pal.text, display: "flex", flexDirection: "column", background: pal.bg, position: "relative", overflow: "hidden" }}>
       <div style={{ flex: 1, padding: "max(64px, calc(var(--tg-top-inset, 0px) + 22px)) 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
@@ -1130,7 +1132,28 @@ function SignUpScreen() {
           <span style={{ opacity: 0.5, display: "flex", flexShrink: 0 }}><I.ChevronRight size={20} color={pal.btnFg} /></span>
         </button>
 
-        <div style={{ textAlign: "center", fontSize: 11.5, color: pal.sub, marginTop: 16, lineHeight: 1.45 }}>Вход по почте, Google или Apple появится в полной версии.</div>
+        {/* The REAL door — sign in with Telegram. The two buttons above are
+            showcases (never persisted); this one is the live, saved-for-real app. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 16px" }}>
+          <span style={{ flex: 1, height: 1, background: pal.line }}/>
+          <span style={{ fontSize: 12, color: pal.sub }}>или войди по-настоящему</span>
+          <span style={{ flex: 1, height: 1, background: pal.line }}/>
+        </div>
+        <button onClick={goLive} className="tap" style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",
+          background: "linear-gradient(135deg, #2AABEE 0%, #229ED9 100%)", color: "#fff",
+          border: 0, borderRadius: 20, padding: "15px 16px", boxShadow: "0 12px 30px rgba(34,158,217,0.32)",
+        }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.20)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-hidden><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Войти через Telegram</div>
+            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.82)", marginTop: 2, lineHeight: 1.35 }}>По-настоящему — всё сохранится в твоём аккаунте</div>
+          </div>
+          <I.ChevronRight size={20} color="rgba(255,255,255,0.7)" />
+        </button>
+        <div style={{ textAlign: "center", fontSize: 11.5, color: pal.sub, marginTop: 14, lineHeight: 1.45 }}>Почта, Google и Apple — позже.</div>
       </div>
     </div>
   );
