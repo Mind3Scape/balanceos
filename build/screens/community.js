@@ -81,6 +81,7 @@ function CourseGlass({
    Network is a premium social tier — unlocks at L10. Shown when level too low. */
 function NetworkLocked({
   navigate,
+  live,
   level,
   xp,
   xpMax,
@@ -96,7 +97,34 @@ function NetworkLocked({
     return m === 1 && h !== 11 ? "уровень" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "уровня" : "уровней";
   };
   var progPct = ((10 - levelsLeft - 1 + xpPct) / 10 * 100).toFixed(1);
-  var paths = [{
+
+  // For LIVE users these are the REAL ways to climb — actions inside the app that
+  // actually earn XP. Demo keeps its curated premium showcase.
+  var paths = live ? [{
+    i: "🔥",
+    t: "Закрывай привычки",
+    d: "Каждый день с галочкой — это опыт и шаг к цели.",
+    cta: "К привычкам",
+    action: () => navigate("home"),
+    meta: "+10 XP / день",
+    accent: "#FEDE34"
+  }, {
+    i: "🌤️",
+    t: "Отмечай состояние",
+    d: "Отметка и пара строк в дневнике дают опыт каждый день.",
+    cta: "Отметить сейчас",
+    action: () => navigate("mood"),
+    meta: "+15 XP / день",
+    accent: "#9bd0ff"
+  }, {
+    i: "🤝",
+    t: "Собери команду",
+    d: "Общие привычки с друзьями тоже идут в твой опыт — и так веселее.",
+    cta: "Создать команду",
+    action: () => navigate("team-create"),
+    meta: "Привычки вместе",
+    accent: "#85e3a8"
+  }] : [{
     i: "🔥",
     t: "Держи серию",
     d: `Около ${weeks} недель ежедневных отметок — и ты на месте.`,
@@ -358,7 +386,7 @@ function NetworkLocked({
       color: "var(--text-4)",
       lineHeight: 1.5
     }
-  }, "\u041D\u0430\u043C \u0432\u0430\u0436\u043D\u044B \u043B\u044E\u0434\u0438, \u043F\u0440\u0435\u0434\u0430\u043D\u043D\u044B\u0435 \u0434\u0435\u043B\u0443, \u0430 \u043D\u0435 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u044B\u0439 \u0448\u0443\u043C. \u041A\u043E\u0433\u0434\u0430 \u0432\u0445\u043E\u0434 \u043D\u0443\u0436\u043D\u043E \u0437\u0430\u0441\u043B\u0443\u0436\u0438\u0442\u044C, \u0437\u0434\u0435\u0441\u044C \u043E\u0441\u0442\u0430\u044E\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0442\u0435, \u0441 \u043A\u0435\u043C \u043F\u0440\u0430\u0432\u0434\u0430 \u0445\u043E\u0447\u0435\u0442\u0441\u044F \u043F\u043E\u0437\u043D\u0430\u043A\u043E\u043C\u0438\u0442\u044C\u0441\u044F.")), /*#__PURE__*/React.createElement("button", {
+  }, "\u041D\u0430\u043C \u0432\u0430\u0436\u043D\u044B \u043B\u044E\u0434\u0438, \u043F\u0440\u0435\u0434\u0430\u043D\u043D\u044B\u0435 \u0434\u0435\u043B\u0443, \u0430 \u043D\u0435 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u044B\u0439 \u0448\u0443\u043C. \u041A\u043E\u0433\u0434\u0430 \u0432\u0445\u043E\u0434 \u043D\u0443\u0436\u043D\u043E \u0437\u0430\u0441\u043B\u0443\u0436\u0438\u0442\u044C, \u0437\u0434\u0435\u0441\u044C \u043E\u0441\u0442\u0430\u044E\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0442\u0435, \u0441 \u043A\u0435\u043C \u043F\u0440\u0430\u0432\u0434\u0430 \u0445\u043E\u0447\u0435\u0442\u0441\u044F \u043F\u043E\u0437\u043D\u0430\u043A\u043E\u043C\u0438\u0442\u044C\u0441\u044F.")), !live && /*#__PURE__*/React.createElement("button", {
     onClick: onUnlock,
     className: "tap",
     style: {
@@ -1575,6 +1603,7 @@ function CommunityScreen() {
     }
   }, /*#__PURE__*/React.createElement(NetworkLocked, {
     navigate: navigate,
+    live: _isLiveComm,
     level: userLevel,
     xp: xpInLevel,
     xpMax: xpForNext,
@@ -2514,6 +2543,9 @@ function DurationPicker({
     }
   }, days, " \u0434\u043D\u0435\u0439 \u0432\u0441\u0435\u0433\u043E"))));
 }
+
+// Shared emblem set for teams — a big, tasteful selection (create + settings use the same list).
+var TEAM_EMBLEMS = ["✨", "🔥", "🌱", "🌊", "🏔️", "⛰️", "☀️", "🌙", "⭐", "🌈", "🍀", "🌳", "🌸", "🌿", "🚀", "🎯", "🧭", "🏃", "🚴", "🧘", "🏋️", "⚽", "🏀", "🥊", "🏊", "🤸", "💪", "🥇", "🧠", "📚", "💡", "🎓", "♟️", "🪶", "🔮", "🏆", "👑", "💎", "⚡", "🛡️", "🗝️", "🧩", "❤️", "🤝", "🫶", "🌟", "🎵", "🎨", "🌍", "⚓"];
 function TeamCreateScreen() {
   var {
     navigate
@@ -2622,7 +2654,7 @@ function TeamCreateScreen() {
     [e]: !h[e]
   }));
   var accentSwatches = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
-  var emblemChoices = ["✨", "🌱", "🔥", "🌊", "🏔", "🚀", "🎯", "🧭"];
+  var emblemChoices = TEAM_EMBLEMS;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -2690,7 +2722,11 @@ function TeamCreateScreen() {
       gap: 6,
       marginTop: 14,
       flexWrap: "wrap",
-      position: "relative"
+      position: "relative",
+      maxHeight: 142,
+      overflowY: "auto",
+      scrollbarWidth: "none",
+      paddingRight: 2
     }
   }, emblemChoices.map(e => /*#__PURE__*/React.createElement("button", {
     key: e,
@@ -3739,6 +3775,42 @@ function TeamDetailScreen() {
   // Read the LIVE team from the store so a just-added habit appears immediately.
   var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   var accent = t.accent || "#fef3c7";
+
+  // Real team-chat preview + unread badge for LIVE cloud teams (demo keeps its scripted line).
+  var _chatLive = app?.mode === "live" && !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+  var _readKey = t.cloudId ? "bos:chatread:" + t.cloudId : null;
+  var [chatPeek, setChatPeek] = React.useState(null); // { last, unread } for live teams
+  React.useEffect(() => {
+    if (!_chatLive) return;
+    var on = true;
+    (async () => {
+      try {
+        var me = await window.bosCloud.uid();
+        var rows = await window.bosCloud.loadMessages(t.cloudId);
+        if (!on || !Array.isArray(rows)) return;
+        var lastRead = Number(_readKey && localStorage.getItem(_readKey) || 0);
+        var last = rows.length ? rows[rows.length - 1] : null;
+        var lastText = last ? last.text || (last.image_url ? "📷 Фото" : "") : "";
+        var unread = rows.filter(r => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead).length;
+        setChatPeek({
+          last: lastText,
+          unread: unread
+        });
+      } catch (e) {}
+    })();
+    return () => {
+      on = false;
+    };
+  }, [_chatLive, t.cloudId]);
+  var markChatRead = () => {
+    try {
+      if (_readKey) localStorage.setItem(_readKey, String(Date.now()));
+    } catch (e) {}
+    setChatPeek(p => p ? {
+      ...p,
+      unread: 0
+    } : p);
+  };
   var members = t.members?.length ? t.members : [{
     name: "Ник",
     initials: "Н",
@@ -4005,9 +4077,12 @@ function TeamDetailScreen() {
     }
   }, "14\u0434 \uD83D\uDD25"))))), /*#__PURE__*/React.createElement("button", {
     "data-tour": "team-chat",
-    onClick: () => navigate("team-chat", {
-      team: t
-    }),
+    onClick: () => {
+      markChatRead();
+      navigate("team-chat", {
+        team: t
+      });
+    },
     className: "tap",
     style: {
       width: "100%",
@@ -4053,7 +4128,21 @@ function TeamDetailScreen() {
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, "\u0421\u0435\u0440\u0433\u0435\u0439: \u0426\u0435\u043B\u044C \u0434\u043E\u0431\u044C\u0451\u043C \u043A \u0432\u044B\u0445\u043E\u0434\u043D\u044B\u043C \u2014 \u043D\u0430\u043B\u0435\u0433\u0430\u0435\u043C! \uD83D\uDD25")), /*#__PURE__*/React.createElement("span", {
+  }, _chatLive ? chatPeek ? chatPeek.last || "Пока пусто — напишите первыми" : "…" : "Сергей: Цель добьём к выходным — налегаем! 🔥")), _chatLive ? chatPeek && chatPeek.unread > 0 ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "#FF3B30",
+      color: "#fff",
+      fontSize: 11,
+      fontWeight: 700,
+      borderRadius: 999,
+      minWidth: 20,
+      height: 20,
+      padding: "0 6px",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread) : null : /*#__PURE__*/React.createElement("span", {
     style: {
       background: "#FF3B30",
       color: "#fff",
@@ -4514,7 +4603,7 @@ function TeamSettingsScreen() {
   var [priv, setPriv] = useCS(team.vis !== "public");
   var [notify, setNotify] = useCS(team.notify !== false);
   var [members, setMembers] = useCS(team.members || []);
-  var emblems = ["✨", "🌱", "🔥", "🌊", "🏔", "🚀", "🎯", "🧭"];
+  var emblems = TEAM_EMBLEMS;
   var accents = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
   var SUGGEST = [{
     name: "Аля",

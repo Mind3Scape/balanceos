@@ -29,12 +29,36 @@ function CourseGlass({ c, size = 46 }) {
 
 /* Network locked-state banner.
    Network is a premium social tier — unlocks at L10. Shown when level too low. */
-function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock, onSwitchToCommunity }) {
+function NetworkLocked({ navigate, live, level, xp, xpMax, levelsLeft, weeks, onUnlock, onSwitchToCommunity }) {
   const xpPct = Math.max(0, Math.min(1, xp / xpMax));
   const ruLvl = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "уровень" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "уровня" : "уровней"; };
   const progPct = ((10 - levelsLeft - 1 + xpPct) / 10 * 100).toFixed(1);
 
-  const paths = [
+  // For LIVE users these are the REAL ways to climb — actions inside the app that
+  // actually earn XP. Demo keeps its curated premium showcase.
+  const paths = live ? [
+    {
+      i: "🔥", t: "Закрывай привычки",
+      d: "Каждый день с галочкой — это опыт и шаг к цели.",
+      cta: "К привычкам", action: () => navigate("home"),
+      meta: "+10 XP / день",
+      accent: "#FEDE34",
+    },
+    {
+      i: "🌤️", t: "Отмечай состояние",
+      d: "Отметка и пара строк в дневнике дают опыт каждый день.",
+      cta: "Отметить сейчас", action: () => navigate("mood"),
+      meta: "+15 XP / день",
+      accent: "#9bd0ff",
+    },
+    {
+      i: "🤝", t: "Собери команду",
+      d: "Общие привычки с друзьями тоже идут в твой опыт — и так веселее.",
+      cta: "Создать команду", action: () => navigate("team-create"),
+      meta: "Привычки вместе",
+      accent: "#85e3a8",
+    },
+  ] : [
     {
       i: "🔥", t: "Держи серию",
       d: `Около ${weeks} недель ежедневных отметок — и ты на месте.`,
@@ -132,13 +156,15 @@ function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock
         </div>
       </div>
 
-      {/* Dev: instant unlock — hidden in design system but useful while reviewing */}
+      {/* Dev: instant unlock — review-only, never shown to real (live) users */}
+      {!live && (
       <button onClick={onUnlock} className="tap" style={{
         background: "transparent", border: "1px dashed rgba(0,0,0,0.15)", color: "var(--text-4)",
         borderRadius: 999, padding: "8px 14px", fontSize: 11, marginTop: 4, alignSelf: "center",
       }}>
 Посмотреть открытый Нетворк →
       </button>
+      )}
     </div>
   );
 }
@@ -532,6 +558,7 @@ function CommunityScreen() {
           <div style={{ marginTop: 2 }}>
             <NetworkLocked
               navigate={navigate}
+              live={_isLiveComm}
               level={userLevel}
               xp={xpInLevel}
               xpMax={xpForNext}
@@ -905,6 +932,15 @@ function DurationPicker({ value, onChange }) {
   );
 }
 
+// Shared emblem set for teams — a big, tasteful selection (create + settings use the same list).
+const TEAM_EMBLEMS = [
+  "✨","🔥","🌱","🌊","🏔️","⛰️","☀️","🌙","⭐","🌈","🍀","🌳","🌸","🌿",
+  "🚀","🎯","🧭","🏃","🚴","🧘","🏋️","⚽","🏀","🥊","🏊","🤸","💪","🥇",
+  "🧠","📚","💡","🎓","♟️","🪶","🔮",
+  "🏆","👑","💎","⚡","🛡️","🗝️","🧩",
+  "❤️","🤝","🫶","🌟","🎵","🎨","🌍","⚓",
+];
+
 function TeamCreateScreen() {
   const { navigate } = useNav();
   const app = useApp();
@@ -957,7 +993,7 @@ function TeamCreateScreen() {
   const toggleHabit = (e) => setLinkedHabits(h => ({ ...h, [e]: !h[e] }));
 
   const accentSwatches = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
-  const emblemChoices = ["✨", "🌱", "🔥", "🌊", "🏔", "🚀", "🎯", "🧭"];
+  const emblemChoices = TEAM_EMBLEMS;
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -980,7 +1016,7 @@ function TeamCreateScreen() {
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Команда создателей"
             style={{ width: "100%", marginTop: 6, fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap", position: "relative" }}>
+        <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap", position: "relative", maxHeight: 142, overflowY: "auto", scrollbarWidth: "none", paddingRight: 2 }}>
           {emblemChoices.map(e => (
             <button key={e} onClick={() => setEmblem(e)} className="tap"
               style={{ width: 36, height: 36, borderRadius: "50%", background: emblem === e ? "#0a0a0a" : "rgba(255,255,255,0.7)", border: 0, fontSize: 18, display: "grid", placeItems: "center", boxShadow: emblem === e ? "none" : "inset 0 0 0 1px rgba(0,0,0,0.06)" }}>{e}</button>
@@ -1331,6 +1367,29 @@ function TeamDetailScreen() {
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   const accent = t.accent || "#fef3c7";
+
+  // Real team-chat preview + unread badge for LIVE cloud teams (demo keeps its scripted line).
+  const _chatLive = app?.mode === "live" && !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
+  const _readKey = t.cloudId ? "bos:chatread:" + t.cloudId : null;
+  const [chatPeek, setChatPeek] = React.useState(null); // { last, unread } for live teams
+  React.useEffect(() => {
+    if (!_chatLive) return;
+    let on = true;
+    (async () => {
+      try {
+        const me = await window.bosCloud.uid();
+        const rows = await window.bosCloud.loadMessages(t.cloudId);
+        if (!on || !Array.isArray(rows)) return;
+        const lastRead = Number((_readKey && localStorage.getItem(_readKey)) || 0);
+        const last = rows.length ? rows[rows.length - 1] : null;
+        const lastText = last ? (last.text || (last.image_url ? "📷 Фото" : "")) : "";
+        const unread = rows.filter((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead).length;
+        setChatPeek({ last: lastText, unread: unread });
+      } catch (e) {}
+    })();
+    return () => { on = false; };
+  }, [_chatLive, t.cloudId]);
+  const markChatRead = () => { try { if (_readKey) localStorage.setItem(_readKey, String(Date.now())); } catch (e) {} setChatPeek((p) => p ? { ...p, unread: 0 } : p); };
   const members = t.members?.length ? t.members : [{name:"Ник",initials:"Н",pct:19,color:"#a8b9d4"}];
   const ranked = [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // leaderboard
   const DEFAULT_TEAM_HABITS = [
@@ -1397,13 +1456,15 @@ function TeamDetailScreen() {
       </div>
 
       {/* Team chat — one shared space for the whole team */}
-      <button data-tour="team-chat" onClick={() => navigate("team-chat", { team: t })} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 18, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
+      <button data-tour="team-chat" onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 18, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
         <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Чат команды</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Сергей: Цель добьём к выходным — налегаем! 🔥</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{_chatLive ? (chatPeek ? (chatPeek.last || "Пока пусто — напишите первыми") : "…") : "Сергей: Цель добьём к выходным — налегаем! 🔥"}</div>
         </div>
-        <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>3</span>
+        {_chatLive
+          ? (chatPeek && chatPeek.unread > 0 ? <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span> : null)
+          : <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>3</span>}
         <I.ChevronRight size={18} color="var(--text-4)"/>
       </button>
 
@@ -1557,7 +1618,7 @@ function TeamSettingsScreen() {
   const [priv, setPriv] = useCS(team.vis !== "public");
   const [notify, setNotify] = useCS(team.notify !== false);
   const [members, setMembers] = useCS(team.members || []);
-  const emblems = ["✨","🌱","🔥","🌊","🏔","🚀","🎯","🧭"];
+  const emblems = TEAM_EMBLEMS;
   const accents = ["#fef3c7","#dbe9ff","#d6f3df","#e9dffd","#fde2e2","#ffe1c8","#d4f0eb","#e3e3e3"];
   const SUGGEST = [
     { name: "Аля",  initials: "А", color: "#d4c8e8" },
