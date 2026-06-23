@@ -320,7 +320,7 @@ function HomeScreen() {
   // ("Вторник · 28 апреля"); demo keeps its frozen showcase string.
   let _todayLabel = "Вторник · 28 апреля";
   let _calLabel = "28 апр"; // short form for the Calendar card
-  if (app?.mode === "live") {
+  if (app?.mode !== "demo") { // live AND fresh show the real date; only demo is frozen
     try {
       const _wd = new Intl.DateTimeFormat("ru-RU", { weekday: "long" }).format(new Date());
       const _dm = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date());

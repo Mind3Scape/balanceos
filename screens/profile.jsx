@@ -301,7 +301,7 @@ function ProfileScreen() {
   const app = (typeof useApp === "function") ? useApp() : null;
   const { open: openSheet } = useSheet();
   const openAvatar = () => openSheet(<AvatarPickerSheet dark={app?.themeOverride === "dark"} />);
-  const _isLive = app?.mode === "live";
+  const _isLive = app?.mode !== "demo"; // live AND fresh = real data; only demo is curated
   const _xp = _isLive ? bosLiveXP(app) : 0;
   const _li = bosLevelInfo(_xp);
   const lvlNum = app?.mode === "demo" ? 7 : (_isLive ? _li.level : 1);
@@ -671,7 +671,7 @@ function HistoryScreen() {
     moodText:  "rgba(0,0,0,0.75)",
   };
 
-  const isLive = app?.mode === "live";
+  const isLive = app?.mode !== "demo"; // live AND fresh = real history; only demo is curated
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
   const DIM = [31,28,31,30,31,30,31,31,30,31,30,31];
   // DEMO walks a synthetic April-2026; LIVE walks the user's REAL calendar (today = now).
@@ -1724,8 +1724,8 @@ function AchievementsScreen() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const back = params?.from || "profile";
-  const isLive = app?.mode === "live";
-  // LIVE: achievements earned by real signals; DEMO: the curated showcase list.
+  const isLive = app?.mode !== "demo"; // live AND fresh = real signals; only demo is curated
+  // LIVE/fresh: achievements earned by real signals; DEMO: the curated showcase list.
   const LIST = isLive ? bosLiveAchievements(app) : ACHIEVEMENTS;
   const earned = LIST.filter(a => a.earned);
   const locked = LIST.filter(a => !a.earned);
