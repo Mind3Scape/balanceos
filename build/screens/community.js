@@ -1475,7 +1475,93 @@ function CommunityScreen() {
       gap: 12,
       marginTop: 4
     }
-  }, courses.map((c, i) => /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: 22,
+      padding: "16px 18px",
+      background: "linear-gradient(135deg, #FEDE34 0%, #F7C420 44%, #EF9F14 100%)",
+      boxShadow: "0 8px 22px rgba(239,159,20,0.32)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: -46,
+      right: -28,
+      width: 168,
+      height: 168,
+      borderRadius: "50%",
+      background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)",
+      pointerEvents: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: 15,
+      right: 17,
+      fontSize: 38,
+      lineHeight: 1,
+      pointerEvents: "none"
+    }
+  }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 800,
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      color: "rgba(58,42,0,0.6)"
+    }
+  }, "\u0417\u0430\u0447\u0435\u043C \u043F\u0440\u043E\u0445\u043E\u0434\u0438\u0442\u044C \u043A\u0443\u0440\u0441\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 19,
+      fontWeight: 800,
+      letterSpacing: "-0.4px",
+      color: "#3a2a00",
+      marginTop: 4,
+      maxWidth: 220,
+      lineHeight: 1.2
+    }
+  }, "\u041A\u0430\u0436\u0434\u044B\u0439 \u043A\u0443\u0440\u0441 \u2014 \u0446\u0435\u043B\u044B\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "rgba(58,42,0,0.8)",
+      marginTop: 6,
+      lineHeight: 1.42,
+      maxWidth: 244
+    }
+  }, "\u0410\u0447\u0438\u0432\u043A\u0430, \u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u043E\u043F\u044B\u0442 \u0438 \u0434\u043E\u0441\u0442\u0443\u043F \u043A \u043D\u043E\u0432\u044B\u043C \u043B\u044E\u0434\u044F\u043C. \u0421\u0430\u043C\u044B\u0439 \u0431\u044B\u0441\u0442\u0440\u044B\u0439 \u0440\u043E\u0441\u0442."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      marginTop: 13,
+      flexWrap: "wrap"
+    }
+  }, [["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+1000 XP"]].map(([e, l], i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "rgba(255,255,255,0.55)",
+      borderRadius: 999,
+      padding: "6px 11px",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#3a2a00"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      lineHeight: 1
+    }
+  }, e), l))))), courses.map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     "data-tour": i === 0 ? "course" : undefined,
     onClick: () => navigate("course-detail", {

@@ -524,6 +524,27 @@ function CommunityScreen() {
 
       {section === "community" && commTab === "courses" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+          {/* Gold "why courses" banner — the hook (esp. for a newcomer): a course is
+              the fastest level-up — a whole level + an achievement that opens new
+              circles of people + a big XP boost. Same gold as the level badge. */}
+          <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
+            background: "linear-gradient(135deg, #FEDE34 0%, #F7C420 44%, #EF9F14 100%)",
+            boxShadow: "0 8px 22px rgba(239,159,20,0.32)" }}>
+            <div aria-hidden style={{ position: "absolute", top: -46, right: -28, width: 168, height: 168, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
+            <div aria-hidden style={{ position: "absolute", top: 15, right: 17, fontSize: 38, lineHeight: 1, pointerEvents: "none" }}>🏆</div>
+            <div style={{ position: "relative" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(58,42,0,0.6)" }}>Зачем проходить курсы</div>
+              <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#3a2a00", marginTop: 4, maxWidth: 220, lineHeight: 1.2 }}>Каждый курс — целый уровень</div>
+              <div style={{ fontSize: 13, color: "rgba(58,42,0,0.8)", marginTop: 6, lineHeight: 1.42, maxWidth: 244 }}>Ачивка, большой опыт и доступ к новым людям. Самый быстрый рост.</div>
+              <div style={{ display: "flex", gap: 7, marginTop: 13, flexWrap: "wrap" }}>
+                {[["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+1000 XP"]].map(([e, l], i) => (
+                  <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.55)", borderRadius: 999, padding: "6px 11px", fontSize: 12.5, fontWeight: 700, color: "#3a2a00" }}>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>{e}</span>{l}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
           {courses.map((c, i) => (
             <button key={i} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
               style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", color: "var(--text)", display: "block", width: "100%" }}>
