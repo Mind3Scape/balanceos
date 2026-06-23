@@ -250,16 +250,16 @@ body {
   0%   { opacity: 1; transform: translate(0,0) scale(1); }
   100% { opacity: 0; transform: translate(var(--sx,0), var(--sy,0)) scale(0.3); }
 }
-/* Per-checkmark "+XP" pop — right-anchored to the checkmark (extends LEFT into
-   the row, never clipped by the card's right edge). It floats UP from the
-   checkmark, lands with a springy POP, then drifts up and fades out. */
+/* Per-checkmark "+XP" pop — centred ON the checkmark. Rises up from just below
+   it, lands with a springy POP dead-centre, then fades out IN PLACE (no upward
+   drift). Centring lives on an absolute wrapper so the pill never resizes the row. */
 @keyframes bosXpTick {
-  0%   { opacity: 0; transform: translateY(11px) scale(0.5); }
-  20%  { opacity: 1; transform: translateY(0) scale(0.92); }
-  40%  { opacity: 1; transform: translateY(-2px) scale(1.22); }
-  56%  { opacity: 1; transform: translateY(-3px) scale(0.97); }
-  70%  { opacity: 1; transform: translateY(-4px) scale(1); }
-  100% { opacity: 0; transform: translateY(-17px) scale(0.95); }
+  0%   { opacity: 0; transform: translateY(14px) scale(0.55); }
+  30%  { opacity: 1; transform: translateY(0)    scale(1);    }
+  48%  { opacity: 1; transform: translateY(0)    scale(1.24); }
+  64%  { opacity: 1; transform: translateY(0)    scale(0.98); }
+  78%  { opacity: 1; transform: translateY(0)    scale(1.02); }
+  100% { opacity: 0; transform: translateY(0)    scale(1);    }
 }
 /* Accordion reveal — used by expandable AI insights / patterns / reasoning. */
 .bos-acc-in { animation: bosAccIn 0.26s cubic-bezier(0.22,0.61,0.36,1) both; }

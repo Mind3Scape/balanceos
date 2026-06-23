@@ -30,13 +30,14 @@ function HabitCheck({ done, onToggle, xp = 10 }) {
   return (
     <div style={{ position: "relative", flexShrink: 0, display: "grid", placeItems: "center" }}>
       {tick > 0 && (
-        <span key={tick} aria-hidden style={{
-          position: "absolute", bottom: "55%", right: "2px", whiteSpace: "nowrap", zIndex: 6, pointerEvents: "none",
-          display: "inline-flex", alignItems: "center", gap: 3,
-          background: "#0a0a0a", color: "#FEDE34", fontSize: 11.5, fontWeight: 800,
-          padding: "3px 9px", borderRadius: 999, boxShadow: "0 6px 16px rgba(0,0,0,0.3)",
-          animation: "bosXpTick 1.1s cubic-bezier(0.22,1,0.36,1) forwards",
-        }}>+{xp} XP</span>
+        <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 6, pointerEvents: "none" }}>
+          <span key={tick} style={{
+            display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
+            background: "#0a0a0a", color: "#FEDE34", fontSize: 11.5, fontWeight: 800,
+            padding: "3px 9px", borderRadius: 999, boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
+            animation: "bosXpTick 1.2s cubic-bezier(0.22,1,0.36,1) forwards",
+          }}>+{xp} XP</span>
+        </span>
       )}
       <button className={"check-btn " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}>
         {done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
@@ -543,19 +544,26 @@ function HomeScreen() {
       )}
 
 
-      {/* Invite / share the app — friendly card with an avatar pile */}
+      {/* Invite / share the app — a focused dark CTA (stands apart from the white
+         habit cards above) that ties sharing to the reward loop: friend → XP → level. */}
       <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheet dark={isDark} />)}
-        style={{ marginTop: 12, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "16px 18px", boxShadow: cardShadow, color: "var(--text)", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
-        <span style={{ width: 44, height: 44, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
+        style={{ marginTop: 12, width: "100%", borderRadius: 22, padding: "16px 18px", border: 0, position: "relative", overflow: "hidden",
+          background: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)", boxShadow: "0 10px 26px rgba(20,40,80,0.28)",
+          color: "#fff", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 10%, rgba(255,255,255,0.16) 0%, transparent 52%)", pointerEvents: "none" }} />
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.14)", display: "grid", placeItems: "center", flexShrink: 0, color: "#fff", position: "relative" }}>
           <I.Share size={20} />
         </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>Поделиться приложением</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2 }}>Позови друзей — вместе в балансе</div>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>Позови своих</div>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg, #FEDE34, #EF9F14)", padding: "2px 7px", borderRadius: 999, flexShrink: 0 }}>⚡ +XP</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.74)", marginTop: 3, lineHeight: 1.35 }}>Вместе легче — и за каждого друга XP к новому уровню</div>
         </div>
-        <div style={{ display: "flex", flexShrink: 0 }}>
+        <div style={{ display: "flex", flexShrink: 0, position: "relative" }}>
           {[{ c: "#e8c8a8", i: "А" }, { c: "#a8d4e8", i: "В" }, { c: "#d4b8e8", i: "Л" }].map((p, idx) => (
-            <span key={idx} style={{ width: 30, height: 30, borderRadius: "50%", background: p.c, border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: idx ? -10 : 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
+            <span key={idx} style={{ width: 30, height: 30, borderRadius: "50%", background: p.c, border: "2px solid #1d2c4d", marginLeft: idx ? -10 : 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
           ))}
         </div>
       </button>
