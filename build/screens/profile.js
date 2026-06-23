@@ -463,7 +463,8 @@ function OrbitField({
   people = [],
   levelPct = 2,
   onTap,
-  moodC
+  moodC,
+  dark = false
 }) {
   var t = typeof useT === "function" ? useT() : 0;
   var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
@@ -516,36 +517,50 @@ function OrbitField({
   var maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
   var drawRings = [];
   for (var r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
+
+  // NO background of its own — the constellation floats on the SAME page background as
+  // the rest of the profile. Palette flips with the theme so discs/rings always read.
+  var PAL = dark ? {
+    ring: "186,210,248",
+    disc: "rgba(20,32,54,0.66)",
+    discStroke: "rgba(180,210,255,0.32)",
+    pdisc: "rgba(20,32,54,0.6)",
+    pstroke: "rgba(255,255,255,0.5)",
+    lvlTrack: "rgba(255,255,255,0.12)",
+    badge: "#0a0a0a",
+    avShadow: "0 8px 22px rgba(0,0,0,0.5)",
+    shadow: false
+  } : {
+    ring: "92,120,165",
+    disc: "#ffffff",
+    discStroke: "rgba(0,0,0,0.06)",
+    pdisc: "#ffffff",
+    pstroke: "#ffffff",
+    lvlTrack: "rgba(0,0,0,0.08)",
+    badge: "#ffffff",
+    avShadow: "0 8px 24px rgba(0,0,0,0.18)",
+    shadow: true
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      width: "calc(100% + 32px)",
-      marginLeft: -16,
-      height: 332,
-      overflow: "hidden",
-      background: "radial-gradient(125% 92% at 50% 30%, #18233c 0%, #0c1322 52%, #070b14 100%)"
+      width: "100%",
+      height: 300,
+      margin: "0 auto",
+      overflow: "visible"
     }
-  }, typeof StarField === "function" && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 0
-    }
-  }, /*#__PURE__*/React.createElement(StarField, {
-    count: 46,
-    opacity: 0.5,
-    dark: true
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: "absolute",
       left: "50%",
       top: "50%",
-      width: 250,
-      height: 250,
+      width: 220,
+      height: 220,
       transform: "translate(-50%,-50%)",
       borderRadius: "50%",
-      background: "radial-gradient(circle, " + glow + "55 0%, " + glow + "22 38%, transparent 68%)",
-      filter: "blur(6px)",
+      background: "radial-gradient(circle, " + glow + (dark ? "40" : "30") + " 0%, " + glow + "14 40%, transparent 68%)",
+      filter: "blur(7px)",
       pointerEvents: "none",
       opacity: eo
     }
@@ -566,16 +581,28 @@ function OrbitField({
     cx: "0",
     cy: "0",
     r: "16"
+  })), /*#__PURE__*/React.createElement("filter", {
+    id: "orbShadow",
+    x: "-40%",
+    y: "-40%",
+    width: "180%",
+    height: "180%"
+  }, /*#__PURE__*/React.createElement("feDropShadow", {
+    dx: "0",
+    dy: "2",
+    stdDeviation: "2.2",
+    floodColor: "#000",
+    floodOpacity: "0.16"
   }))), drawRings.map(r => {
     var R = radius(r),
-      op = (0.22 - r * 0.024) * eo * fadeAt(R);
+      op = (dark ? 0.22 : 0.26 - r * 0.03) * eo * fadeAt(R);
     return op <= 0.004 ? null : /*#__PURE__*/React.createElement("circle", {
       key: "ring" + r,
       cx: "0",
       cy: "0",
       r: R.toFixed(1),
       fill: "none",
-      stroke: "rgba(186,210,248," + op.toFixed(3) + ")",
+      stroke: "rgba(" + PAL.ring + "," + op.toFixed(3) + ")",
       strokeWidth: "1"
     });
   }), /*#__PURE__*/React.createElement("g", {
@@ -586,7 +613,7 @@ function OrbitField({
     cy: "0",
     r: lr,
     fill: "none",
-    stroke: "rgba(255,255,255,0.12)",
+    stroke: PAL.lvlTrack,
     strokeWidth: "4"
   }), /*#__PURE__*/React.createElement("circle", {
     cx: "0",
@@ -612,8 +639,9 @@ function OrbitField({
       return /*#__PURE__*/React.createElement("g", {
         key: n.key,
         transform: "translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")",
-        opacity: op.toFixed(2)
-      }, /*#__PURE__*/React.createElement("circle", {
+        opacity: op.toFixed(2),
+        filter: PAL.shadow ? "url(#orbShadow)" : undefined
+      }, dark && /*#__PURE__*/React.createElement("circle", {
         cx: "0",
         cy: "0",
         r: "19",
@@ -626,13 +654,13 @@ function OrbitField({
         cx: "0",
         cy: "0",
         r: "16",
-        fill: "rgba(20,32,54,0.66)"
+        fill: PAL.disc
       }), /*#__PURE__*/React.createElement("circle", {
         cx: "0",
         cy: "0",
         r: "16",
         fill: "none",
-        stroke: "rgba(180,210,255,0.32)",
+        stroke: PAL.discStroke,
         strokeWidth: "0.9"
       }), /*#__PURE__*/React.createElement("text", {
         x: "0",
@@ -652,8 +680,9 @@ function OrbitField({
     return /*#__PURE__*/React.createElement("g", {
       key: n.key,
       transform: "translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")",
-      opacity: op.toFixed(2)
-    }, /*#__PURE__*/React.createElement("circle", {
+      opacity: op.toFixed(2),
+      filter: PAL.shadow ? "url(#orbShadow)" : undefined
+    }, dark && /*#__PURE__*/React.createElement("circle", {
       cx: "0",
       cy: "0",
       r: "18.5",
@@ -666,7 +695,7 @@ function OrbitField({
       cx: "0",
       cy: "0",
       r: "16",
-      fill: "rgba(20,32,54,0.6)"
+      fill: PAL.pdisc
     }), isEmoji ? /*#__PURE__*/React.createElement("text", {
       x: "0",
       y: "0.5",
@@ -686,8 +715,8 @@ function OrbitField({
       cy: "0",
       r: "16.6",
       fill: "none",
-      stroke: "rgba(255,255,255,0.5)",
-      strokeWidth: "1"
+      stroke: PAL.pstroke,
+      strokeWidth: "1.4"
     }));
   })), /*#__PURE__*/React.createElement("button", {
     onClick: onTap,
@@ -711,7 +740,7 @@ function OrbitField({
     avatar: avatar,
     size: 76,
     style: {
-      boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 4px rgba(255,255,255,0.10)"
+      boxShadow: PAL.avShadow
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -721,12 +750,12 @@ function OrbitField({
       width: 27,
       height: 27,
       borderRadius: "50%",
-      background: "#fff",
-      color: "#0a0a0a",
+      background: "#0a0a0a",
+      color: "#fff",
       display: "grid",
       placeItems: "center",
-      border: "2.5px solid #0c1322",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.4)"
+      border: "2.5px solid " + PAL.badge,
+      boxShadow: "0 2px 6px rgba(0,0,0,0.25)"
     }
   }, /*#__PURE__*/React.createElement(I.Pencil, {
     size: 12
@@ -795,7 +824,8 @@ function ProfileScreen() {
     people: orbitPeople,
     levelPct: lvlPct,
     onTap: openAvatar,
-    moodC: app?.mood?.c
+    moodC: app?.mood?.c,
+    dark: app?.themeOverride === "dark"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-flex",

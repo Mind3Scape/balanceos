@@ -144,7 +144,7 @@ const DEMO_ORBIT_PEOPLE = [{ avatar: "m12" }, { avatar: "m14" }, { avatar: "m7" 
    · As habits/people accumulate, outer rings drift past the frame "into the distance".
    Dark starfield + mood-tinted core glow so it feels full-screen and alive. Animated
    on a real clock (useT) like onboarding; reflected in demo with sample people. */
-function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moodC }) {
+function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false }) {
   const t = (typeof useT === "function") ? useT() : 0;
   const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -175,27 +175,39 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
   const maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
   const drawRings = []; for (let r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
 
+  // NO background of its own — the constellation floats on the SAME page background as
+  // the rest of the profile. Palette flips with the theme so discs/rings always read.
+  const PAL = dark ? {
+    ring: "186,210,248", disc: "rgba(20,32,54,0.66)", discStroke: "rgba(180,210,255,0.32)",
+    pdisc: "rgba(20,32,54,0.6)", pstroke: "rgba(255,255,255,0.5)", lvlTrack: "rgba(255,255,255,0.12)",
+    badge: "#0a0a0a", avShadow: "0 8px 22px rgba(0,0,0,0.5)", shadow: false,
+  } : {
+    ring: "92,120,165", disc: "#ffffff", discStroke: "rgba(0,0,0,0.06)",
+    pdisc: "#ffffff", pstroke: "#ffffff", lvlTrack: "rgba(0,0,0,0.08)",
+    badge: "#ffffff", avShadow: "0 8px 24px rgba(0,0,0,0.18)", shadow: true,
+  };
+
   return (
-    <div style={{ position: "relative", width: "calc(100% + 32px)", marginLeft: -16, height: 332, overflow: "hidden",
-      background: "radial-gradient(125% 92% at 50% 30%, #18233c 0%, #0c1322 52%, #070b14 100%)" }}>
-      {/* starfield */}
-      {typeof StarField === "function" && <div style={{ position: "absolute", inset: 0 }}><StarField count={46} opacity={0.5} dark /></div>}
-      {/* mood-tinted core glow */}
-      <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 250, height: 250, transform: "translate(-50%,-50%)", borderRadius: "50%", background: "radial-gradient(circle, " + glow + "55 0%, " + glow + "22 38%, transparent 68%)", filter: "blur(6px)", pointerEvents: "none", opacity: eo }} />
+    <div style={{ position: "relative", width: "100%", height: 300, margin: "0 auto", overflow: "visible" }}>
+      {/* mood-tinted core glow (subtle, blends into the page) */}
+      <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 220, height: 220, transform: "translate(-50%,-50%)", borderRadius: "50%", background: "radial-gradient(circle, " + glow + (dark ? "40" : "30") + " 0%, " + glow + "14 40%, transparent 68%)", filter: "blur(7px)", pointerEvents: "none", opacity: eo }} />
 
       <svg viewBox="-160 -160 320 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none" }}>
-        <defs><clipPath id="orbAvClip"><circle cx="0" cy="0" r="16" /></clipPath></defs>
+        <defs>
+          <clipPath id="orbAvClip"><circle cx="0" cy="0" r="16" /></clipPath>
+          <filter id="orbShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="2.2" floodColor="#000" floodOpacity="0.16" /></filter>
+        </defs>
 
         {/* concentric orbits */}
         {drawRings.map((r) => {
-          const R = radius(r), op = (0.22 - r * 0.024) * eo * fadeAt(R);
+          const R = radius(r), op = (dark ? 0.22 : 0.26 - r * 0.03) * eo * fadeAt(R);
           return op <= 0.004 ? null :
-            <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(186,210,248," + op.toFixed(3) + ")"} strokeWidth="1" />;
+            <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(" + PAL.ring + "," + op.toFixed(3) + ")"} strokeWidth="1" />;
         })}
 
         {/* gold level arc hugging the centre */}
         <g transform="rotate(-90)" opacity={eo}>
-          <circle cx="0" cy="0" r={lr} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="4" />
+          <circle cx="0" cy="0" r={lr} fill="none" stroke={PAL.lvlTrack} strokeWidth="4" />
           <circle cx="0" cy="0" r={lr} fill="none" stroke="#FEDE34" strokeWidth="4" strokeLinecap="round"
             strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - Math.max(0.02, (levelPct || 2) / 100))} />
         </g>
@@ -210,10 +222,10 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
           const gs = ((sz / 16) * pop).toFixed(3);            // canonical r=16, scaled per ring
           if (n.kind === "h") {
             return (
-              <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)}>
-                <circle cx="0" cy="0" r="19" fill={glow} opacity="0.18" style={{ filter: "blur(5px)" }} />
-                <circle cx="0" cy="0" r="16" fill="rgba(20,32,54,0.66)" />
-                <circle cx="0" cy="0" r="16" fill="none" stroke="rgba(180,210,255,0.32)" strokeWidth="0.9" />
+              <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+                {dark && <circle cx="0" cy="0" r="19" fill={glow} opacity="0.18" style={{ filter: "blur(5px)" }} />}
+                <circle cx="0" cy="0" r="16" fill={PAL.disc} />
+                <circle cx="0" cy="0" r="16" fill="none" stroke={PAL.discStroke} strokeWidth="0.9" />
                 <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{n.emoji}</text>
               </g>
             );
@@ -221,13 +233,13 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
           const av = n.avatar, isEmoji = av && ("" + av).indexOf("emoji:") === 0, isMemoji = /^m\d+$/.test(av || "");
           const href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
           return (
-            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)}>
-              <circle cx="0" cy="0" r="18.5" fill={glow} opacity="0.16" style={{ filter: "blur(5px)" }} />
-              <circle cx="0" cy="0" r="16" fill="rgba(20,32,54,0.6)" />
+            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+              {dark && <circle cx="0" cy="0" r="18.5" fill={glow} opacity="0.16" style={{ filter: "blur(5px)" }} />}
+              <circle cx="0" cy="0" r="16" fill={PAL.pdisc} />
               {isEmoji
                 ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
                 : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
-              <circle cx="0" cy="0" r="16.6" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
+              <circle cx="0" cy="0" r="16.6" fill="none" stroke={PAL.pstroke} strokeWidth="1.4" />
             </g>
           );
         })}
@@ -235,8 +247,8 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
 
       {/* you, in the centre — tap to change avatar */}
       <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 76, height: 76, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
-        <BosAvatar avatar={avatar} size={76} style={{ boxShadow: "0 10px 30px rgba(0,0,0,0.55), 0 0 0 4px rgba(255,255,255,0.10)" }} />
-        <span style={{ position: "absolute", right: -1, bottom: -1, width: 27, height: 27, borderRadius: "50%", background: "#fff", color: "#0a0a0a", display: "grid", placeItems: "center", border: "2.5px solid #0c1322", boxShadow: "0 2px 6px rgba(0,0,0,0.4)" }}>
+        <BosAvatar avatar={avatar} size={76} style={{ boxShadow: PAL.avShadow }} />
+        <span style={{ position: "absolute", right: -1, bottom: -1, width: 27, height: 27, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid " + PAL.badge, boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
           <I.Pencil size={12} />
         </span>
       </button>
@@ -282,7 +294,7 @@ function ProfileScreen() {
 
       <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
-        <OrbitField avatar={app?.avatar} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} onTap={openAvatar} moodC={app?.mood?.c} />
+        <OrbitField avatar={app?.avatar} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} onTap={openAvatar} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 2, background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999 }}>
           <I.Sparkles size={11} /> Уровень {lvlNum}
         </div>
