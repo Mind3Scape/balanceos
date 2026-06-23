@@ -431,6 +431,204 @@ function FeedbackSheet({
     }
   }, "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C")));
 }
+
+/* Orbit field — YOU in the centre, your habits orbiting on the inner ring, and the
+   people you bring into your circle on the outer rings. Empty rings rotate from the
+   start (a living, multiplayer feel); habits appear as you add them; invited people
+   fill the outer rings — real people once the cloud is on (T1). A thin gold arc around
+   the centre shows your level progress. Pure CSS spin; each item counter-spins by the
+   same duration to stay upright. */
+function OrbitField({
+  avatar,
+  habits = [],
+  people = [],
+  levelPct = 2,
+  onTap,
+  size = 280
+}) {
+  var C = size / 2;
+  var hb = (habits || []).slice(0, 9);
+  var pp = (people || []).slice(0, 12);
+  var rings = [{
+    R: size * 0.296,
+    dur: 30,
+    dir: 1,
+    sz: size * 0.121,
+    items: hb.map((h, i) => ({
+      t: "h",
+      e: h.emoji || "✨",
+      k: "h" + (h.id != null ? h.id : i)
+    }))
+  }, {
+    R: size * 0.400,
+    dur: 48,
+    dir: -1,
+    sz: size * 0.107,
+    items: pp.slice(0, 7).map((p, i) => ({
+      t: "p",
+      p: p,
+      k: "p" + i
+    }))
+  }, {
+    R: size * 0.464,
+    dur: 66,
+    dir: 1,
+    sz: size * 0.093,
+    items: pp.slice(7).map((p, i) => ({
+      t: "p",
+      p: p,
+      k: "q" + i
+    }))
+  }];
+  var lr = size * 0.189; // level ring radius (hugs the centre avatar)
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: size,
+      height: size,
+      margin: "0 auto"
+    }
+  }, rings.map((ring, ri) => {
+    var wrap = ring.dir > 0 ? "bosSpin" : "bosSpinR";
+    var anti = ring.dir > 0 ? "bosSpinR" : "bosSpin";
+    return /*#__PURE__*/React.createElement(React.Fragment, {
+      key: ri
+    }, /*#__PURE__*/React.createElement("div", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        left: C - ring.R,
+        top: C - ring.R,
+        width: ring.R * 2,
+        height: ring.R * 2,
+        borderRadius: "50%",
+        border: "1px dashed var(--text-4, rgba(0,0,0,0.22))",
+        opacity: 0.34 - ri * 0.08
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "bos-orbit-ring",
+      style: {
+        position: "absolute",
+        left: C,
+        top: C,
+        width: 0,
+        height: 0,
+        animation: wrap + " " + ring.dur + "s linear infinite"
+      }
+    }, ring.items.map((it, i) => {
+      var ang = 360 / Math.max(ring.items.length, 1) * i;
+      return /*#__PURE__*/React.createElement("div", {
+        key: it.k,
+        style: {
+          position: "absolute",
+          left: 0,
+          top: 0,
+          transform: "rotate(" + ang + "deg) translate(0, " + -ring.R + "px)"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        className: "bos-orbit-anti",
+        style: {
+          position: "absolute",
+          left: -ring.sz / 2,
+          top: -ring.sz / 2,
+          width: ring.sz,
+          height: ring.sz,
+          transformOrigin: "center",
+          animation: anti + " " + ring.dur + "s linear infinite"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: "100%",
+          height: "100%",
+          transform: "rotate(" + -ang + "deg)"
+        }
+      }, it.t === "h" ? /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: "100%",
+          height: "100%",
+          borderRadius: "50%",
+          background: "var(--card,#fff)",
+          boxShadow: "0 3px 10px rgba(0,0,0,0.14)",
+          display: "grid",
+          placeItems: "center",
+          fontSize: Math.round(ring.sz * 0.52)
+        }
+      }, it.e) : /*#__PURE__*/React.createElement(BosAvatar, {
+        avatar: it.p && it.p.avatar,
+        size: ring.sz,
+        style: {
+          border: "2px solid #fff",
+          boxShadow: "0 3px 10px rgba(0,0,0,0.18)"
+        }
+      }))));
+    })));
+  }), /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 " + size + " " + size,
+    style: {
+      position: "absolute",
+      inset: 0,
+      transform: "rotate(-90deg)",
+      pointerEvents: "none"
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: C,
+    cy: C,
+    r: lr,
+    fill: "none",
+    stroke: "var(--card-2,rgba(0,0,0,0.07))",
+    strokeWidth: "4.5"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: C,
+    cy: C,
+    r: lr,
+    fill: "none",
+    stroke: "#FEDE34",
+    strokeWidth: "4.5",
+    strokeLinecap: "round",
+    strokeDasharray: 2 * Math.PI * lr,
+    strokeDashoffset: 2 * Math.PI * lr * (1 - Math.max(0.02, levelPct / 100))
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: onTap,
+    className: "tap",
+    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
+    style: {
+      position: "absolute",
+      left: C - size * 0.168,
+      top: C - size * 0.168,
+      width: size * 0.336,
+      height: size * 0.336,
+      borderRadius: "50%",
+      border: 0,
+      padding: 0,
+      background: "transparent"
+    }
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: avatar,
+    size: size * 0.336,
+    style: {
+      boxShadow: "0 8px 24px rgba(0,0,0,0.2)"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: -2,
+      bottom: -2,
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      background: "#0a0a0a",
+      color: "#fff",
+      display: "grid",
+      placeItems: "center",
+      border: "2.5px solid var(--bg,#fff)",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Pencil, {
+    size: 13
+  }))));
+}
 function ProfileScreen() {
   var {
     navigate
@@ -442,6 +640,11 @@ function ProfileScreen() {
   var openAvatar = () => openSheet(/*#__PURE__*/React.createElement(AvatarPickerSheet, {
     dark: app?.themeOverride === "dark"
   }));
+  var _isLive = app?.mode === "live";
+  var _xp = _isLive ? bosTotalXP(app?.habits) : 0;
+  var _li = bosLevelInfo(_xp);
+  var lvlNum = app?.mode === "demo" ? 7 : _isLive ? _li.level : 1;
+  var lvlPct = app?.mode === "demo" ? 72 : _isLive ? _li.pct : 2;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -462,99 +665,37 @@ function ProfileScreen() {
       textAlign: "center",
       marginTop: 4
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      width: 140,
-      height: 140,
-      margin: "0 auto"
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "140",
-    height: "140",
-    viewBox: "0 0 140 140",
-    style: {
-      position: "absolute",
-      inset: 0,
-      transform: "rotate(-90deg)"
-    }
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "70",
-    cy: "70",
-    r: "65",
-    stroke: "var(--card-2)",
-    strokeWidth: "4",
-    fill: "none"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "70",
-    cy: "70",
-    r: "65",
-    stroke: "#FEDE34",
-    strokeWidth: "4",
-    fill: "none",
-    strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * 65,
-    strokeDashoffset: 2 * Math.PI * 65 * (1 - 0.72)
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: openAvatar,
-    className: "tap",
-    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
-    style: {
-      position: "absolute",
-      inset: 11,
-      borderRadius: "50%",
-      border: 0,
-      padding: 0,
-      background: "transparent"
-    }
-  }, /*#__PURE__*/React.createElement(BosAvatar, {
+  }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
-    size: 118
-  }), /*#__PURE__*/React.createElement("span", {
+    habits: app?.habits || [],
+    people: [],
+    levelPct: lvlPct,
+    onTap: openAvatar,
+    size: 272
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "absolute",
-      right: 3,
-      bottom: 3,
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      background: "#0a0a0a",
-      color: "#fff",
-      display: "grid",
-      placeItems: "center",
-      border: "2.5px solid #fff",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.25)"
-    }
-  }, /*#__PURE__*/React.createElement(I.Pencil, {
-    size: 13
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      bottom: -4,
-      left: "50%",
-      transform: "translateX(-50%)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 2,
       background: "#0a0a0a",
       color: "#FEDE34",
       fontSize: 12,
       fontWeight: 700,
       letterSpacing: 0.3,
       padding: "4px 12px",
-      borderRadius: 999,
-      whiteSpace: "nowrap",
-      display: "flex",
-      alignItems: "center",
-      gap: 5
+      borderRadius: 999
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
     size: 11
-  }), " \u0423\u0440\u043E\u0432\u0435\u043D\u044C 7")), /*#__PURE__*/React.createElement("div", {
+  }), " \u0423\u0440\u043E\u0432\u0435\u043D\u044C ", lvlNum), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
       fontWeight: 700,
       fontSize: 28,
-      marginTop: 20
+      marginTop: 14
     }
-  }, "\u041F\u0430\u0432\u0435\u043B \u0425\u0438\u043B\u043B\u0441\u043E\u043D"), /*#__PURE__*/React.createElement("div", {
+  }, app?.mode === "demo" ? "Павел Хиллсон" : app?.userName || "Ты"), app?.mode === "demo" && /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-2",
     style: {
       fontSize: 14
@@ -566,7 +707,7 @@ function ProfileScreen() {
       gap: 8,
       marginTop: 14
     }
-  }, [{
+  }, (app?.mode === "demo" ? [{
     l: "Уровень",
     v: "7"
   }, {
@@ -575,7 +716,16 @@ function ProfileScreen() {
   }, {
     l: "Опыт",
     v: "1 240"
-  }].map((s, i) => /*#__PURE__*/React.createElement("div", {
+  }] : [{
+    l: "Уровень",
+    v: "" + lvlNum
+  }, {
+    l: "До " + (lvlNum + 1) + " ур.",
+    v: lvlPct + "%"
+  }, {
+    l: "Опыт",
+    v: "" + _xp
+  }]).map((s, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     className: "bos-sys-card",
     style: {

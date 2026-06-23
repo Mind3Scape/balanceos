@@ -129,11 +129,74 @@ function FeedbackSheet({ title = "Написать в поддержку", dark 
   );
 }
 
+/* Orbit field — YOU in the centre, your habits orbiting on the inner ring, and the
+   people you bring into your circle on the outer rings. Empty rings rotate from the
+   start (a living, multiplayer feel); habits appear as you add them; invited people
+   fill the outer rings — real people once the cloud is on (T1). A thin gold arc around
+   the centre shows your level progress. Pure CSS spin; each item counter-spins by the
+   same duration to stay upright. */
+function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, size = 280 }) {
+  const C = size / 2;
+  const hb = (habits || []).slice(0, 9);
+  const pp = (people || []).slice(0, 12);
+  const rings = [
+    { R: size * 0.296, dur: 30, dir: 1,  sz: size * 0.121, items: hb.map((h, i) => ({ t: "h", e: h.emoji || "✨", k: "h" + (h.id != null ? h.id : i) })) },
+    { R: size * 0.400, dur: 48, dir: -1, sz: size * 0.107, items: pp.slice(0, 7).map((p, i) => ({ t: "p", p: p, k: "p" + i })) },
+    { R: size * 0.464, dur: 66, dir: 1,  sz: size * 0.093, items: pp.slice(7).map((p, i) => ({ t: "p", p: p, k: "q" + i })) },
+  ];
+  const lr = size * 0.189; // level ring radius (hugs the centre avatar)
+  return (
+    <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
+      {rings.map((ring, ri) => {
+        const wrap = ring.dir > 0 ? "bosSpin" : "bosSpinR";
+        const anti = ring.dir > 0 ? "bosSpinR" : "bosSpin";
+        return (
+          <React.Fragment key={ri}>
+            <div aria-hidden style={{ position: "absolute", left: C - ring.R, top: C - ring.R, width: ring.R * 2, height: ring.R * 2, borderRadius: "50%", border: "1px dashed var(--text-4, rgba(0,0,0,0.22))", opacity: 0.34 - ri * 0.08 }} />
+            <div className="bos-orbit-ring" style={{ position: "absolute", left: C, top: C, width: 0, height: 0, animation: wrap + " " + ring.dur + "s linear infinite" }}>
+              {ring.items.map((it, i) => {
+                const ang = (360 / Math.max(ring.items.length, 1)) * i;
+                return (
+                  <div key={it.k} style={{ position: "absolute", left: 0, top: 0, transform: "rotate(" + ang + "deg) translate(0, " + (-ring.R) + "px)" }}>
+                    <div className="bos-orbit-anti" style={{ position: "absolute", left: -ring.sz / 2, top: -ring.sz / 2, width: ring.sz, height: ring.sz, transformOrigin: "center", animation: anti + " " + ring.dur + "s linear infinite" }}>
+                      <div style={{ width: "100%", height: "100%", transform: "rotate(" + (-ang) + "deg)" }}>
+                        {it.t === "h"
+                          ? <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--card,#fff)", boxShadow: "0 3px 10px rgba(0,0,0,0.14)", display: "grid", placeItems: "center", fontSize: Math.round(ring.sz * 0.52) }}>{it.e}</div>
+                          : <BosAvatar avatar={it.p && it.p.avatar} size={ring.sz} style={{ border: "2px solid #fff", boxShadow: "0 3px 10px rgba(0,0,0,0.18)" }} />}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </React.Fragment>
+        );
+      })}
+      <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", pointerEvents: "none" }}>
+        <circle cx={C} cy={C} r={lr} fill="none" stroke="var(--card-2,rgba(0,0,0,0.07))" strokeWidth="4.5" />
+        <circle cx={C} cy={C} r={lr} fill="none" stroke="#FEDE34" strokeWidth="4.5" strokeLinecap="round"
+          strokeDasharray={2 * Math.PI * lr} strokeDashoffset={2 * Math.PI * lr * (1 - Math.max(0.02, levelPct / 100))} />
+      </svg>
+      <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: C - size * 0.168, top: C - size * 0.168, width: size * 0.336, height: size * 0.336, borderRadius: "50%", border: 0, padding: 0, background: "transparent" }}>
+        <BosAvatar avatar={avatar} size={size * 0.336} style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }} />
+        <span style={{ position: "absolute", right: -2, bottom: -2, width: 30, height: 30, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid var(--bg,#fff)", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
+          <I.Pencil size={13} />
+        </span>
+      </button>
+    </div>
+  );
+}
+
 function ProfileScreen() {
   const { navigate } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const { open: openSheet } = useSheet();
   const openAvatar = () => openSheet(<AvatarPickerSheet dark={app?.themeOverride === "dark"} />);
+  const _isLive = app?.mode === "live";
+  const _xp = _isLive ? bosTotalXP(app?.habits) : 0;
+  const _li = bosLevelInfo(_xp);
+  const lvlNum = app?.mode === "demo" ? 7 : (_isLive ? _li.level : 1);
+  const lvlPct = app?.mode === "demo" ? 72 : (_isLive ? _li.pct : 2);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader onBack={() => navigate("home")} title="" right={
@@ -144,35 +207,19 @@ function ProfileScreen() {
       }/>
 
       <div style={{ textAlign: "center", marginTop: 4 }}>
-        <div style={{ position: "relative", width: 140, height: 140, margin: "0 auto" }}>
-          {/* Level / energy progress ring — same language as the home avatar */}
-          <svg width="140" height="140" viewBox="0 0 140 140" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-            <circle cx="70" cy="70" r="65" stroke="var(--card-2)" strokeWidth="4" fill="none" />
-            <circle cx="70" cy="70" r="65" stroke="#FEDE34" strokeWidth="4" fill="none"
-              strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 65}
-              strokeDashoffset={2 * Math.PI * 65 * (1 - 0.72)} />
-          </svg>
-          <button onClick={openAvatar} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", inset: 11, borderRadius: "50%", border: 0, padding: 0, background: "transparent" }}>
-            <BosAvatar avatar={app?.avatar} size={118} />
-            <span style={{ position: "absolute", right: 3, bottom: 3, width: 30, height: 30, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid #fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
-              <I.Pencil size={13}/>
-            </span>
-          </button>
-          {/* Level badge */}
-          <div style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}>
-            <I.Sparkles size={11} /> Уровень 7
-          </div>
+        {/* Your orbit — you in the centre, habits orbiting, room for the people you bring in */}
+        <OrbitField avatar={app?.avatar} habits={app?.habits || []} people={[]} levelPct={lvlPct} onTap={openAvatar} size={272} />
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 2, background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999 }}>
+          <I.Sparkles size={11} /> Уровень {lvlNum}
         </div>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontWeight: 700, fontSize: 28, marginTop: 20 }}>Павел Хиллсон</div>
-        <div className="bos-sys-text-2" style={{ fontSize: 14 }}>tomhill@mail.com</div>
-        {/* Quick stats — level energy + credits */}
+        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontWeight: 700, fontSize: 28, marginTop: 14 }}>{app?.mode === "demo" ? "Павел Хиллсон" : (app?.userName || "Ты")}</div>
+        {app?.mode === "demo" && <div className="bos-sys-text-2" style={{ fontSize: 14 }}>tomhill@mail.com</div>}
+        {/* Quick stats — real for live; curated for demo */}
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 14 }}>
-          {[
-            { l: "Уровень", v: "7" },
-            { l: "До 8 ур.", v: "72%" },
-            { l: "Опыт", v: "1 240" },
-          ].map((s, i) => (
+          {(app?.mode === "demo"
+            ? [{ l: "Уровень", v: "7" }, { l: "До 8 ур.", v: "72%" }, { l: "Опыт", v: "1 240" }]
+            : [{ l: "Уровень", v: "" + lvlNum }, { l: "До " + (lvlNum + 1) + " ур.", v: lvlPct + "%" }, { l: "Опыт", v: "" + _xp }]
+          ).map((s, i) => (
             <div key={i} className="bos-sys-card" style={{ padding: "8px 16px", borderRadius: 16, minWidth: 72 }}>
               <div className="bos-sys-text-3" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>{s.l}</div>
               <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.4px", marginTop: 1 }}>{s.v}</div>
