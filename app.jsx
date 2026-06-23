@@ -108,7 +108,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v127";
+const APP_VERSION = "v128";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -155,9 +155,9 @@ const TOUR_STOPS = [
     body: "Лидерборд по вкладу, прогресс, живые цифры — тренеру видно каждого. А вот и общий чат ↓" },
   { kind: "peek", tab: "team-chat", eyebrow: "Чат команды", title: "Команда на связи",
     body: "Заглянем внутрь: переписка, фото, взаимная поддержка — так команда держит общий ритм вместе." },
-  { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="impact"]', radius: 20, eyebrow: "Нетворк · твой вклад", title: "Стань тем, к кому идут",
+  { kind: "spot", tab: "community", view: { section: "community", commTab: "network", networkUnlocked: true }, sel: '[data-tour="impact"]', radius: 20, eyebrow: "Нетворк · твой вклад", title: "Стань тем, к кому идут",
     body: "С ростом уровня ты сам помогаешь кругу — ведёшь, консультируешь, делишься тем, что умеешь. Каждое доброе дело растит твой вклад и репутацию." },
-  { kind: "spot", tab: "community", view: { section: "discover", discTab: "network" }, sel: '[data-tour="contacts"]', radius: 20, eyebrow: "Нетворк · контакты", title: "Заказывай помощь других",
+  { kind: "spot", tab: "community", view: { section: "community", commTab: "network", networkUnlocked: true }, sel: '[data-tour="contacts"]', radius: 20, eyebrow: "Нетворк · контакты", title: "Заказывай помощь других",
     body: "А XP за привычки трать на людей вокруг: запишись к человеку, попади в его карточку, закажи услугу наставника. Так растёте вместе." },
   { kind: "spot", tab: "community", view: { section: "community", commTab: "courses" }, sel: '[data-tour="course"]', radius: 20, eyebrow: "Курсы", title: "Ускорители роста",
     body: "Курсы и интенсивы поднимают уровень и открывают новые круги контактов — как ключи: прошёл курс → получил ачивку → доступ к людям выше." },
@@ -422,11 +422,11 @@ const TAB_INTROS = {
     body: "Привычки и цели живут здесь. Делай их один или вместе с близкими, держа общую серию.",
     pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "🎯", label: "Цели" }, { emoji: "👥", label: "Вместе" } ] },
   community: { hero: "💛", eyebrow: "Сообщество", title: "Сердце приложения",
-    body: "Команды с близкими, курсы и тренинги, нетворк наставников. Вместе держим ритм сильнее.",
+    body: "Слева — команды с близкими. Справа — сообщество: нетворк, курсы и партнёры. Вместе держим ритм сильнее.",
     pills: [
       { emoji: "👥", label: "Команды", view: { section: "discover", discTab: "teams" } },
+      { emoji: "🧭", label: "Нетворк", view: { section: "community", commTab: "network" } },
       { emoji: "🎓", label: "Курсы", view: { section: "community", commTab: "courses" } },
-      { emoji: "🧭", label: "Нетворк", view: { section: "discover", discTab: "network" } },
     ] },
   ai: { eyebrow: "Помощник", title: "ИИ всегда рядом",
     body: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст и подсказывает по делу.",
@@ -444,7 +444,7 @@ const DEMO_INTROS = {
     body: "Привычки и цели — одному или вместе. Шаблоны для быстрого старта.",
     pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "🎯", label: "Цели" }, { emoji: "👥", label: "Вместе" } ] },
   community: { hero: "💛", eyebrow: "Сообщество", title: "Сердце экосистемы", detail: true,
-    body: "Команды с близкими, нетворк наставников, курсы. Самая глубина — здесь.",
+    body: "Слева команды с близкими, справа — нетворк, курсы и партнёры. Самая глубина здесь.",
     pills: [ { emoji: "👥", label: "Команды" }, { emoji: "🧭", label: "Нетворк" }, { emoji: "🎓", label: "Курсы" } ] },
   ai: { eyebrow: "Помощник", title: "ИИ всегда рядом", detail: true,
     body: "Совет, разбор дня, план на завтра — держит в уме твой контекст и подсказывает по делу.",

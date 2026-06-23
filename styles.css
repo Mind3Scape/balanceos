@@ -101,6 +101,11 @@ button { font: inherit; cursor: pointer; }
   color: var(--text-2);
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
+/* Thinner secondary segmented control — same family as .tab-pill, one tier down.
+   Used for the Нетворк/Курсы/Партнёры scope bar under «Сообщество». */
+.tab-pill-sm { padding: 4px; gap: 3px; }
+.tab-pill-sm button { padding: 8px 14px; font-size: 13.5px; }
+.theme-dark .tab-pill-sm button.active { box-shadow: inset 0 2px 4px rgba(0,0,0,0.22); }
 
 .divider {
   height: 1px;

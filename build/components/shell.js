@@ -1005,6 +1005,9 @@ var SEED_TEAMS = [{
   name: "Команда создателей",
   emblem: "✨",
   goal: "50 добрых дел",
+  target: 50,
+  current: 31,
+  unit: "дел",
   date: "1 — 31 дек",
   progress: 0.62,
   accent: "#fef3c7",
@@ -1083,6 +1086,9 @@ var SEED_TEAMS = [{
   name: "Добрые дела",
   emblem: "🌱",
   goal: "21-дневный спринт доброты",
+  target: 21,
+  current: 9,
+  unit: "дней",
   date: "1 — 21 апр",
   progress: 0.41,
   accent: "#d6f3df",
@@ -1341,7 +1347,8 @@ function AppProvider({
     setCommunityView({
       networkUnlocked: true,
       discTab: "teams",
-      section: "discover"
+      section: "discover",
+      commTab: "network"
     });
     // Demo greets each screen with its own intro sheet → clear "seen" so home
     // (and every tab) shows one. No forced linear tour anymore.
@@ -1367,7 +1374,7 @@ function AppProvider({
       networkUnlocked: false,
       discTab: "teams",
       section: "discover",
-      commTab: "courses"
+      commTab: "network"
     });
     // Arm the welcome sheets; mark home as already-introduced so only the OTHER
     // tabs trigger a contextual intro when the user first opens them.
@@ -1391,7 +1398,7 @@ function AppProvider({
   var [communityView, setCommunityViewRaw] = useState({
     section: "discover",
     discTab: "teams",
-    commTab: "courses",
+    commTab: "network",
     networkUnlocked: false
   });
   var setCommunityView = patch => setCommunityViewRaw(v => ({

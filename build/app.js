@@ -111,7 +111,7 @@ var START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a fri
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v127";
+var APP_VERSION = "v128";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -264,8 +264,9 @@ var TOUR_STOPS = [{
   kind: "spot",
   tab: "community",
   view: {
-    section: "discover",
-    discTab: "network"
+    section: "community",
+    commTab: "network",
+    networkUnlocked: true
   },
   sel: '[data-tour="impact"]',
   radius: 20,
@@ -276,8 +277,9 @@ var TOUR_STOPS = [{
   kind: "spot",
   tab: "community",
   view: {
-    section: "discover",
-    discTab: "network"
+    section: "community",
+    commTab: "network",
+    networkUnlocked: true
   },
   sel: '[data-tour="contacts"]',
   radius: 20,
@@ -1013,7 +1015,7 @@ var TAB_INTROS = {
     hero: "💛",
     eyebrow: "Сообщество",
     title: "Сердце приложения",
-    body: "Команды с близкими, курсы и тренинги, нетворк наставников. Вместе держим ритм сильнее.",
+    body: "Слева — команды с близкими. Справа — сообщество: нетворк, курсы и партнёры. Вместе держим ритм сильнее.",
     pills: [{
       emoji: "👥",
       label: "Команды",
@@ -1022,18 +1024,18 @@ var TAB_INTROS = {
         discTab: "teams"
       }
     }, {
+      emoji: "🧭",
+      label: "Нетворк",
+      view: {
+        section: "community",
+        commTab: "network"
+      }
+    }, {
       emoji: "🎓",
       label: "Курсы",
       view: {
         section: "community",
         commTab: "courses"
-      }
-    }, {
-      emoji: "🧭",
-      label: "Нетворк",
-      view: {
-        section: "discover",
-        discTab: "network"
       }
     }]
   },
@@ -1100,7 +1102,7 @@ var DEMO_INTROS = {
     eyebrow: "Сообщество",
     title: "Сердце экосистемы",
     detail: true,
-    body: "Команды с близкими, нетворк наставников, курсы. Самая глубина — здесь.",
+    body: "Слева команды с близкими, справа — нетворк, курсы и партнёры. Самая глубина здесь.",
     pills: [{
       emoji: "👥",
       label: "Команды"

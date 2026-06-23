@@ -419,7 +419,7 @@ const SEED_GOALS = [
   { id: 4, emoji: "🧘🏼‍♀️", name: "300 дней медитации", current: 187, target: 300, unit: "дней", deadline: "в след. году", habitIds: [2] },
 ];
 const SEED_TEAMS = [
-  { _id: "seed-1", name: "Команда создателей", emblem: "✨", goal: "50 добрых дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
+  { _id: "seed-1", name: "Команда создателей", emblem: "✨", goal: "50 добрых дел", target: 50, current: 31, unit: "дел", date: "1 — 31 дек", progress: 0.62, accent: "#fef3c7",
     members: [
       { name: "Ник",     initials: "Н",  color: "#7FB3F2", pct: 19, streak: 6,  todayDone: 1, todayTotal: 4 },
       { name: "Светлана", initials: "С",  color: "#F4A574", pct: 50, streak: 12, todayDone: 2, todayTotal: 4 },
@@ -432,7 +432,7 @@ const SEED_TEAMS = [
       { id: 203, emoji: "📖", name: "Читаем вместе",        isMain: false, doneToday: 1, total: 4, weekPct: 0.42, week: [0,1,0,1,0,0,1] },
       { id: 204, emoji: "🥗", name: "Здоровое питание",     isMain: false, doneToday: 3, total: 4, weekPct: 0.81, week: [1,1,1,1,0,1,1] },
     ] },
-  { _id: "seed-2", name: "Добрые дела", emblem: "🌱", goal: "21-дневный спринт доброты", date: "1 — 21 апр", progress: 0.41, accent: "#d6f3df",
+  { _id: "seed-2", name: "Добрые дела", emblem: "🌱", goal: "21-дневный спринт доброты", target: 21, current: 9, unit: "дней", date: "1 — 21 апр", progress: 0.41, accent: "#d6f3df",
     members: [
       { name: "Анна", initials: "А", color: "#F4A574", pct: 33, streak: 4, todayDone: 1, todayTotal: 2 },
       { name: "Миша", initials: "М", color: "#B89AF0", pct: 71, streak: 15, todayDone: 2, todayTotal: 2 },
@@ -539,7 +539,7 @@ function AppProvider({ children }) {
     setMode("demo"); setUserName("Павел");
     setHabits(SEED_HABITS); setGoals(SEED_GOALS); setTeams(SEED_TEAMS);
     setDayMoods(SEED_DAYMOODS); setDayNotes(SEED_DAYNOTES); setMood(MOOD_OPTIONS[1]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(DEMO_WIDGETS);
-    setCommunityView({ networkUnlocked: true, discTab: "teams", section: "discover" });
+    setCommunityView({ networkUnlocked: true, discTab: "teams", section: "discover", commTab: "network" });
     // Demo greets each screen with its own intro sheet → clear "seen" so home
     // (and every tab) shows one. No forced linear tour anymore.
     setOnbWelcome(false); setOnbTab(null); seenTabs.current = {}; setTourStep(-1); setTourScreen(null); setGuideDone(false);
@@ -548,7 +548,7 @@ function AppProvider({ children }) {
     setMode("fresh"); setUserName((name || "").trim());
     setHabits([]); setGoals([]); setTeams([]);
     setDayMoods({}); setDayNotes({}); setMood(MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
-    setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "courses" });
+    setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // Arm the welcome sheets; mark home as already-introduced so only the OTHER
     // tabs trigger a contextual intro when the user first opens them.
     setOnbWelcome(true); setOnbTab(null); seenTabs.current = { home: true }; setTourStep(-1); setTourScreen(null); setGuideDone(false);
@@ -558,7 +558,7 @@ function AppProvider({ children }) {
 
   // Community tab/section view-state lives here so navigating into a detail
   // screen and back doesn't reset it (the screen unmounts on push/pop).
-  const [communityView, setCommunityViewRaw] = useState({ section: "discover", discTab: "teams", commTab: "courses", networkUnlocked: false });
+  const [communityView, setCommunityViewRaw] = useState({ section: "discover", discTab: "teams", commTab: "network", networkUnlocked: false });
   const setCommunityView = (patch) => setCommunityViewRaw(v => ({ ...v, ...patch }));
 
   return <AppStateCtx.Provider value={{

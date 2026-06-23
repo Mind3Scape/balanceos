@@ -1132,15 +1132,18 @@ function HomeScreen() {
   }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
-      background: cardBg,
-      border: cardBorder,
-      borderRadius: 22,
-      overflow: "hidden",
-      boxShadow: cardShadow,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
       color: "var(--text)"
     }
-  }, habits.map((h, idx) => /*#__PURE__*/React.createElement("div", {
-    key: h.id
+  }, habits.map(h => /*#__PURE__*/React.createElement("div", {
+    key: h.id,
+    style: {
+      borderRadius: 18,
+      overflow: "hidden",
+      boxShadow: cardShadow
+    }
   }, /*#__PURE__*/React.createElement(SwipeRow, {
     rowBg: rowBg,
     dark: isDark,
@@ -1194,23 +1197,17 @@ function HomeScreen() {
       color: "var(--text-2)",
       letterSpacing: "-0.2px"
     }
-  }, h.name), /*#__PURE__*/React.createElement("div", {
+  }, h.name), (h.friends?.length || h.duration) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
-      fontSize: 12,
-      color: "var(--text-4)",
-      marginTop: 2,
-      flexWrap: "wrap"
+      marginTop: 3,
+      flexWrap: "wrap",
+      fontSize: 11,
+      color: "var(--text-4)"
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 3
-    }
-  }, "\uD83D\uDD25 ", h.streak, "\u0434"), h.duration && /*#__PURE__*/React.createElement("span", {
+  }, h.duration && /*#__PURE__*/React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -1218,12 +1215,12 @@ function HomeScreen() {
     }
   }, /*#__PURE__*/React.createElement(I.Clock, {
     size: 11
-  }), h.duration, "\u043C"), h.friends?.length > 0 && /*#__PURE__*/React.createElement(AvatarStack, {
+  }), " ", h.duration, " \u043C\u0438\u043D"), h.friends?.length > 0 && /*#__PURE__*/React.createElement(AvatarStack, {
     people: h.friends,
     size: 16,
     max: 3,
     label: false
-  }))), h.duration && !h.done && /*#__PURE__*/React.createElement(HabitRing, {
+  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration && !h.done && /*#__PURE__*/React.createElement(HabitRing, {
     habit: h,
     dark: isDark,
     onComplete: () => {
@@ -1240,40 +1237,7 @@ function HomeScreen() {
     size: 18,
     strokeWidth: 2.5,
     color: "#fff"
-  })))), idx < habits.length - 1 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: dividerLn
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "10px 16px 14px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      borderTop: "1px solid " + dividerLn
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-4)"
-    }
-  }, doneCount, " \u0438\u0437 ", totalCount, " \u0441\u0435\u0433\u043E\u0434\u043D\u044F \xB7 ", Math.round(ringPct * 100), "%"), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: () => navigate("habits"),
-    style: {
-      background: "transparent",
-      border: 0,
-      color: "var(--text-2)",
-      fontSize: 13,
-      fontWeight: 500,
-      display: "flex",
-      alignItems: "center",
-      gap: 4
-    }
-  }, "\u0412\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 14
-  })))) : goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  }))))))) : goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"

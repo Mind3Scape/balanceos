@@ -430,47 +430,36 @@ function HomeScreen() {
             <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
           </button>
         ) : (
-        <div style={{ marginTop: 10, background: cardBg, border: cardBorder, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, color: "var(--text)" }}>
-          {habits.map((h, idx) => (
-            <div key={h.id}>
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
+          {habits.map((h) => (
+            <div key={h.id} style={{ borderRadius: 18, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                 { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
-              <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{
-                display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
-              }}>
-                <span style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center",
-                  fontSize: 20, flexShrink: 0,
-                }}>{h.emoji}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "var(--text-4)", marginTop: 2, flexWrap: "wrap" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>🔥 {h.streak}д</span>
-                    {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/>{h.duration}м</span>}
-                    {h.friends?.length > 0 && <AvatarStack people={h.friends} size={16} max={3} label={false}/>}
+                <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
+                  <span style={{ width: 40, height: 40, borderRadius: 12, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                    {(h.friends?.length || h.duration) && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
+                        {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
+                        {h.friends?.length > 0 && <AvatarStack people={h.friends} size={16} max={3} label={false}/>}
+                        {h.friends?.length > 0 && <span>совместно</span>}
+                      </div>
+                    )}
                   </div>
+                  {h.duration && !h.done && (
+                    <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
+                  )}
+                  <button className={"check-btn " + (h.done ? "" : "unchecked")} data-no-haptic
+                    onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>
+                    {h.done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
+                  </button>
                 </div>
-                {h.duration && !h.done && (
-                  <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
-                )}
-                <button className={"check-btn " + (h.done ? "" : "unchecked")} data-no-haptic
-                  onClick={(e) => { e.stopPropagation(); toggle(h.id); }}>
-                  {h.done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
-                </button>
-              </div>
               </SwipeRow>
-              {idx < habits.length - 1 && <div style={{ height: 1, background: dividerLn }} />}
             </div>
           ))}
-          <div style={{ padding: "10px 16px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid " + dividerLn }}>
-            <span style={{ fontSize: 12, color: "var(--text-4)" }}>{doneCount} из {totalCount} сегодня · {Math.round(ringPct*100)}%</span>
-            <button className="tap" onClick={() => navigate("habits")} style={{ background: "transparent", border: 0, color: "var(--text-2)", fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}>
-              Все <I.ChevronRight size={14} />
-            </button>
-          </div>
         </div>
         )
       ) : (

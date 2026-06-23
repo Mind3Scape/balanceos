@@ -90,19 +90,12 @@ function NetworkLocked({
   onSwitchToCommunity
 }) {
   var xpPct = Math.max(0, Math.min(1, xp / xpMax));
-  // Pulse animation tick
-  var [t, setT] = useCS(0);
-  React.useEffect(() => {
-    var raf,
-      s = performance.now();
-    var tick = now => {
-      setT((now - s) / 1000);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  var breath = 1 + Math.sin(t * 1.2) * 0.04;
+  var ruLvl = n => {
+    var m = n % 10,
+      h = n % 100;
+    return m === 1 && h !== 11 ? "уровень" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "уровня" : "уровней";
+  };
+  var progPct = ((10 - levelsLeft - 1 + xpPct) / 10 * 100).toFixed(1);
   var paths = [{
     i: "🔥",
     t: "Держи серию",
@@ -139,162 +132,131 @@ function NetworkLocked({
     style: {
       position: "relative",
       overflow: "hidden",
-      background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 60%, #060912 100%)",
-      borderRadius: 28,
-      padding: "22px 22px 20px",
-      color: "#fff"
+      borderRadius: 22,
+      padding: "16px 18px",
+      background: "linear-gradient(145deg, #26406e 0%, #182c4f 52%, #0c1730 100%)",
+      boxShadow: "0 10px 26px rgba(12,23,48,0.42)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: "absolute",
       inset: 0,
-      background: "radial-gradient(circle at 80% 25%, rgba(180,210,255,0.22) 0%, transparent 45%), radial-gradient(circle at 18% 90%, rgba(120,160,210,0.18) 0%, transparent 45%)"
+      background: "radial-gradient(circle at 82% 18%, rgba(150,185,255,0.30) 0%, transparent 46%), radial-gradient(circle at 12% 96%, rgba(120,160,220,0.16) 0%, transparent 44%)",
+      pointerEvents: "none"
     }
   }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 16,
-      alignItems: "center",
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 96,
-      height: 96,
-      flexShrink: 0,
-      position: "relative",
-      display: "grid",
-      placeItems: "center",
-      transform: `scale(${breath.toFixed(3)})`,
-      transition: "transform 0.2s"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
     style: {
       position: "absolute",
-      inset: -10,
-      borderRadius: "50%",
-      background: "radial-gradient(circle, rgba(180,210,255,0.35) 0%, transparent 60%)",
-      filter: "blur(6px)"
+      top: 14,
+      right: 17,
+      fontSize: 35,
+      lineHeight: 1,
+      pointerEvents: "none",
+      filter: "drop-shadow(0 3px 7px rgba(0,0,0,0.45))"
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 96,
-      height: 96,
-      borderRadius: "50%",
-      background: "radial-gradient(circle at 32% 28%, #e9f1ff 0%, #8eb0d8 38%, #2c4d76 75%, #0a1424 100%)",
-      boxShadow: "inset -8px -10px 24px rgba(0,0,0,0.5), 0 0 30px rgba(120,160,210,0.35)",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Lock, {
-    size: 32,
-    color: "#fff",
-    strokeWidth: 1.6
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
+      position: "relative"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "rgba(180,210,255,0.85)",
-      fontWeight: 600,
+      fontWeight: 800,
       letterSpacing: 1.4,
-      textTransform: "uppercase"
+      textTransform: "uppercase",
+      color: "rgba(160,196,255,0.9)"
     }
-  }, "\u041D\u0435\u0442\u0432\u043E\u0440\u043A \xB7 \u0423\u0440\u043E\u0432\u0435\u043D\u044C 10"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041D\u0435\u0442\u0432\u043E\u0440\u043A \xB7 \u043E\u0442\u043A\u0440\u043E\u0435\u0442\u0441\u044F \u0441 10 \u0443\u0440\u043E\u0432\u043D\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "var(--bos-title-font)",
-      fontSize: 22,
-      lineHeight: 1.15,
+      fontSize: 19,
+      fontWeight: 800,
+      letterSpacing: "-0.4px",
+      color: "#fff",
+      marginTop: 4,
+      maxWidth: 215,
+      lineHeight: 1.2
+    }
+  }, "\u0417\u0430\u043A\u0440\u044B\u0442\u044B\u0439 \u043A\u0440\u0443\u0433 \u0441\u0432\u043E\u0438\u0445"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "rgba(255,255,255,0.74)",
       marginTop: 6,
-      letterSpacing: "-0.3px"
+      lineHeight: 1.42,
+      maxWidth: 252
     }
-  }, "\u0421\u043E\u0437\u0434\u0430\u043D \u0434\u043B\u044F", /*#__PURE__*/React.createElement("br", null), "\u043F\u0440\u0435\u0434\u0430\u043D\u043D\u044B\u0445 \u0434\u0435\u043B\u0443."), /*#__PURE__*/React.createElement("div", {
+  }, "\u0416\u0438\u0432\u043E\u0439 \u043A\u0440\u0443\u0433 \u0434\u043B\u044F \u0442\u0435\u0445, \u043A\u0442\u043E \u0434\u043E\u0448\u0451\u043B: \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A\u0438, \u0432\u0441\u0442\u0440\u0435\u0447\u0438 \u0438 \u043F\u043E\u043C\u043E\u0449\u044C \u2014 \u0440\u044F\u0434\u043E\u043C, \u0432 \u0442\u0432\u043E\u0451\u043C \u0433\u043E\u0440\u043E\u0434\u0435."), /*#__PURE__*/React.createElement("div", {
     style: {
+      display: "flex",
+      gap: 7,
+      marginTop: 13,
+      flexWrap: "wrap"
+    }
+  }, [["📍", "Твой город"], ["🤝", "Наставники"], ["💎", "Услуги за XP"]].map(([e, l], i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "rgba(255,255,255,0.13)",
+      borderRadius: 999,
+      padding: "6px 11px",
       fontSize: 12.5,
-      color: "rgba(255,255,255,0.7)",
-      marginTop: 8,
-      lineHeight: 1.5
+      fontWeight: 700,
+      color: "#fff"
     }
-  }, "\u0417\u043D\u0430\u043A\u043E\u043C\u044C\u0441\u044F \u0432\u0436\u0438\u0432\u0443\u044E \u0441 \u043B\u044E\u0434\u044C\u043C\u0438 \u0438\u0437 \u0441\u0432\u043E\u0435\u0433\u043E \u0433\u043E\u0440\u043E\u0434\u0430 \u2014 \u043A\u043E\u0433\u0434\u0430 \u043D\u0430\u0431\u0435\u0440\u0451\u0448\u044C \u043F\u0440\u0430\u043A\u0442\u0438\u043A\u0443."))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      marginTop: 18,
-      position: "relative"
+      fontSize: 13,
+      lineHeight: 1
+    }
+  }, e), l))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 15
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center",
-      fontSize: 11,
-      color: "rgba(255,255,255,0.7)",
-      marginBottom: 6
+      alignItems: "baseline",
+      marginBottom: 7
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 26,
-      height: 26,
-      borderRadius: "50%",
-      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
-      display: "grid",
-      placeItems: "center",
-      color: "#0a0a0a",
+      fontSize: 13.5,
       fontWeight: 800,
-      fontSize: 12
+      color: "#fff"
     }
-  }, level), /*#__PURE__*/React.createElement("span", null, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", level, " \xB7 ", xp.toLocaleString(), " XP")), /*#__PURE__*/React.createElement("span", {
+  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", level, " \u2192 10"), /*#__PURE__*/React.createElement("span", {
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      opacity: 0.85
+      fontSize: 12,
+      fontWeight: 700,
+      color: "rgba(255,255,255,0.72)"
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 10"), /*#__PURE__*/React.createElement("span", {
+  }, "\u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", levelsLeft, " ", ruLvl(levelsLeft))), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 26,
-      height: 26,
-      borderRadius: "50%",
-      background: "rgba(255,255,255,0.08)",
-      border: "1px dashed rgba(255,255,255,0.3)",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 12
-    }
-  }, /*#__PURE__*/React.createElement(I.Lock, {
-    size: 12
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 8,
+      height: 9,
       borderRadius: 999,
-      background: "rgba(255,255,255,0.08)",
-      overflow: "hidden",
-      position: "relative"
+      background: "rgba(255,255,255,0.13)",
+      overflow: "hidden"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      position: "absolute",
-      inset: 0,
-      width: `${((10 - levelsLeft - 1 + xpPct) / 10 * 100).toFixed(1)}%`,
-      background: "linear-gradient(90deg, #FEDE34 0%, #EF9F14 100%)",
+      display: "block",
+      height: "100%",
+      width: progPct + "%",
+      background: "linear-gradient(90deg, #FEDE34, #EF9F14)",
       borderRadius: 999,
-      boxShadow: "0 0 12px rgba(254,222,52,0.55)"
+      boxShadow: "0 0 12px rgba(254,222,52,0.5)"
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,0.5)",
-      marginTop: 6
+      fontSize: 11.5,
+      color: "rgba(255,255,255,0.62)",
+      marginTop: 7
     }
-  }, "\u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", levelsLeft, " ", levelsLeft === 1 ? "уровень" : "уровней", " \xB7 \u043E\u043A\u043E\u043B\u043E ", weeks, " \u043D\u0435\u0434\u0435\u043B\u044C \u0432 \u0442\u0432\u043E\u0451\u043C \u0442\u0435\u043C\u043F\u0435"))), /*#__PURE__*/React.createElement("div", {
+  }, xp.toLocaleString(), " XP \u043D\u0430\u0431\u0440\u0430\u043D\u043E \xB7 \u043E\u043A\u043E\u043B\u043E ", weeks, " \u043D\u0435\u0434\u0435\u043B\u044C \u0432 \u0442\u0432\u043E\u0451\u043C \u0442\u0435\u043C\u043F\u0435")))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 6
@@ -1014,7 +976,7 @@ function CommunityScreen() {
   var cv = app?.communityView || {
     section: "discover",
     discTab: "teams",
-    commTab: "courses",
+    commTab: "network",
     networkUnlocked: false
   };
   var {
@@ -1233,35 +1195,36 @@ function CommunityScreen() {
   }, /*#__PURE__*/React.createElement("button", {
     className: "tap " + (section === "discover" ? "active" : ""),
     onClick: () => setSection("discover")
-  }, "\u041E\u0431\u0437\u043E\u0440"), /*#__PURE__*/React.createElement("button", {
+  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("button", {
     className: "tap " + (section === "community" ? "active" : ""),
     onClick: () => setSection("community")
-  }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), section === "discover" ? /*#__PURE__*/React.createElement(UnderlineTabs, {
-    value: discTab,
-    onChange: setDiscTab,
-    tabs: [{
-      id: "teams",
-      t: "Команды"
-    }, {
-      id: "network",
-      t: "Нетворк"
-    }]
-  }) : /*#__PURE__*/React.createElement(UnderlineTabs, {
-    value: commTab,
-    onChange: setCommTab,
-    tabs: [{
-      id: "courses",
-      t: "Курсы"
-    }, {
-      id: "partners",
-      t: "Партнёры"
-    }]
-  }), section === "discover" && discTab === "teams" && /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), section === "community" && /*#__PURE__*/React.createElement("div", {
+    className: "tab-pill tab-pill-sm",
+    style: {
+      background: "var(--card-2)",
+      marginTop: 10,
+      marginBottom: 14
+    }
+  }, [{
+    id: "network",
+    t: "Нетворк"
+  }, {
+    id: "courses",
+    t: "Курсы"
+  }, {
+    id: "partners",
+    t: "Партнёры"
+  }].map(tb => /*#__PURE__*/React.createElement("button", {
+    key: tb.id,
+    className: "tap " + (commTab === tb.id ? "active" : ""),
+    "data-tour": tb.id === "network" ? "network" : undefined,
+    onClick: () => setCommTab(tb.id)
+  }, tb.t))), section === "discover" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      marginTop: 4
+      marginTop: 14
     }
   }, teams.map((t, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
@@ -1321,11 +1284,11 @@ function CommunityScreen() {
       letterSpacing: 1,
       fontWeight: 600
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, t.target ? "К цели" : "Прогресс команды"), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "var(--text)"
     }
-  }, Math.round(t.progress * 100), "%")), /*#__PURE__*/React.createElement("div", {
+  }, t.target ? `${t.current != null ? t.current : Math.round((t.progress || 0) * t.target)} / ${t.target} ${t.unit || ""}` : Math.round((t.progress || 0) * 100) + "%")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 6,
       height: 8,
@@ -1338,7 +1301,7 @@ function CommunityScreen() {
     style: {
       display: "block",
       height: "100%",
-      width: t.progress * 100 + "%",
+      width: (t.target ? Math.min(1, (t.current != null ? t.current : 0) / t.target) : t.progress || 0) * 100 + "%",
       borderRadius: 999
     }
   })), /*#__PURE__*/React.createElement("div", {
@@ -1417,7 +1380,7 @@ function CommunityScreen() {
     }
   }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439, \u043F\u043E\u0441\u0442\u0430\u0432\u044C \u043E\u0431\u0449\u0443\u044E \u0446\u0435\u043B\u044C, \u0432\u044B\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0439\u0442\u0435 \u0441\u0435\u0440\u0438\u0438 \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18
-  }))), section === "discover" && discTab === "network" && (networkUnlocked ? /*#__PURE__*/React.createElement("div", {
+  }))), section === "community" && commTab === "network" && (networkUnlocked ? /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1543,7 +1506,7 @@ function CommunityScreen() {
       marginTop: 13,
       flexWrap: "wrap"
     }
-  }, [["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+1000 XP"]].map(([e, l], i) => /*#__PURE__*/React.createElement("span", {
+  }, [["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+2000 XP"]].map(([e, l], i) => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
       display: "inline-flex",
@@ -3099,6 +3062,9 @@ function TeamCreateScreen() {
         emblem,
         accent,
         goal: goalTitle || target + " " + unit,
+        target: Number(target) || 0,
+        current: 0,
+        unit,
         date: dur,
         progress: 0,
         members: activeMembers.map(m => ({
@@ -3590,44 +3556,60 @@ function TeamDetailScreen() {
       color: "var(--text-3)",
       marginTop: 2
     }
-  }, t.date), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, "\u0418\u0442\u043E\u0433 \u0437\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, aggregate, "%")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 8,
-      background: "rgba(255,255,255,0.55)",
-      borderRadius: 999,
-      overflow: "hidden",
-      marginTop: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      height: "100%",
-      width: aggregate + "%",
-      background: "var(--card-fill)",
-      borderRadius: 999
-    }
-  })), /*#__PURE__*/React.createElement("div", {
+  }, t.date), (() => {
+    var tgt = t.target || 0;
+    var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+    var done = tgt > 0 && cur >= tgt;
+    var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)",
+        textTransform: "uppercase",
+        letterSpacing: 1,
+        fontWeight: 600
+      }
+    }, done ? "Цель достигнута 🎉" : "До цели вместе"), tgt > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 15,
+        fontWeight: 700,
+        color: "var(--text)"
+      }
+    }, cur, " / ", tgt, " ", t.unit || "")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 9,
+        background: "rgba(255,255,255,0.55)",
+        borderRadius: 999,
+        overflow: "hidden",
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        height: "100%",
+        width: gp * 100 + "%",
+        background: done ? "linear-gradient(90deg,#FEDE34,#EF9F14)" : "var(--card-fill)",
+        borderRadius: 999,
+        transition: "width 0.6s ease"
+      }
+    })), tgt > 0 && !done && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        marginTop: 6
+      }
+    }, "\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", tgt - cur, " ", t.unit || "", " \u2014 \u0437\u0430\u043A\u0440\u043E\u0435\u043C \u0432\u043C\u0435\u0441\u0442\u0435"));
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       display: "grid",
@@ -3729,7 +3711,7 @@ function TeamDetailScreen() {
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, "\u0421\u0435\u0440\u0433\u0435\u0439: \u0414\u043E \u0446\u0435\u043B\u0438 8 \u0434\u0435\u043B \u2014 \u0434\u043E\u0431\u044C\u0451\u043C \u043A \u0432\u0435\u0447\u0435\u0440\u0443 \uD83D\uDD25")), /*#__PURE__*/React.createElement("span", {
+  }, "\u0421\u0435\u0440\u0433\u0435\u0439: \u0426\u0435\u043B\u044C \u0434\u043E\u0431\u044C\u0451\u043C \u043A \u0432\u044B\u0445\u043E\u0434\u043D\u044B\u043C \u2014 \u043D\u0430\u043B\u0435\u0433\u0430\u0435\u043C! \uD83D\uDD25")), /*#__PURE__*/React.createElement("span", {
     style: {
       background: "#FF3B30",
       color: "#fff",
@@ -5242,8 +5224,8 @@ function LevelsScreen() {
   }, "\u043C\u043E\u0436\u043D\u043E \u043F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C \xB7 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u043E\u0442 \u0442\u0440\u0430\u0442\u044B \u043D\u0435 \u043F\u0430\u0434\u0430\u0435\u0442")), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       app?.setCommunityView?.({
-        section: "discover",
-        discTab: "network"
+        section: "community",
+        commTab: "network"
       });
       navigate("community");
     },

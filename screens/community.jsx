@@ -31,15 +31,8 @@ function CourseGlass({ c, size = 46 }) {
    Network is a premium social tier — unlocks at L10. Shown when level too low. */
 function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock, onSwitchToCommunity }) {
   const xpPct = Math.max(0, Math.min(1, xp / xpMax));
-  // Pulse animation tick
-  const [t, setT] = useCS(0);
-  React.useEffect(() => {
-    let raf, s = performance.now();
-    const tick = (now) => { setT((now - s) / 1000); raf = requestAnimationFrame(tick); };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  const breath = 1 + Math.sin(t * 1.2) * 0.04;
+  const ruLvl = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "уровень" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "уровня" : "уровней"; };
+  const progPct = ((10 - levelsLeft - 1 + xpPct) / 10 * 100).toFixed(1);
 
   const paths = [
     {
@@ -67,63 +60,38 @@ function NetworkLocked({ navigate, level, xp, xpMax, levelsLeft, weeks, onUnlock
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-      {/* HERO — dark banner with breathing lock orb */}
-      <div style={{
-        position: "relative", overflow: "hidden",
-        background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 60%, #060912 100%)",
-        borderRadius: 28, padding: "22px 22px 20px",
-        color: "#fff",
-      }}>
-        {/* Stars + glow */}
-        <div aria-hidden style={{ position: "absolute", inset: 0,
-          background: "radial-gradient(circle at 80% 25%, rgba(180,210,255,0.22) 0%, transparent 45%), radial-gradient(circle at 18% 90%, rgba(120,160,210,0.18) 0%, transparent 45%)" }} />
+      {/* Premium DARK hero — its OWN identity, distinct from the gold Courses banner
+          so the two never blend. SAME format though: eyebrow · headline · desc · pills ·
+          emblem top-right · progress. A lock emoji (no orb) sits where the trophy sits. */}
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
+        background: "linear-gradient(145deg, #26406e 0%, #182c4f 52%, #0c1730 100%)",
+        boxShadow: "0 10px 26px rgba(12,23,48,0.42)" }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 82% 18%, rgba(150,185,255,0.30) 0%, transparent 46%), radial-gradient(circle at 12% 96%, rgba(120,160,220,0.16) 0%, transparent 44%)", pointerEvents: "none" }} />
+        <div aria-hidden style={{ position: "absolute", top: 14, right: 17, fontSize: 35, lineHeight: 1, pointerEvents: "none", filter: "drop-shadow(0 3px 7px rgba(0,0,0,0.45))" }}>🔒</div>
+        <div style={{ position: "relative" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(160,196,255,0.9)" }}>Нетворк · откроется с 10 уровня</div>
+          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#fff", marginTop: 4, maxWidth: 215, lineHeight: 1.2 }}>Закрытый круг своих</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.74)", marginTop: 6, lineHeight: 1.42, maxWidth: 252 }}>Живой круг для тех, кто дошёл: наставники, встречи и помощь — рядом, в твоём городе.</div>
 
-        <div style={{ display: "flex", gap: 16, alignItems: "center", position: "relative" }}>
-          {/* Lock orb */}
-          <div style={{ width: 96, height: 96, flexShrink: 0, position: "relative", display: "grid", placeItems: "center", transform: `scale(${breath.toFixed(3)})`, transition: "transform 0.2s" }}>
-            <div style={{ position: "absolute", inset: -10, borderRadius: "50%", background: "radial-gradient(circle, rgba(180,210,255,0.35) 0%, transparent 60%)", filter: "blur(6px)" }} />
-            <div style={{ width: 96, height: 96, borderRadius: "50%",
-              background: "radial-gradient(circle at 32% 28%, #e9f1ff 0%, #8eb0d8 38%, #2c4d76 75%, #0a1424 100%)",
-              boxShadow: "inset -8px -10px 24px rgba(0,0,0,0.5), 0 0 30px rgba(120,160,210,0.35)",
-              display: "grid", placeItems: "center",
-            }}>
-              <I.Lock size={32} color="#fff" strokeWidth={1.6}/>
-            </div>
+          {/* Essence pills — what Нетворк ЕСТЬ (короткие, передающие суть) */}
+          <div style={{ display: "flex", gap: 7, marginTop: 13, flexWrap: "wrap" }}>
+            {[["📍", "Твой город"], ["🤝", "Наставники"], ["💎", "Услуги за XP"]].map(([e, l], i) => (
+              <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.13)", borderRadius: 999, padding: "6px 11px", fontSize: 12.5, fontWeight: 700, color: "#fff" }}>
+                <span style={{ fontSize: 13, lineHeight: 1 }}>{e}</span>{l}
+              </span>
+            ))}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: "rgba(180,210,255,0.85)", fontWeight: 600, letterSpacing: 1.4, textTransform: "uppercase" }}>Нетворк · Уровень 10</div>
-            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 22, lineHeight: 1.15, marginTop: 6, letterSpacing: "-0.3px" }}>
-              Создан для<br/>преданных делу.
-            </div>
-            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5 }}>
-              Знакомься вживую с людьми из своего города — когда наберёшь практику.
-            </div>
-          </div>
-        </div>
 
-        {/* Progress: L{level} → L10 */}
-        <div style={{ marginTop: 18, position: "relative" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "rgba(255,255,255,0.7)", marginBottom: 6 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", color: "#0a0a0a", fontWeight: 800, fontSize: 12 }}>{level}</span>
-              <span>Уровень {level} · {xp.toLocaleString()} XP</span>
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: 0.85 }}>
-              <span>Уровень 10</span>
-              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px dashed rgba(255,255,255,0.3)", display: "grid", placeItems: "center", fontSize: 12 }}><I.Lock size={12}/></span>
-            </span>
-          </div>
-          <div style={{ height: 8, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden", position: "relative" }}>
-            <div style={{
-              position: "absolute", inset: 0,
-              width: `${((10 - levelsLeft - 1 + xpPct) / 10 * 100).toFixed(1)}%`,
-              background: "linear-gradient(90deg, #FEDE34 0%, #EF9F14 100%)",
-              borderRadius: 999,
-              boxShadow: "0 0 12px rgba(254,222,52,0.55)",
-            }} />
-          </div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 6 }}>
-осталось {levelsLeft} {levelsLeft === 1 ? "уровень" : "уровней"} · около {weeks} недель в твоём темпе
+          {/* Level progress toward the unlock — gold accent pops on the dark */}
+          <div style={{ marginTop: 15 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: "#fff" }}>Уровень {level} → 10</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.72)" }}>осталось {levelsLeft} {ruLvl(levelsLeft)}</span>
+            </div>
+            <div style={{ height: 9, borderRadius: 999, background: "rgba(255,255,255,0.13)", overflow: "hidden" }}>
+              <span style={{ display: "block", height: "100%", width: progPct + "%", background: "linear-gradient(90deg, #FEDE34, #EF9F14)", borderRadius: 999, boxShadow: "0 0 12px rgba(254,222,52,0.5)" }} />
+            </div>
+            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.62)", marginTop: 7 }}>{xp.toLocaleString()} XP набрано · около {weeks} недель в твоём темпе</div>
           </div>
         </div>
       </div>
@@ -366,7 +334,7 @@ function CommunityScreen() {
   const app = useApp();
   // View-state (section / sub-tabs / network unlock) lives in the shared store so
   // it survives navigating into a detail screen and back (the screen remounts).
-  const cv = app?.communityView || { section: "discover", discTab: "teams", commTab: "courses", networkUnlocked: false };
+  const cv = app?.communityView || { section: "discover", discTab: "teams", commTab: "network", networkUnlocked: false };
   const { section, discTab, commTab, networkUnlocked } = cv;
   const setView = (patch) => app?.setCommunityView(patch);
   const resolve = (v, cur) => (typeof v === "function" ? v(cur) : v);
@@ -425,27 +393,22 @@ function CommunityScreen() {
 
       {/* Primary section — pill */}
       <div className="tab-pill" style={{ background: "var(--card-2)" }}>
-        <button className={"tap " + (section === "discover" ? "active" : "")} onClick={() => setSection("discover")}>Обзор</button>
+        <button className={"tap " + (section === "discover" ? "active" : "")} onClick={() => setSection("discover")}>Команды</button>
         <button className={"tap " + (section === "community" ? "active" : "")} onClick={() => setSection("community")}>Сообщество</button>
       </div>
 
-      {/* Secondary tabs — text + animated underline (distinct treatment) */}
-      {section === "discover" ? (
-        <UnderlineTabs
-          value={discTab}
-          onChange={setDiscTab}
-          tabs={[{ id: "teams", t: "Команды" }, { id: "network", t: "Нетворк" }]}
-        />
-      ) : (
-        <UnderlineTabs
-          value={commTab}
-          onChange={setCommTab}
-          tabs={[{ id: "courses", t: "Курсы" }, { id: "partners", t: "Партнёры" }]}
-        />
+      {/* Secondary scope bar — a thinner pill segmented control (same family as the
+          Команды/Сообщество pill above), only inside «Сообщество». «Команды» stands alone. */}
+      {section === "community" && (
+        <div className="tab-pill tab-pill-sm" style={{ background: "var(--card-2)", marginTop: 10, marginBottom: 14 }}>
+          {[{ id: "network", t: "Нетворк" }, { id: "courses", t: "Курсы" }, { id: "partners", t: "Партнёры" }].map(tb => (
+            <button key={tb.id} className={"tap " + (commTab === tb.id ? "active" : "")} data-tour={tb.id === "network" ? "network" : undefined} onClick={() => setCommTab(tb.id)}>{tb.t}</button>
+          ))}
+        </div>
       )}
 
-      {section === "discover" && discTab === "teams" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+      {section === "discover" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
           {teams.map((t, i) => (
             <div key={i} className="team-card" style={{
               ["--team-accent"]: t.accent,
@@ -461,11 +424,11 @@ function CommunityScreen() {
                 <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
                 <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date} · {t.members.length} участников</div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
-                  <span>Прогресс команды</span>
-                  <span style={{ color: "var(--text)" }}>{Math.round(t.progress*100)}%</span>
+                  <span>{t.target ? "К цели" : "Прогресс команды"}</span>
+                  <span style={{ color: "var(--text)" }}>{t.target ? `${t.current != null ? t.current : Math.round((t.progress||0)*t.target)} / ${t.target} ${t.unit||""}` : Math.round((t.progress||0)*100)+"%"}</span>
                 </div>
                 <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
-                  <span className="team-card__fill" style={{ display: "block", height: "100%", width: (t.progress*100)+"%", borderRadius: 999 }} />
+                  <span className="team-card__fill" style={{ display: "block", height: "100%", width: ((t.target ? Math.min(1,(t.current!=null?t.current:0)/t.target) : (t.progress||0))*100)+"%", borderRadius: 999 }} />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", marginTop: 14, gap: 8 }}>
                   <AvatarStack people={t.members} size={16} max={5} label={false}/>
@@ -494,7 +457,7 @@ function CommunityScreen() {
         </div>
       )}
 
-      {section === "discover" && discTab === "network" && (
+      {section === "community" && commTab === "network" && (
         networkUnlocked ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {/* Your-impact hero — what YOU offer at your current level */}
@@ -537,7 +500,7 @@ function CommunityScreen() {
               <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#3a2a00", marginTop: 4, maxWidth: 220, lineHeight: 1.2 }}>Каждый курс — целый уровень</div>
               <div style={{ fontSize: 13, color: "rgba(58,42,0,0.8)", marginTop: 6, lineHeight: 1.42, maxWidth: 244 }}>Ачивка, большой опыт и доступ к новым людям. Самый быстрый рост.</div>
               <div style={{ display: "flex", gap: 7, marginTop: 13, flexWrap: "wrap" }}>
-                {[["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+1000 XP"]].map(([e, l], i) => (
+                {[["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+2000 XP"]].map(([e, l], i) => (
                   <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.55)", borderRadius: 999, padding: "6px 11px", fontSize: 12.5, fontWeight: 700, color: "#3a2a00" }}>
                     <span style={{ fontSize: 13, lineHeight: 1 }}>{e}</span>{l}
                   </span>
@@ -1138,6 +1101,7 @@ function TeamCreateScreen() {
           name: name.trim() || "Новая команда",
           emblem, accent,
           goal: goalTitle || (target + " " + unit),
+          target: Number(target) || 0, current: 0, unit,
           date: dur,
           progress: 0,
           members: activeMembers.map(m => ({ name: m.name, initials: m.initials, color: m.color, pct: 0 })),
@@ -1301,13 +1265,26 @@ function TeamDetailScreen() {
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{t.name}</div>
           <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
           <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date}</div>
-          <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Итог за неделю</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{aggregate}%</span>
-          </div>
-          <div style={{ height: 8, background: "rgba(255,255,255,0.55)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
-            <span style={{ display: "block", height: "100%", width: aggregate+"%", background: "var(--card-fill)", borderRadius: 999 }} />
-          </div>
+          {/* The GOAL — the team's destination. Real progress toward the target
+             (not the weekly habit aggregate), and it COMPLETES at target. */}
+          {(() => {
+            const tgt = t.target || 0;
+            const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+            const done = tgt > 0 && cur >= tgt;
+            const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
+            return (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{done ? "Цель достигнута 🎉" : "До цели вместе"}</span>
+                  {tgt > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{cur} / {tgt} {t.unit || ""}</span>}
+                </div>
+                <div style={{ height: 9, background: "rgba(255,255,255,0.55)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
+                  <span style={{ display: "block", height: "100%", width: (gp * 100) + "%", background: done ? "linear-gradient(90deg,#FEDE34,#EF9F14)" : "var(--card-fill)", borderRadius: 999, transition: "width 0.6s ease" }} />
+                </div>
+                {tgt > 0 && !done && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>Осталось {tgt - cur} {t.unit || ""} — закроем вместе</div>}
+              </div>
+            );
+          })()}
           <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
             <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Привычки</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{teamHabits.length}</div></div>
             <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Участники</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{members.length}</div></div>
@@ -1321,7 +1298,7 @@ function TeamDetailScreen() {
         <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Чат команды</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Сергей: До цели 8 дел — добьём к вечеру 🔥</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Сергей: Цель добьём к выходным — налегаем! 🔥</div>
         </div>
         <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>3</span>
         <I.ChevronRight size={18} color="var(--text-4)"/>
@@ -1813,7 +1790,7 @@ function LevelsScreen() {
           <div style={{ fontSize: 26, fontWeight: 700, marginTop: 2 }}>{credits.toLocaleString()}</div>
           <div className="bos-sys-text-3" style={{ fontSize: 11.5, marginTop: 1 }}>можно потратить · уровень от траты не падает</div>
         </div>
-        <button onClick={() => { app?.setCommunityView?.({ section: "discover", discTab: "network" }); navigate("community"); }} className="tap" style={{ background: "#FEDE34", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>В Нетворк</button>
+        <button onClick={() => { app?.setCommunityView?.({ section: "community", commTab: "network" }); navigate("community"); }} className="tap" style={{ background: "#FEDE34", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>В Нетворк</button>
       </SysCard>
 
       <div className="section-label" style={{ marginTop: 22 }}>Награды за XP</div>
