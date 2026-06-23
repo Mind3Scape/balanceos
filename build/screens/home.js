@@ -323,7 +323,18 @@ function HomeHeroSwipe({
     style: {
       transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
     }
-  })), /*#__PURE__*/React.createElement("div", {
+  })), heroApp?.avatar ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 5,
+      borderRadius: "50%",
+      overflow: "hidden",
+      boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`
+    }
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: heroApp.avatar,
+    size: 44
+  })) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       inset: 5,
@@ -457,7 +468,18 @@ function HomeHeroSwipe({
     style: {
       transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
     }
-  })), /*#__PURE__*/React.createElement("div", {
+  })), heroApp?.avatar ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 6,
+      borderRadius: "50%",
+      overflow: "hidden",
+      boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`
+    }
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: heroApp.avatar,
+    size: 60
+  })) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       inset: 6,

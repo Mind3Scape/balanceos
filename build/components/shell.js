@@ -1299,6 +1299,45 @@ function bosRollHabit(h) {
     streak: bosStreak(log)
   });
 }
+
+/* ── User avatar — pick a Memoji, an Emoji, or keep the default face. ──
+   Value: null/"default" → assets/sphere.png; "m1".."m18" → assets/people/mN.png;
+   "emoji:🦊" → that emoji on a soft disc. Persisted per profile; shown everywhere
+   the user's face appears. At T1 other users' avatars come down the same field. */
+var BOS_MEMOJI = ["default", "m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18"];
+var BOS_EMOJI_AVATARS = ["🦊", "🐼", "🐨", "🦁", "🐯", "🐵", "🐸", "🐙", "🦄", "🐲", "🌟", "🔥", "🌈", "🍀", "🌸", "⚡", "💎", "🚀", "🎧", "🧠", "❤️", "🦋"];
+function bosAvatarBg(avatar) {
+  if (!avatar || avatar === "default") return "url(./assets/sphere.png) center/cover no-repeat";
+  if (("" + avatar).indexOf("emoji:") === 0) return "linear-gradient(150deg,#eef1f6,#d3d9e4)";
+  if (/^m\d+$/.test(avatar)) return "url(./assets/people/" + avatar + ".png) center/cover no-repeat";
+  return "url(./assets/sphere.png) center/cover no-repeat";
+}
+function BosAvatar({
+  avatar,
+  size,
+  style
+}) {
+  size = size || 44;
+  var isEmoji = avatar && ("" + avatar).indexOf("emoji:") === 0;
+  var base = Object.assign({
+    width: size,
+    height: size,
+    borderRadius: "50%",
+    flexShrink: 0,
+    background: bosAvatarBg(avatar)
+  }, style || {});
+  if (isEmoji) return /*#__PURE__*/React.createElement("div", {
+    style: Object.assign(base, {
+      display: "grid",
+      placeItems: "center",
+      fontSize: Math.round(size * 0.56),
+      lineHeight: 1
+    })
+  }, ("" + avatar).slice(6));
+  return /*#__PURE__*/React.createElement("div", {
+    style: base
+  });
+}
 function AppProvider({
   children
 }) {
@@ -1314,6 +1353,7 @@ function AppProvider({
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.
   var [mode, setMode] = useState("demo"); // "demo" | "fresh"
   var [userName, setUserName] = useState("Павел");
+  var [avatar, setAvatar] = useState(null); // null = default Memoji (assets/sphere.png)
   // Guided coach-mark tour. -1 = off; 0..N = current stop. Started on entering demo.
   var [tourStep, setTourStep] = useState(-1);
   var [tourMode, setTourMode] = useState("demo"); // "demo" | "fresh"
@@ -1474,6 +1514,7 @@ function AppProvider({
     saveTimer.current = setTimeout(() => {
       window.bosStore.save(persistId, {
         userName,
+        avatar,
         habits,
         goals,
         teams,
@@ -1486,7 +1527,7 @@ function AppProvider({
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [persistId, userName, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres]);
+  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres]);
 
   // ── Entry modes ───────────────────────────────────────────────────
   // enterDemo: fill everything with the seed demo (Павел's filled life).
@@ -1494,6 +1535,7 @@ function AppProvider({
   var enterDemo = () => {
     setMode("demo");
     setUserName("Павел");
+    setAvatar(null);
     setHabits(SEED_HABITS);
     setGoals(SEED_GOALS);
     setTeams(SEED_TEAMS);
@@ -1521,6 +1563,7 @@ function AppProvider({
   var enterFresh = (name = "") => {
     setMode("fresh");
     setUserName((name || "").trim());
+    setAvatar(null);
     setHabits([]);
     setGoals([]);
     setTeams([]);
@@ -1565,6 +1608,7 @@ function AppProvider({
     var saved = window.bosStore && window.bosStore.has(pid) ? window.bosStore.load(pid) : null;
     if (saved) {
       setUserName(saved.userName || name);
+      setAvatar(saved.avatar || avatar || null);
       setHabits((saved.habits || []).map(bosRollHabit));
       setGoals(saved.goals || []);
       setTeams(saved.teams || []);
@@ -1575,6 +1619,7 @@ function AppProvider({
       setMood(_onbMood() || MOOD_OPTIONS[2]); // live mood isn't persisted yet — start neutral
     } else {
       setUserName(name);
+      setAvatar(avatar || null);
       setHabits([]);
       setGoals([]);
       setTeams([]);
@@ -1636,6 +1681,9 @@ function AppProvider({
       mode,
       persistId,
       userName,
+      setUserName,
+      avatar,
+      setAvatar,
       enterDemo,
       enterFresh,
       enterLive,

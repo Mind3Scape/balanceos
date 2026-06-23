@@ -141,13 +141,18 @@ function InfoSheet({
 function EditProfileSheet({
   dark = false
 }) {
+  var app = typeof useApp === "function" ? useApp() : null;
   var {
+    open,
     close
   } = useSheet();
   var C = sheetColors(dark);
-  var [name, setName] = useP("Павел");
+  var [name, setName] = useP(app?.userName || "");
   var [saved, setSaved] = useP(false);
   var save = () => {
+    try {
+      app?.setUserName?.((name || "").trim());
+    } catch (e) {}
     setSaved(true);
     window.setTimeout(close, 900);
   };
@@ -171,14 +176,42 @@ function EditProfileSheet({
       justifyContent: "center",
       marginTop: 14
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => open(/*#__PURE__*/React.createElement(AvatarPickerSheet, {
+      dark: dark
+    })),
+    className: "tap",
+    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
     style: {
-      width: 70,
-      height: 70,
-      borderRadius: "50%",
-      background: "radial-gradient(circle at 35% 30%, #ffd97a, #d97757)"
+      position: "relative",
+      border: 0,
+      background: "transparent",
+      padding: 0,
+      borderRadius: "50%"
     }
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: app?.avatar,
+    size: 76,
+    style: {
+      boxShadow: "0 6px 18px rgba(0,0,0,0.18)"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: -2,
+      bottom: -2,
+      width: 26,
+      height: 26,
+      borderRadius: "50%",
+      background: C.btn,
+      color: C.btnFg,
+      display: "grid",
+      placeItems: "center",
+      border: "2px solid " + (dark ? "#1c1c1e" : "#fff")
+    }
+  }, /*#__PURE__*/React.createElement(I.Pencil, {
+    size: 12
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: C.sub,
@@ -187,6 +220,7 @@ function EditProfileSheet({
   }, "\u0418\u043C\u044F"), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
+    placeholder: "\u041A\u0430\u043A \u0442\u0435\u0431\u044F \u0437\u043E\u0432\u0443\u0442?",
     style: {
       width: "100%",
       background: C.field,
@@ -213,6 +247,126 @@ function EditProfileSheet({
       fontWeight: 600
     }
   }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C")));
+}
+
+/* Avatar picker — Memoji faces or an Emoji, on a soft disc. Tapping sets it live
+   (preview behind the sheet); persisted with the profile. Opened from login + settings. */
+function AvatarPickerSheet({
+  dark = false
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var {
+    close
+  } = useSheet();
+  var C = sheetColors(dark);
+  var [tab, setTab] = useP("memoji");
+  var cur = app?.avatar || null;
+  var pick = val => {
+    try {
+      app?.setAvatar?.(val);
+    } catch (e) {}
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+  };
+  var cell = (key, val, selected) => /*#__PURE__*/React.createElement("button", {
+    key: key,
+    onClick: () => pick(val),
+    className: "tap",
+    "aria-label": "\u0410\u0432\u0430\u0442\u0430\u0440",
+    style: {
+      padding: 0,
+      border: 0,
+      background: "transparent",
+      display: "grid",
+      placeItems: "center",
+      justifySelf: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderRadius: "50%",
+      padding: 3,
+      background: selected ? "#FEDE34" : "transparent",
+      boxShadow: selected ? "0 4px 12px rgba(254,222,52,0.45)" : "none"
+    }
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: val,
+    size: 52,
+    style: {
+      border: "2px solid " + (dark ? "#1c1c1e" : "#fff")
+    }
+  })));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 16px 8px",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 19,
+      fontWeight: 700,
+      textAlign: "center"
+    }
+  }, "\u0410\u0432\u0430\u0442\u0430\u0440"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: C.sub,
+      textAlign: "center",
+      marginTop: 3,
+      lineHeight: 1.4
+    }
+  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u043B\u0438\u0446\u043E \u2014 \u041C\u0435\u043C\u043E\u0434\u0436\u0438 \u0438\u043B\u0438 \u042D\u043C\u043E\u0434\u0437\u0438. \u0421\u043C\u0435\u043D\u0438\u0442\u044C \u043C\u043E\u0436\u043D\u043E \u043A\u043E\u0433\u0434\u0430 \u0443\u0433\u043E\u0434\u043D\u043E."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      background: C.field,
+      borderRadius: 999,
+      padding: 4,
+      margin: "14px auto 14px",
+      width: "fit-content"
+    }
+  }, [["memoji", "Мемоджи"], ["emoji", "Эмодзи"]].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => setTab(k),
+    className: "tap",
+    style: {
+      border: 0,
+      borderRadius: 999,
+      padding: "7px 20px",
+      fontSize: 13.5,
+      fontWeight: 600,
+      background: tab === k ? C.btn : "transparent",
+      color: tab === k ? C.btnFg : C.sub
+    }
+  }, l))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(5,1fr)",
+      gap: 13,
+      maxHeight: 296,
+      overflowY: "auto",
+      padding: "2px 2px 4px"
+    }
+  }, tab === "memoji" ? BOS_MEMOJI.map(m => cell(m, m === "default" ? null : m, m === "default" ? !cur || cur === "default" : cur === m)) : BOS_EMOJI_AVATARS.map(e => {
+    var v = "emoji:" + e;
+    return cell(v, v, cur === v);
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: close,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 16,
+      background: C.btn,
+      color: C.btnFg,
+      border: 0,
+      borderRadius: 999,
+      padding: 13,
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E"));
 }
 function FeedbackSheet({
   title = "Написать в поддержку",
@@ -281,6 +435,13 @@ function ProfileScreen() {
   var {
     navigate
   } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var {
+    open: openSheet
+  } = useSheet();
+  var openAvatar = () => openSheet(/*#__PURE__*/React.createElement(AvatarPickerSheet, {
+    dark: app?.themeOverride === "dark"
+  }));
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -334,14 +495,39 @@ function ProfileScreen() {
     strokeLinecap: "round",
     strokeDasharray: 2 * Math.PI * 65,
     strokeDashoffset: 2 * Math.PI * 65 * (1 - 0.72)
-  })), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: openAvatar,
+    className: "tap",
+    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
     style: {
       position: "absolute",
       inset: 11,
       borderRadius: "50%",
-      background: "url(./assets/sphere.png) center/cover no-repeat"
+      border: 0,
+      padding: 0,
+      background: "transparent"
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: app?.avatar,
+    size: 118
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: 3,
+      bottom: 3,
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      background: "#0a0a0a",
+      color: "#fff",
+      display: "grid",
+      placeItems: "center",
+      border: "2.5px solid #fff",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Pencil, {
+    size: 13
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       bottom: -4,
@@ -2999,6 +3185,9 @@ function SignUpScreen() {
     outline: 0
   };
   var app = useApp ? useApp() : null;
+  var {
+    open: openSheet
+  } = useSheet();
   var goDemo = () => {
     app?.enterDemo?.();
     navigate("home");
@@ -3067,19 +3256,46 @@ function SignUpScreen() {
       position: "absolute",
       inset: 9,
       borderRadius: "50%",
-      background: "url(./assets/sphere.png) center/cover no-repeat",
+      overflow: "hidden",
       animation: "suFaceIn 0.5s 0.46s ease both"
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: app?.avatar,
+    size: 100
+  })), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: "absolute",
       inset: 0,
       borderRadius: "50%",
       boxShadow: dark ? "inset 0 0 0 1px rgba(255,255,255,0.12)" : "inset 0 0 0 1px rgba(255,255,255,0.55)",
-      background: "radial-gradient(circle at 33% 24%, rgba(255,255,255,0.6), transparent 40%)"
+      background: "radial-gradient(circle at 33% 24%, rgba(255,255,255,0.6), transparent 40%)",
+      pointerEvents: "none"
     }
-  }), /*#__PURE__*/React.createElement("style", null, `@keyframes suOrbIn{0%{opacity:0;transform:translateY(-14px) scale(1.34)}45%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}@keyframes suFaceIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}@keyframes suTextIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes suSheetIn{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}`)), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(AvatarPickerSheet, {
+      dark: dark
+    })),
+    className: "tap",
+    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
+    style: {
+      position: "absolute",
+      right: -2,
+      bottom: -2,
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      background: pal.btnBg,
+      color: pal.btnFg,
+      border: "2.5px solid " + (dark ? "#0a0a0e" : "#eceef2"),
+      display: "grid",
+      placeItems: "center",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+      animation: "suFaceIn 0.4s 0.7s ease both"
+    }
+  }, /*#__PURE__*/React.createElement(I.Pencil, {
+    size: 14
+  })), /*#__PURE__*/React.createElement("style", null, `@keyframes suOrbIn{0%{opacity:0;transform:translateY(-14px) scale(1.34)}45%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}@keyframes suFaceIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}@keyframes suTextIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes suSheetIn{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}`)), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
       fontSize: 27,

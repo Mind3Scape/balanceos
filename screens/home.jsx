@@ -163,9 +163,11 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
               strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - ringShown)}
               style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
           </svg>
-          <div style={{ position: "absolute", inset: 5, borderRadius: "50%",
-            background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
-            boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}/>
+          {heroApp?.avatar
+            ? <div style={{ position: "absolute", inset: 5, borderRadius: "50%", overflow: "hidden", boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}><BosAvatar avatar={heroApp.avatar} size={44}/></div>
+            : <div style={{ position: "absolute", inset: 5, borderRadius: "50%",
+                background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
+                boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}/>}
         </button>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -206,11 +208,13 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
               strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
               style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
           </svg>
-          <div style={{
-            position: "absolute", inset: 6, borderRadius: "50%",
-            background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
-            boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`,
-          }}/>
+          {heroApp?.avatar
+            ? <div style={{ position: "absolute", inset: 6, borderRadius: "50%", overflow: "hidden", boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}><BosAvatar avatar={heroApp.avatar} size={60}/></div>
+            : <div style={{
+                position: "absolute", inset: 6, borderRadius: "50%",
+                background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
+                boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`,
+              }}/>}
           <div style={{
             position: "absolute", bottom: -2, right: -4, background: "#0a0a0a", color: "#FEDE34",
             fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 999, border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),

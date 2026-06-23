@@ -44,24 +44,68 @@ function InfoSheet({ title, body, cta = "Готово", dark = false }) {
 }
 
 function EditProfileSheet({ dark = false }) {
-  const { close } = useSheet();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const { open, close } = useSheet();
   const C = sheetColors(dark);
-  const [name, setName] = useP("Павел");
+  const [name, setName] = useP(app?.userName || "");
   const [saved, setSaved] = useP(false);
-  const save = () => { setSaved(true); window.setTimeout(close, 900); };
+  const save = () => { try { app?.setUserName?.((name || "").trim()); } catch (e) {} setSaved(true); window.setTimeout(close, 900); };
   return (
     <div style={{ padding: "2px 20px 6px", color: C.text }}>
       <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Профиль</div>
       {saved ? <SheetDone C={C} label="Сохранено"/> : (
         <>
+          {/* Tappable avatar with a pen badge → opens the picker */}
           <div style={{ display: "flex", justifyContent: "center", marginTop: 14 }}>
-            <div style={{ width: 70, height: 70, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #ffd97a, #d97757)" }}/>
+            <button onClick={() => open(<AvatarPickerSheet dark={dark}/>)} className="tap" aria-label="Сменить аватар"
+              style={{ position: "relative", border: 0, background: "transparent", padding: 0, borderRadius: "50%" }}>
+              <BosAvatar avatar={app?.avatar} size={76} style={{ boxShadow: "0 6px 18px rgba(0,0,0,0.18)" }}/>
+              <span style={{ position: "absolute", right: -2, bottom: -2, width: 26, height: 26, borderRadius: "50%", background: C.btn, color: C.btnFg, display: "grid", placeItems: "center", border: "2px solid " + (dark ? "#1c1c1e" : "#fff") }}>
+                <I.Pencil size={12}/>
+              </span>
+            </button>
           </div>
           <div style={{ fontSize: 12, color: C.sub, margin: "16px 0 6px" }}>Имя</div>
-          <input value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", background: C.field, border: "1px solid " + C.line, borderRadius: 14, padding: 12, fontSize: 15, color: C.text, outline: "none", boxSizing: "border-box" }}/>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Как тебя зовут?" style={{ width: "100%", background: C.field, border: "1px solid " + C.line, borderRadius: 14, padding: 12, fontSize: 15, color: C.text, outline: "none", boxSizing: "border-box" }}/>
           <button onClick={save} className="tap" style={{ width: "100%", marginTop: 16, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>Сохранить</button>
         </>
       )}
+    </div>
+  );
+}
+
+/* Avatar picker — Memoji faces or an Emoji, on a soft disc. Tapping sets it live
+   (preview behind the sheet); persisted with the profile. Opened from login + settings. */
+function AvatarPickerSheet({ dark = false }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const { close } = useSheet();
+  const C = sheetColors(dark);
+  const [tab, setTab] = useP("memoji");
+  const cur = app?.avatar || null;
+  const pick = (val) => { try { app?.setAvatar?.(val); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  const cell = (key, val, selected) => (
+    <button key={key} onClick={() => pick(val)} className="tap" aria-label="Аватар"
+      style={{ padding: 0, border: 0, background: "transparent", display: "grid", placeItems: "center", justifySelf: "center" }}>
+      <div style={{ borderRadius: "50%", padding: 3, background: selected ? "#FEDE34" : "transparent", boxShadow: selected ? "0 4px 12px rgba(254,222,52,0.45)" : "none" }}>
+        <BosAvatar avatar={val} size={52} style={{ border: "2px solid " + (dark ? "#1c1c1e" : "#fff") }} />
+      </div>
+    </button>
+  );
+  return (
+    <div style={{ padding: "2px 16px 8px", color: C.text }}>
+      <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Аватар</div>
+      <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Выбери лицо — Мемоджи или Эмодзи. Сменить можно когда угодно.</div>
+      <div style={{ display: "flex", gap: 6, background: C.field, borderRadius: 999, padding: 4, margin: "14px auto 14px", width: "fit-content" }}>
+        {[["memoji", "Мемоджи"], ["emoji", "Эмодзи"]].map(([k, l]) => (
+          <button key={k} onClick={() => setTab(k)} className="tap" style={{ border: 0, borderRadius: 999, padding: "7px 20px", fontSize: 13.5, fontWeight: 600, background: tab === k ? C.btn : "transparent", color: tab === k ? C.btnFg : C.sub }}>{l}</button>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 13, maxHeight: 296, overflowY: "auto", padding: "2px 2px 4px" }}>
+        {tab === "memoji"
+          ? BOS_MEMOJI.map(m => cell(m, m === "default" ? null : m, m === "default" ? (!cur || cur === "default") : cur === m))
+          : BOS_EMOJI_AVATARS.map(e => { var v = "emoji:" + e; return cell(v, v, cur === v); })}
+      </div>
+      <button onClick={close} className="tap" style={{ width: "100%", marginTop: 16, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>Готово</button>
     </div>
   );
 }
@@ -87,6 +131,9 @@ function FeedbackSheet({ title = "Написать в поддержку", dark 
 
 function ProfileScreen() {
   const { navigate } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const { open: openSheet } = useSheet();
+  const openAvatar = () => openSheet(<AvatarPickerSheet dark={app?.themeOverride === "dark"} />);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader onBack={() => navigate("home")} title="" right={
@@ -106,7 +153,12 @@ function ProfileScreen() {
               strokeDasharray={2 * Math.PI * 65}
               strokeDashoffset={2 * Math.PI * 65 * (1 - 0.72)} />
           </svg>
-          <div style={{ position: "absolute", inset: 11, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat" }} />
+          <button onClick={openAvatar} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", inset: 11, borderRadius: "50%", border: 0, padding: 0, background: "transparent" }}>
+            <BosAvatar avatar={app?.avatar} size={118} />
+            <span style={{ position: "absolute", right: 3, bottom: 3, width: 30, height: 30, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid #fff", boxShadow: "0 2px 6px rgba(0,0,0,0.25)" }}>
+              <I.Pencil size={13}/>
+            </span>
+          </button>
           {/* Level badge */}
           <div style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}>
             <I.Sparkles size={11} /> Уровень 7
@@ -1075,6 +1127,7 @@ function SignUpScreen() {
   };
   const inp = { background: pal.inputBg, border: pal.inputBorder, borderRadius: 14, padding: "14px 16px", color: pal.inputText, fontSize: 16, outline: 0 };
   const app = useApp ? useApp() : null;
+  const { open: openSheet } = useSheet();
   const goDemo = () => { app?.enterDemo?.(); navigate("home"); };
   // Fresh start: enter empty mode and let the gentle bottom-sheet welcome take
   // over on home (no more forced coach-mark tour).
@@ -1090,8 +1143,13 @@ function SignUpScreen() {
         <div style={{ position: "relative", width: 118, height: 118, display: "grid", placeItems: "center", animation: "suOrbIn 0.8s cubic-bezier(0.22,0.8,0.32,1) both" }}>
           <div aria-hidden style={{ position: "absolute", width: 158, height: 158, borderRadius: "50%", background: dark ? "radial-gradient(circle, rgba(200,205,218,0.4), transparent 64%)" : "radial-gradient(circle, rgba(180,188,205,0.42), transparent 66%)", filter: "blur(8px)" }}/>
           <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: dark ? "linear-gradient(160deg,#474c57,#24262e)" : "linear-gradient(160deg,#eef1f6,#c8cedb)", boxShadow: dark ? "inset 0 3px 10px rgba(255,255,255,0.16), inset 0 -10px 20px rgba(0,0,0,0.32), 0 16px 40px rgba(0,0,0,0.4)" : "inset 0 3px 10px rgba(255,255,255,0.9), inset 0 -12px 22px rgba(70,80,100,0.22), 0 16px 38px rgba(120,130,150,0.35)" }}/>
-          <div style={{ position: "absolute", inset: 9, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", animation: "suFaceIn 0.5s 0.46s ease both" }}/>
-          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: dark ? "inset 0 0 0 1px rgba(255,255,255,0.12)" : "inset 0 0 0 1px rgba(255,255,255,0.55)", background: "radial-gradient(circle at 33% 24%, rgba(255,255,255,0.6), transparent 40%)" }}/>
+          <div style={{ position: "absolute", inset: 9, borderRadius: "50%", overflow: "hidden", animation: "suFaceIn 0.5s 0.46s ease both" }}><BosAvatar avatar={app?.avatar} size={100}/></div>
+          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: dark ? "inset 0 0 0 1px rgba(255,255,255,0.12)" : "inset 0 0 0 1px rgba(255,255,255,0.55)", background: "radial-gradient(circle at 33% 24%, rgba(255,255,255,0.6), transparent 40%)", pointerEvents: "none" }}/>
+          {/* Pen badge → change your face right at the door (carries into your real account) */}
+          <button onClick={() => openSheet(<AvatarPickerSheet dark={dark}/>)} className="tap" aria-label="Сменить аватар"
+            style={{ position: "absolute", right: -2, bottom: -2, width: 32, height: 32, borderRadius: "50%", background: pal.btnBg, color: pal.btnFg, border: "2.5px solid " + (dark ? "#0a0a0e" : "#eceef2"), display: "grid", placeItems: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.3)", animation: "suFaceIn 0.4s 0.7s ease both" }}>
+            <I.Pencil size={14}/>
+          </button>
           <style>{`@keyframes suOrbIn{0%{opacity:0;transform:translateY(-14px) scale(1.34)}45%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}@keyframes suFaceIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}@keyframes suTextIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes suSheetIn{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}`}</style>
         </div>
         <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 27, fontWeight: 700, letterSpacing: "-0.6px", marginTop: 24, textAlign: "center", animation: "suTextIn 0.6s 0.5s ease both" }}>С чего начнём?</div>
