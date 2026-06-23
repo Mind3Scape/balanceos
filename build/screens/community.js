@@ -5943,9 +5943,45 @@ function CourseDetailScreen() {
   }))));
 }
 
+/* Compress + downscale a picked image to a light JPEG data URL so chat photos
+   stay small (a 4000px phone photo → ~1280px, ~50-150KB) — important once many
+   people share into one team. At T1 these move to Supabase Storage; this call
+   site doesn't change. */
+function bosCompressImage(file, maxDim, quality) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function () {
+        var w = img.width,
+          h = img.height;
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+        var canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        try {
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", quality || 0.72));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ─── TEAM CHAT — one shared chat for the whole team: messages + photos, in the
    flow of doing the goal together. Core team feature; especially useful for
-   trainers running cohorts and for family circles. ─── */
+   trainers running cohorts and for family circles.
+   Local-first: in a REAL (live) profile the conversation is saved per team and
+   never lost on reload; demo modes show the rich seeded chat (ephemeral). The
+   cross-person realtime layer (everyone sees each other) arrives at T1. ─── */
 function TeamChatScreen() {
   var {
     navigate,
@@ -5959,6 +5995,8 @@ function TeamChatScreen() {
     emblem: "✨",
     members: []
   };
+  var live = app?.mode === "live";
+  var chatKey = "bos:chat:" + (app?.persistId || "live:local") + ":" + (team._id || team.name || "team");
   var SEED = [{
     who: "Светлана",
     c: "#F4A574",
@@ -6010,20 +6048,55 @@ function TeamChatScreen() {
     t: "Давайте! После работы ещё пару добрых дел успею 🙌",
     time: "9:15"
   }];
-  var [msgs, setMsgs] = useCS(SEED);
+  // Live profiles: restore saved history (or start empty). Demo/fresh: rich seed.
+  var [msgs, setMsgs] = useCS(function () {
+    if (live) {
+      try {
+        var raw = localStorage.getItem(chatKey);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return [];
+    }
+    return SEED;
+  });
   var [text, setText] = useCS("");
   var scrollRef = React.useRef(null);
+  var fileRef = React.useRef(null);
+  // Persist every change under the real profile — messages & photos survive
+  // reloads and reopening the chat. On a full localStorage quota, drop the oldest
+  // photos (keep all text) rather than failing the save.
+  React.useEffect(function () {
+    if (!live) return;
+    try {
+      localStorage.setItem(chatKey, JSON.stringify(msgs));
+    } catch (e) {
+      try {
+        localStorage.setItem(chatKey, JSON.stringify(msgs.filter(function (m) {
+          return !m.img;
+        })));
+      } catch (e2) {}
+    }
+  }, [msgs, live, chatKey]);
   // Pin to the latest message by scrolling the chat's OWN container — NOT
   // scrollIntoView, which bubbles up and yanked the page mid open-transition.
   React.useLayoutEffect(() => {
     var el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgs.length]);
+  var myName = live ? app?.userName || "Вы" : "Павел";
+  var nowLabel = () => {
+    try {
+      var d = new Date();
+      return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2);
+    } catch (e) {
+      return "сейчас";
+    }
+  };
   var push = m => setMsgs(list => [...list, {
-    who: "Павел",
+    who: myName,
     me: true,
     c: "#FEDE34",
-    time: "сейчас",
+    time: nowLabel(),
     ...m
   }]);
   var send = () => {
@@ -6034,13 +6107,19 @@ function TeamChatScreen() {
     });
     setText("");
   };
-  var sendPhoto = () => push({
-    photo: {
-      e: "📸",
-      g: "linear-gradient(135deg,#cfe6ff,#9bbef0)"
-    },
-    cap: "Мой прогресс сегодня"
-  });
+  var pickPhoto = () => {
+    if (fileRef.current) fileRef.current.click();
+  };
+  var onFile = e => {
+    var file = e.target.files && e.target.files[0];
+    try {
+      e.target.value = "";
+    } catch (_) {}
+    if (!file) return;
+    bosCompressImage(file, 1280, 0.72).then(src => push({
+      img: src
+    })).catch(() => {});
+  };
   var otherBubble = isDark ? "rgba(255,255,255,0.07)" : "#fff";
   var mineBubble = isDark ? "#fff" : "#0a0a0a";
   var mineText = isDark ? "#0a0a0a" : "#fff";
@@ -6064,6 +6143,33 @@ function TeamChatScreen() {
       boxShadow: "inset 0 -34px 44px rgba(0,0,0,0.14)"
     }
   }, p.e), cap && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      marginTop: 5,
+      color: light ? "rgba(255,255,255,0.85)" : "var(--text-2)"
+    }
+  }, cap));
+  var RealPhoto = ({
+    src,
+    cap,
+    light
+  }) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 2
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: src,
+    alt: "",
+    loading: "lazy",
+    style: {
+      width: 188,
+      maxWidth: "100%",
+      maxHeight: 240,
+      objectFit: "cover",
+      borderRadius: 14,
+      display: "block"
+    }
+  }), cap && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       marginTop: 5,
@@ -6107,7 +6213,31 @@ function TeamChatScreen() {
       flexDirection: "column",
       gap: 10
     }
+  }, live && msgs.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: "auto",
+      textAlign: "center",
+      padding: "0 30px"
+    }
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 40,
+      marginBottom: 10
+    }
+  }, "\uD83D\uDCAC"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      marginBottom: 4
+    }
+  }, "\u042D\u0442\u043E \u043E\u0431\u0449\u0438\u0439 \u0447\u0430\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      lineHeight: 1.5,
+      color: "var(--text-4)"
+    }
+  }, "\u041D\u0430\u043F\u0438\u0448\u0438 \u043F\u0435\u0440\u0432\u043E\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0438\u043B\u0438 \u043F\u043E\u0434\u0435\u043B\u0438\u0441\u044C \u0444\u043E\u0442\u043E \u0441\u0432\u043E\u0435\u0433\u043E \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441\u0430 \uD83D\uDC4B")) : /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       fontSize: 11,
@@ -6126,9 +6256,13 @@ function TeamChatScreen() {
       background: mineBubble,
       color: mineText,
       borderRadius: "18px 18px 5px 18px",
-      padding: m.photo ? 8 : "9px 13px"
+      padding: m.photo || m.img ? 8 : "9px 13px"
     }
-  }, m.photo ? /*#__PURE__*/React.createElement(Photo, {
+  }, m.img ? /*#__PURE__*/React.createElement(RealPhoto, {
+    src: m.img,
+    cap: m.cap,
+    light: true
+  }) : m.photo ? /*#__PURE__*/React.createElement(Photo, {
     p: m.photo,
     cap: m.cap,
     light: true
@@ -6169,7 +6303,7 @@ function TeamChatScreen() {
       maxWidth: "78%",
       background: otherBubble,
       borderRadius: "18px 18px 18px 5px",
-      padding: m.photo ? 8 : "9px 13px",
+      padding: m.photo || m.img ? 8 : "9px 13px",
       boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -6177,9 +6311,12 @@ function TeamChatScreen() {
       fontSize: 11.5,
       fontWeight: 700,
       color: "var(--text-3)",
-      marginBottom: m.photo ? 4 : 2
+      marginBottom: m.photo || m.img ? 4 : 2
     }
-  }, m.who), m.photo ? /*#__PURE__*/React.createElement(Photo, {
+  }, m.who), m.img ? /*#__PURE__*/React.createElement(RealPhoto, {
+    src: m.img,
+    cap: m.cap
+  }) : m.photo ? /*#__PURE__*/React.createElement(Photo, {
     p: m.photo,
     cap: m.cap
   }) : /*#__PURE__*/React.createElement("div", {
@@ -6207,10 +6344,18 @@ function TeamChatScreen() {
       alignItems: "flex-end",
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: sendPhoto,
+  }, /*#__PURE__*/React.createElement("input", {
+    ref: fileRef,
+    type: "file",
+    accept: "image/*",
+    onChange: onFile,
+    style: {
+      display: "none"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: pickPhoto,
     className: "tap",
-    "aria-label": "\u041F\u0440\u0438\u043A\u0440\u0435\u043F\u0438\u0442\u044C",
+    "aria-label": "\u041F\u0440\u0438\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u0444\u043E\u0442\u043E",
     style: {
       width: 38,
       height: 38,
@@ -6228,10 +6373,21 @@ function TeamChatScreen() {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: "2.2",
-    strokeLinecap: "round"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M12 5v14M5 12h14"
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "3",
+    width: "18",
+    height: "18",
+    rx: "3"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "8.5",
+    cy: "8.5",
+    r: "1.6"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M21 15l-5-5L5 21"
   }))), /*#__PURE__*/React.createElement("input", {
     value: text,
     onChange: e => setText(e.target.value),

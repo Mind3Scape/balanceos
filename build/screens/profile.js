@@ -3235,6 +3235,8 @@ function SignUpScreen() {
     onClick: goLive,
     className: "tap",
     style: {
+      position: "relative",
+      overflow: "hidden",
       width: "100%",
       display: "flex",
       alignItems: "center",
@@ -3252,23 +3254,45 @@ function SignUpScreen() {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 26,
-      height: 26,
-      borderRadius: 8,
-      background: "#229ED9",
+      position: "absolute",
+      left: 14,
+      top: "50%",
+      transform: "translateY(-50%)",
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      background: "radial-gradient(120% 120% at 32% 26%, #43b6ea, #229ED9 58%, #1b8ec3)",
       display: "grid",
       placeItems: "center",
-      flexShrink: 0
+      flexShrink: 0,
+      boxShadow: "0 2px 8px rgba(34,158,217,0.55), inset 0 1px 1px rgba(255,255,255,0.45)"
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "16",
-    height: "16",
+    width: "17",
+    height: "17",
     viewBox: "0 0 24 24",
     fill: "#fff",
-    "aria-hidden": true
+    "aria-hidden": true,
+    style: {
+      transform: "translateX(-0.5px)"
+    }
   }, /*#__PURE__*/React.createElement("path", {
     d: "M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
-  }))), "\u0412\u043E\u0439\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 Telegram")));
+  }))), "\u0412\u043E\u0439\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 Telegram", /*#__PURE__*/React.createElement("span", {
+    className: "bos-shine",
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      width: "42%",
+      pointerEvents: "none",
+      background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.20) 50%, transparent)",
+      transform: "translateX(-160%) skewX(-18deg)",
+      animation: "bosShine 5s ease-in-out 1.4s infinite"
+    }
+  }))));
 }
 function IconPickerScreen() {
   var {

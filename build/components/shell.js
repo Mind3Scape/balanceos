@@ -1518,6 +1518,7 @@ function AppProvider({
       themeOverride,
       setThemeOverride,
       mode,
+      persistId,
       userName,
       enterDemo,
       enterFresh,

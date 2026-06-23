@@ -261,6 +261,16 @@ body {
   78%  { opacity: 1; transform: translateY(0)    scale(1.02); }
   100% { opacity: 0; transform: translateY(0)    scale(1);    }
 }
+/* Periodic gleam that sweeps across a button to draw the eye (Telegram CTA).
+   Sweeps once in the first ~1.2s, then rests — the «шууу … пауза … шууу» feel. */
+@keyframes bosShine {
+  0%   { transform: translateX(-160%) skewX(-18deg); opacity: 0; }
+  6%   { opacity: 1; }
+  24%  { transform: translateX(320%)  skewX(-18deg); opacity: 1; }
+  26%  { transform: translateX(320%)  skewX(-18deg); opacity: 0; }
+  100% { transform: translateX(320%)  skewX(-18deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bos-shine { animation: none !important; opacity: 0 !important; } }
 /* Accordion reveal — used by expandable AI insights / patterns / reasoning. */
 .bos-acc-in { animation: bosAccIn 0.26s cubic-bezier(0.22,0.61,0.36,1) both; }
 @keyframes bosAccIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }

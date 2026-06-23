@@ -629,7 +629,7 @@ function AppProvider({ children }) {
     widgets, setWidgets,
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
-    mode, userName, enterDemo, enterFresh, enterLive,
+    mode, persistId, userName, enterDemo, enterFresh, enterLive,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,

@@ -2000,14 +2000,47 @@ function CourseDetailScreen() {
   );
 }
 
+/* Compress + downscale a picked image to a light JPEG data URL so chat photos
+   stay small (a 4000px phone photo → ~1280px, ~50-150KB) — important once many
+   people share into one team. At T1 these move to Supabase Storage; this call
+   site doesn't change. */
+function bosCompressImage(file, maxDim, quality) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function () {
+        var w = img.width, h = img.height;
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
+        var canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        try {
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", quality || 0.72));
+        } catch (e) { reject(e); }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ─── TEAM CHAT — one shared chat for the whole team: messages + photos, in the
    flow of doing the goal together. Core team feature; especially useful for
-   trainers running cohorts and for family circles. ─── */
+   trainers running cohorts and for family circles.
+   Local-first: in a REAL (live) profile the conversation is saved per team and
+   never lost on reload; demo modes show the rich seeded chat (ephemeral). The
+   cross-person realtime layer (everyone sees each other) arrives at T1. ─── */
 function TeamChatScreen() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const team = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", members: [] };
+  const live = app?.mode === "live";
+  const chatKey = "bos:chat:" + (app?.persistId || "live:local") + ":" + (team._id || team.name || "team");
   const SEED = [
     { who: "Светлана", c: "#F4A574", t: "Доброе утро, команда! ☀️ Кто уже отметил доброе дело?", time: "8:14" },
     { who: "Вадим",    c: "#74CFE0", t: "Я помог соседке с покупками 💪", time: "8:31" },
@@ -2019,15 +2052,41 @@ function TeamChatScreen() {
     { who: "Сергей",   c: "#76D3A0", t: "До цели 8 дел — добьём к вечеру 🔥", time: "9:10" },
     { who: "Ник",      c: "#7FB3F2", t: "Давайте! После работы ещё пару добрых дел успею 🙌", time: "9:15" },
   ];
-  const [msgs, setMsgs] = useCS(SEED);
+  // Live profiles: restore saved history (or start empty). Demo/fresh: rich seed.
+  const [msgs, setMsgs] = useCS(function () {
+    if (live) {
+      try { var raw = localStorage.getItem(chatKey); if (raw) return JSON.parse(raw); } catch (e) {}
+      return [];
+    }
+    return SEED;
+  });
   const [text, setText] = useCS("");
   const scrollRef = React.useRef(null);
+  const fileRef = React.useRef(null);
+  // Persist every change under the real profile — messages & photos survive
+  // reloads and reopening the chat. On a full localStorage quota, drop the oldest
+  // photos (keep all text) rather than failing the save.
+  React.useEffect(function () {
+    if (!live) return;
+    try { localStorage.setItem(chatKey, JSON.stringify(msgs)); }
+    catch (e) {
+      try { localStorage.setItem(chatKey, JSON.stringify(msgs.filter(function (m) { return !m.img; }))); } catch (e2) {}
+    }
+  }, [msgs, live, chatKey]);
   // Pin to the latest message by scrolling the chat's OWN container — NOT
   // scrollIntoView, which bubbles up and yanked the page mid open-transition.
   React.useLayoutEffect(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs.length]);
-  const push = (m) => setMsgs(list => [...list, { who: "Павел", me: true, c: "#FEDE34", time: "сейчас", ...m }]);
+  const myName = live ? (app?.userName || "Вы") : "Павел";
+  const nowLabel = () => { try { var d = new Date(); return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); } catch (e) { return "сейчас"; } };
+  const push = (m) => setMsgs(list => [...list, { who: myName, me: true, c: "#FEDE34", time: nowLabel(), ...m }]);
   const send = () => { const v = text.trim(); if (!v) return; push({ t: v }); setText(""); };
-  const sendPhoto = () => push({ photo: { e: "📸", g: "linear-gradient(135deg,#cfe6ff,#9bbef0)" }, cap: "Мой прогресс сегодня" });
+  const pickPhoto = () => { if (fileRef.current) fileRef.current.click(); };
+  const onFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    try { e.target.value = ""; } catch (_) {}
+    if (!file) return;
+    bosCompressImage(file, 1280, 0.72).then(src => push({ img: src })).catch(() => {});
+  };
 
   const otherBubble = isDark ? "rgba(255,255,255,0.07)" : "#fff";
   const mineBubble  = isDark ? "#fff" : "#0a0a0a";
@@ -2035,6 +2094,12 @@ function TeamChatScreen() {
   const Photo = ({ p, cap, light }) => (
     <div style={{ marginTop: 2 }}>
       <div style={{ width: 152, height: 104, borderRadius: 14, background: p.g, display: "grid", placeItems: "center", fontSize: 46, boxShadow: "inset 0 -34px 44px rgba(0,0,0,0.14)" }}>{p.e}</div>
+      {cap && <div style={{ fontSize: 12.5, marginTop: 5, color: light ? "rgba(255,255,255,0.85)" : "var(--text-2)" }}>{cap}</div>}
+    </div>
+  );
+  const RealPhoto = ({ src, cap, light }) => (
+    <div style={{ marginTop: 2 }}>
+      <img src={src} alt="" loading="lazy" style={{ width: 188, maxWidth: "100%", maxHeight: 240, objectFit: "cover", borderRadius: 14, display: "block" }} />
       {cap && <div style={{ fontSize: 12.5, marginTop: 5, color: light ? "rgba(255,255,255,0.85)" : "var(--text-2)" }}>{cap}</div>}
     </div>
   );
@@ -2047,20 +2112,28 @@ function TeamChatScreen() {
       </div>
 
       <div ref={scrollRef} className="screen-scroll" style={{ flex: 1, minHeight: 0, padding: "2px 14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-4)", margin: "2px 0 2px" }}>Сегодня</div>
+        {live && msgs.length === 0 ? (
+          <div style={{ margin: "auto", textAlign: "center", padding: "0 30px" }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>💬</div>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 4 }}>Это общий чат команды</div>
+            <div style={{ fontSize: 13, lineHeight: 1.5, color: "var(--text-4)" }}>Напиши первое сообщение или поделись фото своего прогресса 👋</div>
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-4)", margin: "2px 0 2px" }}>Сегодня</div>
+        )}
         {msgs.map((m, i) => m.me ? (
           <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
-            <div style={{ maxWidth: "78%", background: mineBubble, color: mineText, borderRadius: "18px 18px 5px 18px", padding: m.photo ? 8 : "9px 13px" }}>
-              {m.photo ? <Photo p={m.photo} cap={m.cap} light/> : <div style={{ fontSize: 14.5, lineHeight: 1.4 }}>{m.t}</div>}
+            <div style={{ maxWidth: "78%", background: mineBubble, color: mineText, borderRadius: "18px 18px 5px 18px", padding: (m.photo || m.img) ? 8 : "9px 13px" }}>
+              {m.img ? <RealPhoto src={m.img} cap={m.cap} light/> : m.photo ? <Photo p={m.photo} cap={m.cap} light/> : <div style={{ fontSize: 14.5, lineHeight: 1.4 }}>{m.t}</div>}
               <div style={{ fontSize: 10, opacity: 0.55, textAlign: "right", marginTop: 3 }}>{m.time}</div>
             </div>
           </div>
         ) : (
           <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
             <span style={{ width: 30, height: 30, borderRadius: "50%", background: m.c, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{m.who[0]}</span>
-            <div style={{ maxWidth: "78%", background: otherBubble, borderRadius: "18px 18px 18px 5px", padding: m.photo ? 8 : "9px 13px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: m.photo ? 4 : 2 }}>{m.who}</div>
-              {m.photo ? <Photo p={m.photo} cap={m.cap}/> : <div style={{ fontSize: 14.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
+            <div style={{ maxWidth: "78%", background: otherBubble, borderRadius: "18px 18px 18px 5px", padding: (m.photo || m.img) ? 8 : "9px 13px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: (m.photo || m.img) ? 4 : 2 }}>{m.who}</div>
+              {m.img ? <RealPhoto src={m.img} cap={m.cap}/> : m.photo ? <Photo p={m.photo} cap={m.cap}/> : <div style={{ fontSize: 14.5, lineHeight: 1.4, color: "var(--text)" }}>{m.t}</div>}
               <div style={{ fontSize: 10, color: "var(--text-4)", textAlign: "right", marginTop: 3 }}>{m.time}</div>
             </div>
           </div>
@@ -2068,8 +2141,9 @@ function TeamChatScreen() {
       </div>
 
       <div style={{ flexShrink: 0, background: isDark ? "rgba(18,18,20,0.72)" : "rgba(255,255,255,0.72)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)", padding: "9px 12px calc(9px + var(--bos-safe-bottom, 0px))", display: "flex", alignItems: "flex-end", gap: 8 }}>
-        <button onClick={sendPhoto} className="tap" aria-label="Прикрепить" style={{ width: 38, height: 38, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.14)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: "none" }} />
+        <button onClick={pickPhoto} className="tap" aria-label="Прикрепить фото" style={{ width: 38, height: 38, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.14)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>
         </button>
         <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} placeholder="Сообщение команде…"
           style={{ flex: 1, minWidth: 0, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(120,120,128,0.10)", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)", borderRadius: 20, padding: "10px 15px", fontSize: 16, color: "var(--text)", outline: "none", lineHeight: 1.3 }} />
