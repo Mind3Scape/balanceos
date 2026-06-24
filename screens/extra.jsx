@@ -344,7 +344,7 @@ function MoodScreen() {
   const bonusXP = streak * 5;
   const sameStateStreak = (() => {
     if (!cur || !app?.dayMoods) return 0;
-    const days = Object.entries(app.dayMoods).sort(([a],[b]) => b - a);
+    const days = Object.entries(app.dayMoods).sort(([a],[b]) => (a < b ? 1 : a > b ? -1 : 0));
     let s = 0;
     for (const [, mi] of days) {
       if (moods[mi]?.t === cur.t) s++; else break;
@@ -361,7 +361,7 @@ function MoodScreen() {
     const dayKey = (app.mode === "live" && typeof bosTodayKey === "function") ? bosTodayKey() : TODAY;
     app.setMood && app.setMood(moods[picked]);
     app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [dayKey]: picked });
-    app.setDayNotes && app.setDayNotes({ ...(app.dayNotes || {}), [dayKey]: { tags, note: note.trim() } });
+    if (app.setDayNotes) { const prev = (app.dayNotes || {})[dayKey] || {}; app.setDayNotes({ ...(app.dayNotes || {}), [dayKey]: { tags: (tags && tags.length) ? tags : (prev.tags || []), note: note.trim() || prev.note || "" } }); }
     navigate("home");
   };
 
@@ -758,7 +758,9 @@ const AI_SYSTEM = [
   "",
   "КАК ТЫ ГОВОРИШЬ.",
   "— По-русски, на «ты». Спокойно, тепло, по-человечески. Без канцелярита, без морализаторства свысока, без сюсюканья и без дешёвых аффирмаций.",
-  "— Коротко. Обычно 2–4 предложения. Это чат в телефоне, а не лекция. Никаких длинных списков, если человек сам не попросил.",
+  "— КОРОТКО и по делу. Обычно 2–4 коротких предложения, максимум — пара. Это чат в телефоне, а не лекция. НИКОГДА не вываливай «простыню» текста.",
+  "— Структурно. Если мыслей несколько — раздели их пустой строкой на отдельные короткие реплики (так это будет читаться как живая переписка, а не монолог). Списки — только если человек прямо попросил, и тогда 2–3 пункта, не больше.",
+  "— Эмодзи — со вкусом и редко: один там, где он добавляет тепла или расставляет акцент. НЕ лепи эмодзи в каждую строку и не превращай ответ в гирлянду.",
   "— Сначала по-настоящему увидь человека и его состояние — честно, без лести. Потом помогай.",
   "— Давай ОДНО, а не десять: либо один маленький реальный шаг (часто на 2–5 минут), либо одну точную мысль, которая меняет угол зрения. Не вываливай всё сразу.",
   "— Не бойся сказать неудобную правду — но мягко, как друг, который на твоей стороне. Сильный инсайт называет то, что человек смутно чувствовал, но не мог сформулировать.",
@@ -891,7 +893,8 @@ function bosBriefFromObj(obj) {
     out.pills = obj.pills
       .map((p) => (typeof p === "string" ? { i: "✨", t: p } : { i: (p && p.i) || "✨", t: (p && (p.t || p.text || p.label)) || "" }))
       .filter((p) => p.t && ("" + p.t).trim()).slice(0, 4)
-      .map((p) => ({ i: ("" + p.i).slice(0, 3) || "✨", t: ("" + p.t).trim().slice(0, 40) }));
+      // AI suggestions are conversational → chat-pills (label/kind/prompt) + back-compat i/t.
+      .map((p) => bosChatPill(("" + p.i).slice(0, 3) || "✨", ("" + p.t).trim().slice(0, 40)));
   }
   if (!out.summary && (!out.pills || !out.pills.length)) return null;
   return out;
@@ -911,34 +914,109 @@ function bosParseBrief(raw) {
     const hm = raw.match(/"hint"\s*:\s*"((?:[^"\\]|\\.)*)"/);     if (hm) out.hint = bosUnescape(hm[1]).trim();
     const gm = raw.match(/"greeting"\s*:\s*"((?:[^"\\]|\\.)*)"/); if (gm) out.greeting = bosUnescape(gm[1]).trim();
     const pills = []; const re = /\{\s*"i"\s*:\s*"([^"]*)"\s*,\s*"t"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g; let m;
-    while ((m = re.exec(raw)) && pills.length < 4) pills.push({ i: (m[1] || "✨").slice(0, 3), t: bosUnescape(m[2]).trim().slice(0, 40) });
+    while ((m = re.exec(raw)) && pills.length < 4) pills.push(bosChatPill((m[1] || "✨").slice(0, 3), bosUnescape(m[2]).trim().slice(0, 40)));
     if (pills.length) out.pills = pills.filter((p) => p.t);
     if (out.summary || (out.pills && out.pills.length)) return out;
   } catch (e) {}
   return null;
 }
 
-// Always-available baseline brief from local context (mood line + contextual pills).
+// Pill contract (Home + AI-page + chat renderers depend on these exact names):
+//   { label, kind:"action"|"chat", route?, params?, prompt?, i, t }
+// `i`/`t` stay for back-compat with the icon+label renderers; `t` doubles as the
+// chat seed for chat-pills so old tap-handlers (navigate to chat with t) still work.
+function bosActionPill(i, label, route, params, prompt) {
+  return { i: i, label: label, t: label, kind: "action", route: route, params: params || null, prompt: prompt || ("" + label) };
+}
+function bosChatPill(i, label, prompt) {
+  return { i: i, label: label, t: label, kind: "chat", route: null, params: null, prompt: prompt || ("" + label) };
+}
+
+// Always-available baseline brief computed PURELY from the user's real local state.
+// It must be TRUE to the data: it never invents a mood, rhythm or feeling the user
+// didn't record. When there's barely any data it says so honestly and warmly.
+// Returns exactly 4 next-step pills (a mix of real actions + one reflective chat).
 function bosHeuristicBrief(app) {
   let summary = "";
+  let pills = [];
   try {
     const habits = (app && app.habits) || [];
-    const done = habits.filter((h) => h.done).length;
-    const moodT = (app && app.mood && app.mood.t) || "";
-    const M = {
-      "Энергия": "Энергии много — берись за самое важное прямо сейчас.",
-      "Радость": "Ты в ресурсе — отличный день, чтобы закрыть серию.",
-      "Спокойствие": "Спокойствие — твоё время для одного глубокого дела.",
-      "Тревога": "Начни с двух минут дыхания — и день станет легче.",
-      "Упадок": "Сделай одно маленькое дело — этого сегодня достаточно.",
-      "Усталость": "Сбавь темп: закрой одну привычку — и довольно.",
-    };
-    if (habits.length && done >= habits.length) summary = "День закрыт — ты в потоке. Так держи ритм.";
-    else if (M[moodT]) summary = M[moodT];
-    else if (!habits.length) summary = "Начнём с малого: выбери одну привычку, с которой стартуешь.";
-    else summary = "Одно маленькое действие сейчас сдвинет весь день.";
-  } catch (e) { summary = "Один маленький шаг — и день сдвинется."; }
-  return { summary, pills: (typeof buildQuickPrompts === "function" ? buildQuickPrompts(app) : []), greeting: "", hint: "", source: "heuristic" };
+    const goals = (app && app.goals) || [];
+    const done = habits.filter((h) => h && h.done).length;
+    // "Set" = the user actually LOGGED state today, NOT the neutral default enterLive seeds.
+    // dayMoods[today] is the honest signal (app.mood alone is always populated).
+    const _todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+    const moodSet = !!(app && app.dayMoods && _todayK && app.dayMoods[_todayK] != null);
+    const moodT = moodSet ? ((app.mood && app.mood.t) || "") : "";
+    const maxStreak = (typeof bosMaxStreak === "function") ? bosMaxStreak(habits) : 0;
+    const xp = (typeof bosLiveXP === "function") ? bosLiveXP(app) : 0;
+    const hasData = habits.length > 0 || moodSet || xp > 0;
+
+    // ── Honest summary: state facts only, never a fabricated feeling ──
+    if (!hasData) {
+      // Brand-new: nothing logged at all. Warm, true invitation — no invented rhythm.
+      summary = "Ты только начинаешь — добавь пару привычек и отметь состояние, и я подскажу следующий шаг.";
+    } else if (!habits.length) {
+      // State set but no habits yet.
+      summary = moodSet
+        ? "Состояние отмечено — «" + moodT + "». Добавь первую привычку, и начнём держать ритм вместе."
+        : "Пока нет ни одной привычки. Выбери одну маленькую — с неё и стартуем.";
+    } else if (done >= habits.length) {
+      // Everything done today — a real achievement worth naming.
+      summary = "Все привычки на сегодня закрыты (" + done + "/" + habits.length + ")" +
+        (maxStreak >= 2 ? ". Серия — " + maxStreak + " дн. подряд." : ". Так держать.");
+    } else if (done > 0) {
+      summary = "Сегодня закрыто " + done + " из " + habits.length +
+        (maxStreak >= 2 ? ", серия " + maxStreak + " дн" : "") +
+        (moodSet ? ". Состояние — «" + moodT + "»." : ". Осталось немного — добей следующую.");
+    } else {
+      // Habits exist but none done yet today.
+      summary = (maxStreak >= 2
+          ? "Серия — " + maxStreak + " дн. Сегодня ещё ничего не отмечено — одно действие её продлит."
+          : "На сегодня " + habits.length + " " + (habits.length === 1 ? "привычка" : "привычек") + ", пока ни одной отметки. Начни с одной.") +
+        (moodSet ? " Состояние — «" + moodT + "»." : "");
+    }
+
+    // ── Exactly 4 next-step pills, chosen from the user's ACTUAL state ──
+    // Prefer real actions where the user is missing something (mood/habit/journal),
+    // then one reflective chat. Build a prioritized pool, then trim/pad to 4.
+    const pool = [];
+    if (!moodSet) pool.push(bosActionPill("🧭", "Отметить состояние", "mood"));
+    if (!habits.length) {
+      pool.push(bosActionPill("➕", "Добавить привычку", "habit-settings", { mode: "create" }));
+      pool.push(bosChatPill("🌱", "С чего начать?", "Я только начинаю в приложении. Задай мне пару коротких вопросов и подскажи, с каких привычек стартовать."));
+    } else {
+      const undone = habits.length - done;
+      if (undone > 0) pool.push(bosChatPill("✅", "Что закрыть сейчас", "У меня сегодня закрыто " + done + " из " + habits.length + " привычек. Подскажи, с какой лучше продолжить прямо сейчас."));
+      pool.push(bosActionPill("➕", "Ещё привычка", "habit-settings", { mode: "create" }));
+    }
+    pool.push(bosActionPill("📖", "Записать в дневник", "journal"));
+    if (goals.length) pool.push(bosChatPill("🎯", "Разбить цель на шаги", "Помоги разбить мою цель на маленькие конкретные шаги."));
+    else pool.push(bosActionPill("🌟", "Поставить цель", "goal-settings", { mode: "create" }));
+    pool.push(bosChatPill("🤝", "Позвать друга", "Хочу позвать близкого человека держать привычку вместе — с чего начать?"));
+    // One reflective chat pill, tuned to recorded state (never asserts an unrecorded mood).
+    pool.push(bosChatPill("💬", moodSet ? "Поговорить о состоянии" : "Спросить совета",
+      moodSet ? "Сейчас по ощущениям — «" + moodT + "». Помоги с этим разобраться." : "Мне нужен один маленький совет на сегодня."));
+
+    // De-dupe by label, take the first 4 (priority order above).
+    const seen = {};
+    pills = pool.filter((p) => p && p.label && !seen[p.label] && (seen[p.label] = 1)).slice(0, 4);
+  } catch (e) {
+    summary = "Ты только начинаешь — добавь пару привычек и отметь состояние.";
+    pills = [];
+  }
+  // Hard guarantee: exactly 4 pills, even if something above went sideways.
+  if (pills.length < 4) {
+    const filler = [
+      bosActionPill("🧭", "Отметить состояние", "mood"),
+      bosActionPill("➕", "Добавить привычку", "habit-settings", { mode: "create" }),
+      bosActionPill("📖", "Записать в дневник", "journal"),
+      bosChatPill("💬", "Спросить совета", "Мне нужен один маленький совет на сегодня."),
+    ];
+    const seen = {}; pills.forEach((p) => { seen[p.label] = 1; });
+    for (let k = 0; k < filler.length && pills.length < 4; k++) if (!seen[filler[k].label]) { pills.push(filler[k]); seen[filler[k].label] = 1; }
+  }
+  return { summary, pills: pills.slice(0, 4), greeting: "", hint: "", source: "heuristic" };
 }
 
 // The login brief: heuristic baseline, refined by the real AI when reachable.
@@ -951,11 +1029,13 @@ async function bosAiBrief(app) {
     const parsed = bosParseBrief(raw);
     if (parsed) {
       const out = Object.assign({}, base, parsed, { source: "ai", at: Date.now() });
-      // Free model often truncates → too few AI pills. Keep them, top up from heuristic.
-      if (!out.pills || out.pills.length < 3) {
-        const have = {}; (out.pills || []).forEach((p) => { have[p.t] = 1; });
-        out.pills = (out.pills || []).concat((base.pills || []).filter((p) => !have[p.t])).slice(0, 4);
-      }
+      // ALWAYS exactly 4 pills. Free model often truncates → too few AI pills: keep
+      // the ones it gave, then top up (de-duped) from the honest heuristic set.
+      const have = {}; const merged = [];
+      (out.pills || []).concat(base.pills || []).forEach((p) => {
+        if (p && p.t && !have[p.t]) { have[p.t] = 1; merged.push(p); }
+      });
+      out.pills = merged.slice(0, 4);
       return out;
     }
   } catch (e) { /* keep heuristic */ }
@@ -974,6 +1054,12 @@ function AIChatScreen() {
   const _name = (app?.userName || "").trim();
   const _hr = (function () { try { return new Date().getHours(); } catch (e) { return 12; } })();
   const _greet = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
+  // The chat date divider. Demo keeps its frozen showcase time; live/fresh show the
+  // user's REAL current time, never a hard-coded string.
+  const _dateLabel = _demoChat ? "Сегодня · 09:14" : (function () {
+    try { const d = new Date(); const mm = d.getMinutes(); return "Сегодня · " + d.getHours() + ":" + (mm < 10 ? "0" + mm : mm); }
+    catch (e) { return "Сегодня"; }
+  })();
   const _hello = _greet + (_name ? ", " + _name : "") + ". Я рядом. Расскажи, как ты сейчас или что на уме — и начнём с одного маленького шага.";
   // Resolve current theme from the iOS frame wrapper so this screen looks
   // right under both .theme-light and .theme-dark.
@@ -1052,7 +1138,18 @@ function AIChatScreen() {
   // Persist the live AI chat locally so it survives reloads & reopening (on-device, private).
   React.useEffect(() => { if (!_aiLive) return; try { localStorage.setItem(_aiChatKey, JSON.stringify(msgs)); } catch (e) {} }, [msgs, _aiLive, _aiChatKey]);
 
+  // Split a reply on blank lines into separate human-feeling bubbles, then drop them
+  // in one after another with a small stagger (a real person texts in bursts, not one
+  // wall). Single-paragraph replies stay a single bubble. Caps at 4 to avoid spam.
+  const appendReply = (reply) => {
+    const parts = ("" + reply).split(/\n{2,}/).map((s) => s.trim()).filter(Boolean).slice(0, 4);
+    if (parts.length <= 1) { setMsgs((m) => [...m, { who: "ai", kind: "text", t: parts[0] || ("" + reply).trim() }]); return; }
+    setMsgs((m) => [...m, { who: "ai", kind: "text", t: parts[0] }]);
+    parts.slice(1).forEach((p, k) => { window.setTimeout(() => setMsgs((m) => [...m, { who: "ai", kind: "text", t: p }]), (k + 1) * 520); });
+  };
+
   const send = (text) => {
+    if (typing) return;
     const t = (text ?? draft).trim();
     if (!t) return;
     const history = [...msgs, { who: "me", t }];
@@ -1060,8 +1157,16 @@ function AIChatScreen() {
     setDraft("");
     setTyping(true);
     aiReply(history, buildAiContext(app), _demoChat)
-      .then((reply) => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: reply }]); })
+      .then((reply) => { setTyping(false); appendReply(reply); })
       .catch(() => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: _demoChat ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK }]); });
+  };
+
+  // Tap a suggestion pill. New contract: kind:"action" → open a real screen (route +
+  // params); kind:"chat" → seed the conversation. Legacy {i,t} pills (heuristic chips,
+  // demo) have no kind → treated as chat, sending their text. Demo behaviour unchanged.
+  const tapPill = (p) => {
+    if (p && p.kind === "action" && p.route) { navigate(p.route, p.params || {}); return; }
+    send((p && (p.prompt || p.t)) || "");
   };
 
   // A prompt passed in from the AI tab / quick chips → auto-send it on open.
@@ -1160,13 +1265,10 @@ function AIChatScreen() {
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#85e3a8" }}/> наставник слушает
           </div>
         </div>
-        <button className="tap" style={{ width: 36, height: 36, background: TH.iconBtn, border: TH.iconBtnBorder, borderRadius: "50%", color: TH.text, display: "grid", placeItems: "center" }}>
-          <I.More size={18}/>
-        </button>
       </div>
 
       <div ref={scrollRef} className="screen-scroll" style={{ flex: 1, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ alignSelf: "center", fontSize: 10, letterSpacing: 1.5, color: TH.dim, textTransform: "uppercase" }}>Сегодня · 09:14</div>
+        <div style={{ alignSelf: "center", fontSize: 10, letterSpacing: 1.5, color: TH.dim, textTransform: "uppercase" }}>{_dateLabel}</div>
 
         {msgs.map((m, i) => m.who === "ai" ? renderAI(m, i) : renderMe(m, i))}
 
@@ -1186,22 +1288,16 @@ function AIChatScreen() {
           otherwise the context-aware heuristic set. */}
       <div style={{ padding: "0 14px 8px", display: "flex", gap: 6, overflowX: "auto" }}>
         {((app && app.mode === "live" && app.aiBrief && Array.isArray(app.aiBrief.pills) && app.aiBrief.pills.length) ? app.aiBrief.pills.slice(0, 4) : buildQuickPrompts(app)).map((s, i) => (
-          <button key={i} onClick={() => send(s.t)} className="tap" data-no-haptic style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span>{s.i}</span> {s.t}
+          <button key={i} onClick={() => tapPill(s)} className="tap" data-no-haptic style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span>{s.i}</span> {s.label || s.t}
           </button>
         ))}
       </div>
 
       {/* Composer — flush, no border line */}
       <div style={{ padding: "10px 14px 16px", display: "flex", gap: 8, alignItems: "center" }}>
-        <button className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: TH.iconBtn, border: TH.iconBtnBorder, color: TH.text, display: "grid", placeItems: "center" }}>
-          <I.Plus size={18}/>
-        </button>
         <div style={{ flex: 1, background: TH.composer, border: TH.composerBorder, borderRadius: 999, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
           <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Напиши сообщение…" style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: TH.text, fontSize: 16 }}/>
-          <button className="tap" style={{ background: "transparent", border: 0, color: TH.muted, padding: 0, display: "grid", placeItems: "center" }}>
-            <I.Mic size={16}/>
-          </button>
         </div>
         <button onClick={() => send()} className="tap" style={{ width: 44, height: 44, borderRadius: "50%", background: TH.primary, border: 0, display: "grid", placeItems: "center" }}>
           <I.Send size={16} color={TH.primaryFg}/>

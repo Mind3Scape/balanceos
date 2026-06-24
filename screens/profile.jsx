@@ -190,6 +190,10 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
 
   const tint = (typeof tintFromMood === "function") ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
   const glow = tint[1];
+  // The centre orb's glossy shell already paints the default sphere face. Only nest a
+  // SECOND inner avatar disc when the user actually picked a Memoji/Emoji — otherwise the
+  // default sphere would render twice (a big + a small orb stacked = the duplicate bug).
+  const hasCustomAvatar = !!avatar && avatar !== "default";
   const lr = 54, CIRC = 2 * Math.PI * lr; // gold level arc hugging the centre orb
   const maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
   const drawRings = []; for (let r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
@@ -285,9 +289,11 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
         <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
           background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
           boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (dark ? ", 0 0 18px " + glow + "55" : "") }} />
-        <div style={{ position: "absolute", inset: 8, borderRadius: "50%", overflow: "hidden", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" }}>
-          <BosAvatar avatar={avatar} size={80} />
-        </div>
+        {hasCustomAvatar && (
+          <div style={{ position: "absolute", inset: 8, borderRadius: "50%", overflow: "hidden", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" }}>
+            <BosAvatar avatar={avatar} size={80} />
+          </div>
+        )}
         <span style={{ position: "absolute", right: 1, bottom: 1, width: 27, height: 27, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid " + PAL.badge, boxShadow: "0 2px 6px rgba(0,0,0,0.25)", zIndex: 2 }}>
           <I.Pencil size={12} />
         </span>
@@ -835,11 +841,21 @@ function HistoryScreen() {
                   ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px dashed " + TH.cellBorder }}/>
                   : <DayRing pct={pct} track={TH.ringTrack} glow={pct === 1} />}
                 <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>
-                {isCurMonth && app?.dayMoods?.[c.d] != null && pct != null && (
-                  <span aria-hidden style={{ position: "absolute", top: 0, right: 0, lineHeight: 0 }}>
-                    <StaticOrb size={10} tint={tintFromMood(MOOD_OPTIONS[app.dayMoods[c.d]].c)} seed={1.2} intensity={0.55} />
-                  </span>
-                )}
+                {(() => {
+                  // Live/fresh moods are written by ISO date key (bosTodayKey, e.g. "2026-06-24");
+                  // demo seeds them by day-of-month. iso() above produces the same local ISO key.
+                  if (!isCurMonth || pct == null) return null;
+                  const mkey = isLive ? iso(c.d) : c.d;
+                  const mi = app?.dayMoods?.[mkey];
+                  if (mi == null) return null;
+                  const dm = MOOD_OPTIONS[mi];
+                  if (!dm) return null;
+                  return (
+                    <span aria-hidden style={{ position: "absolute", top: 0, right: 0, lineHeight: 0 }}>
+                      <StaticOrb size={10} tint={tintFromMood(dm.c)} seed={1.2} intensity={0.55} />
+                    </span>
+                  );
+                })()}
               </button>
             );
           })}
@@ -876,10 +892,12 @@ function HistoryScreen() {
               </div>
               <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>{Math.round(selPct * 100)}%</span>
             </div>
-            {/* Mood/journal are stored by day-of-month → only meaningful for the month
-                you're actually in. Live shows them for the current month only. */}
-            {(!isLive || isCurMonth) && app?.dayMoods?.[selDay] != null && (() => {
-              const dm = MOOD_OPTIONS[app.dayMoods[selDay]];
+            {/* Mood/journal keys: live/fresh are written by ISO date (bosTodayKey) so they
+                scope correctly to any month; demo seeds them by day-of-month. */}
+            {(() => {
+              const dkey = isLive ? iso(selDay) : selDay;
+              const dm = app?.dayMoods?.[dkey] != null ? MOOD_OPTIONS[app.dayMoods[dkey]] : null;
+              if (!dm) return null;
               return (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
                   <span style={{ width: 36, height: 36, display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -892,21 +910,26 @@ function HistoryScreen() {
                 </div>
               );
             })()}
-            {(!isLive || isCurMonth) && app?.dayNotes?.[selDay] && ((app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length) || app.dayNotes[selDay].note) && (
-              <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
-                <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Журнал</div>
-                {app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                    {app.dayNotes[selDay].tags.map((tg, k) => (
-                      <span key={k} style={{ fontSize: 12.5, padding: "5px 10px", borderRadius: 999, background: TH.iconBg }}>#{tg}</span>
-                    ))}
-                  </div>
-                )}
-                {app.dayNotes[selDay].note && (
-                  <div className="bos-sys-text-2" style={{ fontSize: 14, marginTop: 8, lineHeight: 1.45 }}>{app.dayNotes[selDay].note}</div>
-                )}
-              </div>
-            )}
+            {(() => {
+              const nkey = isLive ? iso(selDay) : selDay;
+              const dn = app?.dayNotes?.[nkey];
+              if (!dn || !((dn.tags && dn.tags.length) || dn.note)) return null;
+              return (
+                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
+                  <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Журнал</div>
+                  {dn.tags && dn.tags.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                      {dn.tags.map((tg, k) => (
+                        <span key={k} style={{ fontSize: 12.5, padding: "5px 10px", borderRadius: 999, background: TH.iconBg }}>#{tg}</span>
+                      ))}
+                    </div>
+                  )}
+                  {dn.note && (
+                    <div className="bos-sys-text-2" style={{ fontSize: 14, marginTop: 8, lineHeight: 1.45 }}>{dn.note}</div>
+                  )}
+                </div>
+              );
+            })()}
             {dayHabits.map((h, i) => {
               // Live: the habit's OWN logged state for this date; demo: ordered fill.
               const done = isLive ? h.on : i < Math.round(selPct * dayHabits.length);
@@ -1093,8 +1116,10 @@ function AIScreen() {
     // state below — a check-in / start-chatting invite, never invented advice.
     const isBlank = liveHabits.length === 0 && !briefSummary;
 
-    // The mentor orb tint follows the user's current state (consistent with the chat).
-    const liveTint = (moodName && typeof tintFromMood === "function") ? tintFromMood(app.mood && app.mood.c) : orbTint;
+    // The hero orb tint follows the user's CURRENT state colour — the same mood tint
+    // the home hero orb uses (tintFromMood(app.mood.c)) — so it reads as "you, right now".
+    const moodC = app.mood && app.mood.c;
+    const liveTint = (moodC && typeof tintFromMood === "function") ? tintFromMood(moodC) : orbTint;
 
     let headline = briefSummary;
     if (!headline) {
@@ -1114,6 +1139,17 @@ function AIScreen() {
     if (!pills.length && !isBlank && typeof buildQuickPrompts === "function") pills = buildQuickPrompts(app).slice(0, 4);
 
     const planPrompt = "Помоги составить простой план на сегодня по моим привычкам.";
+
+    // «Следующие шаги» route to REAL features, not always the chat. New pills carry
+    // { label, kind:"action"|"chat", route?, params?, prompt? }. action → open that
+    // screen; chat → open the chat primed with prompt. Legacy/string pills (the old
+    // { i, t } brief shape) gracefully fall back to a chat entry on their text.
+    const pillLabel = (p) => (typeof p === "string" ? p : (p && (p.label || p.t)) || "");
+    const goPill = (p) => {
+      if (p && p.kind === "action" && p.route) return navigate(p.route, p.params || {});
+      if (p && p.kind === "chat") return navigate("ai-chat", { prompt: p.prompt || pillLabel(p) });
+      navigate("ai-chat", { prompt: pillLabel(p) });
+    };
 
     return (
       <div className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -1212,17 +1248,20 @@ function AIScreen() {
             <>
               <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Следующие шаги</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-                {pills.map((p, i) => (
-                  <button key={i} onClick={() => navigate("ai-chat", { prompt: p.t })} className="tap"
+                {pills.map((p, i) => {
+                  const isChat = !p || typeof p === "string" || p.kind !== "action";
+                  return (
+                  <button key={i} onClick={() => goPill(p)} className="tap"
                     style={{ width: "100%", background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", border: 0, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{p.i || "✨"}</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{(p && p.i) || "✨"}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{p.t}</div>
-                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Обсудить с помощником →</div>
+                      <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{pillLabel(p)}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{isChat ? "Обсудить с помощником →" : "Открыть →"}</div>
                     </div>
                     <I.ChevronRight size={18} color="var(--text-4)" style={{ flexShrink: 0 }}/>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </>
           )

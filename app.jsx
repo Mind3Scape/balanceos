@@ -99,6 +99,12 @@ function applyTweaks(t) {
 
 const START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a friend" opener
 
+// Auto-resume a logged-in Telegram user straight to home (skip the intro) on reopen.
+// DORMANT by design: while demo + live share ONE link, a TG user seeing the intro each
+// launch is the accepted behaviour. Flip to true ONLY once the separate full-app Telegram
+// bot is wired up. (See memory: balanceos-two-bot-end-state.)
+const AUTO_RESUME_TG = false;
+
 // True when launched from the iOS home screen (installed PWA). There we let the
 // REAL system status bar show; in a browser tab we draw our own so the mockup
 // still looks complete.
@@ -108,7 +114,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v165";
+const APP_VERSION = "v167";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -639,8 +645,28 @@ function PhoneApp() {
 
   useEffect(() => {
     applyTweaks(TWEAK_DEFAULTS);
-    // Reveal the app and fade the launch splash once mounted.
-    const id = requestAnimationFrame(() => document.body.classList.add("app-ready"));
+    const reveal = () => document.body.classList.add("app-ready");
+    // DORMANT auto-resume (AUTO_RESUME_TG): inside Telegram a returning user would skip the
+    // intro and open straight to their live profile. Kept OFF until the separate full-app bot
+    // exists; in a normal browser this branch is a no-op. telegram.js is deferred, so
+    // window.__TG can arrive a beat after mount → poll briefly before deciding.
+    if (AUTO_RESUME_TG) {
+      let tries = 0, raf = 0, settled = false;
+      const decide = () => {
+        if (settled) return;
+        let tg = null; try { tg = window.__TG; } catch (e) {}
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+          settled = true;
+          try { app.enterLive(); setFrames([{ route: "home", params: {}, id: idRef.current++ }]); } catch (e) {}
+          reveal(); return;
+        }
+        if (tg === null || tries > 30) { settled = true; reveal(); return; }
+        tries++; raf = requestAnimationFrame(decide);
+      };
+      decide();
+      return () => { settled = true; if (raf) cancelAnimationFrame(raf); };
+    }
+    const id = requestAnimationFrame(reveal);
     return () => cancelAnimationFrame(id);
   }, []);
 

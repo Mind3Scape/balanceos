@@ -191,6 +191,20 @@
     } catch (e) { return []; }
   }
 
+  // E: leave a team (any member). RPC-first (SECURITY DEFINER) with a direct-delete fallback.
+  // An OWNER who wants out should use deleteTeam (leaving would orphan the team).
+  async function leaveTeam(teamId) {
+    var c = client(); var id = await uid(); if (!c || !id || !teamId) return false;
+    try { var rpc = await c.rpc("leave_team", { t: teamId }); if (!rpc.error) return true; } catch (e) {}
+    try { var r = await c.from("team_members").delete().eq("team_id", teamId).eq("user_id", id); return !r.error; } catch (e) { return false; }
+  }
+  // E: owner deletes the whole team (cascades members/habits/logs/messages). RPC-first.
+  async function deleteTeam(teamId) {
+    var c = client(); var id = await uid(); if (!c || !id || !teamId) return false;
+    try { var rpc = await c.rpc("delete_team", { t: teamId }); if (!rpc.error) return true; } catch (e) {}
+    try { var r = await c.from("teams").delete().eq("id", teamId).eq("owner_id", id); return !r.error; } catch (e) { return false; }
+  }
+
   // ── РЕАЛЬНЫЕ ОБЩИЕ ПРИВЫЧКИ КОМАНДЫ ─────────────────────────────────────────
   // Each team habit with REAL stats: doneToday (members who marked today), total
   // (member count), doneByMe, weekPct (avg member-completion over the last 7 days).
@@ -274,7 +288,7 @@
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     createTeam: createTeam, discoverTeams: discoverTeams, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
-    teamMembers: teamMembers, myTeamIds: myTeamIds,
+    teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
     signOut: signOut,

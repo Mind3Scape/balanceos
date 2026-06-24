@@ -1528,8 +1528,27 @@ function AppProvider({
   // Computed once per login from the real context; cached so it shows instantly.
   var [aiBrief, setAiBrief] = useState(null);
   var saveTimer = useRef(null);
+  // True while a live login is hydrating from the cloud — blocks the autosave below so
+  // empty/just-defaulted local state can't race ahead and overwrite real cloud data.
+  var hydratingRef = useRef(false);
+  // Always holds the latest state so an unload/background flush writes what's on screen
+  // right now (a stale effect-closure would miss the very last tap).
+  var latestRef = useRef(null);
+  latestRef.current = {
+    persistId,
+    userName,
+    avatar,
+    habits,
+    goals,
+    teams,
+    dayMoods,
+    dayNotes,
+    widgets,
+    wheelSpheres
+  };
   useEffect(() => {
     if (!persistId || !window.bosStore) return;
+    if (hydratingRef.current) return; // don't persist until the cloud load has reconciled
     if (saveTimer.current) clearTimeout(saveTimer.current);
     // Debounce: a flurry of taps coalesces into one write.
     saveTimer.current = setTimeout(() => {
@@ -1568,6 +1587,51 @@ function AppProvider({
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres]);
+
+  // Flush synchronously when the app is backgrounded/closed: the 400 ms debounce above
+  // would otherwise lose the very last check-in if the user swipes the app away. localStorage
+  // is synchronous (always lands); the cloud write is best-effort and re-syncs next open.
+  useEffect(() => {
+    var flush = () => {
+      var s = latestRef.current;
+      if (!s || !s.persistId || !window.bosStore || hydratingRef.current) return;
+      try {
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        window.bosStore.save(s.persistId, {
+          savedAt: Date.now(),
+          userName: s.userName,
+          avatar: s.avatar,
+          habits: s.habits,
+          goals: s.goals,
+          teams: s.teams,
+          dayMoods: s.dayMoods,
+          dayNotes: s.dayNotes,
+          widgets: s.widgets,
+          wheelSpheres: s.wheelSpheres
+        });
+        if (window.bosCloud && window.bosCloud.enabled()) {
+          window.bosCloud.saveSnapshot({
+            habits: s.habits,
+            goals: s.goals,
+            teams: s.teams,
+            dayMoods: s.dayMoods,
+            dayNotes: s.dayNotes,
+            widgets: s.widgets,
+            wheelSpheres: s.wheelSpheres
+          });
+        }
+      } catch (e) {}
+    };
+    var onVis = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
 
   // L1 — refresh the AI brief ONCE per login (entering live / identity change). Shows the
   // cached brief instantly, then refines it via the real AI from the restored context.
@@ -1690,7 +1754,11 @@ function AppProvider({
       setDayNotes(saved.dayNotes || {});
       setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES);
       setWidgets(saved.widgets || FRESH_WIDGETS);
-      setMood(_onbMood() || MOOD_OPTIONS[2]); // live mood isn't persisted yet — start neutral
+      // Restore today's state (the orb) from the saved per-day record, so reopening lands
+      // in the mood the user last set today instead of snapping back to neutral.
+      var _tkS = typeof bosTodayKey === "function" ? bosTodayKey() : null;
+      var _miS = _tkS && saved.dayMoods ? saved.dayMoods[_tkS] : undefined;
+      setMood(_miS != null && MOOD_OPTIONS[_miS] ? MOOD_OPTIONS[_miS] : _onbMood() || MOOD_OPTIONS[2]);
     } else {
       setUserName(name);
       setAvatar(avatar || null);
@@ -1723,6 +1791,13 @@ function AppProvider({
     // profile in the background. Fully guarded — if cloud is off/unreachable, stays local.
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
+        // Hold off autosave until the cloud load reconciles — otherwise the empty/just-set
+        // local state could save first and overwrite real cloud data with blanks.
+        hydratingRef.current = true;
+        var _doneHydrate = function () {
+          hydratingRef.current = false;
+        };
+        setTimeout(_doneHydrate, 9000); // hard safety: never get stuck not-saving
         var _refBy = null;
         try {
           _refBy = new URLSearchParams(window.location.search).get("ref") || null;
@@ -1734,7 +1809,10 @@ function AppProvider({
         var _locName = saved ? saved.userName || name : name;
         var _locAv = saved ? saved.avatar || avatar || null : avatar || null;
         window.bosCloud.signIn(_refBy).then(function (u) {
-          if (!u) return;
+          if (!u) {
+            _doneHydrate();
+            return;
+          }
           window.bosCloud.loadProfile().then(function (prof) {
             if (prof && (prof.username || prof.avatar)) {
               if (prof.username) setUserName(prof.username);
@@ -1756,7 +1834,15 @@ function AppProvider({
               if (Array.isArray(d.habits)) setHabits(d.habits.map(bosRollHabit));
               if (Array.isArray(d.goals)) setGoals(d.goals);
               if (Array.isArray(d.teams)) setTeams(d.teams);
-              if (d.dayMoods) setDayMoods(d.dayMoods);
+              if (d.dayMoods) {
+                setDayMoods(d.dayMoods);
+                // keep the orb in sync with today's restored state
+                try {
+                  var _tk = typeof bosTodayKey === "function" ? bosTodayKey() : null;
+                  var _mi = _tk ? d.dayMoods[_tk] : undefined;
+                  if (_mi != null && MOOD_OPTIONS[_mi]) setMood(MOOD_OPTIONS[_mi]);
+                } catch (e) {}
+              }
               if (d.dayNotes) setDayNotes(d.dayNotes);
               if (d.wheelSpheres) setWheelSpheres(d.wheelSpheres);
               if (d.widgets) setWidgets(d.widgets);
@@ -1772,6 +1858,8 @@ function AppProvider({
                 widgets: src.widgets
               });
             }
+            // Reconciliation done → allow autosave again (the join below should persist).
+            _doneHydrate();
             // ?team= invite link → join that team instantly («по ссылке — сразу»),
             // append it on top of whatever teams we just hydrated, and clean the URL.
             if (_joinTeamId) {
@@ -1801,8 +1889,8 @@ function AppProvider({
                 } catch (e) {}
               });
             }
-          });
-        });
+          }).catch(_doneHydrate);
+        }).catch(_doneHydrate);
       }
     } catch (e) {}
   };

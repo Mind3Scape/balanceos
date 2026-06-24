@@ -13,6 +13,30 @@ function useThemeFlag(ref) {
   return isDark;
 }
 
+/* AI-brief pills now carry intent: a pill can OPEN a real screen ("записать прогулку",
+   "написать дневник", "отметить состояние") or START a chat — only conversational ones
+   should land in ai-chat. Shape: { label, kind:"action"|"chat", route?, params?, prompt?, i? }.
+   We stay backwards-compatible with the old shapes ({ t, i } chips, or a bare string),
+   which fall back to opening the chat with their text as the prompt. */
+function bosPillLabel(pill) {
+  if (typeof pill === "string") return pill;
+  return pill.label || pill.t || pill.prompt || "";
+}
+function bosPillIcon(pill) {
+  if (typeof pill === "string") return "✨";
+  return pill.i || "✨";
+}
+function bosRoutePill(navigate, pill) {
+  if (typeof pill === "string") { navigate("ai-chat", { prompt: pill }); return; }
+  if (pill && pill.kind === "action" && pill.route) {
+    navigate(pill.route, pill.params || {});
+    return;
+  }
+  // kind:"chat" (or any legacy/unknown pill): open the conversation. Prefer an
+  // explicit prompt, else use the label so the chat still opens on-topic.
+  navigate("ai-chat", { prompt: (pill && (pill.prompt || pill.label || pill.t)) || "" });
+}
+
 /* Habit checkmark with a floating "+XP" pop on completion — the same reward beat
    as the day-close celebration, but right ON the checkmark so it's always visible
    (even when the top of the screen is scrolled off). Shared by Home + Habits. */
@@ -93,7 +117,141 @@ function BalanceWheel({ size = 122, isDark = false }) {
   );
 }
 
-/* Hero swipe deck — page 1: today's reading, page 2: Balance Wheel */
+/* Hero orbit — the SAME constellation as the Profile screen's OrbitField, scaled to
+   live inside the swipe-deck card: you (the mood orb with your avatar) in the centre,
+   orbit rings with small drifting dots, and your real people (team-mates + co-op
+   friends) as memoji discs around you. No green health glow — it follows the mood
+   tint like the hero, and a settings gear sits in the top-right.
+   `people` is REAL data (deduped team members + habit friends); empty → calm rings. */
+function HomeOrbit({ navigate, avatar, people = [], levelPct = 2, moodC, isDark }) {
+  const t = (typeof useT === "function") ? useT() : 0;
+  const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const smooth = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+  const eo = smooth(t / 0.85); // gentle bloom-in on appear
+
+  // People become orbiting discs (index 0 = closest ring). Capped so the small
+  // card never gets crowded — the rest are implied by the rings.
+  const pp = (people || []).slice(0, 10);
+  const nodes = pp.map((p, j) => ({ ring: j % 3, av: p.avatar, initials: p.initials, color: p.color, key: "p" + j }));
+  const byRing = {};
+  nodes.forEach((n) => { (byRing[n.ring] = byRing[n.ring] || []).push(n); });
+  Object.keys(byRing).forEach((r) => { const a = byRing[r]; a.forEach((n, idx) => { n.baseAng = (idx / a.length) * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2; }); });
+
+  const RBASE = 70, RSTEP = 23;
+  const radius = (ring) => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
+  const spin = (ring) => ((ring % 2) ? -1 : 1) * 0.06 / (1 + ring * 0.18);
+  const fadeAt = (R) => clamp(1 - (R - 120) / 52, 0, 1);
+
+  const tint = (typeof tintFromMood === "function") ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
+  const glow = tint[1];
+  const lr = 48, CIRC = 2 * Math.PI * lr; // gold level arc hugging the centre orb
+  const drawRings = [0, 1, 2]; // always ≥3 calm rings, even with no people
+
+  const PAL = isDark ? {
+    ring: "186,210,248", pdisc: "rgba(20,32,54,0.6)", pstroke: "rgba(255,255,255,0.5)",
+    lvlTrack: "rgba(255,255,255,0.12)", badge: "#0a0a0a", shadow: false,
+  } : {
+    ring: "92,120,165", pdisc: "#ffffff", pstroke: "#ffffff",
+    lvlTrack: "rgba(0,0,0,0.08)", badge: "#ffffff", shadow: true,
+  };
+
+  return (
+    <div key="orbit" style={{ position: "relative", height: "100%", boxSizing: "border-box", overflow: "hidden" }}>
+      {/* settings gear — top-right of this block */}
+      <button onClick={() => navigate("settings")} className="tap" aria-label="Настройки"
+        style={{ position: "absolute", top: 12, right: 12, zIndex: 3, width: 30, height: 30, borderRadius: 10,
+          background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)", border: 0, display: "grid", placeItems: "center" }}>
+        <I.Settings size={16} color={isDark ? "rgba(255,255,255,0.8)" : "#787878"} />
+      </button>
+
+      <div style={{ position: "relative", width: "100%", height: "100%", minHeight: 196, overflow: "visible" }}>
+        <svg viewBox="-140 -140 280 280" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none" }}>
+          <defs>
+            <clipPath id="homeOrbAvClip"><circle cx="0" cy="0" r="16" /></clipPath>
+            <filter id="homeOrbShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="2.2" floodColor="#000" floodOpacity="0.16" /></filter>
+          </defs>
+
+          {/* concentric orbits */}
+          {drawRings.map((r) => {
+            const R = radius(r), op = (isDark ? 0.22 : 0.26 - r * 0.03) * eo * fadeAt(R);
+            return op <= 0.004 ? null :
+              <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(" + PAL.ring + "," + op.toFixed(3) + ")"} strokeWidth="1" />;
+          })}
+
+          {/* small living dots drifting along the orbits */}
+          {drawRings.map((r) => {
+            const R = radius(r), baseOp = clamp(eo * fadeAt(R), 0, 1);
+            if (baseOp <= 0.02) return null;
+            const ds = ((r % 2) ? -1 : 1) * 0.05 / (1 + r * 0.15);
+            return [0, 1, 2].map((k) => {
+              const ang = (k / 3) * Math.PI * 2 + r * 1.3 + 0.5 + t * ds;
+              const x = (Math.cos(ang) * R).toFixed(1), y = (Math.sin(ang) * R).toFixed(1);
+              const rad = lerp(1.7, 1.05, clamp(r / 4, 0, 1));
+              return (
+                <g key={"dot" + r + "_" + k} opacity={(baseOp * 0.9).toFixed(2)}>
+                  <circle cx={x} cy={y} r={(rad * 2.4).toFixed(2)} fill={glow} opacity="0.16" style={{ filter: "blur(2.5px)" }} />
+                  <circle cx={x} cy={y} r={rad.toFixed(2)} fill={glow} opacity={isDark ? "0.85" : "0.6"} />
+                </g>
+              );
+            });
+          })}
+
+          {/* gold level arc hugging the centre orb */}
+          <g transform="rotate(-90)" opacity={eo}>
+            <circle cx="0" cy="0" r={lr} fill="none" stroke={PAL.lvlTrack} strokeWidth="4" />
+            <circle cx="0" cy="0" r={lr} fill="none" stroke="#FEDE34" strokeWidth="4" strokeLinecap="round"
+              strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - Math.max(0.02, (levelPct || 2) / 100))} />
+          </g>
+
+          {/* people — memoji discs orbiting you */}
+          {nodes.map((n) => {
+            const R = radius(n.ring), ang = n.baseAng + t * spin(n.ring);
+            const x = Math.cos(ang) * R, y = Math.sin(ang) * R;
+            const op = clamp(eo * fadeAt(R), 0, 1); if (op <= 0.02) return null;
+            const sz = lerp(17, 11, clamp(n.ring / 3, 0, 1));
+            const pop = smooth((t - n.ring * 0.08) / 0.5);
+            const gs = ((sz / 16) * pop).toFixed(3);
+            const av = n.av, isEmoji = av && ("" + av).indexOf("emoji:") === 0, isMemoji = /^m\d+$/.test(av || "");
+            const href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
+            return (
+              <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#homeOrbShadow)" : undefined}>
+                {isDark && <circle cx="0" cy="0" r="18.5" fill={glow} opacity="0.16" style={{ filter: "blur(5px)" }} />}
+                <circle cx="0" cy="0" r="16" fill={n.color || PAL.pdisc} />
+                {av
+                  ? (isEmoji
+                      ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
+                      : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#homeOrbAvClip)" />)
+                  : <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="rgba(0,0,0,0.55)">{n.initials || "•"}</text>}
+                <circle cx="0" cy="0" r="16.6" fill="none" stroke={PAL.pstroke} strokeWidth="1.4" />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* you, in the centre — the SAME glossy mood orb as the hero, just larger,
+            with your avatar nested inside. No green glow: it tracks the mood tint. */}
+        <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 88, height: 88, opacity: eo }}>
+          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
+            background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
+            boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (isDark ? ", 0 0 18px " + glow + "55" : "") }} />
+          <div style={{ position: "absolute", inset: 7, borderRadius: "50%", overflow: "hidden", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" }}>
+            <BosAvatar avatar={avatar} size={74} />
+          </div>
+        </div>
+      </div>
+
+      {/* a quiet caption so an EMPTY orbit still reads as intentional, not broken */}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 36, textAlign: "center", pointerEvents: "none" }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>
+          {people.length ? "Твоя орбита" : "Твоя орбита · позови своих"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* Hero swipe deck — page 1: today's reading, page 2: Balance Wheel (demo) / your orbit (live) */
 function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const [page, setPage] = useHomeState(0);
   // Ring grows from 0 on appear (and eases to its new value on change).
@@ -115,6 +273,42 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
   const avgBalance = wAxes.length ? Math.round(wAxes.reduce((s, a) => s + a.v, 0) / wAxes.length * 100) : 0;
   const weakSpheres = [...wAxes].sort((a, b) => a.v - b.v).slice(0, 2);
+
+  // Multiplayer orbit data (page 2 for live/fresh). REAL people only: the user's
+  // invited referral circle (same cloud source the Profile orbit uses), plus the
+  // people they already share habits/teams with — deduped. Demo uses its showcase
+  // faces so the orbit reads even before any real circle exists.
+  const _liveOrbit = heroApp?.mode !== "demo";
+  const _lvlInfo = (typeof bosLevelInfo === "function" && typeof bosLiveXP === "function" && _liveOrbit) ? bosLevelInfo(bosLiveXP(heroApp)) : null;
+  const orbitLevelPct = heroApp?.mode === "demo" ? 72 : (_lvlInfo ? _lvlInfo.pct : 2);
+  const [invited, setInvited] = useHomeState([]);
+  React.useEffect(() => {
+    if (!_liveOrbit || !(window.bosCloud && window.bosCloud.enabled())) return;
+    let on = true;
+    try {
+      window.bosCloud.invitedPeople().then((list) => {
+        if (on && Array.isArray(list)) setInvited(list.map((p) => ({ avatar: (p && p.avatar) || "default", name: (p && p.username) || "Друг" })));
+      }).catch(() => {});
+    } catch (e) {}
+    return () => { on = false; };
+  }, [_liveOrbit]);
+  const orbitPeople = React.useMemo(() => {
+    if (heroApp?.mode === "demo") return (window.DEMO_ORBIT_PEOPLE || []);
+    // dedupe by avatar id, then name, so the same friend across a team + a habit
+    // shows once. Team members carry avatars/initials; habit friends carry initials.
+    const seen = new Set(), out = [];
+    const push = (p) => {
+      if (!p) return;
+      const k = (p.avatar && /^m\d+$/.test(p.avatar) ? "a:" + p.avatar : "") || ("n:" + (p.name || p.initials || ""));
+      if (!k || seen.has(k)) return; seen.add(k);
+      out.push({ avatar: p.avatar, initials: p.initials || (p.name ? p.name.charAt(0).toUpperCase() : ""), color: p.color });
+    };
+    invited.forEach(push);
+    (heroApp?.teams || []).forEach((t) => (t.members || []).forEach(push));
+    (heroApp?.habits || []).forEach((h) => (h.friends || []).forEach(push));
+    return out;
+  }, [heroApp?.mode, invited, heroApp?.teams, heroApp?.habits]);
+
   const startX = React.useRef(null);
   const onTouchStart = (e) => { startX.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
@@ -153,14 +347,16 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const _homeSummary = (_liveBrief && _liveBrief.summary) || aiBrief;
   const _livePills = (_liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length)
     ? _liveBrief.pills.slice(0, 4) : null;
-  const _pillsKey = _livePills ? _livePills.map((p) => p.t).join("|") : "demo"; // change → re-animate
+  const _pillsKey = _livePills ? _livePills.map(bosPillLabel).join("|") : "demo"; // change → re-animate
   const _pages = [
     /* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
     newbie ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2 }}>{_liveBrief ? "Тебе сегодня" : "С чего начать"}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <I.Sparkles size={12} color="#E0A500" filled strokeWidth={0}/> {_liveBrief ? "Тебе сегодня" : "С чего начать"}
+          </div>
           <div key={_homeSummary} style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
@@ -198,7 +394,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <span style={{ color: "#E0A500" }}>✦</span> {_liveBrief ? "Тебе сегодня" : "Совет дня"}
+            <I.Sparkles size={12} color="#E0A500" filled strokeWidth={0}/> {_liveBrief ? "Тебе сегодня" : "Совет дня"}
           </div>
           <div key={_homeSummary} style={{ fontSize: 14, color: "var(--text-2)", marginTop: 5, lineHeight: 1.42, letterSpacing: "-0.1px", animation: "briefFade 0.5s ease both" }}>
             {_homeSummary}
@@ -236,18 +432,21 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
           { i: "🧘🏼‍♀️", t: "Медитация 5 мин" },
           { i: "📖", t: "Открыть дневник" },
         ]).map((c, i) => (
-          <button key={i} onClick={() => navigate("ai-chat", { prompt: c.t })} className="tap" style={{
+          <button key={i} onClick={() => bosRoutePill(navigate, c)} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
             background: chipBg, border: chipBd,
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
             animation: _livePills ? ("briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.06) + "s") : undefined,
-          }}><span>{c.i}</span>{c.t}</button>
+          }}><span>{bosPillIcon(c)}</span>{bosPillLabel(c)}</button>
         ))}
       </div>
     </div>
     ),
-    /* Page 2: Balance — clean radar (kept) + per-sphere breakdown that fills the
-       space and shows what each sphere is + its % level. Original card height. */
+    /* Page 2 — LIVE/FRESH: your multiplayer orbit (you in the centre, real people
+       around you, settings gear). DEMO: the curated Balance Wheel showcase. */
+    _liveOrbit ? (
+      <HomeOrbit key="orbit" navigate={navigate} avatar={heroApp?.avatar} people={orbitPeople} levelPct={orbitLevelPct} moodC={mood && mood.c} isDark={isDark} />
+    ) : (
     <div key="wheel" data-tour="balance-wheel" style={{ position: "relative", height: "100%", padding: "14px 16px 14px 8px", boxSizing: "border-box", display: "flex", gap: 6, alignItems: "center" }}>
       <div style={{ flexShrink: 0 }}><BalanceWheel size={112} isDark={isDark} /></div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -267,10 +466,13 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
           ))}
         </div>
       </div>
-    </div>,
+    </div>
+    ),
   ];
-  // Newbie: only the get-started page (no balance wheel until there's data).
-  const pages = newbie ? _pages.slice(0, 1) : _pages;
+  // Both pages always render: live/fresh get [hints, orbit], demo gets [quote, wheel].
+  // (Previously a newbie deck was sliced to ONE page, leaving an empty white half
+  // that a right-swipe could reveal — that's the Telegram blank-block bug.)
+  const pages = _pages;
   return (
     <div style={{
       background: cardBg,
@@ -278,7 +480,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       borderRadius: 28, position: "relative", overflow: "hidden",
       boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
     }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div style={{ display: "flex", width: "200%", transform: `translateX(${-page * 50}%)`, transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: newbie ? 128 : 196 }}>
+      <div style={{ display: "flex", width: "200%", transform: `translateX(${-page * 50}%)`, transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: 196 }}>
         {pages.map((p, i) => <div key={i} style={{ width: "50%", flexShrink: 0 }}>{p}</div>)}
       </div>
       {pages.length > 1 && (

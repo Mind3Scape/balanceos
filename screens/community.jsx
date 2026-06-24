@@ -430,6 +430,9 @@ function CommunityScreen() {
   // Real level for LIVE users (was hard-coded to 8 — it wrongly told a level-1 user
   // they were 8/10). Demo keeps its curated numbers.
   const _isLiveComm = app?.mode === "live";
+  // LIVE has no Партнёры tab — if a stale view left commTab on "partners" (e.g. it was
+  // selected in demo), fall back to "network" so the content area is never blank.
+  const commTabEff = (_isLiveComm && commTab === "partners") ? "network" : commTab;
   const _commLvl = (_isLiveComm && typeof bosLiveXP === "function") ? bosLevelInfo(bosLiveXP(app)) : null;
   const userLevel = _commLvl ? _commLvl.level : 8;
   const xpInLevel = _commLvl ? _commLvl.into : 1240;
@@ -456,10 +459,21 @@ function CommunityScreen() {
         { i: "🎯", t: "Менторство на месяц", d: "4 звонка · сопровождение",  price: "300 XP/мес",   lvl: 7 },
       ] },
   ];
+  // Upcoming cohort window: a "D — D MMM" range that starts `startIn` days from the
+  // REAL today and runs `days` long. Used for LIVE users so dates are never stale (demo
+  // keeps its frozen showcase strings below). Same dash/short-month look as the originals.
+  const _ruMon = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+  const _cohortWindow = (startIn, days) => {
+    const a = new Date(); a.setHours(0, 0, 0, 0); a.setDate(a.getDate() + startIn);
+    const b = new Date(a); b.setDate(b.getDate() + (days - 1));
+    return a.getMonth() === b.getMonth()
+      ? a.getDate() + " — " + b.getDate() + " " + _ruMon[b.getMonth()]
+      : a.getDate() + " " + _ruMon[a.getMonth()] + " — " + b.getDate() + " " + _ruMon[b.getMonth()];
+  };
   const courses = [
-    { id: "overload",     i: "⚡",    accent: "#fef3c7", t: "Перегрузка",      d: "Перенастрой мышление и очисти негативные убеждения.", price: "110 000 ₽", lvl: "Интенсив",   length: "3 дня", cohort: "14 — 16 мар" },
-    { id: "breakthrough", i: "🚀",    accent: "#dbe9ff", t: "Прорыв",  d: "Открой новые пути и преодолей пределы.",            price: "110 000 ₽", lvl: "Продвинутый",    length: "7 дней", cohort: "8 — 14 апр" },
-    { id: "marathon",     i: "🏃🏼‍♀️", accent: "#d6f3df", t: "Марафон",      d: "21-дневная программа устойчивых привычек.",                price: "110 000 ₽", lvl: "Базовый",  length: "21 день", cohort: "1 — 21 мая" },
+    { id: "overload",     i: "⚡",    accent: "#fef3c7", t: "Перегрузка",      d: "Перенастрой мышление и очисти негативные убеждения.", price: "110 000 ₽", lvl: "Интенсив",   length: "3 дня", cohort: _isLiveComm ? _cohortWindow(12, 3) : "14 — 16 мар" },
+    { id: "breakthrough", i: "🚀",    accent: "#dbe9ff", t: "Прорыв",  d: "Открой новые пути и преодолей пределы.",            price: "110 000 ₽", lvl: "Продвинутый",    length: "7 дней", cohort: _isLiveComm ? _cohortWindow(33, 7) : "8 — 14 апр" },
+    { id: "marathon",     i: "🏃🏼‍♀️", accent: "#d6f3df", t: "Марафон",      d: "21-дневная программа устойчивых привычек.",                price: "110 000 ₽", lvl: "Базовый",  length: "21 день", cohort: _isLiveComm ? _cohortWindow(54, 21) : "1 — 21 мая" },
   ];
   const partners = [
     { name: "Headspace", emblem: "🧘", accent: "#ffe1c8", tagline: "Медитация под твою жизнь", offer: "−20% на год",      tags: ["Медитация","Сон"], xp: 250 },
@@ -486,10 +500,15 @@ function CommunityScreen() {
 
       {/* Secondary scope bar — a thinner pill segmented control (same family as the
           Команды/Сообщество pill above), only inside «Сообщество». «Команды» stands alone. */}
-      {section === "community" && !_isLiveComm && (
+      {section === "community" && (
+        // LIVE: Нетворк + Курсы (the 3 courses are real). Партнёры стоит скрыть, пока
+        // реальных партнёров нет. DEMO: все три вкладки (showcase).
         <div className="tab-pill tab-pill-sm" style={{ background: "var(--card-2)", marginTop: 10, marginBottom: 14 }}>
-          {[{ id: "network", t: "Нетворк" }, { id: "courses", t: "Курсы" }, { id: "partners", t: "Партнёры" }].map(tb => (
-            <button key={tb.id} className={"tap " + (commTab === tb.id ? "active" : "")} data-tour={tb.id === "network" ? "network" : undefined} onClick={() => setCommTab(tb.id)}>{tb.t}</button>
+          {(_isLiveComm
+            ? [{ id: "network", t: "Нетворк" }, { id: "courses", t: "Курсы" }]
+            : [{ id: "network", t: "Нетворк" }, { id: "courses", t: "Курсы" }, { id: "partners", t: "Партнёры" }]
+          ).map(tb => (
+            <button key={tb.id} className={"tap " + (commTabEff === tb.id ? "active" : "")} data-tour={tb.id === "network" ? "network" : undefined} onClick={() => setCommTab(tb.id)}>{tb.t}</button>
           ))}
         </div>
       )}
@@ -548,8 +567,11 @@ function CommunityScreen() {
         </div>
       )}
 
-      {section === "community" && (commTab === "network" || _isLiveComm) && (
-        networkUnlocked ? (
+      {section === "community" && commTabEff === "network" && (
+        // The unlocked Network body (YourImpactCard + the people list + their message/booking
+        // buttons) is CURATED/FABRICATED content — demo-only. LIVE users get the honest locked
+        // banner instead (real XP paths, no fabricated people), until a real network exists.
+        (networkUnlocked && !_isLiveComm) ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {/* Your-impact hero — what YOU offer at your current level */}
           <YourImpactCard level={userLevel} />
@@ -570,14 +592,14 @@ function CommunityScreen() {
               xpMax={xpForNext}
               levelsLeft={levelsLeft}
               weeks={weeksToUnlock}
-              onUnlock={() => { if (!_isLiveComm || userLevel >= 3) setNetworkUnlocked(true); }}
+              onUnlock={() => { if (!_isLiveComm) setNetworkUnlocked(true); }}
               onSwitchToCommunity={() => { setSection("community"); setCommTab("courses"); }}
             />
           </div>
         )
       )}
 
-      {section === "community" && commTab === "courses" && !_isLiveComm && (
+      {section === "community" && commTabEff === "courses" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {/* Gold "why courses" banner — the hook (esp. for a newcomer): a course is
               the fastest level-up — a whole level + an achievement that opens new
@@ -633,7 +655,7 @@ function CommunityScreen() {
         </div>
       )}
 
-      {section === "community" && commTab === "partners" && !_isLiveComm && (
+      {section === "community" && commTabEff === "partners" && !_isLiveComm && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {partners.map((p, i) => (
             <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)" }}>
@@ -1331,6 +1353,66 @@ function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь
   );
 }
 
+/* iOS-style confirmation sheet — a destructive primary action over a Cancel.
+   Reused for leaving / deleting a team. `onConfirm` may be async; the button shows
+   a pending state and closes the sheet when it resolves. Sheets render outside the
+   themed page scope, so the page background is light (same as the other team sheets). */
+function ConfirmActionSheet({ emoji = "⚠️", title, message, confirmLabel, confirmIcon, onConfirm }) {
+  const { close } = useSheet();
+  const [busy, setBusy] = React.useState(false);
+  const go = async () => {
+    if (busy) return;
+    setBusy(true);
+    if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e) {} }
+    try { await onConfirm(); } catch (e) {}
+    close();
+  };
+  return (
+    <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", margin: "0 auto 12px", background: "rgba(255,59,48,0.12)", display: "grid", placeItems: "center", fontSize: 32 }}>{emoji}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>{title}</div>
+        {message && <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>{message}</div>}
+      </div>
+      <button onClick={go} disabled={busy} className="tap" style={{ width: "100%", marginTop: 20, border: 0, borderRadius: 999, padding: 15, background: "#FF3B30", color: "#fff", fontSize: 15.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: busy ? 0.6 : 1 }}>
+        {confirmIcon ? React.createElement(confirmIcon, { size: 18 }) : null} {busy ? "Минутку…" : confirmLabel}
+      </button>
+      <button onClick={close} disabled={busy} className="tap" style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 999, padding: 15, background: "var(--surface-3)", color: "var(--text)", fontSize: 15.5, fontWeight: 600 }}>
+        Отмена
+      </button>
+      <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
+    </div>
+  );
+}
+
+/* Leave (member) or delete (owner) a team, then drop it from the local store and go
+   back to the community list. For a cloud team we hit the cloud first; a local-only
+   team (no cloudId) just removes locally. Used by Team detail + Team settings. */
+async function bosExitTeam({ app, team, isOwner }) {
+  try {
+    if (team && team.cloudId && window.bosCloud) {
+      if (isOwner) { if (window.bosCloud.deleteTeam) await window.bosCloud.deleteTeam(team.cloudId); }
+      else { if (window.bosCloud.leaveTeam) await window.bosCloud.leaveTeam(team.cloudId); }
+    }
+  } catch (e) {}
+  if (app && app.removeTeam && team) app.removeTeam(team._id);
+}
+/* Open the iOS confirm sheet for leaving/deleting, wired to bosExitTeam + navigate-back. */
+function bosConfirmExitTeam({ app, team, isOwner, navigate, openSheet }) {
+  openSheet(
+    <ConfirmActionSheet
+      emoji={isOwner ? "🗑️" : "👋"}
+      title={isOwner ? "Удалить команду?" : "Покинуть команду?"}
+      message={isOwner
+        ? "Команда «" + (team?.name || "") + "» и весь её прогресс исчезнут у всех участников. Это не отменить."
+        : "Ты выйдешь из «" + (team?.name || "") + "». Снова войти можно будет только по приглашению."}
+      confirmLabel={isOwner ? "Удалить команду" : "Покинуть"}
+      confirmIcon={isOwner ? I.Trash : I.Logout}
+      onConfirm={async () => { await bosExitTeam({ app, team, isOwner }); navigate("community"); }}
+    />
+  );
+}
+
 /* Share a team — invite link + native share. For a PRIVATE team this is the ONLY
    way someone else gets in (it's invisible otherwise); for a PUBLIC team the link
    just jumps straight to it. Join-by-link wires to the cloud at T1; the
@@ -1338,30 +1420,55 @@ function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь
 function TeamShareSheet({ team }) {
   const [copied, setCopied] = React.useState(false);
   const isPublic = team?.vis === "public";
-  // Real cross-device invite for cloud teams → ?team=<cloudId> (enterLive joins on open).
-  // Demo/local-only teams keep the placeholder ?join link.
-  const link = team?.cloudId
-    ? ("https://mind3scape.github.io/balanceos/?team=" + team.cloudId)
-    : ("https://mind3scape.github.io/balanceos/?join=" + (team?._id || ""));
+  // REFERRAL invite: every inviter gets their OWN link (?team=<id>&ref=<myUid>) so the
+  // referral system can credit who brought a new member. The ref is resolved async from
+  // the cloud uid; until it arrives we show the plain ?team link (still joins correctly).
+  // Demo/local-only teams (no cloudId) keep the placeholder ?join link — no referral.
+  const base = (typeof location !== "undefined" ? (location.origin + location.pathname) : "https://mind3scape.github.io/balanceos/");
+  const baseTeamLink = team?.cloudId ? (base + "?team=" + team.cloudId) : (base + "?join=" + (team?._id || ""));
+  const [link, setLink] = React.useState(baseTeamLink);
+  React.useEffect(() => {
+    let on = true;
+    if (team?.cloudId && window.bosCloud && window.bosCloud.uid) {
+      window.bosCloud.uid().then((id) => { if (on && id) setLink(base + "?team=" + team.cloudId + "&ref=" + id); }).catch(() => {});
+    } else { setLink(baseTeamLink); }
+    return () => { on = false; };
+  }, [team?.cloudId]);
+  const shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team?.name || "") + "» в BalanceOS";
   const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
-  const shareLink = async () => { try { if (navigator.share) { await navigator.share({ title: team?.name || "Команда", text: "Присоединяйся к команде «" + (team?.name || "") + "» в BalanceOS", url: link }); return; } } catch (e) { return; } copyLink(); };
+  const shareTelegram = () => {
+    const url = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent(shareText);
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    // Inside Telegram Mini App, openTelegramLink keeps it in-app; otherwise open a tab.
+    try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) { window.Telegram.WebApp.openTelegramLink(url); return; } } catch (e) {}
+    try { window.open(url, "_blank"); } catch (e) {}
+  };
   return (
     <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 12px", background: team?.accent || "#fef3c7", display: "grid", placeItems: "center", fontSize: 34 }}>{team?.emblem || "✨"}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться командой</div>
-        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 4, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>
-          {isPublic
-            ? "Команда открытая — её и так видят все. Ссылка ведёт прямо в неё."
-            : "Команда приватная — её увидят только те, кому ты дашь эту ссылку."}
+        {/* Enticing invite hook (same for both visibilities) … */}
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>
+          Вести привычки вместе — веселее, и за совместные привычки больше XP ✨
+        </div>
+        {/* … plus an honest one-liner driven by the team's REAL visibility (never claim a
+            private team is open). */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", background: "var(--surface-3)", padding: "4px 11px", borderRadius: 999 }}>
+          {isPublic ? "🌐 Открытая · ссылка ведёт прямо в команду" : "🔒 Приватная · войдут только по этой ссылке"}
         </div>
       </div>
       <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10, background: "var(--surface-3)", borderRadius: 14, padding: "11px 8px 11px 14px" }}>
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link}</span>
-        <button onClick={copyLink} className="tap" style={{ flexShrink: 0, border: 0, background: "var(--text)", color: "var(--card)", borderRadius: 999, padding: "8px 15px", fontSize: 12.5, fontWeight: 600 }}>{copied ? "Готово" : "Копировать"}</button>
+        <button onClick={copyLink} className="tap" style={{ flexShrink: 0, border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "8px 15px", fontSize: 12.5, fontWeight: 600 }}>{copied ? "Готово" : "Копировать"}</button>
       </div>
-      <button onClick={shareLink} className="tap" style={{ width: "100%", marginTop: 12, border: 0, borderRadius: 999, padding: 14, background: "var(--text)", color: "var(--card)", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <I.Share size={18}/> Поделиться
+      {/* Two clear actions (were blank black buttons): copy + Telegram, each with a label
+          and an icon. Explicit colours so they stay legible whatever theme the sheet renders in. */}
+      <button onClick={copyLink} className="tap" style={{ width: "100%", marginTop: 12, border: 0, borderRadius: 999, padding: 14, background: "#0a0a0a", color: "#fff", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <span style={{ fontSize: 17, lineHeight: 1 }}>🔗</span> {copied ? "Ссылка скопирована" : "Скопировать ссылку"}
+      </button>
+      <button onClick={shareTelegram} className="tap" style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 999, padding: 14, background: "#229ED9", color: "#fff", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <I.Send size={18}/> Поделиться в Telegram
       </button>
       <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
     </div>
@@ -1390,22 +1497,40 @@ function TeamDetailScreen() {
         const me = await window.bosCloud.uid();
         const rows = await window.bosCloud.loadMessages(t.cloudId);
         if (!on || !Array.isArray(rows)) return;
-        const lastRead = Number((_readKey && localStorage.getItem(_readKey)) || 0);
+        // Compare each message's server created_at to the stored read-marker created_at —
+        // SAME time base on both sides. (Was Date.now() = the reader's device clock, which
+        // drifts vs the server, so on skewed phones the badge got stuck or never showed.)
+        const lastReadRaw = (_readKey && localStorage.getItem(_readKey)) || 0;
+        const lastReadMs = lastReadRaw ? new Date(lastReadRaw).getTime() : 0;
         const last = rows.length ? rows[rows.length - 1] : null;
         const lastText = last ? (last.text || (last.image_url ? "📷 Фото" : "")) : "";
-        const unread = rows.filter((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead).length;
-        setChatPeek({ last: lastText, unread: unread });
+        const unread = rows.filter((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastReadMs).length;
+        // Carry the last message's created_at so markChatRead can store it as the read marker
+        // (same time base as messages). No messages yet → null → everything counts as read.
+        setChatPeek({ last: lastText, unread: unread, lastAt: last ? last.created_at : null });
       } catch (e) {}
     })();
     return () => { on = false; };
   }, [_chatLive, t.cloudId]);
-  const markChatRead = () => { try { if (_readKey) localStorage.setItem(_readKey, String(Date.now())); } catch (e) {} setChatPeek((p) => p ? { ...p, unread: 0 } : p); };
+  const markChatRead = () => {
+    // Store the LAST loaded message's created_at (server time base) — NOT Date.now() (device
+    // clock). If nothing was loaded yet, store "" so the next compare treats all as read.
+    try { if (_readKey) localStorage.setItem(_readKey, (chatPeek && chatPeek.lastAt) ? String(chatPeek.lastAt) : ""); } catch (e) {}
+    setChatPeek((p) => p ? { ...p, unread: 0 } : p);
+  };
 
   // LIVE teams: load the REAL roster (real names + avatars + roles) from the cloud, so the
   // member list is honest — real teammates, no fabricated standings until real progress exists.
   const _rosterLive = app?.mode === "live" && !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
   const [cloudRoster, setCloudRoster] = React.useState(null);
+  const [meId, setMeId] = React.useState(null); // current user's cloud id — to find myself in the roster
   const [rosterTick, setRosterTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!_rosterLive) { setMeId(null); return; }
+    let on = true;
+    window.bosCloud.uid().then((id) => { if (on) setMeId(id || null); }).catch(() => {});
+    return () => { on = false; };
+  }, [_rosterLive, t.cloudId]);
   React.useEffect(() => {
     if (!_rosterLive) return;
     let on = true;
@@ -1419,7 +1544,12 @@ function TeamDetailScreen() {
     return () => { on = false; };
   }, [_rosterLive, t.cloudId, rosterTick]);
   // E: the CREATOR sees pending join requests here and approves / rejects them.
-  const _isOwner = !t.joined; // joined guests have t.joined = true; the creator does not
+  // Derive ownership from the REAL roster role, so a creator opening their team on a
+  // second device (where t.joined may be truthy after cloud hydration) still gets the
+  // gear + approval panel. Fall back to the old !t.joined heuristic only until the
+  // roster + my id have loaded.
+  const _meMember = (meId && Array.isArray(cloudRoster)) ? cloudRoster.find((m) => m.id === meId) : null;
+  const _isOwner = _meMember ? (_meMember.role === "owner") : !t.joined;
   const [pending, setPending] = React.useState([]);
   React.useEffect(() => {
     if (!(_rosterLive && _isOwner) || !window.bosCloud.pendingRequests) return;
@@ -1441,7 +1571,15 @@ function TeamDetailScreen() {
   }, [_rosterLive, t.cloudId, habitsTick]);
   const toggleMyTeamHabit = (h) => {
     if (!h || !h.id) return;
-    setLiveTeamHabits((list) => (list || []).map((x) => x.id === h.id ? { ...x, doneByMe: !x.doneByMe, doneToday: Math.max(0, x.doneToday + (x.doneByMe ? -1 : 1)) } : x));
+    // Derive the next state INSIDE the updater from the CURRENT item x (not the captured
+    // outer h) so a fast double-tap can't double-count, and clamp doneToday to [0, total].
+    setLiveTeamHabits((list) => (list || []).map((x) => {
+      if (x.id !== h.id) return x;
+      const next = !x.doneByMe;
+      const cap = Number.isFinite(x.total) ? x.total : (x.doneToday + 1);
+      const doneToday = Math.max(0, Math.min(cap, x.doneToday + (next ? 1 : -1)));
+      return { ...x, doneByMe: next, doneToday: doneToday };
+    }));
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
     window.bosCloud.toggleTeamHabitToday(h.id, !h.doneByMe).then(() => setHabitsTick((n) => n + 1));
   };
@@ -1467,8 +1605,9 @@ function TeamDetailScreen() {
           <button onClick={() => openSheet(<TeamShareSheet team={t} />)} className="tap" title="Поделиться командой" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
             <I.Share size={18}/>
           </button>
-          {/* E — only the team's CREATOR can edit settings. A joined guest doesn't see the gear. */}
-          {!t.joined && (
+          {/* E — only the team's CREATOR sees the gear. _isOwner reads the real roster role
+              (so a creator on a second device still gets it), falling back to !t.joined. */}
+          {_isOwner && (
           <button onClick={() => navigate("team-settings", { team: t })} className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
             <I.Settings size={18}/>
           </button>
@@ -1542,12 +1681,16 @@ function TeamDetailScreen() {
           <span style={{ fontSize: 13, fontWeight: 600 }}>Сегодня</span>
           <span style={{ fontSize: 13 }}>{main.doneToday} из {main.total} участников ✓</span>
         </div>
+        {/* Guard against a desynced doneByMe / total: never let the bar exceed 100% or
+            divide by zero, and never render a negative number of member dots. */}
+        {(() => { const denom = main.total || 1; return (
         <div style={{ height: 8, background: "rgba(0,0,0,0.12)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
-          <span style={{ display: "block", height: "100%", width: (main.doneToday/main.total*100)+"%", background: "#0a0a0a" }} />
+          <span style={{ display: "block", height: "100%", width: Math.min(100, (main.doneToday/denom*100))+"%", background: "#0a0a0a" }} />
         </div>
+        ); })()}
         {/* Member dots */}
         <div style={{ display: "flex", gap: 4, marginTop: 12, flexWrap: "wrap" }}>
-          {Array.from({length: main.total}).map((_, i) => (
+          {Array.from({length: Math.max(0, main.total)}).map((_, i) => (
             <span key={i} style={{
               width: 22, height: 22, borderRadius: "50%",
               background: i < main.doneToday ? "#0a0a0a" : "rgba(0,0,0,0.15)",
@@ -1687,6 +1830,16 @@ function TeamDetailScreen() {
         ))}
       </div>
       </>)}
+
+      {/* Leave / delete — LIVE only (demo teams are showcase). The owner deletes the whole
+          team (cloud deleteTeam); a member leaves (cloud leaveTeam). Both confirm first and
+          go back to the list. bosExitTeam guards a not-yet-synced local team (no cloudId). */}
+      {app?.mode === "live" && (
+        <button onClick={() => bosConfirmExitTeam({ app, team: t, isOwner: _isOwner, navigate, openSheet })} className="tap"
+          style={{ width: "100%", marginTop: 26, background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          {_isOwner ? <><I.Trash size={17}/> Удалить команду</> : <><I.Logout size={17}/> Покинуть команду</>}
+        </button>
+      )}
     </div>
   );
 }
@@ -1696,6 +1849,7 @@ function TeamDetailScreen() {
 function TeamSettingsScreen() {
   const { navigate, params } = useNav();
   const app = useApp();
+  const { open: openSheet } = useSheet();
   const team = params?.team || {};
   const [name, setName] = useCS(team.name || "");
   const [emblem, setEmblem] = useCS(team.emblem || "✨");
@@ -1717,7 +1871,9 @@ function TeamSettingsScreen() {
     app?.updateTeam(team._id, { name: name.trim() || team.name, emblem, accent, goal: goal.trim() || team.goal, vis: priv ? "private" : "public", notify, members });
     navigate("team-detail", { team });
   };
-  const del = () => { navigate("community"); app?.removeTeam(team._id); };
+  // This screen is owner-only (gated by the gear), so deleting goes through the cloud
+  // deleteTeam + a confirm sheet (was a silent local-only removeTeam).
+  const del = () => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet });
   const card = { background: "#fff", borderRadius: 18, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -1783,14 +1939,24 @@ function TeamSettingsScreen() {
         </div>
       )}
       {app?.mode === "live" && team.cloudId && (
-        <button onClick={() => { var link = "https://mind3scape.github.io/balanceos/?team=" + team.cloudId; try { if (navigator.share) { navigator.share({ title: team.name || "Команда", text: "Присоединяйся к команде в BalanceOS", url: link }); return; } } catch (e) {} try { navigator.clipboard.writeText(link); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 15px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 600 }}>
+        <button onClick={async () => {
+          // Same referral link as TeamShareSheet: ?team=<id>&ref=<myUid> so invites are
+          // credited to the inviter. Falls back to the plain link if uid isn't ready.
+          var b = (typeof location !== "undefined" ? (location.origin + location.pathname) : "https://mind3scape.github.io/balanceos/");
+          var link = b + "?team=" + team.cloudId;
+          try { var id = (window.bosCloud && window.bosCloud.uid) ? await window.bosCloud.uid() : null; if (id) link += "&ref=" + id; } catch (e) {}
+          var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
+          try { if (navigator.share) { navigator.share({ title: team.name || "Команда", text: text, url: link }); return; } } catch (e) {}
+          try { navigator.clipboard.writeText(link); } catch (e) {}
+          if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+        }} className="tap" style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 15px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 600 }}>
           <I.Share size={15}/> Пригласить по ссылке
         </button>
       )}
 
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={save}>Сохранить</button>
-      <button onClick={del} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
-        Удалить команду
+      <button onClick={del} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+        <I.Trash size={17}/> Удалить команду
       </button>
     </div>
   );

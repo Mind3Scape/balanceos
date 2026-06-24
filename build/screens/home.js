@@ -16,6 +16,37 @@ function useThemeFlag(ref) {
   return isDark;
 }
 
+/* AI-brief pills now carry intent: a pill can OPEN a real screen ("записать прогулку",
+   "написать дневник", "отметить состояние") or START a chat — only conversational ones
+   should land in ai-chat. Shape: { label, kind:"action"|"chat", route?, params?, prompt?, i? }.
+   We stay backwards-compatible with the old shapes ({ t, i } chips, or a bare string),
+   which fall back to opening the chat with their text as the prompt. */
+function bosPillLabel(pill) {
+  if (typeof pill === "string") return pill;
+  return pill.label || pill.t || pill.prompt || "";
+}
+function bosPillIcon(pill) {
+  if (typeof pill === "string") return "✨";
+  return pill.i || "✨";
+}
+function bosRoutePill(navigate, pill) {
+  if (typeof pill === "string") {
+    navigate("ai-chat", {
+      prompt: pill
+    });
+    return;
+  }
+  if (pill && pill.kind === "action" && pill.route) {
+    navigate(pill.route, pill.params || {});
+    return;
+  }
+  // kind:"chat" (or any legacy/unknown pill): open the conversation. Prefer an
+  // explicit prompt, else use the label so the chat still opens on-topic.
+  navigate("ai-chat", {
+    prompt: pill && (pill.prompt || pill.label || pill.t) || ""
+  });
+}
+
 /* Habit checkmark with a floating "+XP" pop on completion — the same reward beat
    as the day-close celebration, but right ON the checkmark so it's always visible
    (even when the top of the screen is scrolled off). Shared by Home + Habits. */
@@ -176,7 +207,317 @@ function BalanceWheel({
   }));
 }
 
-/* Hero swipe deck — page 1: today's reading, page 2: Balance Wheel */
+/* Hero orbit — the SAME constellation as the Profile screen's OrbitField, scaled to
+   live inside the swipe-deck card: you (the mood orb with your avatar) in the centre,
+   orbit rings with small drifting dots, and your real people (team-mates + co-op
+   friends) as memoji discs around you. No green health glow — it follows the mood
+   tint like the hero, and a settings gear sits in the top-right.
+   `people` is REAL data (deduped team members + habit friends); empty → calm rings. */
+function HomeOrbit({
+  navigate,
+  avatar,
+  people = [],
+  levelPct = 2,
+  moodC,
+  isDark
+}) {
+  var t = typeof useT === "function" ? useT() : 0;
+  var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+  var lerp = (a, b, k) => a + (b - a) * k;
+  var smooth = x => {
+    x = clamp(x, 0, 1);
+    return x * x * (3 - 2 * x);
+  };
+  var eo = smooth(t / 0.85); // gentle bloom-in on appear
+
+  // People become orbiting discs (index 0 = closest ring). Capped so the small
+  // card never gets crowded — the rest are implied by the rings.
+  var pp = (people || []).slice(0, 10);
+  var nodes = pp.map((p, j) => ({
+    ring: j % 3,
+    av: p.avatar,
+    initials: p.initials,
+    color: p.color,
+    key: "p" + j
+  }));
+  var byRing = {};
+  nodes.forEach(n => {
+    (byRing[n.ring] = byRing[n.ring] || []).push(n);
+  });
+  Object.keys(byRing).forEach(r => {
+    var a = byRing[r];
+    a.forEach((n, idx) => {
+      n.baseAng = idx / a.length * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2;
+    });
+  });
+  var RBASE = 70,
+    RSTEP = 23;
+  var radius = ring => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
+  var spin = ring => (ring % 2 ? -1 : 1) * 0.06 / (1 + ring * 0.18);
+  var fadeAt = R => clamp(1 - (R - 120) / 52, 0, 1);
+  var tint = typeof tintFromMood === "function" ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
+  var glow = tint[1];
+  var lr = 48,
+    CIRC = 2 * Math.PI * lr; // gold level arc hugging the centre orb
+  var drawRings = [0, 1, 2]; // always ≥3 calm rings, even with no people
+
+  var PAL = isDark ? {
+    ring: "186,210,248",
+    pdisc: "rgba(20,32,54,0.6)",
+    pstroke: "rgba(255,255,255,0.5)",
+    lvlTrack: "rgba(255,255,255,0.12)",
+    badge: "#0a0a0a",
+    shadow: false
+  } : {
+    ring: "92,120,165",
+    pdisc: "#ffffff",
+    pstroke: "#ffffff",
+    lvlTrack: "rgba(0,0,0,0.08)",
+    badge: "#ffffff",
+    shadow: true
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    key: "orbit",
+    style: {
+      position: "relative",
+      height: "100%",
+      boxSizing: "border-box",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("settings"),
+    className: "tap",
+    "aria-label": "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    style: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      zIndex: 3,
+      width: 30,
+      height: 30,
+      borderRadius: 10,
+      background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
+      border: 0,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(I.Settings, {
+    size: 16,
+    color: isDark ? "rgba(255,255,255,0.8)" : "#787878"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: "100%",
+      height: "100%",
+      minHeight: 196,
+      overflow: "visible"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "-140 -140 280 280",
+    width: "100%",
+    height: "100%",
+    preserveAspectRatio: "xMidYMid meet",
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "block",
+      pointerEvents: "none"
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
+    id: "homeOrbAvClip"
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: "16"
+  })), /*#__PURE__*/React.createElement("filter", {
+    id: "homeOrbShadow",
+    x: "-40%",
+    y: "-40%",
+    width: "180%",
+    height: "180%"
+  }, /*#__PURE__*/React.createElement("feDropShadow", {
+    dx: "0",
+    dy: "2",
+    stdDeviation: "2.2",
+    floodColor: "#000",
+    floodOpacity: "0.16"
+  }))), drawRings.map(r => {
+    var R = radius(r),
+      op = (isDark ? 0.22 : 0.26 - r * 0.03) * eo * fadeAt(R);
+    return op <= 0.004 ? null : /*#__PURE__*/React.createElement("circle", {
+      key: "ring" + r,
+      cx: "0",
+      cy: "0",
+      r: R.toFixed(1),
+      fill: "none",
+      stroke: "rgba(" + PAL.ring + "," + op.toFixed(3) + ")",
+      strokeWidth: "1"
+    });
+  }), drawRings.map(r => {
+    var R = radius(r),
+      baseOp = clamp(eo * fadeAt(R), 0, 1);
+    if (baseOp <= 0.02) return null;
+    var ds = (r % 2 ? -1 : 1) * 0.05 / (1 + r * 0.15);
+    return [0, 1, 2].map(k => {
+      var ang = k / 3 * Math.PI * 2 + r * 1.3 + 0.5 + t * ds;
+      var x = (Math.cos(ang) * R).toFixed(1),
+        y = (Math.sin(ang) * R).toFixed(1);
+      var rad = lerp(1.7, 1.05, clamp(r / 4, 0, 1));
+      return /*#__PURE__*/React.createElement("g", {
+        key: "dot" + r + "_" + k,
+        opacity: (baseOp * 0.9).toFixed(2)
+      }, /*#__PURE__*/React.createElement("circle", {
+        cx: x,
+        cy: y,
+        r: (rad * 2.4).toFixed(2),
+        fill: glow,
+        opacity: "0.16",
+        style: {
+          filter: "blur(2.5px)"
+        }
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: x,
+        cy: y,
+        r: rad.toFixed(2),
+        fill: glow,
+        opacity: isDark ? "0.85" : "0.6"
+      }));
+    });
+  }), /*#__PURE__*/React.createElement("g", {
+    transform: "rotate(-90)",
+    opacity: eo
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: lr,
+    fill: "none",
+    stroke: PAL.lvlTrack,
+    strokeWidth: "4"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: lr,
+    fill: "none",
+    stroke: "#FEDE34",
+    strokeWidth: "4",
+    strokeLinecap: "round",
+    strokeDasharray: CIRC,
+    strokeDashoffset: CIRC * (1 - Math.max(0.02, (levelPct || 2) / 100))
+  })), nodes.map(n => {
+    var R = radius(n.ring),
+      ang = n.baseAng + t * spin(n.ring);
+    var x = Math.cos(ang) * R,
+      y = Math.sin(ang) * R;
+    var op = clamp(eo * fadeAt(R), 0, 1);
+    if (op <= 0.02) return null;
+    var sz = lerp(17, 11, clamp(n.ring / 3, 0, 1));
+    var pop = smooth((t - n.ring * 0.08) / 0.5);
+    var gs = (sz / 16 * pop).toFixed(3);
+    var av = n.av,
+      isEmoji = av && ("" + av).indexOf("emoji:") === 0,
+      isMemoji = /^m\d+$/.test(av || "");
+    var href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
+    return /*#__PURE__*/React.createElement("g", {
+      key: n.key,
+      transform: "translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")",
+      opacity: op.toFixed(2),
+      filter: PAL.shadow ? "url(#homeOrbShadow)" : undefined
+    }, isDark && /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "18.5",
+      fill: glow,
+      opacity: "0.16",
+      style: {
+        filter: "blur(5px)"
+      }
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "16",
+      fill: n.color || PAL.pdisc
+    }), av ? isEmoji ? /*#__PURE__*/React.createElement("text", {
+      x: "0",
+      y: "0.5",
+      textAnchor: "middle",
+      dominantBaseline: "central",
+      fontSize: "17"
+    }, ("" + av).slice(6)) : /*#__PURE__*/React.createElement("image", {
+      href: href,
+      x: "-16",
+      y: "-16",
+      width: "32",
+      height: "32",
+      preserveAspectRatio: "xMidYMid slice",
+      clipPath: "url(#homeOrbAvClip)"
+    }) : /*#__PURE__*/React.createElement("text", {
+      x: "0",
+      y: "0.5",
+      textAnchor: "middle",
+      dominantBaseline: "central",
+      fontSize: "15",
+      fontWeight: "700",
+      fill: "rgba(0,0,0,0.55)"
+    }, n.initials || "•"), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "16.6",
+      fill: "none",
+      stroke: PAL.pstroke,
+      strokeWidth: "1.4"
+    }));
+  })), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%,-50%)",
+      width: 88,
+      height: 88,
+      opacity: eo
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: 0,
+      borderRadius: "50%",
+      background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
+      boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (isDark ? ", 0 0 18px " + glow + "55" : "")
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 7,
+      borderRadius: "50%",
+      overflow: "hidden",
+      boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)"
+    }
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: avatar,
+    size: 74
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 36,
+      textAlign: "center",
+      pointerEvents: "none"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1.2
+    }
+  }, people.length ? "Твоя орбита" : "Твоя орбита · позови своих")));
+}
+
+/* Hero swipe deck — page 1: today's reading, page 2: Balance Wheel (demo) / your orbit (live) */
 function HomeHeroSwipe({
   navigate,
   doneCount,
@@ -213,6 +554,52 @@ function HomeHeroSwipe({
   var wAxes = (window.ALL_SPHERES || []).filter(s => enabledW.includes(s.id));
   var avgBalance = wAxes.length ? Math.round(wAxes.reduce((s, a) => s + a.v, 0) / wAxes.length * 100) : 0;
   var weakSpheres = [...wAxes].sort((a, b) => a.v - b.v).slice(0, 2);
+
+  // Multiplayer orbit data (page 2 for live/fresh). REAL people only: the user's
+  // invited referral circle (same cloud source the Profile orbit uses), plus the
+  // people they already share habits/teams with — deduped. Demo uses its showcase
+  // faces so the orbit reads even before any real circle exists.
+  var _liveOrbit = heroApp?.mode !== "demo";
+  var _lvlInfo = typeof bosLevelInfo === "function" && typeof bosLiveXP === "function" && _liveOrbit ? bosLevelInfo(bosLiveXP(heroApp)) : null;
+  var orbitLevelPct = heroApp?.mode === "demo" ? 72 : _lvlInfo ? _lvlInfo.pct : 2;
+  var [invited, setInvited] = useHomeState([]);
+  React.useEffect(() => {
+    if (!_liveOrbit || !(window.bosCloud && window.bosCloud.enabled())) return;
+    var on = true;
+    try {
+      window.bosCloud.invitedPeople().then(list => {
+        if (on && Array.isArray(list)) setInvited(list.map(p => ({
+          avatar: p && p.avatar || "default",
+          name: p && p.username || "Друг"
+        })));
+      }).catch(() => {});
+    } catch (e) {}
+    return () => {
+      on = false;
+    };
+  }, [_liveOrbit]);
+  var orbitPeople = React.useMemo(() => {
+    if (heroApp?.mode === "demo") return window.DEMO_ORBIT_PEOPLE || [];
+    // dedupe by avatar id, then name, so the same friend across a team + a habit
+    // shows once. Team members carry avatars/initials; habit friends carry initials.
+    var seen = new Set(),
+      out = [];
+    var push = p => {
+      if (!p) return;
+      var k = (p.avatar && /^m\d+$/.test(p.avatar) ? "a:" + p.avatar : "") || "n:" + (p.name || p.initials || "");
+      if (!k || seen.has(k)) return;
+      seen.add(k);
+      out.push({
+        avatar: p.avatar,
+        initials: p.initials || (p.name ? p.name.charAt(0).toUpperCase() : ""),
+        color: p.color
+      });
+    };
+    invited.forEach(push);
+    (heroApp?.teams || []).forEach(t => (t.members || []).forEach(push));
+    (heroApp?.habits || []).forEach(h => (h.friends || []).forEach(push));
+    return out;
+  }, [heroApp?.mode, invited, heroApp?.teams, heroApp?.habits]);
   var startX = React.useRef(null);
   var onTouchStart = e => {
     startX.current = e.touches[0].clientX;
@@ -248,7 +635,7 @@ function HomeHeroSwipe({
   var _liveBrief = heroApp?.mode === "live" ? heroApp?.aiBrief : null;
   var _homeSummary = _liveBrief && _liveBrief.summary || aiBrief;
   var _livePills = _liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length ? _liveBrief.pills.slice(0, 4) : null;
-  var _pillsKey = _livePills ? _livePills.map(p => p.t).join("|") : "demo"; // change → re-animate
+  var _pillsKey = _livePills ? _livePills.map(bosPillLabel).join("|") : "demo"; // change → re-animate
   var _pages = [/* Page 1: fresh → compact AI-hints + avatar; demo → quote + avatar + chips */
   newbie ? /*#__PURE__*/React.createElement("div", {
     key: "hints",
@@ -277,9 +664,17 @@ function HomeHeroSwipe({
       fontWeight: 600,
       color: "var(--text-4)",
       textTransform: "uppercase",
-      letterSpacing: 1.2
+      letterSpacing: 1.2,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
     }
-  }, _liveBrief ? "Тебе сегодня" : "С чего начать"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(I.Sparkles, {
+    size: 12,
+    color: "#E0A500",
+    filled: true,
+    strokeWidth: 0
+  }), " ", _liveBrief ? "Тебе сегодня" : "С чего начать"), /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
       fontSize: 13.5,
@@ -424,11 +819,12 @@ function HomeHeroSwipe({
       alignItems: "center",
       gap: 5
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#E0A500"
-    }
-  }, "\u2726"), " ", _liveBrief ? "Тебе сегодня" : "Совет дня"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(I.Sparkles, {
+    size: 12,
+    color: "#E0A500",
+    filled: true,
+    strokeWidth: 0
+  }), " ", _liveBrief ? "Тебе сегодня" : "Совет дня"), /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
       fontSize: 14,
@@ -537,9 +933,7 @@ function HomeHeroSwipe({
     t: "Открыть дневник"
   }]).map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
-    onClick: () => navigate("ai-chat", {
-      prompt: c.t
-    }),
+    onClick: () => bosRoutePill(navigate, c),
     className: "tap",
     style: {
       padding: "6px 12px",
@@ -553,11 +947,18 @@ function HomeHeroSwipe({
       gap: 6,
       animation: _livePills ? "briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + i * 0.06 + "s" : undefined
     }
-  }, /*#__PURE__*/React.createElement("span", null, c.i), c.t)))),
-  /*#__PURE__*/
-  /* Page 2: Balance — clean radar (kept) + per-sphere breakdown that fills the
-     space and shows what each sphere is + its % level. Original card height. */
-  React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, bosPillIcon(c)), bosPillLabel(c))))),
+  /* Page 2 — LIVE/FRESH: your multiplayer orbit (you in the centre, real people
+     around you, settings gear). DEMO: the curated Balance Wheel showcase. */
+  _liveOrbit ? /*#__PURE__*/React.createElement(HomeOrbit, {
+    key: "orbit",
+    navigate: navigate,
+    avatar: heroApp?.avatar,
+    people: orbitPeople,
+    levelPct: orbitLevelPct,
+    moodC: mood && mood.c,
+    isDark: isDark
+  }) : /*#__PURE__*/React.createElement("div", {
     key: "wheel",
     "data-tour": "balance-wheel",
     style: {
@@ -662,8 +1063,10 @@ function HomeHeroSwipe({
       background: zoneColor(a.v)
     }
   })))))))];
-  // Newbie: only the get-started page (no balance wheel until there's data).
-  var pages = newbie ? _pages.slice(0, 1) : _pages;
+  // Both pages always render: live/fresh get [hints, orbit], demo gets [quote, wheel].
+  // (Previously a newbie deck was sliced to ONE page, leaving an empty white half
+  // that a right-swipe could reveal — that's the Telegram blank-block bug.)
+  var pages = _pages;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: cardBg,
@@ -681,7 +1084,7 @@ function HomeHeroSwipe({
       width: "200%",
       transform: `translateX(${-page * 50}%)`,
       transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)",
-      minHeight: newbie ? 128 : 196
+      minHeight: 196
     }
   }, pages.map((p, i) => /*#__PURE__*/React.createElement("div", {
     key: i,

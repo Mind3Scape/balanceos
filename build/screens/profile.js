@@ -536,6 +536,10 @@ function OrbitField({
 
   var tint = typeof tintFromMood === "function" ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
   var glow = tint[1];
+  // The centre orb's glossy shell already paints the default sphere face. Only nest a
+  // SECOND inner avatar disc when the user actually picked a Memoji/Emoji — otherwise the
+  // default sphere would render twice (a big + a small orb stacked = the duplicate bug).
+  var hasCustomAvatar = !!avatar && avatar !== "default";
   var lr = 54,
     CIRC = 2 * Math.PI * lr; // gold level arc hugging the centre orb
   var maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
@@ -784,7 +788,7 @@ function OrbitField({
       background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
       boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (dark ? ", 0 0 18px " + glow + "55" : "")
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }), hasCustomAvatar && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       inset: 8,
@@ -2100,20 +2104,30 @@ function HistoryScreen() {
         position: "relative",
         zIndex: 1
       }
-    }, c.d), isCurMonth && app?.dayMoods?.[c.d] != null && pct != null && /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        top: 0,
-        right: 0,
-        lineHeight: 0
-      }
-    }, /*#__PURE__*/React.createElement(StaticOrb, {
-      size: 10,
-      tint: tintFromMood(MOOD_OPTIONS[app.dayMoods[c.d]].c),
-      seed: 1.2,
-      intensity: 0.55
-    })));
+    }, c.d), (() => {
+      // Live/fresh moods are written by ISO date key (bosTodayKey, e.g. "2026-06-24");
+      // demo seeds them by day-of-month. iso() above produces the same local ISO key.
+      if (!isCurMonth || pct == null) return null;
+      var mkey = isLive ? iso(c.d) : c.d;
+      var mi = app?.dayMoods?.[mkey];
+      if (mi == null) return null;
+      var dm = MOOD_OPTIONS[mi];
+      if (!dm) return null;
+      return /*#__PURE__*/React.createElement("span", {
+        "aria-hidden": true,
+        style: {
+          position: "absolute",
+          top: 0,
+          right: 0,
+          lineHeight: 0
+        }
+      }, /*#__PURE__*/React.createElement(StaticOrb, {
+        size: 10,
+        tint: tintFromMood(dm.c),
+        seed: 1.2,
+        intensity: 0.55
+      }));
+    })());
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -2209,8 +2223,10 @@ function HistoryScreen() {
       fontWeight: 700,
       letterSpacing: "-0.4px"
     }
-  }, Math.round(selPct * 100), "%")), (!isLive || isCurMonth) && app?.dayMoods?.[selDay] != null && (() => {
-    var dm = MOOD_OPTIONS[app.dayMoods[selDay]];
+  }, Math.round(selPct * 100), "%")), (() => {
+    var dkey = isLive ? iso(selDay) : selDay;
+    var dm = app?.dayMoods?.[dkey] != null ? MOOD_OPTIONS[app.dayMoods[dkey]] : null;
+    if (!dm) return null;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
@@ -2251,42 +2267,47 @@ function HistoryScreen() {
         marginTop: 2
       }
     }, dm.t)));
-  })(), (!isLive || isCurMonth) && app?.dayNotes?.[selDay] && (app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length || app.dayNotes[selDay].note) && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "12px 16px",
-      borderBottom: "1px solid var(--line)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 10.5,
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, "\u0416\u0443\u0440\u043D\u0430\u043B"), app.dayNotes[selDay].tags && app.dayNotes[selDay].tags.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 6,
-      marginTop: 8
-    }
-  }, app.dayNotes[selDay].tags.map((tg, k) => /*#__PURE__*/React.createElement("span", {
-    key: k,
-    style: {
-      fontSize: 12.5,
-      padding: "5px 10px",
-      borderRadius: 999,
-      background: TH.iconBg
-    }
-  }, "#", tg))), app.dayNotes[selDay].note && /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-2",
-    style: {
-      fontSize: 14,
-      marginTop: 8,
-      lineHeight: 1.45
-    }
-  }, app.dayNotes[selDay].note)), dayHabits.map((h, i) => {
+  })(), (() => {
+    var nkey = isLive ? iso(selDay) : selDay;
+    var dn = app?.dayNotes?.[nkey];
+    if (!dn || !(dn.tags && dn.tags.length || dn.note)) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "12px 16px",
+        borderBottom: "1px solid var(--line)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "bos-sys-text-3",
+      style: {
+        fontSize: 10.5,
+        textTransform: "uppercase",
+        letterSpacing: 1,
+        fontWeight: 600
+      }
+    }, "\u0416\u0443\u0440\u043D\u0430\u043B"), dn.tags && dn.tags.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6,
+        marginTop: 8
+      }
+    }, dn.tags.map((tg, k) => /*#__PURE__*/React.createElement("span", {
+      key: k,
+      style: {
+        fontSize: 12.5,
+        padding: "5px 10px",
+        borderRadius: 999,
+        background: TH.iconBg
+      }
+    }, "#", tg))), dn.note && /*#__PURE__*/React.createElement("div", {
+      className: "bos-sys-text-2",
+      style: {
+        fontSize: 14,
+        marginTop: 8,
+        lineHeight: 1.45
+      }
+    }, dn.note));
+  })(), dayHabits.map((h, i) => {
     // Live: the habit's OWN logged state for this date; demo: ordered fill.
     var done = isLive ? h.on : i < Math.round(selPct * dayHabits.length);
     return /*#__PURE__*/React.createElement("div", {
@@ -2780,8 +2801,10 @@ function AIScreen() {
     // state below — a check-in / start-chatting invite, never invented advice.
     var isBlank = liveHabits.length === 0 && !briefSummary;
 
-    // The mentor orb tint follows the user's current state (consistent with the chat).
-    var liveTint = moodName && typeof tintFromMood === "function" ? tintFromMood(app.mood && app.mood.c) : orbTint;
+    // The hero orb tint follows the user's CURRENT state colour — the same mood tint
+    // the home hero orb uses (tintFromMood(app.mood.c)) — so it reads as "you, right now".
+    var moodC = app.mood && app.mood.c;
+    var liveTint = moodC && typeof tintFromMood === "function" ? tintFromMood(moodC) : orbTint;
     var headline = briefSummary;
     if (!headline) {
       if (doneToday > 0 && liveHabits.length) headline = "Сегодня закрыто " + doneToday + " из " + liveHabits.length + ". Хороший темп — давай удержим его.";else if (maxStreak >= 2) headline = "Твоя серия — " + maxStreak + " дн. подряд. Одно небольшое действие сейчас её продлит.";else if (liveHabits.length) headline = "Новый день начался. Выбери одну привычку, с которой стартуешь.";else if (moodName) headline = "Состояние сейчас — «" + moodName + "». Начнём с одного маленького шага под него.";else headline = "Я рядом. Расскажи, как ты, — и наметим один маленький шаг на сегодня.";
@@ -2795,6 +2818,21 @@ function AIScreen() {
     var pills = brief && Array.isArray(brief.pills) && brief.pills.length ? brief.pills.slice(0, 4) : [];
     if (!pills.length && !isBlank && typeof buildQuickPrompts === "function") pills = buildQuickPrompts(app).slice(0, 4);
     var planPrompt = "Помоги составить простой план на сегодня по моим привычкам.";
+
+    // «Следующие шаги» route to REAL features, not always the chat. New pills carry
+    // { label, kind:"action"|"chat", route?, params?, prompt? }. action → open that
+    // screen; chat → open the chat primed with prompt. Legacy/string pills (the old
+    // { i, t } brief shape) gracefully fall back to a chat entry on their text.
+    var pillLabel = p => typeof p === "string" ? p : p && (p.label || p.t) || "";
+    var goPill = p => {
+      if (p && p.kind === "action" && p.route) return navigate(p.route, p.params || {});
+      if (p && p.kind === "chat") return navigate("ai-chat", {
+        prompt: p.prompt || pillLabel(p)
+      });
+      navigate("ai-chat", {
+        prompt: pillLabel(p)
+      });
+    };
     return /*#__PURE__*/React.createElement("div", {
       className: "page-in",
       style: {
@@ -3115,61 +3153,62 @@ function AIScreen() {
         gap: 8,
         marginTop: 8
       }
-    }, pills.map((p, i) => /*#__PURE__*/React.createElement("button", {
-      key: i,
-      onClick: () => navigate("ai-chat", {
-        prompt: p.t
-      }),
-      className: "tap",
-      style: {
-        width: "100%",
-        background: "var(--card)",
-        borderRadius: 20,
-        boxShadow: "var(--card-shadow)",
-        border: 0,
-        padding: 14,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        textAlign: "left",
-        color: "var(--text)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 22,
-        flexShrink: 0
-      }
-    }, p.i || "✨"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14.5,
-        fontWeight: 600,
-        color: "var(--text)"
-      }
-    }, p.t), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12.5,
+    }, pills.map((p, i) => {
+      var isChat = !p || typeof p === "string" || p.kind !== "action";
+      return /*#__PURE__*/React.createElement("button", {
+        key: i,
+        onClick: () => goPill(p),
+        className: "tap",
+        style: {
+          width: "100%",
+          background: "var(--card)",
+          borderRadius: 20,
+          boxShadow: "var(--card-shadow)",
+          border: 0,
+          padding: 14,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          textAlign: "left",
+          color: "var(--text)"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)",
+          display: "grid",
+          placeItems: "center",
+          fontSize: 22,
+          flexShrink: 0
+        }
+      }, p && p.i || "✨"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 14.5,
+          fontWeight: 600,
+          color: "var(--text)"
+        }
+      }, pillLabel(p)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12.5,
+          color: "var(--text-4)",
+          marginTop: 2,
+          lineHeight: 1.45
+        }
+      }, isChat ? "Обсудить с помощником →" : "Открыть →")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+        size: 18,
         color: "var(--text-4)",
-        marginTop: 2,
-        lineHeight: 1.45
-      }
-    }, "\u041E\u0431\u0441\u0443\u0434\u0438\u0442\u044C \u0441 \u043F\u043E\u043C\u043E\u0449\u043D\u0438\u043A\u043E\u043C \u2192")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-      size: 18,
-      color: "var(--text-4)",
-      style: {
-        flexShrink: 0
-      }
-    })))))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flexShrink: 0
+        }
+      }));
+    })))), /*#__PURE__*/React.createElement("div", {
       className: "section-label",
       style: {
         marginTop: 18,

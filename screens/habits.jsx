@@ -374,7 +374,7 @@ function HabitsScreen() {
         ) : (
         <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
           {goals.map((g) => {
-            const pct = g.current / g.target;
+            const pct = g.target > 0 ? g.current / g.target : 0;
             return (
               <div key={g.id} style={{ borderRadius: 18, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>
                 <button className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "habits" })}
@@ -391,7 +391,7 @@ function HabitsScreen() {
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>
                   </div>
-                  <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (pct * 100) + "%" }}/></div>
+                  <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (Math.min(1, pct) * 100) + "%" }}/></div>
                 </button>
               </div>
             );
@@ -431,8 +431,47 @@ function HabitsScreen() {
    tone or gender modifiers so they read consistently across the grid. */
 const HABIT_ICONS = ["🏃","🚶","🚴","🏊","💪","🧘","🤸","🧗","📖","📚","✍️","🎨","🎵","🎸","💻","🧠","🙏","🧊","💧","🥗","🍎","☕","🚭","😴","☀️","🌙","🔥","🌱","⭐","🎯","❤️","🧭"];
 
+/* Weekday model — index 0..6 = Пн..Вс. `days` on a habit is a 7-long 0/1 mask;
+   all-1 means «каждый день». Helpers below summarise it for the UI. */
+const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+function daysSummary(days) {
+  const on = days.filter(Boolean).length;
+  if (on === 7) return "Каждый день";
+  if (on === 0) return "Не выбрано";
+  if (on === 5 && days[0] && days[1] && days[2] && days[3] && days[4]) return "По будням";
+  if (on === 2 && days[5] && days[6]) return "По выходным";
+  return WEEKDAY_LABELS.filter((_, i) => days[i]).join(", ");
+}
+
+/* Invite share sheet for a freshly-created SHARED habit — same shape as community's
+   TeamShareSheet (copy + OS share), but the link carries both ?team= (so a friend
+   joins the mini-team on open) and &ref= (so they're credited as your referral). */
+function HabitInviteShareSheet({ habit, link }) {
+  const [copied, setCopied] = useHS(false);
+  const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  const shareLink = async () => { try { if (navigator.share) { await navigator.share({ title: habit?.name || "Привычка", text: "Делаем привычку «" + (habit?.name || "") + "» вместе в BalanceOS", url: link }); return; } } catch (e) { return; } copyLink(); };
+  return (
+    <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 12px", background: habit?.color ? habit.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 34 }}>{habit?.emoji || "✨"}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Зовите друга</div>
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 4, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>«{habit?.name || "Привычка"}» теперь совместная — отправь ссылку, и друг присоединится.</div>
+      </div>
+      <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10, background: "var(--surface-3)", borderRadius: 14, padding: "11px 8px 11px 14px" }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link}</span>
+        <button onClick={copyLink} className="tap" style={{ flexShrink: 0, border: 0, background: "var(--text)", color: "var(--card)", borderRadius: 999, padding: "8px 15px", fontSize: 12.5, fontWeight: 600 }}>{copied ? "Готово" : "Копировать"}</button>
+      </div>
+      <button onClick={shareLink} className="tap" style={{ width: "100%", marginTop: 12, border: 0, borderRadius: 999, padding: 14, background: "var(--text)", color: "var(--card)", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <I.Share size={18}/> Поделиться
+      </button>
+      <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
+    </div>
+  );
+}
+
 function HabitSettingsScreen() {
   const { navigate, params } = useNav();
+  const { open: openSheet } = useSheet();
   const app = useApp();
   const editing = params?.mode === "edit";
   const preset = params?.preset; // quick-add chip → {i: emoji, t: label}
@@ -440,10 +479,63 @@ function HabitSettingsScreen() {
   const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : (preset?.i || "👟"));
   const [showIcons, setShowIcons] = useHS(false);
   const [color, setColor] = useHS(editing ? (params.habit.color ?? null) : null);
-  const [goal, setGoal] = useHS(1);
-  const [reminderOn, setReminderOn] = useHS(true);
+  const [goal, setGoal] = useHS(editing ? (params.habit.goalPerDay || 1) : 1);
+  // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
+  const [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7
+    ? params.habit.days.slice() : [1, 1, 1, 1, 1, 1, 1]);
+  const toggleDay = (i) => setDays(d => d.map((v, j) => j === i ? (v ? 0 : 1) : v));
+  // Reminder — a single setting: on/off + a time. Seeded from the habit when editing.
+  const [reminderOn, setReminderOn] = useHS(editing ? !!(params.habit.reminder && params.habit.reminder.on) : true);
+  const [reminderTime, setReminderTime] = useHS(editing && params.habit.reminder && params.habit.reminder.time ? params.habit.reminder.time : "09:00");
   const [shareOn, setShareOn] = useHS(true);
+  const [inviteNote, setInviteNote] = useHS(""); // gentle inline note if the invite step can't run
+  const [sharedTeam, setSharedTeam] = useHS(null); // the mini-team backing this shared habit (created once)
   const _isLive = app?.mode === "live";
+
+  // Turn this habit into a SHARED one: a private mini-team + a main team-habit, then
+  // hand back the {team, link} so we can open the share sheet. Created at most once
+  // (cached in sharedTeam). Returns null + sets a gentle note if the cloud isn't ready.
+  const ensureSharedTeam = async () => {
+    if (sharedTeam) return sharedTeam;
+    const nm = name.trim() || "Новая привычка";
+    if (!window.bosCloud || !window.bosCloud.enabled()) {
+      setInviteNote("Чтобы звать друзей, войди через Telegram.");
+      return null;
+    }
+    try {
+      const team = await window.bosCloud.createTeam({ name: nm, emblem: iconPick, vis: "private" });
+      if (!team || !team.id) {
+        setInviteNote("Не удалось создать общую привычку — попробуй ещё раз.");
+        return null;
+      }
+      try { await window.bosCloud.addTeamHabit(team.id, { name: nm, emoji: iconPick, isMain: true }); } catch (e) {}
+      let ref = "";
+      try { ref = (await window.bosCloud.uid()) || ""; } catch (e) {}
+      const link = location.origin + location.pathname + "?team=" + team.id + (ref ? "&ref=" + ref : "");
+      const made = { team, link };
+      setSharedTeam(made); setInviteNote("");
+      return made;
+    } catch (e) {
+      setInviteNote("Не удалось создать общую привычку — попробуй ещё раз.");
+      return null;
+    }
+  };
+  // Invite-now (the «Пригласить» button on live): build the shared team and open the
+  // real share sheet. Falls back to a plain referral link if the team step fails.
+  const inviteFriend = async () => {
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    const made = await ensureSharedTeam();
+    if (made) { openSheet(<HabitInviteShareSheet habit={{ name: name.trim() || "Новая привычка", emoji: iconPick, color }} link={made.link} />); return; }
+    // Fallback: still let them share a plain referral link so the button is never dead.
+    if (window.bosCloud && window.bosCloud.enabled()) {
+      try {
+        const ref = (await window.bosCloud.uid()) || "";
+        const link = location.origin + location.pathname + (ref ? "?ref=" + ref : "");
+        setInviteNote("");
+        openSheet(<HabitInviteShareSheet habit={{ name: name.trim() || "Новая привычка", emoji: iconPick, color }} link={link} />);
+      } catch (e) {}
+    }
+  };
   // Soft pastel palette so each real friend chip still gets a pleasant colour.
   const _FCOLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
   // LIVE: real invited people (referral circle), nothing pre-selected. Demo keeps the 4 faces.
@@ -526,9 +618,28 @@ function HabitSettingsScreen() {
             <button onClick={() => setGoal(goal + 1)} className="tap" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0 }}>＋</button>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <span className="chip"><I.Refresh size={14} /> Ежедневно</span>
-          <span className="chip"><I.Calendar size={14} /> Каждый день</span>
+        {/* Days-of-week — tap a circle to toggle that day. All on = «каждый день». */}
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontSize: 13, color: "var(--text-3)" }}>Дни недели</span>
+            <span style={{ fontSize: 13, color: "var(--text-2)", fontWeight: 600 }}>{daysSummary(days)}</span>
+          </div>
+          <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
+            {WEEKDAY_LABELS.map((w, i) => {
+              const on = !!days[i];
+              return (
+                <button key={i} className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
+                  style={{ flex: 1, aspectRatio: "1/1", maxWidth: 40, borderRadius: "50%", border: 0, cursor: "pointer",
+                    fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.2px",
+                    background: on ? (color || "#0a0a0a") : "var(--surface-3)",
+                    color: on ? "#fff" : "var(--text-4)",
+                    boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none",
+                    transform: on ? "scale(1.04)" : "none", transition: "transform 0.12s, background 0.12s, color 0.12s" }}>
+                  {w}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -536,15 +647,20 @@ function HabitSettingsScreen() {
       <div className="section-label" style={{ marginTop: 22 }}>Напоминания</div>
       <div style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <div style={{ flex: 1, fontSize: 14, color: "var(--text-3)", lineHeight: 1.4 }}>
-            Не забудь выделить время на тренировку сегодня.
+          <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
+            Напоминать каждый день
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{reminderOn ? "Тихий пуш в выбранное время." : "Без напоминаний — отмечай когда удобно."}</div>
           </div>
           <Switch on={reminderOn} onChange={setReminderOn} />
         </div>
         {reminderOn && (
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <span className="chip"><I.Clock size={14} /> 09:30</span>
-            <span className="chip"><I.Bell size={14} /> Каждый день</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 14, color: "var(--text-2)" }}><I.Clock size={16} color="var(--text-3)" /> Время</span>
+            {/* Native iOS time wheel, styled to read as one of the app's pills. */}
+            <input type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value || "09:00")}
+              style={{ border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "8px 14px",
+                fontSize: 16, fontWeight: 600, color: "var(--text)", fontVariantNumeric: "tabular-nums",
+                letterSpacing: "-0.2px", WebkitAppearance: "none", appearance: "none", textAlign: "center" }} />
           </div>
         )}
       </div>
@@ -582,16 +698,8 @@ function HabitSettingsScreen() {
             </button>
           ))}
           <button onClick={() => {
-            // LIVE: invite a real person via the OS share sheet / link copy (no fake pool).
-            if (_isLive) {
-              const APP_URL = "https://mind3scape.github.io/balanceos";
-              (async () => {
-                try { if (navigator.share) { await navigator.share({ title: "BalanceOS", text: "Делаем привычку вместе в BalanceOS", url: APP_URL }); return; } } catch (e) { return; }
-                try { navigator.clipboard.writeText(APP_URL); } catch (e) {}
-                if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-              })();
-              return;
-            }
+            // LIVE: make it REAL — create a shared mini-team + habit and open the share sheet.
+            if (_isLive) { inviteFriend(); return; }
             // DEMO: cycle through the sample pool so the showcase stays lively.
             setShareFriends(fs => {
               const pool = [{ name: "Соня", i: "С", c: "#e8b8d4" }, { name: "Дима", i: "Д", c: "#a8c0e8" }, { name: "Аля", i: "А", c: "#d4c8e8" }];
@@ -605,6 +713,10 @@ function HabitSettingsScreen() {
             color: "var(--text-3)", fontSize: 12, fontWeight: 500,
           }}><I.Plus size={12}/> Пригласить</button>
         </div>}
+        {/* Gentle inline note — only when the invite step can't run (no Telegram / cloud off). */}
+        {shareOn && _isLive && inviteNote && (
+          <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4, padding: "0 2px" }}>{inviteNote}</div>
+        )}
       </div>
 
       {/* Habit type */}
@@ -614,10 +726,31 @@ function HabitSettingsScreen() {
       </div>
 
       {/* Add */}
-      <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
+      <button className="bos-btn" style={{ marginTop: 20 }} onClick={async () => {
         const nm = name.trim() || "Новая привычка";
-        if (editing) app?.updateHabit(params.habit.id, { emoji: iconPick, name: nm, color });
-        else app?.addHabit({ emoji: iconPick, name: nm, color });
+        // Persist the full schedule + reminder on the habit. These extra fields ride
+        // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
+        const base = {
+          emoji: iconPick, name: nm, color,
+          days: days.slice(),                                  // 7-long Пн..Вс mask
+          goalPerDay: goal,
+          reminder: { on: reminderOn, time: reminderTime },
+        };
+        // SHARED habit: on live, if sharing is on, spin up the mini-team + team-habit and
+        // open the share sheet. Guarded — if anything fails, the habit is still saved.
+        if (_isLive && shareOn) {
+          const made = await ensureSharedTeam();
+          if (made && made.team) { base.shared = true; base.teamId = made.team.id; }
+          if (editing) app?.updateHabit(params.habit.id, base);
+          else app?.addHabit(base);
+          navigate("habits"); // the sheet lives above the router, so it stays open over the list
+          if (made && made.link) {
+            openSheet(<HabitInviteShareSheet habit={{ name: nm, emoji: iconPick, color }} link={made.link} />);
+          }
+          return;
+        }
+        if (editing) app?.updateHabit(params.habit.id, base);
+        else app?.addHabit(base);
         navigate("habits");
       }}>
         {editing ? "Сохранить" : "Добавить привычку"}
@@ -839,7 +972,7 @@ function GoalSettingsScreen() {
       </div>
 
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
-        const data = { emoji: iconPick, name: name.trim() || "Новая цель", target, unit, deadline };
+        const data = { emoji: iconPick, name: name.trim() || "Новая цель", target: Math.max(1, target), unit, deadline };
         if (editing) app?.updateGoal(g0.id, data);
         else app?.addGoal(data);
         navigate("habits");

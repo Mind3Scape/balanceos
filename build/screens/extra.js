@@ -758,7 +758,7 @@ function MoodScreen() {
   var bonusXP = streak * 5;
   var sameStateStreak = (() => {
     if (!cur || !app?.dayMoods) return 0;
-    var days = Object.entries(app.dayMoods).sort(([a], [b]) => b - a);
+    var days = Object.entries(app.dayMoods).sort(([a], [b]) => a < b ? 1 : a > b ? -1 : 0);
     var s = 0;
     for (var [, mi] of days) {
       if (moods[mi]?.t === cur.t) s++;else break;
@@ -777,13 +777,16 @@ function MoodScreen() {
       ...(app.dayMoods || {}),
       [dayKey]: picked
     });
-    app.setDayNotes && app.setDayNotes({
-      ...(app.dayNotes || {}),
-      [dayKey]: {
-        tags,
-        note: note.trim()
-      }
-    });
+    if (app.setDayNotes) {
+      var prev = (app.dayNotes || {})[dayKey] || {};
+      app.setDayNotes({
+        ...(app.dayNotes || {}),
+        [dayKey]: {
+          tags: tags && tags.length ? tags : prev.tags || [],
+          note: note.trim() || prev.note || ""
+        }
+      });
+    }
     navigate("home");
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -1676,7 +1679,7 @@ function MiniBars({
    Uses the key from aikey.js (window.OPENROUTER_KEY). No key → graceful canned
    replies so the demo still feels alive. Browser-direct call (OpenRouter allows
    it); the key is the user's capped test key on a free model, by their choice. */
-var AI_SYSTEM = ["Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.", "У тебя нет имени и нет бренда. Никогда не называй себя «Balance», «ассистентом», «ИИ» или продуктом. Если спросят, как тебя зовут — мягко уйди от ответа: имя не важно, считай меня голосом, который помогает тебе вернуться к себе.", "", "ОТКУДА ТЫ ГОВОРИШЬ.", "В тебе соединились две школы — стоицизм и дзен, — но без эзотерики и тумана. Только то, что работает в материальной реальности: в обычном дне, в теле, в делах, в отношениях, в деньгах и усталости.", "Из стоицизма: отделяй то, что в твоей власти, от того, что нет, и вкладывайся только в первое. Цени поступок, а не результат, который тебе не принадлежит. Спокойно прими то, что нельзя изменить, и действуй там, где можно. Иногда — взгляд сверху: будет ли это важно через год.", "Из дзена: возвращай человека в это мгновение, потому что жизнь только здесь. Между тем, что случилось, и тем, как ты ответишь, есть промежуток — в нём вся свобода. Ум новичка: меньше ярлыков, больше живого внимания. «Руби дрова, носи воду» — смысл живёт не в великом замысле, а в следующем простом действии, сделанном целиком.", "", "КАК ТЫ ГОВОРИШЬ.", "— По-русски, на «ты». Спокойно, тепло, по-человечески. Без канцелярита, без морализаторства свысока, без сюсюканья и без дешёвых аффирмаций.", "— Коротко. Обычно 2–4 предложения. Это чат в телефоне, а не лекция. Никаких длинных списков, если человек сам не попросил.", "— Сначала по-настоящему увидь человека и его состояние — честно, без лести. Потом помогай.", "— Давай ОДНО, а не десять: либо один маленький реальный шаг (часто на 2–5 минут), либо одну точную мысль, которая меняет угол зрения. Не вываливай всё сразу.", "— Не бойся сказать неудобную правду — но мягко, как друг, который на твоей стороне. Сильный инсайт называет то, что человек смутно чувствовал, но не мог сформулировать.", "— Иногда вместо совета задай один точный вопрос, от которого человек сам увидит выход.", "", "НА ЧТО ОПИРАЕШЬСЯ.", "Тебе дают живой контекст человека: имя, состояние, привычки, серии, цели, уровень. Вплетай это естественно — но никогда не зачитывай списком и не выдумывай того, чего не знаешь.", "", "КУДА ВЕДЁШЬ.", "Ты живёшь ВНУТРИ этого приложения, а не вместо него. Любой шаг предлагай сделать ЗДЕСЬ: отметить привычку, добавить новую, отметить состояние, записать пару строк в дневник приложения, собрать команду. НИКОГДА не отправляй человека в бумажный блокнот, сторонние заметки или другое приложение — всё это у нас уже есть, мы и есть его инструмент.", "Когда уместно — мягко зови позвать близкого: вместе держать привычку легче. Предложи общую привычку, команду или пригласить друга по ссылке. Один маленький шаг + один человек рядом — твой любимый рецепт.", "", "ЧЕГО НЕ ДЕЛАЕШЬ.", "Не ставишь диагнозы и не заменяешь врача или психолога — если звучит что-то тяжёлое или опасное, мягко предложи обратиться к специалисту и побудь рядом словом. Не стыдишь за срывы и пропуски — помогаешь вернуться без чувства вины. Не уходишь в мистику, гороскопы и пустые духовные лозунги: ты стоишь ногами на земле.", "", "Твоя суперсила — превращать хаос и «всё или ничего» в одно ясное действие здесь и сейчас, а иногда — в одну мысль, после которой день видится по-другому."].join("\n");
+var AI_SYSTEM = ["Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.", "У тебя нет имени и нет бренда. Никогда не называй себя «Balance», «ассистентом», «ИИ» или продуктом. Если спросят, как тебя зовут — мягко уйди от ответа: имя не важно, считай меня голосом, который помогает тебе вернуться к себе.", "", "ОТКУДА ТЫ ГОВОРИШЬ.", "В тебе соединились две школы — стоицизм и дзен, — но без эзотерики и тумана. Только то, что работает в материальной реальности: в обычном дне, в теле, в делах, в отношениях, в деньгах и усталости.", "Из стоицизма: отделяй то, что в твоей власти, от того, что нет, и вкладывайся только в первое. Цени поступок, а не результат, который тебе не принадлежит. Спокойно прими то, что нельзя изменить, и действуй там, где можно. Иногда — взгляд сверху: будет ли это важно через год.", "Из дзена: возвращай человека в это мгновение, потому что жизнь только здесь. Между тем, что случилось, и тем, как ты ответишь, есть промежуток — в нём вся свобода. Ум новичка: меньше ярлыков, больше живого внимания. «Руби дрова, носи воду» — смысл живёт не в великом замысле, а в следующем простом действии, сделанном целиком.", "", "КАК ТЫ ГОВОРИШЬ.", "— По-русски, на «ты». Спокойно, тепло, по-человечески. Без канцелярита, без морализаторства свысока, без сюсюканья и без дешёвых аффирмаций.", "— КОРОТКО и по делу. Обычно 2–4 коротких предложения, максимум — пара. Это чат в телефоне, а не лекция. НИКОГДА не вываливай «простыню» текста.", "— Структурно. Если мыслей несколько — раздели их пустой строкой на отдельные короткие реплики (так это будет читаться как живая переписка, а не монолог). Списки — только если человек прямо попросил, и тогда 2–3 пункта, не больше.", "— Эмодзи — со вкусом и редко: один там, где он добавляет тепла или расставляет акцент. НЕ лепи эмодзи в каждую строку и не превращай ответ в гирлянду.", "— Сначала по-настоящему увидь человека и его состояние — честно, без лести. Потом помогай.", "— Давай ОДНО, а не десять: либо один маленький реальный шаг (часто на 2–5 минут), либо одну точную мысль, которая меняет угол зрения. Не вываливай всё сразу.", "— Не бойся сказать неудобную правду — но мягко, как друг, который на твоей стороне. Сильный инсайт называет то, что человек смутно чувствовал, но не мог сформулировать.", "— Иногда вместо совета задай один точный вопрос, от которого человек сам увидит выход.", "", "НА ЧТО ОПИРАЕШЬСЯ.", "Тебе дают живой контекст человека: имя, состояние, привычки, серии, цели, уровень. Вплетай это естественно — но никогда не зачитывай списком и не выдумывай того, чего не знаешь.", "", "КУДА ВЕДЁШЬ.", "Ты живёшь ВНУТРИ этого приложения, а не вместо него. Любой шаг предлагай сделать ЗДЕСЬ: отметить привычку, добавить новую, отметить состояние, записать пару строк в дневник приложения, собрать команду. НИКОГДА не отправляй человека в бумажный блокнот, сторонние заметки или другое приложение — всё это у нас уже есть, мы и есть его инструмент.", "Когда уместно — мягко зови позвать близкого: вместе держать привычку легче. Предложи общую привычку, команду или пригласить друга по ссылке. Один маленький шаг + один человек рядом — твой любимый рецепт.", "", "ЧЕГО НЕ ДЕЛАЕШЬ.", "Не ставишь диагнозы и не заменяешь врача или психолога — если звучит что-то тяжёлое или опасное, мягко предложи обратиться к специалисту и побудь рядом словом. Не стыдишь за срывы и пропуски — помогаешь вернуться без чувства вины. Не уходишь в мистику, гороскопы и пустые духовные лозунги: ты стоишь ногами на земле.", "", "Твоя суперсила — превращать хаос и «всё или ничего» в одно ясное действие здесь и сейчас, а иногда — в одну мысль, после которой день видится по-другому."].join("\n");
 
 // Build a compact, live snapshot of the user for the model — so replies are personal
 // and on-point, not generic. Woven into the system message, never shown to the user.
@@ -1834,10 +1837,9 @@ function bosBriefFromObj(obj) {
     } : {
       i: p && p.i || "✨",
       t: p && (p.t || p.text || p.label) || ""
-    }).filter(p => p.t && ("" + p.t).trim()).slice(0, 4).map(p => ({
-      i: ("" + p.i).slice(0, 3) || "✨",
-      t: ("" + p.t).trim().slice(0, 40)
-    }));
+    }).filter(p => p.t && ("" + p.t).trim()).slice(0, 4)
+    // AI suggestions are conversational → chat-pills (label/kind/prompt) + back-compat i/t.
+    .map(p => bosChatPill(("" + p.i).slice(0, 3) || "✨", ("" + p.t).trim().slice(0, 40)));
   }
   if (!out.summary && (!out.pills || !out.pills.length)) return null;
   return out;
@@ -1866,38 +1868,126 @@ function bosParseBrief(raw) {
     var pills = [];
     var re = /\{\s*"i"\s*:\s*"([^"]*)"\s*,\s*"t"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g;
     var m;
-    while ((m = re.exec(raw)) && pills.length < 4) pills.push({
-      i: (m[1] || "✨").slice(0, 3),
-      t: bosUnescape(m[2]).trim().slice(0, 40)
-    });
+    while ((m = re.exec(raw)) && pills.length < 4) pills.push(bosChatPill((m[1] || "✨").slice(0, 3), bosUnescape(m[2]).trim().slice(0, 40)));
     if (pills.length) _out.pills = pills.filter(p => p.t);
     if (_out.summary || _out.pills && _out.pills.length) return _out;
   } catch (e) {}
   return null;
 }
 
-// Always-available baseline brief from local context (mood line + contextual pills).
+// Pill contract (Home + AI-page + chat renderers depend on these exact names):
+//   { label, kind:"action"|"chat", route?, params?, prompt?, i, t }
+// `i`/`t` stay for back-compat with the icon+label renderers; `t` doubles as the
+// chat seed for chat-pills so old tap-handlers (navigate to chat with t) still work.
+function bosActionPill(i, label, route, params, prompt) {
+  return {
+    i: i,
+    label: label,
+    t: label,
+    kind: "action",
+    route: route,
+    params: params || null,
+    prompt: prompt || "" + label
+  };
+}
+function bosChatPill(i, label, prompt) {
+  return {
+    i: i,
+    label: label,
+    t: label,
+    kind: "chat",
+    route: null,
+    params: null,
+    prompt: prompt || "" + label
+  };
+}
+
+// Always-available baseline brief computed PURELY from the user's real local state.
+// It must be TRUE to the data: it never invents a mood, rhythm or feeling the user
+// didn't record. When there's barely any data it says so honestly and warmly.
+// Returns exactly 4 next-step pills (a mix of real actions + one reflective chat).
 function bosHeuristicBrief(app) {
   var summary = "";
+  var pills = [];
   try {
     var habits = app && app.habits || [];
-    var done = habits.filter(h => h.done).length;
-    var moodT = app && app.mood && app.mood.t || "";
-    var M = {
-      "Энергия": "Энергии много — берись за самое важное прямо сейчас.",
-      "Радость": "Ты в ресурсе — отличный день, чтобы закрыть серию.",
-      "Спокойствие": "Спокойствие — твоё время для одного глубокого дела.",
-      "Тревога": "Начни с двух минут дыхания — и день станет легче.",
-      "Упадок": "Сделай одно маленькое дело — этого сегодня достаточно.",
-      "Усталость": "Сбавь темп: закрой одну привычку — и довольно."
-    };
-    if (habits.length && done >= habits.length) summary = "День закрыт — ты в потоке. Так держи ритм.";else if (M[moodT]) summary = M[moodT];else if (!habits.length) summary = "Начнём с малого: выбери одну привычку, с которой стартуешь.";else summary = "Одно маленькое действие сейчас сдвинет весь день.";
+    var goals = app && app.goals || [];
+    var done = habits.filter(h => h && h.done).length;
+    // "Set" = the user actually LOGGED state today, NOT the neutral default enterLive seeds.
+    // dayMoods[today] is the honest signal (app.mood alone is always populated).
+    var _todayK = typeof bosTodayKey === "function" ? bosTodayKey() : null;
+    var moodSet = !!(app && app.dayMoods && _todayK && app.dayMoods[_todayK] != null);
+    var moodT = moodSet ? app.mood && app.mood.t || "" : "";
+    var maxStreak = typeof bosMaxStreak === "function" ? bosMaxStreak(habits) : 0;
+    var xp = typeof bosLiveXP === "function" ? bosLiveXP(app) : 0;
+    var hasData = habits.length > 0 || moodSet || xp > 0;
+
+    // ── Honest summary: state facts only, never a fabricated feeling ──
+    if (!hasData) {
+      // Brand-new: nothing logged at all. Warm, true invitation — no invented rhythm.
+      summary = "Ты только начинаешь — добавь пару привычек и отметь состояние, и я подскажу следующий шаг.";
+    } else if (!habits.length) {
+      // State set but no habits yet.
+      summary = moodSet ? "Состояние отмечено — «" + moodT + "». Добавь первую привычку, и начнём держать ритм вместе." : "Пока нет ни одной привычки. Выбери одну маленькую — с неё и стартуем.";
+    } else if (done >= habits.length) {
+      // Everything done today — a real achievement worth naming.
+      summary = "Все привычки на сегодня закрыты (" + done + "/" + habits.length + ")" + (maxStreak >= 2 ? ". Серия — " + maxStreak + " дн. подряд." : ". Так держать.");
+    } else if (done > 0) {
+      summary = "Сегодня закрыто " + done + " из " + habits.length + (maxStreak >= 2 ? ", серия " + maxStreak + " дн" : "") + (moodSet ? ". Состояние — «" + moodT + "»." : ". Осталось немного — добей следующую.");
+    } else {
+      // Habits exist but none done yet today.
+      summary = (maxStreak >= 2 ? "Серия — " + maxStreak + " дн. Сегодня ещё ничего не отмечено — одно действие её продлит." : "На сегодня " + habits.length + " " + (habits.length === 1 ? "привычка" : "привычек") + ", пока ни одной отметки. Начни с одной.") + (moodSet ? " Состояние — «" + moodT + "»." : "");
+    }
+
+    // ── Exactly 4 next-step pills, chosen from the user's ACTUAL state ──
+    // Prefer real actions where the user is missing something (mood/habit/journal),
+    // then one reflective chat. Build a prioritized pool, then trim/pad to 4.
+    var pool = [];
+    if (!moodSet) pool.push(bosActionPill("🧭", "Отметить состояние", "mood"));
+    if (!habits.length) {
+      pool.push(bosActionPill("➕", "Добавить привычку", "habit-settings", {
+        mode: "create"
+      }));
+      pool.push(bosChatPill("🌱", "С чего начать?", "Я только начинаю в приложении. Задай мне пару коротких вопросов и подскажи, с каких привычек стартовать."));
+    } else {
+      var undone = habits.length - done;
+      if (undone > 0) pool.push(bosChatPill("✅", "Что закрыть сейчас", "У меня сегодня закрыто " + done + " из " + habits.length + " привычек. Подскажи, с какой лучше продолжить прямо сейчас."));
+      pool.push(bosActionPill("➕", "Ещё привычка", "habit-settings", {
+        mode: "create"
+      }));
+    }
+    pool.push(bosActionPill("📖", "Записать в дневник", "journal"));
+    if (goals.length) pool.push(bosChatPill("🎯", "Разбить цель на шаги", "Помоги разбить мою цель на маленькие конкретные шаги."));else pool.push(bosActionPill("🌟", "Поставить цель", "goal-settings", {
+      mode: "create"
+    }));
+    pool.push(bosChatPill("🤝", "Позвать друга", "Хочу позвать близкого человека держать привычку вместе — с чего начать?"));
+    // One reflective chat pill, tuned to recorded state (never asserts an unrecorded mood).
+    pool.push(bosChatPill("💬", moodSet ? "Поговорить о состоянии" : "Спросить совета", moodSet ? "Сейчас по ощущениям — «" + moodT + "». Помоги с этим разобраться." : "Мне нужен один маленький совет на сегодня."));
+
+    // De-dupe by label, take the first 4 (priority order above).
+    var seen = {};
+    pills = pool.filter(p => p && p.label && !seen[p.label] && (seen[p.label] = 1)).slice(0, 4);
   } catch (e) {
-    summary = "Один маленький шаг — и день сдвинется.";
+    summary = "Ты только начинаешь — добавь пару привычек и отметь состояние.";
+    pills = [];
+  }
+  // Hard guarantee: exactly 4 pills, even if something above went sideways.
+  if (pills.length < 4) {
+    var filler = [bosActionPill("🧭", "Отметить состояние", "mood"), bosActionPill("➕", "Добавить привычку", "habit-settings", {
+      mode: "create"
+    }), bosActionPill("📖", "Записать в дневник", "journal"), bosChatPill("💬", "Спросить совета", "Мне нужен один маленький совет на сегодня.")];
+    var _seen = {};
+    pills.forEach(p => {
+      _seen[p.label] = 1;
+    });
+    for (var k = 0; k < filler.length && pills.length < 4; k++) if (!_seen[filler[k].label]) {
+      pills.push(filler[k]);
+      _seen[filler[k].label] = 1;
+    }
   }
   return {
     summary,
-    pills: typeof buildQuickPrompts === "function" ? buildQuickPrompts(app) : [],
+    pills: pills.slice(0, 4),
     greeting: "",
     hint: "",
     source: "heuristic"
@@ -1923,14 +2013,17 @@ async function bosAiBrief(app) {
         source: "ai",
         at: Date.now()
       });
-      // Free model often truncates → too few AI pills. Keep them, top up from heuristic.
-      if (!out.pills || out.pills.length < 3) {
-        var have = {};
-        (out.pills || []).forEach(p => {
+      // ALWAYS exactly 4 pills. Free model often truncates → too few AI pills: keep
+      // the ones it gave, then top up (de-duped) from the honest heuristic set.
+      var have = {};
+      var merged = [];
+      (out.pills || []).concat(base.pills || []).forEach(p => {
+        if (p && p.t && !have[p.t]) {
           have[p.t] = 1;
-        });
-        out.pills = (out.pills || []).concat((base.pills || []).filter(p => !have[p.t])).slice(0, 4);
-      }
+          merged.push(p);
+        }
+      });
+      out.pills = merged.slice(0, 4);
       return out;
     }
   } catch (e) {/* keep heuristic */}
@@ -1959,6 +2052,17 @@ function AIChatScreen() {
     }
   }();
   var _greet = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
+  // The chat date divider. Demo keeps its frozen showcase time; live/fresh show the
+  // user's REAL current time, never a hard-coded string.
+  var _dateLabel = _demoChat ? "Сегодня · 09:14" : function () {
+    try {
+      var d = new Date();
+      var mm = d.getMinutes();
+      return "Сегодня · " + d.getHours() + ":" + (mm < 10 ? "0" + mm : mm);
+    } catch (e) {
+      return "Сегодня";
+    }
+  }();
   var _hello = _greet + (_name ? ", " + _name : "") + ". Я рядом. Расскажи, как ты сейчас или что на уме — и начнём с одного маленького шага.";
   // Resolve current theme from the iOS frame wrapper so this screen looks
   // right under both .theme-light and .theme-dark.
@@ -2127,7 +2231,35 @@ function AIChatScreen() {
       localStorage.setItem(_aiChatKey, JSON.stringify(msgs));
     } catch (e) {}
   }, [msgs, _aiLive, _aiChatKey]);
+
+  // Split a reply on blank lines into separate human-feeling bubbles, then drop them
+  // in one after another with a small stagger (a real person texts in bursts, not one
+  // wall). Single-paragraph replies stay a single bubble. Caps at 4 to avoid spam.
+  var appendReply = reply => {
+    var parts = ("" + reply).split(/\n{2,}/).map(s => s.trim()).filter(Boolean).slice(0, 4);
+    if (parts.length <= 1) {
+      setMsgs(m => [...m, {
+        who: "ai",
+        kind: "text",
+        t: parts[0] || ("" + reply).trim()
+      }]);
+      return;
+    }
+    setMsgs(m => [...m, {
+      who: "ai",
+      kind: "text",
+      t: parts[0]
+    }]);
+    parts.slice(1).forEach((p, k) => {
+      window.setTimeout(() => setMsgs(m => [...m, {
+        who: "ai",
+        kind: "text",
+        t: p
+      }]), (k + 1) * 520);
+    });
+  };
   var send = text => {
+    if (typing) return;
     var t = (text ?? draft).trim();
     if (!t) return;
     var history = [...msgs, {
@@ -2139,11 +2271,7 @@ function AIChatScreen() {
     setTyping(true);
     aiReply(history, buildAiContext(app), _demoChat).then(reply => {
       setTyping(false);
-      setMsgs(m => [...m, {
-        who: "ai",
-        kind: "text",
-        t: reply
-      }]);
+      appendReply(reply);
     }).catch(() => {
       setTyping(false);
       setMsgs(m => [...m, {
@@ -2152,6 +2280,17 @@ function AIChatScreen() {
         t: _demoChat ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK
       }]);
     });
+  };
+
+  // Tap a suggestion pill. New contract: kind:"action" → open a real screen (route +
+  // params); kind:"chat" → seed the conversation. Legacy {i,t} pills (heuristic chips,
+  // demo) have no kind → treated as chat, sending their text. Demo behaviour unchanged.
+  var tapPill = p => {
+    if (p && p.kind === "action" && p.route) {
+      navigate(p.route, p.params || {});
+      return;
+    }
+    send(p && (p.prompt || p.t) || "");
   };
 
   // A prompt passed in from the AI tab / quick chips → auto-send it on open.
@@ -2468,21 +2607,7 @@ function AIChatScreen() {
       borderRadius: "50%",
       background: "#85e3a8"
     }
-  }), " \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A \u0441\u043B\u0443\u0448\u0430\u0435\u0442")), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    style: {
-      width: 36,
-      height: 36,
-      background: TH.iconBtn,
-      border: TH.iconBtnBorder,
-      borderRadius: "50%",
-      color: TH.text,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.More, {
-    size: 18
-  }))), /*#__PURE__*/React.createElement("div", {
+  }), " \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A \u0441\u043B\u0443\u0448\u0430\u0435\u0442"))), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
     className: "screen-scroll",
     style: {
@@ -2500,7 +2625,7 @@ function AIChatScreen() {
       color: TH.dim,
       textTransform: "uppercase"
     }
-  }, "\u0421\u0435\u0433\u043E\u0434\u043D\u044F \xB7 09:14"), msgs.map((m, i) => m.who === "ai" ? renderAI(m, i) : renderMe(m, i)), typing && /*#__PURE__*/React.createElement("div", {
+  }, _dateLabel), msgs.map((m, i) => m.who === "ai" ? renderAI(m, i) : renderMe(m, i)), typing && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -2552,7 +2677,7 @@ function AIChatScreen() {
     }
   }, (app && app.mode === "live" && app.aiBrief && Array.isArray(app.aiBrief.pills) && app.aiBrief.pills.length ? app.aiBrief.pills.slice(0, 4) : buildQuickPrompts(app)).map((s, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
-    onClick: () => send(s.t),
+    onClick: () => tapPill(s),
     className: "tap",
     "data-no-haptic": true,
     style: {
@@ -2567,28 +2692,14 @@ function AIChatScreen() {
       alignItems: "center",
       gap: 6
     }
-  }, /*#__PURE__*/React.createElement("span", null, s.i), " ", s.t))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, s.i), " ", s.label || s.t))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 14px 16px",
       display: "flex",
       gap: 8,
       alignItems: "center"
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: "50%",
-      background: TH.iconBtn,
-      border: TH.iconBtnBorder,
-      color: TH.text,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 18
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       background: TH.composer,
@@ -2612,19 +2723,7 @@ function AIChatScreen() {
       color: TH.text,
       fontSize: 16
     }
-  }), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    style: {
-      background: "transparent",
-      border: 0,
-      color: TH.muted,
-      padding: 0,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Mic, {
-    size: 16
-  }))), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => send(),
     className: "tap",
     style: {
