@@ -318,14 +318,30 @@ function ShareHabitSheet({
   var app = typeof useApp === "function" ? useApp() : null;
   var _isLive = app?.mode === "live";
   // The real, live web app — same invite link the «Поделиться приложением» sheet uses.
+  // LIVE: tagged with ?ref=<uid> so the invite credits you (orbit + XP). FUTURE bot swap:
+  // t.me/<bot>?startapp=ref_<uid> — the uid already flows here, one-line change later.
   var APP_URL = "https://mind3scape.github.io/balanceos";
+  var [shareUrl, setShareUrl] = React.useState(APP_URL);
+  React.useEffect(() => {
+    var on = true;
+    if (_isLive && window.bosCloud && window.bosCloud.uid) {
+      window.bosCloud.uid().then(id => {
+        if (on && id) setShareUrl(APP_URL + "?ref=" + id);
+      }).catch(() => {});
+    } else {
+      setShareUrl(APP_URL);
+    }
+    return () => {
+      on = false;
+    };
+  }, [_isLive]);
   var shareLink = async () => {
     try {
       if (navigator.share) {
         await navigator.share({
           title: "BalanceOS",
           text: "Делаем привычку «" + (habit?.name || "") + "» вместе в BalanceOS",
-          url: APP_URL
+          url: shareUrl
         });
         return;
       }
@@ -333,7 +349,7 @@ function ShareHabitSheet({
       return;
     }
     try {
-      navigator.clipboard.writeText(APP_URL);
+      navigator.clipboard.writeText(shareUrl);
     } catch (e) {}
     if (window.tgHaptic) {
       try {

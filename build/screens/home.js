@@ -677,7 +677,7 @@ function HomeHeroSwipe({
     color: "#E0A500",
     filled: true,
     strokeWidth: 0
-  }), " ", _liveBrief ? "Тебе сегодня" : "С чего начать"), /*#__PURE__*/React.createElement("div", {
+  }), " \u0421 \u0447\u0435\u0433\u043E \u043D\u0430\u0447\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
       fontSize: 13.5,
@@ -827,7 +827,7 @@ function HomeHeroSwipe({
     color: "#E0A500",
     filled: true,
     strokeWidth: 0
-  }), " ", _liveBrief ? "Тебе сегодня" : "Совет дня"), /*#__PURE__*/React.createElement("div", {
+  }), " \u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u0434\u043B\u044F \u0442\u0435\u0431\u044F"), /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
       fontSize: 14,
@@ -2237,11 +2237,28 @@ function ShareAppSheet({
   var app = typeof useApp === "function" ? useApp() : null;
   var invited = app?.mode === "demo" ? 2 : 0; // demo: 1 away from the 3-milestone
   var [copied, setCopied] = useHomeState(false);
-  // The real, live web app — works on any phone, also opens fine from Telegram.
+  // The real, live web app — works on any phone, also opens fine from Telegram. For a LIVE
+  // user we tag the invite with ?ref=<uid> so it actually credits them (orbit + XP), exactly
+  // like the team-invite link already does. FUTURE: when a dedicated bot exists, swap this
+  // base for t.me/<bot>?startapp=ref_<uid> — the uid already flows, so it's a one-line change.
   var APP_URL = "https://mind3scape.github.io/balanceos";
+  var [shareUrl, setShareUrl] = useHomeState(APP_URL);
+  React.useEffect(() => {
+    var on = true;
+    if (app?.mode === "live" && window.bosCloud && window.bosCloud.uid) {
+      window.bosCloud.uid().then(id => {
+        if (on && id) setShareUrl(APP_URL + "?ref=" + id);
+      }).catch(() => {});
+    } else {
+      setShareUrl(APP_URL);
+    }
+    return () => {
+      on = false;
+    };
+  }, [app?.mode]);
   var copyLink = () => {
     try {
-      navigator.clipboard.writeText(APP_URL);
+      navigator.clipboard.writeText(shareUrl);
     } catch (e) {}
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
@@ -2257,7 +2274,7 @@ function ShareAppSheet({
         await navigator.share({
           title: "BalanceOS",
           text: "Держим баланс вместе — BalanceOS",
-          url: APP_URL
+          url: shareUrl
         });
         return;
       }

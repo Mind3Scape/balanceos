@@ -358,7 +358,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <I.Sparkles size={12} color="#E0A500" filled strokeWidth={0}/> {_liveBrief ? "Тебе сегодня" : "С чего начать"}
+            <I.Sparkles size={12} color="#E0A500" filled strokeWidth={0}/> С чего начать
           </div>
           <div key={_homeSummary} style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
@@ -397,7 +397,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <I.Sparkles size={12} color="#E0A500" filled strokeWidth={0}/> {_liveBrief ? "Тебе сегодня" : "Совет дня"}
+            <I.Sparkles size={12} color="#E0A500" filled strokeWidth={0}/> Подсказки для тебя
           </div>
           <div key={_homeSummary} style={{ fontSize: 14, color: "var(--text-2)", marginTop: 5, lineHeight: 1.42, letterSpacing: "-0.1px", animation: "briefFade 0.5s ease both" }}>
             {_homeSummary}
@@ -891,15 +891,26 @@ function ShareAppSheet({ dark = false }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const invited = app?.mode === "demo" ? 2 : 0; // demo: 1 away from the 3-milestone
   const [copied, setCopied] = useHomeState(false);
-  // The real, live web app — works on any phone, also opens fine from Telegram.
+  // The real, live web app — works on any phone, also opens fine from Telegram. For a LIVE
+  // user we tag the invite with ?ref=<uid> so it actually credits them (orbit + XP), exactly
+  // like the team-invite link already does. FUTURE: when a dedicated bot exists, swap this
+  // base for t.me/<bot>?startapp=ref_<uid> — the uid already flows, so it's a one-line change.
   const APP_URL = "https://mind3scape.github.io/balanceos";
+  const [shareUrl, setShareUrl] = useHomeState(APP_URL);
+  React.useEffect(() => {
+    let on = true;
+    if (app?.mode === "live" && window.bosCloud && window.bosCloud.uid) {
+      window.bosCloud.uid().then((id) => { if (on && id) setShareUrl(APP_URL + "?ref=" + id); }).catch(() => {});
+    } else { setShareUrl(APP_URL); }
+    return () => { on = false; };
+  }, [app?.mode]);
   const copyLink = () => {
-    try { navigator.clipboard.writeText(APP_URL); } catch (e) {}
+    try { navigator.clipboard.writeText(shareUrl); } catch (e) {}
     setCopied(true); window.setTimeout(() => setCopied(false), 1600);
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
   };
   const shareLink = async () => {
-    try { if (navigator.share) { await navigator.share({ title: "BalanceOS", text: "Держим баланс вместе — BalanceOS", url: APP_URL }); return; } } catch (e) { return; }
+    try { if (navigator.share) { await navigator.share({ title: "BalanceOS", text: "Держим баланс вместе — BalanceOS", url: shareUrl }); return; } } catch (e) { return; }
     copyLink();
   };
   const C = dark
