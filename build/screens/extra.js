@@ -2958,7 +2958,9 @@ function AchievementUnlock({
   onClose
 }) {
   if (!ach) return null;
-  var accent = ach.accent || "#FEDE34";
+  // Unified GOLD chrome (achievements are the gold-tier reward; per-achievement accents
+  // like the green of "Первый шаг" read off). Same gold as the loved +XP plate.
+  var accent = "#F0B400";
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -3003,11 +3005,11 @@ function AchievementUnlock({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 11.5,
       letterSpacing: 2,
       textTransform: "uppercase",
-      color: "#C99A1A",
-      fontWeight: 700
+      color: "#E0A500",
+      fontWeight: 800
     }
   }, "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u043E"), /*#__PURE__*/React.createElement("div", {
     style: {

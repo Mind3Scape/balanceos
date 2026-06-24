@@ -1404,7 +1404,9 @@ function AIChatScreen() {
    anywhere or the button to dismiss; the badge then lives in the Achievements screen. */
 function AchievementUnlock({ ach, onClose }) {
   if (!ach) return null;
-  const accent = ach.accent || "#FEDE34";
+  // Unified GOLD chrome (achievements are the gold-tier reward; per-achievement accents
+  // like the green of "Первый шаг" read off). Same gold as the loved +XP plate.
+  const accent = "#F0B400";
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 99990, background: "rgba(244,245,248,0.72)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "grid", placeItems: "center", padding: 28, animation: "achFade 0.3s ease both" }}>
       {/* Light, native (iOS) celebration: white glass card, warm gold glow, a badge that
@@ -1412,7 +1414,7 @@ function AchievementUnlock({ ach, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 328, borderRadius: 30, padding: "34px 24px 22px", textAlign: "center", overflow: "hidden", background: "#ffffff", boxShadow: "0 24px 70px rgba(20,20,40,0.22), inset 0 1px 0 rgba(255,255,255,0.9)", animation: "achPop 0.5s cubic-bezier(0.22,1,0.36,1) both" }}>
         <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 170, background: "radial-gradient(circle at 50% 0%, " + accent + "40, transparent 70%)" }}/>
         <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#C99A1A", fontWeight: 700 }}>Достижение открыто</div>
+          <div style={{ fontSize: 11.5, letterSpacing: 2, textTransform: "uppercase", color: "#E0A500", fontWeight: 800 }}>Достижение открыто</div>
           <div style={{ width: 96, height: 96, margin: "20px auto 0", position: "relative", animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.12s both" }}>
             <div aria-hidden style={{ position: "absolute", inset: -12, borderRadius: "50%", background: "radial-gradient(circle, " + accent + "55, transparent 70%)" }}/>
             <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 26, background: "linear-gradient(180deg,#fffdf5,#fff3d3)", display: "grid", placeItems: "center", fontSize: 46, boxShadow: "inset 0 0 0 1.5px " + accent + "66, 0 10px 26px " + accent + "3d" }}>{ach.i}</div>
