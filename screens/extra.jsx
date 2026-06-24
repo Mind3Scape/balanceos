@@ -865,10 +865,16 @@ async function aiRaw(messages) {
   return null;
 }
 
+// How many recent chat turns to actually send to the model. The user's identity, mood,
+// habits & streaks are re-injected via `ctx` on EVERY call, so the transcript is only the
+// short conversational thread — a few turns is plenty, and capping it stops token cost from
+// growing with the length of the chat (was: resend the whole history every message).
+const AI_HISTORY_TURNS = 3;
 async function aiReply(history, ctx, demo) {
   const sys = AI_SYSTEM + (ctx ? ("\n\n" + ctx) : "");
+  const recent = (history || []).filter((m) => m && m.t).slice(-AI_HISTORY_TURNS);
   const messages = [{ role: "system", content: sys }].concat(
-    (history || []).filter((m) => m && m.t).map((m) => ({ role: m.who === "me" ? "user" : "assistant", content: m.t }))
+    recent.map((m) => ({ role: m.who === "me" ? "user" : "assistant", content: m.t }))
   );
   const t = await aiRaw(messages);
   if (t && t.trim()) return t.trim();

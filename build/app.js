@@ -117,7 +117,7 @@ var AUTO_RESUME_TG = false;
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v174";
+var APP_VERSION = "v175";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -1815,7 +1815,7 @@ function PhoneApp() {
         params: frame.params,
         navigate
       }
-    }, /*#__PURE__*/React.createElement(Comp, null)));
+    }, /*#__PURE__*/React.createElement(BosErrorBoundary, null, /*#__PURE__*/React.createElement(Comp, null))));
   };
   var renderDragLayer = (frame, style, dimStyle) => {
     var dark = themeFor(frame.route);
@@ -1833,7 +1833,7 @@ function PhoneApp() {
         params: frame.params,
         navigate
       }
-    }, /*#__PURE__*/React.createElement(Comp, null)), dimStyle && /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement(BosErrorBoundary, null, /*#__PURE__*/React.createElement(Comp, null))), dimStyle && /*#__PURE__*/React.createElement("div", {
       className: "bos-drag-dim",
       style: dimStyle
     }));
@@ -1974,7 +1974,87 @@ function PhoneApp() {
     onClose: app.clearPendingAch
   }))));
 }
+
+/* Circuit breaker. One screen throwing during render (a malformed cloud row, an
+   unexpected null, a future code path nobody anticipated) used to white-screen the
+   WHOLE app with no way back — undebuggable remotely. This catches it and shows a
+   calm recovery card instead. Wrapped per-screen (chrome survives, just that screen
+   shows the card) AND once around the whole app (last resort). */
+class BosErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      failed: false
+    };
+  }
+  static getDerivedStateFromError() {
+    return {
+      failed: true
+    };
+  }
+  componentDidCatch(err, info) {
+    try {
+      console.error("BalanceOS screen crash:", err, info);
+    } catch (e) {}
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "32px",
+        background: "#fafafa",
+        color: "#1c1c1e",
+        zIndex: 9
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "44px",
+        marginBottom: "14px"
+      }
+    }, "\uD83C\uDF2B\uFE0F"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "19px",
+        fontWeight: 650,
+        letterSpacing: "-0.02em",
+        marginBottom: "8px"
+      }
+    }, "\u0427\u0442\u043E-\u0442\u043E \u0441\u0431\u0438\u043B\u043E\u0441\u044C"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: "15px",
+        lineHeight: 1.5,
+        color: "#8a8a8e",
+        maxWidth: "260px",
+        marginBottom: "24px"
+      }
+    }, "\u0422\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u043D\u0430 \u043C\u0435\u0441\u0442\u0435. \u041E\u0431\u043D\u043E\u0432\u0438\u043C \u044D\u043A\u0440\u0430\u043D \u2014 \u0438 \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u043C."), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        try {
+          window.location.reload();
+        } catch (e) {}
+      },
+      style: {
+        border: "none",
+        borderRadius: "14px",
+        padding: "13px 30px",
+        fontSize: "16px",
+        fontWeight: 600,
+        color: "#fff",
+        background: "linear-gradient(180deg,#2c2c2e,#1c1c1e)",
+        boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
+        cursor: "pointer",
+        WebkitTapHighlightColor: "transparent"
+      }
+    }, "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C"));
+  }
+}
 function Root() {
-  return /*#__PURE__*/React.createElement(AppProvider, null, /*#__PURE__*/React.createElement(PhoneApp, null));
+  return /*#__PURE__*/React.createElement(AppProvider, null, /*#__PURE__*/React.createElement(BosErrorBoundary, null, /*#__PURE__*/React.createElement(PhoneApp, null)));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(Root, null));

@@ -114,7 +114,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v174";
+const APP_VERSION = "v175";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -784,7 +784,9 @@ function PhoneApp() {
     return (
       <div key={frame.id} className={cls} onAnimationEnd={onEnd}>
         <NavCtx.Provider value={{ route: frame.route, params: frame.params, navigate }}>
-          <Comp />
+          <BosErrorBoundary>
+            <Comp />
+          </BosErrorBoundary>
         </NavCtx.Provider>
       </div>
     );
@@ -801,7 +803,9 @@ function PhoneApp() {
     return (
       <div key={frame.id} className={cls} style={style}>
         <NavCtx.Provider value={{ route: frame.route, params: frame.params, navigate }}>
-          <Comp />
+          <BosErrorBoundary>
+            <Comp />
+          </BosErrorBoundary>
         </NavCtx.Provider>
         {dimStyle && <div className="bos-drag-dim" style={dimStyle} />}
       </div>
@@ -915,10 +919,37 @@ function PhoneApp() {
   );
 }
 
+/* Circuit breaker. One screen throwing during render (a malformed cloud row, an
+   unexpected null, a future code path nobody anticipated) used to white-screen the
+   WHOLE app with no way back — undebuggable remotely. This catches it and shows a
+   calm recovery card instead. Wrapped per-screen (chrome survives, just that screen
+   shows the card) AND once around the whole app (last resort). */
+class BosErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err, info) { try { console.error("BalanceOS screen crash:", err, info); } catch (e) {} }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "32px", background: "#fafafa", color: "#1c1c1e", zIndex: 9 }}>
+        <div style={{ fontSize: "44px", marginBottom: "14px" }}>🌫️</div>
+        <div style={{ fontSize: "19px", fontWeight: 650, letterSpacing: "-0.02em", marginBottom: "8px" }}>Что-то сбилось</div>
+        <div style={{ fontSize: "15px", lineHeight: 1.5, color: "#8a8a8e", maxWidth: "260px", marginBottom: "24px" }}>Твои данные на месте. Обновим экран — и продолжим.</div>
+        <button onClick={() => { try { window.location.reload(); } catch (e) {} }}
+          style={{ border: "none", borderRadius: "14px", padding: "13px 30px", fontSize: "16px", fontWeight: 600, color: "#fff", background: "linear-gradient(180deg,#2c2c2e,#1c1c1e)", boxShadow: "0 6px 18px rgba(0,0,0,0.18)", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+          Обновить
+        </button>
+      </div>
+    );
+  }
+}
+
 function Root() {
   return (
     <AppProvider>
-      <PhoneApp />
+      <BosErrorBoundary>
+        <PhoneApp />
+      </BosErrorBoundary>
     </AppProvider>
   );
 }

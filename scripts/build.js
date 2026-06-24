@@ -48,3 +48,11 @@ let html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 html = html.replace(/(src="build\/[^"?]+\.js)(\?v=[^"]*)?"/g, `$1?v=${ver}"`);
 fs.writeFileSync(path.join(root, "index.html"), html);
 console.log("stamped index.html build URLs with", ver);
+
+// Same cache-bust for the service worker. Its CACHE name is the version it purges on
+// activate — if it never moves, the install/activate re-precache never fires and a bad
+// deploy can be served stale offline. Stamp it from APP_VERSION every build too.
+let sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+sw = sw.replace(/const CACHE = "balanceos-[^"]*";/, `const CACHE = "balanceos-${ver}";`);
+fs.writeFileSync(path.join(root, "sw.js"), sw);
+console.log("stamped sw.js CACHE with", ver);

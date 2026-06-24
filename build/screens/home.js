@@ -2662,18 +2662,20 @@ function MoodWidget({
     var off = _monOff - i; // days ago (negative = a day later this week)
     var key = typeof bosDayKeyOffset === "function" ? bosDayKeyOffset(off) : "";
     var di = app?.dayMoods && app.dayMoods[key] != null ? app.dayMoods[key] : null;
+    // Bounds-guard: a bad/out-of-range index from a corrupted cloud row must yield null,
+    // not undefined → otherwise the widget reads `.c`/`.t` on undefined and white-screens.
     return {
       key,
       today: i === _monOff,
       future: off < 0,
       wd: _WD[i],
-      m: di != null ? MOOD_OPTIONS[di] : null
+      m: di != null && MOOD_OPTIONS[di] ? MOOD_OPTIONS[di] : null
     };
   }) : [0, 1, 2, 3, 4, 5, 6].map(i => ({
     d: 22 + i,
     today: i === 6,
     wd: _WD[i],
-    m: app?.dayMoods && app.dayMoods[22 + i] != null ? MOOD_OPTIONS[app.dayMoods[22 + i]] : null
+    m: app?.dayMoods && app.dayMoods[22 + i] != null && MOOD_OPTIONS[app.dayMoods[22 + i]] ? MOOD_OPTIONS[app.dayMoods[22 + i]] : null
   }));
   var logged = last7.filter(d => d.m).length;
   var sameAsToday = last7.filter(d => d.m && d.m.t === mood.t).length;

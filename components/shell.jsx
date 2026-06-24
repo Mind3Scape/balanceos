@@ -948,27 +948,55 @@ function AppProvider({ children }) {
           // D2 — cross-device data: whichever side saved last wins. Cloud newer →
           // hydrate this device from it; otherwise push our local life up to the cloud.
           window.bosCloud.loadSnapshot().then(function (snap) {
+            // Merge two day-maps: `winner` keeps its values; `filler` only adds days the
+            // winner is missing (never overwrites, never lets null/"" erase a real value).
+            // So neither device's logged days are ever lost — only a same-day conflict
+            // defers to the winner (the side that saved more recently). Mood index 0 is a
+            // valid value (Спокойствие), so we test `== null`, never truthiness.
+            function bosMergeDayMap(winner, filler) {
+              var out = Object.assign({}, winner || {});
+              if (filler) Object.keys(filler).forEach(function (k) {
+                var fv = filler[k];
+                if (fv == null || fv === "") return;
+                if (out[k] == null || out[k] === "") out[k] = fv;
+              });
+              return out;
+            }
             var localAt = saved ? (saved.savedAt || 0) : 0;
             var cloudAt = (snap && snap.savedAt) || 0;
             // Migration seed for habits/goals = whatever we have right now (an old pre-rows
             // user has them in the cloud blob; else the local copy). Captured before state moves.
             var _seedHabits = (snap && snap.data && Array.isArray(snap.data.habits) && snap.data.habits) || (saved && saved.habits) || [];
             var _seedGoals  = (snap && snap.data && Array.isArray(snap.data.goals)  && snap.data.goals)  || (saved && saved.goals)  || [];
+            // Day-level merge (see bosMergeDayMap) so a 2nd device never erases the other's
+            // logged days; the timestamp only decides who wins a same-day conflict.
+            var _localMoods = (saved && saved.dayMoods) || {};
+            var _localNotes = (saved && saved.dayNotes) || {};
+            var _cloudMoods = (snap && snap.data && snap.data.dayMoods) || {};
+            var _cloudNotes = (snap && snap.data && snap.data.dayNotes) || {};
             if (snap && snap.data && cloudAt >= localAt) {
               var d = snap.data;
               // habits/goals are NO LONGER in the blob — they're loaded from rows below.
               if (Array.isArray(d.teams)) setTeams(d.teams);
-              if (d.dayMoods) {
-                setDayMoods(d.dayMoods);
-                // keep the orb in sync with today's restored state
-                try { var _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null; var _mi = _tk ? d.dayMoods[_tk] : undefined; if (_mi != null && MOOD_OPTIONS[_mi]) setMood(MOOD_OPTIONS[_mi]); } catch (e) {}
-              }
-              if (d.dayNotes) setDayNotes(d.dayNotes);
+              var _mMoods = bosMergeDayMap(_cloudMoods, _localMoods); // cloud wins, local fills gaps
+              var _mNotes = bosMergeDayMap(_cloudNotes, _localNotes);
+              setDayMoods(_mMoods);
+              setDayNotes(_mNotes);
+              // keep the orb in sync with today's restored state
+              try { var _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null; var _mi = _tk ? _mMoods[_tk] : undefined; if (_mi != null && MOOD_OPTIONS[_mi]) setMood(MOOD_OPTIONS[_mi]); } catch (e) {}
               if (d.wheelSpheres) setWheelSpheres(d.wheelSpheres);
               if (d.widgets) setWidgets(d.widgets);
+              // If local held days the cloud lacked, push the union up so the cloud is whole too.
+              if (Object.keys(_mMoods).length > Object.keys(_cloudMoods).length || Object.keys(_mNotes).length > Object.keys(_cloudNotes).length) {
+                window.bosCloud.saveSnapshot({ teams: Array.isArray(d.teams) ? d.teams : ((saved && saved.teams) || []), dayMoods: _mMoods, dayNotes: _mNotes, wheelSpheres: d.wheelSpheres, widgets: d.widgets });
+              }
             } else {
               var src = saved || {};
-              window.bosCloud.saveSnapshot({ teams: src.teams || [], dayMoods: src.dayMoods || {}, dayNotes: src.dayNotes || {}, wheelSpheres: src.wheelSpheres, widgets: src.widgets });
+              var _mMoods2 = bosMergeDayMap(_localMoods, _cloudMoods); // local wins, cloud fills gaps
+              var _mNotes2 = bosMergeDayMap(_localNotes, _cloudNotes);
+              setDayMoods(_mMoods2);
+              setDayNotes(_mNotes2);
+              window.bosCloud.saveSnapshot({ teams: src.teams || [], dayMoods: _mMoods2, dayNotes: _mNotes2, wheelSpheres: src.wheelSpheres, widgets: src.widgets });
             }
             // Reconciliation done → allow autosave again (the join below should persist).
             _doneHydrate();
