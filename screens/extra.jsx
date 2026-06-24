@@ -106,7 +106,7 @@ function HabitDetailScreen() {
 
       {/* Hero — neutral tile (or the habit's soft colour), like the lists outside */}
       <div style={{ textAlign: "center", padding: "6px 0 22px" }}>
-        <div style={{ width: 88, height: 88, borderRadius: 24, margin: "0 auto", background: tileBg, display: "grid", placeItems: "center", boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
+        <div style={{ width: 88, height: 88, borderRadius: 22, margin: "0 auto", background: tileBg, display: "grid", placeItems: "center", boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
           <span style={{ fontSize: 44 }}>{h.emoji}</span>
         </div>
         <div style={{ fontSize: 26, fontWeight: 700, marginTop: 16, letterSpacing: "-0.5px" }}>{h.name}</div>
@@ -122,7 +122,7 @@ function HabitDetailScreen() {
           { l: "Лучшая", v: best, suf: "д", i: "🏆" },
           { l: "Всего", v: total, suf: "", i: "📊" },
         ].map((s, i) => (
-          <div key={i} style={{ ...card, borderRadius: 18, padding: "14px 8px", textAlign: "center" }}>
+          <div key={i} style={{ ...card, borderRadius: 22, padding: "14px 8px", textAlign: "center" }}>
             <div style={{ fontSize: 17 }}>{s.i}</div>
             <div style={{ fontSize: 21, fontWeight: 700, marginTop: 5, letterSpacing: "-0.5px" }}><Count value={s.v} />{s.suf}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 3 }}>{s.l}</div>
@@ -139,12 +139,12 @@ function HabitDetailScreen() {
         return (
           <>
             <div className="section-label" style={{ marginTop: 22 }}>Кто с тобой · соревнование</div>
-            <div style={{ ...card, borderRadius: 18, padding: 8, marginTop: 8 }}>
+            <div style={{ ...card, borderRadius: 22, padding: 8, marginTop: 8 }}>
               {people.map((p, i) => {
                 const fi = fullRoster.findIndex((x) => x.name === p.name);
                 const sel = selPerson === fi;
                 return (
-                <div key={i} onClick={() => setSelPerson(sel ? null : fi)} className="tap" style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 8px", borderRadius: 12, cursor: "pointer", transition: "background 0.15s", background: sel ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)") : (p.you ? (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)") : "transparent"), boxShadow: sel ? `inset 0 0 0 1.5px ${p.color}` : "none" }}>
+                <div key={i} onClick={() => setSelPerson(sel ? null : fi)} className="tap" style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 8px", borderRadius: 14, cursor: "pointer", transition: "background 0.15s", background: sel ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)") : (p.you ? (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)") : "transparent"), boxShadow: sel ? `inset 0 0 0 1.5px ${p.color}` : "none" }}>
                   <span style={{ width: 22, textAlign: "center", fontSize: i === 0 ? 15 : 13, fontWeight: 700, color: i === 0 ? "#E0A500" : "var(--text-4)" }}>{i === 0 ? "👑" : i + 1}</span>
                   <span style={{ width: 34, height: 34, borderRadius: "50%", background: p.color, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{p.initials}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -175,7 +175,7 @@ function HabitDetailScreen() {
 
       {/* Insight — neutral surface, streak-driven copy */}
       <div className="section-label" style={{ marginTop: 22 }}>Инсайт</div>
-      <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
+      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
         <I.Sparkles size={18} color={h.color || (isDark ? "#fff" : "#0a0a0a")} />
         <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
           {streak >= 7
@@ -253,7 +253,7 @@ function GoalDetailScreen() {
           { l: "Сделано", v: g.current || 0, i: "✅" },
           { l: "Срок", text: g.deadline, i: "📅" },
         ].map((s, i) => (
-          <div key={i} style={{ ...card, borderRadius: 18, padding: "14px 6px", textAlign: "center" }}>
+          <div key={i} style={{ ...card, borderRadius: 22, padding: "14px 6px", textAlign: "center" }}>
             <div style={{ fontSize: 16 }}>{s.i}</div>
             <div style={{ fontSize: s.text ? 13.5 : 21, fontWeight: 700, marginTop: 6, letterSpacing: "-0.4px" }}>{s.text ? s.text : <Count value={s.v} />}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 3 }}>{s.l}</div>
@@ -265,11 +265,11 @@ function GoalDetailScreen() {
       {linked.length > 0 && (
         <>
           <div className="section-label" style={{ marginTop: 22 }}>Складывается из привычек</div>
-          <div style={{ ...card, borderRadius: 18, marginTop: 8, overflow: "hidden" }}>
+          <div style={{ ...card, borderRadius: 22, marginTop: 8, overflow: "hidden" }}>
             {linked.map((h, i) => (
               <div key={h.id}>
                 <button className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "goal-detail" })} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: 0, textAlign: "left", color: "var(--text)" }}>
-                  <span style={{ width: 38, height: 38, borderRadius: 11, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{h.emoji}</span>
+                  <span style={{ width: 38, height: 38, borderRadius: 14, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{h.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, color: "var(--text-2)", fontWeight: 500 }}>{h.name}</div>
                     <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {(app?.mode === "live" && typeof bosStreak === "function") ? bosStreak(h.log) : (h.streak || 0)}д серия</div>
@@ -285,7 +285,7 @@ function GoalDetailScreen() {
 
       {/* Pace hint */}
       <div className="section-label" style={{ marginTop: 22 }}>Подсказка</div>
-      <div style={{ ...card, borderRadius: 18, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
+      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
         <I.Sparkles size={18} color={isDark ? "#fff" : "#0a0a0a"} />
         <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
           {done
@@ -426,7 +426,7 @@ function MoodScreen() {
 
       {/* Headline */}
       <div style={{ position: "relative", zIndex: 2, padding: "0 24px", textAlign: "center" }}>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", minHeight: 36 }}>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", minHeight: 36 }}>
           {cur ? cur.t : "Как оно ощущается\u00A0сейчас?"}
         </div>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 6, lineHeight: 1.5 }}>
@@ -493,7 +493,7 @@ function MoodScreen() {
       </div>
       ) : (
       <div style={{ position: "relative", zIndex: 2, margin: "18px 20px 0", padding: "12px 14px",
-        background: "rgba(255,255,255,0.045)", borderRadius: 16,
+        background: "rgba(255,255,255,0.045)", borderRadius: 14,
         display: "flex", alignItems: "center", gap: 12,
       }}>
         <div style={{ width: 36, height: 36, borderRadius: 999, background: "rgba(254,222,52,0.14)", display: "grid", placeItems: "center", color: "#FEDE34", fontSize: 18 }}>✨</div>
@@ -596,28 +596,28 @@ function JournalScreen() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Ежедневная рефлексия" onBack={() => navigate("home")} />
-      <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)" }}>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>{isDemo ? "28 апр · Вторник" : liveHeader}</div>
         <div className="section-label" style={{ marginTop: 16, color: "var(--text-2)" }}>Что прошло хорошо?</div>
         <textarea value={a} onChange={e=>setA(e.target.value)} placeholder="Максимум три строки."
-          style={{ width: "100%", background: "var(--surface-3)", border: 0, borderRadius: 12, padding: 12, marginTop: 8, fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 70, resize: "none" }}/>
+          style={{ width: "100%", background: "var(--surface-3)", border: 0, borderRadius: 14, padding: 12, marginTop: 8, fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 70, resize: "none" }}/>
         <div className="section-label" style={{ marginTop: 16, color: "var(--text-2)" }}>Что помешало?</div>
         <textarea value={b} onChange={e=>setB(e.target.value)} placeholder="Одно честное предложение."
-          style={{ width: "100%", background: "var(--surface-3)", border: 0, borderRadius: 12, padding: 12, marginTop: 8, fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 70, resize: "none" }}/>
+          style={{ width: "100%", background: "var(--surface-3)", border: 0, borderRadius: 14, padding: 12, marginTop: 8, fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 70, resize: "none" }}/>
         <div className="section-label" style={{ marginTop: 16, color: "var(--text-2)" }}>Одна вещь на завтра</div>
         <textarea value={c} onChange={e=>setC(e.target.value)} placeholder="Чем меньше, тем лучше."
-          style={{ width: "100%", background: "var(--surface-3)", border: 0, borderRadius: 12, padding: 12, marginTop: 8, fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 70, resize: "none" }}/>
+          style={{ width: "100%", background: "var(--surface-3)", border: 0, borderRadius: 14, padding: 12, marginTop: 8, fontSize: 14, fontFamily: "inherit", outline: 0, minHeight: 70, resize: "none" }}/>
       </div>
       <button className="bos-btn" style={{ marginTop: 16 }} onClick={() => isDemo ? navigate("home") : liveSave()}>{saveLabel}</button>
       <div className="section-label" style={{ marginTop: 22 }}>Прошлые записи</div>
       {past.length === 0 ? (
-        <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", fontSize: 14, color: "var(--text-4)", textAlign: "center", lineHeight: 1.5 }}>
+        <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginTop: 8, boxShadow: "var(--card-shadow)", fontSize: 14, color: "var(--text-4)", textAlign: "center", lineHeight: 1.5 }}>
           Пока нет записей — первая появится здесь.
         </div>
       ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {past.map((p, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 14, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+          <div key={i} style={{ background: "#fff", borderRadius: 14, padding: 14, boxShadow: "var(--card-shadow)" }}>
             <div style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 600 }}>{p.date}</div>
             {isDemo ? (
               <>
@@ -1223,7 +1223,7 @@ function AIChatScreen() {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
           <StateChatOrb size={28} tint={stateTint}/>
-          <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 18, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text }}>{m.t}</div>
+          <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 22, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text }}>{m.t}</div>
         </div>
       );
     }
@@ -1231,7 +1231,7 @@ function AIChatScreen() {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
           <StateChatOrb size={28} tint={stateTint}/>
-          <div style={{ maxWidth: "78%", background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 18, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text, lineHeight: 1.45 }}>{m.t}</div>
+          <div style={{ maxWidth: "78%", background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 22, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text, lineHeight: 1.45 }}>{m.t}</div>
         </div>
       );
     }
@@ -1241,7 +1241,7 @@ function AIChatScreen() {
         return (
           <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
             <StateChatOrb size={28} tint={stateTint}/>
-            <button className="tap" onClick={() => navigate(a.route)} style={{ flex: 1, maxWidth: "85%", textAlign: "left", background: TH.aiCard, border: TH.aiCardBorder, borderRadius: 18, borderTopLeftRadius: 4, padding: "13px 16px", color: TH.text, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <button className="tap" onClick={() => navigate(a.route)} style={{ flex: 1, maxWidth: "85%", textAlign: "left", background: TH.aiCard, border: TH.aiCardBorder, borderRadius: 22, borderTopLeftRadius: 4, padding: "13px 16px", color: TH.text, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <span style={{ fontSize: 14, fontWeight: 600 }}>{a.label || "Открыть"}</span>
               <span style={{ fontSize: 17, color: TH.muted }}>→</span>
             </button>
@@ -1251,9 +1251,9 @@ function AIChatScreen() {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
           <StateChatOrb size={28} tint={stateTint}/>
-          <div style={{ flex: 1, maxWidth: "85%", background: TH.aiCard, border: TH.aiCardBorder, borderRadius: 18, borderTopLeftRadius: 4, padding: 14, color: TH.text }}>
+          <div style={{ flex: 1, maxWidth: "85%", background: TH.aiCard, border: TH.aiCardBorder, borderRadius: 22, borderTopLeftRadius: 4, padding: 14, color: TH.text }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ width: 40, height: 40, borderRadius: 12, background: a.color ? a.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{a.emoji || "✨"}</span>
+              <span style={{ width: 40, height: 40, borderRadius: 14, background: a.color ? a.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{a.emoji || "✨"}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 10.5, letterSpacing: 1.2, textTransform: "uppercase", color: TH.muted, fontWeight: 600 }}>Новая привычка</div>
                 <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</div>
@@ -1264,8 +1264,8 @@ function AIChatScreen() {
             )}
             {a.why && <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 10, color: TH.muted }}>{a.why}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <button className="tap" onClick={() => navigate("habit-settings", { mode: "create", preset: { i: a.emoji || "✨", t: a.name, color: a.color || null, time: a.time || null } })} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 12, padding: "11px 14px", fontSize: 14, fontWeight: 600 }}>Создать привычку</button>
-              <button className="tap" data-no-haptic onClick={() => setMsgs((mm) => mm.filter((x) => x.aid !== m.aid))} style={{ background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 12, padding: "11px 14px", fontSize: 14 }}>Не сейчас</button>
+              <button className="tap" onClick={() => navigate("habit-settings", { mode: "create", preset: { i: a.emoji || "✨", t: a.name, color: a.color || null, time: a.time || null } })} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 14, padding: "11px 14px", fontSize: 14, fontWeight: 600 }}>Создать привычку</button>
+              <button className="tap" data-no-haptic onClick={() => setMsgs((mm) => mm.filter((x) => x.aid !== m.aid))} style={{ background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 14, padding: "11px 14px", fontSize: 14 }}>Не сейчас</button>
             </div>
           </div>
         </div>
@@ -1276,7 +1276,7 @@ function AIChatScreen() {
         <StateChatOrb size={28} tint={stateTint}/>
         <div style={{
           flex: 1, background: TH.aiCard, border: TH.aiCardBorder,
-          borderRadius: 18, borderTopLeftRadius: 4,
+          borderRadius: 22, borderTopLeftRadius: 4,
           padding: 14, color: TH.text, maxWidth: "85%",
           backdropFilter: "blur(20px)",
         }}>
@@ -1302,8 +1302,8 @@ function AIChatScreen() {
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.5, marginTop: 8 }}>{m.body}</div>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button className="tap" onClick={() => navigate("habits")} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>{m.action.label}</button>
-                <button className="tap" style={{ background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 12, padding: "10px 14px", fontSize: 13 }}>Пропустить</button>
+                <button className="tap" onClick={() => navigate("habits")} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 14, padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>{m.action.label}</button>
+                <button className="tap" style={{ background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 14, padding: "10px 14px", fontSize: 13 }}>Пропустить</button>
               </div>
             </>
           )}
@@ -1315,7 +1315,7 @@ function AIChatScreen() {
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.5, marginTop: 8 }}>{m.body}</div>
               <MiniBars data={m.chart} color={TH.text} textMuted={TH.muted} barIdle={isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)"} />
-              <button className="tap" style={{ width: "100%", marginTop: 10, background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 500 }}>Перенести понедельники →</button>
+              <button className="tap" style={{ width: "100%", marginTop: 10, background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 14, padding: "10px 14px", fontSize: 13, fontWeight: 500 }}>Перенести понедельники →</button>
             </>
           )}
         </div>
@@ -1325,7 +1325,7 @@ function AIChatScreen() {
 
   const renderMe = (m, i) => (
     <div key={i} style={{ alignSelf: "flex-end", maxWidth: "78%", animation: "msgIn 0.4s ease both" }}>
-      <div style={{ background: TH.meBubble, color: TH.meText, borderRadius: 18, borderBottomRightRadius: 4, padding: "10px 14px", fontSize: 14, lineHeight: 1.45, fontWeight: 500 }}>{m.t}</div>
+      <div style={{ background: TH.meBubble, color: TH.meText, borderRadius: 22, borderBottomRightRadius: 4, padding: "10px 14px", fontSize: 14, lineHeight: 1.45, fontWeight: 500 }}>{m.t}</div>
     </div>
   );
 
@@ -1347,7 +1347,7 @@ function AIChatScreen() {
         {typing && (
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
             <StateChatOrb size={28} tint={stateTint}/>
-            <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 18, borderBottomLeftRadius: 4, padding: "12px 14px", display: "flex", gap: 4 }}>
+            <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 22, borderBottomLeftRadius: 4, padding: "12px 14px", display: "flex", gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0s ease-in-out infinite" }}/>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0.2s ease-in-out infinite" }}/>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0.4s ease-in-out infinite" }}/>
@@ -1399,18 +1399,18 @@ function AchievementUnlock({ ach, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 99990, background: "rgba(244,245,248,0.72)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "grid", placeItems: "center", padding: 28, animation: "achFade 0.3s ease both" }}>
       {/* Light, native (iOS) celebration: white glass card, warm gold glow, a badge that
           springs in. Keeps the substance — the win + the "Класс!" button. */}
-      <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 328, borderRadius: 30, padding: "34px 24px 22px", textAlign: "center", overflow: "hidden", background: "#ffffff", boxShadow: "0 24px 70px rgba(20,20,40,0.22), inset 0 1px 0 rgba(255,255,255,0.9)", animation: "achPop 0.5s cubic-bezier(0.22,1,0.36,1) both" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 328, borderRadius: 22, padding: "34px 24px 22px", textAlign: "center", overflow: "hidden", background: "#ffffff", boxShadow: "0 24px 70px rgba(20,20,40,0.22), inset 0 1px 0 rgba(255,255,255,0.9)", animation: "achPop 0.5s cubic-bezier(0.22,1,0.36,1) both" }}>
         <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 170, background: "radial-gradient(circle at 50% 0%, " + accent + "40, transparent 70%)" }}/>
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 11.5, letterSpacing: 2, textTransform: "uppercase", color: "#E0A500", fontWeight: 800 }}>Достижение открыто</div>
           <div style={{ width: 96, height: 96, margin: "20px auto 0", position: "relative", animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.12s both" }}>
             <div aria-hidden style={{ position: "absolute", inset: -12, borderRadius: "50%", background: "radial-gradient(circle, " + accent + "55, transparent 70%)" }}/>
-            <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 26, background: "linear-gradient(180deg,#fffdf5,#fff3d3)", display: "grid", placeItems: "center", fontSize: 46, boxShadow: "inset 0 0 0 1.5px " + accent + "66, 0 10px 26px " + accent + "3d" }}>{ach.i}</div>
+            <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 22, background: "linear-gradient(180deg,#fffdf5,#fff3d3)", display: "grid", placeItems: "center", fontSize: 46, boxShadow: "inset 0 0 0 1.5px " + accent + "66, 0 10px 26px " + accent + "3d" }}>{ach.i}</div>
           </div>
           <div style={{ fontSize: 23, fontWeight: 700, color: "#1c1c1e", marginTop: 18, letterSpacing: "-0.4px" }}>{ach.t}</div>
           <div style={{ fontSize: 15, color: "#8a8a8e", marginTop: 7, lineHeight: 1.5, maxWidth: 252, marginLeft: "auto", marginRight: "auto" }}>{ach.d}</div>
           {ach.xp ? <div style={{ display: "inline-block", marginTop: 16, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 700, fontSize: 14, borderRadius: 999, padding: "7px 16px", boxShadow: "0 4px 12px " + accent + "4d" }}>+{ach.xp} XP</div> : null}
-          <button onClick={onClose} className="tap" style={{ display: "block", width: "100%", marginTop: 22, background: "linear-gradient(180deg,#2c2c2e,#1c1c1e)", color: "#fff", border: 0, borderRadius: 16, padding: 15, fontSize: 16, fontWeight: 600, boxShadow: "0 8px 22px rgba(0,0,0,0.18)", WebkitTapHighlightColor: "transparent" }}>Класс!</button>
+          <button onClick={onClose} className="tap" style={{ display: "block", width: "100%", marginTop: 22, background: "linear-gradient(180deg,#2c2c2e,#1c1c1e)", color: "#fff", border: 0, borderRadius: 14, padding: 15, fontSize: 16, fontWeight: 600, boxShadow: "0 8px 22px rgba(0,0,0,0.18)", WebkitTapHighlightColor: "transparent" }}>Класс!</button>
         </div>
       </div>
       <style>{`

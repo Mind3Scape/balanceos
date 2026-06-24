@@ -146,7 +146,7 @@ function NetworkLocked({ navigate, live, level, xp, xpMax, levelsLeft, weeks, on
       </div>
 
       {/* Footnote */}
-      <div style={{ background: "var(--card)", borderRadius: 18, padding: "14px 16px", boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: "14px 16px", boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <I.Help size={14} color="var(--text-3)"/>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", letterSpacing: 0.2 }}>Почему Нетворк закрыт?</span>
@@ -315,10 +315,10 @@ function NetworkPersonCard({ p, userLevel }) {
               return (
                 <div key={j} style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "8px 10px", background: "var(--card-2)", borderRadius: 12,
+                  padding: "8px 10px", background: "var(--card-2)", borderRadius: 14,
                   opacity: locked ? 0.55 : 1,
                 }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 10, background: "var(--card)", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>{o.i}</span>
+                  <span style={{ width: 30, height: 30, borderRadius: 14, background: "var(--card)", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>{o.i}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", letterSpacing: -0.1 }}>{o.t}</span>
@@ -398,7 +398,7 @@ function CloudTeamsDiscover({ app }) {
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>Открытые команды рядом</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {list.map((t) => (
-          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 18, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
             <span style={{ width: 44, height: 44, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{t.emblem || "✨"}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
@@ -771,7 +771,7 @@ function SplitEditor({ target, unit, members, setMembers, splitMode, setSplitMod
   const remainder = target - customTotal;
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
+    <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Как распределяется?</div>
@@ -925,7 +925,7 @@ function DurationPicker({ value, onChange }) {
         </button>
       </div>
 
-      <div style={{ background: "var(--card)", borderRadius: 18, padding: 14, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
         {!showCustom ? (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <I.Calendar size={18} color="var(--text-3)"/>
@@ -1069,7 +1069,7 @@ function TeamCreateScreen() {
             <button key={gt.id} onClick={() => setGoalType(gt.id)} className="tap"
               style={{
                 background: "var(--card)", border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)",
-                borderRadius: 18, padding: 14, display: "flex", alignItems: "center", gap: 12,
+                borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12,
                 textAlign: "left", boxShadow: "var(--card-shadow)",
               }}>
               <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{gt.e}</div>
@@ -1091,7 +1091,7 @@ function TeamCreateScreen() {
       </div>
 
       {/* Goal headline + target */}
-      <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Чего ты хочешь</div>
         <input value={goalTitle} onChange={e => setGoalTitle(e.target.value)}
           placeholder="50 добрых дел"
@@ -1114,7 +1114,7 @@ function TeamCreateScreen() {
       </div>
 
       {/* Linked habits — drive the count */}
-      <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500, lineHeight: 1.4 }}>Двигать цель привычками</div>
@@ -1164,7 +1164,7 @@ function TeamCreateScreen() {
 
       {/* STAKES — optional XP wager */}
       <div className="section-label" style={{ marginTop: 22 }}>Ставка в игре</div>
-      <div data-tour="team-stakes" style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div data-tour="team-stakes" style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP</div>
@@ -1191,7 +1191,7 @@ function TeamCreateScreen() {
 
       {/* INVITE MEMBERS */}
       <div className="section-label" style={{ marginTop: 22 }}>Пригласить участников</div>
-      <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ fontSize: 12, color: "var(--text-4)", marginBottom: 12, lineHeight: 1.45 }}>Участники видят отметки, итоги и распределение. Они могут поддержать или подтолкнуть.</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {members.map((p, i) => (
@@ -1449,7 +1449,7 @@ function TeamShareSheet({ team }) {
   return (
     <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 12px", background: team?.accent || "#fef3c7", display: "grid", placeItems: "center", fontSize: 34 }}>{team?.emblem || "✨"}</div>
+        <div style={{ width: 64, height: 64, borderRadius: 22, margin: "0 auto 12px", background: team?.accent || "#fef3c7", display: "grid", placeItems: "center", fontSize: 34 }}>{team?.emblem || "✨"}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться командой</div>
         {/* Enticing invite hook (same for both visibilities) … */}
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>
@@ -1659,8 +1659,8 @@ function TeamDetailScreen() {
       </div>
 
       {/* Team chat — one shared space for the whole team */}
-      <button data-tour="team-chat" onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 18, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
-        <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
+      <button data-tour="team-chat" onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Чат команды</div>
           <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{_chatLive ? (chatPeek ? (chatPeek.last || "Пока пусто — напишите первыми") : "…") : (_demoTeam ? "Сергей: Цель добьём к выходным — налегаем! 🔥" : "Пока пусто — напишите первыми")}</div>
@@ -1730,8 +1730,8 @@ function TeamDetailScreen() {
           <div style={{ fontSize: 13, color: "var(--text-4)", padding: "4px 2px 8px", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем команды.</div>
         )}
         {others.map((h, i) => (
-          <div key={i} style={{ background: "var(--card)", borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-            <span style={{ width: 40, height: 40, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{h.emoji}</span>
+          <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
+            <span style={{ width: 40, height: 40, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{h.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: "var(--text)" }}>{h.name}</div>
               {/* Aggregate weekly consistency — the day-by-day view lives in the calendar above */}
@@ -1751,7 +1751,7 @@ function TeamDetailScreen() {
             )}
           </div>
         ))}
-        <button onClick={openAddHabit} className="tap" style={{ background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 16, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
+        <button onClick={openAddHabit} className="tap" style={{ background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 22, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
           + Добавить привычку команды
         </button>
       </div>
@@ -1760,7 +1760,7 @@ function TeamDetailScreen() {
         <div className="section-label" style={{ marginTop: 22 }}>Заявки на вступление ({pending.length})</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
           {pending.map((p) => (
-            <div key={p.id} style={{ background: "var(--card)", borderRadius: 16, boxShadow: "var(--card-shadow)", padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
+            <div key={p.id} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: "#cfe1ff", display: "grid", placeItems: "center", color: "#fff", fontWeight: 600, flexShrink: 0, overflow: "hidden" }}>
                 {p.avatar && typeof BosAvatar === "function" ? <BosAvatar avatar={p.avatar} size={40} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} /> : (p.name || "?").slice(0, 1)}
               </span>
@@ -1782,7 +1782,7 @@ function TeamDetailScreen() {
           const todayDone = m.todayDone ?? 0;
           const todayTotal = m.todayTotal ?? teamHabits.length;
           return (
-          <div key={i} style={{ background: "var(--card)", borderRadius: 16, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+          <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
             <button onClick={() => setExpandedMember(expanded ? null : m.name)} className="tap"
               style={{ width: "100%", background: "transparent", border: 0, padding: 12, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
               <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "#fff", fontWeight: 600, flexShrink: 0 }}>
@@ -1823,7 +1823,7 @@ function TeamDetailScreen() {
 
       {_demoTeam && (<>
       <div className="section-label" style={{ marginTop: 22 }}>Активность</div>
-      <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 8, display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--card-shadow)" }}>
         {[
           { who: "Ник", what: "завершил утреннюю пробежку", when: "2 ч", emoji: "🏃🏼" },
           { who: "Светлана", what: "добавила новую привычку", when: "5 ч", emoji: "✨" },
@@ -1881,7 +1881,7 @@ function TeamSettingsScreen() {
   // This screen is owner-only (gated by the gear), so deleting goes through the cloud
   // deleteTeam + a confirm sheet (was a silent local-only removeTeam).
   const del = () => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet });
-  const card = { background: "#fff", borderRadius: 18, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" };
+  const card = { background: "#fff", borderRadius: 22, marginTop: 8, boxShadow: "var(--card-shadow)" };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Настройки команды" onBack={() => navigate("team-detail", { team })} />
@@ -2034,7 +2034,7 @@ function TeamHabitSheet({ team, members = [], onAdd }) {
       )}
 
       {/* Toggles */}
-      <div style={{ background: C.tile, borderRadius: 16, padding: "2px 14px", marginTop: 18 }}>
+      <div style={{ background: C.tile, borderRadius: 14, padding: "2px 14px", marginTop: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14.5 }}>Двигает цель команды</div>
@@ -2121,7 +2121,7 @@ function LevelsScreen() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Уровни" onBack={() => navigate("home")} />
       {/* Level hero — yellow gradient is brand, fixed across themes */}
-      <div style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 24, padding: 22, color: "#0a0a0a", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 22, padding: 22, color: "#0a0a0a", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, background: "radial-gradient(circle, rgba(255,255,255,0.4), transparent 70%)" }}/>
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, opacity: 0.7 }}>Текущий уровень</div>
@@ -2167,7 +2167,7 @@ function LevelsScreen() {
       <div className="section-label" style={{ marginTop: 22 }}>Круг влияния</div>
       <SysCard data-tour="influence-mult" style={{ padding: 16, marginTop: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 7px 18px rgba(254,222,52,0.34)" }}>
+          <div style={{ width: 56, height: 56, borderRadius: 14, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 7px 18px rgba(254,222,52,0.34)" }}>
             <I.Users size={25} color="#0a0a0a" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -2220,7 +2220,7 @@ function LevelsScreen() {
 
       <div className="section-label" style={{ marginTop: 22 }}>Достижения</div>
       <SysCard className="tap" onClick={() => navigate("achievements", { from: "levels" })} style={{ padding: 14, marginTop: 8, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-        <span className="bos-sys-chip-bg" style={{ width: 44, height: 44, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
+        <span className="bos-sys-chip-bg" style={{ width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Ачивки</div>
           <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>{achEarned.length} из {ach.length} · открывают круги контактов</div>
@@ -2234,7 +2234,7 @@ function LevelsScreen() {
       {/* Spendable XP balance — Variant A: one currency. Lifetime XP drives the
           level (never spent); this balance is what you spend on rewards & mentors.
           Spending it does NOT lower your level. */}
-      <SysCard style={{ padding: 16, marginTop: 22, display: "flex", alignItems: "center", gap: 14, borderRadius: 18 }}>
+      <SysCard style={{ padding: 16, marginTop: 22, display: "flex", alignItems: "center", gap: 14, borderRadius: 22 }}>
         <span className="bos-sys-chip-bg" style={{ width: 50, height: 50, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 24 }}>🪙</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Баланс XP</div>
@@ -2248,7 +2248,7 @@ function LevelsScreen() {
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {rewards.map((r, i) => (
           <SysCard key={i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, opacity: rUnlocked(r) ? 1 : 0.55 }}>
-            <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 12, display: "grid", placeItems: "center", fontSize: 22 }}>{r.i}</span>
+            <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22 }}>{r.i}</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{r.t}</div>
               <div className="bos-sys-text-3" style={{ fontSize: 11, marginTop: 2 }}>
@@ -2318,7 +2318,7 @@ function CourseDetailScreen() {
       }/>
 
       {/* HERO */}
-      <div style={{ background: "var(--card)", borderRadius: 24, padding: "22px 20px 20px", boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 20px 20px", boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
           <div style={{ width: 58, height: 58, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0 }}>{c.i}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -2364,7 +2364,7 @@ function CourseDetailScreen() {
       <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>Что входит</div>
       <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {includes.map((it, i) => (
-          <div key={i} style={{ background: "var(--card)", borderRadius: 18, padding: 14, boxShadow: "var(--card-shadow)" }}>
+          <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)" }}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 18, marginBottom: 8 }}>{it.i}</div>
             <div style={{ fontSize: 14, fontWeight: 600 }}>{it.t}</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>{it.b}</div>
@@ -2627,7 +2627,7 @@ function TeamChatScreen() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>
         </button>
         <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} placeholder="Сообщение команде…"
-          style={{ flex: 1, minWidth: 0, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(120,120,128,0.10)", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)", borderRadius: 20, padding: "10px 15px", fontSize: 16, color: "var(--text)", outline: "none", lineHeight: 1.3 }} />
+          style={{ flex: 1, minWidth: 0, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(120,120,128,0.10)", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)", borderRadius: 22, padding: "10px 15px", fontSize: 16, color: "var(--text)", outline: "none", lineHeight: 1.3 }} />
         <button onClick={send} className="tap" aria-label="Отправить" style={{ width: 38, height: 38, borderRadius: "50%", background: text.trim() ? "#FEDE34" : (isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.18)"), border: 0, display: "grid", placeItems: "center", flexShrink: 0, transition: "background 0.2s, transform 0.2s", transform: text.trim() ? "scale(1)" : "scale(0.94)" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? "#0a0a0a" : "var(--text-4)"} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
         </button>
@@ -2715,18 +2715,18 @@ function ContactDetailScreen() {
 
         {/* Stat strip — impact / rating / sessions */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 16 }}>
-          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 16, padding: "10px 12px" }}>
+          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 14, padding: "10px 12px" }}>
             <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Вклад</div>
             <div style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", marginTop: 2 }}>{p.impact.toLocaleString()}</div>
           </div>
-          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 16, padding: "10px 12px" }}>
+          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 14, padding: "10px 12px" }}>
             <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Рейтинг</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 2 }}>
               <span style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px" }}>{rating}</span>
               <span style={{ fontSize: 11, color: "var(--text-4)" }}>★ · {ratingsCount}</span>
             </div>
           </div>
-          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 16, padding: "10px 12px" }}>
+          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 14, padding: "10px 12px" }}>
             <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Помог</div>
             <div style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", marginTop: 2 }}>{history.reduce((s, h) => s + h.n, 0)}</div>
           </div>
@@ -2749,12 +2749,12 @@ function ContactDetailScreen() {
             const locked = userLevel < o.lvl;
             return (
               <div key={j} style={{
-                background: "var(--card)", borderRadius: 18, padding: 14,
+                background: "var(--card)", borderRadius: 22, padding: 14,
                 display: "flex", alignItems: "center", gap: 12,
                 boxShadow: "var(--card-shadow)",
                 opacity: locked ? 0.55 : 1,
               }}>
-                <span style={{ width: 42, height: 42, borderRadius: 13, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{o.i}</span>
+                <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{o.i}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: -0.1 }}>{o.t}</span>
@@ -2779,10 +2779,10 @@ function ContactDetailScreen() {
       {/* History of impact — what they've delivered */}
       <div style={{ padding: "22px 16px 0" }}>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginBottom: 10 }}>История вклада</div>
-        <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+        <div style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
           {history.map((h, j) => (
             <div key={j} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: j === 0 ? 0 : "1px solid var(--line)" }}>
-              <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{h.i}</span>
+              <span style={{ width: 32, height: 32, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{h.i}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-2)", letterSpacing: -0.1 }}>{h.t}</div>
                 <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 1 }}>{h.sub}</div>
@@ -2801,7 +2801,7 @@ function ContactDetailScreen() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {reviews.map((r, j) => (
-            <div key={j} style={{ background: "var(--card)", borderRadius: 18, padding: 14, boxShadow: "var(--card-shadow)" }}>
+            <div key={j} style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ width: 30, height: 30, borderRadius: "50%", background: r.color, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{r.who.split(" ").map(s => s[0]).join("")}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>

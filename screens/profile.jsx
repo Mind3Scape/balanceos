@@ -346,7 +346,7 @@ function ProfileScreen() {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 2, background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999 }}>
           <I.Sparkles size={11} /> Уровень {lvlNum}
         </div>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontWeight: 700, fontSize: 28, marginTop: 14 }}>{app?.mode === "demo" ? "Павел Хиллсон" : (app?.userName || "Ты")}</div>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 14 }}>{app?.mode === "demo" ? "Павел Хиллсон" : (app?.userName || "Ты")}</div>
         {app?.mode === "demo" && <div className="bos-sys-text-2" style={{ fontSize: 14 }}>tomhill@mail.com</div>}
         {/* Quick stats — real for live; curated for demo */}
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 14 }}>
@@ -354,7 +354,7 @@ function ProfileScreen() {
             ? [{ l: "Уровень", v: "7" }, { l: "До 8 ур.", v: "72%" }, { l: "Опыт", v: "1 240" }]
             : [{ l: "Уровень", v: "" + lvlNum }, { l: "До " + (lvlNum + 1) + " ур.", v: lvlPct + "%" }, { l: "Опыт", v: "" + _xp }]
           ).map((s, i) => (
-            <div key={i} className="bos-sys-card" style={{ padding: "8px 16px", borderRadius: 16, minWidth: 72 }}>
+            <div key={i} className="bos-sys-card" style={{ padding: "8px 16px", borderRadius: 22, minWidth: 72 }}>
               <div className="bos-sys-text-3" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>{s.l}</div>
               <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.4px", marginTop: 1 }}>{s.v}</div>
             </div>
@@ -363,7 +363,7 @@ function ProfileScreen() {
       </div>
 
       <SysCard className="tap" onClick={() => navigate("achievements", { from: "profile" })} style={{ marginTop: 22, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-        <span style={{ width: 42, height: 42, borderRadius: 13, background: "rgba(254,222,52,0.16)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
+        <span style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(254,222,52,0.16)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 600 }}>Достижения</div>
           <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>
@@ -394,7 +394,7 @@ function ProfileScreen() {
             <I.ChevronRight size={18} className="bos-sys-text-2" />
           </SysBtn>
         ))}
-        <SysBtn onClick={() => navigate("onboarding", { from: "profile" })} style={{ color: "#ef4444" }}>
+        <SysBtn onClick={() => navigate("onboarding", { from: "profile" })} style={{ color: "var(--accent-red)" }}>
           <span style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(239,68,68,0.12)" }}>
             <I.Logout size={16} />
           </span>
@@ -936,7 +936,7 @@ function HistoryScreen() {
               return (
                 <div key={i}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
-                    <span style={{ width: 36, height: 36, borderRadius: 11, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{h.e}</span>
+                    <span style={{ width: 36, height: 36, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{h.e}</span>
                     <span style={{ flex: 1, fontSize: 15, letterSpacing: "-0.2px" }}>{h.n}</span>
                     <span style={{
                       width: 26, height: 26, borderRadius: "50%",
@@ -1040,7 +1040,7 @@ function AIScreen() {
         </div>
 
         {/* Calm empty hero — orb + honest "I don't know you yet" */}
-        <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)", borderRadius: 28, padding: "26px 22px 28px", color: "#fff", textAlign: "center" }}>
+        <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)", borderRadius: 22, padding: "26px 22px 28px", color: "#fff", textAlign: "center" }}>
           <div aria-hidden style={{ position: "absolute", inset: 0, background:
             "radial-gradient(circle at 80% 20%, rgba(180,210,255,0.18) 0%, transparent 40%), radial-gradient(circle at 10% 90%, rgba(120,160,210,0.15) 0%, transparent 40%)" }} />
           <div style={{ position: "relative", display: "grid", placeItems: "center" }}>
@@ -1169,7 +1169,7 @@ function AIScreen() {
         <div data-tour="ai-hero" style={{
           position: "relative", overflow: "hidden",
           background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
-          borderRadius: 28, padding: "22px 22px 24px", color: "#fff",
+          borderRadius: 22, padding: "22px 22px 24px", color: "#fff",
         }}>
           <div aria-hidden style={{ position: "absolute", inset: 0, background:
             "radial-gradient(circle at 80% 20%, rgba(180,210,255,0.18) 0%, transparent 40%), radial-gradient(circle at 10% 90%, rgba(120,160,210,0.15) 0%, transparent 40%)" }} />
@@ -1193,7 +1193,7 @@ function AIScreen() {
           {!isBlank && (
             <div style={{ display: "flex", gap: 6, marginTop: 16, position: "relative" }}>
               {[["Сегодня", liveHabits.length ? (doneToday + "/" + liveHabits.length) : "—"], ["Серия", maxStreak ? (maxStreak + " дн") : "—"], ["Уровень", lvl.level]].map((s, i) => (
-                <div key={i} style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: "10px 8px", textAlign: "center" }}>
+                <div key={i} style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 8px", textAlign: "center" }}>
                   <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{s[1]}</div>
                   <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.6)", marginTop: 2, letterSpacing: 0.4 }}>{s[0]}</div>
                 </div>
@@ -1252,7 +1252,7 @@ function AIScreen() {
                   const isChat = !p || typeof p === "string" || p.kind !== "action";
                   return (
                   <button key={i} onClick={() => goPill(p)} className="tap"
-                    style={{ width: "100%", background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", border: 0, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
+                    style={{ width: "100%", background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", border: 0, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
                     <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{(p && p.i) || "✨"}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{pillLabel(p)}</div>
@@ -1334,7 +1334,7 @@ function AIScreen() {
       <div data-tour="ai-hero" style={{
         position: "relative", overflow: "hidden",
         background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
-        borderRadius: 28, padding: "22px 22px 24px", color: "#fff",
+        borderRadius: 22, padding: "22px 22px 24px", color: "#fff",
       }}>
         {/* Background stars (subtle) */}
         <div aria-hidden style={{ position: "absolute", inset: 0, background:
@@ -1372,7 +1372,7 @@ function AIScreen() {
 
         {/* Reasoning panel — the AI shows its work behind the headline insight */}
         {showWhy && (
-          <div className="bos-acc-in" style={{ marginTop: 12, padding: "12px 14px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, position: "relative" }}>
+          <div className="bos-acc-in" style={{ marginTop: 12, padding: "12px 14px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, position: "relative" }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "rgba(180,210,255,0.85)" }}>Как я это вижу</div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", marginTop: 6, lineHeight: 1.5 }}>
               Смотрю на 14 дней твоих отметок и состояния. После прогулок настроение растёт на 41%, а сон — на 0,6 ч. Связь устойчивая — поэтому прогулки сейчас в приоритете.
@@ -1433,7 +1433,7 @@ function AIScreen() {
           const isOpen = openInsight === i;
           const isDone = !!accepted[i];
           return (
-          <div key={i} style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+          <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
             <button onClick={() => setOpenInsight(isOpen ? null : i)} className="tap"
               style={{ width: "100%", background: "transparent", border: 0, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
               <div style={{ width: 44, height: 44, borderRadius: 14, background: isDone ? "linear-gradient(135deg,#d6f3df,#bfe9cd)" : "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>
@@ -1482,7 +1482,7 @@ function AIScreen() {
           const isOpen = openPattern === i;
           return (
           <button key={i} onClick={() => setOpenPattern(isOpen ? null : i)} className="tap" style={{
-            background: "var(--card)", borderRadius: 18, padding: 14, border: 0, textAlign: "left",
+            background: "var(--card)", borderRadius: 22, padding: 14, border: 0, textAlign: "left",
             boxShadow: "var(--card-shadow)",
             position: "relative", overflow: "hidden",
             gridColumn: (i === 2 || isOpen) ? "span 2" : "auto",
@@ -1558,7 +1558,7 @@ function OnboardingScreen() {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginTop: 30 }}>
           {[{i:"😌",t:"Спокойствие"},{i:"⚡️",t:"Энергия"},{i:"😔",t:"Упадок"},{i:"😤",t:"Стресс"},{i:"🙂",t:"Ровно"},{i:"🔥",t:"В огне"}].map((s,i)=>(
-            <button key={i} onClick={() => navigate("signup")} className="tap" style={{ background: "rgba(39,39,42,0.55)", border: "1px solid rgba(63,63,70,0.4)", borderRadius: 18, padding: 16, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <button key={i} onClick={() => navigate("signup")} className="tap" style={{ background: "rgba(39,39,42,0.55)", border: "1px solid rgba(63,63,70,0.4)", borderRadius: 22, padding: 16, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 30 }}>{s.i}</span>
               <span style={{ fontSize: 14 }}>{s.t}</span>
             </button>
@@ -1571,7 +1571,7 @@ function OnboardingScreen() {
     <div className="page-in" style={{ height: "100%", display: "flex", flexDirection: "column", color: "#fff", padding: 24 }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "0 8px" }}>
         <div style={{ width: 110, height: 110, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", boxShadow: "0 0 80px rgba(255,222,52,0.25)" }}/>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 22, fontWeight: 500, marginTop: 60, lineHeight: 1.3, maxWidth: 280 }}>{slides[step].t}</div>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 22, fontWeight: 500, marginTop: 60, lineHeight: 1.3, maxWidth: 280 }}>{slides[step].t}</div>
         {slides[step].s && <div style={{ fontSize: 14, color: "#9f9fa9", marginTop: 14, maxWidth: 280, lineHeight: 1.5 }}>{slides[step].s}</div>}
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
@@ -1645,7 +1645,7 @@ function SignUpScreen() {
           </button>
           <style>{`@keyframes suOrbIn{0%{opacity:0;transform:translateY(-14px) scale(1.34)}45%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}@keyframes suFaceIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}@keyframes suTextIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes suSheetIn{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}`}</style>
         </div>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 27, fontWeight: 700, letterSpacing: "-0.6px", marginTop: 24, textAlign: "center", animation: "suTextIn 0.6s 0.5s ease both" }}>С чего начнём?</div>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 27, fontWeight: 700, letterSpacing: "-0.6px", marginTop: 24, textAlign: "center", animation: "suTextIn 0.6s 0.5s ease both" }}>С чего начнём?</div>
         <div style={{ fontSize: 14, color: pal.sub, marginTop: 8, textAlign: "center", maxWidth: 286, lineHeight: 1.5, animation: "suTextIn 0.6s 0.6s ease both" }}>
           Загляни в готовый пример — или начни свой путь с чистого листа.
         </div>
@@ -1657,7 +1657,7 @@ function SignUpScreen() {
         <button onClick={goDemo} className="tap" style={{
           width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",
           background: "linear-gradient(135deg, #FEDE34, #EF9F14)", color: "#0a0a0a",
-          border: 0, borderRadius: 20, padding: "15px 16px", boxShadow: "0 12px 30px rgba(254,222,52,0.32)", marginBottom: 11,
+          border: 0, borderRadius: 22, padding: "15px 16px", boxShadow: "0 12px 30px rgba(254,222,52,0.32)", marginBottom: 11,
         }}>
           <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.55)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={23} color="#0a0a0a"/></span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1667,7 +1667,7 @@ function SignUpScreen() {
           <I.ChevronRight size={20} color="rgba(0,0,0,0.5)" />
         </button>
         {/* Door 2 — new-user onboarding (clean slate). Also a demo: never persists. */}
-        <button onClick={goFresh} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 20, padding: "15px 16px" }}>
+        <button onClick={goFresh} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 22, padding: "15px 16px" }}>
           <span style={{ width: 44, height: 44, borderRadius: 14, background: dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.22)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Plus size={22} color={pal.btnFg}/></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Начать с чистого листа</div>
@@ -1709,7 +1709,7 @@ function IconPickerScreen() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 }}>
         {list.map((e, i) => (
           <button key={i} className="tap" onClick={() => navigate("habit-settings", { ...params, picked: e })}
-            style={{ aspectRatio: "1/1", background: "var(--card)", border: 0, borderRadius: 16, fontSize: 28, boxShadow: "var(--card-shadow)" }}>
+            style={{ aspectRatio: "1/1", background: "var(--card)", border: 0, borderRadius: 14, fontSize: 28, boxShadow: "var(--card-shadow)" }}>
             {e}
           </button>
         ))}
@@ -1762,7 +1762,7 @@ function AchievementsScreen() {
       <PageHeader title="Достижения" onBack={() => navigate(back)} />
 
       {/* Hero — ties achievements to circles of contacts they opened */}
-      <SysCard style={{ padding: 18, borderRadius: 24 }}>
+      <SysCard style={{ padding: 18, borderRadius: 22 }}>
         <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Твои ачивки</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
           <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.6px" }}>{earned.length}</span>
@@ -1775,7 +1775,7 @@ function AchievementsScreen() {
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
           {earned.map((a, i) => (
-            <span key={i} style={{ width: 34, height: 34, borderRadius: 11, background: a.accent + "26", display: "grid", placeItems: "center", fontSize: 18 }}>{a.i}</span>
+            <span key={i} style={{ width: 34, height: 34, borderRadius: 14, background: a.accent + "26", display: "grid", placeItems: "center", fontSize: 18 }}>{a.i}</span>
           ))}
         </div>
       </SysCard>

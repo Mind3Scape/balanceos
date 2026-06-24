@@ -182,7 +182,7 @@ function HabitDetailScreen() {
     style: {
       width: 88,
       height: 88,
-      borderRadius: 24,
+      borderRadius: 22,
       margin: "0 auto",
       background: tileBg,
       display: "grid",
@@ -231,7 +231,7 @@ function HabitDetailScreen() {
     key: i,
     style: {
       ...card,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "14px 8px",
       textAlign: "center"
     }
@@ -269,7 +269,7 @@ function HabitDetailScreen() {
     }, "\u041A\u0442\u043E \u0441 \u0442\u043E\u0431\u043E\u0439 \xB7 \u0441\u043E\u0440\u0435\u0432\u043D\u043E\u0432\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
       style: {
         ...card,
-        borderRadius: 18,
+        borderRadius: 22,
         padding: 8,
         marginTop: 8
       }
@@ -285,7 +285,7 @@ function HabitDetailScreen() {
           alignItems: "center",
           gap: 11,
           padding: "9px 8px",
-          borderRadius: 12,
+          borderRadius: 14,
           cursor: "pointer",
           transition: "background 0.15s",
           background: sel ? isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)" : p.you ? isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)" : "transparent",
@@ -380,7 +380,7 @@ function HabitDetailScreen() {
   }, "\u0418\u043D\u0441\u0430\u0439\u0442"), /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       marginTop: 8,
       display: "flex",
@@ -580,7 +580,7 @@ function GoalDetailScreen() {
     key: i,
     style: {
       ...card,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "14px 6px",
       textAlign: "center"
     }
@@ -614,7 +614,7 @@ function GoalDetailScreen() {
   }, "\u0421\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0438\u0437 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A"), /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
-      borderRadius: 18,
+      borderRadius: 22,
       marginTop: 8,
       overflow: "hidden"
     }
@@ -641,7 +641,7 @@ function GoalDetailScreen() {
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: 14,
       background: h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)",
       display: "grid",
       placeItems: "center",
@@ -681,7 +681,7 @@ function GoalDetailScreen() {
   }, "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       marginTop: 8,
       display: "flex",
@@ -932,7 +932,7 @@ function MoodScreen() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+      fontFamily: "var(--bos-title-font)",
       fontSize: 30,
       fontWeight: 600,
       lineHeight: 1.1,
@@ -1093,7 +1093,7 @@ function MoodScreen() {
       margin: "18px 20px 0",
       padding: "12px 14px",
       background: "rgba(255,255,255,0.045)",
-      borderRadius: 16,
+      borderRadius: 14,
       display: "flex",
       alignItems: "center",
       gap: 12
@@ -1274,7 +1274,7 @@ function JournalScreen() {
       background: "#fff",
       borderRadius: 22,
       padding: 18,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1298,7 +1298,7 @@ function JournalScreen() {
       width: "100%",
       background: "var(--surface-3)",
       border: 0,
-      borderRadius: 12,
+      borderRadius: 14,
       padding: 12,
       marginTop: 8,
       fontSize: 14,
@@ -1321,7 +1321,7 @@ function JournalScreen() {
       width: "100%",
       background: "var(--surface-3)",
       border: 0,
-      borderRadius: 12,
+      borderRadius: 14,
       padding: 12,
       marginTop: 8,
       fontSize: 14,
@@ -1344,7 +1344,7 @@ function JournalScreen() {
       width: "100%",
       background: "var(--surface-3)",
       border: 0,
-      borderRadius: 12,
+      borderRadius: 14,
       padding: 12,
       marginTop: 8,
       fontSize: 14,
@@ -1370,7 +1370,7 @@ function JournalScreen() {
       borderRadius: 14,
       padding: 18,
       marginTop: 8,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+      boxShadow: "var(--card-shadow)",
       fontSize: 14,
       color: "var(--text-4)",
       textAlign: "center",
@@ -1389,7 +1389,7 @@ function JournalScreen() {
       background: "#fff",
       borderRadius: 14,
       padding: 14,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2299,7 +2299,7 @@ function AIChatScreen() {
         style: {
           background: TH.aiBubble,
           border: TH.aiBubbleBorder,
-          borderRadius: 18,
+          borderRadius: 22,
           borderBottomLeftRadius: 4,
           padding: "10px 14px",
           fontSize: 14,
@@ -2324,7 +2324,7 @@ function AIChatScreen() {
           maxWidth: "78%",
           background: TH.aiBubble,
           border: TH.aiBubbleBorder,
-          borderRadius: 18,
+          borderRadius: 22,
           borderBottomLeftRadius: 4,
           padding: "10px 14px",
           fontSize: 14,
@@ -2356,7 +2356,7 @@ function AIChatScreen() {
             textAlign: "left",
             background: TH.aiCard,
             border: TH.aiCardBorder,
-            borderRadius: 18,
+            borderRadius: 22,
             borderTopLeftRadius: 4,
             padding: "13px 16px",
             color: TH.text,
@@ -2394,7 +2394,7 @@ function AIChatScreen() {
           maxWidth: "85%",
           background: TH.aiCard,
           border: TH.aiCardBorder,
-          borderRadius: 18,
+          borderRadius: 22,
           borderTopLeftRadius: 4,
           padding: 14,
           color: TH.text
@@ -2409,7 +2409,7 @@ function AIChatScreen() {
         style: {
           width: 40,
           height: 40,
-          borderRadius: 12,
+          borderRadius: 14,
           background: a.color ? a.color + "26" : "var(--surface-3)",
           display: "grid",
           placeItems: "center",
@@ -2479,7 +2479,7 @@ function AIChatScreen() {
           background: TH.primary,
           color: TH.primaryFg,
           border: 0,
-          borderRadius: 12,
+          borderRadius: 14,
           padding: "11px 14px",
           fontSize: 14,
           fontWeight: 600
@@ -2492,7 +2492,7 @@ function AIChatScreen() {
           background: TH.skipBg,
           color: TH.text,
           border: TH.skipBorder,
-          borderRadius: 12,
+          borderRadius: 14,
           padding: "11px 14px",
           fontSize: 14
         }
@@ -2514,7 +2514,7 @@ function AIChatScreen() {
         flex: 1,
         background: TH.aiCard,
         border: TH.aiCardBorder,
-        borderRadius: 18,
+        borderRadius: 22,
         borderTopLeftRadius: 4,
         padding: 14,
         color: TH.text,
@@ -2606,7 +2606,7 @@ function AIChatScreen() {
         background: TH.primary,
         color: TH.primaryFg,
         border: 0,
-        borderRadius: 12,
+        borderRadius: 14,
         padding: "10px 14px",
         fontSize: 13,
         fontWeight: 600
@@ -2617,7 +2617,7 @@ function AIChatScreen() {
         background: TH.skipBg,
         color: TH.text,
         border: TH.skipBorder,
-        borderRadius: 12,
+        borderRadius: 14,
         padding: "10px 14px",
         fontSize: 13
       }
@@ -2664,7 +2664,7 @@ function AIChatScreen() {
         background: TH.skipBg,
         color: TH.text,
         border: TH.skipBorder,
-        borderRadius: 12,
+        borderRadius: 14,
         padding: "10px 14px",
         fontSize: 13,
         fontWeight: 500
@@ -2682,7 +2682,7 @@ function AIChatScreen() {
     style: {
       background: TH.meBubble,
       color: TH.meText,
-      borderRadius: 18,
+      borderRadius: 22,
       borderBottomRightRadius: 4,
       padding: "10px 14px",
       fontSize: 14,
@@ -2754,7 +2754,7 @@ function AIChatScreen() {
     style: {
       background: TH.aiBubble,
       border: TH.aiBubbleBorder,
-      borderRadius: 18,
+      borderRadius: 22,
       borderBottomLeftRadius: 4,
       padding: "12px 14px",
       display: "flex",
@@ -2894,7 +2894,7 @@ function AchievementUnlock({
       position: "relative",
       width: "100%",
       maxWidth: 328,
-      borderRadius: 30,
+      borderRadius: 22,
       padding: "34px 24px 22px",
       textAlign: "center",
       overflow: "hidden",
@@ -2945,7 +2945,7 @@ function AchievementUnlock({
       position: "relative",
       width: "100%",
       height: "100%",
-      borderRadius: 26,
+      borderRadius: 22,
       background: "linear-gradient(180deg,#fffdf5,#fff3d3)",
       display: "grid",
       placeItems: "center",
@@ -2992,7 +2992,7 @@ function AchievementUnlock({
       background: "linear-gradient(180deg,#2c2c2e,#1c1c1e)",
       color: "#fff",
       border: 0,
-      borderRadius: 16,
+      borderRadius: 14,
       padding: 15,
       fontSize: 16,
       fontWeight: 600,

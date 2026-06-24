@@ -295,7 +295,7 @@ function HomeOrbit({
       zIndex: 3,
       width: 30,
       height: 30,
-      borderRadius: 10,
+      borderRadius: 14,
       background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
       border: 0,
       display: "grid",
@@ -1073,7 +1073,7 @@ function HomeHeroSwipe({
     style: {
       background: cardBg,
       border: cardBd,
-      borderRadius: 28,
+      borderRadius: 22,
       position: "relative",
       overflow: "hidden",
       boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
@@ -1498,7 +1498,7 @@ function HomeScreen() {
     style: {
       background: cardBg,
       border: cardBorder,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "12px 14px",
       textAlign: "left",
       display: "flex",
@@ -1544,7 +1544,7 @@ function HomeScreen() {
     style: {
       background: cardBg,
       border: cardBorder,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "12px 14px",
       display: "flex",
       flexDirection: "column",
@@ -1586,7 +1586,7 @@ function HomeScreen() {
     style: {
       background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
       border: 0,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "12px 14px",
       textAlign: "left",
       display: "flex",
@@ -1652,7 +1652,7 @@ function HomeScreen() {
     style: {
       background: cardBg,
       border: cardBorder,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "14px 14px 12px",
       textAlign: "left",
       display: "flex",
@@ -1686,7 +1686,7 @@ function HomeScreen() {
     style: {
       background: cardBg,
       border: cardBorder,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "14px 14px 12px",
       textAlign: "left",
       display: "flex",
@@ -1780,7 +1780,7 @@ function HomeScreen() {
     style: {
       width: 52,
       height: 52,
-      borderRadius: 16,
+      borderRadius: 14,
       background: iconBg,
       display: "grid",
       placeItems: "center",
@@ -1825,7 +1825,7 @@ function HomeScreen() {
   }, habits.map(h => /*#__PURE__*/React.createElement("div", {
     key: h.id,
     style: {
-      borderRadius: 18,
+      borderRadius: 22,
       overflow: "hidden",
       boxShadow: cardShadow
     }
@@ -1864,7 +1864,7 @@ function HomeScreen() {
     style: {
       width: 40,
       height: 40,
-      borderRadius: 12,
+      borderRadius: 14,
       background: h.color ? h.color + "26" : iconBg,
       display: "grid",
       placeItems: "center",
@@ -1939,7 +1939,7 @@ function HomeScreen() {
     style: {
       width: 52,
       height: 52,
-      borderRadius: 16,
+      borderRadius: 14,
       background: iconBg,
       display: "grid",
       placeItems: "center",
@@ -1992,7 +1992,7 @@ function HomeScreen() {
       style: {
         background: cardBg,
         border: cardBorder,
-        borderRadius: 18,
+        borderRadius: 22,
         padding: 14,
         boxShadow: cardShadow,
         color: "var(--text)",
@@ -2009,7 +2009,7 @@ function HomeScreen() {
       style: {
         width: 38,
         height: 38,
-        borderRadius: 11,
+        borderRadius: 14,
         background: iconBg,
         display: "grid",
         placeItems: "center",
@@ -2621,7 +2621,7 @@ function HomeCustomizeScreen() {
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: 14,
       display: "grid",
       placeItems: "center",
       fontSize: 18,
@@ -2793,7 +2793,7 @@ function MoodWidget({
     }
   }, "\u2728 +", sameAsToday * 10, " XP")), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+      fontFamily: "var(--bos-title-font)",
       fontSize: 26,
       fontWeight: 600,
       lineHeight: 1.1,

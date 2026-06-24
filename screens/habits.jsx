@@ -203,7 +203,7 @@ function ShareHabitSheet({ habit, dark = false }) {
   return (
     <div style={{ padding: "2px 20px 0", color: C.text }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 56, height: 56, borderRadius: 16, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{habit?.emoji || "✨"}</div>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{habit?.emoji || "✨"}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться привычкой</div>
         <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>«{habit?.name || "Привычка"}» — зовите друзей делать вместе</div>
       </div>
@@ -337,7 +337,7 @@ function HabitsScreen() {
       {tab === "habits" ? (
         habits.length === 0 ? (
           <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 12, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
+            <span style={{ width: 54, height: 54, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
             <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки</div>
             <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Начни с одной маленькой. Её можно делать одному или вместе с друзьями.</div>
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать привычку</span>
@@ -345,7 +345,7 @@ function HabitsScreen() {
         ) : (
         <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
           {habits.map((h) => (
-            <div key={h.id} style={{ borderRadius: 18, overflow: "hidden", boxShadow: cardShadow }}>
+            <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                 { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
@@ -353,7 +353,7 @@ function HabitsScreen() {
                 <div className="tap"
                   onClick={() => navigate("habit-detail", { habit: h, from: "habits" })}
                   style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 12, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                  <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
                     {(h.friends?.length || h.duration) && (
@@ -377,7 +377,7 @@ function HabitsScreen() {
       ) : (
         goals.length === 0 ? (
           <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 12, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🎯</span>
+            <span style={{ width: 54, height: 54, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🎯</span>
             <div style={{ fontSize: 17, fontWeight: 600 }}>Пока нет целей</div>
             <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Цель — это вершина, к которой ведут твои привычки. Поставь первую.</div>
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Поставить цель</span>
@@ -387,11 +387,11 @@ function HabitsScreen() {
           {goals.map((g) => {
             const pct = g.target > 0 ? g.current / g.target : 0;
             return (
-              <div key={g.id} style={{ borderRadius: 18, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>
+              <div key={g.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>
                 <button className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ width: "100%", background: "transparent", border: 0, padding: "14px 16px", textAlign: "left", color: "var(--text)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{g.emoji}</span>
+                    <span style={{ width: 40, height: 40, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{g.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15.5, color: "var(--text-2)", letterSpacing: "-0.2px", fontWeight: 500 }}>{g.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3, display: "flex", gap: 10 }}>
@@ -424,7 +424,7 @@ function HabitsScreen() {
               boxShadow: cardShadow, position: "relative", overflow: "hidden",
               display: "flex", flexDirection: "column", gap: 8, minHeight: 144, color: "var(--text)",
             }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20 }}>{c.emoji}</div>
+            <div style={{ width: 38, height: 38, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20 }}>{c.emoji}</div>
             <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", lineHeight: 1.2 }}>{c.t}</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45 }}>{c.b}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", fontSize: 11, color: "var(--text-4)" }}>
@@ -464,7 +464,7 @@ function HabitInviteShareSheet({ habit, link }) {
   return (
     <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 12px", background: habit?.color ? habit.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 34 }}>{habit?.emoji || "✨"}</div>
+        <div style={{ width: 64, height: 64, borderRadius: 22, margin: "0 auto 12px", background: habit?.color ? habit.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 34 }}>{habit?.emoji || "✨"}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Зовите друга</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 4, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>«{habit?.name || "Привычка"}» теперь совместная — отправь ссылку, и друг присоединится.</div>
       </div>
@@ -583,8 +583,8 @@ function HabitSettingsScreen() {
       {/* Icon + colour — neutral by default; tap a swatch to tint it */}
       <div className="section-label" style={{ marginTop: 22 }}>Иконка и цвет</div>
       <button className="tap" data-no-haptic onClick={() => setShowIcons(v => !v)}
-        style={{ width: "100%", background: "#fff", border: 0, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", marginTop: 8 }}>
-        <div style={{ width: 50, height: 50, borderRadius: 12, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, transition: "background 0.2s" }}>{iconPick}</div>
+        style={{ width: "100%", background: "#fff", border: 0, borderRadius: 22, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)", marginTop: 8 }}>
+        <div style={{ width: 50, height: 50, borderRadius: 14, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, transition: "background 0.2s" }}>{iconPick}</div>
         <div style={{ textAlign: "left", flex: 1 }}>
           <div style={{ fontWeight: 500, fontSize: 16 }}>{name || "Привычка"}</div>
           <div style={{ fontSize: 13, color: "var(--text-4)" }}>{color ? HABIT_COLOR_NAMES[color] : "Базовый"} · {showIcons ? "выбери иконку" : "сменить иконку"}</div>
@@ -619,7 +619,7 @@ function HabitSettingsScreen() {
 
       {/* Goal */}
       <div className="section-label" style={{ marginTop: 22 }}>Цель</div>
-      <div style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 600 }}>{goal} {goal === 1 ? "раз" : "раз(а)"}</div>
@@ -657,7 +657,7 @@ function HabitSettingsScreen() {
 
       {/* Reminders */}
       <div className="section-label" style={{ marginTop: 22 }}>Напоминания</div>
-      <div style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Напоминать каждый день
@@ -680,7 +680,7 @@ function HabitSettingsScreen() {
       {/* Share with friend — the most natural referral moment: invite anyone into
           your habit. They join → you earn XP and they're in the app. */}
       <div className="section-label" style={{ marginTop: 8 }}>Поделиться с другом</div>
-      <div data-tour="invite-friend" style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+      <div data-tour="invite-friend" style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Делать это вместе
@@ -819,7 +819,7 @@ function DeadlineCalendar({ onPick, isLive = false }) {
       style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "var(--surface-3)", opacity: (dir < 0 ? m <= TODAY_M : m >= 11) ? 0.3 : 1, display: "grid", placeItems: "center" }}><I.ChevronRight size={16} style={dir < 0 ? { transform: "rotate(180deg)" } : undefined} /></button>
   );
   return (
-    <div style={{ background: "#fff", borderRadius: 18, padding: 14, marginTop: 10, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+    <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         {pager(-1)}
         <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{MON_TITLE[m]} {YEAR}</div>
@@ -885,8 +885,8 @@ function GoalSettingsScreen() {
 
       <div className="section-label" style={{ marginTop: 22 }}>Иконка</div>
       <button className="tap" data-no-haptic onClick={() => setShowIcons(v => !v)}
-        style={{ marginTop: 8, width: "100%", background: "#fff", border: 0, borderRadius: 16, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-        <div style={{ width: 50, height: 50, borderRadius: 12, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 26 }}>{iconPick}</div>
+        style={{ marginTop: 8, width: "100%", background: "#fff", border: 0, borderRadius: 22, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ width: 50, height: 50, borderRadius: 14, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 26 }}>{iconPick}</div>
         <div style={{ textAlign: "left", flex: 1 }}>
           <div style={{ fontWeight: 500, fontSize: 16 }}>{name || "Цель"}</div>
           <div style={{ fontSize: 13, color: "var(--text-4)" }}>{showIcons ? "выбери иконку" : "нажми, чтобы изменить"}</div>
@@ -911,7 +911,7 @@ function GoalSettingsScreen() {
       )}
 
       <div className="section-label" style={{ marginTop: 22 }}>Цель (значение)</div>
-      <div style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <input type="text" inputMode="numeric" pattern="[0-9]*" value={target}
             onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
@@ -924,7 +924,7 @@ function GoalSettingsScreen() {
       </div>
 
       <div className="section-label" style={{ marginTop: 22 }}>Срок</div>
-      <div style={{ background: "#fff", borderRadius: 18, padding: "14px 16px", marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: "14px 16px", marginTop: 8, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
         <I.Calendar size={18} color="var(--text-3)"/>
         <input value={deadline} onChange={e => setDeadline(e.target.value)} placeholder="напр. 14 окт"
           style={{ flex: 1, fontSize: 16, border: 0, outline: 0, background: "transparent" }}/>
@@ -947,7 +947,7 @@ function GoalSettingsScreen() {
       {showCal && <DeadlineCalendar isLive={app?.mode === "live"} onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
 
       <div className="section-label" style={{ marginTop: 22 }}>Привязать привычку</div>
-      <div style={{ background: "#fff", borderRadius: 18, padding: 16, marginTop: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>Подкрепи эту цель ежедневной привычкой</div>
@@ -1041,8 +1041,8 @@ function InfoScreen() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title={topic.title} onBack={() => navigate("habits")} />
       {/* Hero */}
-      <div style={{ background: "#fff", borderRadius: 24, padding: "22px 20px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-        <div style={{ width: 56, height: 56, borderRadius: 16, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 30, marginBottom: 12 }}>{topic.emoji}</div>
+      <div style={{ background: "#fff", borderRadius: 22, padding: "22px 20px", boxShadow: "var(--card-shadow)" }}>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 30, marginBottom: 12 }}>{topic.emoji}</div>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>{topic.eyebrow}</div>
         <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.5px", marginTop: 4, color: "var(--text)" }}>{topic.title}</div>
         <div style={{ fontSize: 15, color: "var(--text-3)", marginTop: 12, lineHeight: 1.55, letterSpacing: "-0.1px" }}>{topic.lede}</div>
@@ -1057,7 +1057,7 @@ function InfoScreen() {
       {/* Numbered sections */}
       <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {topic.sections.map((s, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", display: "flex", gap: 14 }}>
+          <div key={i} style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", display: "flex", gap: 14 }}>
             <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{s.i}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{s.h}</div>
@@ -1077,8 +1077,8 @@ function InfoScreen() {
       {topic.next && (
         <button onClick={() => navigate("info", { topic: topic.next.topic })} className="tap"
           style={{ marginTop: 12, width: "100%", background: "transparent", border: 0, padding: 0, textAlign: "left" }}>
-          <div style={{ background: "#fff", borderRadius: 18, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 20 }}>{topic.next.e}</div>
+          <div style={{ background: "#fff", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 14, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 20 }}>{topic.next.e}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600 }}>Далее</div>
               <div style={{ fontSize: 15, fontWeight: 500 }}>{topic.next.t}</div>

@@ -902,7 +902,7 @@ function ProfileScreen() {
     size: 11
   }), " \u0423\u0440\u043E\u0432\u0435\u043D\u044C ", lvlNum), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+      fontFamily: "var(--bos-title-font)",
       fontWeight: 700,
       fontSize: 28,
       marginTop: 14
@@ -942,7 +942,7 @@ function ProfileScreen() {
     className: "bos-sys-card",
     style: {
       padding: "8px 16px",
-      borderRadius: 16,
+      borderRadius: 22,
       minWidth: 72
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -977,7 +977,7 @@ function ProfileScreen() {
     style: {
       width: 42,
       height: 42,
-      borderRadius: 13,
+      borderRadius: 14,
       background: "rgba(254,222,52,0.16)",
       display: "grid",
       placeItems: "center",
@@ -1079,7 +1079,7 @@ function ProfileScreen() {
       from: "profile"
     }),
     style: {
-      color: "#ef4444"
+      color: "var(--accent-red)"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -2323,7 +2323,7 @@ function HistoryScreen() {
       style: {
         width: 36,
         height: 36,
-        borderRadius: 11,
+        borderRadius: 14,
         background: TH.iconBg,
         display: "grid",
         placeItems: "center",
@@ -2571,7 +2571,7 @@ function AIScreen() {
         position: "relative",
         overflow: "hidden",
         background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
-        borderRadius: 28,
+        borderRadius: 22,
         padding: "26px 22px 28px",
         color: "#fff",
         textAlign: "center"
@@ -2884,7 +2884,7 @@ function AIScreen() {
         position: "relative",
         overflow: "hidden",
         background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
-        borderRadius: 28,
+        borderRadius: 22,
         padding: "22px 22px 24px",
         color: "#fff"
       }
@@ -2963,7 +2963,7 @@ function AIScreen() {
         flex: 1,
         background: "rgba(255,255,255,0.08)",
         border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: 16,
+        borderRadius: 14,
         padding: "10px 8px",
         textAlign: "center"
       }
@@ -3162,7 +3162,7 @@ function AIScreen() {
         style: {
           width: "100%",
           background: "var(--card)",
-          borderRadius: 20,
+          borderRadius: 22,
           boxShadow: "var(--card-shadow)",
           border: 0,
           padding: 14,
@@ -3365,7 +3365,7 @@ function AIScreen() {
       position: "relative",
       overflow: "hidden",
       background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
-      borderRadius: 28,
+      borderRadius: 22,
       padding: "22px 22px 24px",
       color: "#fff"
     }
@@ -3485,7 +3485,7 @@ function AIScreen() {
       padding: "12px 14px",
       background: "rgba(255,255,255,0.08)",
       border: "1px solid rgba(255,255,255,0.12)",
-      borderRadius: 16,
+      borderRadius: 14,
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -3649,7 +3649,7 @@ function AIScreen() {
       key: i,
       style: {
         background: "var(--card)",
-        borderRadius: 20,
+        borderRadius: 22,
         boxShadow: "var(--card-shadow)",
         overflow: "hidden"
       }
@@ -3823,7 +3823,7 @@ function AIScreen() {
       className: "tap",
       style: {
         background: "var(--card)",
-        borderRadius: 18,
+        borderRadius: 22,
         padding: 14,
         border: 0,
         textAlign: "left",
@@ -4055,7 +4055,7 @@ function OnboardingScreen() {
       style: {
         background: "rgba(39,39,42,0.55)",
         border: "1px solid rgba(63,63,70,0.4)",
-        borderRadius: 18,
+        borderRadius: 22,
         padding: 16,
         color: "#fff",
         display: "flex",
@@ -4102,7 +4102,7 @@ function OnboardingScreen() {
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+      fontFamily: "var(--bos-title-font)",
       fontSize: 22,
       fontWeight: 500,
       marginTop: 60,
@@ -4327,7 +4327,7 @@ function SignUpScreen() {
     size: 14
   })), /*#__PURE__*/React.createElement("style", null, `@keyframes suOrbIn{0%{opacity:0;transform:translateY(-14px) scale(1.34)}45%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}@keyframes suFaceIn{from{opacity:0;transform:scale(0.82)}to{opacity:1;transform:scale(1)}}@keyframes suTextIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes suSheetIn{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}`)), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+      fontFamily: "var(--bos-title-font)",
       fontSize: 27,
       fontWeight: 700,
       letterSpacing: "-0.6px",
@@ -4374,7 +4374,7 @@ function SignUpScreen() {
       background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
       color: "#0a0a0a",
       border: 0,
-      borderRadius: 20,
+      borderRadius: 22,
       padding: "15px 16px",
       boxShadow: "0 12px 30px rgba(254,222,52,0.32)",
       marginBottom: 11
@@ -4425,7 +4425,7 @@ function SignUpScreen() {
       background: pal.btnBg,
       color: pal.btnFg,
       border: 0,
-      borderRadius: 20,
+      borderRadius: 22,
       padding: "15px 16px"
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -4571,7 +4571,7 @@ function IconPickerScreen() {
       aspectRatio: "1/1",
       background: "var(--card)",
       border: 0,
-      borderRadius: 16,
+      borderRadius: 14,
       fontSize: 28,
       boxShadow: "var(--card-shadow)"
     }
@@ -4688,7 +4688,7 @@ function AchievementsScreen() {
   }), /*#__PURE__*/React.createElement(SysCard, {
     style: {
       padding: 18,
-      borderRadius: 24
+      borderRadius: 22
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
@@ -4735,7 +4735,7 @@ function AchievementsScreen() {
     style: {
       width: 34,
       height: 34,
-      borderRadius: 11,
+      borderRadius: 14,
       background: a.accent + "26",
       display: "grid",
       placeItems: "center",

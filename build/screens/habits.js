@@ -450,7 +450,7 @@ function ShareHabitSheet({
     style: {
       width: 56,
       height: 56,
-      borderRadius: 16,
+      borderRadius: 14,
       background: C.tile,
       display: "grid",
       placeItems: "center",
@@ -822,7 +822,7 @@ function HabitsScreen() {
     style: {
       width: 54,
       height: 54,
-      borderRadius: 16,
+      borderRadius: 14,
       background: TH.iconBg,
       display: "grid",
       placeItems: "center",
@@ -867,7 +867,7 @@ function HabitsScreen() {
   }, habits.map(h => /*#__PURE__*/React.createElement("div", {
     key: h.id,
     style: {
-      borderRadius: 18,
+      borderRadius: 22,
       overflow: "hidden",
       boxShadow: cardShadow
     }
@@ -906,7 +906,7 @@ function HabitsScreen() {
     style: {
       width: 40,
       height: 40,
-      borderRadius: 12,
+      borderRadius: 14,
       background: h.color ? h.color + "26" : TH.iconBg,
       display: "grid",
       placeItems: "center",
@@ -981,7 +981,7 @@ function HabitsScreen() {
     style: {
       width: 54,
       height: 54,
-      borderRadius: 16,
+      borderRadius: 14,
       background: TH.iconBg,
       display: "grid",
       placeItems: "center",
@@ -1028,7 +1028,7 @@ function HabitsScreen() {
     return /*#__PURE__*/React.createElement("div", {
       key: g.id,
       style: {
-        borderRadius: 18,
+        borderRadius: 22,
         overflow: "hidden",
         boxShadow: cardShadow,
         background: TH.cardBg
@@ -1057,7 +1057,7 @@ function HabitsScreen() {
       style: {
         width: 40,
         height: 40,
-        borderRadius: 12,
+        borderRadius: 14,
         background: TH.iconBg,
         display: "grid",
         placeItems: "center",
@@ -1151,7 +1151,7 @@ function HabitsScreen() {
     style: {
       width: 38,
       height: 38,
-      borderRadius: 12,
+      borderRadius: 14,
       background: TH.iconBg,
       display: "grid",
       placeItems: "center",
@@ -1236,7 +1236,7 @@ function HabitInviteShareSheet({
     style: {
       width: 64,
       height: 64,
-      borderRadius: 18,
+      borderRadius: 22,
       margin: "0 auto 12px",
       background: habit?.color ? habit.color + "26" : "var(--surface-3)",
       display: "grid",
@@ -1501,19 +1501,19 @@ function HabitSettingsScreen() {
       width: "100%",
       background: "#fff",
       border: 0,
-      borderRadius: 16,
+      borderRadius: 22,
       padding: 12,
       display: "flex",
       alignItems: "center",
       gap: 12,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+      boxShadow: "var(--card-shadow)",
       marginTop: 8
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 50,
       height: 50,
-      borderRadius: 12,
+      borderRadius: 14,
       background: color ? color + "26" : "var(--surface-3)",
       display: "grid",
       placeItems: "center",
@@ -1607,10 +1607,10 @@ function HabitSettingsScreen() {
   }, "\u0426\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 8,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1716,10 +1716,10 @@ function HabitSettingsScreen() {
   }, "\u041D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 8,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1792,10 +1792,10 @@ function HabitSettingsScreen() {
     "data-tour": "invite-friend",
     style: {
       background: "#fff",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 8,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2111,10 +2111,10 @@ function DeadlineCalendar({
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       marginTop: 10,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2273,18 +2273,18 @@ function GoalSettingsScreen() {
       width: "100%",
       background: "#fff",
       border: 0,
-      borderRadius: 16,
+      borderRadius: 22,
       padding: 12,
       display: "flex",
       alignItems: "center",
       gap: 12,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 50,
       height: 50,
-      borderRadius: 12,
+      borderRadius: 14,
       background: "#e8e8e8",
       display: "grid",
       placeItems: "center",
@@ -2349,10 +2349,10 @@ function GoalSettingsScreen() {
   }, "\u0426\u0435\u043B\u044C (\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435)"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 8,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2404,10 +2404,10 @@ function GoalSettingsScreen() {
   }, "\u0421\u0440\u043E\u043A"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "14px 16px",
       marginTop: 8,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+      boxShadow: "var(--card-shadow)",
       display: "flex",
       alignItems: "center",
       gap: 12
@@ -2488,10 +2488,10 @@ function GoalSettingsScreen() {
   }, "\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 8,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2702,15 +2702,15 @@ function InfoScreen() {
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
-      borderRadius: 24,
+      borderRadius: 22,
       padding: "22px 20px",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 56,
       height: 56,
-      borderRadius: 16,
+      borderRadius: 14,
       background: "#e8e8e8",
       display: "grid",
       placeItems: "center",
@@ -2783,7 +2783,7 @@ function InfoScreen() {
       background: "#fff",
       borderRadius: 22,
       padding: 18,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+      boxShadow: "var(--card-shadow)",
       display: "flex",
       gap: 14
     }
@@ -2852,18 +2852,18 @@ function InfoScreen() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       display: "flex",
       alignItems: "center",
       gap: 12,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 38,
       height: 38,
-      borderRadius: 12,
+      borderRadius: 14,
       background: "#e8e8e8",
       display: "grid",
       placeItems: "center",

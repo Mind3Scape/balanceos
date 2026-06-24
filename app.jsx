@@ -113,7 +113,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v186";
+const APP_VERSION = "v187";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -334,9 +334,9 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
   if (stop.kind === "card") {
     return (
       <div ref={rootRef} style={{ position: "absolute", inset: 0, zIndex: 500, display: "grid", placeItems: "center", padding: 28, background: "rgba(4,6,12,0.62)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}>
-        <div className="bos-tour-pop" style={{ width: "100%", maxWidth: 320, background: cardBg, borderRadius: 28, padding: "30px 24px 22px", textAlign: "center", boxShadow: "0 30px 70px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+        <div className="bos-tour-pop" style={{ width: "100%", maxWidth: 320, background: cardBg, borderRadius: 22, padding: "30px 24px 22px", textAlign: "center", boxShadow: "0 30px 70px rgba(0,0,0,0.45)", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
           <div style={{ fontSize: 46, lineHeight: 1, marginBottom: 14 }}>{stop.emoji}</div>
-          <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: "-0.4px", color: titleC, lineHeight: 1.2 }}>{stop.title}</div>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 22, fontWeight: 700, letterSpacing: "-0.4px", color: titleC, lineHeight: 1.2 }}>{stop.title}</div>
           <div style={{ fontSize: 14.5, color: bodyC, lineHeight: 1.5, marginTop: 10 }}>{stop.body}</div>
           <button onClick={next} className="tap" style={{ width: "100%", marginTop: 22, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: 15, fontSize: 15.5, fontWeight: 700 }}>{stop.cta}</button>
           {(!last || stop.alt) && <button onClick={skip} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: 8 }}>{stop.alt || "Пропустить"}</button>}
@@ -498,7 +498,7 @@ function OnbSheet({ hero, eyebrow, title, body, pills, cta, onCta, onSkip, skipL
          a shorter body never changes the sheet's overall height — every step is the
          same size, the hero never jumps. */}
       <div style={{ minHeight: 60, marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 25, fontWeight: 700, letterSpacing: "-0.5px", color: titleC, lineHeight: 1.18 }}>{title}</div>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 25, fontWeight: 700, letterSpacing: "-0.5px", color: titleC, lineHeight: 1.18 }}>{title}</div>
       </div>
       <div style={{ fontSize: 15.5, color: bodyC, lineHeight: 1.5, marginTop: 9, maxWidth: 330, marginLeft: "auto", marginRight: "auto", minHeight: 70 }}>{body}</div>
       {pills && pills.length > 0 && (
@@ -593,7 +593,7 @@ function GuideScreen() {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {FEATURES.map((f, i) => (
-          <div key={i} style={{ background: "var(--card)", borderRadius: 20, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "flex-start" }}>
+          <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "flex-start" }}>
             <div style={{ width: 46, height: 46, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{f.e}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 16.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{f.t}</div>
@@ -603,8 +603,8 @@ function GuideScreen() {
         ))}
       </div>
       <button onClick={() => navigate("manifest")} className="tap"
-        style={{ width: "100%", marginTop: 16, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 20, padding: "18px 20px", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
-        <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(255,255,255,0.1)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>📜</div>
+        style={{ width: "100%", marginTop: 16, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 22, padding: "18px 20px", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+        <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.1)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>📜</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 16, fontWeight: 700 }}>Прочитать манифест</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Во что мы верим и зачем всё это</div>

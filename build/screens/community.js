@@ -359,7 +359,7 @@ function NetworkLocked({
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: "14px 16px",
       boxShadow: "var(--card-shadow)"
     }
@@ -845,14 +845,14 @@ function NetworkPersonCard({
         gap: 10,
         padding: "8px 10px",
         background: "var(--card-2)",
-        borderRadius: 12,
+        borderRadius: 14,
         opacity: locked ? 0.55 : 1
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         width: 30,
         height: 30,
-        borderRadius: 10,
+        borderRadius: 14,
         background: "var(--card)",
         display: "grid",
         placeItems: "center",
@@ -1078,7 +1078,7 @@ function CloudTeamsDiscover({
       alignItems: "center",
       gap: 12,
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
     }
@@ -2120,7 +2120,7 @@ function SplitEditor({
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 10,
       boxShadow: "var(--card-shadow)"
@@ -2477,7 +2477,7 @@ function DurationPicker({
   }), " \u0421\u0432\u043E\u0439")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       marginTop: 10,
       boxShadow: "var(--card-shadow)"
@@ -2824,7 +2824,7 @@ function TeamCreateScreen() {
       style: {
         background: "var(--card)",
         border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)",
-        borderRadius: 18,
+        borderRadius: 22,
         padding: 14,
         display: "flex",
         alignItems: "center",
@@ -2881,7 +2881,7 @@ function TeamCreateScreen() {
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 10,
       boxShadow: "var(--card-shadow)"
@@ -2973,7 +2973,7 @@ function TeamCreateScreen() {
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 10,
       boxShadow: "var(--card-shadow)"
@@ -3111,7 +3111,7 @@ function TeamCreateScreen() {
     "data-tour": "team-stakes",
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 8,
       boxShadow: "var(--card-shadow)"
@@ -3208,7 +3208,7 @@ function TeamCreateScreen() {
   }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 8,
       boxShadow: "var(--card-shadow)"
@@ -3887,7 +3887,7 @@ function TeamShareSheet({
     style: {
       width: 64,
       height: 64,
-      borderRadius: 18,
+      borderRadius: 22,
       margin: "0 auto 12px",
       background: team?.accent || "#fef3c7",
       display: "grid",
@@ -4472,7 +4472,7 @@ function TeamDetailScreen() {
       marginTop: 12,
       background: "var(--card)",
       border: 0,
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       boxShadow: "var(--card-shadow)",
       display: "flex",
@@ -4485,7 +4485,7 @@ function TeamDetailScreen() {
     style: {
       width: 44,
       height: 44,
-      borderRadius: 13,
+      borderRadius: 14,
       background: "var(--surface-3)",
       display: "grid",
       placeItems: "center",
@@ -4703,7 +4703,7 @@ function TeamDetailScreen() {
     key: i,
     style: {
       background: "var(--card)",
-      borderRadius: 16,
+      borderRadius: 22,
       padding: 14,
       display: "flex",
       alignItems: "center",
@@ -4714,7 +4714,7 @@ function TeamDetailScreen() {
     style: {
       width: 40,
       height: 40,
-      borderRadius: 12,
+      borderRadius: 14,
       background: "var(--surface-3)",
       display: "grid",
       placeItems: "center",
@@ -4802,7 +4802,7 @@ function TeamDetailScreen() {
     style: {
       background: "transparent",
       border: "1px dashed rgba(0,0,0,0.18)",
-      borderRadius: 16,
+      borderRadius: 22,
       padding: 14,
       color: "var(--text-3)",
       fontSize: 14,
@@ -4824,7 +4824,7 @@ function TeamDetailScreen() {
     key: p.id,
     style: {
       background: "var(--card)",
-      borderRadius: 16,
+      borderRadius: 22,
       boxShadow: "var(--card-shadow)",
       padding: 12,
       display: "flex",
@@ -4918,7 +4918,7 @@ function TeamDetailScreen() {
       key: i,
       style: {
         background: "var(--card)",
-        borderRadius: 16,
+        borderRadius: 22,
         boxShadow: "var(--card-shadow)",
         overflow: "hidden"
       }
@@ -5054,7 +5054,7 @@ function TeamDetailScreen() {
   }, "\u0410\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
       marginTop: 8,
       display: "flex",
@@ -5193,9 +5193,9 @@ function TeamSettingsScreen() {
   });
   var card = {
     background: "#fff",
-    borderRadius: 18,
+    borderRadius: 22,
     marginTop: 8,
-    boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+    boxShadow: "var(--card-shadow)"
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
@@ -5645,7 +5645,7 @@ function TeamHabitSheet({
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: C.tile,
-      borderRadius: 16,
+      borderRadius: 14,
       padding: "2px 14px",
       marginTop: 18
     }
@@ -5853,7 +5853,7 @@ function LevelsScreen() {
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
-      borderRadius: 24,
+      borderRadius: 22,
       padding: 22,
       color: "#0a0a0a",
       position: "relative",
@@ -6010,7 +6010,7 @@ function LevelsScreen() {
     style: {
       width: 56,
       height: 56,
-      borderRadius: 16,
+      borderRadius: 14,
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
@@ -6185,7 +6185,7 @@ function LevelsScreen() {
     style: {
       width: 44,
       height: 44,
-      borderRadius: 13,
+      borderRadius: 14,
       display: "grid",
       placeItems: "center",
       fontSize: 22,
@@ -6235,7 +6235,7 @@ function LevelsScreen() {
       display: "flex",
       alignItems: "center",
       gap: 14,
-      borderRadius: 18
+      borderRadius: 22
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
@@ -6317,7 +6317,7 @@ function LevelsScreen() {
     style: {
       width: 42,
       height: 42,
-      borderRadius: 12,
+      borderRadius: 14,
       display: "grid",
       placeItems: "center",
       fontSize: 22
@@ -6476,7 +6476,7 @@ function CourseDetailScreen() {
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 24,
+      borderRadius: 22,
       padding: "22px 20px 20px",
       boxShadow: "var(--card-shadow)"
     }
@@ -6640,7 +6640,7 @@ function CourseDetailScreen() {
     key: i,
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       boxShadow: "var(--card-shadow)"
     }
@@ -7375,7 +7375,7 @@ function TeamChatScreen() {
       minWidth: 0,
       background: isDark ? "rgba(255,255,255,0.07)" : "rgba(120,120,128,0.10)",
       border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)",
-      borderRadius: 20,
+      borderRadius: 22,
       padding: "10px 15px",
       fontSize: 16,
       color: "var(--text)",
@@ -7615,7 +7615,7 @@ function ContactDetailScreen() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "rgba(255,255,255,0.7)",
-      borderRadius: 16,
+      borderRadius: 14,
       padding: "10px 12px"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -7637,7 +7637,7 @@ function ContactDetailScreen() {
   }, p.impact.toLocaleString())), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "rgba(255,255,255,0.7)",
-      borderRadius: 16,
+      borderRadius: 14,
       padding: "10px 12px"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -7670,7 +7670,7 @@ function ContactDetailScreen() {
   }, "\u2605 \xB7 ", ratingsCount))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "rgba(255,255,255,0.7)",
-      borderRadius: 16,
+      borderRadius: 14,
       padding: "10px 12px"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -7740,7 +7740,7 @@ function ContactDetailScreen() {
       key: j,
       style: {
         background: "var(--card)",
-        borderRadius: 18,
+        borderRadius: 22,
         padding: 14,
         display: "flex",
         alignItems: "center",
@@ -7752,7 +7752,7 @@ function ContactDetailScreen() {
       style: {
         width: 42,
         height: 42,
-        borderRadius: 13,
+        borderRadius: 14,
         background: "var(--card-2)",
         display: "grid",
         placeItems: "center",
@@ -7854,7 +7854,7 @@ function ContactDetailScreen() {
   }, "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u0432\u043A\u043B\u0430\u0434\u0430"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       boxShadow: "var(--card-shadow)",
       overflow: "hidden"
     }
@@ -7871,7 +7871,7 @@ function ContactDetailScreen() {
     style: {
       width: 32,
       height: 32,
-      borderRadius: 10,
+      borderRadius: 14,
       background: "var(--card-2)",
       display: "grid",
       placeItems: "center",
@@ -7938,7 +7938,7 @@ function ContactDetailScreen() {
     key: j,
     style: {
       background: "var(--card)",
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 14,
       boxShadow: "var(--card-shadow)"
     }

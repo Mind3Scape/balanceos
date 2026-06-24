@@ -115,7 +115,7 @@ var AUTO_RESUME_TG = false;
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v186";
+var APP_VERSION = "v187";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -663,7 +663,7 @@ function GuidedTour({
         width: "100%",
         maxWidth: 320,
         background: cardBg,
-        borderRadius: 28,
+        borderRadius: 22,
         padding: "30px 24px 22px",
         textAlign: "center",
         boxShadow: "0 30px 70px rgba(0,0,0,0.45)",
@@ -677,7 +677,7 @@ function GuidedTour({
       }
     }, stop.emoji), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+        fontFamily: "var(--bos-title-font)",
         fontSize: 22,
         fontWeight: 700,
         letterSpacing: "-0.4px",
@@ -1236,7 +1236,7 @@ function OnbSheet({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+      fontFamily: "var(--bos-title-font)",
       fontSize: 25,
       fontWeight: 700,
       letterSpacing: "-0.5px",
@@ -1496,7 +1496,7 @@ function GuideScreen() {
     key: i,
     style: {
       background: "var(--card)",
-      borderRadius: 20,
+      borderRadius: 22,
       padding: 16,
       boxShadow: "var(--card-shadow)",
       display: "flex",
@@ -1542,7 +1542,7 @@ function GuideScreen() {
       background: "#0a0a0a",
       color: "#fff",
       border: 0,
-      borderRadius: 20,
+      borderRadius: 22,
       padding: "18px 20px",
       display: "flex",
       alignItems: "center",
@@ -1553,7 +1553,7 @@ function GuideScreen() {
     style: {
       width: 44,
       height: 44,
-      borderRadius: 13,
+      borderRadius: 14,
       background: "rgba(255,255,255,0.1)",
       display: "grid",
       placeItems: "center",

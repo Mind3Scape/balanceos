@@ -325,7 +325,7 @@ function XPRewardCard({ amount = 150, reason = "когда друг начнёт
   const inkSub = "rgba(0,0,0,0.62)";
   const left = Math.max(0, circleGoal - circleNow);
   return (
-    <div style={{ position: "relative", overflow: "hidden", borderRadius: 20, padding: "16px 17px",
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 17px",
       background: "linear-gradient(135deg, #FEDE34, #EF9F14)", color: ink,
       boxShadow: "0 12px 30px rgba(254,222,52,0.34)" }}>
       <div aria-hidden style={{ position: "absolute", right: -34, top: -38, width: 168, height: 168, borderRadius: "50%",

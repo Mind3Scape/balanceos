@@ -160,7 +160,7 @@ function HomeOrbit({ navigate, avatar, people = [], levelPct = 2, moodC, isDark 
     <div key="orbit" style={{ position: "relative", height: "100%", boxSizing: "border-box", overflow: "hidden" }}>
       {/* settings gear — top-right of this block */}
       <button onClick={() => navigate("settings")} className="tap" aria-label="Настройки"
-        style={{ position: "absolute", top: 12, right: 12, zIndex: 3, width: 30, height: 30, borderRadius: 10,
+        style={{ position: "absolute", top: 12, right: 12, zIndex: 3, width: 30, height: 30, borderRadius: 14,
           background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)", border: 0, display: "grid", placeItems: "center" }}>
         <I.Settings size={16} color={isDark ? "rgba(255,255,255,0.8)" : "#787878"} />
       </button>
@@ -479,7 +479,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
     <div style={{
       background: cardBg,
       border: cardBd,
-      borderRadius: 28, position: "relative", overflow: "hidden",
+      borderRadius: 22, position: "relative", overflow: "hidden",
       boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
     }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div style={{ display: "flex", width: pages.length > 1 ? "200%" : "100%", transform: pages.length > 1 ? `translateX(${-page * 50}%)` : "none", transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: 196 }}>
@@ -690,7 +690,7 @@ function HomeScreen() {
       {!_showLevelBanner && (widgets.streak !== false || widgets.level !== false) && (
       <div style={{ display: "grid", gridTemplateColumns: widgets.streak !== false && widgets.level !== false ? "1.2fr 1fr 1fr" : (widgets.streak !== false || widgets.level !== false ? "1fr 1fr" : "1fr"), gap: 8, marginTop: 12 }}>
         {widgets.streak !== false && (
-        <button onClick={() => navigate("history")} className="tap" style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, boxShadow: cardShadow, color: "var(--text)" }}>
+        <button onClick={() => navigate("history")} className="tap" style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, boxShadow: cardShadow, color: "var(--text)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 16 }}>🔥</span>
             <span style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Серия</span>
@@ -698,7 +698,7 @@ function HomeScreen() {
           <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px" }}><CountUp value={dayStreak}/><span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-4)" }}> дн.</span></div>
         </button>
         )}
-        <div style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6, boxShadow: cardShadow, color: "var(--text)" }}>
+        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6, boxShadow: cardShadow, color: "var(--text)" }}>
           <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Сегодня</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
             <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px" }}><CountUp value={doneCount}/></span>
@@ -706,7 +706,7 @@ function HomeScreen() {
           </div>
         </div>
         {widgets.level !== false && (
-        <button data-tour="level" onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
+        <button data-tour="level" onClick={() => navigate("levels")} className="tap" style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 22, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, color: "#0a0a0a" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, opacity: 0.7 }}>Уровень</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
             <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px" }}><CountUp value={app?.mode === "demo" ? 7 : (_isLive ? _lvl.level : 1)}/></span>
@@ -725,7 +725,7 @@ function HomeScreen() {
       <div style={{ display: "grid", gridTemplateColumns: widgets.calendar !== false && widgets.team !== false ? "1fr 1fr" : "1fr", gap: 8, marginTop: 8 }}>
         {widgets.calendar !== false && (
         <button className="tap" onClick={() => navigate("history")}
-          style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
+          style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
           <div>
             <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Календарь</div>
             <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{_calLabel}</div>
@@ -735,7 +735,7 @@ function HomeScreen() {
         )}
         {widgets.team !== false && (
         <button className="tap" onClick={() => navigate("community")}
-          style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
+          style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
           <div>
             <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Команды</div>
             <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{teams.length ? teams.length + " " + ruTeam(teams.length) : "Создай команду"}</div>
@@ -767,7 +767,7 @@ function HomeScreen() {
       {tab === "habits" ? (
         habits.length === 0 ? (
           <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
+            <span style={{ width: 52, height: 52, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
             <div style={{ fontSize: 16, fontWeight: 600 }}>Здесь будут твои привычки</div>
             <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
             <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
@@ -775,13 +775,13 @@ function HomeScreen() {
         ) : (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
           {habits.map((h) => (
-            <div key={h.id} style={{ borderRadius: 18, overflow: "hidden", boxShadow: cardShadow }}>
+            <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                 { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
                 <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 12, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                  <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
                     {(h.friends?.length || h.duration) && (
@@ -805,7 +805,7 @@ function HomeScreen() {
       ) : (
         goals.length === 0 ? (
           <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
+            <span style={{ width: 52, height: 52, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
             <div style={{ fontSize: 16, fontWeight: 600 }}>Пока нет целей</div>
             <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
             <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Поставить цель</span>
@@ -815,9 +815,9 @@ function HomeScreen() {
           {goals.map(g => {
             const pct = g.target ? g.current / g.target : 0;
             return (
-            <div key={g.id} className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: 14, boxShadow: cardShadow, color: "var(--text)", cursor: "pointer" }}>
+            <div key={g.id} className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: 14, boxShadow: cardShadow, color: "var(--text)", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <span style={{ width: 38, height: 38, borderRadius: 11, background: iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
+                <span style={{ width: 38, height: 38, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, color: "var(--text-2)", fontWeight: 500 }}>{g.name}</div>
                   <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
@@ -1023,7 +1023,7 @@ function HomeCustomizeScreen() {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {opts.map(o => (
           <div key={o.id} className="bos-sys-card" style={{ padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
-            <span className="bos-sys-chip-bg" style={{ width: 38, height: 38, borderRadius: 11, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{o.i}</span>
+            <span className="bos-sys-chip-bg" style={{ width: 38, height: 38, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{o.i}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 500 }}>{o.t}</div>
               <div className="bos-sys-text-3" style={{ fontSize: 12 }}>{o.d}</div>
@@ -1122,7 +1122,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{fresh ? "Как ты сейчас?" : mood.t}</div>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{fresh ? "Как ты сейчас?" : mood.t}</div>
           <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>{
             live
               ? "Отмечай каждый день: +5 XP, +10 со строкой в дневник. Удержишь неделю подряд — бонус +50 XP."
