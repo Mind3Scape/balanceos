@@ -79,17 +79,23 @@
   // ALTER), these just return false/null and the app stays perfectly local — no break.
   async function saveSnapshot(data) {
     var c = client(); var id = await uid(); if (!c || !id) return false;
+    var env = { savedAt: Date.now(), data: data || {} };
+    // PRIVATE mirror: the life-blob (incl. the journal) lives in user_state — RLS = owner
+    // only — NOT in the world-readable profiles table. Falls back to the old column until
+    // patch_privacy_snapshot.sql has run, so deploy order can't lose data.
     try {
-      var r = await c.from("profiles").update({ snapshot: { savedAt: Date.now(), data: data || {} } }).eq("id", id);
-      return !r.error;
-    } catch (e) { return false; }
+      var r = await c.from("user_state").upsert({ id: id, snapshot: env, updated_at: new Date().toISOString() }, { onConflict: "id" });
+      if (!r.error) return true;
+    } catch (e) {}
+    try { var r2 = await c.from("profiles").update({ snapshot: env }).eq("id", id); return !r2.error; } catch (e2) { return false; }
   }
   async function loadSnapshot() {
     var c = client(); var id = await uid(); if (!c || !id) return null;
     try {
-      var r = await c.from("profiles").select("snapshot").eq("id", id).maybeSingle();
-      return (r && r.data && r.data.snapshot) || null; // { savedAt, data } | null
-    } catch (e) { return null; }
+      var r = await c.from("user_state").select("snapshot").eq("id", id).maybeSingle();
+      if (!r.error && r.data && r.data.snapshot) return r.data.snapshot; // { savedAt, data }
+    } catch (e) {}
+    try { var r2 = await c.from("profiles").select("snapshot").eq("id", id).maybeSingle(); return (r2 && r2.data && r2.data.snapshot) || null; } catch (e2) { return null; }
   }
 
   // ── D3 · команды в облаке (создать / найти / вступить) ──────────────────────
