@@ -488,7 +488,12 @@ function PageHeader({
     style: {
       color: dark ? "#fff" : undefined
     }
-  }, onBack ? /*#__PURE__*/React.createElement("button", {
+  }, onBack && !(typeof window !== "undefined" && window.__TG) ?
+  /*#__PURE__*/
+  // Inside Telegram the native Back button (driven from app.jsx's nav stack) already
+  // shows on every pushed screen — so we hide our in-app chevron to avoid two "backs".
+  // The 40px spacer stays, keeping the title centred. PWA/browser keeps the chevron.
+  React.createElement("button", {
     onClick: onBack,
     className: "icon-btn tap",
     "aria-label": "\u041D\u0430\u0437\u0430\u0434",

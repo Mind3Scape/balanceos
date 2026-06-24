@@ -2268,20 +2268,13 @@ function ShareAppSheet({
       } catch (e) {}
     }
   };
-  var shareLink = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "BalanceOS",
-          text: "Держим баланс вместе — BalanceOS",
-          url: shareUrl
-        });
-        return;
-      }
-    } catch (e) {
-      return;
+  var shareLink = () => {
+    // Inside Telegram → native contact picker; else Web Share; else clipboard (+ toast).
+    if (window.bosShare ? !window.bosShare(shareUrl, "Держим баланс вместе — BalanceOS") : true) copyLink();else if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
     }
-    copyLink();
   };
   var C = dark ? {
     text: "#fff",

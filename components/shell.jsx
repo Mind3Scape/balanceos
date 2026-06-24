@@ -240,7 +240,10 @@ function BottomSheet({ open, onClose, children, dark = false }) {
 function PageHeader({ title, onBack, right, dark }) {
   return (
     <div className="page-header" style={{ color: dark ? "#fff" : undefined }}>
-      {onBack ? (
+      {onBack && !(typeof window !== "undefined" && window.__TG) ? (
+        // Inside Telegram the native Back button (driven from app.jsx's nav stack) already
+        // shows on every pushed screen — so we hide our in-app chevron to avoid two "backs".
+        // The 40px spacer stays, keeping the title centred. PWA/browser keeps the chevron.
         <button onClick={onBack} className="icon-btn tap" aria-label="Назад"
           style={dark ? { background: "rgba(255,255,255,0.06)", color: "#fff" } : undefined}>
           <I.ChevronLeft size={20} />

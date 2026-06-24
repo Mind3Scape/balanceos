@@ -1946,8 +1946,8 @@ function TeamSettingsScreen() {
           var link = b + "?team=" + team.cloudId;
           try { var id = (window.bosCloud && window.bosCloud.uid) ? await window.bosCloud.uid() : null; if (id) link += "&ref=" + id; } catch (e) {}
           var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
-          try { if (navigator.share) { navigator.share({ title: team.name || "Команда", text: text, url: link }); return; } } catch (e) {}
-          try { navigator.clipboard.writeText(link); } catch (e) {}
+          if (window.bosShare) window.bosShare(link, text);
+          else { try { navigator.clipboard.writeText(link); } catch (e) {} }
           if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
         }} className="tap" style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 15px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 600 }}>
           <I.Share size={15}/> Пригласить по ссылке

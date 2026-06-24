@@ -5438,19 +5438,11 @@ function TeamSettingsScreen() {
         if (id) link += "&ref=" + id;
       } catch (e) {}
       var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
-      try {
-        if (navigator.share) {
-          navigator.share({
-            title: team.name || "Команда",
-            text: text,
-            url: link
-          });
-          return;
-        }
-      } catch (e) {}
-      try {
-        navigator.clipboard.writeText(link);
-      } catch (e) {}
+      if (window.bosShare) window.bosShare(link, text);else {
+        try {
+          navigator.clipboard.writeText(link);
+        } catch (e) {}
+      }
       if (window.tgHaptic) {
         try {
           window.tgHaptic("light");

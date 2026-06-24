@@ -23,6 +23,19 @@
     var tg = (raw && raw.platform && raw.platform !== "unknown") ? raw : null;
     window.__TG = tg;
 
+    // One share entry point for the whole app. Inside Telegram it opens the native
+    // "forward to a contact" picker (openTelegramLink → t.me/share/url) so a friend is
+    // one tap away; outside Telegram it falls back to the Web Share sheet, then clipboard.
+    // Returns true if a share UI opened (caller can skip its own "copied" toast).
+    window.bosShare = function (url, text) {
+      if (tg && tg.openTelegramLink) {
+        try { tg.openTelegramLink("https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text || "")); return true; } catch (e) {}
+      }
+      try { if (navigator.share) { navigator.share({ title: "BalanceOS", text: text || "", url: url }); return true; } } catch (e) {}
+      try { navigator.clipboard.writeText(url); } catch (e) {}
+      return false;
+    };
+
     if (!tg) {
       // Not in Telegram → safe stubs so callers never crash.
       window.tgBackButton = window.tgBackButton || function () {};

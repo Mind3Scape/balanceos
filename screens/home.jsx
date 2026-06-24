@@ -909,9 +909,10 @@ function ShareAppSheet({ dark = false }) {
     setCopied(true); window.setTimeout(() => setCopied(false), 1600);
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
   };
-  const shareLink = async () => {
-    try { if (navigator.share) { await navigator.share({ title: "BalanceOS", text: "Держим баланс вместе — BalanceOS", url: shareUrl }); return; } } catch (e) { return; }
-    copyLink();
+  const shareLink = () => {
+    // Inside Telegram → native contact picker; else Web Share; else clipboard (+ toast).
+    if (window.bosShare ? !window.bosShare(shareUrl, "Держим баланс вместе — BalanceOS") : true) copyLink();
+    else if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
   };
   const C = dark
     ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.09)" }

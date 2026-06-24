@@ -160,9 +160,10 @@ function ShareHabitSheet({ habit, dark = false }) {
     } else { setShareUrl(APP_URL); }
     return () => { on = false; };
   }, [_isLive]);
-  const shareLink = async () => {
-    try { if (navigator.share) { await navigator.share({ title: "BalanceOS", text: "Делаем привычку «" + (habit?.name || "") + "» вместе в BalanceOS", url: shareUrl }); return; } } catch (e) { return; }
-    try { navigator.clipboard.writeText(shareUrl); } catch (e) {}
+  const shareLink = () => {
+    // Inside Telegram → native contact picker; else Web Share; else clipboard.
+    if (window.bosShare) window.bosShare(shareUrl, "Делаем привычку «" + (habit?.name || "") + "» вместе в BalanceOS");
+    else { try { navigator.clipboard.writeText(shareUrl); } catch (e) {} }
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
   };
   const C = dark
@@ -459,7 +460,7 @@ function daysSummary(days) {
 function HabitInviteShareSheet({ habit, link }) {
   const [copied, setCopied] = useHS(false);
   const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
-  const shareLink = async () => { try { if (navigator.share) { await navigator.share({ title: habit?.name || "Привычка", text: "Делаем привычку «" + (habit?.name || "") + "» вместе в BalanceOS", url: link }); return; } } catch (e) { return; } copyLink(); };
+  const shareLink = () => { if (window.bosShare ? !window.bosShare(link, "Делаем привычку «" + (habit?.name || "") + "» вместе в BalanceOS") : true) copyLink(); };
   return (
     <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
       <div style={{ textAlign: "center" }}>
