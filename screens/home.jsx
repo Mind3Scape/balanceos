@@ -555,7 +555,10 @@ function HomeScreen() {
   const _lvl = bosLevelInfo(_liveXP);
   // Show the engaging gold LEVEL banner (instead of the bare "Сегодня x/y" stat cards)
   // through the whole NEW-user phase — a brand-new account OR a live user still at level 1.
-  const _showLevelBanner = isNewbie || (_isLive && ((_lvl && _lvl.level) || 1) <= 1);
+  // The gold level banner is the live home's XP hero — keep it for EVERY live user, at any
+  // level (David asked twice). Earlier it swapped to the compact stat strip at level 2+, so
+  // earning XP ironically hid it. Demo keeps the compact strip (it's not live, not a newbie).
+  const _showLevelBanner = isNewbie || _isLive;
   const dayStreak = app?.mode === "demo" ? 27 : (_isLive ? bosMaxStreak(habits) : 0);
 
   // Bell red dot. Demo always shows it (scripted alert). LIVE: only light it when
