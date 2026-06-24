@@ -98,6 +98,60 @@
     try { var r2 = await c.from("profiles").select("snapshot").eq("id", id).maybeSingle(); return (r2 && r2.data && r2.data.snapshot) || null; } catch (e2) { return null; }
   }
 
+  // ── ЛИЧНЫЕ ПРИВЫЧКИ/ЦЕЛИ как строки (растущие отметки вынесены из блоба) ─────
+  // Приложение остаётся local-first (телефон хранит привычки целиком); сюда уезжают
+  // строки. loadHabits/loadGoals: null = не смог прочитать (звонящий оставит локальные
+  // данные), [] = реально пусто. cloudId = стабильный облачный ключ привычки.
+  async function loadHabits() {
+    var c = client(); var id = await uid(); if (!c || !id) return null;
+    try {
+      var hs = await c.from("habits").select("id,data,sort").order("sort", { ascending: true });
+      if (hs.error) return null;
+      var lg = await c.from("habit_logs").select("habit_id,day");
+      var rows = (lg && lg.data) || [];
+      return (hs.data || []).map(function (h) {
+        var log = {};
+        rows.forEach(function (r) { if (r.habit_id === h.id) log["" + r.day] = true; });
+        return Object.assign({}, h.data || {}, { cloudId: h.id, sort: h.sort || 0, log: log });
+      });
+    } catch (e) { return null; }
+  }
+  async function upsertHabit(h) {
+    var c = client(); var id = await uid(); if (!c || !id || !h || !h.cloudId) return false;
+    var data = Object.assign({}, h); delete data.id; delete data.cloudId; delete data.log; delete data.done; delete data.streak; delete data.sort;
+    try { var r = await c.from("habits").upsert({ id: h.cloudId, user_id: id, data: data, sort: h.sort || 0 }, { onConflict: "id" }); return !r.error; } catch (e) { return false; }
+  }
+  async function deleteHabit(cloudId) {
+    var c = client(); if (!c || !cloudId) return false;
+    try { var r = await c.from("habits").delete().eq("id", cloudId); return !r.error; } catch (e) { return false; }
+  }
+  // Toggle ONE day's mark (idempotent — the (habit_id,day) PK makes re-tap safe).
+  async function toggleHabitLog(cloudId, day, on) {
+    var c = client(); var id = await uid(); if (!c || !id || !cloudId || !day) return false;
+    try {
+      if (on) { await c.from("habit_logs").upsert({ habit_id: cloudId, user_id: id, day: day }, { onConflict: "habit_id,day", ignoreDuplicates: true }); }
+      else { await c.from("habit_logs").delete().eq("habit_id", cloudId).eq("day", day); }
+      return true;
+    } catch (e) { return false; }
+  }
+  async function loadGoals() {
+    var c = client(); var id = await uid(); if (!c || !id) return null;
+    try {
+      var gs = await c.from("goals").select("id,data,sort").order("sort", { ascending: true });
+      if (gs.error) return null;
+      return (gs.data || []).map(function (g) { return Object.assign({}, g.data || {}, { cloudId: g.id, sort: g.sort || 0 }); });
+    } catch (e) { return null; }
+  }
+  async function upsertGoal(g) {
+    var c = client(); var id = await uid(); if (!c || !id || !g || !g.cloudId) return false;
+    var data = Object.assign({}, g); delete data.id; delete data.cloudId; delete data.sort;
+    try { var r = await c.from("goals").upsert({ id: g.cloudId, user_id: id, data: data, sort: g.sort || 0 }, { onConflict: "id" }); return !r.error; } catch (e) { return false; }
+  }
+  async function deleteGoal(cloudId) {
+    var c = client(); if (!c || !cloudId) return false;
+    try { var r = await c.from("goals").delete().eq("id", cloudId); return !r.error; } catch (e) { return false; }
+  }
+
   // ── D3 · команды в облаке (создать / найти / вступить) ──────────────────────
   async function myTeamIds() {
     var c = client(); var id = await uid(); if (!c || !id) return [];
@@ -292,6 +346,8 @@
     signIn: signIn, uid: uid, currentUser: currentUser,
     loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
+    loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
+    loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,
     createTeam: createTeam, discoverTeams: discoverTeams, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,

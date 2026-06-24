@@ -1177,6 +1177,15 @@ var SEED_DAYNOTES = {
 // New-item id source. Module-level → resets to 1000 on every reload alongside the seeds.
 var _bosNextId = 1000;
 var _nid = () => ++_bosNextId;
+// Stable GLOBAL id for a habit/goal's cloud row. The local _nid is a per-session counter
+// that resets to 1000 + collides across users/sessions, so it can NOT key cloud rows.
+// The habits.id column is `text`, so any string works.
+var _uuid = () => {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  } catch (e) {}
+  return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+};
 
 /* Home widgets: full for the demo; minimal for a fresh new user — don't overwhelm.
    Stat cards / calendar / team / energy stay off until there's something to show. */
@@ -1411,6 +1420,9 @@ function AppProvider({
 
   // Demo/fresh: simple boolean flip (curated showcase). Live: idempotent date-keyed
   // UPSERT into the habit's log, with done/streak re-derived from it (T0.2).
+  // Live cloud sync is per-action (fire-and-forget, guarded): local stays the source of
+  // truth, the row write is a background mirror. cloudId = the habit's stable cloud key.
+  var _liveCloud = () => mode === "live" && window.bosCloud && window.bosCloud.enabled();
   var toggleHabit = id => setHabits(hs => hs.map(h => {
     if (h.id !== id) return h;
     if (mode !== "live") return {
@@ -1419,7 +1431,17 @@ function AppProvider({
     };
     var tk = bosTodayKey();
     var log = h.log ? Object.assign({}, h.log) : {};
-    if (log[tk]) delete log[tk];else log[tk] = true;
+    var on;
+    if (log[tk]) {
+      delete log[tk];
+      on = false;
+    } else {
+      log[tk] = true;
+      on = true;
+    }
+    try {
+      if (h.cloudId && _liveCloud()) window.bosCloud.toggleHabitLog(h.cloudId, tk, on);
+    } catch (e) {}
     return Object.assign({}, h, {
       log: log,
       done: !!log[tk],
@@ -1431,16 +1453,33 @@ function AppProvider({
       id: _nid(),
       done: false,
       streak: 0,
-      ...h
+      ...h,
+      cloudId: h && h.cloudId || _uuid()
     };
     setHabits(hs => [...hs, nh]);
+    try {
+      if (_liveCloud()) window.bosCloud.upsertHabit(nh);
+    } catch (e) {}
     return nh;
   };
-  var updateHabit = (id, patch) => setHabits(hs => hs.map(h => h.id === id ? {
-    ...h,
-    ...patch
-  } : h));
-  var removeHabit = id => setHabits(hs => hs.filter(h => h.id !== id));
+  var updateHabit = (id, patch) => setHabits(hs => hs.map(h => {
+    if (h.id !== id) return h;
+    var u = {
+      ...h,
+      ...patch
+    };
+    try {
+      if (u.cloudId && _liveCloud()) window.bosCloud.upsertHabit(u);
+    } catch (e) {}
+    return u;
+  }));
+  var removeHabit = id => setHabits(hs => {
+    var h = hs.find(x => x.id === id);
+    try {
+      if (h && h.cloudId && _liveCloud()) window.bosCloud.deleteHabit(h.cloudId);
+    } catch (e) {}
+    return hs.filter(x => x.id !== id);
+  });
 
   // Live profiles: when the app (re)gains focus, re-derive today's checkmarks from each
   // habit's log — a habit checked yesterday shows unchecked today, while streak/XP persist.
@@ -1464,16 +1503,33 @@ function AppProvider({
     var ng = {
       id: _nid(),
       current: 0,
-      ...g
+      ...g,
+      cloudId: g && g.cloudId || _uuid()
     };
     setGoals(gs => [...gs, ng]);
+    try {
+      if (_liveCloud()) window.bosCloud.upsertGoal(ng);
+    } catch (e) {}
     return ng;
   };
-  var updateGoal = (id, patch) => setGoals(gs => gs.map(g => g.id === id ? {
-    ...g,
-    ...patch
-  } : g));
-  var removeGoal = id => setGoals(gs => gs.filter(g => g.id !== id));
+  var updateGoal = (id, patch) => setGoals(gs => gs.map(g => {
+    if (g.id !== id) return g;
+    var u = {
+      ...g,
+      ...patch
+    };
+    try {
+      if (u.cloudId && _liveCloud()) window.bosCloud.upsertGoal(u);
+    } catch (e) {}
+    return u;
+  }));
+  var removeGoal = id => setGoals(gs => {
+    var g = gs.find(x => x.id === id);
+    try {
+      if (g && g.cloudId && _liveCloud()) window.bosCloud.deleteGoal(g.cloudId);
+    } catch (e) {}
+    return gs.filter(x => x.id !== id);
+  });
   var [teams, setTeams] = useState(SEED_TEAMS);
   // New teams go to the TOP so the just-created one is immediately visible.
   var addTeam = t => {
@@ -1570,10 +1626,9 @@ function AppProvider({
             username: userName,
             avatar: avatar
           });
-          // D2 — mirror the whole life-blob to the cloud so it follows you across devices.
+          // D2 — mirror the blob across devices. Habits/goals are NO LONGER here: they sync
+          // as rows (habits/habit_logs/goals) so the blob can't balloon with date-keyed logs.
           window.bosCloud.saveSnapshot({
-            habits,
-            goals,
             teams,
             dayMoods,
             dayNotes,
@@ -1611,8 +1666,6 @@ function AppProvider({
         });
         if (window.bosCloud && window.bosCloud.enabled()) {
           window.bosCloud.saveSnapshot({
-            habits: s.habits,
-            goals: s.goals,
             teams: s.teams,
             dayMoods: s.dayMoods,
             dayNotes: s.dayNotes,
@@ -1829,10 +1882,13 @@ function AppProvider({
           window.bosCloud.loadSnapshot().then(function (snap) {
             var localAt = saved ? saved.savedAt || 0 : 0;
             var cloudAt = snap && snap.savedAt || 0;
+            // Migration seed for habits/goals = whatever we have right now (an old pre-rows
+            // user has them in the cloud blob; else the local copy). Captured before state moves.
+            var _seedHabits = snap && snap.data && Array.isArray(snap.data.habits) && snap.data.habits || saved && saved.habits || [];
+            var _seedGoals = snap && snap.data && Array.isArray(snap.data.goals) && snap.data.goals || saved && saved.goals || [];
             if (snap && snap.data && cloudAt >= localAt) {
               var d = snap.data;
-              if (Array.isArray(d.habits)) setHabits(d.habits.map(bosRollHabit));
-              if (Array.isArray(d.goals)) setGoals(d.goals);
+              // habits/goals are NO LONGER in the blob — they're loaded from rows below.
               if (Array.isArray(d.teams)) setTeams(d.teams);
               if (d.dayMoods) {
                 setDayMoods(d.dayMoods);
@@ -1849,8 +1905,6 @@ function AppProvider({
             } else {
               var src = saved || {};
               window.bosCloud.saveSnapshot({
-                habits: src.habits || [],
-                goals: src.goals || [],
                 teams: src.teams || [],
                 dayMoods: src.dayMoods || {},
                 dayNotes: src.dayNotes || {},
@@ -1860,6 +1914,66 @@ function AppProvider({
             }
             // Reconciliation done → allow autosave again (the join below should persist).
             _doneHydrate();
+            // ── Habits/goals live as ROWS now. Load them; if rows are empty, migrate the
+            // seed (old blob / local) into rows ONCE. null = load failed → keep local copy.
+            try {
+              window.bosCloud.loadHabits().then(function (rows) {
+                if (rows === null) return;
+                if (rows.length) {
+                  setHabits(rows.map(function (h) {
+                    return bosRollHabit(Object.assign({
+                      id: _nid()
+                    }, h));
+                  }));
+                  return;
+                }
+                if (_seedHabits.length) {
+                  var wi = _seedHabits.map(function (h) {
+                    return Object.assign({
+                      id: _nid()
+                    }, h, {
+                      cloudId: h.cloudId || _uuid()
+                    });
+                  });
+                  setHabits(wi.map(bosRollHabit));
+                  wi.forEach(function (h) {
+                    try {
+                      window.bosCloud.upsertHabit(h);
+                      var lg = h.log || {};
+                      Object.keys(lg).forEach(function (day) {
+                        if (lg[day]) window.bosCloud.toggleHabitLog(h.cloudId, day, true);
+                      });
+                    } catch (e) {}
+                  });
+                }
+              });
+              window.bosCloud.loadGoals().then(function (rows) {
+                if (rows === null) return;
+                if (rows.length) {
+                  setGoals(rows.map(function (g) {
+                    return Object.assign({
+                      id: _nid()
+                    }, g);
+                  }));
+                  return;
+                }
+                if (_seedGoals.length) {
+                  var wg = _seedGoals.map(function (g) {
+                    return Object.assign({
+                      id: _nid()
+                    }, g, {
+                      cloudId: g.cloudId || _uuid()
+                    });
+                  });
+                  setGoals(wg);
+                  wg.forEach(function (g) {
+                    try {
+                      window.bosCloud.upsertGoal(g);
+                    } catch (e) {}
+                  });
+                }
+              });
+            } catch (e) {}
             // ?team= invite link → join that team instantly («по ссылке — сразу»),
             // append it on top of whatever teams we just hydrated, and clean the URL.
             if (_joinTeamId) {
