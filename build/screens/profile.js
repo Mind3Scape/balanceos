@@ -4645,49 +4645,6 @@ var ACHIEVEMENTS = [{
   req: "уровень 20",
   accent: "#a8e8e0"
 }];
-
-// LIVE achievements — earned by REAL signals from this user (level, max streak, teams,
-// journaling/state days). Returns a fresh list shaped exactly like ACHIEVEMENTS so the
-// same screen renders it; demo keeps the curated array above untouched.
-function bosLiveAchievements(app) {
-  var level = typeof bosLevelInfo === "function" && typeof bosLiveXP === "function" ? bosLevelInfo(bosLiveXP(app)).level : 1;
-  var streak = typeof bosMaxStreak === "function" ? bosMaxStreak(app && app.habits) : 0;
-  var teamsJoined = (app && app.teams || []).filter(function (t) {
-    return t && (t.joined || t.cloudId);
-  }).length;
-  // Days of self-tracking = unique days you logged a state OR wrote a journal line.
-  var jdays = {};
-  Object.keys(app && app.dayMoods || {}).forEach(function (k) {
-    jdays[k] = 1;
-  });
-  Object.keys(app && app.dayNotes || {}).forEach(function (k) {
-    var e = app.dayNotes[k];
-    if (e && (e.note != null && ("" + e.note).trim() || e.tags && e.tags.length)) jdays[k] = 1;
-  });
-  var careDays = Object.keys(jdays).length;
-  var cond = [level >= 2,
-  // ⚡ первый реальный прогресс
-  careDays >= 10,
-  // 🧘 10 дней внимания к себе (состояние/дневник)
-  teamsJoined >= 1,
-  // 🤝 ты в команде
-  streak >= 30,
-  // 🔥 месяц без пропусков
-  streak >= 7,
-  // 🚀 серия 7 дней
-  streak >= 21,
-  // 🏃 серия 21 день
-  level >= 10,
-  // 💼 10 уровень
-  level >= 20 // 🌍 20 уровень
-  ];
-  return ACHIEVEMENTS.map(function (a, i) {
-    return Object.assign({}, a, {
-      earned: !!cond[i],
-      date: ""
-    });
-  });
-}
 function AchievementsScreen() {
   var {
     navigate,
@@ -4996,6 +4953,5 @@ Object.assign(window, {
   IconPickerScreen,
   AchievementsScreen,
   ACHIEVEMENTS,
-  bosLiveAchievements,
   ManifestScreen
 });

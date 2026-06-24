@@ -1,4 +1,4 @@
-/* MORE SCREENS — habit detail, mood check-in, journal, focus timer, level-up modal, AI chat */
+/* MORE SCREENS — habit detail, mood check-in, journal, focus timer, AI chat */
 var {
   useState: useM
 } = React;
@@ -665,7 +665,7 @@ function GoalDetailScreen() {
       color: "var(--text-4)",
       marginTop: 1
     }
-  }, "\uD83D\uDD25 ", h.streak || 0, "\u0434 \u0441\u0435\u0440\u0438\u044F")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\uD83D\uDD25 ", app?.mode === "live" && typeof bosStreak === "function" ? bosStreak(h.log) : h.streak || 0, "\u0434 \u0441\u0435\u0440\u0438\u044F")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 17,
     color: "var(--text-4)"
   })), i < linked.length - 1 && /*#__PURE__*/React.createElement("div", {
@@ -1439,119 +1439,6 @@ function JournalScreen() {
 /* FOCUS SESSION — pomodoro-ish */
 /* (FocusScreen removed — habit sessions now run inline as a segmented ring timer
    right in the habit row; see HabitRing in habits.jsx.) */
-
-/* LEVEL-UP modal screen — celebratory in-app moment */
-function LevelUpScreen() {
-  var {
-    navigate
-  } = useNav();
-  return /*#__PURE__*/React.createElement("div", {
-    className: "page-in",
-    style: {
-      height: "100%",
-      color: "#fff",
-      display: "flex",
-      flexDirection: "column",
-      padding: 24,
-      position: "relative",
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 0,
-      background: "radial-gradient(circle at 50% 30%, rgba(255,222,52,0.25), transparent 60%)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      textAlign: "center",
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#FEDE34",
-      textTransform: "uppercase",
-      letterSpacing: 2,
-      fontWeight: 700
-    }
-  }, "\u041D\u043E\u0432\u044B\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 110,
-      fontWeight: 800,
-      letterSpacing: "-4px",
-      lineHeight: 1,
-      marginTop: 6,
-      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent"
-    }
-  }, "8"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 600,
-      marginTop: 8
-    }
-  }, "\u0421\u043E\u0441\u0440\u0435\u0434\u043E\u0442\u043E\u0447\u0435\u043D\u043D\u044B\u0439"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "#9f9fa9",
-      marginTop: 14,
-      maxWidth: 280,
-      lineHeight: 1.5
-    }
-  }, "\u0422\u044B \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043B ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "#FEDE34"
-    }
-  }, "+250 XP"), " \u0438 \u043E\u0442\u043A\u0440\u044B\u043B \u043D\u043E\u0432\u044B\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u043D\u0430\u0433\u0440\u0430\u0434."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginTop: 24
-    }
-  }, ["🔥", "🏆", "✨"].map((e, i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      width: 50,
-      height: 50,
-      borderRadius: 14,
-      background: "rgba(255,255,255,0.08)",
-      border: "1px solid rgba(255,255,255,0.1)",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 26
-    }
-  }, e)))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("levels"),
-    className: "tap",
-    style: {
-      background: "#FEDE34",
-      color: "#0a0a0a",
-      border: 0,
-      borderRadius: 999,
-      padding: 16,
-      fontSize: 16,
-      fontWeight: 600
-    }
-  }, "\u0417\u0430\u0431\u0440\u0430\u0442\u044C \u043D\u0430\u0433\u0440\u0430\u0434\u044B"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("home"),
-    className: "tap",
-    style: {
-      background: "transparent",
-      color: "#9f9fa9",
-      border: 0,
-      padding: 12,
-      fontSize: 13,
-      marginTop: 6
-    }
-  }, "\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C"));
-}
 
 /* AI CHAT — rich conversational coach with structured AI replies */
 
@@ -3123,7 +3010,6 @@ Object.assign(window, {
   GoalDetailScreen,
   MoodScreen,
   JournalScreen,
-  LevelUpScreen,
   AIChatScreen,
   AchievementUnlock
 });

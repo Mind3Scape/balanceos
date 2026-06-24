@@ -1,4 +1,4 @@
-/* MORE SCREENS — habit detail, mood check-in, journal, focus timer, level-up modal, AI chat */
+/* MORE SCREENS — habit detail, mood check-in, journal, focus timer, AI chat */
 const { useState: useM } = React;
 
 /* HABIT DETAIL — per-habit statistics. Opened by tapping a habit on Home or
@@ -272,7 +272,7 @@ function GoalDetailScreen() {
                   <span style={{ width: 38, height: 38, borderRadius: 11, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{h.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, color: "var(--text-2)", fontWeight: 500 }}>{h.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {h.streak || 0}д серия</div>
+                    <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {(app?.mode === "live" && typeof bosStreak === "function") ? bosStreak(h.log) : (h.streak || 0)}д серия</div>
                   </div>
                   <I.ChevronRight size={17} color="var(--text-4)" />
                 </button>
@@ -647,31 +647,6 @@ function JournalScreen() {
 /* FOCUS SESSION — pomodoro-ish */
 /* (FocusScreen removed — habit sessions now run inline as a segmented ring timer
    right in the habit row; see HabitRing in habits.jsx.) */
-
-/* LEVEL-UP modal screen — celebratory in-app moment */
-function LevelUpScreen() {
-  const { navigate } = useNav();
-  return (
-    <div className="page-in" style={{ height: "100%", color: "#fff", display: "flex", flexDirection: "column", padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 30%, rgba(255,222,52,0.25), transparent 60%)" }}/>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", position: "relative" }}>
-        <div style={{ fontSize: 12, color: "#FEDE34", textTransform: "uppercase", letterSpacing: 2, fontWeight: 700 }}>Новый уровень</div>
-        <div style={{ fontSize: 110, fontWeight: 800, letterSpacing: "-4px", lineHeight: 1, marginTop: 6, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>8</div>
-        <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>Сосредоточенный</div>
-        <div style={{ fontSize: 14, color: "#9f9fa9", marginTop: 14, maxWidth: 280, lineHeight: 1.5 }}>
-          Ты заработал <b style={{ color: "#FEDE34" }}>+250 XP</b> и открыл новый уровень наград.
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
-          {["🔥","🏆","✨"].map((e,i)=>(<span key={i} style={{ width: 50, height: 50, borderRadius: 14, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", display: "grid", placeItems: "center", fontSize: 26 }}>{e}</span>))}
-        </div>
-      </div>
-      <button onClick={() => navigate("levels")} className="tap" style={{ background: "#FEDE34", color: "#0a0a0a", border: 0, borderRadius: 999, padding: 16, fontSize: 16, fontWeight: 600 }}>
-        Забрать награды
-      </button>
-      <button onClick={() => navigate("home")} className="tap" style={{ background: "transparent", color: "#9f9fa9", border: 0, padding: 12, fontSize: 13, marginTop: 6 }}>Продолжить</button>
-    </div>
-  );
-}
 
 /* AI CHAT — rich conversational coach with structured AI replies */
 
@@ -1447,4 +1422,4 @@ function AchievementUnlock({ ach, onClose }) {
   );
 }
 
-Object.assign(window, { HabitDetailScreen, GoalDetailScreen, MoodScreen, JournalScreen, LevelUpScreen, AIChatScreen, AchievementUnlock });
+Object.assign(window, { HabitDetailScreen, GoalDetailScreen, MoodScreen, JournalScreen, AIChatScreen, AchievementUnlock });
