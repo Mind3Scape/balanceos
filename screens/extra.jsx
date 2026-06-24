@@ -16,11 +16,15 @@ function HabitDetailScreen() {
   const isDark = app?.themeOverride === "dark";
   const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
 
-  const streak = h.streak || 0;
-  // Deterministic derived stats — stable per habit, never random.
-  const best  = Math.max(streak, 27);
-  const total = streak * 9 + (h.id || 1) * 7 + 40;
-  const rate  = Math.min(98, 58 + streak * 2);
+  // LIVE: real stats from the check-in log (h.log = {dateKey:true}). DEMO: curated showcase.
+  const _live = app?.mode === "live";
+  const _log = h.log || {};
+  const _logDays = Object.keys(_log).filter((k) => _log[k] && /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+  const _bestRun = (days) => { if (!days.length) return 0; let b = 1, c = 1; for (let i = 1; i < days.length; i++) { const diff = Math.round((new Date(days[i] + "T00:00:00") - new Date(days[i - 1] + "T00:00:00")) / 86400000); if (diff === 1) { c++; if (c > b) b = c; } else if (diff > 1) c = 1; } return b; };
+  const streak = _live ? ((typeof bosStreak === "function") ? bosStreak(_log) : (h.streak || 0)) : (h.streak || 0);
+  const best   = _live ? Math.max(streak, _bestRun(_logDays)) : Math.max(streak, 27);
+  const total  = _live ? _logDays.length : streak * 9 + (h.id || 1) * 7 + 40;
+  const rate   = Math.min(98, 58 + streak * 2); // demo-only (feeds the demo calendar fill)
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
@@ -73,7 +77,13 @@ function HabitDetailScreen() {
   const calPeople = isShared
     ? fullRoster.map((p) => ({ name: p.name, initials: p.initials, color: p.color, you: p.you }))
     : [{ name: "Ты", initials: "Я", color: h.color || "#FFC400", you: true }];
+  const _calYear = _live ? new Date().getFullYear() : 2026;
   const habitFrac = (pi, d, mi) => {
+    // LIVE: the REAL calendar — did you actually check this habit on that date (h.log)?
+    if (_live) {
+      const k = _calYear + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      return _log[k] ? 1 : 0;
+    }
     const p = isShared ? fullRoster[pi] : { you: true, streak };
     const lvl = p.you ? Math.min(1, Math.max(0.4, (rate || 70) / 100)) : Math.min(1, (p.streak || 10) / 26);
     const n = Math.sin(d * 9.137 + pi * 53.7 + mi * 21.3 + (h.id || 1) * 7.1) * 43758.5453;

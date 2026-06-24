@@ -27,11 +27,28 @@ function HabitDetailScreen() {
   var Count = typeof CountUp !== "undefined" ? CountUp : ({
     value
   }) => value;
-  var streak = h.streak || 0;
-  // Deterministic derived stats — stable per habit, never random.
-  var best = Math.max(streak, 27);
-  var total = streak * 9 + (h.id || 1) * 7 + 40;
-  var rate = Math.min(98, 58 + streak * 2);
+
+  // LIVE: real stats from the check-in log (h.log = {dateKey:true}). DEMO: curated showcase.
+  var _live = app?.mode === "live";
+  var _log = h.log || {};
+  var _logDays = Object.keys(_log).filter(k => _log[k] && /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+  var _bestRun = days => {
+    if (!days.length) return 0;
+    var b = 1,
+      c = 1;
+    for (var i = 1; i < days.length; i++) {
+      var diff = Math.round((new Date(days[i] + "T00:00:00") - new Date(days[i - 1] + "T00:00:00")) / 86400000);
+      if (diff === 1) {
+        c++;
+        if (c > b) b = c;
+      } else if (diff > 1) c = 1;
+    }
+    return b;
+  };
+  var streak = _live ? typeof bosStreak === "function" ? bosStreak(_log) : h.streak || 0 : h.streak || 0;
+  var best = _live ? Math.max(streak, _bestRun(_logDays)) : Math.max(streak, 27);
+  var total = _live ? _logDays.length : streak * 9 + (h.id || 1) * 7 + 40;
+  var rate = Math.min(98, 58 + streak * 2); // demo-only (feeds the demo calendar fill)
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
@@ -107,7 +124,13 @@ function HabitDetailScreen() {
     color: h.color || "#FFC400",
     you: true
   }];
+  var _calYear = _live ? new Date().getFullYear() : 2026;
   var habitFrac = (pi, d, mi) => {
+    // LIVE: the REAL calendar — did you actually check this habit on that date (h.log)?
+    if (_live) {
+      var k = _calYear + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      return _log[k] ? 1 : 0;
+    }
     var p = isShared ? fullRoster[pi] : {
       you: true,
       streak

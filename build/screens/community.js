@@ -3390,9 +3390,12 @@ function PeopleMonthCalendar({
   var isDark = app?.themeOverride === "dark";
   var MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
   var DIM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  var CUR_M = 3,
-    today = 28,
-    year = 2026;
+  // DEMO keeps its frozen showcase date (28 апреля 2026). LIVE uses the REAL calendar.
+  var _liveCal = app?.mode === "live";
+  var _nowCal = _liveCal ? new Date() : null;
+  var CUR_M = _liveCal ? _nowCal.getMonth() : 3,
+    today = _liveCal ? _nowCal.getDate() : 28,
+    year = _liveCal ? _nowCal.getFullYear() : 2026;
   var solo = people.length <= 1;
   var [mIdx, setMIdx] = useCS(CUR_M);
   var [selInner, setSelInner] = useCS(solo ? 0 : null);
@@ -3401,8 +3404,8 @@ function PeopleMonthCalendar({
     if (onSelPerson) onSelPerson(v);else setSelInner(v);
   };
   var [selDay, setSelDay] = useCS(today);
-  var daysInMonth = DIM[mIdx];
-  var startWeekday = (mIdx * 3 + 3) % 7;
+  var daysInMonth = _liveCal ? new Date(year, mIdx + 1, 0).getDate() : DIM[mIdx];
+  var startWeekday = _liveCal ? new Date(year, mIdx, 1).getDay() : (mIdx * 3 + 3) % 7;
   var isCurMonth = mIdx === CUR_M;
   var lastLogged = isCurMonth ? today : mIdx > CUR_M ? 0 : daysInMonth;
   var future = d => mIdx > CUR_M || d > lastLogged;

@@ -1266,15 +1266,18 @@ function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь
   const isDark = app?.themeOverride === "dark";
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
   const DIM = [31,28,31,30,31,30,31,31,30,31,30,31];
-  const CUR_M = 3, today = 28, year = 2026;
+  // DEMO keeps its frozen showcase date (28 апреля 2026). LIVE uses the REAL calendar.
+  const _liveCal = app?.mode === "live";
+  const _nowCal = _liveCal ? new Date() : null;
+  const CUR_M = _liveCal ? _nowCal.getMonth() : 3, today = _liveCal ? _nowCal.getDate() : 28, year = _liveCal ? _nowCal.getFullYear() : 2026;
   const solo = people.length <= 1;
   const [mIdx, setMIdx] = useCS(CUR_M);
   const [selInner, setSelInner] = useCS(solo ? 0 : null);
   const selPerson = selProp !== undefined ? selProp : selInner;
   const setSelPerson = (v) => { if (onSelPerson) onSelPerson(v); else setSelInner(v); };
   const [selDay, setSelDay] = useCS(today);
-  const daysInMonth = DIM[mIdx];
-  const startWeekday = (mIdx * 3 + 3) % 7;
+  const daysInMonth = _liveCal ? new Date(year, mIdx + 1, 0).getDate() : DIM[mIdx];
+  const startWeekday = _liveCal ? new Date(year, mIdx, 1).getDay() : (mIdx * 3 + 3) % 7;
   const isCurMonth = mIdx === CUR_M;
   const lastLogged = isCurMonth ? today : (mIdx > CUR_M ? 0 : daysInMonth);
   const future = (d) => mIdx > CUR_M || d > lastLogged;
