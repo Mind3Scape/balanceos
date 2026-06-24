@@ -4027,6 +4027,10 @@ function TeamDetailScreen() {
   // Read the LIVE team from the store so a just-added habit appears immediately.
   var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   var accent = t.accent || "#fef3c7";
+  // DEMO = showcase (fabrication FINE). LIVE = real user: honest data or empty, NEVER fake
+  // standings/activity/calendar — even for a team without a cloud link yet.
+  var _demoTeam = app?.mode === "demo";
+  var _realTeam = app?.mode === "live";
 
   // Real team-chat preview + unread badge for LIVE cloud teams (demo keeps its scripted line).
   var _chatLive = app?.mode === "live" && !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
@@ -4188,13 +4192,13 @@ function TeamDetailScreen() {
     }).then(() => setHabitsTick(n => n + 1));
   };
   var liveRoster = _rosterLive && cloudRoster;
-  var members = liveRoster ? cloudRoster : t.members?.length ? t.members : [{
+  var members = liveRoster ? cloudRoster : t.members?.length ? t.members : _demoTeam ? [{
     name: "Ник",
     initials: "Н",
     pct: 19,
     color: "#a8b9d4"
-  }];
-  var ranked = liveRoster ? members : [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // demo: by contribution; live: roster order (owner first)
+  }] : [];
+  var ranked = _realTeam ? members : [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // demo: by contribution; live: roster order (owner first)
   var DEFAULT_TEAM_HABITS = [{
     id: 1,
     emoji: "🙏",
@@ -4232,7 +4236,7 @@ function TeamDetailScreen() {
     weekPct: 0.81,
     week: [1, 1, 1, 1, 0, 1, 1]
   }];
-  var teamHabits = _rosterLive ? liveTeamHabits || [] : Array.isArray(t.habits) ? t.habits : DEFAULT_TEAM_HABITS;
+  var teamHabits = _rosterLive ? liveTeamHabits || [] : Array.isArray(t.habits) ? t.habits : _demoTeam ? DEFAULT_TEAM_HABITS : [];
   var main = teamHabits.find(h => h.isMain);
   var others = teamHabits.filter(h => !h.isMain);
   var aggregate = teamHabits.length ? Math.round(teamHabits.reduce((s, h) => s + (h.weekPct || 0), 0) / teamHabits.length * 100) : 0;
@@ -4454,7 +4458,7 @@ function TeamDetailScreen() {
       marginTop: 2,
       color: "var(--text)"
     }
-  }, _rosterLive ? "—" : "14д 🔥"))))), /*#__PURE__*/React.createElement("button", {
+  }, _realTeam ? "—" : "14д 🔥"))))), /*#__PURE__*/React.createElement("button", {
     "data-tour": "team-chat",
     onClick: () => {
       markChatRead();
@@ -4507,7 +4511,7 @@ function TeamDetailScreen() {
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, _chatLive ? chatPeek ? chatPeek.last || "Пока пусто — напишите первыми" : "…" : "Сергей: Цель добьём к выходным — налегаем! 🔥")), _chatLive ? chatPeek && chatPeek.unread > 0 ? /*#__PURE__*/React.createElement("span", {
+  }, _chatLive ? chatPeek ? chatPeek.last || "Пока пусто — напишите первыми" : "…" : _demoTeam ? "Сергей: Цель добьём к выходным — налегаем! 🔥" : "Пока пусто — напишите первыми")), _chatLive ? chatPeek && chatPeek.unread > 0 ? /*#__PURE__*/React.createElement("span", {
     style: {
       background: "#FF3B30",
       color: "#fff",
@@ -4521,7 +4525,7 @@ function TeamDetailScreen() {
       placeItems: "center",
       flexShrink: 0
     }
-  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread) : null : /*#__PURE__*/React.createElement("span", {
+  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread) : null : _demoTeam ? /*#__PURE__*/React.createElement("span", {
     style: {
       background: "#FF3B30",
       color: "#fff",
@@ -4535,7 +4539,7 @@ function TeamDetailScreen() {
       placeItems: "center",
       flexShrink: 0
     }
-  }, "3"), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "3") : null, /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
     color: "var(--text-4)"
   })), main && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -4662,7 +4666,7 @@ function TeamDetailScreen() {
       background: main.doneByMe ? "rgba(0,0,0,0.12)" : "#0a0a0a",
       color: main.doneByMe ? "#0a0a0a" : "#FEDE34"
     }
-  }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"))), !_rosterLive && /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
+  }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"))), _demoTeam && /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
     people: members.map(m => ({
       name: m.name,
       initials: m.initials,
@@ -4898,7 +4902,7 @@ function TeamDetailScreen() {
     style: {
       marginTop: 22
     }
-  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 (", members.length, ")", liveRoster ? "" : " · по вкладу"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 (", members.length, ")", _realTeam ? "" : " · по вкладу"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -4906,7 +4910,7 @@ function TeamDetailScreen() {
       marginTop: 8
     }
   }, ranked.map((m, i) => {
-    var isLeader = !liveRoster && i === 0 && (m.pct || 0) > 0;
+    var isLeader = !_realTeam && i === 0 && (m.pct || 0) > 0;
     var expanded = expandedMember === m.name;
     var todayDone = m.todayDone ?? 0;
     var todayTotal = m.todayTotal ?? teamHabits.length;
@@ -4992,7 +4996,7 @@ function TeamDetailScreen() {
         display: "flex",
         gap: 10
       }
-    }, liveRoster ? /*#__PURE__*/React.createElement("span", null, m.role === "owner" ? "Создатель команды" : "Участник") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDD25 ", m.streak ?? 0), /*#__PURE__*/React.createElement("span", null, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F ", todayDone, "/", todayTotal)))), !liveRoster && /*#__PURE__*/React.createElement("span", {
+    }, _realTeam ? /*#__PURE__*/React.createElement("span", null, m.role === "owner" ? "Создатель команды" : "Участник") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDD25 ", m.streak ?? 0), /*#__PURE__*/React.createElement("span", null, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F ", todayDone, "/", todayTotal)))), !_realTeam && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14,
         fontWeight: 700,
@@ -5007,7 +5011,7 @@ function TeamDetailScreen() {
         transform: expanded ? "rotate(90deg)" : "none",
         transition: "transform 0.2s"
       }
-    })), !liveRoster && expanded && /*#__PURE__*/React.createElement("div", {
+    })), !_realTeam && expanded && /*#__PURE__*/React.createElement("div", {
       style: {
         padding: "0 14px 14px 64px",
         display: "flex",
@@ -5042,7 +5046,7 @@ function TeamDetailScreen() {
         strokeWidth: 3
       }));
     })));
-  })), !liveRoster && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  })), _demoTeam && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -5760,7 +5764,8 @@ function LevelsScreen() {
       h = n % 100;
     return a[m === 1 && h !== 11 ? 0 : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? 1 : 2];
   };
-  var ach = typeof window !== "undefined" && window.ACHIEVEMENTS || [];
+  // LIVE: real earned ladder (never Павел's curated array). DEMO: the curated showcase.
+  var ach = app?.mode === "live" ? typeof bosEarnedAchievements === "function" ? bosEarnedAchievements(app) : [] : typeof window !== "undefined" && window.ACHIEVEMENTS || [];
   var achEarned = ach.filter(a => a.earned);
   // LIVE: real numbers from the date-keyed habit model (T0.2). DEMO: curated showcase.
   // Fresh demo: a clean level 1. Titles are shared so demo's "Преданный делу" still maps to 7.

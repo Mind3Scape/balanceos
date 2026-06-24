@@ -47,7 +47,10 @@ function HabitDetailScreen() {
 
   // ── Shared habit → a roster (you + friends) with deterministic streaks, shared
   //    by BOTH the leaderboard and the calendar so the rings match the standings.
-  const isShared = h.friends?.length > 0;
+  // DEMO only: the friendly competition (roster, leaderboard, friend calendars) is fabricated
+  // (mkStreak / Math.sin). LIVE has no real per-friend logs client-side → show the solo REAL
+  // view (your own log), never invented friend standings.
+  const isShared = (app?.mode === "demo") && (h.friends?.length > 0);
   const mkStreak = (seed) => 3 + (Math.abs(seed) * 7) % 24; // deterministic 3..26
   const roster = isShared ? [
     { name: "Ты", initials: "Я", color: h.color || "#FFC400", streak, you: true },

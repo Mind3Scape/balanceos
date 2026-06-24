@@ -1487,6 +1487,10 @@ function TeamDetailScreen() {
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   const accent = t.accent || "#fef3c7";
+  // DEMO = showcase (fabrication FINE). LIVE = real user: honest data or empty, NEVER fake
+  // standings/activity/calendar — even for a team without a cloud link yet.
+  const _demoTeam = app?.mode === "demo";
+  const _realTeam = app?.mode === "live";
 
   // Real team-chat preview + unread badge for LIVE cloud teams (demo keeps its scripted line).
   const _chatLive = app?.mode === "live" && !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
@@ -1588,15 +1592,15 @@ function TeamDetailScreen() {
   };
   const addTeamHabitCloud = (h) => { var first = !(liveTeamHabits && liveTeamHabits.length); window.bosCloud.addTeamHabit(t.cloudId, { ...h, isMain: (h && h.isMain) || first }).then(() => setHabitsTick((n) => n + 1)); };
   const liveRoster = _rosterLive && cloudRoster;
-  const members = liveRoster ? cloudRoster : (t.members?.length ? t.members : [{name:"Ник",initials:"Н",pct:19,color:"#a8b9d4"}]);
-  const ranked = liveRoster ? members : [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // demo: by contribution; live: roster order (owner first)
+  const members = liveRoster ? cloudRoster : (t.members?.length ? t.members : (_demoTeam ? [{name:"Ник",initials:"Н",pct:19,color:"#a8b9d4"}] : []));
+  const ranked = _realTeam ? members : [...members].sort((a, b) => (b.pct || 0) - (a.pct || 0)); // demo: by contribution; live: roster order (owner first)
   const DEFAULT_TEAM_HABITS = [
     { id: 1, emoji: "🙏", name: "Добрые дела",  isMain: true,  doneToday: 8,  total: 9, weekPct: 0.78, week:[1,1,0,1,1,1,1] },
     { id: 2, emoji: "🧘🏼‍♀️", name: "Групповая медитация", isMain: false, doneToday: 6, total: 9, weekPct: 0.65, week:[1,0,1,1,0,1,1] },
     { id: 3, emoji: "📖", name: "Читаем вместе",       isMain: false, doneToday: 4, total: 9, weekPct: 0.42, week:[0,1,0,1,0,0,1] },
     { id: 4, emoji: "🥗", name: "Здоровое питание",         isMain: false, doneToday: 7, total: 9, weekPct: 0.81, week:[1,1,1,1,0,1,1] },
   ];
-  const teamHabits = _rosterLive ? (liveTeamHabits || []) : (Array.isArray(t.habits) ? t.habits : DEFAULT_TEAM_HABITS);
+  const teamHabits = _rosterLive ? (liveTeamHabits || []) : (Array.isArray(t.habits) ? t.habits : (_demoTeam ? DEFAULT_TEAM_HABITS : []));
   const main = teamHabits.find(h => h.isMain);
   const others = teamHabits.filter(h => !h.isMain);
   const aggregate = teamHabits.length ? Math.round(teamHabits.reduce((s,h) => s + (h.weekPct||0), 0) / teamHabits.length * 100) : 0;
@@ -1649,7 +1653,7 @@ function TeamDetailScreen() {
           <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
             <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Привычки</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{teamHabits.length}</div></div>
             <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Участники</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{members.length}</div></div>
-            <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Серия</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{_rosterLive ? "—" : "14д 🔥"}</div></div>
+            <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Серия</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{_realTeam ? "—" : "14д 🔥"}</div></div>
           </div>
         </div>
       </div>
@@ -1659,11 +1663,11 @@ function TeamDetailScreen() {
         <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Чат команды</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{_chatLive ? (chatPeek ? (chatPeek.last || "Пока пусто — напишите первыми") : "…") : "Сергей: Цель добьём к выходным — налегаем! 🔥"}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{_chatLive ? (chatPeek ? (chatPeek.last || "Пока пусто — напишите первыми") : "…") : (_demoTeam ? "Сергей: Цель добьём к выходным — налегаем! 🔥" : "Пока пусто — напишите первыми")}</div>
         </div>
         {_chatLive
           ? (chatPeek && chatPeek.unread > 0 ? <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span> : null)
-          : <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>3</span>}
+          : (_demoTeam ? <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>3</span> : null)}
         <I.ChevronRight size={18} color="var(--text-4)"/>
       </button>
 
@@ -1709,8 +1713,8 @@ function TeamDetailScreen() {
       </div>
       </>)}
 
-      {/* Team calendar — completion is fabricated, so demo-only until real per-member logs exist */}
-      {!_rosterLive && <PeopleMonthCalendar
+      {/* Team calendar — completion is fabricated, so DEMO-only until real per-member logs exist */}
+      {_demoTeam && <PeopleMonthCalendar
         people={members.map((m) => ({ name: m.name, initials: m.initials, color: m.color }))}
         dayFrac={(pi, d, mi) => {
           const lvl = (members[pi] && members[pi].pct != null ? members[pi].pct : 50) / 100;
@@ -1770,10 +1774,10 @@ function TeamDetailScreen() {
           ))}
         </div>
       </>)}
-      <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length}){liveRoster ? "" : " · по вкладу"}</div>
+      <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length}){_realTeam ? "" : " · по вкладу"}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {ranked.map((m,i)=>{
-          const isLeader = !liveRoster && i === 0 && (m.pct || 0) > 0;
+          const isLeader = !_realTeam && i === 0 && (m.pct || 0) > 0;
           const expanded = expandedMember === m.name;
           const todayDone = m.todayDone ?? 0;
           const todayTotal = m.todayTotal ?? teamHabits.length;
@@ -1791,15 +1795,15 @@ function TeamDetailScreen() {
                   {isLeader && <span style={{ fontSize: 9, fontWeight: 700, color: "#9A7B0A", background: "#FEF3C7", padding: "2px 7px", borderRadius: 999, textTransform: "uppercase", letterSpacing: 0.4 }}>Лидер</span>}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, display: "flex", gap: 10 }}>
-                  {liveRoster
+                  {_realTeam
                     ? <span>{m.role === "owner" ? "Создатель команды" : "Участник"}</span>
                     : <><span>🔥 {m.streak ?? 0}</span><span>сегодня {todayDone}/{todayTotal}</span></>}
                 </div>
               </div>
-              {!liveRoster && <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{m.pct}%</span>}
+              {!_realTeam && <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{m.pct}%</span>}
               <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}/>
             </button>
-            {!liveRoster && expanded && (
+            {!_realTeam && expanded && (
               <div style={{ padding: "0 14px 14px 64px", display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {teamHabits.length === 0 && <span style={{ fontSize: 12, color: "var(--text-4)" }}>Нет общих привычек.</span>}
                 {teamHabits.map((h, hi) => {
@@ -1817,7 +1821,7 @@ function TeamDetailScreen() {
         })}
       </div>
 
-      {!liveRoster && (<>
+      {_demoTeam && (<>
       <div className="section-label" style={{ marginTop: 22 }}>Активность</div>
       <div style={{ background: "var(--card)", borderRadius: 18, padding: 16, marginTop: 8, display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--card-shadow)" }}>
         {[
@@ -2079,7 +2083,10 @@ function LevelsScreen() {
   const nextMile = CIRCLE_MILESTONES.find(t => t.n > invited) || null; // null = past the last listed milestone
   const prevMileN = ([...CIRCLE_MILESTONES].reverse().find(t => t.n <= invited) || { n: 0 }).n;
   const ruPpl = (n, a) => { const m = n % 10, h = n % 100; return a[(m === 1 && h !== 11) ? 0 : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? 1 : 2]; };
-  const ach = (typeof window !== "undefined" && window.ACHIEVEMENTS) || [];
+  // LIVE: real earned ladder (never Павел's curated array). DEMO: the curated showcase.
+  const ach = (app?.mode === "live")
+    ? ((typeof bosEarnedAchievements === "function") ? bosEarnedAchievements(app) : [])
+    : ((typeof window !== "undefined" && window.ACHIEVEMENTS) || []);
   const achEarned = ach.filter(a => a.earned);
   // LIVE: real numbers from the date-keyed habit model (T0.2). DEMO: curated showcase.
   // Fresh demo: a clean level 1. Titles are shared so demo's "Преданный делу" still maps to 7.
