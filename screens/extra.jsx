@@ -743,10 +743,10 @@ function MiniBars({ data, color = "#0a0a0a", height = 60, textMuted = "rgba(0,0,
   );
 }
 
-/* ── Live AI via OpenRouter ─────────────────────────────────────────────────
-   Uses the key from aikey.js (window.OPENROUTER_KEY). No key → graceful canned
-   replies so the demo still feels alive. Browser-direct call (OpenRouter allows
-   it); the key is the user's capped test key on a free model, by their choice. */
+/* ── Live AI via OpenRouter (PROXY-ONLY) ────────────────────────────────────
+   All AI goes through the Edge Function proxy (ai-chat), which holds the key as a
+   SERVER secret and picks the model via the OPENROUTER_MODEL secret. The client
+   never holds the key. No proxy / empty reply → graceful heuristic + honest fallback. */
 const AI_SYSTEM = [
   "Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.",
   "У тебя нет имени и нет бренда. Никогда не называй себя «Balance», «ассистентом», «ИИ» или продуктом. Если спросят, как тебя зовут — мягко уйди от ответа: имя не важно, считай меня голосом, который помогает тебе вернуться к себе.",
@@ -835,7 +835,8 @@ async function aiFetch(url, opts, ms) {
   finally { if (tid) clearTimeout(tid); }
 }
 // Low-level transport: send a raw `messages` array to the model and return its text
-// (or null). Proxy (server key) → direct (dev key) → null. Reused by chat AND brief.
+// (or null). PROXY-ONLY: the OpenRouter key lives solely in the Edge Function secret —
+// never in the client. Reused by chat AND brief.
 async function aiRaw(messages) {
   const W = (typeof window !== "undefined") ? window : {};
   const sbUrl = (W.SUPABASE_URL || "").replace(/\/$/, "");
@@ -850,18 +851,9 @@ async function aiRaw(messages) {
       if (res.ok) { const data = await res.json(); const t = data && data.reply; if (t && t.trim()) return t.trim(); }
     } catch (e) { /* fall through */ }
   }
-  const key = W.OPENROUTER_KEY || "";
-  if (key) {
-    const model = W.OPENROUTER_MODEL || "deepseek/deepseek-v4-flash";
-    try {
-      const res = await aiFetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key, "HTTP-Referer": "https://mind3scape.github.io/balanceos", "X-Title": "BalanceOS" },
-        body: JSON.stringify({ model, messages, max_tokens: 500, temperature: 0.7 }),
-      });
-      if (res.ok) { const data = await res.json(); const t = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content; if (t && t.trim()) return t.trim(); }
-    } catch (e) { /* fall through */ }
-  }
+  // No client-direct fallback. The old one (a) shipped the OpenRouter key to every browser
+  // and (b) fired a SECOND OpenRouter request whenever the proxy returned an empty reply —
+  // doubling calls and mixing models. The Edge Function proxy is the single canonical path.
   return null;
 }
 
