@@ -820,9 +820,9 @@ function MoodScreen() {
     style: {
       position: "absolute",
       inset: 0,
-      color: "#fff",
+      color: "var(--text)",
       overflow: "hidden",
-      background: "#000",
+      background: "linear-gradient(180deg, #ffffff 0%, #f2f3f6 100%)",
       display: "flex",
       flexDirection: "column",
       ["--mood-tint"]: tint
@@ -833,7 +833,7 @@ function MoodScreen() {
       position: "absolute",
       inset: 0,
       pointerEvents: "none",
-      background: `radial-gradient(70% 45% at 50% 42%, ${tint}55 0%, ${tint}22 30%, transparent 65%)`,
+      background: `radial-gradient(70% 45% at 50% 42%, ${tint}59 0%, ${tint}24 32%, transparent 66%)`,
       transition: "background 0.6s ease"
     }
   }), /*#__PURE__*/React.createElement("div", {
@@ -842,7 +842,7 @@ function MoodScreen() {
       position: "absolute",
       inset: 0,
       pointerEvents: "none",
-      background: "linear-gradient(180deg, #000 0%, transparent 18%, transparent 80%, #000 100%)"
+      background: "linear-gradient(180deg, #ffffff 0%, transparent 18%, transparent 82%, #f2f3f6 100%)"
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -859,9 +859,9 @@ function MoodScreen() {
       width: 40,
       height: 40,
       borderRadius: 999,
-      background: "rgba(255,255,255,0.07)",
+      background: "rgba(0,0,0,0.05)",
       border: 0,
-      color: "#fff",
+      color: "var(--text)",
       display: "grid",
       placeItems: "center",
       padding: 0
@@ -875,7 +875,7 @@ function MoodScreen() {
       fontSize: 11,
       letterSpacing: 1.6,
       textTransform: "uppercase",
-      color: "rgba(255,255,255,0.5)",
+      color: "var(--text-4)",
       fontWeight: 600
     }
   }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0430 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("span", {
@@ -908,9 +908,9 @@ function MoodScreen() {
       position: "absolute",
       inset: -40,
       borderRadius: "50%",
-      background: `radial-gradient(circle, ${tint}80 0%, ${tint}33 35%, transparent 70%)`,
-      opacity: 0.85 * pulse,
-      filter: "blur(20px)",
+      background: `radial-gradient(circle, ${tint}59 0%, ${tint}1f 35%, transparent 70%)`,
+      opacity: 0.8 * pulse,
+      filter: "blur(22px)",
       transform: `scale(${pulse})`,
       transition: "background 0.6s ease"
     }
@@ -942,7 +942,7 @@ function MoodScreen() {
   }, cur ? cur.t : "Как оно ощущается\u00A0сейчас?"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: "rgba(255,255,255,0.55)",
+      color: "var(--text-3)",
       marginTop: 6,
       lineHeight: 1.5
     }
@@ -977,14 +977,14 @@ function MoodScreen() {
         flexDirection: "column",
         alignItems: "center",
         gap: 8,
-        color: "#fff",
+        color: "var(--text)",
         cursor: "pointer"
       }
     }, /*#__PURE__*/React.createElement("span", {
       "aria-hidden": true,
       style: {
         borderRadius: "50%",
-        boxShadow: active ? `0 0 0 2px #fff, 0 0 18px ${m.c}aa` : "none",
+        boxShadow: active ? `0 0 0 2px #0a0a0a, 0 0 16px ${m.c}99` : "none",
         transform: active ? "scale(1.08)" : "scale(1)",
         transition: "transform 0.25s, box-shadow 0.25s"
       }
@@ -1021,13 +1021,13 @@ function MoodScreen() {
       fontSize: 12,
       letterSpacing: 1.2,
       textTransform: "uppercase",
-      color: "rgba(255,255,255,0.5)",
+      color: "var(--text-4)",
       fontWeight: 600
     }
   }, "\u0427\u0442\u043E \u0437\u0430 \u044D\u0442\u0438\u043C \u0441\u0442\u043E\u0438\u0442?"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
-      color: "rgba(255,255,255,0.3)"
+      color: "var(--text-5)"
     }
   }, "\u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u044E")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1049,8 +1049,8 @@ function MoodScreen() {
         fontWeight: 500,
         border: 0,
         cursor: "pointer",
-        background: on ? "#fff" : "rgba(255,255,255,0.08)",
-        color: on ? "#0a0a0a" : "rgba(255,255,255,0.72)",
+        background: on ? "#0a0a0a" : "var(--surface-3)",
+        color: on ? "#fff" : "var(--text-3)",
         display: "inline-flex",
         alignItems: "center",
         gap: 5,
@@ -1071,12 +1071,12 @@ function MoodScreen() {
     style: {
       width: "100%",
       marginTop: 12,
-      background: "rgba(0,0,0,0.25)",
-      border: "1px solid rgba(255,255,255,0.10)",
-      boxShadow: "inset 0 1px 4px rgba(0,0,0,0.35)",
+      background: "var(--surface-3)",
+      border: "1px solid var(--line)",
+      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
       borderRadius: 14,
       padding: "12px 14px",
-      color: "#fff",
+      color: "var(--text)",
       fontSize: 16,
       fontFamily: "inherit",
       lineHeight: 1.4,
@@ -1092,7 +1092,7 @@ function MoodScreen() {
       zIndex: 2,
       margin: "18px 20px 0",
       padding: "12px 14px",
-      background: "rgba(255,255,255,0.045)",
+      background: "var(--surface-3)",
       borderRadius: 14,
       display: "flex",
       alignItems: "center",
@@ -1119,13 +1119,13 @@ function MoodScreen() {
       fontSize: 11,
       letterSpacing: 1.2,
       textTransform: "uppercase",
-      color: "rgba(255,255,255,0.45)",
+      color: "var(--text-4)",
       fontWeight: 600
     }
   }, "\u0414\u043D\u0435\u0432\u043D\u0438\u043A \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: "rgba(255,255,255,0.9)",
+      color: "var(--text-2)",
       marginTop: 3,
       lineHeight: 1.35
     }
@@ -1147,8 +1147,8 @@ function MoodScreen() {
     className: "tap",
     style: {
       width: "100%",
-      background: picked < 0 ? "rgba(255,255,255,0.08)" : "#fff",
-      color: picked < 0 ? "rgba(255,255,255,0.4)" : "#0a0a0a",
+      background: picked < 0 ? "var(--surface-3)" : "#0a0a0a",
+      color: picked < 0 ? "var(--text-4)" : "#fff",
       border: 0,
       borderRadius: 999,
       padding: 16,

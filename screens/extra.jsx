@@ -380,30 +380,30 @@ function MoodScreen() {
 
   return (
     <div className="mood-fullscreen" style={{
-      position: "absolute", inset: 0, color: "#fff", overflow: "hidden",
-      background: "#000",
+      position: "absolute", inset: 0, color: "var(--text)", overflow: "hidden",
+      background: "linear-gradient(180deg, #ffffff 0%, #f2f3f6 100%)",
       display: "flex", flexDirection: "column",
       ["--mood-tint"]: tint,
     }}>
       {/* Aurora vignette — centered glow that fades to pure black at top/bottom */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        background: `radial-gradient(70% 45% at 50% 42%, ${tint}55 0%, ${tint}22 30%, transparent 65%)`,
+        background: `radial-gradient(70% 45% at 50% 42%, ${tint}59 0%, ${tint}24 32%, transparent 66%)`,
         transition: "background 0.6s ease",
       }}/>
       {/* Subtle film grain via noise gradient bands — keeps black areas alive */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        background: "linear-gradient(180deg, #000 0%, transparent 18%, transparent 80%, #000 100%)",
+        background: "linear-gradient(180deg, #ffffff 0%, transparent 18%, transparent 82%, #f2f3f6 100%)",
       }}/>
 
       {/* Header — sits over the status bar room */}
       <div style={{ position: "relative", zIndex: 2, padding: "60px 20px 0", display: "flex", alignItems: "center" }}>
         <button onClick={() => navigate("home")} className="tap"
-          style={{ width: 40, height: 40, borderRadius: 999, background: "rgba(255,255,255,0.07)", border: 0, color: "#fff", display: "grid", placeItems: "center", padding: 0 }}>
+          style={{ width: 40, height: 40, borderRadius: 999, background: "rgba(0,0,0,0.05)", border: 0, color: "var(--text)", display: "grid", placeItems: "center", padding: 0 }}>
           <I.ChevronLeft size={18}/>
         </button>
-        <div style={{ flex: 1, textAlign: "center", fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Отметка состояния</div>
+        <div style={{ flex: 1, textAlign: "center", fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 600 }}>Отметка состояния</div>
         <span style={{ width: 40 }}/>
       </div>
 
@@ -413,8 +413,8 @@ function MoodScreen() {
           {/* Outer aurora halo */}
           <div aria-hidden style={{
             position: "absolute", inset: -40, borderRadius: "50%",
-            background: `radial-gradient(circle, ${tint}80 0%, ${tint}33 35%, transparent 70%)`,
-            opacity: 0.85 * pulse, filter: "blur(20px)",
+            background: `radial-gradient(circle, ${tint}59 0%, ${tint}1f 35%, transparent 70%)`,
+            opacity: 0.8 * pulse, filter: "blur(22px)",
             transform: `scale(${pulse})`, transition: "background 0.6s ease",
           }}/>
           {/* Main orb — same glass orb as the rest of the app */}
@@ -429,7 +429,7 @@ function MoodScreen() {
         <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", minHeight: 36 }}>
           {cur ? cur.t : "Как оно ощущается\u00A0сейчас?"}
         </div>
-        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 6, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 6, lineHeight: 1.5 }}>
           {cur ? "Отметь, что за этим стоит — или просто сохрани." : "Каждый цвет — это состояние. Выбери подходящее."}
         </div>
       </div>
@@ -443,11 +443,11 @@ function MoodScreen() {
               <button key={idx} onClick={() => { setPicked(idx); setTags([]); setNote(""); }} className="tap" aria-label={m.t} style={{
                 background: "transparent", border: 0, padding: "6px 2px 8px",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-                color: "#fff", cursor: "pointer",
+                color: "var(--text)", cursor: "pointer",
               }}>
                 <span aria-hidden style={{
                   borderRadius: "50%",
-                  boxShadow: active ? `0 0 0 2px #fff, 0 0 18px ${m.c}aa` : "none",
+                  boxShadow: active ? `0 0 0 2px #0a0a0a, 0 0 16px ${m.c}99` : "none",
                   transform: active ? "scale(1.08)" : "scale(1)",
                   transition: "transform 0.25s, box-shadow 0.25s",
                 }}>
@@ -468,8 +468,8 @@ function MoodScreen() {
       {cur ? (
       <div style={{ position: "relative", zIndex: 2, margin: "16px 20px 0" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 11 }}>
-          <span style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Что за этим стоит?</span>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>по желанию</span>
+          <span style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 600 }}>Что за этим стоит?</span>
+          <span style={{ fontSize: 11, color: "var(--text-5)" }}>по желанию</span>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {moodTags.map((tg) => {
@@ -477,7 +477,7 @@ function MoodScreen() {
             return (
               <button key={tg} onClick={() => toggleTag(tg)} className="tap" data-no-haptic style={{
                 padding: "8px 13px", borderRadius: 999, fontSize: 13, fontWeight: 500, border: 0, cursor: "pointer",
-                background: on ? "#fff" : "rgba(255,255,255,0.08)", color: on ? "#0a0a0a" : "rgba(255,255,255,0.72)",
+                background: on ? "#0a0a0a" : "var(--surface-3)", color: on ? "#fff" : "var(--text-3)",
                 display: "inline-flex", alignItems: "center", gap: 5, transition: "background 0.18s, color 0.18s",
               }}>
                 {on && <span style={{ width: 7, height: 7, borderRadius: "50%", background: tint }} />}
@@ -489,17 +489,17 @@ function MoodScreen() {
         {/* Note — always visible (an obvious inset field), so you can't miss that
             you can write your own. No autoFocus → the caret never jumps on open. */}
         <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Опиши, что чувствуешь сейчас…"
-          style={{ width: "100%", marginTop: 12, background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.10)", boxShadow: "inset 0 1px 4px rgba(0,0,0,0.35)", borderRadius: 14, padding: "12px 14px", color: "#fff", fontSize: 16, fontFamily: "inherit", lineHeight: 1.4, outline: 0, minHeight: 50, resize: "none", boxSizing: "border-box", display: "block" }}/>
+          style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: "1px solid var(--line)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)", borderRadius: 14, padding: "12px 14px", color: "var(--text)", fontSize: 16, fontFamily: "inherit", lineHeight: 1.4, outline: 0, minHeight: 50, resize: "none", boxSizing: "border-box", display: "block" }}/>
       </div>
       ) : (
       <div style={{ position: "relative", zIndex: 2, margin: "18px 20px 0", padding: "12px 14px",
-        background: "rgba(255,255,255,0.045)", borderRadius: 14,
+        background: "var(--surface-3)", borderRadius: 14,
         display: "flex", alignItems: "center", gap: 12,
       }}>
         <div style={{ width: 36, height: 36, borderRadius: 999, background: "rgba(254,222,52,0.14)", display: "grid", placeItems: "center", color: "#FEDE34", fontSize: 18 }}>✨</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>Дневник состояния</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", marginTop: 3, lineHeight: 1.35 }}>
+          <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 600 }}>Дневник состояния</div>
+          <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 3, lineHeight: 1.35 }}>
             Выбери состояние — подскажу слова, чтобы отметить, что за ним стоит.
           </div>
         </div>
@@ -511,8 +511,8 @@ function MoodScreen() {
       <div style={{ position: "relative", zIndex: 2, padding: "14px 20px 28px" }}>
         <button onClick={onSave} disabled={picked < 0} className="tap" style={{
           width: "100%",
-          background: picked < 0 ? "rgba(255,255,255,0.08)" : "#fff",
-          color: picked < 0 ? "rgba(255,255,255,0.4)" : "#0a0a0a",
+          background: picked < 0 ? "var(--surface-3)" : "#0a0a0a",
+          color: picked < 0 ? "var(--text-4)" : "#fff",
           border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px",
           transition: "all 0.2s",
         }}>

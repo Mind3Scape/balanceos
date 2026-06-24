@@ -15,9 +15,7 @@ const { useState, useRef, useEffect, useCallback } = React;
 // Onboarding/intro/signup now FOLLOW the app theme (light by default, dark when
 // the user forces dark) — each already ships both palettes. Only the cinematic
 // in-app immersive screens stay always-dark.
-const DARK_ROUTES = new Set([
-  "mood",
-]);
+const DARK_ROUTES = new Set([]);
 const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
 const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 
@@ -25,7 +23,7 @@ const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
 // colour so the home-indicator safe area is never a mismatched dark bar
 // (belt-and-suspenders alongside the full-height, no-fixed layout).
 const ROOT_BG = {
-  mood: "#050505", "ai-chat": "#fafafa",
+  mood: "#f2f3f6", "ai-chat": "#fafafa",
 };
 
 const SCREENS = {
@@ -113,7 +111,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v187";
+const APP_VERSION = "v188";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
