@@ -1552,17 +1552,24 @@ function StateChatOrb({
   size = 28,
   tint
 }) {
+  // The mentor's orb = the user's CURRENT-STATE orb — the same glass mood sphere as the
+  // home state widget / week-trail (mood-tinted, glossy), NOT a flat dot and NOT the avatar face.
   var c = tint && tint.length === 3 ? tint : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement("span", {
     style: {
       width: size,
       height: size,
-      borderRadius: "50%",
       flexShrink: 0,
-      background: "radial-gradient(circle at 32% 28%, #ffffff 0%, " + c[0] + " 20%, " + c[1] + " 52%, " + c[2] + " 86%, #0a1424 100%)",
-      boxShadow: "inset -2px -3px 5px rgba(0,0,0,0.28)"
+      borderRadius: "50%",
+      display: "block",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.16)"
     }
-  });
+  }, /*#__PURE__*/React.createElement(StaticOrb, {
+    size: size,
+    tint: c,
+    seed: 1.2,
+    intensity: 0.3
+  }));
 }
 
 /* Context-aware quick prompts (the pills under the chat). A blank-slate user gets

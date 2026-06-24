@@ -1256,6 +1256,56 @@ function bosStreak(log) {
   }
   return n;
 }
+// How many distinct days the user has logged their state. Mood index 0 (Спокойствие) is a
+// REAL entry, so presence is tested with != null, never truthiness.
+function bosMoodDays(dayMoods) {
+  if (!dayMoods) return 0;
+  // count only REAL logged days (YYYY-MM-DD keys) — never a demo seed's numeric keys
+  var n = 0;
+  for (var k in dayMoods) {
+    if (Object.prototype.hasOwnProperty.call(dayMoods, k) && dayMoods[k] != null && /^\d{4}-\d{2}-\d{2}$/.test(k)) n++;
+  }
+  return n;
+}
+// Consecutive days of state check-in up to today (or yesterday if today's still open) — the
+// "🔥 дней подряд" headline for the state widget. Same shape as bosStreak but != null aware.
+function bosMoodStreak(dayMoods) {
+  if (!dayMoods) return 0;
+  var has = function (i) {
+    return dayMoods[bosDayKeyOffset(i)] != null;
+  };
+  var start = has(0) ? 0 : 1;
+  if (start === 1 && !has(1)) return 0;
+  var n = 0;
+  for (var i = start; i < 3650; i++) {
+    if (has(i)) n++;else break;
+  }
+  return n;
+}
+// Bonus XP for HOLDING the state streak: every full 7-day run of consecutive check-ins pays
+// +50 ("удержал неделю — бонус"). Scans ~1y of history; stable & monotonic with the data.
+function bosMoodStreakBonusXP(dayMoods) {
+  if (!dayMoods) return 0;
+  var weeks = 0,
+    run = 0;
+  for (var i = 0; i < 400; i++) {
+    if (dayMoods[bosDayKeyOffset(i)] != null) run++;else {
+      weeks += Math.floor(run / 7);
+      run = 0;
+    }
+  }
+  weeks += Math.floor(run / 7);
+  return weeks * 50;
+}
+// Russian day-word for a count (1 день, 2 дня, 5 дней) — for streak labels.
+function bosRuDays(n) {
+  var a = Math.abs(n) % 100,
+    b = n % 10;
+  if (a > 10 && a < 20) return "дней";
+  if (b === 1) return "день";
+  if (b >= 2 && b <= 4) return "дня";
+  return "дней";
+}
 // Total earned XP for a live profile. Every habit completion is +10 XP. Engagement also
 // pays: +5 per day you check in your state, +10 per day you write a journal line — so
 // the orb/journal "pay" XP, which the app communicates. Monotonic (just counts of entries).
@@ -1267,6 +1317,7 @@ function bosTotalXP(habits, extras) {
   var xp = n * 10;
   if (extras) {
     xp += Object.keys(extras.moods || {}).length * 5; // +5 за отметку состояния
+    xp += bosMoodStreakBonusXP(extras.moods); // +50 за каждую удержанную неделю состояния
     var notes = extras.notes || {};
     Object.keys(notes).forEach(function (k) {
       // +10 за запись в дневник

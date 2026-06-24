@@ -877,7 +877,7 @@ function HomeScreen() {
       </button>
       {/* State widget lives LOWER for live/fresh (below «Позови своих») so a new user
           isn't hit with it up top — David's call. Demo keeps it in its spot above. */}
-      {app?.mode !== "demo" && widgets.mood !== false && mood && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
+      {app?.mode !== "demo" && widgets.mood !== false && mood && (app?.mode !== "live" || (typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2)) && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
     </div>
   );
 }
@@ -1073,6 +1073,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
   const chipBg     = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
   const fresh = app?.mode === "fresh";
   const live = app?.mode === "live"; // L3 — real users earn XP for checking in / journaling
+  const _moodStreak = (live && typeof bosMoodStreak === "function") ? bosMoodStreak(app?.dayMoods) : 0;
 
   return (
     <button onClick={() => navigate("mood")} className="tap" data-tour="state"
@@ -1093,7 +1094,12 @@ function MoodWidget({ mood, app, isDark, navigate }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <div style={{ fontSize: 11, color: labelMuted, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Состояние · сейчас</div>
-            {sameAsToday >= 2 && (
+            {live && _moodStreak >= 2 && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#FF9A62" : "#a4541b", background: isDark ? "rgba(255,138,91,0.16)" : "rgba(255,138,91,0.16)", borderRadius: 999, padding: "2px 8px", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                🔥 {_moodStreak} {bosRuDays(_moodStreak)} подряд
+              </span>
+            )}
+            {!live && sameAsToday >= 2 && (
               <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#FEDE34" : "#8a6a00", background: isDark ? "rgba(254,222,52,0.14)" : "rgba(254,222,52,0.35)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4, whiteSpace: "nowrap" }}>
                 ✨ +{sameAsToday * 10} XP
               </span>
@@ -1102,7 +1108,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
           <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{fresh ? "Как ты сейчас?" : mood.t}</div>
           <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>{
             live
-              ? (fresh ? "Отметь первое состояние — и начни копить опыт. +5 XP." : "Отмечай каждый день — это опыт: +5 XP за отметку, +10 со строкой в дневник.")
+              ? "Отмечай каждый день: +5 XP, +10 со строкой в дневник. Удержишь неделю подряд — бонус +50 XP."
               : (fresh ? "Нажми, чтобы отметить первое состояние." : "Нажми, чтобы обновить — сфера следует за твоим состоянием.")
           }</div>
         </div>

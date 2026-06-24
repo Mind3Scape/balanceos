@@ -2216,7 +2216,7 @@ function HomeScreen() {
       fontWeight: 700,
       color: "rgba(0,0,0,0.55)"
     }
-  }, p.i)))), app?.mode !== "demo" && widgets.mood !== false && mood && /*#__PURE__*/React.createElement(MoodWidget, {
+  }, p.i)))), app?.mode !== "demo" && widgets.mood !== false && mood && (app?.mode !== "live" || typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) && /*#__PURE__*/React.createElement(MoodWidget, {
     mood: mood,
     app: app,
     isDark: isDark,
@@ -2696,7 +2696,7 @@ function MoodWidget({
   var chipBg = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)";
   var fresh = app?.mode === "fresh";
   var live = app?.mode === "live"; // L3 — real users earn XP for checking in / journaling
-
+  var _moodStreak = live && typeof bosMoodStreak === "function" ? bosMoodStreak(app?.dayMoods) : 0;
   return /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("mood"),
     className: "tap",
@@ -2754,7 +2754,18 @@ function MoodWidget({
       letterSpacing: 1.4,
       fontWeight: 600
     }
-  }, "\u0421\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \xB7 \u0441\u0435\u0439\u0447\u0430\u0441"), sameAsToday >= 2 && /*#__PURE__*/React.createElement("span", {
+  }, "\u0421\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \xB7 \u0441\u0435\u0439\u0447\u0430\u0441"), live && _moodStreak >= 2 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: isDark ? "#FF9A62" : "#a4541b",
+      background: isDark ? "rgba(255,138,91,0.16)" : "rgba(255,138,91,0.16)",
+      borderRadius: 999,
+      padding: "2px 8px",
+      letterSpacing: 0.3,
+      whiteSpace: "nowrap"
+    }
+  }, "\uD83D\uDD25 ", _moodStreak, " ", bosRuDays(_moodStreak), " \u043F\u043E\u0434\u0440\u044F\u0434"), !live && sameAsToday >= 2 && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10,
       fontWeight: 700,
@@ -2781,7 +2792,7 @@ function MoodWidget({
       color: subMuted,
       marginTop: 4
     }
-  }, live ? fresh ? "Отметь первое состояние — и начни копить опыт. +5 XP." : "Отмечай каждый день — это опыт: +5 XP за отметку, +10 со строкой в дневник." : fresh ? "Нажми, чтобы отметить первое состояние." : "Нажми, чтобы обновить — сфера следует за твоим состоянием."))), !fresh && /*#__PURE__*/React.createElement("div", {
+  }, live ? "Отмечай каждый день: +5 XP, +10 со строкой в дневник. Удержишь неделю подряд — бонус +50 XP." : fresh ? "Нажми, чтобы отметить первое состояние." : "Нажми, чтобы обновить — сфера следует за твоим состоянием."))), !fresh && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       paddingTop: 14,
