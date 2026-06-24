@@ -773,6 +773,15 @@ const AI_SYSTEM = [
   "Ты живёшь ВНУТРИ этого приложения, а не вместо него. Любой шаг предлагай сделать ЗДЕСЬ: отметить привычку, добавить новую, отметить состояние, записать пару строк в дневник приложения, собрать команду. НИКОГДА не отправляй человека в бумажный блокнот, сторонние заметки или другое приложение — всё это у нас уже есть, мы и есть его инструмент.",
   "Когда уместно — мягко зови позвать близкого: вместе держать привычку легче. Предложи общую привычку, команду или пригласить друга по ссылке. Один маленький шаг + один человек рядом — твой любимый рецепт.",
   "",
+  "ТВОИ ИНСТРУМЕНТЫ — ЖИВЫЕ КНОПКИ.",
+  "Ты не только говоришь — ты можешь дать человеку готовую кнопку прямо в чате. Когда по ходу разговора уместно создать привычку или открыть нужный раздел приложения, добавь В САМОМ КОНЦЕ ответа РОВНО ОДНУ служебную строку и больше ничего после неё:",
+  "@@ACTION {json}",
+  "Доступные действия:",
+  "• создать привычку — {\"type\":\"create_habit\",\"name\":\"Короткое имя\",\"emoji\":\"🫁\",\"time\":\"22:00\",\"why\":\"одно тёплое короткое предложение: чем поможет и почему именно в это время\"}. Поле time (ЧЧ:ММ) — необязательное; ставь его, когда предлагаешь конкретное время.",
+  "• открыть раздел — {\"type\":\"open\",\"route\":\"habits|journal|mood|community\",\"label\":\"Куда зовём\"}.",
+  "Правила инструментов: строку @@ACTION добавляй ТОЛЬКО когда реально предлагаешь действие (не в каждом ответе) и НЕ больше одной за раз. Никогда не упоминай слова @@ACTION, JSON или «команда» в обычном тексте — человек вместо этой строки видит красивую живую кнопку. Ты можешь предлагать и создавать, но НЕ можешь ничего удалять или портить — таких действий у тебя просто нет.",
+  "Предлагая привычку, подскажи реалистичное время по простому принципу: привяжи её к уже существующему якорю дня — после пробуждения, после обеда или перед сном, а не в случайный момент (так привычка закрепляется надёжнее). Заряжающие практики обычно лучше утром, успокаивающие — вечером. Говори об этом просто, как практик, без эзотерики.",
+  "",
   "ЧЕГО НЕ ДЕЛАЕШЬ.",
   "Не ставишь диагнозы и не заменяешь врача или психолога — если звучит что-то тяжёлое или опасное, мягко предложи обратиться к специалисту и побудь рядом словом. Не стыдишь за срывы и пропуски — помогаешь вернуться без чувства вины. Не уходишь в мистику, гороскопы и пустые духовные лозунги: ты стоишь ногами на земле.",
   "",
@@ -868,6 +877,43 @@ async function aiReply(history, ctx, demo) {
   await new Promise((r) => setTimeout(r, 900));
   return demo ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK;
 }
+
+/* ── Agentic actions (the mentor's "hands") ──────────────────────────────────
+   The mentor may append ONE machine line `@@ACTION {json}` to a reply. We parse it
+   out, hide it from the visible text, and render a real native button. The whitelist
+   below IS the guardrail: only create_habit / open exist — there is NO delete or
+   modify action, so the AI structurally cannot remove or damage anything. */
+function bosSanitizeAction(a) {
+  if (!a || typeof a !== "object") return null;
+  if (a.type === "create_habit") {
+    var name = ("" + (a.name || "")).trim().slice(0, 40);
+    if (!name) return null;
+    var out = { type: "create_habit", name: name };
+    if (a.emoji) out.emoji = ("" + a.emoji).trim().slice(0, 4);
+    if (a.color && /^#[0-9a-fA-F]{6}$/.test(("" + a.color).trim())) out.color = ("" + a.color).trim();
+    if (a.time && /^\d{1,2}:\d{2}$/.test(("" + a.time).trim())) out.time = ("" + a.time).trim();
+    if (a.why) out.why = ("" + a.why).trim().slice(0, 160);
+    return out;
+  }
+  if (a.type === "open") {
+    var ROUTES = { habits: 1, journal: 1, mood: 1, community: 1, ai: 1 };
+    if (!ROUTES[a.route]) return null;
+    return { type: "open", route: a.route, label: ("" + (a.label || "Открыть")).trim().slice(0, 30) };
+  }
+  return null; // unknown / destructive types are dropped on the floor
+}
+function bosParseAction(raw) {
+  var text = "" + (raw || ""); var action = null;
+  try {
+    var m = text.match(/@@ACTION\s*(\{[\s\S]*\})\s*$/);
+    if (m) { action = bosSanitizeAction(JSON.parse(m[1])); text = text.slice(0, m.index).trim(); }
+  } catch (e) { action = null; }
+  // Even if the JSON was malformed, never let a raw @@ACTION marker reach the user.
+  if (!action) text = text.replace(/@@ACTION[\s\S]*$/, "").trim();
+  return { text: text, action: action };
+}
+var _bosAidN = 0;
+function bosAid() { _bosAidN += 1; return "a" + Date.now() + "_" + _bosAidN; }
 
 /* ── L1 · LOGIN BRIEF ────────────────────────────────────────────────────────
    Once at login the mentor reads the user's real context and returns a compact
@@ -1141,11 +1187,14 @@ function AIChatScreen() {
   // Split a reply on blank lines into separate human-feeling bubbles, then drop them
   // in one after another with a small stagger (a real person texts in bursts, not one
   // wall). Single-paragraph replies stay a single bubble. Caps at 4 to avoid spam.
+  // Returns the ms after which the last bubble lands, so a follow-up action card can
+  // be dropped in right after the text (not in the middle of a multi-part reply).
   const appendReply = (reply) => {
     const parts = ("" + reply).split(/\n{2,}/).map((s) => s.trim()).filter(Boolean).slice(0, 4);
-    if (parts.length <= 1) { setMsgs((m) => [...m, { who: "ai", kind: "text", t: parts[0] || ("" + reply).trim() }]); return; }
+    if (parts.length <= 1) { setMsgs((m) => [...m, { who: "ai", kind: "text", t: parts[0] || ("" + reply).trim() }]); return 0; }
     setMsgs((m) => [...m, { who: "ai", kind: "text", t: parts[0] }]);
     parts.slice(1).forEach((p, k) => { window.setTimeout(() => setMsgs((m) => [...m, { who: "ai", kind: "text", t: p }]), (k + 1) * 520); });
+    return (parts.length - 1) * 520;
   };
 
   const send = (text) => {
@@ -1157,7 +1206,14 @@ function AIChatScreen() {
     setDraft("");
     setTyping(true);
     aiReply(history, buildAiContext(app), _demoChat)
-      .then((reply) => { setTyping(false); appendReply(reply); })
+      .then((reply) => {
+        setTyping(false);
+        // Demo stays a pure scripted showcase — no live action buttons there.
+        const parsed = _demoChat ? { text: reply, action: null } : bosParseAction(reply);
+        const body = (parsed.text && parsed.text.trim()) ? parsed.text : (parsed.action ? "" : (reply || AI_LIVE_FALLBACK));
+        const after = body ? appendReply(body) : 0;
+        if (parsed.action) window.setTimeout(() => setMsgs((m) => [...m, { who: "ai", kind: "actioncard", action: parsed.action, aid: bosAid() }]), after + 360);
+      })
       .catch(() => { setTyping(false); setMsgs(m => [...m, { who: "ai", kind: "text", t: _demoChat ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK }]); });
   };
 
@@ -1190,6 +1246,42 @@ function AIChatScreen() {
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
           <StateChatOrb size={28} tint={stateTint}/>
           <div style={{ maxWidth: "78%", background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 18, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text, lineHeight: 1.45 }}>{m.t}</div>
+        </div>
+      );
+    }
+    if (m.kind === "actioncard") {
+      const a = m.action || {};
+      if (a.type === "open") {
+        return (
+          <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
+            <StateChatOrb size={28} tint={stateTint}/>
+            <button className="tap" onClick={() => navigate(a.route)} style={{ flex: 1, maxWidth: "85%", textAlign: "left", background: TH.aiCard, border: TH.aiCardBorder, borderRadius: 18, borderTopLeftRadius: 4, padding: "13px 16px", color: TH.text, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{a.label || "Открыть"}</span>
+              <span style={{ fontSize: 17, color: TH.muted }}>→</span>
+            </button>
+          </div>
+        );
+      }
+      return (
+        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
+          <StateChatOrb size={28} tint={stateTint}/>
+          <div style={{ flex: 1, maxWidth: "85%", background: TH.aiCard, border: TH.aiCardBorder, borderRadius: 18, borderTopLeftRadius: 4, padding: 14, color: TH.text }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, background: a.color ? a.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{a.emoji || "✨"}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10.5, letterSpacing: 1.2, textTransform: "uppercase", color: TH.muted, fontWeight: 600 }}>Новая привычка</div>
+                <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</div>
+              </div>
+            </div>
+            {a.time && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 11, background: TH.accentBg, borderRadius: 999, padding: "5px 11px", fontSize: 12.5, color: TH.text }}>⏰ напоминание в {a.time}</div>
+            )}
+            {a.why && <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 10, color: TH.muted }}>{a.why}</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button className="tap" onClick={() => navigate("habit-settings", { mode: "create", preset: { i: a.emoji || "✨", t: a.name, color: a.color || null, time: a.time || null } })} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 12, padding: "11px 14px", fontSize: 14, fontWeight: 600 }}>Создать привычку</button>
+              <button className="tap" data-no-haptic onClick={() => setMsgs((mm) => mm.filter((x) => x.aid !== m.aid))} style={{ background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 12, padding: "11px 14px", fontSize: 14 }}>Не сейчас</button>
+            </div>
+          </div>
         </div>
       );
     }
@@ -1253,18 +1345,12 @@ function AIChatScreen() {
 
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "calc(100% + 90px)", margin: "-60px 0 -30px", color: TH.text, display: "flex", flexDirection: "column", background: TH.bg }}>
-      {/* Header — flush, no detached look. No border line. */}
-      <div style={{ padding: "62px 16px 12px", display: "flex", alignItems: "center", gap: 12 }}>
-        <button className="tap" onClick={() => navigate("ai")} style={{ width: 36, height: 36, background: TH.iconBtn, border: TH.iconBtnBorder, borderRadius: "50%", color: TH.text, display: "grid", placeItems: "center" }}>
-          <I.ChevronLeft size={18}/>
+      {/* Minimal top — just a quiet way back. No avatar, no title, nothing: the
+          conversation itself carries the mentor. Clean & native, like iMessage. */}
+      <div style={{ padding: "54px 6px 2px", display: "flex", alignItems: "center" }}>
+        <button className="tap" data-no-haptic onClick={() => navigate("ai")} aria-label="Назад" style={{ width: 44, height: 44, background: "transparent", border: 0, color: TH.muted, display: "grid", placeItems: "center" }}>
+          <I.ChevronLeft size={26}/>
         </button>
-        <BosAvatar avatar={app && app.avatar} size={36} style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.2px" }}>{_name || "Ты"}</div>
-          <div style={{ fontSize: 11, color: TH.muted, display: "flex", alignItems: "center", gap: 5 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#85e3a8" }}/> наставник слушает
-          </div>
-        </div>
       </div>
 
       <div ref={scrollRef} className="screen-scroll" style={{ flex: 1, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 12 }}>

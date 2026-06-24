@@ -1336,14 +1336,14 @@ function HabitSettingsScreen() {
   var [name, setName] = useHS(editing ? params.habit.name : preset?.t || "Прогулка");
   var [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : preset?.i || "👟");
   var [showIcons, setShowIcons] = useHS(false);
-  var [color, setColor] = useHS(editing ? params.habit.color ?? null : null);
+  var [color, setColor] = useHS(editing ? params.habit.color ?? null : preset?.color ?? null);
   var [goal, setGoal] = useHS(editing ? params.habit.goalPerDay || 1 : 1);
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
-  var [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7 ? params.habit.days.slice() : [1, 1, 1, 1, 1, 1, 1]);
+  var [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7 ? params.habit.days.slice() : preset && Array.isArray(preset.days) && preset.days.length === 7 ? preset.days.slice() : [1, 1, 1, 1, 1, 1, 1]);
   var toggleDay = i => setDays(d => d.map((v, j) => j === i ? v ? 0 : 1 : v));
   // Reminder — a single setting: on/off + a time. Seeded from the habit when editing.
   var [reminderOn, setReminderOn] = useHS(editing ? !!(params.habit.reminder && params.habit.reminder.on) : true);
-  var [reminderTime, setReminderTime] = useHS(editing && params.habit.reminder && params.habit.reminder.time ? params.habit.reminder.time : "09:00");
+  var [reminderTime, setReminderTime] = useHS(editing && params.habit.reminder && params.habit.reminder.time ? params.habit.reminder.time : preset?.time || "09:00");
   var [shareOn, setShareOn] = useHS(true);
   var [inviteNote, setInviteNote] = useHS(""); // gentle inline note if the invite step can't run
   var [sharedTeam, setSharedTeam] = useHS(null); // the mini-team backing this shared habit (created once)

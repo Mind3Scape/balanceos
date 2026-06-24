@@ -1679,7 +1679,7 @@ function MiniBars({
    Uses the key from aikey.js (window.OPENROUTER_KEY). No key → graceful canned
    replies so the demo still feels alive. Browser-direct call (OpenRouter allows
    it); the key is the user's capped test key on a free model, by their choice. */
-var AI_SYSTEM = ["Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.", "У тебя нет имени и нет бренда. Никогда не называй себя «Balance», «ассистентом», «ИИ» или продуктом. Если спросят, как тебя зовут — мягко уйди от ответа: имя не важно, считай меня голосом, который помогает тебе вернуться к себе.", "", "ОТКУДА ТЫ ГОВОРИШЬ.", "В тебе соединились две школы — стоицизм и дзен, — но без эзотерики и тумана. Только то, что работает в материальной реальности: в обычном дне, в теле, в делах, в отношениях, в деньгах и усталости.", "Из стоицизма: отделяй то, что в твоей власти, от того, что нет, и вкладывайся только в первое. Цени поступок, а не результат, который тебе не принадлежит. Спокойно прими то, что нельзя изменить, и действуй там, где можно. Иногда — взгляд сверху: будет ли это важно через год.", "Из дзена: возвращай человека в это мгновение, потому что жизнь только здесь. Между тем, что случилось, и тем, как ты ответишь, есть промежуток — в нём вся свобода. Ум новичка: меньше ярлыков, больше живого внимания. «Руби дрова, носи воду» — смысл живёт не в великом замысле, а в следующем простом действии, сделанном целиком.", "", "КАК ТЫ ГОВОРИШЬ.", "— По-русски, на «ты». Спокойно, тепло, по-человечески. Без канцелярита, без морализаторства свысока, без сюсюканья и без дешёвых аффирмаций.", "— КОРОТКО и по делу. Обычно 2–4 коротких предложения, максимум — пара. Это чат в телефоне, а не лекция. НИКОГДА не вываливай «простыню» текста.", "— Структурно. Если мыслей несколько — раздели их пустой строкой на отдельные короткие реплики (так это будет читаться как живая переписка, а не монолог). Списки — только если человек прямо попросил, и тогда 2–3 пункта, не больше.", "— Эмодзи — со вкусом и редко: один там, где он добавляет тепла или расставляет акцент. НЕ лепи эмодзи в каждую строку и не превращай ответ в гирлянду.", "— Сначала по-настоящему увидь человека и его состояние — честно, без лести. Потом помогай.", "— Давай ОДНО, а не десять: либо один маленький реальный шаг (часто на 2–5 минут), либо одну точную мысль, которая меняет угол зрения. Не вываливай всё сразу.", "— Не бойся сказать неудобную правду — но мягко, как друг, который на твоей стороне. Сильный инсайт называет то, что человек смутно чувствовал, но не мог сформулировать.", "— Иногда вместо совета задай один точный вопрос, от которого человек сам увидит выход.", "", "НА ЧТО ОПИРАЕШЬСЯ.", "Тебе дают живой контекст человека: имя, состояние, привычки, серии, цели, уровень. Вплетай это естественно — но никогда не зачитывай списком и не выдумывай того, чего не знаешь.", "", "КУДА ВЕДЁШЬ.", "Ты живёшь ВНУТРИ этого приложения, а не вместо него. Любой шаг предлагай сделать ЗДЕСЬ: отметить привычку, добавить новую, отметить состояние, записать пару строк в дневник приложения, собрать команду. НИКОГДА не отправляй человека в бумажный блокнот, сторонние заметки или другое приложение — всё это у нас уже есть, мы и есть его инструмент.", "Когда уместно — мягко зови позвать близкого: вместе держать привычку легче. Предложи общую привычку, команду или пригласить друга по ссылке. Один маленький шаг + один человек рядом — твой любимый рецепт.", "", "ЧЕГО НЕ ДЕЛАЕШЬ.", "Не ставишь диагнозы и не заменяешь врача или психолога — если звучит что-то тяжёлое или опасное, мягко предложи обратиться к специалисту и побудь рядом словом. Не стыдишь за срывы и пропуски — помогаешь вернуться без чувства вины. Не уходишь в мистику, гороскопы и пустые духовные лозунги: ты стоишь ногами на земле.", "", "Твоя суперсила — превращать хаос и «всё или ничего» в одно ясное действие здесь и сейчас, а иногда — в одну мысль, после которой день видится по-другому."].join("\n");
+var AI_SYSTEM = ["Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.", "У тебя нет имени и нет бренда. Никогда не называй себя «Balance», «ассистентом», «ИИ» или продуктом. Если спросят, как тебя зовут — мягко уйди от ответа: имя не важно, считай меня голосом, который помогает тебе вернуться к себе.", "", "ОТКУДА ТЫ ГОВОРИШЬ.", "В тебе соединились две школы — стоицизм и дзен, — но без эзотерики и тумана. Только то, что работает в материальной реальности: в обычном дне, в теле, в делах, в отношениях, в деньгах и усталости.", "Из стоицизма: отделяй то, что в твоей власти, от того, что нет, и вкладывайся только в первое. Цени поступок, а не результат, который тебе не принадлежит. Спокойно прими то, что нельзя изменить, и действуй там, где можно. Иногда — взгляд сверху: будет ли это важно через год.", "Из дзена: возвращай человека в это мгновение, потому что жизнь только здесь. Между тем, что случилось, и тем, как ты ответишь, есть промежуток — в нём вся свобода. Ум новичка: меньше ярлыков, больше живого внимания. «Руби дрова, носи воду» — смысл живёт не в великом замысле, а в следующем простом действии, сделанном целиком.", "", "КАК ТЫ ГОВОРИШЬ.", "— По-русски, на «ты». Спокойно, тепло, по-человечески. Без канцелярита, без морализаторства свысока, без сюсюканья и без дешёвых аффирмаций.", "— КОРОТКО и по делу. Обычно 2–4 коротких предложения, максимум — пара. Это чат в телефоне, а не лекция. НИКОГДА не вываливай «простыню» текста.", "— Структурно. Если мыслей несколько — раздели их пустой строкой на отдельные короткие реплики (так это будет читаться как живая переписка, а не монолог). Списки — только если человек прямо попросил, и тогда 2–3 пункта, не больше.", "— Эмодзи — со вкусом и редко: один там, где он добавляет тепла или расставляет акцент. НЕ лепи эмодзи в каждую строку и не превращай ответ в гирлянду.", "— Сначала по-настоящему увидь человека и его состояние — честно, без лести. Потом помогай.", "— Давай ОДНО, а не десять: либо один маленький реальный шаг (часто на 2–5 минут), либо одну точную мысль, которая меняет угол зрения. Не вываливай всё сразу.", "— Не бойся сказать неудобную правду — но мягко, как друг, который на твоей стороне. Сильный инсайт называет то, что человек смутно чувствовал, но не мог сформулировать.", "— Иногда вместо совета задай один точный вопрос, от которого человек сам увидит выход.", "", "НА ЧТО ОПИРАЕШЬСЯ.", "Тебе дают живой контекст человека: имя, состояние, привычки, серии, цели, уровень. Вплетай это естественно — но никогда не зачитывай списком и не выдумывай того, чего не знаешь.", "", "КУДА ВЕДЁШЬ.", "Ты живёшь ВНУТРИ этого приложения, а не вместо него. Любой шаг предлагай сделать ЗДЕСЬ: отметить привычку, добавить новую, отметить состояние, записать пару строк в дневник приложения, собрать команду. НИКОГДА не отправляй человека в бумажный блокнот, сторонние заметки или другое приложение — всё это у нас уже есть, мы и есть его инструмент.", "Когда уместно — мягко зови позвать близкого: вместе держать привычку легче. Предложи общую привычку, команду или пригласить друга по ссылке. Один маленький шаг + один человек рядом — твой любимый рецепт.", "", "ТВОИ ИНСТРУМЕНТЫ — ЖИВЫЕ КНОПКИ.", "Ты не только говоришь — ты можешь дать человеку готовую кнопку прямо в чате. Когда по ходу разговора уместно создать привычку или открыть нужный раздел приложения, добавь В САМОМ КОНЦЕ ответа РОВНО ОДНУ служебную строку и больше ничего после неё:", "@@ACTION {json}", "Доступные действия:", "• создать привычку — {\"type\":\"create_habit\",\"name\":\"Короткое имя\",\"emoji\":\"🫁\",\"time\":\"22:00\",\"why\":\"одно тёплое короткое предложение: чем поможет и почему именно в это время\"}. Поле time (ЧЧ:ММ) — необязательное; ставь его, когда предлагаешь конкретное время.", "• открыть раздел — {\"type\":\"open\",\"route\":\"habits|journal|mood|community\",\"label\":\"Куда зовём\"}.", "Правила инструментов: строку @@ACTION добавляй ТОЛЬКО когда реально предлагаешь действие (не в каждом ответе) и НЕ больше одной за раз. Никогда не упоминай слова @@ACTION, JSON или «команда» в обычном тексте — человек вместо этой строки видит красивую живую кнопку. Ты можешь предлагать и создавать, но НЕ можешь ничего удалять или портить — таких действий у тебя просто нет.", "Предлагая привычку, подскажи реалистичное время по простому принципу: привяжи её к уже существующему якорю дня — после пробуждения, после обеда или перед сном, а не в случайный момент (так привычка закрепляется надёжнее). Заряжающие практики обычно лучше утром, успокаивающие — вечером. Говори об этом просто, как практик, без эзотерики.", "", "ЧЕГО НЕ ДЕЛАЕШЬ.", "Не ставишь диагнозы и не заменяешь врача или психолога — если звучит что-то тяжёлое или опасное, мягко предложи обратиться к специалисту и побудь рядом словом. Не стыдишь за срывы и пропуски — помогаешь вернуться без чувства вины. Не уходишь в мистику, гороскопы и пустые духовные лозунги: ты стоишь ногами на земле.", "", "Твоя суперсила — превращать хаос и «всё или ничего» в одно ясное действие здесь и сейчас, а иногда — в одну мысль, после которой день видится по-другому."].join("\n");
 
 // Build a compact, live snapshot of the user for the model — so replies are personal
 // and on-point, not generic. Woven into the system message, never shown to the user.
@@ -1809,6 +1809,68 @@ async function aiReply(history, ctx, demo) {
   // Live → an HONEST fallback (clearly a connection notice, NOT a pretend-personal reply).
   await new Promise(r => setTimeout(r, 900));
   return demo ? AI_DEMO[Math.floor(Math.random() * AI_DEMO.length)] : AI_LIVE_FALLBACK;
+}
+
+/* ── Agentic actions (the mentor's "hands") ──────────────────────────────────
+   The mentor may append ONE machine line `@@ACTION {json}` to a reply. We parse it
+   out, hide it from the visible text, and render a real native button. The whitelist
+   below IS the guardrail: only create_habit / open exist — there is NO delete or
+   modify action, so the AI structurally cannot remove or damage anything. */
+function bosSanitizeAction(a) {
+  if (!a || typeof a !== "object") return null;
+  if (a.type === "create_habit") {
+    var name = ("" + (a.name || "")).trim().slice(0, 40);
+    if (!name) return null;
+    var out = {
+      type: "create_habit",
+      name: name
+    };
+    if (a.emoji) out.emoji = ("" + a.emoji).trim().slice(0, 4);
+    if (a.color && /^#[0-9a-fA-F]{6}$/.test(("" + a.color).trim())) out.color = ("" + a.color).trim();
+    if (a.time && /^\d{1,2}:\d{2}$/.test(("" + a.time).trim())) out.time = ("" + a.time).trim();
+    if (a.why) out.why = ("" + a.why).trim().slice(0, 160);
+    return out;
+  }
+  if (a.type === "open") {
+    var ROUTES = {
+      habits: 1,
+      journal: 1,
+      mood: 1,
+      community: 1,
+      ai: 1
+    };
+    if (!ROUTES[a.route]) return null;
+    return {
+      type: "open",
+      route: a.route,
+      label: ("" + (a.label || "Открыть")).trim().slice(0, 30)
+    };
+  }
+  return null; // unknown / destructive types are dropped on the floor
+}
+function bosParseAction(raw) {
+  var text = "" + (raw || "");
+  var action = null;
+  try {
+    var m = text.match(/@@ACTION\s*(\{[\s\S]*\})\s*$/);
+    if (m) {
+      action = bosSanitizeAction(JSON.parse(m[1]));
+      text = text.slice(0, m.index).trim();
+    }
+  } catch (e) {
+    action = null;
+  }
+  // Even if the JSON was malformed, never let a raw @@ACTION marker reach the user.
+  if (!action) text = text.replace(/@@ACTION[\s\S]*$/, "").trim();
+  return {
+    text: text,
+    action: action
+  };
+}
+var _bosAidN = 0;
+function bosAid() {
+  _bosAidN += 1;
+  return "a" + Date.now() + "_" + _bosAidN;
 }
 
 /* ── L1 · LOGIN BRIEF ────────────────────────────────────────────────────────
@@ -2235,6 +2297,8 @@ function AIChatScreen() {
   // Split a reply on blank lines into separate human-feeling bubbles, then drop them
   // in one after another with a small stagger (a real person texts in bursts, not one
   // wall). Single-paragraph replies stay a single bubble. Caps at 4 to avoid spam.
+  // Returns the ms after which the last bubble lands, so a follow-up action card can
+  // be dropped in right after the text (not in the middle of a multi-part reply).
   var appendReply = reply => {
     var parts = ("" + reply).split(/\n{2,}/).map(s => s.trim()).filter(Boolean).slice(0, 4);
     if (parts.length <= 1) {
@@ -2243,7 +2307,7 @@ function AIChatScreen() {
         kind: "text",
         t: parts[0] || ("" + reply).trim()
       }]);
-      return;
+      return 0;
     }
     setMsgs(m => [...m, {
       who: "ai",
@@ -2257,6 +2321,7 @@ function AIChatScreen() {
         t: p
       }]), (k + 1) * 520);
     });
+    return (parts.length - 1) * 520;
   };
   var send = text => {
     if (typing) return;
@@ -2271,7 +2336,19 @@ function AIChatScreen() {
     setTyping(true);
     aiReply(history, buildAiContext(app), _demoChat).then(reply => {
       setTyping(false);
-      appendReply(reply);
+      // Demo stays a pure scripted showcase — no live action buttons there.
+      var parsed = _demoChat ? {
+        text: reply,
+        action: null
+      } : bosParseAction(reply);
+      var body = parsed.text && parsed.text.trim() ? parsed.text : parsed.action ? "" : reply || AI_LIVE_FALLBACK;
+      var after = body ? appendReply(body) : 0;
+      if (parsed.action) window.setTimeout(() => setMsgs(m => [...m, {
+        who: "ai",
+        kind: "actioncard",
+        action: parsed.action,
+        aid: bosAid()
+      }]), after + 360);
     }).catch(() => {
       setTyping(false);
       setMsgs(m => [...m, {
@@ -2350,6 +2427,171 @@ function AIChatScreen() {
           lineHeight: 1.45
         }
       }, m.t));
+    }
+    if (m.kind === "actioncard") {
+      var a = m.action || {};
+      if (a.type === "open") {
+        return /*#__PURE__*/React.createElement("div", {
+          key: i,
+          style: {
+            display: "flex",
+            gap: 10,
+            alignItems: "flex-start",
+            animation: "msgIn 0.4s ease both"
+          }
+        }, /*#__PURE__*/React.createElement(StateChatOrb, {
+          size: 28,
+          tint: stateTint
+        }), /*#__PURE__*/React.createElement("button", {
+          className: "tap",
+          onClick: () => navigate(a.route),
+          style: {
+            flex: 1,
+            maxWidth: "85%",
+            textAlign: "left",
+            background: TH.aiCard,
+            border: TH.aiCardBorder,
+            borderRadius: 18,
+            borderTopLeftRadius: 4,
+            padding: "13px 16px",
+            color: TH.text,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 14,
+            fontWeight: 600
+          }
+        }, a.label || "Открыть"), /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 17,
+            color: TH.muted
+          }
+        }, "\u2192")));
+      }
+      return /*#__PURE__*/React.createElement("div", {
+        key: i,
+        style: {
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          animation: "msgIn 0.4s ease both"
+        }
+      }, /*#__PURE__*/React.createElement(StateChatOrb, {
+        size: 28,
+        tint: stateTint
+      }), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          maxWidth: "85%",
+          background: TH.aiCard,
+          border: TH.aiCardBorder,
+          borderRadius: 18,
+          borderTopLeftRadius: 4,
+          padding: 14,
+          color: TH.text
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          background: a.color ? a.color + "26" : "var(--surface-3)",
+          display: "grid",
+          placeItems: "center",
+          fontSize: 22,
+          flexShrink: 0
+        }
+      }, a.emoji || "✨"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          letterSpacing: 1.2,
+          textTransform: "uppercase",
+          color: TH.muted,
+          fontWeight: 600
+        }
+      }, "\u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 16,
+          fontWeight: 600,
+          letterSpacing: "-0.3px",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis"
+        }
+      }, a.name))), a.time && /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          marginTop: 11,
+          background: TH.accentBg,
+          borderRadius: 999,
+          padding: "5px 11px",
+          fontSize: 12.5,
+          color: TH.text
+        }
+      }, "\u23F0 \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435 \u0432 ", a.time), a.why && /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          lineHeight: 1.5,
+          marginTop: 10,
+          color: TH.muted
+        }
+      }, a.why), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 8,
+          marginTop: 14
+        }
+      }, /*#__PURE__*/React.createElement("button", {
+        className: "tap",
+        onClick: () => navigate("habit-settings", {
+          mode: "create",
+          preset: {
+            i: a.emoji || "✨",
+            t: a.name,
+            color: a.color || null,
+            time: a.time || null
+          }
+        }),
+        style: {
+          flex: 1,
+          background: TH.primary,
+          color: TH.primaryFg,
+          border: 0,
+          borderRadius: 12,
+          padding: "11px 14px",
+          fontSize: 14,
+          fontWeight: 600
+        }
+      }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443"), /*#__PURE__*/React.createElement("button", {
+        className: "tap",
+        "data-no-haptic": true,
+        onClick: () => setMsgs(mm => mm.filter(x => x.aid !== m.aid)),
+        style: {
+          background: TH.skipBg,
+          color: TH.text,
+          border: TH.skipBorder,
+          borderRadius: 12,
+          padding: "11px 14px",
+          fontSize: 14
+        }
+      }, "\u041D\u0435 \u0441\u0435\u0439\u0447\u0430\u0441"))));
     }
     return /*#__PURE__*/React.createElement("div", {
       key: i,
@@ -2556,58 +2798,27 @@ function AIChatScreen() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "62px 16px 12px",
+      padding: "54px 6px 2px",
       display: "flex",
-      alignItems: "center",
-      gap: 12
+      alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("button", {
     className: "tap",
+    "data-no-haptic": true,
     onClick: () => navigate("ai"),
+    "aria-label": "\u041D\u0430\u0437\u0430\u0434",
     style: {
-      width: 36,
-      height: 36,
-      background: TH.iconBtn,
-      border: TH.iconBtnBorder,
-      borderRadius: "50%",
-      color: TH.text,
+      width: 44,
+      height: 44,
+      background: "transparent",
+      border: 0,
+      color: TH.muted,
       display: "grid",
       placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement(I.ChevronLeft, {
-    size: 18
-  })), /*#__PURE__*/React.createElement(BosAvatar, {
-    avatar: app && app.avatar,
-    size: 36,
-    style: {
-      boxShadow: "0 2px 8px rgba(0,0,0,0.18)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      letterSpacing: "-0.2px"
-    }
-  }, _name || "Ты"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: TH.muted,
-      display: "flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 6,
-      height: 6,
-      borderRadius: "50%",
-      background: "#85e3a8"
-    }
-  }), " \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A \u0441\u043B\u0443\u0448\u0430\u0435\u0442"))), /*#__PURE__*/React.createElement("div", {
+    size: 26
+  }))), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
     className: "screen-scroll",
     style: {
