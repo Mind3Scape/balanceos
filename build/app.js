@@ -117,7 +117,7 @@ var AUTO_RESUME_TG = false;
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v179";
+var APP_VERSION = "v180";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}

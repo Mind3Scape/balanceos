@@ -853,21 +853,41 @@ function AppProvider({ children }) {
     return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", onVis); };
   }, []);
 
-  // L1 — refresh the AI brief ONCE per login (entering live / identity change). Shows the
-  // cached brief instantly, then refines it via the real AI from the restored context.
+  // L1 — the home AI line refreshes on REAL game events, not on every app-open: a NEW DAY,
+  // or after you actually played (checked habits / logged state). Same day + same game
+  // state → instant cached line, NO AI call. A burst of check-ins is debounced into ONE
+  // call once the activity settles. (The chat reads live state separately, per message.)
+  const _briefSignal = (mode === "live")
+    ? [
+        (typeof bosTodayKey === "function") ? bosTodayKey() : "",
+        (habits || []).filter((h) => h && h.done).length,        // habits checked today
+        (habits || []).length,                                    // added / removed a habit
+        (typeof bosTodayKey === "function" && dayMoods) ? (dayMoods[bosTodayKey()] ?? "_") : "_", // state logged
+      ].join("|")
+    : "";
   useEffect(() => {
     if (mode !== "live") { setAiBrief(null); return; }
     const cacheKey = "bos:brief:" + (persistId || "live");
-    try { const raw = localStorage.getItem(cacheKey); if (raw) setAiBrief(JSON.parse(raw)); } catch (e) {}
+    let cached = null;
+    try { const raw = localStorage.getItem(cacheKey); if (raw) { cached = JSON.parse(raw); setAiBrief(cached); } } catch (e) {}
     if (typeof bosAiBrief !== "function") return;
+    // Nothing material moved since the last line → keep the cached line, spend NO call.
+    if (cached && cached.signal === _briefSignal) return;
     let on = true;
-    bosAiBrief({ mode: "live", userName, mood, habits, goals, dayMoods, dayNotes }).then((brief) => {
-      if (!on || !brief) return;
-      setAiBrief(brief);
-      try { localStorage.setItem(cacheKey, JSON.stringify(brief)); } catch (e) {}
-    }).catch(() => {});
-    return () => { on = false; };
-  }, [mode, persistId]); // once per login by design
+    const today = _briefSignal.split("|")[0];
+    const sameDay = !!(cached && cached.signal && cached.signal.split("|")[0] === today);
+    // New day / first line → refresh now. A same-day check-in → wait ~8s so four quick
+    // checks become ONE call, not four ("after you did something", not "on every tap").
+    const tid = setTimeout(() => {
+      bosAiBrief({ mode: "live", userName, mood, habits, goals, dayMoods, dayNotes }).then((brief) => {
+        if (!on || !brief) return;
+        brief.signal = _briefSignal;
+        setAiBrief(brief);
+        try { localStorage.setItem(cacheKey, JSON.stringify(brief)); } catch (e) {}
+      }).catch(() => {});
+    }, sameDay ? 8000 : 0);
+    return () => { on = false; clearTimeout(tid); };
+  }, [mode, persistId, _briefSignal]);
 
   // ── Entry modes ───────────────────────────────────────────────────
   // enterDemo: fill everything with the seed demo (Павел's filled life).
