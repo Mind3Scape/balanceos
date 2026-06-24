@@ -2056,7 +2056,18 @@ function LevelsScreen() {
   const { open: openSheet } = useSheet();
   const app = useApp ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
-  const invited = app?.mode === "demo" ? 2 : 0; // people you've drawn into the app
+  // LIVE: real count of people you've actually invited (referral circle) — same source as
+  // the profile orbit. Was hardcoded 0 for live, so «Круг влияния» always read empty even
+  // when you'd already drawn someone in.
+  const [liveInvited, setLiveInvited] = React.useState(0);
+  React.useEffect(() => {
+    let on = true;
+    if (app?.mode === "live" && window.bosCloud && window.bosCloud.invitedPeople) {
+      window.bosCloud.invitedPeople().then((list) => { if (on && Array.isArray(list)) setLiveInvited(list.length); }).catch(() => {});
+    }
+    return () => { on = false; };
+  }, [app?.mode]);
+  const invited = app?.mode === "demo" ? 2 : liveInvited; // people you've drawn into the app
   // Круг влияния — concrete XP, no abstract ×/%. The felt "multiplier" is two
   // plain things: shared habits pay more (+15 vs +10), and growing your circle
   // hits milestones that drop a big lump bonus. No ceiling — milestones keep
