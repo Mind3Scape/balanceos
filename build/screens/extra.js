@@ -2964,11 +2964,130 @@ function AIChatScreen() {
         }
       `));
 }
+
+/* ── Achievement celebration ─────────────────────────────────────────────────
+   A gold, full-screen pop that rises when a live user unlocks a new badge. Tap
+   anywhere or the button to dismiss; the badge then lives in the Achievements screen. */
+function AchievementUnlock({
+  ach,
+  onClose
+}) {
+  if (!ach) return null;
+  var accent = ach.accent || "#FEDE34";
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 99990,
+      background: "rgba(8,8,10,0.72)",
+      backdropFilter: "blur(10px)",
+      WebkitBackdropFilter: "blur(10px)",
+      display: "grid",
+      placeItems: "center",
+      padding: 28,
+      animation: "achFade 0.3s ease both"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "relative",
+      width: "100%",
+      maxWidth: 340,
+      borderRadius: 30,
+      padding: "36px 24px 22px",
+      textAlign: "center",
+      overflow: "hidden",
+      background: "linear-gradient(168deg,#1b1b1f,#0c0c0e)",
+      boxShadow: "0 26px 80px rgba(0,0,0,0.55)",
+      animation: "achPop 0.45s cubic-bezier(0.22,1,0.36,1) both"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: 0,
+      background: "radial-gradient(circle at 50% 20%, " + accent + "3a, transparent 62%)"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      letterSpacing: 2.2,
+      textTransform: "uppercase",
+      color: accent,
+      fontWeight: 700
+    }
+  }, "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u043E"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 100,
+      height: 100,
+      margin: "20px auto 0",
+      borderRadius: 30,
+      background: accent + "22",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 50,
+      boxShadow: "inset 0 0 0 1px " + accent + "44, 0 8px 26px rgba(0,0,0,0.35)"
+    }
+  }, ach.i), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 24,
+      fontWeight: 700,
+      color: "#fff",
+      marginTop: 20,
+      letterSpacing: "-0.4px"
+    }
+  }, ach.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "rgba(255,255,255,0.62)",
+      marginTop: 8,
+      lineHeight: 1.5,
+      maxWidth: 264,
+      marginLeft: "auto",
+      marginRight: "auto"
+    }
+  }, ach.d), ach.xp ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-block",
+      marginTop: 16,
+      background: "rgba(254,222,52,0.14)",
+      color: "#FEDE34",
+      fontWeight: 700,
+      fontSize: 14,
+      borderRadius: 999,
+      padding: "7px 16px"
+    }
+  }, "+", ach.xp, " XP") : null, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    className: "tap",
+    style: {
+      display: "block",
+      width: "100%",
+      marginTop: 24,
+      background: accent,
+      color: "#0a0a0a",
+      border: 0,
+      borderRadius: 16,
+      padding: 15,
+      fontSize: 16,
+      fontWeight: 700
+    }
+  }, "\u041A\u043B\u0430\u0441\u0441!"))), /*#__PURE__*/React.createElement("style", null, `
+        @keyframes achFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes achPop { 0% { opacity: 0; transform: scale(0.86) translateY(14px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+      `));
+}
 Object.assign(window, {
   HabitDetailScreen,
   GoalDetailScreen,
   MoodScreen,
   JournalScreen,
   LevelUpScreen,
-  AIChatScreen
+  AIChatScreen,
+  AchievementUnlock
 });

@@ -1327,12 +1327,18 @@ function bosTotalXP(habits, extras) {
   }
   return xp;
 }
-// Live XP including state + journaling engagement — use this everywhere for live profiles.
-function bosLiveXP(app) {
+// BASE live XP = real actions only (habits + state + journal + state-week bonus). This is the
+// foundation for achievement conditions, so badge XP never feeds back into "reach level N".
+function bosBaseXP(app) {
   return app ? bosTotalXP(app.habits, {
     moods: app.dayMoods,
     notes: app.dayNotes
   }) : 0;
+}
+// Displayed live XP = base + bonus XP from unlocked achievements — use this everywhere a level
+// or XP total is SHOWN, so achievements really push the user forward.
+function bosLiveXP(app) {
+  return bosBaseXP(app) + (typeof bosAchievementBonusXP === "function" ? bosAchievementBonusXP(app) : 0);
 }
 // XP → level. Each level costs a little more than the last (100, 150, 200…): a gentle curve
 // so the first wins come fast and later levels feel earned.
@@ -1363,6 +1369,247 @@ function bosMaxStreak(habits) {
     if (h && h.streak > m) m = h.streak;
   });
   return m;
+}
+
+/* ── Achievements ────────────────────────────────────────────────────────────
+   Real, persisted milestone badges for LIVE users — earned from real signals, each
+   pays bonus XP, and a freshly-unlocked one pops a celebration. Conditions use BASE
+   xp (bosBaseXP), so a badge's XP can never cascade-unlock the next "reach level N".
+   Paced against the real XP→time curve so there's always a next thing, never too often. */
+function bosCareDays(app) {
+  var days = {},
+    k;
+  var dm = app && app.dayMoods || {};
+  for (k in dm) {
+    if (dm[k] != null && /^\d{4}-\d{2}-\d{2}$/.test(k)) days[k] = 1;
+  }
+  var dn = app && app.dayNotes || {};
+  for (k in dn) {
+    var e = dn[k];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && e && (e.note != null && ("" + e.note).trim() || e.tags && e.tags.length)) days[k] = 1;
+  }
+  return Object.keys(days).length;
+}
+var BOS_ACHIEVEMENTS = [{
+  id: "first_habit",
+  i: "🌱",
+  t: "Первый шаг",
+  d: "Создал первую привычку",
+  xp: 30,
+  accent: "#7FB37F",
+  how: "Создай первую привычку",
+  test: function (c) {
+    return c.habits >= 1;
+  }
+}, {
+  id: "week_state",
+  i: "🔥",
+  t: "Неделя с собой",
+  d: "7 дней подряд отмечал состояние",
+  xp: 60,
+  accent: "#FF8A5B",
+  how: "Отмечай состояние 7 дней подряд",
+  test: function (c) {
+    return c.moodStreak >= 7;
+  }
+}, {
+  id: "lvl5",
+  i: "⚡",
+  t: "Разогрев",
+  d: "Достиг 5 уровня",
+  xp: 75,
+  accent: "#FEDE34",
+  how: "Дойди до 5 уровня",
+  test: function (c) {
+    return c.level >= 5;
+  }
+}, {
+  id: "habit21",
+  i: "📿",
+  t: "Привычка прижилась",
+  d: "Держал привычку 21 день подряд",
+  xp: 120,
+  accent: "#9BCBA0",
+  how: "Держи привычку 21 день подряд",
+  test: function (c) {
+    return c.habitStreak >= 21;
+  }
+}, {
+  id: "care30",
+  i: "🧠",
+  t: "Месяц с собой",
+  d: "30 дней наблюдал состояние или вёл дневник",
+  xp: 120,
+  accent: "#7FB5FF",
+  how: "30 дней отмечай состояние или пиши дневник",
+  test: function (c) {
+    return c.careDays >= 30;
+  }
+}, {
+  id: "team",
+  i: "🤝",
+  t: "Не один",
+  d: "Собрал команду или позвал друга",
+  xp: 100,
+  accent: "#5FA8FF",
+  how: "Создай команду или пригласи друга",
+  test: function (c) {
+    return c.teams >= 1 || c.friends >= 1;
+  }
+}, {
+  id: "lvl10",
+  i: "🏅",
+  t: "Уверенный",
+  d: "Достиг 10 уровня",
+  xp: 150,
+  accent: "#FEDE34",
+  how: "Дойди до 10 уровня",
+  test: function (c) {
+    return c.level >= 10;
+  }
+}, {
+  id: "care100",
+  i: "🗓️",
+  t: "100 дней пути",
+  d: "100 дней заботы о себе",
+  xp: 250,
+  accent: "#7FB5FF",
+  how: "100 дней отмечай состояние или дневник",
+  test: function (c) {
+    return c.careDays >= 100;
+  }
+}, {
+  id: "habit60",
+  i: "💎",
+  t: "Несгибаемый",
+  d: "Держал привычку 60 дней подряд",
+  xp: 300,
+  accent: "#9BD0FF",
+  how: "Держи привычку 60 дней подряд",
+  test: function (c) {
+    return c.habitStreak >= 60;
+  }
+}, {
+  id: "goal",
+  i: "🎯",
+  t: "Цель достигнута",
+  d: "Довёл цель до конца",
+  xp: 200,
+  accent: "#FF8A5B",
+  how: "Заверши хотя бы одну цель",
+  test: function (c) {
+    return c.goalsDone >= 1;
+  }
+}, {
+  id: "lvl15",
+  i: "🌟",
+  t: "Глубже",
+  d: "Достиг 15 уровня",
+  xp: 350,
+  accent: "#FEDE34",
+  how: "Дойди до 15 уровня",
+  test: function (c) {
+    return c.level >= 15;
+  }
+}, {
+  id: "care180",
+  i: "🏔️",
+  t: "Полгода роста",
+  d: "180 дней заботы о себе",
+  xp: 450,
+  accent: "#A8E0E8",
+  how: "Полгода отмечай состояние или дневник",
+  test: function (c) {
+    return c.careDays >= 180;
+  }
+}, {
+  id: "lvl20",
+  i: "🌍",
+  t: "Вершина",
+  d: "Достиг 20 уровня",
+  xp: 600,
+  accent: "#FEDE34",
+  how: "Дойди до 20 уровня",
+  test: function (c) {
+    return c.level >= 20;
+  }
+}, {
+  id: "year",
+  i: "👑",
+  t: "Год пути",
+  d: "365 дней заботы о себе",
+  xp: 800,
+  accent: "#E8C86A",
+  how: "Год отмечай состояние или дневник",
+  test: function (c) {
+    return c.careDays >= 365;
+  }
+}, {
+  id: "lvl25",
+  i: "⭐",
+  t: "Только начало",
+  d: "Достиг 25 уровня — для кого-то это лишь старт",
+  xp: 1000,
+  accent: "#C9B8FF",
+  how: "Дойди до 25 уровня",
+  test: function (c) {
+    return c.level >= 25;
+  }
+}];
+function bosAchContext(app) {
+  var habits = app && app.habits || [];
+  var teams = (app && app.teams || []).filter(function (t) {
+    return t && (t.joined || t.cloudId);
+  }).length;
+  var goalsDone = (app && app.goals || []).filter(function (g) {
+    return g && g.target && (g.current || 0) >= g.target;
+  }).length;
+  var friends = 0;
+  try {
+    friends = app && (app.invitedCount || app.friendsCount) || 0;
+  } catch (e) {}
+  return {
+    level: bosLevelInfo(bosBaseXP(app)).level,
+    careDays: bosCareDays(app),
+    moodStreak: bosMoodStreak(app && app.dayMoods),
+    habitStreak: bosMaxStreak(habits),
+    habits: habits.length,
+    teams: teams,
+    friends: friends,
+    goalsDone: goalsDone
+  };
+}
+// Full ladder with each badge's .earned for the current live profile.
+function bosEarnedAchievements(app) {
+  var c = bosAchContext(app);
+  return BOS_ACHIEVEMENTS.map(function (a) {
+    return Object.assign({}, a, {
+      earned: !!a.test(c)
+    });
+  });
+}
+// Total bonus XP from unlocked achievements — added on top of base XP for the shown level.
+function bosAchievementBonusXP(app) {
+  var c = bosAchContext(app),
+    sum = 0;
+  for (var i = 0; i < BOS_ACHIEVEMENTS.length; i++) {
+    if (BOS_ACHIEVEMENTS[i].test(c)) sum += BOS_ACHIEVEMENTS[i].xp || 0;
+  }
+  return sum;
+}
+function bosEarnedAchIds(app) {
+  var c = bosAchContext(app),
+    ids = [];
+  for (var i = 0; i < BOS_ACHIEVEMENTS.length; i++) {
+    if (BOS_ACHIEVEMENTS[i].test(c)) ids.push(BOS_ACHIEVEMENTS[i].id);
+  }
+  return ids;
+}
+function bosAchById(id) {
+  for (var i = 0; i < BOS_ACHIEVEMENTS.length; i++) {
+    if (BOS_ACHIEVEMENTS[i].id === id) return BOS_ACHIEVEMENTS[i];
+  }
+  return null;
 }
 // Re-derive a live habit's `done`/`streak` from its log for TODAY. Also migrates a pre-model
 // habit (had `done`, no `log`) forward so a currently-checked habit isn't lost on upgrade.
@@ -1430,6 +1677,7 @@ function AppProvider({
   // Demo vs. fresh-start experience. Default = demo (a reload always lands on the
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.
   var [mode, setMode] = useState("demo"); // "demo" | "fresh"
+  var [pendingAch, setPendingAch] = useState(null); // a freshly-unlocked achievement to celebrate
   var [userName, setUserName] = useState("Павел");
   var [avatar, setAvatar] = useState(null); // null = default Memoji (assets/sphere.png)
   // Guided coach-mark tour. -1 = off; 0..N = current stop. Started on entering demo.
@@ -2065,6 +2313,69 @@ function AppProvider({
   };
   var endTour = () => setTourStep(-1);
 
+  // ── Achievements: detect freshly-unlocked badges (live) and pop a celebration ──
+  // Seen ids persist per-profile in localStorage. First sight of a profile SEEDS the set
+  // with whatever's already earned (no retroactive spam) — only genuinely NEW unlocks pop.
+  var clearPendingAch = () => setPendingAch(null);
+  var achSeenRef = useRef({
+    pid: null,
+    ids: null
+  });
+  useEffect(() => {
+    if (mode !== "live" || !persistId || typeof bosEarnedAchIds !== "function") return;
+    var KEY = "bos:ach:" + persistId;
+    var earned = bosEarnedAchIds({
+      habits: habits,
+      goals: goals,
+      dayMoods: dayMoods,
+      dayNotes: dayNotes,
+      teams: teams
+    });
+    var store = achSeenRef.current;
+    if (store.pid !== persistId) {
+      var saved = null;
+      try {
+        var raw = localStorage.getItem(KEY);
+        if (raw) saved = JSON.parse(raw);
+      } catch (e) {}
+      store = achSeenRef.current = {
+        pid: persistId,
+        ids: Array.isArray(saved) ? saved.slice() : null
+      };
+    }
+    // No baseline yet, or still hydrating cloud data → ABSORB current as "seen", never pop
+    // (so existing badges don't fire retroactively on login / a fresh device).
+    if (store.ids === null || hydratingRef.current) {
+      var base = store.ids || [];
+      earned.forEach(function (id) {
+        if (base.indexOf(id) < 0) base.push(id);
+      });
+      achSeenRef.current = {
+        pid: persistId,
+        ids: base
+      };
+      try {
+        localStorage.setItem(KEY, JSON.stringify(base));
+      } catch (e2) {}
+      return;
+    }
+    var fresh = earned.filter(function (id) {
+      return store.ids.indexOf(id) < 0;
+    });
+    if (fresh.length) {
+      var next = store.ids.concat(fresh);
+      achSeenRef.current = {
+        pid: persistId,
+        ids: next
+      };
+      try {
+        localStorage.setItem(KEY, JSON.stringify(next));
+      } catch (e3) {}
+      var a = typeof bosAchById === "function" ? bosAchById(fresh[0]) : null;
+      if (a) setPendingAch(a);
+    }
+  }, [mode, persistId, habits, goals, dayMoods, dayNotes, teams]);
+
   // Community tab/section view-state lives here so navigating into a detail
   // screen and back doesn't reset it (the screen unmounts on push/pop).
   var [communityView, setCommunityViewRaw] = useState({
@@ -2101,6 +2412,8 @@ function AppProvider({
       enterFresh,
       enterLive,
       aiBrief,
+      pendingAch,
+      clearPendingAch,
       tourStep,
       setTourStep,
       startTour,

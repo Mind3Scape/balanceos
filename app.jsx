@@ -114,7 +114,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v172";
+const APP_VERSION = "v173";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -908,6 +908,7 @@ function PhoneApp() {
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
         <FreshOnboarding app={app} dark={topDark} />
         <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} openSheet={sheetApi.open} tourScreen={app.tourScreen} dark={topDark} onAdvance={advanceGuide} onDismiss={dismissGuide} lastScreen={app.tourScreen === "ai"} />
+        {app.pendingAch && typeof AchievementUnlock === "function" && <AchievementUnlock ach={app.pendingAch} onClose={app.clearPendingAch} />}
       </div>
     </div>
     </SheetCtx.Provider>

@@ -858,8 +858,8 @@ function ProfileScreen() {
   var orbitPeople = app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : livePeople;
 
   // Achievements badge — REAL earned set + emojis for live; curated 4/8 for demo.
-  var _liveAch = _isLive ? bosLiveAchievements(app).filter(a => a.earned) : [];
-  var _achTotal = _isLive ? ACHIEVEMENTS.length : 8;
+  var _liveAch = _isLive ? bosEarnedAchievements(app).filter(a => a.earned) : [];
+  var _achTotal = _isLive ? BOS_ACHIEVEMENTS.length : 8;
   var _achEarnedN = _isLive ? _liveAch.length : 4;
   var _achEmojis = _isLive ? _liveAch.slice(0, 3).map(a => a.i) : ["⚡", "🧘", "🤝"];
   var _achCircles = _isLive ? livePeople.length : 3;
@@ -4697,9 +4697,11 @@ function AchievementsScreen() {
   var back = params?.from || "profile";
   var isLive = app?.mode !== "demo"; // live AND fresh = real signals; only demo is curated
   // LIVE/fresh: achievements earned by real signals; DEMO: the curated showcase list.
-  var LIST = isLive ? bosLiveAchievements(app) : ACHIEVEMENTS;
+  var LIST = isLive ? bosEarnedAchievements(app) : ACHIEVEMENTS;
   var earned = LIST.filter(a => a.earned);
   var locked = LIST.filter(a => !a.earned);
+  // Live ladder grants bonus XP per badge; total earned bonus is the hero number.
+  var _achXP = isLive ? earned.reduce((s, a) => s + (a.xp || 0), 0) : 0;
   // LIVE "circles of contacts" = real people you actually invited (referral circle).
   var [invited, setInvited] = React.useState(0);
   React.useEffect(() => {
@@ -4717,7 +4719,7 @@ function AchievementsScreen() {
     };
   }, [isLive]);
   // Demo's framing: each non-"+1 level" earned badge opened a circle. Live: real invited count.
-  var circles = isLive ? invited : earned.filter(a => !a.opens.startsWith("+")).length;
+  var circles = isLive ? invited : earned.filter(a => a.opens && !a.opens.startsWith("+")).length;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -4764,7 +4766,7 @@ function AchievementsScreen() {
       lineHeight: 1.5,
       marginTop: 6
     }
-  }, isLive ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0410\u0447\u0438\u0432\u043A\u0438 \u2014 \u044D\u0442\u043E \u043A\u043B\u044E\u0447\u0438: \u0437\u0430 \u0443\u0440\u043E\u0432\u043D\u0438, \u0441\u0435\u0440\u0438\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0440\u044F\u0434\u043E\u043C. ", circles > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0422\u044B \u043F\u0440\u0438\u0432\u0451\u043B ", /*#__PURE__*/React.createElement("b", null, circles, " ", circles === 1 ? "человека" : "чел."), " \u0432 \u0441\u0432\u043E\u0451 \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u043E.") : "Пригласи друга — и откроется твой первый круг контактов.") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0410\u0447\u0438\u0432\u043A\u0438 \u2014 \u044D\u0442\u043E \u043A\u043B\u044E\u0447\u0438: \u0437\u0430 \u043A\u0443\u0440\u0441\u044B, \u0443\u0440\u043E\u0432\u043D\u0438 \u0438 \u0434\u043E\u0431\u0440\u044B\u0435 \u0434\u0435\u043B\u0430. \u0423\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u043B\u0438 ", /*#__PURE__*/React.createElement("b", null, circles, " \u043A\u0440\u0443\u0433\u0430 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043E\u0432"), ".")), /*#__PURE__*/React.createElement("div", {
+  }, isLive ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u044F \u0437\u0430 \u0443\u0440\u043E\u0432\u043D\u0438, \u0441\u0435\u0440\u0438\u0438 \u0438 \u0437\u0430\u0431\u043E\u0442\u0443 \u043E \u0441\u0435\u0431\u0435. \u041A\u0430\u0436\u0434\u043E\u0435 \u0434\u0430\u0451\u0442 \u0431\u043E\u043D\u0443\u0441 XP", _achXP > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 \u0442\u044B \u0443\u0436\u0435 \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043B ", /*#__PURE__*/React.createElement("b", null, "+", _achXP, " XP"), ".") : /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 \u043E\u0442\u043A\u0440\u043E\u0439 \u043F\u0435\u0440\u0432\u043E\u0435.")) : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0410\u0447\u0438\u0432\u043A\u0438 \u2014 \u044D\u0442\u043E \u043A\u043B\u044E\u0447\u0438: \u0437\u0430 \u043A\u0443\u0440\u0441\u044B, \u0443\u0440\u043E\u0432\u043D\u0438 \u0438 \u0434\u043E\u0431\u0440\u044B\u0435 \u0434\u0435\u043B\u0430. \u0423\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u043B\u0438 ", /*#__PURE__*/React.createElement("b", null, circles, " \u043A\u0440\u0443\u0433\u0430 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043E\u0432"), ".")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -4847,7 +4849,7 @@ function AchievementsScreen() {
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
     size: 11,
     color: a.accent
-  }), " \u043E\u0442\u043A\u0440\u044B\u043B: ", a.opens)), /*#__PURE__*/React.createElement("span", {
+  }), " ", a.xp ? "+" + a.xp + " XP" : "открыл: " + a.opens)), /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-text-3",
     style: {
       fontSize: 11,
@@ -4914,14 +4916,14 @@ function AchievementsScreen() {
       fontSize: 12,
       marginTop: 2
     }
-  }, "\u041A\u0430\u043A \u043E\u0442\u043A\u0440\u044B\u0442\u044C: ", a.req), /*#__PURE__*/React.createElement("div", {
+  }, "\u041A\u0430\u043A \u043E\u0442\u043A\u0440\u044B\u0442\u044C: ", a.how || a.req), /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-2",
     style: {
       fontSize: 12,
       marginTop: 5,
       fontWeight: 500
     }
-  }, "\u2192 \u043E\u0442\u043A\u0440\u043E\u0435\u0442: ", a.opens)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, a.xp ? "+" + a.xp + " XP" : "→ откроет: " + a.opens)), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 16,
     className: "bos-sys-text-3",
     style: {

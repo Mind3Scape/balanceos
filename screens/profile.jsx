@@ -331,8 +331,8 @@ function ProfileScreen() {
   const orbitPeople = app?.mode === "demo" ? DEMO_ORBIT_PEOPLE : livePeople;
 
   // Achievements badge — REAL earned set + emojis for live; curated 4/8 for demo.
-  const _liveAch = _isLive ? bosLiveAchievements(app).filter((a) => a.earned) : [];
-  const _achTotal = _isLive ? ACHIEVEMENTS.length : 8;
+  const _liveAch = _isLive ? bosEarnedAchievements(app).filter((a) => a.earned) : [];
+  const _achTotal = _isLive ? BOS_ACHIEVEMENTS.length : 8;
   const _achEarnedN = _isLive ? _liveAch.length : 4;
   const _achEmojis = _isLive ? _liveAch.slice(0, 3).map((a) => a.i) : ["⚡", "🧘", "🤝"];
   const _achCircles = _isLive ? livePeople.length : 3;
@@ -1765,9 +1765,11 @@ function AchievementsScreen() {
   const back = params?.from || "profile";
   const isLive = app?.mode !== "demo"; // live AND fresh = real signals; only demo is curated
   // LIVE/fresh: achievements earned by real signals; DEMO: the curated showcase list.
-  const LIST = isLive ? bosLiveAchievements(app) : ACHIEVEMENTS;
+  const LIST = isLive ? bosEarnedAchievements(app) : ACHIEVEMENTS;
   const earned = LIST.filter(a => a.earned);
   const locked = LIST.filter(a => !a.earned);
+  // Live ladder grants bonus XP per badge; total earned bonus is the hero number.
+  const _achXP = isLive ? earned.reduce((s, a) => s + (a.xp || 0), 0) : 0;
   // LIVE "circles of contacts" = real people you actually invited (referral circle).
   const [invited, setInvited] = React.useState(0);
   React.useEffect(() => {
@@ -1781,7 +1783,7 @@ function AchievementsScreen() {
     return () => { on = false; };
   }, [isLive]);
   // Demo's framing: each non-"+1 level" earned badge opened a circle. Live: real invited count.
-  const circles = isLive ? invited : earned.filter(a => !a.opens.startsWith("+")).length;
+  const circles = isLive ? invited : earned.filter(a => a.opens && !a.opens.startsWith("+")).length;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Достижения" onBack={() => navigate(back)} />
@@ -1795,7 +1797,7 @@ function AchievementsScreen() {
         </div>
         <div className="bos-sys-text-2" style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
           {isLive
-            ? <>Ачивки — это ключи: за уровни, серии и людей рядом. {circles > 0 ? <>Ты привёл <b>{circles} {circles === 1 ? "человека" : "чел."}</b> в своё пространство.</> : "Пригласи друга — и откроется твой первый круг контактов."}</>
+            ? <>Достижения за уровни, серии и заботу о себе. Каждое даёт бонус XP{_achXP > 0 ? <> — ты уже заработал <b>+{_achXP} XP</b>.</> : <> — открой первое.</>}</>
             : <>Ачивки — это ключи: за курсы, уровни и добрые дела. Уже открыли <b>{circles} круга контактов</b>.</>}
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
@@ -1815,7 +1817,7 @@ function AchievementsScreen() {
               <div style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.2px" }}>{a.t}</div>
               <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 2 }}>{a.d}</div>
               <div className="bos-sys-text-2" style={{ fontSize: 12, marginTop: 5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <I.Sparkles size={11} color={a.accent}/> открыл: {a.opens}
+                <I.Sparkles size={11} color={a.accent}/> {a.xp ? "+" + a.xp + " XP" : "открыл: " + a.opens}
               </div>
             </div>
             <span className="bos-sys-text-3" style={{ fontSize: 11, flexShrink: 0 }}>{a.date}</span>
@@ -1831,8 +1833,8 @@ function AchievementsScreen() {
             <span style={{ width: 46, height: 46, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0, filter: "grayscale(1)", opacity: 0.45 }}>{a.i}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.2px", display: "inline-flex", alignItems: "center", gap: 6 }}>{a.t} <span style={{ fontSize: 11 }}>🔒</span></div>
-              <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 2 }}>Как открыть: {a.req}</div>
-              <div className="bos-sys-text-2" style={{ fontSize: 12, marginTop: 5, fontWeight: 500 }}>→ откроет: {a.opens}</div>
+              <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 2 }}>Как открыть: {a.how || a.req}</div>
+              <div className="bos-sys-text-2" style={{ fontSize: 12, marginTop: 5, fontWeight: 500 }}>{a.xp ? "+" + a.xp + " XP" : "→ откроет: " + a.opens}</div>
             </div>
             <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }}/>
           </SysCard>
