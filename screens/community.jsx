@@ -605,7 +605,7 @@ function CommunityScreen() {
               the fastest level-up — a whole level + an achievement that opens new
               circles of people + a big XP boost. Same gold as the level badge. */}
           <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
-            background: "linear-gradient(135deg, #FEDE34 0%, #F7C420 44%, #EF9F14 100%)",
+            background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
             boxShadow: "0 8px 22px rgba(239,159,20,0.32)" }}>
             <div aria-hidden style={{ position: "absolute", top: -46, right: -28, width: 168, height: 168, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
             <div aria-hidden style={{ position: "absolute", top: 15, right: 17, fontSize: 38, lineHeight: 1, pointerEvents: "none" }}>🏆</div>
@@ -1245,7 +1245,7 @@ function TeamCreateScreen() {
 
 /* Colored progress ring for a calendar day — like History's DayRing but any colour
    (per-member tint), so a member's month reads in their own colour. */
-function TeamRing({ pct, color = "#FFC400", track, sw = 3, glow }) {
+function TeamRing({ pct, color = "#FEDE34", track, sw = 3, glow }) {
   const r = 16, C = 2 * Math.PI * r;
   return (
     <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
@@ -1285,7 +1285,7 @@ function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь
   const allFrac = (d) => { if (future(d)) return null; const v = people.map((_, i) => pf(i, d)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; };
   const dayPct = (d) => (selPerson == null ? allFrac(d) : pf(selPerson, d));
   const track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
-  const selColor = selPerson == null ? "#FFC400" : (people[selPerson]?.color || "#FFC400");
+  const selColor = selPerson == null ? "#FEDE34" : (people[selPerson]?.color || "#FEDE34");
   const todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)"; // soft grey — not a hard black fill
   const selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
   const chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
@@ -2153,7 +2153,7 @@ function LevelsScreen() {
         ].map((r, i, arr) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 7 }}>{r.infl && <span style={{ fontSize: 14 }}>🤝</span>}{r.t}</span>
-            <span style={{ color: r.infl ? "#2f8fd6" : "#c99a1a", fontWeight: 700 }}>{r.v} XP</span>
+            <span style={{ color: r.infl ? "#2f8fd6" : "#E0A500", fontWeight: 700 }}>{r.v} XP</span>
           </div>
         ))}
       </SysCard>
@@ -2167,7 +2167,7 @@ function LevelsScreen() {
       <div className="section-label" style={{ marginTop: 22 }}>Круг влияния</div>
       <SysCard data-tour="influence-mult" style={{ padding: 16, marginTop: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#FFC400)", boxShadow: "0 7px 18px rgba(254,222,52,0.34)" }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 7px 18px rgba(254,222,52,0.34)" }}>
             <I.Users size={25} color="#0a0a0a" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -2184,11 +2184,11 @@ function LevelsScreen() {
         <div style={{ marginTop: 14, padding: "12px 13px", borderRadius: 14, background: isDark ? "rgba(254,222,52,0.10)" : "#FFF7DC" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5 }}>
             <span className="bos-sys-text-2">Привычка в одиночку</span>
-            <span style={{ fontWeight: 700, color: "#c99a1a" }}>+10 XP</span>
+            <span style={{ fontWeight: 700, color: "#E0A500" }}>+10 XP</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, marginTop: 7 }}>
             <span className="bos-sys-text-2">Привычка с другом</span>
-            <span style={{ fontWeight: 800, color: "#c99a1a" }}>+15 XP</span>
+            <span style={{ fontWeight: 800, color: "#E0A500" }}>+15 XP</span>
           </div>
           <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 9, lineHeight: 1.4 }}>
             Одни и те же привычки с друзьями приносят больше XP.
@@ -2203,15 +2203,15 @@ function LevelsScreen() {
               <span><b style={{ color: "var(--text-2)", fontWeight: 700 }}>{invited}</b> <span className="bos-sys-text-3">из {nextMile.n}</span></span>
             </div>
             <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden", marginTop: 7 }}>
-              <span style={{ display: "block", height: "100%", width: Math.min(100, Math.max(6, (invited - prevMileN) / (nextMile.n - prevMileN) * 100)) + "%", background: "linear-gradient(90deg,#FEDE34,#F0B400)", borderRadius: 999 }} />
+              <span style={{ display: "block", height: "100%", width: Math.min(100, Math.max(6, (invited - prevMileN) / (nextMile.n - prevMileN) * 100)) + "%", background: "linear-gradient(90deg,#FEDE34,#EF9F14)", borderRadius: 999 }} />
             </div>
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
-              Ещё <b style={{ color: "var(--text-2)" }}>{nextMile.n - invited}</b> — и получишь <b style={{ color: "#c99a1a" }}>+{nextMile.bonus} XP</b> разом.
+              Ещё <b style={{ color: "var(--text-2)" }}>{nextMile.n - invited}</b> — и получишь <b style={{ color: "#E0A500" }}>+{nextMile.bonus} XP</b> разом.
             </div>
           </div>
         ) : (
           <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 14, lineHeight: 1.45 }}>
-            Круг можно растить бесконечно — и каждый новый друг приносит тебе <b style={{ color: "#c99a1a" }}>+150 XP</b>.
+            Круг можно растить бесконечно — и каждый новый друг приносит тебе <b style={{ color: "#E0A500" }}>+150 XP</b>.
           </div>
         )}
 

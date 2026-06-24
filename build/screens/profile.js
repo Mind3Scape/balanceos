@@ -2028,10 +2028,10 @@ function HistoryScreen() {
     y2: "1"
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0",
-    stopColor: "#FFD93B"
+    stopColor: "#FEDE34"
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "1",
-    stopColor: "#FFC400"
+    stopColor: "#EF9F14"
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
@@ -4371,7 +4371,7 @@ function SignUpScreen() {
       alignItems: "center",
       gap: 13,
       textAlign: "left",
-      background: "linear-gradient(135deg, #FEDE34 0%, #FFC400 100%)",
+      background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
       color: "#0a0a0a",
       border: 0,
       borderRadius: 20,

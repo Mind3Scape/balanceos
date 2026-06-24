@@ -28,7 +28,7 @@ function HabitDetailScreen() {
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
-  const ringColor = h.color || "#FFC400";  // gold by default (matches the main calendar), or the habit's colour
+  const ringColor = h.color || "#FEDE34";  // gold by default (matches the main calendar), or the habit's colour
   const tileBg  = h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
   const emptyBd = isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)";
 
@@ -53,7 +53,7 @@ function HabitDetailScreen() {
   const isShared = (app?.mode === "demo") && (h.friends?.length > 0);
   const mkStreak = (seed) => 3 + (Math.abs(seed) * 7) % 24; // deterministic 3..26
   const roster = isShared ? [
-    { name: "Ты", initials: "Я", color: h.color || "#FFC400", streak, you: true },
+    { name: "Ты", initials: "Я", color: h.color || "#FEDE34", streak, you: true },
     ...h.friends.map((f, i) => ({ name: f.name, initials: f.initials || (f.name || "?")[0], color: f.color, streak: mkStreak((f.name || "X").charCodeAt(0) + i * 5 + (h.id || 1)) })),
   ] : [];
   // Each person's own 5-week pattern: recent `streak` days done, older scattered by
@@ -79,7 +79,7 @@ function HabitDetailScreen() {
   // the team uses → one consistent look). dayFrac: did this person do the habit that day.
   const calPeople = isShared
     ? fullRoster.map((p) => ({ name: p.name, initials: p.initials, color: p.color, you: p.you }))
-    : [{ name: "Ты", initials: "Я", color: h.color || "#FFC400", you: true }];
+    : [{ name: "Ты", initials: "Я", color: h.color || "#FEDE34", you: true }];
   const _calYear = _live ? new Date().getFullYear() : 2026;
   const habitFrac = (pi, d, mi) => {
     // LIVE: the REAL calendar — did you actually check this habit on that date (h.log)?
@@ -150,7 +150,7 @@ function HabitDetailScreen() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14.5, fontWeight: p.you ? 700 : 500, color: "var(--text)" }}>{p.name}</div>
                     <div style={{ height: 5, background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", borderRadius: 999, marginTop: 5, overflow: "hidden" }}>
-                      <span style={{ display: "block", height: "100%", width: (p.streak / maxStreak * 100) + "%", background: i === 0 ? "linear-gradient(90deg,#FFC400,#FF8A5B)" : (isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.35)"), borderRadius: 999 }} />
+                      <span style={{ display: "block", height: "100%", width: (p.streak / maxStreak * 100) + "%", background: i === 0 ? "linear-gradient(90deg,#FEDE34,#EF9F14)" : (isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.35)"), borderRadius: 999 }} />
                     </div>
                   </div>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
@@ -1394,7 +1394,7 @@ function AchievementUnlock({ ach, onClose }) {
   if (!ach) return null;
   // Unified GOLD chrome (achievements are the gold-tier reward; per-achievement accents
   // like the green of "Первый шаг" read off). Same gold as the loved +XP plate.
-  const accent = "#F0B400";
+  const accent = "#FEDE34";
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 99990, background: "rgba(244,245,248,0.72)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "grid", placeItems: "center", padding: 28, animation: "achFade 0.3s ease both" }}>
       {/* Light, native (iOS) celebration: white glass card, warm gold glow, a badge that
@@ -1409,7 +1409,7 @@ function AchievementUnlock({ ach, onClose }) {
           </div>
           <div style={{ fontSize: 23, fontWeight: 700, color: "#1c1c1e", marginTop: 18, letterSpacing: "-0.4px" }}>{ach.t}</div>
           <div style={{ fontSize: 15, color: "#8a8a8e", marginTop: 7, lineHeight: 1.5, maxWidth: 252, marginLeft: "auto", marginRight: "auto" }}>{ach.d}</div>
-          {ach.xp ? <div style={{ display: "inline-block", marginTop: 16, background: "linear-gradient(180deg,#FEDE34,#F0B400)", color: "#4a3800", fontWeight: 700, fontSize: 14, borderRadius: 999, padding: "7px 16px", boxShadow: "0 4px 12px " + accent + "4d" }}>+{ach.xp} XP</div> : null}
+          {ach.xp ? <div style={{ display: "inline-block", marginTop: 16, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 700, fontSize: 14, borderRadius: 999, padding: "7px 16px", boxShadow: "0 4px 12px " + accent + "4d" }}>+{ach.xp} XP</div> : null}
           <button onClick={onClose} className="tap" style={{ display: "block", width: "100%", marginTop: 22, background: "linear-gradient(180deg,#2c2c2e,#1c1c1e)", color: "#fff", border: 0, borderRadius: 16, padding: 15, fontSize: 16, fontWeight: 600, boxShadow: "0 8px 22px rgba(0,0,0,0.18)", WebkitTapHighlightColor: "transparent" }}>Класс!</button>
         </div>
       </div>

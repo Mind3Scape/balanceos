@@ -1667,7 +1667,7 @@ function CommunityScreen() {
       overflow: "hidden",
       borderRadius: 22,
       padding: "16px 18px",
-      background: "linear-gradient(135deg, #FEDE34 0%, #F7C420 44%, #EF9F14 100%)",
+      background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
       boxShadow: "0 8px 22px rgba(239,159,20,0.32)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -3332,7 +3332,7 @@ function TeamCreateScreen() {
    (per-member tint), so a member's month reads in their own colour. */
 function TeamRing({
   pct,
-  color = "#FFC400",
+  color = "#FEDE34",
   track,
   sw = 3,
   glow
@@ -3417,7 +3417,7 @@ function PeopleMonthCalendar({
   };
   var dayPct = d => selPerson == null ? allFrac(d) : pf(selPerson, d);
   var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
-  var selColor = selPerson == null ? "#FFC400" : people[selPerson]?.color || "#FFC400";
+  var selColor = selPerson == null ? "#FEDE34" : people[selPerson]?.color || "#FEDE34";
   var todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)"; // soft grey — not a hard black fill
   var selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
   var chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
@@ -5978,7 +5978,7 @@ function LevelsScreen() {
     }
   }, "\uD83E\uDD1D"), r.t), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: r.infl ? "#2f8fd6" : "#c99a1a",
+      color: r.infl ? "#2f8fd6" : "#E0A500",
       fontWeight: 700
     }
   }, r.v, " XP")))), /*#__PURE__*/React.createElement("div", {
@@ -6014,7 +6014,7 @@ function LevelsScreen() {
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      background: "linear-gradient(135deg,#FEDE34,#FFC400)",
+      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
       boxShadow: "0 7px 18px rgba(254,222,52,0.34)"
     }
   }, /*#__PURE__*/React.createElement(I.Users, {
@@ -6060,7 +6060,7 @@ function LevelsScreen() {
   }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0432 \u043E\u0434\u0438\u043D\u043E\u0447\u043A\u0443"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 700,
-      color: "#c99a1a"
+      color: "#E0A500"
     }
   }, "+10 XP")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6075,7 +6075,7 @@ function LevelsScreen() {
   }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0441 \u0434\u0440\u0443\u0433\u043E\u043C"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 800,
-      color: "#c99a1a"
+      color: "#E0A500"
     }
   }, "+15 XP")), /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
@@ -6117,7 +6117,7 @@ function LevelsScreen() {
       display: "block",
       height: "100%",
       width: Math.min(100, Math.max(6, (invited - prevMileN) / (nextMile.n - prevMileN) * 100)) + "%",
-      background: "linear-gradient(90deg,#FEDE34,#F0B400)",
+      background: "linear-gradient(90deg,#FEDE34,#EF9F14)",
       borderRadius: 999
     }
   })), /*#__PURE__*/React.createElement("div", {
@@ -6133,7 +6133,7 @@ function LevelsScreen() {
     }
   }, nextMile.n - invited), " \u2014 \u0438 \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C ", /*#__PURE__*/React.createElement("b", {
     style: {
-      color: "#c99a1a"
+      color: "#E0A500"
     }
   }, "+", nextMile.bonus, " XP"), " \u0440\u0430\u0437\u043E\u043C.")) : /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
@@ -6144,7 +6144,7 @@ function LevelsScreen() {
     }
   }, "\u041A\u0440\u0443\u0433 \u043C\u043E\u0436\u043D\u043E \u0440\u0430\u0441\u0442\u0438\u0442\u044C \u0431\u0435\u0441\u043A\u043E\u043D\u0435\u0447\u043D\u043E \u2014 \u0438 \u043A\u0430\u0436\u0434\u044B\u0439 \u043D\u043E\u0432\u044B\u0439 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u043D\u043E\u0441\u0438\u0442 \u0442\u0435\u0431\u0435 ", /*#__PURE__*/React.createElement("b", {
     style: {
-      color: "#c99a1a"
+      color: "#E0A500"
     }
   }, "+150 XP"), "."), /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheet, {

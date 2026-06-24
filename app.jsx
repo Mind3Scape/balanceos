@@ -113,7 +113,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v185";
+const APP_VERSION = "v186";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -338,7 +338,7 @@ function GuidedTour({ step, setStep, endTour, navigate, setCommunityView, openSh
           <div style={{ fontSize: 46, lineHeight: 1, marginBottom: 14 }}>{stop.emoji}</div>
           <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: "-0.4px", color: titleC, lineHeight: 1.2 }}>{stop.title}</div>
           <div style={{ fontSize: 14.5, color: bodyC, lineHeight: 1.5, marginTop: 10 }}>{stop.body}</div>
-          <button onClick={next} className="tap" style={{ width: "100%", marginTop: 22, background: "linear-gradient(135deg,#FEDE34,#FFC400)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: 15, fontSize: 15.5, fontWeight: 700 }}>{stop.cta}</button>
+          <button onClick={next} className="tap" style={{ width: "100%", marginTop: 22, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: 15, fontSize: 15.5, fontWeight: 700 }}>{stop.cta}</button>
           {(!last || stop.alt) && <button onClick={skip} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", border: 0, color: ghostC, fontSize: 13, padding: 8 }}>{stop.alt || "Пропустить"}</button>}
           {dots}
         </div>

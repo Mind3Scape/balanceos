@@ -632,7 +632,7 @@ function XPRewardCard({
       overflow: "hidden",
       borderRadius: 20,
       padding: "16px 17px",
-      background: "linear-gradient(135deg, #FEDE34 0%, #FFC400 100%)",
+      background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
       color: ink,
       boxShadow: "0 12px 30px rgba(254,222,52,0.34)"
     }

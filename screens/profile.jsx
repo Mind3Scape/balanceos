@@ -815,7 +815,7 @@ function HistoryScreen() {
         <svg width="0" height="0" aria-hidden style={{ position: "absolute" }}>
           <defs>
             <linearGradient id="calRing" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#FFD93B" /><stop offset="1" stopColor="#FFC400" />
+              <stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" />
             </linearGradient>
           </defs>
         </svg>
@@ -1656,7 +1656,7 @@ function SignUpScreen() {
         {/* Door 1 — filled demo (where a shared link should land) */}
         <button onClick={goDemo} className="tap" style={{
           width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",
-          background: "linear-gradient(135deg, #FEDE34 0%, #FFC400 100%)", color: "#0a0a0a",
+          background: "linear-gradient(135deg, #FEDE34, #EF9F14)", color: "#0a0a0a",
           border: 0, borderRadius: 20, padding: "15px 16px", boxShadow: "0 12px 30px rgba(254,222,52,0.32)", marginBottom: 11,
         }}>
           <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.55)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={23} color="#0a0a0a"/></span>

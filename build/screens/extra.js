@@ -52,7 +52,7 @@ function HabitDetailScreen() {
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
-  var ringColor = h.color || "#FFC400"; // gold by default (matches the main calendar), or the habit's colour
+  var ringColor = h.color || "#FEDE34"; // gold by default (matches the main calendar), or the habit's colour
   var tileBg = h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
   var emptyBd = isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)";
 
@@ -81,7 +81,7 @@ function HabitDetailScreen() {
   var roster = isShared ? [{
     name: "Ты",
     initials: "Я",
-    color: h.color || "#FFC400",
+    color: h.color || "#FEDE34",
     streak,
     you: true
   }, ...h.friends.map((f, i) => ({
@@ -124,7 +124,7 @@ function HabitDetailScreen() {
   })) : [{
     name: "Ты",
     initials: "Я",
-    color: h.color || "#FFC400",
+    color: h.color || "#FEDE34",
     you: true
   }];
   var _calYear = _live ? new Date().getFullYear() : 2026;
@@ -336,7 +336,7 @@ function HabitDetailScreen() {
           display: "block",
           height: "100%",
           width: p.streak / maxStreak * 100 + "%",
-          background: i === 0 ? "linear-gradient(90deg,#FFC400,#FF8A5B)" : isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.35)",
+          background: i === 0 ? "linear-gradient(90deg,#FEDE34,#EF9F14)" : isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.35)",
           borderRadius: 999
         }
       }))), /*#__PURE__*/React.createElement("span", {
@@ -2873,7 +2873,7 @@ function AchievementUnlock({
   if (!ach) return null;
   // Unified GOLD chrome (achievements are the gold-tier reward; per-achievement accents
   // like the green of "Первый шаг" read off). Same gold as the loved +XP plate.
-  var accent = "#F0B400";
+  var accent = "#FEDE34";
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -2974,7 +2974,7 @@ function AchievementUnlock({
     style: {
       display: "inline-block",
       marginTop: 16,
-      background: "linear-gradient(180deg,#FEDE34,#F0B400)",
+      background: "linear-gradient(180deg,#FEDE34,#EF9F14)",
       color: "#4a3800",
       fontWeight: 700,
       fontSize: 14,
