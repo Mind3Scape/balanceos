@@ -1406,21 +1406,27 @@ function AchievementUnlock({ ach, onClose }) {
   if (!ach) return null;
   const accent = ach.accent || "#FEDE34";
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 99990, background: "rgba(8,8,10,0.72)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "grid", placeItems: "center", padding: 28, animation: "achFade 0.3s ease both" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 340, borderRadius: 30, padding: "36px 24px 22px", textAlign: "center", overflow: "hidden", background: "linear-gradient(168deg,#1b1b1f,#0c0c0e)", boxShadow: "0 26px 80px rgba(0,0,0,0.55)", animation: "achPop 0.45s cubic-bezier(0.22,1,0.36,1) both" }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 20%, " + accent + "3a, transparent 62%)" }}/>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 99990, background: "rgba(244,245,248,0.72)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "grid", placeItems: "center", padding: 28, animation: "achFade 0.3s ease both" }}>
+      {/* Light, native (iOS) celebration: white glass card, warm gold glow, a badge that
+          springs in. Keeps the substance — the win + the "Класс!" button. */}
+      <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 328, borderRadius: 30, padding: "34px 24px 22px", textAlign: "center", overflow: "hidden", background: "#ffffff", boxShadow: "0 24px 70px rgba(20,20,40,0.22), inset 0 1px 0 rgba(255,255,255,0.9)", animation: "achPop 0.5s cubic-bezier(0.22,1,0.36,1) both" }}>
+        <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 170, background: "radial-gradient(circle at 50% 0%, " + accent + "40, transparent 70%)" }}/>
         <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 11, letterSpacing: 2.2, textTransform: "uppercase", color: accent, fontWeight: 700 }}>Достижение открыто</div>
-          <div style={{ width: 100, height: 100, margin: "20px auto 0", borderRadius: 30, background: accent + "22", display: "grid", placeItems: "center", fontSize: 50, boxShadow: "inset 0 0 0 1px " + accent + "44, 0 8px 26px rgba(0,0,0,0.35)" }}>{ach.i}</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#fff", marginTop: 20, letterSpacing: "-0.4px" }}>{ach.t}</div>
-          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.62)", marginTop: 8, lineHeight: 1.5, maxWidth: 264, marginLeft: "auto", marginRight: "auto" }}>{ach.d}</div>
-          {ach.xp ? <div style={{ display: "inline-block", marginTop: 16, background: "rgba(254,222,52,0.14)", color: "#FEDE34", fontWeight: 700, fontSize: 14, borderRadius: 999, padding: "7px 16px" }}>+{ach.xp} XP</div> : null}
-          <button onClick={onClose} className="tap" style={{ display: "block", width: "100%", marginTop: 24, background: accent, color: "#0a0a0a", border: 0, borderRadius: 16, padding: 15, fontSize: 16, fontWeight: 700 }}>Класс!</button>
+          <div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#C99A1A", fontWeight: 700 }}>Достижение открыто</div>
+          <div style={{ width: 96, height: 96, margin: "20px auto 0", position: "relative", animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.12s both" }}>
+            <div aria-hidden style={{ position: "absolute", inset: -12, borderRadius: "50%", background: "radial-gradient(circle, " + accent + "55, transparent 70%)" }}/>
+            <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 26, background: "linear-gradient(180deg,#fffdf5,#fff3d3)", display: "grid", placeItems: "center", fontSize: 46, boxShadow: "inset 0 0 0 1.5px " + accent + "66, 0 10px 26px " + accent + "3d" }}>{ach.i}</div>
+          </div>
+          <div style={{ fontSize: 23, fontWeight: 700, color: "#1c1c1e", marginTop: 18, letterSpacing: "-0.4px" }}>{ach.t}</div>
+          <div style={{ fontSize: 15, color: "#8a8a8e", marginTop: 7, lineHeight: 1.5, maxWidth: 252, marginLeft: "auto", marginRight: "auto" }}>{ach.d}</div>
+          {ach.xp ? <div style={{ display: "inline-block", marginTop: 16, background: "linear-gradient(180deg,#FEDE34,#F0B400)", color: "#4a3800", fontWeight: 700, fontSize: 14, borderRadius: 999, padding: "7px 16px", boxShadow: "0 4px 12px " + accent + "4d" }}>+{ach.xp} XP</div> : null}
+          <button onClick={onClose} className="tap" style={{ display: "block", width: "100%", marginTop: 22, background: "linear-gradient(180deg,#2c2c2e,#1c1c1e)", color: "#fff", border: 0, borderRadius: 16, padding: 15, fontSize: 16, fontWeight: 600, boxShadow: "0 8px 22px rgba(0,0,0,0.18)", WebkitTapHighlightColor: "transparent" }}>Класс!</button>
         </div>
       </div>
       <style>{`
         @keyframes achFade { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes achPop { 0% { opacity: 0; transform: scale(0.86) translateY(14px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes achPop { 0% { opacity: 0; transform: scale(0.9) translateY(14px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes achEmblem { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
       `}</style>
     </div>
   );
