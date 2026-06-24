@@ -279,6 +279,9 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   // people they already share habits/teams with — deduped. Demo uses its showcase
   // faces so the orbit reads even before any real circle exists.
   const _liveOrbit = heroApp?.mode !== "demo";
+  // Live/fresh (the real new user) get ONLY page 1 — the orbit 2nd screen was removed
+  // (David: the swipe felt off). Demo keeps its 2nd page (Balance Wheel).
+  const _maxPage = _liveOrbit ? 0 : 1;
   const _lvlInfo = (typeof bosLevelInfo === "function" && typeof bosLiveXP === "function" && _liveOrbit) ? bosLevelInfo(bosLiveXP(heroApp)) : null;
   const orbitLevelPct = heroApp?.mode === "demo" ? 72 : (_lvlInfo ? _lvlInfo.pct : 2);
   const [invited, setInvited] = useHomeState([]);
@@ -314,7 +317,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const onTouchEnd = (e) => {
     if (startX.current == null) return;
     const dx = e.changedTouches[0].clientX - startX.current;
-    if (dx < -40 && page < 1) setPage(page + 1);
+    if (dx < -40 && page < _maxPage) setPage(page + 1);
     if (dx >  40 && page > 0) setPage(page - 1);
     startX.current = null;
   };
@@ -469,10 +472,9 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
     </div>
     ),
   ];
-  // Both pages always render: live/fresh get [hints, orbit], demo gets [quote, wheel].
-  // (Previously a newbie deck was sliced to ONE page, leaving an empty white half
-  // that a right-swipe could reveal — that's the Telegram blank-block bug.)
-  const pages = _pages;
+  // Live/fresh (real new user) = ONLY page 1 (the orbit 2nd page was removed). Demo keeps
+  // both [quote, wheel]. A single page renders full-width with no swipe / no dots.
+  const pages = _liveOrbit ? [_pages[0]] : _pages;
   return (
     <div style={{
       background: cardBg,
@@ -480,8 +482,8 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
       borderRadius: 28, position: "relative", overflow: "hidden",
       boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
     }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div style={{ display: "flex", width: "200%", transform: `translateX(${-page * 50}%)`, transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: 196 }}>
-        {pages.map((p, i) => <div key={i} style={{ width: "50%", flexShrink: 0 }}>{p}</div>)}
+      <div style={{ display: "flex", width: pages.length > 1 ? "200%" : "100%", transform: pages.length > 1 ? `translateX(${-page * 50}%)` : "none", transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)", minHeight: 196 }}>
+        {pages.map((p, i) => <div key={i} style={{ width: pages.length > 1 ? "50%" : "100%", flexShrink: 0 }}>{p}</div>)}
       </div>
       {pages.length > 1 && (
       <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 5 }}>
@@ -551,6 +553,9 @@ function HomeScreen() {
   const _isLive = app?.mode === "live";
   const _liveXP = _isLive ? bosLiveXP(app) : 0;
   const _lvl = bosLevelInfo(_liveXP);
+  // Show the engaging gold LEVEL banner (instead of the bare "Сегодня x/y" stat cards)
+  // through the whole NEW-user phase — a brand-new account OR a live user still at level 1.
+  const _showLevelBanner = isNewbie || (_isLive && ((_lvl && _lvl.level) || 1) <= 1);
   const dayStreak = app?.mode === "demo" ? 27 : (_isLive ? bosMaxStreak(habits) : 0);
 
   // Bell red dot. Demo always shows it (scripted alert). LIVE: only light it when
@@ -653,7 +658,7 @@ function HomeScreen() {
 
       {/* New user: an engaging gold LEVEL banner right under "С чего начать" — turns
           the bare stat into a hook ("every habit is XP — learn how to grow"). */}
-      {isNewbie && (
+      {_showLevelBanner && (
         <button onClick={() => navigate("levels")} className="tap" style={{
           marginTop: 12, width: "100%", border: 0, borderRadius: 22, padding: "15px 17px",
           background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a",
@@ -662,12 +667,12 @@ function HomeScreen() {
           <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22 }}>🏆</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-              <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px" }}>Уровень 1</span>
-              <span style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.55 }}>0 XP</span>
+              <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px" }}>Уровень {_isLive ? _lvl.level : 1}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.55 }}>{_isLive ? _liveXP : 0} XP</span>
             </div>
             <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.62)", marginTop: 2, lineHeight: 1.35 }}>Каждая привычка — это опыт. Узнай, как расти →</div>
             <span style={{ display: "block", height: 5, borderRadius: 999, background: "rgba(0,0,0,0.14)", overflow: "hidden", marginTop: 8 }}>
-              <span style={{ display: "block", height: "100%", width: "4%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
+              <span style={{ display: "block", height: "100%", width: (_isLive ? _lvl.pct : 4) + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
             </span>
           </div>
           <I.ChevronRight size={20} color="rgba(0,0,0,0.45)" />
@@ -675,11 +680,11 @@ function HomeScreen() {
       )}
 
       {/* MOOD WIDGET — living card with breathing orb + last-7-days mood trail */}
-      {widgets.mood !== false && mood && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
+      {app?.mode === "demo" && widgets.mood !== false && mood && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
 
       {/* Stat strip — full strip for demo / users with data. A newbie gets the
           engaging level banner above instead (no bare "Сегодня 0/0" to deflate them). */}
-      {!isNewbie && (widgets.streak !== false || widgets.level !== false) && (
+      {!_showLevelBanner && (widgets.streak !== false || widgets.level !== false) && (
       <div style={{ display: "grid", gridTemplateColumns: widgets.streak !== false && widgets.level !== false ? "1.2fr 1fr 1fr" : (widgets.streak !== false || widgets.level !== false ? "1fr 1fr" : "1fr"), gap: 8, marginTop: 12 }}>
         {widgets.streak !== false && (
         <button onClick={() => navigate("history")} className="tap" style={{ background: cardBg, border: cardBorder, borderRadius: 18, padding: "12px 14px", textAlign: "left", display: "flex", flexDirection: "column", gap: 6, boxShadow: cardShadow, color: "var(--text)" }}>
@@ -870,6 +875,9 @@ function HomeScreen() {
           )}
         </div>
       </button>
+      {/* State widget lives LOWER for live/fresh (below «Позови своих») so a new user
+          isn't hit with it up top — David's call. Demo keeps it in its spot above. */}
+      {app?.mode !== "demo" && widgets.mood !== false && mood && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
     </div>
   );
 }
@@ -1022,18 +1030,22 @@ window.HomeCustomizeScreen = HomeCustomizeScreen;
 function MoodWidget({ mood, app, isDark, navigate }) {
   // Last 7 days. Live → REAL date keys (so state marks accumulate per real day);
   // demo → curated numeric days. Each item carries its own weekday letter.
-  const _WD = ["В", "П", "В", "С", "Ч", "П", "С"];
+  // The CURRENT calendar week, Пн (left) → Вс (right) — how people actually read a week.
+  // Today sits in its real weekday slot (e.g. Ср = 3rd), highlighted; days AFTER today are
+  // upcoming (dimmed, no mark yet). Live → real date keys; demo → curated showcase.
+  const _WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const _liveTrail = app?.mode === "live";
+  const _monOff = (new Date().getDay() + 6) % 7; // 0=Пн … 6=Вс — TODAY's slot in the week
   const last7 = _liveTrail
-    ? [6, 5, 4, 3, 2, 1, 0].map(off => {
-        const key = (typeof bosDayKeyOffset === "function") ? bosDayKeyOffset(off) : "" + (28 - off);
+    ? [0, 1, 2, 3, 4, 5, 6].map(i => {
+        const off = _monOff - i; // days ago (negative = a day later this week)
+        const key = (typeof bosDayKeyOffset === "function") ? bosDayKeyOffset(off) : "";
         const di = (app?.dayMoods && app.dayMoods[key] != null) ? app.dayMoods[key] : null;
-        let wd = ""; try { wd = _WD[new Date(key + "T00:00:00").getDay()]; } catch (e) {}
-        return { key, today: off === 0, wd, m: di != null ? MOOD_OPTIONS[di] : null };
+        return { key, today: i === _monOff, future: off < 0, wd: _WD[i], m: di != null ? MOOD_OPTIONS[di] : null };
       })
-    : [22, 23, 24, 25, 26, 27, 28].map(d => ({
-        d, today: d === 28, wd: _WD[(d - 22 + 1) % 7],
-        m: (app?.dayMoods && app.dayMoods[d] != null) ? MOOD_OPTIONS[app.dayMoods[d]] : null,
+    : [0, 1, 2, 3, 4, 5, 6].map(i => ({
+        d: 22 + i, today: i === 6, wd: _WD[i],
+        m: (app?.dayMoods && app.dayMoods[22 + i] != null) ? MOOD_OPTIONS[app.dayMoods[22 + i]] : null,
       }));
   const logged = last7.filter(d => d.m).length;
   const sameAsToday = last7.filter(d => d.m && d.m.t === mood.t).length;
@@ -1100,7 +1112,7 @@ function MoodWidget({ mood, app, isDark, navigate }) {
       {!fresh && (
       <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"), display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         {last7.map((d, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, opacity: d.future ? 0.4 : 1 }}>
             {d.m ? (
               <span aria-label={d.m.t} style={{
                 width: 22, height: 22, borderRadius: "50%", display: "block",

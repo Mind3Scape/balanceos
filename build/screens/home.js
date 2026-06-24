@@ -560,6 +560,9 @@ function HomeHeroSwipe({
   // people they already share habits/teams with — deduped. Demo uses its showcase
   // faces so the orbit reads even before any real circle exists.
   var _liveOrbit = heroApp?.mode !== "demo";
+  // Live/fresh (the real new user) get ONLY page 1 — the orbit 2nd screen was removed
+  // (David: the swipe felt off). Demo keeps its 2nd page (Balance Wheel).
+  var _maxPage = _liveOrbit ? 0 : 1;
   var _lvlInfo = typeof bosLevelInfo === "function" && typeof bosLiveXP === "function" && _liveOrbit ? bosLevelInfo(bosLiveXP(heroApp)) : null;
   var orbitLevelPct = heroApp?.mode === "demo" ? 72 : _lvlInfo ? _lvlInfo.pct : 2;
   var [invited, setInvited] = useHomeState([]);
@@ -607,7 +610,7 @@ function HomeHeroSwipe({
   var onTouchEnd = e => {
     if (startX.current == null) return;
     var dx = e.changedTouches[0].clientX - startX.current;
-    if (dx < -40 && page < 1) setPage(page + 1);
+    if (dx < -40 && page < _maxPage) setPage(page + 1);
     if (dx > 40 && page > 0) setPage(page - 1);
     startX.current = null;
   };
@@ -1063,10 +1066,9 @@ function HomeHeroSwipe({
       background: zoneColor(a.v)
     }
   })))))))];
-  // Both pages always render: live/fresh get [hints, orbit], demo gets [quote, wheel].
-  // (Previously a newbie deck was sliced to ONE page, leaving an empty white half
-  // that a right-swipe could reveal — that's the Telegram blank-block bug.)
-  var pages = _pages;
+  // Live/fresh (real new user) = ONLY page 1 (the orbit 2nd page was removed). Demo keeps
+  // both [quote, wheel]. A single page renders full-width with no swipe / no dots.
+  var pages = _liveOrbit ? [_pages[0]] : _pages;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: cardBg,
@@ -1081,15 +1083,15 @@ function HomeHeroSwipe({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      width: "200%",
-      transform: `translateX(${-page * 50}%)`,
+      width: pages.length > 1 ? "200%" : "100%",
+      transform: pages.length > 1 ? `translateX(${-page * 50}%)` : "none",
       transition: "transform 0.45s cubic-bezier(0.22,0.61,0.36,1)",
       minHeight: 196
     }
   }, pages.map((p, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
-      width: "50%",
+      width: pages.length > 1 ? "50%" : "100%",
       flexShrink: 0
     }
   }, p))), pages.length > 1 && /*#__PURE__*/React.createElement("div", {
@@ -1192,6 +1194,9 @@ function HomeScreen() {
   var _isLive = app?.mode === "live";
   var _liveXP = _isLive ? bosLiveXP(app) : 0;
   var _lvl = bosLevelInfo(_liveXP);
+  // Show the engaging gold LEVEL banner (instead of the bare "Сегодня x/y" stat cards)
+  // through the whole NEW-user phase — a brand-new account OR a live user still at level 1.
+  var _showLevelBanner = isNewbie || _isLive && (_lvl && _lvl.level || 1) <= 1;
   var dayStreak = app?.mode === "demo" ? 27 : _isLive ? bosMaxStreak(habits) : 0;
 
   // Bell red dot. Demo always shows it (scripted alert). LIVE: only light it when
@@ -1394,7 +1399,7 @@ function HomeScreen() {
         ["--sy"]: Math.sin(a) * 44 + "px"
       }
     });
-  }))), isNewbie && /*#__PURE__*/React.createElement("button", {
+  }))), _showLevelBanner && /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("levels"),
     className: "tap",
     style: {
@@ -1439,13 +1444,13 @@ function HomeScreen() {
       fontWeight: 700,
       letterSpacing: "-0.2px"
     }
-  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 1"), /*#__PURE__*/React.createElement("span", {
+  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", _isLive ? _lvl.level : 1), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,
       opacity: 0.55
     }
-  }, "0 XP")), /*#__PURE__*/React.createElement("div", {
+  }, _isLive ? _liveXP : 0, " XP")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "rgba(0,0,0,0.62)",
@@ -1465,19 +1470,19 @@ function HomeScreen() {
     style: {
       display: "block",
       height: "100%",
-      width: "4%",
+      width: (_isLive ? _lvl.pct : 4) + "%",
       borderRadius: 999,
       background: "rgba(0,0,0,0.82)"
     }
   }))), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 20,
     color: "rgba(0,0,0,0.45)"
-  })), widgets.mood !== false && mood && /*#__PURE__*/React.createElement(MoodWidget, {
+  })), app?.mode === "demo" && widgets.mood !== false && mood && /*#__PURE__*/React.createElement(MoodWidget, {
     mood: mood,
     app: app,
     isDark: isDark,
     navigate: navigate
-  }), !isNewbie && (widgets.streak !== false || widgets.level !== false) && /*#__PURE__*/React.createElement("div", {
+  }), !_showLevelBanner && (widgets.streak !== false || widgets.level !== false) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: widgets.streak !== false && widgets.level !== false ? "1.2fr 1fr 1fr" : widgets.streak !== false || widgets.level !== false ? "1fr 1fr" : "1fr",
@@ -2211,7 +2216,12 @@ function HomeScreen() {
       fontWeight: 700,
       color: "rgba(0,0,0,0.55)"
     }
-  }, p.i)))));
+  }, p.i)))), app?.mode !== "demo" && widgets.mood !== false && mood && /*#__PURE__*/React.createElement(MoodWidget, {
+    mood: mood,
+    app: app,
+    isDark: isDark,
+    navigate: navigate
+  }));
 }
 
 /* ── Share-the-app sheet (slides up from the home "Поделиться приложением") ── */
@@ -2639,26 +2649,28 @@ function MoodWidget({
 }) {
   // Last 7 days. Live → REAL date keys (so state marks accumulate per real day);
   // demo → curated numeric days. Each item carries its own weekday letter.
-  var _WD = ["В", "П", "В", "С", "Ч", "П", "С"];
+  // The CURRENT calendar week, Пн (left) → Вс (right) — how people actually read a week.
+  // Today sits in its real weekday slot (e.g. Ср = 3rd), highlighted; days AFTER today are
+  // upcoming (dimmed, no mark yet). Live → real date keys; demo → curated showcase.
+  var _WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   var _liveTrail = app?.mode === "live";
-  var last7 = _liveTrail ? [6, 5, 4, 3, 2, 1, 0].map(off => {
-    var key = typeof bosDayKeyOffset === "function" ? bosDayKeyOffset(off) : "" + (28 - off);
+  var _monOff = (new Date().getDay() + 6) % 7; // 0=Пн … 6=Вс — TODAY's slot in the week
+  var last7 = _liveTrail ? [0, 1, 2, 3, 4, 5, 6].map(i => {
+    var off = _monOff - i; // days ago (negative = a day later this week)
+    var key = typeof bosDayKeyOffset === "function" ? bosDayKeyOffset(off) : "";
     var di = app?.dayMoods && app.dayMoods[key] != null ? app.dayMoods[key] : null;
-    var wd = "";
-    try {
-      wd = _WD[new Date(key + "T00:00:00").getDay()];
-    } catch (e) {}
     return {
       key,
-      today: off === 0,
-      wd,
+      today: i === _monOff,
+      future: off < 0,
+      wd: _WD[i],
       m: di != null ? MOOD_OPTIONS[di] : null
     };
-  }) : [22, 23, 24, 25, 26, 27, 28].map(d => ({
-    d,
-    today: d === 28,
-    wd: _WD[(d - 22 + 1) % 7],
-    m: app?.dayMoods && app.dayMoods[d] != null ? MOOD_OPTIONS[app.dayMoods[d]] : null
+  }) : [0, 1, 2, 3, 4, 5, 6].map(i => ({
+    d: 22 + i,
+    today: i === 6,
+    wd: _WD[i],
+    m: app?.dayMoods && app.dayMoods[22 + i] != null ? MOOD_OPTIONS[app.dayMoods[22 + i]] : null
   }));
   var logged = last7.filter(d => d.m).length;
   var sameAsToday = last7.filter(d => d.m && d.m.t === mood.t).length;
@@ -2785,7 +2797,8 @@ function MoodWidget({
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: 4
+      gap: 4,
+      opacity: d.future ? 0.4 : 1
     }
   }, d.m ? /*#__PURE__*/React.createElement("span", {
     "aria-label": d.m.t,
