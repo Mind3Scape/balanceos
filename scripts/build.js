@@ -65,8 +65,16 @@ const appSrc = fs.readFileSync(path.join(root, "app.jsx"), "utf8");
 const ver = (appSrc.match(/APP_VERSION\s*=\s*"(v\d+)"/) || [])[1] || "v0";
 let html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 html = html.replace(/(src="build\/[^"?]+\.js)(\?v=[^"]*)?"/g, `$1?v=${ver}"`);
+// Also stamp the root stylesheets + config/runtime scripts (NOT the vendored libs — those
+// are immutable & version-pinned in their filename — and NOT build/* which is handled above)
+// so a deploy can't be served stale from a plain HTTP / webview cache on the no-SW path either.
+const ROOT_STAMPED = ["styles.css", "mobile.css", "telegram.js", "aikey.js", "supabase.js", "store.js", "cloud.js", "haptics.js"];
+for (const f of ROOT_STAMPED) {
+  const esc = f.replace(/\./g, "\\.");
+  html = html.replace(new RegExp(`((?:src|href)="${esc})(\\?v=[^"]*)?"`, "g"), `$1?v=${ver}"`);
+}
 fs.writeFileSync(path.join(root, "index.html"), html);
-console.log("stamped index.html build URLs with", ver);
+console.log("stamped index.html build + root URLs with", ver);
 
 // Same cache-bust for the service worker. Its CACHE name is the version it purges on
 // activate — if it never moves, the install/activate re-precache never fires and a bad
@@ -75,7 +83,9 @@ let sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 sw = sw.replace(/const CACHE = "balanceos-[^"]*";/, `const CACHE = "balanceos-${ver}";`);
 // Regenerate the build/*.js precache list straight from FILES, so moving/adding a source
 // file can NEVER leave a stale or missing offline-cache entry behind.
-const precacheBlock = FILES.map((f) => `  "build/${f.replace(/\.jsx$/, ".js")}",`).join("\n");
+// Stamp the precache entries with ?v=${ver} too, so they match the version-keyed
+// cache-first lookup in sw.js EXACTLY (the SW serves build/*.js by full URL incl. ?v=).
+const precacheBlock = FILES.map((f) => `  "build/${f.replace(/\.jsx$/, ".js")}?v=${ver}",`).join("\n");
 sw = sw.replace(
   /\/\* BUILD_PRECACHE_START \*\/[\s\S]*?\/\* BUILD_PRECACHE_END \*\//,
   `/* BUILD_PRECACHE_START */\n${precacheBlock}\n  /* BUILD_PRECACHE_END */`
