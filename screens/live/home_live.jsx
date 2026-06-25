@@ -344,8 +344,11 @@ function HomeLive() {
         <SwipeRow rowBg="linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)" dark={isDark} actions={[
           { key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, invite: false }) },
         ]}>
+      {/* No overflow:hidden here: the SwipeRow row + outer wrapper already clip to the rounded
+          shape. A second clip layer on this button left a thin seam at the peeling rounded edge
+          (the radial sheen below is bounded by inset:0, so it needs no clip of its own). */}
       <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)}
-        style={{ width: "100%", padding: "16px 18px", border: 0, position: "relative", overflow: "hidden",
+        style={{ width: "100%", padding: "16px 18px", border: 0, position: "relative",
           background: "transparent",
           color: "#fff", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
         <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 10%, rgba(255,255,255,0.16) 0%, transparent 52%)", pointerEvents: "none" }} />

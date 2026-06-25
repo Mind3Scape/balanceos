@@ -905,7 +905,6 @@ function HomeLive() {
       padding: "16px 18px",
       border: 0,
       position: "relative",
-      overflow: "hidden",
       background: "transparent",
       color: "#fff",
       display: "flex",
