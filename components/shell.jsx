@@ -771,19 +771,10 @@ function AppProvider({ children }) {
   const [dayNotes, setDayNotes] = useState(SEED_DAYNOTES);
   const [widgets, setWidgets] = useState(DEMO_WIDGETS);
   const [wheelSpheres, setWheelSpheres] = useState(DEFAULT_SPHERES);
-  // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere.
+  // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere. Stays "auto"
+  // (= light, DARK_ROUTES is empty) by default — we polish the LIGHT theme end-to-end first,
+  // THEN revisit dark (David's call). Dark is still reachable via the Settings toggle.
   const [themeOverride, setThemeOverride] = useState("auto");
-  // Follow Telegram's theme: a dark-mode Telegram user should get the DARK app, not a white
-  // one inside a dark native frame. Seed from colorScheme on boot + track themeChanged. Only
-  // inside Telegram — the PWA/browser keeps its light default (window.__TG is null there).
-  useEffect(() => {
-    var tg = (typeof window !== "undefined") ? window.__TG : null;
-    if (!tg) return;
-    var apply = function () { try { if (tg.colorScheme === "dark" || tg.colorScheme === "light") setThemeOverride(tg.colorScheme); } catch (e) {} };
-    apply();
-    try { if (tg.onEvent) tg.onEvent("themeChanged", apply); } catch (e) {}
-    return function () { try { if (tg.offEvent) tg.offEvent("themeChanged", apply); } catch (e) {} };
-  }, []);
 
   // Demo vs. fresh-start experience. Default = demo (a reload always lands on the
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.

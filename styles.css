@@ -290,11 +290,6 @@ button { font: inherit; cursor: pointer; }
 /* During the guided tour, screen swaps happen UNDER the dim — kill the per-screen
    entrance so nothing fades/flashes into view (the tour drives pages instantly). */
 .page-stack.tour-active .page-in { animation: none !important; }
-/* When the page itself is already sliding/fading in via a nav transition (.anim-*), don't
-   ALSO run the per-content page-in — that double-animates the incoming screen (content
-   fades up WHILE the page slides). Reserve page-in for in-place swaps (no push/pop/fade). */
-.anim-push-in .page-in, .anim-pop-in .page-in, .anim-fade-in .page-in,
-.anim-push-out .page-in, .anim-pop-out .page-in, .anim-fade-out .page-in { animation: none; }
 
 /* circular progress (conic) */
 .ring {
