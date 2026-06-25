@@ -650,6 +650,7 @@ function HabitsScreen() {
     open: openSheet
   } = useSheet();
   var app = useApp();
+  var _isLive = app?.mode === "live"; // real Telegram user → iOS-weight primary labels
   var wrapRef = React.useRef(null);
   var [isDark, setIsDark] = useHS(false);
   React.useEffect(() => {
@@ -921,7 +922,8 @@ function HabitsScreen() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 16,
-      color: "var(--text-2)",
+      fontWeight: _isLive ? 600 : undefined,
+      color: _isLive ? "var(--text)" : "var(--text-2)",
       letterSpacing: "-0.2px"
     }
   }, h.name), (h.friends?.length || h.duration) && /*#__PURE__*/React.createElement("div", {
@@ -1072,9 +1074,9 @@ function HabitsScreen() {
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 15.5,
-        color: "var(--text-2)",
+        color: _isLive ? "var(--text)" : "var(--text-2)",
         letterSpacing: "-0.2px",
-        fontWeight: 500
+        fontWeight: _isLive ? 600 : 500
       }
     }, g.name), /*#__PURE__*/React.createElement("div", {
       style: {

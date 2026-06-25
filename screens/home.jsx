@@ -750,25 +750,28 @@ function HomeScreen() {
       </div>
       )}
 
-      {/* Habits / Goals tabs — adding lives on the Habits page (its own "+"), so
-         the home screen stays calm and uncluttered (no duplicate create button). */}
+      {/* Habits / Goals — DEMO & fresh keep the segmented switcher; the LIVE home (real
+         Telegram user) drops it and stacks both sections with labels (David's call). */}
+      {!_isLive && (
       <div style={{ marginTop: 14 }}>
         <div className="tab-pill" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "#e8e8e8" }}>
           <button className={"tap " + (tab === "habits" ? "active" : "")} onClick={() => setTab("habits")}>Привычки</button>
           <button className={"tap " + (tab === "goals" ? "active" : "")} onClick={() => setTab("goals")}>Цели</button>
         </div>
       </div>
+      )}
 
-      {/* Habit/goal list */}
-      {tab === "habits" ? (
-        habits.length === 0 ? (
+      {/* Habit list — live: a labelled section, always shown; demo: only under its tab */}
+      {(_isLive || tab === "habits") && (<>
+      {_isLive && <div className="section-label" style={{ marginTop: 16, color: "var(--text-3)", padding: "0 4px" }}>Привычки</div>}
+      {habits.length === 0 ? (
           <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
             <span style={{ width: 52, height: 52, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
             <div style={{ fontSize: 16, fontWeight: 600 }}>Здесь будут твои привычки</div>
             <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
             <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
           </button>
-        ) : (
+      ) : (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
           {habits.map((h) => (
             <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
@@ -779,7 +782,7 @@ function HomeScreen() {
                 <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
                   <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                    <div style={{ fontSize: 16, fontWeight: _isLive ? 600 : undefined, color: _isLive ? "var(--text)" : "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
                     {(h.friends?.length || h.duration) && (
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
                         {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
@@ -797,16 +800,20 @@ function HomeScreen() {
             </div>
           ))}
         </div>
-        )
-      ) : (
-        goals.length === 0 ? (
+      )}
+      </>)}
+
+      {/* Goal list — live: a labelled section, always shown; demo: only under its tab */}
+      {(_isLive || tab === "goals") && (<>
+      {_isLive && <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Цели</div>}
+      {goals.length === 0 ? (
           <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
             <span style={{ width: 52, height: 52, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
             <div style={{ fontSize: 16, fontWeight: 600 }}>Пока нет целей</div>
             <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
             <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Поставить цель</span>
           </button>
-        ) : (
+      ) : (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
           {goals.map(g => {
             const pct = g.target ? g.current / g.target : 0;
@@ -815,7 +822,7 @@ function HomeScreen() {
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
                 <span style={{ width: 38, height: 38, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, color: "var(--text-2)", fontWeight: 500 }}>{g.name}</div>
+                  <div style={{ fontSize: _isLive ? 15.5 : 15, color: _isLive ? "var(--text)" : "var(--text-2)", fontWeight: _isLive ? 600 : 500 }}>{g.name}</div>
                   <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
                 </div>
                 <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
@@ -825,8 +832,8 @@ function HomeScreen() {
             );
           })}
         </div>
-        )
       )}
+      </>)}
 
       {/* New-user "what's next" banner — opens the single "О приложении" page:
          the whole product on one calm screen, so the first run can stay tiny. */}

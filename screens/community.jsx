@@ -1,6 +1,11 @@
 /* COMMUNITY: Teams + Network + Courses + Partners — polished */
 const { useState: useCS } = React;
 
+/* Member-avatar palette — soft but DISTINCT pastels, so a live roster of look-alike
+   anonymous members (all initial "У") still reads as different people, the way native
+   chat apps colour avatars by user. Used by the live cloud roster + join requests. */
+const BOS_TEAM_PALETTE = ["#7FB3F2", "#F4A574", "#9BD4A8", "#C9A8E8", "#F2A0B4", "#E8C868", "#86C7C2", "#E59BC4"];
+
 /* Liquid-glass icon chip — glossy, dimensional, iOS-26 style. Vivid gradient
    fill + bright top specular + inner shadow + soft coloured glow underneath. */
 const COURSE_GLASS = {
@@ -1543,7 +1548,7 @@ function TeamDetailScreen() {
     let on = true;
     window.bosCloud.teamMembers(t.cloudId).then((mem) => {
       if (!on || !Array.isArray(mem)) return;
-      var palette = ["#a8b9d4", "#d4b8e8", "#a8d4e8", "#e8c8a8", "#b8e8c8", "#e8b8d4"];
+      var palette = BOS_TEAM_PALETTE;
       // owner first, then members, in join order
       var sorted = mem.slice().sort((a, b) => (a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0));
       setCloudRoster(sorted.map((m, i) => ({ id: m.id, name: m.name || "Участник", avatar: m.avatar, role: m.role, initials: (m.name || "У").slice(0, 1).toUpperCase(), color: palette[i % palette.length] })));
@@ -1759,9 +1764,9 @@ function TeamDetailScreen() {
       {_isOwner && pending.length > 0 && (<>
         <div className="section-label" style={{ marginTop: 22 }}>Заявки на вступление ({pending.length})</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-          {pending.map((p) => (
+          {pending.map((p, pi) => (
             <div key={p.id} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: "#cfe1ff", display: "grid", placeItems: "center", color: "#fff", fontWeight: 600, flexShrink: 0, overflow: "hidden" }}>
+              <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: BOS_TEAM_PALETTE[pi % BOS_TEAM_PALETTE.length], display: "grid", placeItems: "center", color: "rgba(0,0,0,0.6)", fontWeight: 700, flexShrink: 0, overflow: "hidden" }}>
                 {p.avatar && typeof BosAvatar === "function" ? <BosAvatar avatar={p.avatar} size={40} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} /> : (p.name || "?").slice(0, 1)}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -1785,7 +1790,7 @@ function TeamDetailScreen() {
           <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
             <button onClick={() => setExpandedMember(expanded ? null : m.name)} className="tap"
               style={{ width: "100%", background: "transparent", border: 0, padding: 12, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
-              <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "#fff", fontWeight: 600, flexShrink: 0 }}>
+              <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "rgba(0,0,0,0.6)", fontWeight: 700, flexShrink: 0 }}>
                 {m.avatar && typeof BosAvatar === "function" ? <BosAvatar avatar={m.avatar} size={40} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} /> : m.initials}
                 {isLeader && <span style={{ position: "absolute", top: -7, right: -5, fontSize: 14, zIndex: 2 }}>👑</span>}
               </span>

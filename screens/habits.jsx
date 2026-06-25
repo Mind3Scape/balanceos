@@ -254,6 +254,7 @@ function HabitsScreen() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
   const app = useApp();
+  const _isLive = app?.mode === "live"; // real Telegram user → iOS-weight primary labels
   const wrapRef = React.useRef(null);
   const [isDark, setIsDark] = useHS(false);
   React.useEffect(() => {
@@ -355,7 +356,7 @@ function HabitsScreen() {
                   style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
                   <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, color: "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                    <div style={{ fontSize: 16, fontWeight: _isLive ? 600 : undefined, color: _isLive ? "var(--text)" : "var(--text-2)", letterSpacing: "-0.2px" }}>{h.name}</div>
                     {(h.friends?.length || h.duration) && (
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
                         {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
@@ -393,7 +394,7 @@ function HabitsScreen() {
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <span style={{ width: 40, height: 40, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{g.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, color: "var(--text-2)", letterSpacing: "-0.2px", fontWeight: 500 }}>{g.name}</div>
+                      <div style={{ fontSize: 15.5, color: _isLive ? "var(--text)" : "var(--text-2)", letterSpacing: "-0.2px", fontWeight: _isLive ? 600 : 500 }}>{g.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3, display: "flex", gap: 10 }}>
                         <span>{g.current} / {g.target} {g.unit}</span>
                         <span>·</span>

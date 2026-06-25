@@ -3,6 +3,11 @@ var {
   useState: useCS
 } = React;
 
+/* Member-avatar palette — soft but DISTINCT pastels, so a live roster of look-alike
+   anonymous members (all initial "У") still reads as different people, the way native
+   chat apps colour avatars by user. Used by the live cloud roster + join requests. */
+var BOS_TEAM_PALETTE = ["#7FB3F2", "#F4A574", "#9BD4A8", "#C9A8E8", "#F2A0B4", "#E8C868", "#86C7C2", "#E59BC4"];
+
 /* Liquid-glass icon chip — glossy, dimensional, iOS-26 style. Vivid gradient
    fill + bright top specular + inner shadow + soft coloured glow underneath. */
 var COURSE_GLASS = {
@@ -4101,7 +4106,7 @@ function TeamDetailScreen() {
     var on = true;
     window.bosCloud.teamMembers(t.cloudId).then(mem => {
       if (!on || !Array.isArray(mem)) return;
-      var palette = ["#a8b9d4", "#d4b8e8", "#a8d4e8", "#e8c8a8", "#b8e8c8", "#e8b8d4"];
+      var palette = BOS_TEAM_PALETTE;
       // owner first, then members, in join order
       var sorted = mem.slice().sort((a, b) => a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0);
       setCloudRoster(sorted.map((m, i) => ({
@@ -4820,7 +4825,7 @@ function TeamDetailScreen() {
       gap: 8,
       marginTop: 8
     }
-  }, pending.map(p => /*#__PURE__*/React.createElement("div", {
+  }, pending.map((p, pi) => /*#__PURE__*/React.createElement("div", {
     key: p.id,
     style: {
       background: "var(--card)",
@@ -4837,11 +4842,11 @@ function TeamDetailScreen() {
       width: 40,
       height: 40,
       borderRadius: "50%",
-      background: "#cfe1ff",
+      background: BOS_TEAM_PALETTE[pi % BOS_TEAM_PALETTE.length],
       display: "grid",
       placeItems: "center",
-      color: "#fff",
-      fontWeight: 600,
+      color: "rgba(0,0,0,0.6)",
+      fontWeight: 700,
       flexShrink: 0,
       overflow: "hidden"
     }
@@ -4945,8 +4950,8 @@ function TeamDetailScreen() {
         background: m.color,
         display: "grid",
         placeItems: "center",
-        color: "#fff",
-        fontWeight: 600,
+        color: "rgba(0,0,0,0.6)",
+        fontWeight: 700,
         flexShrink: 0
       }
     }, m.avatar && typeof BosAvatar === "function" ? /*#__PURE__*/React.createElement(BosAvatar, {

@@ -1731,7 +1731,7 @@ function HomeScreen() {
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 16
-  })))), /*#__PURE__*/React.createElement("div", {
+  })))), !_isLive && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14
     }
@@ -1746,7 +1746,14 @@ function HomeScreen() {
   }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("button", {
     className: "tap " + (tab === "goals" ? "active" : ""),
     onClick: () => setTab("goals")
-  }, "\u0426\u0435\u043B\u0438"))), tab === "habits" ? habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  }, "\u0426\u0435\u043B\u0438"))), (_isLive || tab === "habits") && /*#__PURE__*/React.createElement(React.Fragment, null, _isLive && /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 16,
+      color: "var(--text-3)",
+      padding: "0 4px"
+    }
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("habit-settings", {
       mode: "create"
@@ -1869,7 +1876,8 @@ function HomeScreen() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 16,
-      color: "var(--text-2)",
+      fontWeight: _isLive ? 600 : undefined,
+      color: _isLive ? "var(--text)" : "var(--text-2)",
       letterSpacing: "-0.2px"
     }
   }, h.name), (h.friends?.length || h.duration) && /*#__PURE__*/React.createElement("div", {
@@ -1905,7 +1913,14 @@ function HomeScreen() {
     done: h.done,
     onToggle: () => toggle(h.id),
     xp: XP_PER_HABIT
-  })))))) : goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  }))))))), (_isLive || tab === "goals") && /*#__PURE__*/React.createElement(React.Fragment, null, _isLive && /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 18,
+      color: "var(--text-3)",
+      padding: "0 4px"
+    }
+  }, "\u0426\u0435\u043B\u0438"), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"
@@ -2011,9 +2026,9 @@ function HomeScreen() {
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 15,
-        color: "var(--text-2)",
-        fontWeight: 500
+        fontSize: _isLive ? 15.5 : 15,
+        color: _isLive ? "var(--text)" : "var(--text-2)",
+        fontWeight: _isLive ? 600 : 500
       }
     }, g.name), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2033,7 +2048,7 @@ function HomeScreen() {
         width: pct * 100 + "%"
       }
     })));
-  })), app?.mode === "fresh" && /*#__PURE__*/React.createElement("button", {
+  }))), app?.mode === "fresh" && /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("guide"),
     className: "tap",
     "data-no-haptic": true,
