@@ -48,9 +48,6 @@
       tg.ready();
       tg.expand();
       if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); // a scroll shouldn't close the app
-      // A swipe-down-from-top would otherwise INSTANTLY kill the app — losing a half-written
-      // journal / chat / mood draft. Ask first. One line, highest safety per effort.
-      if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
       if (tg.requestFullscreen) tg.requestFullscreen();         // edge-to-edge: drops Telegram's header bar
     } catch (e) {}
 
