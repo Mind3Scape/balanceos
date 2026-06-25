@@ -1,0 +1,317 @@
+/* HOME — LIVE-only fork of HomeScreen (real Telegram user, app.mode === "live"
+   is ALWAYS true here). The demo/fresh branches are stripped: no segmented
+   Привычки/Цели toggle, no demo balance-wheel / demo stat strip / demo MoodWidget,
+   no fresh «Что дальше?» banner. Everything else reuses the shared globals from
+   home.jsx (HomeHeroSwipe, HomeOrbit, HeroOrbFace, HabitCheck, ShareAppSheet) +
+   the app-wide globals (SwipeRow, HabitRing, AvatarStack, BosOrbFace, I, hooks,
+   ShareHabitSheet, MoodWidget, the bos* helpers). The ONLY new top-level
+   declaration in this file is `function HomeLive`. */
+function HomeLive() {
+  const { navigate } = useNav();
+  const { open: openSheet } = useSheet();
+  const app = useApp();
+  const widgets = app?.widgets || {};
+  const mood = app?.mood;
+  const wrapRef = React.useRef(null);
+  const isDark = useThemeFlag(wrapRef);
+  // Habits + goals come from the shared app store, so a check here shows up
+  // on the Habits tab too (and vice versa).
+  const habits = app?.habits || [];
+  const goals = app?.goals || [];
+  const teams = app?.teams || [];
+  const userName = app?.userName ?? "";
+  // Greeting follows the user's OWN local clock — real morning for whoever opens
+  // it in the morning, evening in the evening. No server sync needed: each device
+  // already knows its local time.
+  const _hr = new Date().getHours();
+  const greeting = _hr < 5 ? "Доброй ночи" : _hr < 12 ? "Доброе утро" : _hr < 18 ? "Добрый день" : _hr < 23 ? "Добрый вечер" : "Доброй ночи";
+  // Date line under the greeting — the device's REAL current date in Russian
+  // ("Вторник · 28 апреля"). Live always shows the real date.
+  let _todayLabel = "Вторник · 28 апреля";
+  let _calLabel = "28 апр"; // short form for the Calendar card
+  try {
+    const _wd = new Intl.DateTimeFormat("ru-RU", { weekday: "long" }).format(new Date());
+    const _dm = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date());
+    _todayLabel = _wd.charAt(0).toUpperCase() + _wd.slice(1) + " · " + _dm;
+    _calLabel = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(new Date()).replace(".", "");
+  } catch (e) {}
+  // A real Telegram user with no habits yet gets the get-started hero + an engaging
+  // level BANNER instead of the dense stat strip.
+  const isNewbie = (habits.length === 0);
+  const toggle = app?.toggleHabit || (() => {});
+  const remove = app?.removeHabit || (() => {});
+  const doneCount = habits.filter(h => h.done).length;
+  const totalCount = habits.length;
+  const ringPct = totalCount ? doneCount / totalCount : 0;
+  // Daily XP — real and legible: each habit is +10, closing the whole day adds
+  // the +30 "ideal day" bonus. Show what's earned vs. what's still on the table.
+  const XP_PER_HABIT = 10, XP_IDEAL_DAY = 30;
+  const leftCount = Math.max(0, totalCount - doneCount);
+  const dayAllDone = totalCount > 0 && leftCount === 0;
+  const xpEarnedToday = doneCount * XP_PER_HABIT + (dayAllDone ? XP_IDEAL_DAY : 0);
+  const ruHab = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "привычку" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "привычки" : "привычек"; };
+  const ruTeam = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "команда" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "команды" : "команд"; };
+  // Live profiles get REAL numbers from the date-keyed habit model.
+  const _liveXP = bosLiveXP(app);
+  const _lvl = bosLevelInfo(_liveXP);
+  // The gold level banner is the live home's XP hero — keep it for EVERY live user,
+  // at any level (David asked twice).
+  const _showLevelBanner = true;
+  const dayStreak = bosMaxStreak(habits);
+
+  // Bell red dot — only light it when there are REAL unread team-chat messages —
+  // same signal NotificationsScreen uses (loadMessages per cloud team vs. the
+  // per-team "bos:chatread:" timestamp). If the cloud is off or nothing's unread,
+  // the dot stays hidden (no fake alert).
+  const [hasUnread, setHasUnread] = React.useState(false);
+  React.useEffect(() => {
+    if (!(window.bosCloud && window.bosCloud.enabled())) { setHasUnread(false); return; }
+    let on = true;
+    (async () => {
+      try {
+        const me = await window.bosCloud.uid();
+        const cloudTeams = (app?.teams || []).filter((t) => t.cloudId);
+        for (const t of cloudTeams) {
+          const rows = await window.bosCloud.loadMessages(t.cloudId);
+          if (!Array.isArray(rows) || !rows.length) continue;
+          const lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
+          if (rows.some((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead)) {
+            if (on) setHasUnread(true);
+            return;
+          }
+        }
+        if (on) setHasUnread(false);
+      } catch (e) { if (on) setHasUnread(false); }
+    })();
+    return () => { on = false; };
+  }, [teams]);
+  const showBellDot = hasUnread;
+
+  // Celebration when a habit gets completed: float +XP near the avatar ring,
+  // sparkle burst when the whole day closes (doneCount reaches total).
+  const [celebrate, setCelebrate] = React.useState(null);
+  const prevDoneRef = React.useRef(doneCount);
+  React.useEffect(() => {
+    if (doneCount > prevDoneRef.current) {
+      const full = totalCount > 0 && doneCount === totalCount;
+      // Per-habit XP now pops on the checkmark (HabitCheck); the big top-of-screen
+      // celebration is reserved for the DAY-CLOSE moment so it never double-pops.
+      if (full) {
+        setCelebrate({ xp: totalCount * 10 + 30, full: true, key: Date.now() + ":" + doneCount });
+        if (window.tgHaptic) { try { window.tgHaptic("heavy"); } catch (e) {} }
+        const t = window.setTimeout(() => setCelebrate(null), 2000);
+        prevDoneRef.current = doneCount;
+        return () => window.clearTimeout(t);
+      }
+    }
+    prevDoneRef.current = doneCount;
+  }, [doneCount, totalCount]);
+
+  // Theme tokens
+  const cardBg     = isDark ? "rgba(39,39,42,0.55)" : "#fff";
+  const cardBorder = "0";
+  const chipBg     = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
+  const iconBg     = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
+  const bellIcon   = isDark ? "#fff" : "#0a0a0a";
+  const dividerLn  = isDark ? "rgba(255,255,255,0.06)" : "var(--line)";
+  const moodGrad   = (c) => isDark
+    ? `linear-gradient(135deg, ${c}66 0%, ${c}22 60%, rgba(255,255,255,0.02) 100%)`
+    : `linear-gradient(135deg, ${c} 0%, ${c}66 60%, var(--card-fade) 100%)`;
+  const cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
+  const rowBg = isDark ? "#1b1b1e" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
+
+  return (
+    <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
+      {/* Top bar — greeting + bell */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{_todayLabel}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
+        </div>
+        <button onClick={() => navigate("notifications", { from: "home" })} className="tap"
+          style={{ width: 42, height: 42, borderRadius: 14, background: iconBg, border: 0, display: "grid", placeItems: "center", position: "relative" }}>
+          <I.Bell size={18} color={bellIcon}/>
+          {showBellDot && (
+          <span style={{ position: "absolute", top: 8, right: 10, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
+          )}
+        </button>
+      </div>
+
+      <div data-tour="aihints" style={{ position: "relative" }}>
+        <HomeHeroSwipe navigate={navigate} doneCount={doneCount} totalCount={totalCount} ringPct={ringPct} isDark={isDark} />
+        {celebrate && (
+          <div key={celebrate.key} aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 6, overflow: "visible" }}>
+            <div style={{ position: "absolute", top: 66, right: 16, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5,
+              background: "#0a0a0a", color: "#FEDE34", fontSize: celebrate.full ? 13 : 12, fontWeight: 800,
+              padding: celebrate.full ? "7px 12px" : "5px 10px", borderRadius: 999, boxShadow: "0 8px 22px rgba(0,0,0,0.3)",
+              animation: "bosXpPop 1.15s cubic-bezier(0.22,1,0.36,1) forwards" }}>
+              ✦ +{celebrate.xp} XP{celebrate.full ? " · день закрыт" : ""}
+            </div>
+            {celebrate.full && [0,1,2,3,4,5,6,7].map(i => {
+              const a = (i / 8) * Math.PI * 2;
+              return <span key={i} style={{ position: "absolute", top: 52, right: 52, width: 5, height: 5, borderRadius: "50%",
+                background: "#FEDE34", boxShadow: "0 0 6px #FEDE34", animation: "bosSpark 0.9s ease-out forwards",
+                ["--sx"]: Math.cos(a) * 44 + "px", ["--sy"]: Math.sin(a) * 44 + "px" }}/>;
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Gold LEVEL banner right under "С чего начать" — turns the bare stat into a
+          hook ("every habit is XP — learn how to grow"). Always shown for live. */}
+      {_showLevelBanner && (
+        <button onClick={() => navigate("levels")} className="tap" style={{
+          marginTop: 12, width: "100%", border: 0, borderRadius: 22, padding: "15px 17px",
+          background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a",
+          display: "flex", alignItems: "center", gap: 13, textAlign: "left", boxShadow: "0 10px 26px rgba(239,159,20,0.30)",
+        }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22 }}>🏆</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px" }}>Уровень {_lvl.level}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.55 }}>{_liveXP} XP</span>
+            </div>
+            <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.62)", marginTop: 2, lineHeight: 1.35 }}>Каждая привычка — это опыт. Узнай, как расти →</div>
+            <span style={{ display: "block", height: 5, borderRadius: 999, background: "rgba(0,0,0,0.14)", overflow: "hidden", marginTop: 8 }}>
+              <span style={{ display: "block", height: "100%", width: _lvl.pct + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }}/>
+            </span>
+          </div>
+          <I.ChevronRight size={20} color="rgba(0,0,0,0.45)" />
+        </button>
+      )}
+
+      {/* Calendar + Community */}
+      {(widgets.calendar !== false || widgets.team !== false) && (
+      <div style={{ display: "grid", gridTemplateColumns: widgets.calendar !== false && widgets.team !== false ? "1fr 1fr" : "1fr", gap: 8, marginTop: 8 }}>
+        {widgets.calendar !== false && (
+        <button className="tap" onClick={() => navigate("history")}
+          style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Календарь</div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{_calLabel}</div>
+          </div>
+          <I.Calendar size={28} color={isDark ? "rgba(255,255,255,0.7)" : "#787878"} strokeWidth={1.5} />
+        </button>
+        )}
+        {widgets.team !== false && (
+        <button className="tap" onClick={() => navigate("community")}
+          style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Команды</div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{teams.length ? teams.length + " " + ruTeam(teams.length) : "Создай команду"}</div>
+          </div>
+          {teams.length > 0 ? (
+          <div style={{ display: "flex" }}>
+            {teams.slice(0, 4).map((t, i) => (
+              <span key={t._id || i} title={t.name} style={{ width: 28, height: 28, borderRadius: "50%", background: t.accent || "var(--surface-3)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: i ? -10 : 0, display: "grid", placeItems: "center", fontSize: 14, lineHeight: 1 }}>{t.emblem || "👥"}</span>
+            ))}
+          </div>
+          ) : (
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", color: "var(--text-3)" }}><I.Plus size={16}/></span>
+          )}
+        </button>
+        )}
+      </div>
+      )}
+
+      {/* Habits — a labelled section, always shown (the LIVE home drops the
+         segmented Привычки/Цели switcher and stacks both sections with labels). */}
+      <div className="section-label" style={{ marginTop: 16, color: "var(--text-3)", padding: "0 4px" }}>Привычки</div>
+      {habits.length === 0 ? (
+          <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <span style={{ width: 52, height: 52, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Здесь будут твои привычки</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
+            <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
+          </button>
+      ) : (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
+          {habits.map((h) => (
+            <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+              <SwipeRow rowBg={rowBg} dark={isDark} actions={[
+                { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
+                { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
+              ]}>
+                <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
+                  <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                    {(h.friends?.length || h.duration) && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
+                        {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
+                        {h.friends?.length > 0 && <AvatarStack people={h.friends} size={16} max={3} label={false}/>}
+                        {h.friends?.length > 0 && <span>совместно</span>}
+                      </div>
+                    )}
+                  </div>
+                  {h.duration && !h.done && (
+                    <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
+                  )}
+                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} />
+                </div>
+              </SwipeRow>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Goals — a labelled section, always shown. */}
+      <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Цели</div>
+      {goals.length === 0 ? (
+          <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <span style={{ width: 52, height: 52, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Пока нет целей</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
+            <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Поставить цель</span>
+          </button>
+      ) : (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+          {goals.map(g => {
+            const pct = g.target ? g.current / g.target : 0;
+            return (
+            <div key={g.id} className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: 14, boxShadow: cardShadow, color: "var(--text)", cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                <span style={{ width: 38, height: 38, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
+              </div>
+              <div className="bos-progress"><span style={{ width: (pct*100) + "%" }} /></div>
+            </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Invite / share the app — a focused dark CTA (stands apart from the white
+         habit cards above) that ties sharing to the reward loop: friend → XP → level. */}
+      <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheet dark={isDark} />)}
+        style={{ marginTop: 12, width: "100%", borderRadius: 22, padding: "16px 18px", border: 0, position: "relative", overflow: "hidden",
+          background: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)", boxShadow: "0 10px 26px rgba(20,40,80,0.28)",
+          color: "#fff", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 10%, rgba(255,255,255,0.16) 0%, transparent 52%)", pointerEvents: "none" }} />
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.14)", display: "grid", placeItems: "center", flexShrink: 0, color: "#fff", position: "relative" }}>
+          <I.Share size={20} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>Позови своих</div>
+            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg, #FEDE34, #EF9F14)", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+XP</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.74)", marginTop: 3, lineHeight: 1.35 }}>Вместе легче — и за каждого друга XP к новому уровню</div>
+        </div>
+        {/* A LIVE user has no sample people yet, so we show a neutral "add people"
+            glyph — never fake names. */}
+        <div style={{ display: "flex", flexShrink: 0, position: "relative" }}>
+          <span style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.16)", border: "2px solid rgba(255,255,255,0.3)", display: "grid", placeItems: "center", color: "#fff" }}><I.Plus size={16} strokeWidth={2.5} /></span>
+        </div>
+      </button>
+      {/* State widget lives LOWER for live (below «Позови своих») so a new user
+          isn't hit with it up top — David's call. Only surfaces once there are at
+          least 2 days of marks. */}
+      {widgets.mood !== false && mood && (typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
+    </div>
+  );
+}

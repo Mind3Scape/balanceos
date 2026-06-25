@@ -66,6 +66,22 @@ var SCREENS = {
   signup: () => SignUpScreen
 };
 
+/* ── LIVE (real Telegram user) screen overrides ──────────────────────────────
+   The live app is being separated from the two demos: for mode==="live" we render
+   dedicated screens from screens/live/* ; demo & fresh keep using SCREENS above,
+   which stay FROZEN. A route with no live override safely falls back to its demo
+   screen, so the fork can land one screen at a time. */
+var LIVE_SCREENS = {
+  home: () => typeof HomeLive === "function" ? HomeLive : HomeScreen
+};
+function resolveScreen(route, mode) {
+  if (mode === "live" && LIVE_SCREENS[route]) {
+    var C = LIVE_SCREENS[route]();
+    if (C) return C;
+  }
+  return SCREENS[route] && SCREENS[route]() || HomeScreen;
+}
+
 /* Design tokens (from the canvas "Tweaks" defaults). Applied once so screens
    read the intended accent / radius / sphere-glow / check colour. */
 var TWEAK_DEFAULTS = {
@@ -115,7 +131,7 @@ var AUTO_RESUME_TG = false;
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v191";
+var APP_VERSION = "v192";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}
@@ -1801,7 +1817,7 @@ function PhoneApp() {
     var dark = themeFor(frame.route);
     var inTabs = TAB_ROUTES.has(frame.route);
     var full = FULLBLEED_ROUTES.has(frame.route);
-    var Comp = SCREENS[frame.route] && SCREENS[frame.route]() || HomeScreen;
+    var Comp = resolveScreen(frame.route, app.mode);
     var cls = "bos-page " + (dark ? "theme-dark" : "theme-light") + (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "") + (animClass ? " " + animClass : "");
     return /*#__PURE__*/React.createElement("div", {
       key: frame.id,
@@ -1819,7 +1835,7 @@ function PhoneApp() {
     var dark = themeFor(frame.route);
     var inTabs = TAB_ROUTES.has(frame.route);
     var full = FULLBLEED_ROUTES.has(frame.route);
-    var Comp = SCREENS[frame.route] && SCREENS[frame.route]() || HomeScreen;
+    var Comp = resolveScreen(frame.route, app.mode);
     var cls = "bos-page " + (dark ? "theme-dark" : "theme-light") + (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "");
     return /*#__PURE__*/React.createElement("div", {
       key: frame.id,

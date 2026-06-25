@@ -21,6 +21,7 @@ const FILES = [
   "components/icons.jsx", "components/shell.jsx",
   "screens/home.jsx", "screens/habits.jsx", "screens/community.jsx",
   "screens/profile.jsx", "screens/extra.jsx", "screens/intro.jsx",
+  "screens/live/home_live.jsx",
   "app.jsx",
 ];
 

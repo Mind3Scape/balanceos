@@ -61,6 +61,19 @@ const SCREENS = {
   signup: () => SignUpScreen,
 };
 
+/* ── LIVE (real Telegram user) screen overrides ──────────────────────────────
+   The live app is being separated from the two demos: for mode==="live" we render
+   dedicated screens from screens/live/* ; demo & fresh keep using SCREENS above,
+   which stay FROZEN. A route with no live override safely falls back to its demo
+   screen, so the fork can land one screen at a time. */
+const LIVE_SCREENS = {
+  home: () => (typeof HomeLive === "function" ? HomeLive : HomeScreen),
+};
+function resolveScreen(route, mode) {
+  if (mode === "live" && LIVE_SCREENS[route]) { const C = LIVE_SCREENS[route](); if (C) return C; }
+  return (SCREENS[route] && SCREENS[route]()) || HomeScreen;
+}
+
 /* Design tokens (from the canvas "Tweaks" defaults). Applied once so screens
    read the intended accent / radius / sphere-glow / check colour. */
 const TWEAK_DEFAULTS = {
@@ -111,7 +124,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v191";
+const APP_VERSION = "v192";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */
@@ -773,7 +786,7 @@ function PhoneApp() {
     const dark = themeFor(frame.route);
     const inTabs = TAB_ROUTES.has(frame.route);
     const full = FULLBLEED_ROUTES.has(frame.route);
-    const Comp = (SCREENS[frame.route] && SCREENS[frame.route]()) || HomeScreen;
+    const Comp = resolveScreen(frame.route, app.mode);
     const cls =
       "bos-page " + (dark ? "theme-dark" : "theme-light") +
       (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "") +
@@ -793,7 +806,7 @@ function PhoneApp() {
     const dark = themeFor(frame.route);
     const inTabs = TAB_ROUTES.has(frame.route);
     const full = FULLBLEED_ROUTES.has(frame.route);
-    const Comp = (SCREENS[frame.route] && SCREENS[frame.route]()) || HomeScreen;
+    const Comp = resolveScreen(frame.route, app.mode);
     const cls =
       "bos-page " + (dark ? "theme-dark" : "theme-light") +
       (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "");
