@@ -57,7 +57,7 @@ function HabitsLive() {
     playBtnFg: "#fff"
   };
   var cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
-  var [tab, setTab] = React.useState("habits");
+
   // «Обучение» cards can be hidden once read (David) — persisted, restorable from Settings.
   var [learnHidden, setLearnHidden] = React.useState(() => typeof bosLearnHidden === "function" ? bosLearnHidden() : false);
   React.useEffect(() => {
@@ -68,6 +68,10 @@ function HabitsLive() {
   var hideLearn = () => {
     if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(true);
     setLearnHidden(true);
+  };
+  var showLearn = () => {
+    if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(false);
+    setLearnHidden(false);
   };
   // Shared store — same list the Home screen reads/writes.
   var habits = app?.habits || [];
@@ -86,7 +90,7 @@ function HabitsLive() {
   }, /*#__PURE__*/React.createElement("div", {
     "data-tour": "presets",
     style: {
-      marginBottom: 16
+      marginBottom: 18
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -100,14 +104,19 @@ function HabitsLive() {
     }
   }, "\u0411\u044B\u0441\u0442\u0440\u043E\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
     style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
       gap: 8,
       overflowX: "auto",
       scrollbarWidth: "none",
       WebkitOverflowScrolling: "touch",
       touchAction: "pan-x",
-      margin: "0 -12px",
-      padding: "0 12px 2px"
+      padding: "3px 52px 3px 4px",
+      WebkitMaskImage: "radial-gradient(circle at calc(100% - 22px) 50%, transparent 30px, #000 50px)",
+      maskImage: "radial-gradient(circle at calc(100% - 22px) 50%, transparent 30px, #000 50px)"
     }
   }, EMOJI_CHIPS.map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
@@ -139,32 +148,18 @@ function HabitsLive() {
   }, c.i), c.t, " ", /*#__PURE__*/React.createElement(I.Plus, {
     size: 12,
     color: TH.plusIcon
-  }))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "tab-pill",
-    style: {
-      background: TH.pillBg,
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "tap " + (tab === "habits" ? "active" : ""),
-    onClick: () => setTab("habits")
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("button", {
-    className: "tap " + (tab === "goals" ? "active" : ""),
-    onClick: () => setTab("goals")
-  }, "\u0426\u0435\u043B\u0438")), /*#__PURE__*/React.createElement("button", {
+  })))), /*#__PURE__*/React.createElement("button", {
     "data-tour": "add",
-    onClick: () => navigate(tab === "habits" ? "habit-settings" : "goal-settings", {
+    onClick: () => navigate("habit-settings", {
       mode: "create"
     }),
     className: "tap",
-    title: tab === "habits" ? "Добавить привычку" : "Добавить цель",
+    title: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443",
     style: {
+      position: "absolute",
+      top: "50%",
+      right: 0,
+      transform: "translateY(-50%)",
       width: 44,
       height: 44,
       borderRadius: 999,
@@ -173,18 +168,25 @@ function HabitsLive() {
       border: 0,
       display: "grid",
       placeItems: "center",
-      boxShadow: isDark ? "none" : "0 4px 14px rgba(0,0,0,0.18)"
+      boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 4px 14px rgba(0,0,0,0.18)"
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 18,
     strokeWidth: 2.2
-  }))), tab === "habits" ? habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 2,
+      color: "var(--text-3)",
+      padding: "0 4px"
+    }
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("habit-settings", {
       mode: "create"
     }),
     style: {
-      marginTop: 12,
+      marginTop: 10,
       width: "100%",
       background: TH.cardBg,
       border: 0,
@@ -238,7 +240,7 @@ function HabitsLive() {
     strokeWidth: 2.5
   }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 12,
+      marginTop: 10,
       display: "flex",
       flexDirection: "column",
       gap: 8,
@@ -338,13 +340,44 @@ function HabitsLive() {
     done: h.done,
     onToggle: () => toggle(h.id),
     xp: 10
-  })))))) : goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  })))))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 20,
+      color: "var(--text-3)",
+      padding: "0 4px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "\u0426\u0435\u043B\u0438"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("goal-settings", {
+      mode: "create"
+    }),
+    className: "tap",
+    "data-no-haptic": true,
+    "aria-label": "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C",
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 999,
+      background: TH.iconBg,
+      color: "var(--text-3)",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      marginRight: -2
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 15,
+    strokeWidth: 2.4
+  }))), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"
     }),
     style: {
-      marginTop: 12,
+      marginTop: 10,
       width: "100%",
       background: TH.cardBg,
       border: 0,
@@ -398,7 +431,7 @@ function HabitsLive() {
     strokeWidth: 2.5
   }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 12,
+      marginTop: 10,
       display: "flex",
       flexDirection: "column",
       gap: 8,
@@ -501,7 +534,7 @@ function HabitsLive() {
         width: Math.min(1, pct) * 100 + "%"
       }
     })))));
-  })), !learnHidden && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  })), !learnHidden ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22,
@@ -524,9 +557,19 @@ function HabitsLive() {
       padding: "2px 2px",
       textTransform: "none",
       letterSpacing: 0,
-      lineHeight: 1
+      lineHeight: 1,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
     }
-  }, "\u0421\u043A\u0440\u044B\u0442\u044C")), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043A\u0440\u044B\u0442\u044C ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      transform: "rotate(-90deg)"
+    }
+  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 13
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -628,5 +671,41 @@ function HabitsLive() {
     }
   }, "\u0427\u0438\u0442\u0430\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 13
-  })))))));
+  })))))) : /*#__PURE__*/React.createElement("button", {
+    onClick: showLearn,
+    className: "tap",
+    "data-no-haptic": true,
+    "aria-label": "\u0420\u0430\u0441\u043A\u0440\u044B\u0442\u044C \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435",
+    style: {
+      marginTop: 22,
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      padding: "0 4px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "section-label",
+    style: {
+      color: "var(--text-3)"
+    }
+  }, "\u041E\u0431\u0443\u0447\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      color: "var(--text-4)",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, "\u0420\u0430\u0441\u043A\u0440\u044B\u0442\u044C ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      transform: "rotate(90deg)"
+    }
+  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 13
+  })))));
 }

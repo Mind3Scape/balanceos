@@ -49,7 +49,6 @@ function HabitsLive() {
   };
   const cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
 
-  const [tab, setTab] = React.useState("habits");
   // «Обучение» cards can be hidden once read (David) — persisted, restorable from Settings.
   const [learnHidden, setLearnHidden] = React.useState(() => (typeof bosLearnHidden === "function" ? bosLearnHidden() : false));
   React.useEffect(() => {
@@ -58,6 +57,7 @@ function HabitsLive() {
     return () => window.removeEventListener("bos:learnchange", sync);
   }, []);
   const hideLearn = () => { if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(true); setLearnHidden(true); };
+  const showLearn = () => { if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(false); setLearnHidden(false); };
   // Shared store — same list the Home screen reads/writes.
   const habits = app?.habits || [];
   const goals = app?.goals || [];
@@ -71,48 +71,54 @@ function HabitsLive() {
       {/* Page header removed (experiment) — the «Привычки / Цели» control below
           already names the context; the tab bar shows the section. */}
 
-      {/* Quick add chips — flush, no panel */}
-      <div data-tour="presets" style={{ marginBottom: 16 }}>
+      {/* Quick-add «хэштеги» with the primary «+» LIFTED onto the same row. The chips
+          scroll sideways and tuck UNDER the floating black «+»: a constant radial mask
+          fades anything inside the button's radius to opacity, so the «+» always reads
+          crisp on top while the tags slide beneath it (David). The old Привычки/Цели
+          switcher is gone — both sections now stack below like on the Home screen. */}
+      <div data-tour="presets" style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600, marginBottom: 8, padding: "0 4px" }}>Быстрое добавление</div>
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", margin: "0 -12px", padding: "0 12px 2px" }}>
-          {EMOJI_CHIPS.map((c,i)=>(
-            <button key={i} className="tap" data-no-haptic onClick={() => navigate("habit-settings", { mode: "create", preset: c })} style={{
-              background: TH.chipBg, borderRadius: 999, padding: "8px 12px", fontSize: 13,
-              color: TH.chipText, border: TH.chipBd,
-              display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
-              boxShadow: cardShadow,
-            }}>
-              <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>
-              {c.t} <I.Plus size={12} color={TH.plusIcon}/>
-            </button>
-          ))}
+        <div style={{ position: "relative" }}>
+          <div style={{
+            display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x",
+            padding: "3px 52px 3px 4px",
+            WebkitMaskImage: "radial-gradient(circle at calc(100% - 22px) 50%, transparent 30px, #000 50px)",
+            maskImage: "radial-gradient(circle at calc(100% - 22px) 50%, transparent 30px, #000 50px)",
+          }}>
+            {EMOJI_CHIPS.map((c,i)=>(
+              <button key={i} className="tap" data-no-haptic onClick={() => navigate("habit-settings", { mode: "create", preset: c })} style={{
+                background: TH.chipBg, borderRadius: 999, padding: "8px 12px", fontSize: 13,
+                color: TH.chipText, border: TH.chipBd,
+                display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
+                boxShadow: cardShadow,
+              }}>
+                <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>
+                {c.t} <I.Plus size={12} color={TH.plusIcon}/>
+              </button>
+            ))}
+          </div>
+          {/* The black «+» — primary add (a new habit). Pinned over the right edge of the
+              tag row; the radial mask above keeps the chips clear of it as they scroll. */}
+          <button data-tour="add" onClick={() => navigate("habit-settings", { mode: "create" })} className="tap"
+            title="Добавить привычку"
+            style={{ position: "absolute", top: "50%", right: 0, transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 999, background: TH.addBtnBg, color: TH.addBtnFg, border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 4px 14px rgba(0,0,0,0.18)" }}>
+            <I.Plus size={18} strokeWidth={2.2}/>
+          </button>
         </div>
       </div>
 
-      {/* Tabs + Add button */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div className="tab-pill" style={{ background: TH.pillBg, flex: 1 }}>
-          <button className={"tap " + (tab === "habits" ? "active" : "")} onClick={() => setTab("habits")}>Привычки</button>
-          <button className={"tap " + (tab === "goals" ? "active" : "")} onClick={() => setTab("goals")}>Цели</button>
-        </div>
-        <button data-tour="add" onClick={() => navigate(tab === "habits" ? "habit-settings" : "goal-settings", { mode: "create" })} className="tap"
-          title={tab === "habits" ? "Добавить привычку" : "Добавить цель"}
-          style={{ width: 44, height: 44, borderRadius: 999, background: TH.addBtnBg, color: TH.addBtnFg, border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 4px 14px rgba(0,0,0,0.18)" }}>
-          <I.Plus size={18} strokeWidth={2.2}/>
-        </button>
-      </div>
-
-      {/* Habit / Goal list — unified card with dividers */}
-      {tab === "habits" ? (
-        habits.length === 0 ? (
-          <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 12, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+      {/* Привычки — labelled section, always shown. The switcher is gone; both
+          sections stack like on Home (David: «сначала привычки, потом цели»). */}
+      <div className="section-label" style={{ marginTop: 2, color: "var(--text-3)", padding: "0 4px" }}>Привычки</div>
+      {habits.length === 0 ? (
+          <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
             <span style={{ width: 54, height: 54, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
             <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки</div>
             <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Начни с одной маленькой. Её можно делать одному или вместе с друзьями.</div>
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать привычку</span>
           </button>
-        ) : (
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
+      ) : (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
           {habits.map((h) => (
             <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
@@ -142,17 +148,26 @@ function HabitsLive() {
             </div>
           ))}
         </div>
-        )
-      ) : (
-        goals.length === 0 ? (
-          <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 12, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+      )}
+
+      {/* Цели — labelled section. The big black «+» above adds a habit; goals get
+          their own quiet «+» on the section header (so both are still one tap away). */}
+      <div className="section-label" style={{ marginTop: 20, color: "var(--text-3)", padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>Цели</span>
+        <button onClick={() => navigate("goal-settings", { mode: "create" })} className="tap" data-no-haptic aria-label="Добавить цель"
+          style={{ width: 28, height: 28, borderRadius: 999, background: TH.iconBg, color: "var(--text-3)", border: 0, display: "grid", placeItems: "center", marginRight: -2 }}>
+          <I.Plus size={15} strokeWidth={2.4}/>
+        </button>
+      </div>
+      {goals.length === 0 ? (
+          <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
             <span style={{ width: 54, height: 54, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🎯</span>
             <div style={{ fontSize: 17, fontWeight: 600 }}>Пока нет целей</div>
             <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Цель — это вершина, к которой ведут твои привычки. Поставь первую.</div>
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Поставить цель</span>
           </button>
-        ) : (
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
+      ) : (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
           {goals.map((g) => {
             const pct = g.target > 0 ? g.current / g.target : 0;
             return (
@@ -182,17 +197,18 @@ function HabitsLive() {
             );
           })}
         </div>
-        )
       )}
 
-      {/* Knowledge cards — 3 guides (habits / goals / teams), no reading-time, hideable once read.
-          Horizontal scroll so the set can grow; «Скрыть» tucks the whole block away. */}
-      {!learnHidden && (<>
+      {/* Knowledge cards — 3 guides (habits / goals / teams), no reading-time.
+          Collapsible: «Скрыть» tucks the cards away but leaves a slim «Раскрыть»
+          header so it's one tap to bring them back (David). The Settings toggle
+          «Карточки обучения» flips the same flag. */}
+      {!learnHidden ? (<>
       <div className="section-label" style={{ marginTop: 22, padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span>Обучение</span>
         <button onClick={hideLearn} className="tap" data-no-haptic aria-label="Скрыть обучение"
-          style={{ background: "transparent", border: 0, color: "var(--text-4)", fontSize: 13, fontWeight: 600, padding: "2px 2px", textTransform: "none", letterSpacing: 0, lineHeight: 1 }}>
-          Скрыть
+          style={{ background: "transparent", border: 0, color: "var(--text-4)", fontSize: 13, fontWeight: 600, padding: "2px 2px", textTransform: "none", letterSpacing: 0, lineHeight: 1, display: "inline-flex", alignItems: "center", gap: 4 }}>
+          Скрыть <span style={{ display: "inline-flex", transform: "rotate(-90deg)" }}><I.ChevronRight size={13}/></span>
         </button>
       </div>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "8px -12px 0", padding: "0 16px 4px", scrollbarWidth: "none" }}>
@@ -217,7 +233,15 @@ function HabitsLive() {
           </button>
         ))}
       </div>
-      </>)}
+      </>) : (
+        <button onClick={showLearn} className="tap" data-no-haptic aria-label="Раскрыть обучение"
+          style={{ marginTop: 22, width: "100%", background: "transparent", border: 0, padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span className="section-label" style={{ color: "var(--text-3)" }}>Обучение</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--text-4)", fontSize: 13, fontWeight: 600 }}>
+            Раскрыть <span style={{ display: "inline-flex", transform: "rotate(90deg)" }}><I.ChevronRight size={13}/></span>
+          </span>
+        </button>
+      )}
     </div>
   );
 }
