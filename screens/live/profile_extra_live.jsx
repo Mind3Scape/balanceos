@@ -527,7 +527,7 @@ function HistoryLive() {
                   if (!dm) return null;
                   return (
                     <span aria-hidden style={{ position: "absolute", top: 0, right: 0, lineHeight: 0 }}>
-                      <StaticOrb size={10} tint={tintFromMood(dm.c)} seed={1.2} intensity={0.55} />
+                      <MiniOrb size={10} tint={tintFromMood(dm.c)} />
                     </span>
                   );
                 })()}

@@ -328,7 +328,7 @@ function OrbitField({
   moodC,
   dark = false
 }) {
-  var t = typeof useT === "function" ? useT() : 0;
+  var t = useOrbClock();
   var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
   var lerp = (a, b, k) => a + (b - a) * k;
   var smooth = x => {
@@ -337,35 +337,50 @@ function OrbitField({
   };
   var eo = smooth(t / 0.85); // gentle bloom-in on open
 
-  // Strongest habit first → inner ring + bigger; newest (low streak) → outer + small.
-  var hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0));
-  var pp = (people || []).slice(); // invite order: index 0 = first = closest
-
-  var nodes = [];
-  hb.forEach((h, i) => nodes.push({
-    ring: i,
-    kind: "h",
-    emoji: h.emoji || "✨",
-    key: "h" + (h.id != null ? h.id : i)
-  }));
-  pp.forEach((p, j) => nodes.push({
-    ring: j + 1,
-    kind: "p",
-    avatar: p.avatar,
-    key: "p" + j
-  })); // people just outside your hero habit
-
-  // Even angular spread within each ring (so nothing collides), then a per-ring spin.
-  var byRing = {};
-  nodes.forEach(n => {
-    (byRing[n.ring] = byRing[n.ring] || []).push(n);
-  });
-  Object.keys(byRing).forEach(r => {
-    var a = byRing[r];
-    a.forEach((n, idx) => {
-      n.baseAng = idx / a.length * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2;
+  // Ring STRUCTURE (sort by streak, build nodes, assign even angular spread, ring set)
+  // depends ONLY on [habits, people] — memo it so it isn't rebuilt on every animation frame;
+  // only the per-frame positions (cos/sin of t, below) recompute each tick.
+  var {
+    nodes,
+    maxRing,
+    drawRings
+  } = React.useMemo(() => {
+    // Strongest habit first → inner ring + bigger; newest (low streak) → outer + small.
+    var hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0));
+    var pp = (people || []).slice(); // invite order: index 0 = first = closest
+    var nodes = [];
+    hb.forEach((h, i) => nodes.push({
+      ring: i,
+      kind: "h",
+      emoji: h.emoji || "✨",
+      key: "h" + (h.id != null ? h.id : i)
+    }));
+    pp.forEach((p, j) => nodes.push({
+      ring: j + 1,
+      kind: "p",
+      avatar: p.avatar,
+      key: "p" + j
+    })); // people just outside your hero habit
+    // Even angular spread within each ring (so nothing collides), then a per-ring spin.
+    var byRing = {};
+    nodes.forEach(n => {
+      (byRing[n.ring] = byRing[n.ring] || []).push(n);
     });
-  });
+    Object.keys(byRing).forEach(r => {
+      var a = byRing[r];
+      a.forEach((n, idx) => {
+        n.baseAng = idx / a.length * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2;
+      });
+    });
+    var maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
+    var drawRings = [];
+    for (var r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
+    return {
+      nodes,
+      maxRing,
+      drawRings
+    };
+  }, [habits, people]);
   var RBASE = 82,
     RSTEP = 26;
   var radius = ring => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
@@ -380,9 +395,7 @@ function OrbitField({
   var hasCustomAvatar = !!avatar && avatar !== "default";
   var lr = 54,
     CIRC = 2 * Math.PI * lr; // gold level arc hugging the centre orb
-  var maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
-  var drawRings = [];
-  for (var r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
+  // (nodes / maxRing / drawRings now come from the memo above — they depend only on habits/people)
 
   // NO background of its own — the constellation floats on the SAME page background as
   // the rest of the profile. Palette flips with the theme so discs/rings always read.
@@ -693,19 +706,11 @@ function DayRing({
     } : undefined
   }));
 }
+
+// Folded into the shared 30fps useOrbClock (was its own per-orb 60fps rAF loop). Kept as a
+// named alias so existing call sites (profile_live.jsx) don't need to change.
 function useAIT() {
-  var [t, setT] = React.useState(0);
-  React.useEffect(() => {
-    var raf,
-      s = performance.now();
-    var tick = now => {
-      setT((now - s) / 1000);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  return t;
+  return useOrbClock();
 }
 
 /* Onboarding intro flow (5 dark slides) + sign up */

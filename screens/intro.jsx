@@ -141,25 +141,43 @@ function tintFromMood(hex) {
   return [light, h, deep];
 }
 
-function StateOrb({ size = 76, tint, intensity = 1.15 }) {
-  const t = useT();
+// React.memo + the SHARED 30fps useOrbClock (not its own 60fps loop): a parent re-render
+// (e.g. a mood toggle that doesn't change THIS orb's tint, or an unrelated state change)
+// no longer re-executes the heavy glass SVG. tint is compared by value (_siriPropsEq).
+const StateOrb = React.memo(function StateOrb({ size = 76, tint, intensity = 1.15 }) {
+  const t = useOrbClock();
   const R = 34;
   return (
     <svg viewBox="-58 -58 116 116" width={size} height={size} style={{ overflow: "visible", display: "block" }}>
       <SiriOrb r={R} tint={tint} t={t} intensity={intensity} />
     </svg>
   );
-}
+}, _siriPropsEq);
 
 /* Static, non-animated glass orb — same look, frozen at `seed`. Cheap to
-   render many (e.g. the 7-day mood trail). Clipped to a clean circle. */
-function StaticOrb({ size = 22, tint, seed = 0, intensity = 0.25 }) {
+   render many (e.g. the 7-day mood trail). Clipped to a clean circle.
+   memo'd so a parent re-render doesn't redraw the full glass SVG. For sizes
+   ≤~24px prefer MiniOrb below — the SVG detail is invisible that small. */
+const StaticOrb = React.memo(function StaticOrb({ size = 22, tint, seed = 0, intensity = 0.25 }) {
   return (
     <svg viewBox="-42 -42 84 84" width={size} height={size} style={{ overflow: "hidden", borderRadius: "50%", display: "block" }}>
       <SiriOrb r={34} tint={tint} t={seed} intensity={intensity} />
     </svg>
   );
-}
+}, _siriPropsEq);
+
+/* MiniOrb — a ONE-div radial-gradient stand-in for the full glass orb, for tiny sizes
+   (≤~24px: the month calendar's up-to-31 day dots, the 7-orb mood trail) where the full
+   SiriOrb's ~10 gradients + 5 blurred discs are invisible anyway. Takes the same 3-stop
+   tint array tintFromMood() produces; memo'd so a grid of them never re-renders in bulk. */
+const MiniOrb = React.memo(function MiniOrb({ size = 16, tint, style }) {
+  const c = Array.isArray(tint) ? tint : ((typeof tintFromMood === "function") ? tintFromMood(tint) : ["#cfe1ff", "#7aa4d0", "#2c4d76"]);
+  return <div style={Object.assign({
+    width: size, height: size, borderRadius: "50%",
+    background: "radial-gradient(circle at 36% 30%, " + c[0] + ", " + c[1] + " 56%, " + c[2] + ")",
+    boxShadow: "inset -1px -1.5px 2.5px rgba(0,0,0,0.28), inset 1px 1px 2px rgba(255,255,255,0.45)",
+  }, style)} />;
+}, (a, b) => a.size === b.size && _orbTintEq(a.tint, b.tint) && a.style === b.style);
 
 /* ─── PARTICLES ──────────────────────────────────────────────── */
 const PARTICLE_COUNT = 32;

@@ -114,7 +114,7 @@ function bosRoutePill(navigate, pill) {
 /* Habit checkmark with a floating "+XP" pop on completion — the same reward beat
    as the day-close celebration, but right ON the checkmark so it's always visible
    (even when the top of the screen is scrolled off). Shared by Home + Habits. */
-function HeroOrbFace({
+var HeroOrbFace = React.memo(function HeroOrbFace({
   avatar,
   inset,
   size,
@@ -138,7 +138,9 @@ function HeroOrbFace({
       height: "100%"
     }
   }));
-}
+  // memo'd (tint compared by value) so a parent re-render that doesn't change THIS face's mood
+  // tint / avatar / size — e.g. a habit toggle elsewhere on Home — won't re-render the hero face.
+}, (a, b) => a.avatar === b.avatar && a.inset === b.inset && a.size === b.size && _orbTintEq(a.moodTint, b.moodTint));
 
 /* Hero orbit — the SAME constellation as the Profile screen's OrbitField, scaled to
    live inside the swipe-deck card: you (the mood orb with your avatar) in the centre,

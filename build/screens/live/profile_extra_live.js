@@ -1223,11 +1223,9 @@ function HistoryLive() {
           right: 0,
           lineHeight: 0
         }
-      }, /*#__PURE__*/React.createElement(StaticOrb, {
+      }, /*#__PURE__*/React.createElement(MiniOrb, {
         size: 10,
-        tint: tintFromMood(dm.c),
-        seed: 1.2,
-        intensity: 0.55
+        tint: tintFromMood(dm.c)
       }));
     })());
   })), /*#__PURE__*/React.createElement("div", {

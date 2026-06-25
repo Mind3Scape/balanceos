@@ -1666,7 +1666,9 @@ function MoodWidgetLive({
 }) {
   var _WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   var _monOff = (new Date().getDay() + 6) % 7; // 0=Пн … 6=Вс — TODAY's slot in the week
-  var last7 = [0, 1, 2, 3, 4, 5, 6].map(i => {
+  // Rebuilt only when the day-mood map (or today's slot) changes — not on every parent
+  // re-render (this widget re-renders on any Home state change).
+  var last7 = React.useMemo(() => [0, 1, 2, 3, 4, 5, 6].map(i => {
     var off = _monOff - i; // days ago (negative = a day later this week)
     var key = typeof bosDayKeyOffset === "function" ? bosDayKeyOffset(off) : "";
     var di = app?.dayMoods && app.dayMoods[key] != null ? app.dayMoods[key] : null;
@@ -1677,7 +1679,7 @@ function MoodWidgetLive({
       wd: _WD[i],
       m: di != null && MOOD_OPTIONS[di] ? MOOD_OPTIONS[di] : null
     };
-  });
+  }), [app?.dayMoods, _monOff]);
   var logged = last7.filter(d => d.m).length;
   var bg = isDark ? `linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)` : `#ffffff`;
   var border = isDark ? "0" : "1px solid rgba(0,0,0,0.04)";
@@ -1800,11 +1802,9 @@ function MoodWidgetLive({
       display: "block",
       boxShadow: d.today ? `0 0 0 2px ${trailRing}` : "none"
     }
-  }, /*#__PURE__*/React.createElement(StaticOrb, {
+  }, /*#__PURE__*/React.createElement(MiniOrb, {
     size: 22,
-    tint: tintFromMood(d.m.c),
-    seed: 1.2,
-    intensity: 0.25
+    tint: tintFromMood(d.m.c)
   })) : /*#__PURE__*/React.createElement("span", {
     style: {
       width: 22,

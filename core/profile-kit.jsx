@@ -95,24 +95,30 @@ function AvatarPickerSheet({ dark = false }) {
 }
 
 function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false }) {
-  const t = (typeof useT === "function") ? useT() : 0;
+  const t = useOrbClock();
   const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
   const lerp = (a, b, k) => a + (b - a) * k;
   const smooth = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
   const eo = smooth(t / 0.85); // gentle bloom-in on open
 
-  // Strongest habit first → inner ring + bigger; newest (low streak) → outer + small.
-  const hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0));
-  const pp = (people || []).slice(); // invite order: index 0 = first = closest
-
-  const nodes = [];
-  hb.forEach((h, i) => nodes.push({ ring: i, kind: "h", emoji: h.emoji || "✨", key: "h" + (h.id != null ? h.id : i) }));
-  pp.forEach((p, j) => nodes.push({ ring: j + 1, kind: "p", avatar: p.avatar, key: "p" + j })); // people just outside your hero habit
-
-  // Even angular spread within each ring (so nothing collides), then a per-ring spin.
-  const byRing = {};
-  nodes.forEach((n) => { (byRing[n.ring] = byRing[n.ring] || []).push(n); });
-  Object.keys(byRing).forEach((r) => { const a = byRing[r]; a.forEach((n, idx) => { n.baseAng = (idx / a.length) * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2; }); });
+  // Ring STRUCTURE (sort by streak, build nodes, assign even angular spread, ring set)
+  // depends ONLY on [habits, people] — memo it so it isn't rebuilt on every animation frame;
+  // only the per-frame positions (cos/sin of t, below) recompute each tick.
+  const { nodes, maxRing, drawRings } = React.useMemo(() => {
+    // Strongest habit first → inner ring + bigger; newest (low streak) → outer + small.
+    const hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0));
+    const pp = (people || []).slice(); // invite order: index 0 = first = closest
+    const nodes = [];
+    hb.forEach((h, i) => nodes.push({ ring: i, kind: "h", emoji: h.emoji || "✨", key: "h" + (h.id != null ? h.id : i) }));
+    pp.forEach((p, j) => nodes.push({ ring: j + 1, kind: "p", avatar: p.avatar, key: "p" + j })); // people just outside your hero habit
+    // Even angular spread within each ring (so nothing collides), then a per-ring spin.
+    const byRing = {};
+    nodes.forEach((n) => { (byRing[n.ring] = byRing[n.ring] || []).push(n); });
+    Object.keys(byRing).forEach((r) => { const a = byRing[r]; a.forEach((n, idx) => { n.baseAng = (idx / a.length) * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2; }); });
+    const maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
+    const drawRings = []; for (let r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
+    return { nodes, maxRing, drawRings };
+  }, [habits, people]);
 
   const RBASE = 82, RSTEP = 26;
   const radius = (ring) => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
@@ -126,8 +132,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
   // default sphere would render twice (a big + a small orb stacked = the duplicate bug).
   const hasCustomAvatar = !!avatar && avatar !== "default";
   const lr = 54, CIRC = 2 * Math.PI * lr; // gold level arc hugging the centre orb
-  const maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
-  const drawRings = []; for (let r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
+  // (nodes / maxRing / drawRings now come from the memo above — they depend only on habits/people)
 
   // NO background of its own — the constellation floats on the SAME page background as
   // the rest of the profile. Palette flips with the theme so discs/rings always read.
@@ -238,16 +243,9 @@ function DayRing({ pct, track, sw = 3, glow }) {
   );
 }
 
-function useAIT() {
-  const [t, setT] = React.useState(0);
-  React.useEffect(() => {
-    let raf, s = performance.now();
-    const tick = (now) => { setT((now - s) / 1000); raf = requestAnimationFrame(tick); };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  return t;
-}
+// Folded into the shared 30fps useOrbClock (was its own per-orb 60fps rAF loop). Kept as a
+// named alias so existing call sites (profile_live.jsx) don't need to change.
+function useAIT() { return useOrbClock(); }
 
 /* Onboarding intro flow (5 dark slides) + sign up */
 
