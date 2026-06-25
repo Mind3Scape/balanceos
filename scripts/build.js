@@ -19,6 +19,10 @@ const Babel = require(path.join(root, "vendor", "babel.min.js"));
 // Same order as the old <script> tags in index.html.
 const FILES = [
   "components/icons.jsx", "components/shell.jsx",
+  // core/ — the NEUTRAL shared toolkit (no demo/live branching). Loads after the
+  // framework, before any screen that uses it, so both demos AND the live app share ONE copy.
+  "core/home-kit.jsx", "core/habits-kit.jsx", "core/profile-kit.jsx",
+  "core/community-kit.jsx", "core/extra-kit.jsx",
   "screens/home.jsx", "screens/habits.jsx", "screens/community.jsx",
   "screens/profile.jsx", "screens/extra.jsx", "screens/intro.jsx",
   "screens/live/home_live.jsx",

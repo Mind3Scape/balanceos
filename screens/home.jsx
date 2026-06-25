@@ -2,22 +2,6 @@
 const { useState: useHomeState } = React;
 
 /* Detect dark/light theme from wrapper class */
-function useThemeFlag(ref) {
-  const [isDark, setIsDark] = React.useState(false);
-  React.useEffect(() => {
-    const el = ref.current; if (!el) return;
-    let n = el.parentElement;
-    while (n && !n.classList.contains("theme-light") && !n.classList.contains("theme-dark")) n = n.parentElement;
-    setIsDark(!!(n && n.classList.contains("theme-dark")));
-  }, []);
-  return isDark;
-}
-
-/* AI-brief pills now carry intent: a pill can OPEN a real screen ("записать прогулку",
-   "написать дневник", "отметить состояние") or START a chat — only conversational ones
-   should land in ai-chat. Shape: { label, kind:"action"|"chat", route?, params?, prompt?, i? }.
-   We stay backwards-compatible with the old shapes ({ t, i } chips, or a bare string),
-   which fall back to opening the chat with their text as the prompt. */
 function bosPillLabel(pill) {
   if (typeof pill === "string") return pill;
   return pill.label || pill.t || pill.prompt || "";
@@ -40,38 +24,6 @@ function bosRoutePill(navigate, pill) {
 /* Habit checkmark with a floating "+XP" pop on completion — the same reward beat
    as the day-close celebration, but right ON the checkmark so it's always visible
    (even when the top of the screen is scrolled off). Shared by Home + Habits. */
-function HabitCheck({ done, onToggle, xp = 10 }) {
-  const [tick, setTick] = React.useState(0);
-  const onClick = (e) => {
-    e.stopPropagation();
-    const willComplete = !done;
-    onToggle();
-    if (willComplete) {
-      setTick((t) => t + 1);
-      if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} }
-    }
-  };
-  return (
-    <div style={{ position: "relative", flexShrink: 0, display: "grid", placeItems: "center" }}>
-      {tick > 0 && (
-        <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 6, pointerEvents: "none" }}>
-          <span key={tick} style={{
-            display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
-            background: "#0a0a0a", color: "#FEDE34", fontSize: 11.5, fontWeight: 800,
-            padding: "3px 9px", borderRadius: 999, boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
-            animation: "bosXpTick 1.2s cubic-bezier(0.22,1,0.36,1) forwards",
-          }}>+{xp} XP</span>
-        </span>
-      )}
-      <button className={"check-btn " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}>
-        {done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
-      </button>
-    </div>
-  );
-}
-window.HabitCheck = HabitCheck;
-
-/* Balance Wheel — 8-axis radar of life areas with iOS-style icons + zone colors */
 function zoneColor(v) {
   if (v >= 0.70) return "#34C759";   // зелёная зона — в балансе
   if (v >= 0.52) return "#FFC400";   // нейтрально

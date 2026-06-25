@@ -311,15 +311,6 @@ function GoalDetailScreen() {
    vignette so top/bottom stay pure black. State is represented entirely by
    colored orbs (no emoji). Includes a consistency-streak bonus strip. */
 /* Contextual sub-state hashtags per mood — tap to journal without typing a word. */
-const MOOD_TAGS = {
-  "Энергия":     ["выспался", "спорт", "продуктивно", "вдохновение", "цель", "музыка", "свежесть", "кофе"],
-  "Радость":     ["встреча_с_друзьями", "успех", "благодарность", "природа", "любовь", "смех", "забота", "хорошая_новость"],
-  "Спокойствие": ["медитация", "тишина", "прогулка", "баланс", "выспался", "чтение", "дыхание", "природа"],
-  "Тревога":     ["дедлайн", "неопределённость", "недосып", "перегруз", "ожидание", "новости", "конфликт", "здоровье"],
-  "Упадок":      ["усталость", "одиночество", "переутомление", "неудача", "пасмурно", "рутина", "недосып", "сомнения"],
-  "Усталость":   ["недосып", "перегруз", "много_задач", "дорога", "экраны", "стресс", "нет_отдыха", "мало_движения"],
-};
-
 function MoodScreen() {
   const { navigate } = useNav();
   const app = useApp ? useApp() : null;
@@ -538,11 +529,6 @@ function darken(hex, amt = 0.4) {
 /* JOURNAL / DAILY REFLECTION */
 // "YYYY-MM-DD" (live day key) → "27 апр". Falls back to the raw key for any other shape.
 const JOURNAL_MONTHS = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
-function journalDateLabel(key) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec("" + key);
-  if (!m) return "" + key;
-  return parseInt(m[3], 10) + " " + (JOURNAL_MONTHS[parseInt(m[2], 10) - 1] || "");
-}
 function JournalScreen() {
   const { navigate } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
@@ -664,81 +650,6 @@ function ChatSphere({ size = 28 }) {
 /* The mentor speaks THROUGH the orb of your current state — so its avatar in the
    chat is tinted by your mood (same glass-orb DNA as onboarding). Cheap CSS orb
    so we can render one per message without animating dozens of SVG filters. */
-function StateChatOrb({ size = 28, tint }) {
-  // The mentor's orb = the user's CURRENT-STATE orb — the same glass mood sphere as the
-  // home state widget / week-trail (mood-tinted, glossy), NOT a flat dot and NOT the avatar face.
-  const c = (tint && tint.length === 3) ? tint : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
-  return (
-    <span style={{ width: size, height: size, flexShrink: 0, borderRadius: "50%", display: "block", boxShadow: "0 2px 6px rgba(0,0,0,0.16)" }}>
-      <StaticOrb size={size} tint={c} seed={1.2} intensity={0.3} />
-    </span>
-  );
-}
-
-/* Context-aware quick prompts (the pills under the chat). A blank-slate user gets
-   newcomer-friendly openers; once habits/mood/goals exist, the chips turn personal —
-   protect the strongest live streak, match low energy, break a goal down. */
-function buildQuickPrompts(app) {
-  try {
-    const habits = (app && app.habits) || [];
-    const goals = (app && app.goals) || [];
-    const moodT = (app && app.mood && app.mood.t) || "";
-    if (!habits.length) {
-      return [
-        { i: "🌱", t: "С чего мне начать?" },
-        { i: "✨", t: "Предложи первую привычку" },
-        { i: "🌊", t: "Хочу меньше тревоги" },
-        { i: "🧭", t: "Помоги навести порядок в дне" },
-      ];
-    }
-    const chips = [];
-    const atRisk = habits.filter((h) => !h.done && (h.streak || 0) > 0)
-      .sort((a, b) => (b.streak || 0) - (a.streak || 0))[0];
-    if (atRisk) chips.push({ i: "🔥", t: "Не сорвать «" + (atRisk.name || "привычку") + "»" });
-    const low = /устал|упад|трев|стресс|тяж|нет сил/i.test(moodT);
-    chips.push(low ? { i: "💤", t: "Сегодня мало сил" } : { i: "🌙", t: "Спланируй вечер" });
-    if (goals.length) chips.push({ i: "🎯", t: "Разбей цель на шаги" });
-    chips.push({ i: "🤝", t: "Позвать друга в привычку" });
-    chips.push({ i: "🧭", t: "Что сейчас важнее всего?" });
-    return chips.slice(0, 4);
-  } catch (e) {
-    return [
-      { i: "🌙", t: "Спланируй вечер" },
-      { i: "✨", t: "Предложи привычку" },
-      { i: "🌊", t: "Хочу меньше тревоги" },
-      { i: "🧭", t: "С чего начать?" },
-    ];
-  }
-}
-
-/* Bar chart used inside an AI insight bubble */
-function MiniBars({ data, color = "#0a0a0a", height = 60, textMuted = "rgba(0,0,0,0.5)", barIdle = "rgba(0,0,0,0.12)" }) {
-  const max = Math.max(...data.map(d => d.v));
-  return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height, marginTop: 10 }}>
-      {data.map((d, i) => (
-        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          <div style={{
-            width: "100%", borderRadius: 4,
-            height: (d.v / max) * (height - 16),
-            background: d.h ? color : barIdle,
-            transition: "height 0.4s",
-          }} />
-          <div style={{ fontSize: 9, color: textMuted, letterSpacing: 0.5 }}>{d.l}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ── Live AI via OpenRouter (PROXY-ONLY) ────────────────────────────────────
-   All AI goes through the Edge Function proxy (ai-chat), which holds the key as a
-   SERVER secret and picks the model via the OPENROUTER_MODEL secret. The client
-   never holds the key. No proxy / empty reply → graceful heuristic + honest fallback. */
-
-// ⚙️ ЕДИНАЯ МОДЕЛЬ ИИ — меняется ОДНОЙ этой строкой, потом обычный git push (НЕ Supabase).
-// Живёт в коде приложения; прокси просто передаёт её дальше, ключ остаётся секретом на сервере.
-// Любой id с https://openrouter.ai/models (например "deepseek/deepseek-v4-flash").
 const BOS_AI_MODEL = "deepseek/deepseek-v4-flash";
 
 const AI_SYSTEM = [
@@ -820,8 +731,6 @@ const AI_DEMO = [
 ];
 // Live fallback when the real model returns nothing — an HONEST "try again", never a
 // canned reply pretending to be the mentor. Demo keeps AI_DEMO (a scripted showcase).
-const AI_LIVE_FALLBACK = "Связь с ИИ сейчас нестабильна — попробуй ещё раз через минуту 🙏";
-// fetch with an abort timeout so a slow/stuck model never hangs the chat or brief.
 async function aiFetch(url, opts, ms) {
   const ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
   const tid = ctl ? setTimeout(() => { try { ctl.abort(); } catch (e) {} }, ms || 22000) : null;
@@ -894,25 +803,7 @@ function bosSanitizeAction(a) {
   }
   return null; // unknown / destructive types are dropped on the floor
 }
-function bosParseAction(raw) {
-  var text = "" + (raw || ""); var action = null;
-  try {
-    var m = text.match(/@@ACTION\s*(\{[\s\S]*\})\s*$/);
-    if (m) { action = bosSanitizeAction(JSON.parse(m[1])); text = text.slice(0, m.index).trim(); }
-  } catch (e) { action = null; }
-  // Even if the JSON was malformed, never let a raw @@ACTION marker reach the user.
-  if (!action) text = text.replace(/@@ACTION[\s\S]*$/, "").trim();
-  return { text: text, action: action };
-}
 var _bosAidN = 0;
-function bosAid() { _bosAidN += 1; return "a" + Date.now() + "_" + _bosAidN; }
-
-/* ── L1 · LOGIN BRIEF ────────────────────────────────────────────────────────
-   Once at login the mentor reads the user's real context and returns a compact
-   JSON "brief": a personal summary for the home banner, 3–4 tappable suggestion
-   pills, a one-line greeting and a small next-step hint. We NEVER hard-depend on
-   the model — a heuristic brief is always computed first, and the AI just refines
-   it. So live users always get something personal, even offline. */
 const BRIEF_SYSTEM = [
   "Ты — тот же тихий наставник (стоицизм + дзен, в материальной реальности, без имени).",
   "Тебе дают живой контекст человека. Сгенерируй для главного экрана приложения короткий персональный «бриф».",
