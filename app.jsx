@@ -73,6 +73,28 @@ const LIVE_SCREENS = {
   "team-detail": () => (typeof TeamDetailLive === "function" ? TeamDetailLive : TeamDetailScreen),
   profile: () => (typeof ProfileLive === "function" ? ProfileLive : ProfileScreen),
   ai: () => (typeof AILive === "function" ? AILive : AIScreen),
+  "habit-detail": () => (typeof HabitDetailLive === "function" ? HabitDetailLive : HabitDetailScreen),
+  "goal-detail": () => (typeof GoalDetailLive === "function" ? GoalDetailLive : GoalDetailScreen),
+  mood: () => (typeof MoodLive === "function" ? MoodLive : MoodScreen),
+  journal: () => (typeof JournalLive === "function" ? JournalLive : JournalScreen),
+  "ai-chat": () => (typeof AIChatLive === "function" ? AIChatLive : AIChatScreen),
+  "habit-settings": () => (typeof HabitSettingsLive === "function" ? HabitSettingsLive : HabitSettingsScreen),
+  "goal-settings": () => (typeof GoalSettingsLive === "function" ? GoalSettingsLive : GoalSettingsScreen),
+  info: () => (typeof InfoLive === "function" ? InfoLive : InfoScreen),
+  "home-customize": () => (typeof HomeCustomizeLive === "function" ? HomeCustomizeLive : HomeCustomizeScreen),
+  "team-create": () => (typeof TeamCreateLive === "function" ? TeamCreateLive : TeamCreateScreen),
+  "team-settings": () => (typeof TeamSettingsLive === "function" ? TeamSettingsLive : TeamSettingsScreen),
+  "team-chat": () => (typeof TeamChatLive === "function" ? TeamChatLive : TeamChatScreen),
+  levels: () => (typeof LevelsLive === "function" ? LevelsLive : LevelsScreen),
+  "course-detail": () => (typeof CourseDetailLive === "function" ? CourseDetailLive : CourseDetailScreen),
+  "contact-detail": () => (typeof ContactDetailLive === "function" ? ContactDetailLive : ContactDetailScreen),
+  settings: () => (typeof SettingsLive === "function" ? SettingsLive : SettingsScreen),
+  notifications: () => (typeof NotificationsLive === "function" ? NotificationsLive : NotificationsScreen),
+  history: () => (typeof HistoryLive === "function" ? HistoryLive : HistoryScreen),
+  support: () => (typeof SupportLive === "function" ? SupportLive : SupportScreen),
+  achievements: () => (typeof AchievementsLive === "function" ? AchievementsLive : AchievementsScreen),
+  manifest: () => (typeof ManifestLive === "function" ? ManifestLive : ManifestScreen),
+  "icon-picker": () => (typeof IconPickerLive === "function" ? IconPickerLive : IconPickerScreen),
 };
 function resolveScreen(route, mode) {
   if (mode === "live" && LIVE_SCREENS[route]) { const C = LIVE_SCREENS[route](); if (C) return C; }
@@ -129,7 +151,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v193";
+const APP_VERSION = "v194";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */

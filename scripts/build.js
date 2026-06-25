@@ -25,6 +25,11 @@ const FILES = [
   "screens/live/habits_live.jsx",
   "screens/live/profile_live.jsx",
   "screens/live/community_live.jsx",
+  "screens/live/home_extra_live.jsx",
+  "screens/live/habits_extra_live.jsx",
+  "screens/live/profile_extra_live.jsx",
+  "screens/live/community_extra_live.jsx",
+  "screens/live/extra_live.jsx",
   "app.jsx",
 ];
 

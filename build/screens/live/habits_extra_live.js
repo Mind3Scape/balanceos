@@ -1,0 +1,1297 @@
+/* HABIT / GOAL / INFO — LIVE-only forks (real Telegram user, app.mode === "live"
+   is ALWAYS true here). These three screens get dedicated live copies so the two
+   demos (demo & fresh) stay FROZEN on the originals in screens/habits.jsx. In each
+   fork the `_isLive` / `app?.mode === "live"` checks collapse to their TRUE branch
+   and the demo/fresh branches are deleted — DeadlineCalendar is always called with
+   isLive={true} (real "today"), the share/invite flow always runs the REAL cloud
+   path (createTeam → addTeamHabit → share sheet), and the friend chips start from
+   the user's REAL invited circle (no sample faces, no demo cycle-pool). The
+   iOS-Headline typography polish is applied: the habit/goal name preview title and
+   the «Далее» card title now render at fontWeight 600 + color var(--text) instead
+   of the thin 500. Everything else reuses the shared globals from habits.jsx
+   (DeadlineCalendar, HabitInviteShareSheet, HABIT_ICONS, HABIT_COLORS,
+   HABIT_COLOR_NAMES, WEEKDAY_LABELS, daysSummary, INFO_TOPICS) + the app-wide
+   globals (PageHeader, Switch, Segmented, I, hooks useApp/useNav/useSheet,
+   window.bosCloud, window.tgHaptic). The ONLY new top-level declarations in this
+   file are exactly: function HabitSettingsLive, function GoalSettingsLive and
+   function InfoLive. */
+
+function HabitSettingsLive() {
+  var {
+    navigate,
+    params
+  } = useNav();
+  var {
+    open: openSheet
+  } = useSheet();
+  var app = useApp();
+  var editing = params?.mode === "edit";
+  var preset = params?.preset; // quick-add chip → {i: emoji, t: label}
+  var [name, setName] = useHS(editing ? params.habit.name : preset?.t || "Прогулка");
+  var [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : preset?.i || "👟");
+  var [showIcons, setShowIcons] = useHS(false);
+  var [color, setColor] = useHS(editing ? params.habit.color ?? null : preset?.color ?? null);
+  var [goal, setGoal] = useHS(editing ? params.habit.goalPerDay || 1 : 1);
+  // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
+  var [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7 ? params.habit.days.slice() : preset && Array.isArray(preset.days) && preset.days.length === 7 ? preset.days.slice() : [1, 1, 1, 1, 1, 1, 1]);
+  var toggleDay = i => setDays(d => d.map((v, j) => j === i ? v ? 0 : 1 : v));
+  // Reminder — a single setting: on/off + a time. Seeded from the habit when editing.
+  var [reminderOn, setReminderOn] = useHS(editing ? !!(params.habit.reminder && params.habit.reminder.on) : true);
+  var [reminderTime, setReminderTime] = useHS(editing && params.habit.reminder && params.habit.reminder.time ? params.habit.reminder.time : preset?.time || "09:00");
+  var [shareOn, setShareOn] = useHS(true);
+  var [inviteNote, setInviteNote] = useHS(""); // gentle inline note if the invite step can't run
+  var [sharedTeam, setSharedTeam] = useHS(null); // the mini-team backing this shared habit (created once)
+
+  // Turn this habit into a SHARED one: a private mini-team + a main team-habit, then
+  // hand back the {team, link} so we can open the share sheet. Created at most once
+  // (cached in sharedTeam). Returns null + sets a gentle note if the cloud isn't ready.
+  var ensureSharedTeam = async () => {
+    if (sharedTeam) return sharedTeam;
+    var nm = name.trim() || "Новая привычка";
+    if (!window.bosCloud || !window.bosCloud.enabled()) {
+      setInviteNote("Чтобы звать друзей, войди через Telegram.");
+      return null;
+    }
+    try {
+      var team = await window.bosCloud.createTeam({
+        name: nm,
+        emblem: iconPick,
+        vis: "private"
+      });
+      if (!team || !team.id) {
+        setInviteNote("Не удалось создать общую привычку — попробуй ещё раз.");
+        return null;
+      }
+      try {
+        await window.bosCloud.addTeamHabit(team.id, {
+          name: nm,
+          emoji: iconPick,
+          isMain: true
+        });
+      } catch (e) {}
+      var ref = "";
+      try {
+        ref = (await window.bosCloud.uid()) || "";
+      } catch (e) {}
+      var link = location.origin + location.pathname + "?team=" + team.id + (ref ? "&ref=" + ref : "");
+      var made = {
+        team,
+        link
+      };
+      setSharedTeam(made);
+      setInviteNote("");
+      return made;
+    } catch (e) {
+      setInviteNote("Не удалось создать общую привычку — попробуй ещё раз.");
+      return null;
+    }
+  };
+  // Invite-now (the «Пригласить» button): build the shared team and open the real
+  // share sheet. Falls back to a plain referral link if the team step fails.
+  var inviteFriend = async () => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    var made = await ensureSharedTeam();
+    if (made) {
+      openSheet(/*#__PURE__*/React.createElement(HabitInviteShareSheet, {
+        habit: {
+          name: name.trim() || "Новая привычка",
+          emoji: iconPick,
+          color
+        },
+        link: made.link
+      }));
+      return;
+    }
+    // Fallback: still let them share a plain referral link so the button is never dead.
+    if (window.bosCloud && window.bosCloud.enabled()) {
+      try {
+        var ref = (await window.bosCloud.uid()) || "";
+        var link = location.origin + location.pathname + (ref ? "?ref=" + ref : "");
+        setInviteNote("");
+        openSheet(/*#__PURE__*/React.createElement(HabitInviteShareSheet, {
+          habit: {
+            name: name.trim() || "Новая привычка",
+            emoji: iconPick,
+            color
+          },
+          link: link
+        }));
+      } catch (e) {}
+    }
+  };
+  // Soft pastel palette so each real friend chip still gets a pleasant colour.
+  var _FCOLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
+  // LIVE: real invited people (referral circle), nothing pre-selected.
+  var [shareFriends, setShareFriends] = useHS([]);
+  React.useEffect(() => {
+    if (!(window.bosCloud && window.bosCloud.enabled())) return;
+    var on = true;
+    try {
+      window.bosCloud.invitedPeople().then(list => {
+        if (!on || !Array.isArray(list)) return;
+        setShareFriends(list.map((p, idx) => {
+          var nm = p && p.username ? p.username : "Друг";
+          return {
+            name: nm,
+            i: nm.charAt(0).toUpperCase(),
+            c: _FCOLORS[idx % _FCOLORS.length],
+            on: false
+          };
+        }));
+      }).catch(() => {});
+    } catch (e) {}
+    return () => {
+      on = false;
+    };
+  }, []);
+  var [type, setType] = useHS("build");
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-in",
+    style: {
+      padding: "0 16px 24px"
+    }
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: editing ? "Изменить привычку" : "Новая привычка",
+    onBack: () => navigate("habits")
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-label"
+  }, "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("input", {
+    className: "bos-input",
+    value: name,
+    onChange: e => setName(e.target.value),
+    style: {
+      marginTop: 8
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0418\u043A\u043E\u043D\u043A\u0430 \u0438 \u0446\u0432\u0435\u0442"), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    "data-no-haptic": true,
+    onClick: () => setShowIcons(v => !v),
+    style: {
+      width: "100%",
+      background: "#fff",
+      border: 0,
+      borderRadius: 22,
+      padding: 12,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      boxShadow: "var(--card-shadow)",
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 50,
+      height: 50,
+      borderRadius: 14,
+      background: color ? color + "26" : "var(--surface-3)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 26,
+      transition: "background 0.2s"
+    }
+  }, iconPick), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "left",
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 16,
+      color: "var(--text)"
+    }
+  }, name || "Привычка"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, color ? HABIT_COLOR_NAMES[color] : "Базовый", " \xB7 ", showIcons ? "выбери иконку" : "сменить иконку")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    color: "var(--text-4)",
+    style: {
+      transform: showIcons ? "rotate(90deg)" : "none",
+      transition: "transform 0.2s"
+    }
+  })), showIcons && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(6,1fr)",
+      gap: 8,
+      marginTop: 10
+    }
+  }, HABIT_ICONS.map(e => {
+    var on = e === iconPick;
+    return /*#__PURE__*/React.createElement("button", {
+      key: e,
+      className: "tap",
+      "data-no-haptic": true,
+      onClick: () => {
+        setIconPick(e);
+        setShowIcons(false);
+      },
+      style: {
+        aspectRatio: "1/1",
+        borderRadius: 14,
+        fontSize: 24,
+        border: 0,
+        cursor: "pointer",
+        background: on ? color || "#0a0a0a" : "var(--surface-3)",
+        boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
+        transform: on ? "scale(1.06)" : "none",
+        transition: "transform 0.12s, background 0.12s"
+      }
+    }, e);
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      marginTop: 12,
+      padding: "2px 2px 0",
+      flexWrap: "wrap"
+    }
+  }, HABIT_COLORS.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c.id,
+    className: "tap",
+    "data-no-haptic": true,
+    onClick: () => setColor(c.val),
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: "50%",
+      background: c.val || "var(--surface-3)",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      boxShadow: color === c.val ? "0 0 0 2px var(--bg), 0 0 0 4px var(--text)" : c.val ? "none" : "inset 0 0 0 1px rgba(0,0,0,0.12)"
+    }
+  }, color === c.val && /*#__PURE__*/React.createElement(I.Check, {
+    size: 15,
+    strokeWidth: 3,
+    color: c.val ? "#fff" : "var(--text-2)"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0426\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 600
+    }
+  }, goal, " ", goal === 1 ? "раз" : "раз(а)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, "\u0438\u043B\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 \u0432 \u0434\u0435\u043D\u044C")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setGoal(Math.max(1, goal - 1)),
+    className: "tap",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 999,
+      background: "var(--surface-3)",
+      border: 0
+    }
+  }, "\u2212"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setGoal(goal + 1),
+    className: "tap",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 999,
+      background: "var(--surface-3)",
+      border: 0
+    }
+  }, "\uFF0B"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      paddingTop: 14,
+      borderTop: "1px solid rgba(0,0,0,0.06)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-3)"
+    }
+  }, "\u0414\u043D\u0438 \u043D\u0435\u0434\u0435\u043B\u0438"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-2)",
+      fontWeight: 600
+    }
+  }, daysSummary(days))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      justifyContent: "space-between"
+    }
+  }, WEEKDAY_LABELS.map((w, i) => {
+    var on = !!days[i];
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      className: "tap",
+      "data-no-haptic": true,
+      onClick: () => toggleDay(i),
+      "aria-pressed": on,
+      style: {
+        flex: 1,
+        aspectRatio: "1/1",
+        maxWidth: 40,
+        borderRadius: "50%",
+        border: 0,
+        cursor: "pointer",
+        fontSize: 12.5,
+        fontWeight: 600,
+        letterSpacing: "-0.2px",
+        background: on ? color || "#0a0a0a" : "var(--surface-3)",
+        color: on ? "#fff" : "var(--text-4)",
+        boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none",
+        transform: on ? "scale(1.04)" : "none",
+        transition: "transform 0.12s, background 0.12s, color 0.12s"
+      }
+    }, w);
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u041D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      fontSize: 14,
+      color: "var(--text-2)",
+      lineHeight: 1.4
+    }
+  }, "\u041D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u0442\u044C \u043A\u0430\u0436\u0434\u044B\u0439 \u0434\u0435\u043D\u044C", /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2
+    }
+  }, reminderOn ? "Тихий пуш в выбранное время." : "Без напоминаний — отмечай когда удобно.")), /*#__PURE__*/React.createElement(Switch, {
+    on: reminderOn,
+    onChange: setReminderOn
+  })), reminderOn && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      marginTop: 14,
+      paddingTop: 14,
+      borderTop: "1px solid rgba(0,0,0,0.06)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 14,
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Clock, {
+    size: 16,
+    color: "var(--text-3)"
+  }), " \u0412\u0440\u0435\u043C\u044F"), /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    value: reminderTime,
+    onChange: e => setReminderTime(e.target.value || "09:00"),
+    style: {
+      border: 0,
+      outline: 0,
+      background: "var(--surface-3)",
+      borderRadius: 999,
+      padding: "8px 14px",
+      fontSize: 16,
+      fontWeight: 600,
+      color: "var(--text)",
+      fontVariantNumeric: "tabular-nums",
+      letterSpacing: "-0.2px",
+      WebkitAppearance: "none",
+      appearance: "none",
+      textAlign: "center"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 8
+    }
+  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0441 \u0434\u0440\u0443\u0433\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
+    "data-tour": "invite-friend",
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      fontSize: 14,
+      color: "var(--text-2)",
+      lineHeight: 1.4
+    }
+  }, "\u0414\u0435\u043B\u0430\u0442\u044C \u044D\u0442\u043E \u0432\u043C\u0435\u0441\u0442\u0435", /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2
+    }
+  }, "\u0414\u0440\u0443\u0437\u044C\u044F \u0432\u0438\u0434\u044F\u0442, \u043A\u043E\u0433\u0434\u0430 \u0442\u044B \u043E\u0442\u043C\u0435\u0447\u0430\u0435\u0448\u044C\u0441\u044F. \u041E\u043D\u0438 \u043C\u043E\u0433\u0443\u0442 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u0438\u043B\u0438 \u043F\u043E\u0434\u0442\u043E\u043B\u043A\u043D\u0443\u0442\u044C.")), /*#__PURE__*/React.createElement(Switch, {
+    on: shareOn,
+    onChange: setShareOn
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      borderRadius: 14,
+      padding: "11px 12px",
+      background: "#edfaf0",
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      background: "#d6f3df",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      fontSize: 15
+    }
+  }, "\uD83E\uDD1D"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#1a7a3a",
+      lineHeight: 1.4
+    }
+  }, /*#__PURE__*/React.createElement("b", null, "+75 XP"), ", \u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F. \u0410 \u0432\u0435\u0434\u0451\u0442\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 \u043A\u0430\u0436\u0434\u044B\u0439 \u0448\u0430\u0433 ", /*#__PURE__*/React.createElement("b", null, "+15"), " \u0432\u043C\u0435\u0441\u0442\u043E +10.")), shareOn && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 14,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, shareFriends.length === 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      lineHeight: 1.4
+    }
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u043A\u043E\u0433\u043E \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u2014 \u043F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0433\u0430 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."), shareFriends.map((p, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => setShareFriends(fs => fs.map((x, j) => j === i ? {
+      ...x,
+      on: !x.on
+    } : x)),
+    className: "tap",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 11px 5px 5px",
+      borderRadius: 999,
+      background: p.on ? "#0a0a0a" : "var(--surface-3)",
+      color: p.on ? "#fff" : "var(--text-3)",
+      border: 0,
+      fontSize: 12,
+      fontWeight: 500
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 22,
+      height: 22,
+      borderRadius: "50%",
+      background: p.c,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "rgba(0,0,0,0.55)"
+    }
+  }, p.i), p.name, p.on && /*#__PURE__*/React.createElement(I.Check, {
+    size: 12,
+    strokeWidth: 3
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => inviteFriend(),
+    className: "tap",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 11px",
+      borderRadius: 999,
+      background: "transparent",
+      border: "1px dashed rgba(0,0,0,0.18)",
+      color: "var(--text-3)",
+      fontSize: 12,
+      fontWeight: 500
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 12
+  }), " \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C")), shareOn && inviteNote && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      lineHeight: 1.4,
+      padding: "0 2px"
+    }
+  }, inviteNote)), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0422\u0438\u043F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement(Segmented, {
+    value: type,
+    onChange: setType,
+    options: [{
+      value: "build",
+      label: "Развивать"
+    }, {
+      value: "quit",
+      label: "Бросить"
+    }]
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "bos-btn",
+    style: {
+      marginTop: 20
+    },
+    onClick: async () => {
+      var nm = name.trim() || "Новая привычка";
+      // Persist the full schedule + reminder on the habit. These extra fields ride
+      // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
+      var base = {
+        emoji: iconPick,
+        name: nm,
+        color,
+        days: days.slice(),
+        // 7-long Пн..Вс mask
+        goalPerDay: goal,
+        reminder: {
+          on: reminderOn,
+          time: reminderTime
+        }
+      };
+      // SHARED habit: if sharing is on, spin up the mini-team + team-habit and open
+      // the share sheet. Guarded — if anything fails, the habit is still saved.
+      if (shareOn) {
+        var made = await ensureSharedTeam();
+        if (made && made.team) {
+          base.shared = true;
+          base.teamId = made.team.id;
+        }
+        if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);
+        navigate("habits"); // the sheet lives above the router, so it stays open over the list
+        if (made && made.link) {
+          openSheet(/*#__PURE__*/React.createElement(HabitInviteShareSheet, {
+            habit: {
+              name: nm,
+              emoji: iconPick,
+              color
+            },
+            link: made.link
+          }));
+        }
+        return;
+      }
+      if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);
+      navigate("habits");
+    }
+  }, editing ? "Сохранить" : "Добавить привычку"), editing && /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: () => {
+      app?.removeHabit(params.habit.id);
+      navigate("habits");
+    },
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--accent-red)",
+      padding: 14,
+      marginTop: 6,
+      fontSize: 15
+    }
+  }, "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443"));
+}
+
+/* ─── GOAL SETTINGS — create / edit a goal (LIVE) ──────────────── */
+function GoalSettingsLive() {
+  var {
+    navigate,
+    params
+  } = useNav();
+  var app = useApp();
+  var editing = params?.mode === "edit";
+  var g0 = editing ? params.goal : null;
+  var [name, setName] = useHS(g0?.name || "Пробежать марафон");
+  var [iconPick, setIconPick] = useHS(g0?.emoji || "🎯");
+  var [showIcons, setShowIcons] = useHS(false);
+  var [target, setTarget] = useHS(g0?.target || 22);
+  var [unit, setUnit] = useHS(g0?.unit || "недель");
+  var [deadline, setDeadline] = useHS(g0?.deadline || "Месяц");
+  var [showCal, setShowCal] = useHS(false);
+  var [linkHabit, setLinkHabit] = useHS(true);
+  // REAL — the user's own habits, none pre-selected.
+  var [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map(h => ({
+    e: h.emoji || "✨",
+    n: h.name,
+    on: false
+  })));
+  var toggleLinked = i => setLinkedHabits(hs => hs.map((h, j) => j === i ? {
+    ...h,
+    on: !h.on
+  } : h));
+  var QUICK_TERMS = ["Неделя", "Месяц", "1 год"];
+  var svoyActive = showCal || !!deadline && !QUICK_TERMS.includes(deadline); // custom date/range → highlight «Свой срок»
+
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-in",
+    style: {
+      padding: "0 16px 24px"
+    }
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: editing ? "Изменить цель" : "Новая цель",
+    onBack: () => navigate("habits")
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-label"
+  }, "\u0427\u0435\u0433\u043E \u0442\u044B \u0445\u043E\u0447\u0435\u0448\u044C"), /*#__PURE__*/React.createElement("input", {
+    className: "bos-input",
+    value: name,
+    onChange: e => setName(e.target.value),
+    style: {
+      marginTop: 8
+    },
+    placeholder: "\u043D\u0430\u043F\u0440. \u041F\u0440\u043E\u0431\u0435\u0436\u0430\u0442\u044C \u043C\u0430\u0440\u0430\u0444\u043E\u043D"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0418\u043A\u043E\u043D\u043A\u0430"), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    "data-no-haptic": true,
+    onClick: () => setShowIcons(v => !v),
+    style: {
+      marginTop: 8,
+      width: "100%",
+      background: "#fff",
+      border: 0,
+      borderRadius: 22,
+      padding: 12,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 50,
+      height: 50,
+      borderRadius: 14,
+      background: "#e8e8e8",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 26
+    }
+  }, iconPick), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "left",
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 16,
+      color: "var(--text)"
+    }
+  }, name || "Цель"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, showIcons ? "выбери иконку" : "нажми, чтобы изменить")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    color: "var(--text-4)",
+    style: {
+      transform: showIcons ? "rotate(90deg)" : "none",
+      transition: "transform 0.2s"
+    }
+  })), showIcons && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(6,1fr)",
+      gap: 8,
+      marginTop: 10
+    }
+  }, HABIT_ICONS.map(e => {
+    var on = e === iconPick;
+    return /*#__PURE__*/React.createElement("button", {
+      key: e,
+      className: "tap",
+      "data-no-haptic": true,
+      onClick: () => {
+        setIconPick(e);
+        setShowIcons(false);
+      },
+      style: {
+        aspectRatio: "1/1",
+        borderRadius: 14,
+        fontSize: 24,
+        border: 0,
+        cursor: "pointer",
+        background: on ? "#0a0a0a" : "var(--surface-3)",
+        boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
+        transform: on ? "scale(1.06)" : "none",
+        transition: "transform 0.12s, background 0.12s"
+      }
+    }, e);
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0426\u0435\u043B\u044C (\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    pattern: "[0-9]*",
+    value: target,
+    onChange: e => setTarget(parseInt(e.target.value.replace(/\D/g, "")) || 0),
+    className: "goal-num",
+    style: {
+      flex: "0 0 90px",
+      fontSize: 28,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: unit,
+    onChange: e => setUnit(e.target.value),
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 18,
+      color: "var(--text-3)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: "4px 0"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 6
+    }
+  }, "\u041E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u0447\u0438\u0442\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0421\u0440\u043E\u043A"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: "14px 16px",
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)",
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(I.Calendar, {
+    size: 18,
+    color: "var(--text-3)"
+  }), /*#__PURE__*/React.createElement("input", {
+    value: deadline,
+    onChange: e => setDeadline(e.target.value),
+    placeholder: "\u043D\u0430\u043F\u0440. 14 \u043E\u043A\u0442",
+    style: {
+      flex: 1,
+      fontSize: 16,
+      border: 0,
+      outline: 0,
+      background: "transparent"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowCal(v => !v),
+    className: "tap",
+    "data-no-haptic": true,
+    style: {
+      flex: 1,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      borderRadius: 999,
+      padding: "8px 4px",
+      fontSize: 12.5,
+      whiteSpace: "nowrap",
+      background: svoyActive ? "#0a0a0a" : "#fff",
+      color: svoyActive ? "#fff" : "var(--text-3)",
+      border: svoyActive ? "0" : "1px solid rgba(0,0,0,0.06)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Calendar, {
+    size: 12
+  }), " \u0421\u0432\u043E\u0439 \u0441\u0440\u043E\u043A"), QUICK_TERMS.map(q => {
+    var active = !showCal && deadline === q;
+    return /*#__PURE__*/React.createElement("button", {
+      key: q,
+      onClick: () => {
+        setDeadline(q);
+        setShowCal(false);
+      },
+      className: "tap",
+      "data-no-haptic": true,
+      style: {
+        flex: 1,
+        borderRadius: 999,
+        padding: "8px 4px",
+        fontSize: 12.5,
+        whiteSpace: "nowrap",
+        textAlign: "center",
+        background: active ? "#0a0a0a" : "#fff",
+        color: active ? "#fff" : "var(--text-3)",
+        border: active ? "0" : "1px solid rgba(0,0,0,0.06)"
+      }
+    }, q);
+  })), showCal && /*#__PURE__*/React.createElement(DeadlineCalendar, {
+    isLive: true,
+    onPick: s => {
+      setDeadline(s);
+      setShowCal(false);
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text-2)",
+      lineHeight: 1.4
+    }
+  }, "\u041F\u043E\u0434\u043A\u0440\u0435\u043F\u0438 \u044D\u0442\u0443 \u0446\u0435\u043B\u044C \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2
+    }
+  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0430\u0435\u0442 \u043A \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement(Switch, {
+    on: linkHabit,
+    onChange: setLinkHabit
+  })), linkHabit && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 14,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, linkedHabits.length === 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      lineHeight: 1.4
+    }
+  }, "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u043E\u0437\u0434\u0430\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u2014 \u043F\u043E\u0442\u043E\u043C \u043F\u0440\u0438\u0432\u044F\u0436\u0435\u0448\u044C \u0435\u0451 \u043A \u0446\u0435\u043B\u0438."), linkedHabits.map((h, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    className: "tap",
+    "data-no-haptic": true,
+    onClick: () => toggleLinked(i),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 11px 5px 5px",
+      borderRadius: 999,
+      background: h.on ? "#0a0a0a" : "#e8e8e8",
+      color: h.on ? "#fff" : "var(--text-3)",
+      border: 0,
+      fontSize: 12,
+      fontWeight: 500,
+      transition: "background 0.15s, color 0.15s"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 22,
+      height: 22,
+      borderRadius: "50%",
+      background: "#fff",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 13
+    }
+  }, h.e), h.n, h.on && /*#__PURE__*/React.createElement(I.Check, {
+    size: 12,
+    strokeWidth: 3
+  }))), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: () => navigate("habit-settings", {
+      mode: "create"
+    }),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "5px 11px",
+      borderRadius: 999,
+      background: "transparent",
+      border: "1px dashed rgba(0,0,0,0.18)",
+      color: "var(--text-3)",
+      fontSize: 12,
+      fontWeight: 500
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 12
+  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("button", {
+    className: "bos-btn",
+    style: {
+      marginTop: 20
+    },
+    onClick: () => {
+      var data = {
+        emoji: iconPick,
+        name: name.trim() || "Новая цель",
+        target: Math.max(1, target),
+        unit,
+        deadline
+      };
+      if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
+      navigate("habits");
+    }
+  }, editing ? "Сохранить" : "Создать цель"), editing && /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: () => {
+      app?.removeGoal(g0.id);
+      navigate("habits");
+    },
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--accent-red)",
+      padding: 14,
+      marginTop: 6,
+      fontSize: 15
+    }
+  }, "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0446\u0435\u043B\u044C"));
+}
+
+/* ─── INFO SCREEN — knowledge articles (LIVE) ──────────────────── */
+function InfoLive() {
+  var {
+    navigate,
+    params
+  } = useNav();
+  var topic = INFO_TOPICS[params?.topic] || INFO_TOPICS["habits-basics"];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-in",
+    style: {
+      padding: "0 16px 24px"
+    }
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: topic.title,
+    onBack: () => navigate("habits")
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: "22px 20px",
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      background: "#e8e8e8",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 30,
+      marginBottom: 12
+    }
+  }, topic.emoji), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1.4,
+      fontWeight: 600
+    }
+  }, topic.eyebrow), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--bos-title-font)",
+      fontSize: 28,
+      lineHeight: 1.15,
+      letterSpacing: "-0.5px",
+      marginTop: 4,
+      color: "var(--text)"
+    }
+  }, topic.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      color: "var(--text-3)",
+      marginTop: 12,
+      lineHeight: 1.55,
+      letterSpacing: "-0.1px"
+    }
+  }, topic.lede)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#0a0a0a",
+      color: "#fff",
+      borderRadius: 22,
+      padding: "20px 22px",
+      marginTop: 12,
+      position: "relative",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: -10,
+      right: -10,
+      fontSize: 100,
+      opacity: 0.06,
+      fontFamily: "var(--bos-title-font)",
+      lineHeight: 1
+    }
+  }, "\""), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--bos-title-font)",
+      fontSize: 18,
+      lineHeight: 1.4,
+      position: "relative"
+    }
+  }, topic.pull)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, topic.sections.map((s, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 18,
+      boxShadow: "var(--card-shadow)",
+      display: "flex",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      background: "#0a0a0a",
+      color: "#fff",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 13,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, s.i), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 600,
+      color: "var(--text)",
+      letterSpacing: "-0.2px"
+    }
+  }, s.h), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text-3)",
+      marginTop: 6,
+      lineHeight: 1.55,
+      textWrap: "pretty"
+    }
+  }, s.b))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate(params?.topic === "goals-101" ? "goal-settings" : "habit-settings", {
+      mode: "create"
+    }),
+    className: "tap",
+    style: {
+      width: "100%",
+      background: "#0a0a0a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 999,
+      padding: 16,
+      fontSize: 15,
+      fontWeight: 600,
+      marginTop: 18
+    }
+  }, params?.topic === "goals-101" ? "Поставить цель" : "Создать привычку"), topic.next && /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("info", {
+      topic: topic.next.topic
+    }),
+    className: "tap",
+    style: {
+      marginTop: 12,
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      padding: 0,
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 14,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 14,
+      background: "#e8e8e8",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20
+    }
+  }, topic.next.e), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1.2,
+      fontWeight: 600
+    }
+  }, "\u0414\u0430\u043B\u0435\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, topic.next.t)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    color: "var(--text-4)"
+  }))));
+}
