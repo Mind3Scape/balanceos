@@ -207,6 +207,34 @@ function BalanceWheel({
   }));
 }
 
+/* The little hero orb on the profile-button. Delegates to BosOrbFace (memoji photo /
+   emoji on a clean mood sphere / default face), wrapped with the hero's drop shadow. */
+function HeroOrbFace({
+  avatar,
+  inset,
+  size,
+  moodTint
+}) {
+  var shadow = `0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset,
+      borderRadius: "50%",
+      overflow: "hidden",
+      boxShadow: shadow
+    }
+  }, /*#__PURE__*/React.createElement(BosOrbFace, {
+    avatar: avatar,
+    size: size,
+    tint: moodTint,
+    style: {
+      width: "100%",
+      height: "100%"
+    }
+  }));
+}
+
 /* Hero orbit — the SAME constellation as the Profile screen's OrbitField, scaled to
    live inside the swipe-deck card: you (the mood orb with your avatar) in the centre,
    orbit rings with small drifting dots, and your real people (team-mates + co-op
@@ -475,29 +503,19 @@ function HomeOrbit({
       transform: "translate(-50%,-50%)",
       width: 88,
       height: 88,
-      opacity: eo
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      inset: 0,
+      opacity: eo,
       borderRadius: "50%",
-      background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
-      boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (isDark ? ", 0 0 18px " + glow + "55" : "")
+      boxShadow: "0 6px 18px rgba(0,0,0,0.18)" + (isDark ? ", 0 0 18px " + glow + "55" : "")
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 7,
-      borderRadius: "50%",
-      overflow: "hidden",
-      boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)"
-    }
-  }, /*#__PURE__*/React.createElement(BosAvatar, {
+  }, /*#__PURE__*/React.createElement(BosOrbFace, {
     avatar: avatar,
-    size: 74
-  })))), /*#__PURE__*/React.createElement("div", {
+    size: 88,
+    tint: tint,
+    style: {
+      width: "100%",
+      height: "100%"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: 0,
@@ -730,25 +748,11 @@ function HomeHeroSwipe({
     style: {
       transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
     }
-  })), heroApp?.avatar ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 5,
-      borderRadius: "50%",
-      overflow: "hidden",
-      boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`
-    }
-  }, /*#__PURE__*/React.createElement(BosAvatar, {
-    avatar: heroApp.avatar,
-    size: 44
-  })) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 5,
-      borderRadius: "50%",
-      background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
-      boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`
-    }
+  })), /*#__PURE__*/React.createElement(HeroOrbFace, {
+    avatar: heroApp?.avatar,
+    inset: 5,
+    size: 44,
+    moodTint: moodTint
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -880,25 +884,11 @@ function HomeHeroSwipe({
     style: {
       transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
     }
-  })), heroApp?.avatar ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 6,
-      borderRadius: "50%",
-      overflow: "hidden",
-      boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`
-    }
-  }, /*#__PURE__*/React.createElement(BosAvatar, {
-    avatar: heroApp.avatar,
-    size: 60
-  })) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 6,
-      borderRadius: "50%",
-      background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
-      boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`
-    }
+  })), /*#__PURE__*/React.createElement(HeroOrbFace, {
+    avatar: heroApp?.avatar,
+    inset: 6,
+    size: 60,
+    moodTint: moodTint
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",

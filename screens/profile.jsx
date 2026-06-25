@@ -286,14 +286,9 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
       {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
           with your avatar nested inside it. tap to change avatar */}
       <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 96, height: 96, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
-          background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
-          boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (dark ? ", 0 0 18px " + glow + "55" : "") }} />
-        {hasCustomAvatar && (
-          <div style={{ position: "absolute", inset: 8, borderRadius: "50%", overflow: "hidden", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" }}>
-            <BosAvatar avatar={avatar} size={80} />
-          </div>
-        )}
+        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: "0 6px 18px rgba(0,0,0,0.18)" + (dark ? ", 0 0 18px " + glow + "55" : "") }}>
+          <BosOrbFace avatar={avatar} size={96} tint={tint} style={{ width: "100%", height: "100%" }} />
+        </div>
         <span style={{ position: "absolute", right: 1, bottom: 1, width: 27, height: 27, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid " + PAL.badge, boxShadow: "0 2px 6px rgba(0,0,0,0.25)", zIndex: 2 }}>
           <I.Pencil size={12} />
         </span>
@@ -1636,7 +1631,7 @@ function SignUpScreen() {
         <div style={{ position: "relative", width: 118, height: 118, display: "grid", placeItems: "center", animation: "suOrbIn 0.8s cubic-bezier(0.22,0.8,0.32,1) both" }}>
           <div aria-hidden style={{ position: "absolute", width: 158, height: 158, borderRadius: "50%", background: dark ? "radial-gradient(circle, rgba(200,205,218,0.4), transparent 64%)" : "radial-gradient(circle, rgba(180,188,205,0.42), transparent 66%)", filter: "blur(8px)" }}/>
           <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: dark ? "linear-gradient(160deg,#474c57,#24262e)" : "linear-gradient(160deg,#eef1f6,#c8cedb)", boxShadow: dark ? "inset 0 3px 10px rgba(255,255,255,0.16), inset 0 -10px 20px rgba(0,0,0,0.32), 0 16px 40px rgba(0,0,0,0.4)" : "inset 0 3px 10px rgba(255,255,255,0.9), inset 0 -12px 22px rgba(70,80,100,0.22), 0 16px 38px rgba(120,130,150,0.35)" }}/>
-          <div style={{ position: "absolute", inset: 9, borderRadius: "50%", overflow: "hidden", animation: "suFaceIn 0.5s 0.46s ease both" }}><BosAvatar avatar={app?.avatar} size={100}/></div>
+          <div style={{ position: "absolute", inset: 9, borderRadius: "50%", overflow: "hidden", animation: "suFaceIn 0.5s 0.46s ease both" }}><BosAvatar avatar={app?.avatar} size={100} bare/></div>
           <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: dark ? "inset 0 0 0 1px rgba(255,255,255,0.12)" : "inset 0 0 0 1px rgba(255,255,255,0.55)", background: "radial-gradient(circle at 33% 24%, rgba(255,255,255,0.6), transparent 40%)", pointerEvents: "none" }}/>
           {/* Pen badge → change your face right at the door (carries into your real account) */}
           <button onClick={() => openSheet(<AvatarPickerSheet dark={dark}/>)} className="tap" aria-label="Сменить аватар"

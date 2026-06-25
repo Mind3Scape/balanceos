@@ -785,20 +785,16 @@ function OrbitField({
       position: "absolute",
       inset: 0,
       borderRadius: "50%",
-      background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
-      boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (dark ? ", 0 0 18px " + glow + "55" : "")
+      boxShadow: "0 6px 18px rgba(0,0,0,0.18)" + (dark ? ", 0 0 18px " + glow + "55" : "")
     }
-  }), hasCustomAvatar && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 8,
-      borderRadius: "50%",
-      overflow: "hidden",
-      boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)"
-    }
-  }, /*#__PURE__*/React.createElement(BosAvatar, {
+  }, /*#__PURE__*/React.createElement(BosOrbFace, {
     avatar: avatar,
-    size: 80
+    size: 96,
+    tint: tint,
+    style: {
+      width: "100%",
+      height: "100%"
+    }
   })), /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
@@ -4291,7 +4287,8 @@ function SignUpScreen() {
     }
   }, /*#__PURE__*/React.createElement(BosAvatar, {
     avatar: app?.avatar,
-    size: 100
+    size: 100,
+    bare: true
   })), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {

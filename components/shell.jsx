@@ -664,12 +664,42 @@ function bosAvatarBg(avatar) {
   if (/^m\d+$/.test(avatar)) return "url(./assets/people/" + avatar + ".png) center/cover no-repeat";
   return "url(./assets/sphere.png) center/cover no-repeat";
 }
-function BosAvatar({ avatar, size, style }) {
+function BosAvatar({ avatar, size, style, bare }) {
   size = size || 44;
   var isEmoji = avatar && ("" + avatar).indexOf("emoji:") === 0;
-  var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, background: bosAvatarBg(avatar) }, style || {});
-  if (isEmoji) return <div style={Object.assign(base, { display: "grid", placeItems: "center", fontSize: Math.round(size * 0.56), lineHeight: 1 })}>{("" + avatar).slice(6)}</div>;
+  // `bare`: when an emoji avatar sits ON a glossy mood orb, float the glyph on a
+  // TRANSPARENT disc (no grey plate) so the sphere shows through — the emoji reads as
+  // a face on the orb. Without `bare` (normal list/header chips) the soft disc stays.
+  var bg = (bare && isEmoji) ? "transparent" : bosAvatarBg(avatar);
+  var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, background: bg }, style || {});
+  if (isEmoji) return <div style={Object.assign(base, { display: "grid", placeItems: "center", fontSize: Math.round(size * 0.56), lineHeight: 1, textShadow: bare ? "0 1px 4px rgba(0,0,0,0.3)" : "none" })}>{("" + avatar).slice(6)}</div>;
   return <div style={base} />;
+}
+
+/* The big "you" orb — your face rendered AS a glossy mood sphere (used in the home &
+   profile orbit centres and the small hero orbs). Three cases, so an EMOJI avatar never
+   sits on the default face nor on a flat grey plate:
+     • memoji  → your photo fills the orb
+     • emoji   → the glyph floats on a CLEAN glassy MOOD sphere — no sphere.png face behind
+     • default → the app's default face (sphere.png), tinted by the current mood
+   `tint` is tintFromMood(...) = [light, mid, dark]. The caller positions this and adds the
+   outer drop shadow / glow; here we only paint the orb body + its inner glassy shading. */
+function BosOrbFace({ avatar, size, tint, style }) {
+  size = size || 80;
+  var isEmoji = avatar && ("" + avatar).indexOf("emoji:") === 0;
+  var isMemoji = avatar && /^m\d+$/.test(avatar);
+  var t0 = (tint && tint[0]) || "#ffd97a", t2 = (tint && tint[2]) || "#d97757";
+  var base = Object.assign({ width: size, height: size, borderRadius: "50%", flexShrink: 0, position: "relative", overflow: "hidden" }, style || {});
+  if (isMemoji) return <div style={Object.assign(base, { background: "url(./assets/people/" + avatar + ".png) center/cover no-repeat", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" })} />;
+  if (isEmoji) return (
+    <div style={Object.assign(base, {
+      background: "radial-gradient(circle at 33% 27%, rgba(255,255,255,0.9), rgba(255,255,255,0) 44%), radial-gradient(circle at 50% 52%, " + t0 + ", " + t2 + ")",
+      boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), inset 3px 4px 12px rgba(255,255,255,0.22)",
+      display: "grid", placeItems: "center" })}>
+      <span style={{ fontSize: Math.round(size * 0.5), lineHeight: 1, textShadow: "0 1px 5px rgba(0,0,0,0.3)" }}>{("" + avatar).slice(6)}</span>
+    </div>
+  );
+  return <div style={Object.assign(base, { background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + t0 + ", " + t2 + ")", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" })} />;
 }
 
 function AppProvider({ children }) {

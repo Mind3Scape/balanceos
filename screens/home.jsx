@@ -117,6 +117,17 @@ function BalanceWheel({ size = 122, isDark = false }) {
   );
 }
 
+/* The little hero orb on the profile-button. Delegates to BosOrbFace (memoji photo /
+   emoji on a clean mood sphere / default face), wrapped with the hero's drop shadow. */
+function HeroOrbFace({ avatar, inset, size, moodTint }) {
+  const shadow = `0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`;
+  return (
+    <div style={{ position: "absolute", inset, borderRadius: "50%", overflow: "hidden", boxShadow: shadow }}>
+      <BosOrbFace avatar={avatar} size={size} tint={moodTint} style={{ width: "100%", height: "100%" }} />
+    </div>
+  );
+}
+
 /* Hero orbit — the SAME constellation as the Profile screen's OrbitField, scaled to
    live inside the swipe-deck card: you (the mood orb with your avatar) in the centre,
    orbit rings with small drifting dots, and your real people (team-mates + co-op
@@ -231,13 +242,8 @@ function HomeOrbit({ navigate, avatar, people = [], levelPct = 2, moodC, isDark 
 
         {/* you, in the centre — the SAME glossy mood orb as the hero, just larger,
             with your avatar nested inside. No green glow: it tracks the mood tint. */}
-        <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 88, height: 88, opacity: eo }}>
-          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
-            background: "url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, " + tint[0] + ", " + tint[2] + ")",
-            boxShadow: "inset -4px -7px 16px rgba(0,0,0,0.22), 0 6px 18px rgba(0,0,0,0.18)" + (isDark ? ", 0 0 18px " + glow + "55" : "") }} />
-          <div style={{ position: "absolute", inset: 7, borderRadius: "50%", overflow: "hidden", boxShadow: "inset -3px -5px 12px rgba(0,0,0,0.22)" }}>
-            <BosAvatar avatar={avatar} size={74} />
-          </div>
+        <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 88, height: 88, opacity: eo, borderRadius: "50%", boxShadow: "0 6px 18px rgba(0,0,0,0.18)" + (isDark ? ", 0 0 18px " + glow + "55" : "") }}>
+          <BosOrbFace avatar={avatar} size={88} tint={tint} style={{ width: "100%", height: "100%" }} />
         </div>
       </div>
 
@@ -370,11 +376,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
               strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - ringShown)}
               style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
           </svg>
-          {heroApp?.avatar
-            ? <div style={{ position: "absolute", inset: 5, borderRadius: "50%", overflow: "hidden", boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}><BosAvatar avatar={heroApp.avatar} size={44}/></div>
-            : <div style={{ position: "absolute", inset: 5, borderRadius: "50%",
-                background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
-                boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}/>}
+          <HeroOrbFace avatar={heroApp?.avatar} inset={5} size={44} moodTint={moodTint} />
         </button>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -415,13 +417,7 @@ function HomeHeroSwipe({ navigate, doneCount, totalCount, ringPct, isDark }) {
               strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
               style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
           </svg>
-          {heroApp?.avatar
-            ? <div style={{ position: "absolute", inset: 6, borderRadius: "50%", overflow: "hidden", boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}` }}><BosAvatar avatar={heroApp.avatar} size={60}/></div>
-            : <div style={{
-                position: "absolute", inset: 6, borderRadius: "50%",
-                background: `url(./assets/sphere.png) center/cover no-repeat, radial-gradient(circle at 30% 30%, ${moodTint ? moodTint[0] : "#ffd97a"}, ${moodTint ? moodTint[2] : "#d97757"})`,
-                boxShadow: `inset -3px -5px 12px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`,
-              }}/>}
+          <HeroOrbFace avatar={heroApp?.avatar} inset={6} size={60} moodTint={moodTint} />
           <div style={{
             position: "absolute", bottom: -2, right: -4, background: "#0a0a0a", color: "#FEDE34",
             fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 999, border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
