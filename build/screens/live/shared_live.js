@@ -882,14 +882,14 @@ function ShareAppSheetLive({
   var {
     close
   } = useSheet();
-  var APP_URL = "https://mind3scape.github.io/balanceos";
+  var APP_URL = typeof bosInviteLink === "function" ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   var [copied, setCopied] = React.useState(false);
   var [shareUrl, setShareUrl] = React.useState(APP_URL);
   React.useEffect(() => {
     var on = true;
     if (window.bosCloud && window.bosCloud.uid) {
       window.bosCloud.uid().then(id => {
-        if (on && id) setShareUrl(APP_URL + "?ref=" + id);
+        if (on && id) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(id) : APP_URL + "?ref=" + id);
       }).catch(() => {});
     }
     return () => {
@@ -949,13 +949,24 @@ function ShareAppSheetLive({
     };
   }, []);
   var friends = liveFriends;
-  var targets = [{
-    e: "💬",
-    t: "Сообщения"
+  // Real referral progress → the live milestone the user is ACTUALLY working toward
+  // (no fake "2 из 3"; a fresh user honestly sees "0 из 3"). Same CIRCLE_MILESTONES as community.
+  var _nextMile = [{
+    n: 3,
+    bonus: 300
   }, {
-    e: "🔗",
-    t: "Ссылка"
-  }];
+    n: 7,
+    bonus: 700
+  }, {
+    n: 15,
+    bonus: 1500
+  }, {
+    n: 30,
+    bonus: 3000
+  }].find(m => m.n > friends.length) || {
+    n: 30,
+    bonus: 3000
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "2px 20px 0",
@@ -993,7 +1004,10 @@ function ShareAppSheetLive({
   }, /*#__PURE__*/React.createElement(XPRewardCard, {
     amount: 150,
     reason: "\u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u043D\u0451\u0442 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u043C",
-    dark: dark
+    dark: dark,
+    circleNow: friends.length,
+    circleGoal: _nextMile.n,
+    circleBonus: _nextMile.bonus
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -1017,7 +1031,7 @@ function ShareAppSheetLive({
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, "mind3scape.github.io/balanceos"), /*#__PURE__*/React.createElement("button", {
+  }, "t.me/BalanceOS8_bot"), /*#__PURE__*/React.createElement("button", {
     onClick: copyLink,
     className: "tap",
     style: {
@@ -1092,44 +1106,27 @@ function ShareAppSheetLive({
       background: C.line,
       margin: "18px 0"
     }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "flex-start",
-      gap: 18,
-      marginTop: friends.length > 0 ? 0 : 18
-    }
-  }, targets.map((t, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: shareLink,
     className: "tap",
     style: {
-      flex: "0 0 auto",
-      width: 64,
-      background: "transparent",
+      width: "100%",
+      marginTop: friends.length > 0 ? 4 : 18,
       border: 0,
+      borderRadius: 16,
+      padding: "15px 16px",
+      background: "#229ED9",
+      color: "#fff",
+      fontSize: 15.5,
+      fontWeight: 600,
       display: "flex",
-      flexDirection: "column",
       alignItems: "center",
-      gap: 7,
-      color: C.text
+      justifyContent: "center",
+      gap: 9
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 54,
-      height: 54,
-      borderRadius: "50%",
-      background: C.tile,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22
-    }
-  }, t.e), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: C.sub
-    }
-  }, t.t)))), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement(I.Send, {
+    size: 18
+  }), " \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0432 Telegram"), /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: close,
     style: {
@@ -1155,13 +1152,13 @@ function ShareHabitSheetLive({
   var {
     close
   } = useSheet();
-  var APP_URL = "https://mind3scape.github.io/balanceos";
+  var APP_URL = typeof bosInviteLink === "function" ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   var [shareUrl, setShareUrl] = React.useState(APP_URL);
   React.useEffect(() => {
     var on = true;
     if (window.bosCloud && window.bosCloud.uid) {
       window.bosCloud.uid().then(id => {
-        if (on && id) setShareUrl(APP_URL + "?ref=" + id);
+        if (on && id) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(id) : APP_URL + "?ref=" + id);
       }).catch(() => {});
     }
     return () => {
@@ -1381,42 +1378,26 @@ function ShareHabitSheetLive({
       background: C.line,
       margin: "18px 0"
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: 8
-    }
-  }, targets.map((t, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: shareLink,
     className: "tap",
     style: {
-      flex: 1,
-      background: "transparent",
+      width: "100%",
       border: 0,
+      borderRadius: 16,
+      padding: "15px 16px",
+      background: "#229ED9",
+      color: "#fff",
+      fontSize: 15.5,
+      fontWeight: 600,
       display: "flex",
-      flexDirection: "column",
       alignItems: "center",
-      gap: 7,
-      color: C.text
+      justifyContent: "center",
+      gap: 9
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 54,
-      height: 54,
-      borderRadius: "50%",
-      background: C.tile,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22
-    }
-  }, t.e), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: C.sub
-    }
-  }, t.t)))), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement(I.Send, {
+    size: 18
+  }), " \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0432 Telegram"), /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: close,
     style: {
@@ -1552,13 +1533,13 @@ function ShareGoalSheetLive({
   goal,
   dark = false
 }) {
-  var APP_URL = "https://mind3scape.github.io/balanceos";
+  var APP_URL = typeof bosInviteLink === "function" ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   var [shareUrl, setShareUrl] = React.useState(APP_URL);
   React.useEffect(() => {
     var on = true;
     if (window.bosCloud && window.bosCloud.uid) {
       window.bosCloud.uid().then(id => {
-        if (on && id) setShareUrl(APP_URL + "?ref=" + id);
+        if (on && id) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(id) : APP_URL + "?ref=" + id);
       }).catch(() => {});
     }
     return () => {

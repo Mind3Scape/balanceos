@@ -342,13 +342,13 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft }) {
    (no demo sample faces, no demo "истории/ещё" share targets). */
 function ShareAppSheetLive({ dark = false }) {
   const { close } = useSheet();
-  const APP_URL = "https://mind3scape.github.io/balanceos";
+  const APP_URL = (typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   const [copied, setCopied] = React.useState(false);
   const [shareUrl, setShareUrl] = React.useState(APP_URL);
   React.useEffect(() => {
     let on = true;
     if (window.bosCloud && window.bosCloud.uid) {
-      window.bosCloud.uid().then((id) => { if (on && id) setShareUrl(APP_URL + "?ref=" + id); }).catch(() => {});
+      window.bosCloud.uid().then((id) => { if (on && id) setShareUrl((typeof bosInviteLink === "function") ? bosInviteLink(id) : (APP_URL + "?ref=" + id)); }).catch(() => {});
     }
     return () => { on = false; };
   }, []);
@@ -381,7 +381,9 @@ function ShareAppSheetLive({ dark = false }) {
     return () => { on = false; };
   }, []);
   const friends = liveFriends;
-  const targets = [{ e: "💬", t: "Сообщения" }, { e: "🔗", t: "Ссылка" }];
+  // Real referral progress → the live milestone the user is ACTUALLY working toward
+  // (no fake "2 из 3"; a fresh user honestly sees "0 из 3"). Same CIRCLE_MILESTONES as community.
+  const _nextMile = [{ n: 3, bonus: 300 }, { n: 7, bonus: 700 }, { n: 15, bonus: 1500 }, { n: 30, bonus: 3000 }].find((m) => m.n > friends.length) || { n: 30, bonus: 3000 };
   return (
     <div style={{ padding: "2px 20px 0", color: C.text }}>
       <div style={{ textAlign: "center" }}>
@@ -393,12 +395,12 @@ function ShareAppSheetLive({ dark = false }) {
       </div>
 
       <div style={{ marginTop: 18 }}>
-        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" dark={dark} />
+        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" dark={dark} circleNow={friends.length} circleGoal={_nextMile.n} circleBonus={_nextMile.bonus} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.tile, borderRadius: 14, padding: "11px 14px", marginTop: 14 }}>
         <span style={{ fontSize: 16 }}>🔗</span>
-        <div style={{ flex: 1, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>mind3scape.github.io/balanceos</div>
+        <div style={{ flex: 1, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>t.me/BalanceOS8_bot</div>
         <button onClick={copyLink} className="tap" style={{ background: copied ? "#34C759" : (dark ? "#fff" : "#0a0a0a"), color: copied ? "#fff" : (dark ? "#0a0a0a" : "#fff"), border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 600, transition: "background 0.2s", whiteSpace: "nowrap" }}>{copied ? "Скопировано ✓" : "Копировать"}</button>
       </div>
 
@@ -416,14 +418,16 @@ function ShareAppSheetLive({ dark = false }) {
       <div style={{ height: 1, background: C.line, margin: "18px 0" }} />
       </>)}
 
-      <div style={{ display: "flex", justifyContent: "flex-start", gap: 18, marginTop: friends.length > 0 ? 0 : 18 }}>
-        {targets.map((t, i) => (
-          <button key={i} onClick={shareLink} className="tap" style={{ flex: "0 0 auto", width: 64, background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, color: C.text }}>
-            <span style={{ width: 54, height: 54, borderRadius: "50%", background: C.tile, display: "grid", placeItems: "center", fontSize: 22 }}>{t.e}</span>
-            <span style={{ fontSize: 11, color: C.sub }}>{t.t}</span>
-          </button>
-        ))}
-      </div>
+      {/* ONE clear, labelled primary action — opens Telegram's native "forward to a
+          contact" picker with the bot invite link (was two icon-only circles that read
+          as blank black buttons). */}
+      <button onClick={shareLink} className="tap" style={{
+        width: "100%", marginTop: friends.length > 0 ? 4 : 18, border: 0, borderRadius: 16, padding: "15px 16px",
+        background: "#229ED9", color: "#fff", fontSize: 15.5, fontWeight: 600,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+      }}>
+        <I.Send size={18} /> Поделиться в Telegram
+      </button>
 
       <button className="tap" onClick={close} style={{ width: "100%", marginTop: 22, background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>Готово</button>
     </div>
@@ -434,12 +438,12 @@ function ShareAppSheetLive({ dark = false }) {
    no demo "истории/ещё" targets). */
 function ShareHabitSheetLive({ habit, dark = false }) {
   const { close } = useSheet();
-  const APP_URL = "https://mind3scape.github.io/balanceos";
+  const APP_URL = (typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   const [shareUrl, setShareUrl] = React.useState(APP_URL);
   React.useEffect(() => {
     let on = true;
     if (window.bosCloud && window.bosCloud.uid) {
-      window.bosCloud.uid().then((id) => { if (on && id) setShareUrl(APP_URL + "?ref=" + id); }).catch(() => {});
+      window.bosCloud.uid().then((id) => { if (on && id) setShareUrl((typeof bosInviteLink === "function") ? bosInviteLink(id) : (APP_URL + "?ref=" + id)); }).catch(() => {});
     }
     return () => { on = false; };
   }, []);
@@ -504,14 +508,13 @@ function ShareHabitSheetLive({ habit, dark = false }) {
 
       <div style={{ height: 1, background: C.line, margin: "18px 0" }} />
 
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-        {targets.map((t, i) => (
-          <button key={i} onClick={shareLink} className="tap" style={{ flex: 1, background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, color: C.text }}>
-            <span style={{ width: 54, height: 54, borderRadius: "50%", background: C.tile, display: "grid", placeItems: "center", fontSize: 22 }}>{t.e}</span>
-            <span style={{ fontSize: 11, color: C.sub }}>{t.t}</span>
-          </button>
-        ))}
-      </div>
+      <button onClick={shareLink} className="tap" style={{
+        width: "100%", border: 0, borderRadius: 16, padding: "15px 16px",
+        background: "#229ED9", color: "#fff", fontSize: 15.5, fontWeight: 600,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+      }}>
+        <I.Send size={18} /> Поделиться в Telegram
+      </button>
 
       <button className="tap" onClick={close} style={{ width: "100%", marginTop: 22, background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>Готово</button>
     </div>
@@ -561,12 +564,12 @@ function StatePromptLive({ app, isDark }) {
 // the app by your referral link with a line about the goal (goals aren't team-joined
 // like habits, so no "do together" roster here).
 function ShareGoalSheetLive({ goal, dark = false }) {
-  const APP_URL = "https://mind3scape.github.io/balanceos";
+  const APP_URL = (typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   const [shareUrl, setShareUrl] = React.useState(APP_URL);
   React.useEffect(() => {
     let on = true;
     if (window.bosCloud && window.bosCloud.uid) {
-      window.bosCloud.uid().then((id) => { if (on && id) setShareUrl(APP_URL + "?ref=" + id); }).catch(() => {});
+      window.bosCloud.uid().then((id) => { if (on && id) setShareUrl((typeof bosInviteLink === "function") ? bosInviteLink(id) : (APP_URL + "?ref=" + id)); }).catch(() => {});
     }
     return () => { on = false; };
   }, []);

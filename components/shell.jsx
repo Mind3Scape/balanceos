@@ -486,6 +486,25 @@ const FRESH_WIDGETS = { quote: true, mood: true, streak: false, level: true, cal
    Inert for real users (the flag is only ever set by promo.html's iframes). */
 const IS_PROMO = (() => { try { return new URLSearchParams(window.location.search).get("promo") === "1"; } catch (e) { return false; } })();
 
+// ── Referral / invite link (Telegram-bot deep-link) ──────────────────────────
+// The live app is a Telegram Mini App; an invite link is t.me/<bot>?startapp=ref_<uid>.
+// Tapping it opens the Mini App with start_param = "ref_<uid>", which enterLive reads to
+// record who referred the new user (profiles.referred_by → the invitee shows up on the
+// inviter's orbit + «Друзья»). The PWA fallback uses a plain ?ref= query. ONE place to
+// change the bot. (Requires the bot to be a configured Mini App in BotFather so startapp
+// passes start_param.)
+var BOS_BOT_USERNAME = "BalanceOS8_bot";
+function bosInviteLink(uid) {
+  return "https://t.me/" + BOS_BOT_USERNAME + (uid ? "?startapp=ref_" + uid : "");
+}
+// The referral id that brought THIS user in: from the Telegram start_param ("ref_<uid>")
+// when launched via the bot deep-link, else the web ?ref= query. Null if organic.
+function bosReferralId() {
+  try { var sp = window.__TG && window.__TG.initDataUnsafe && window.__TG.initDataUnsafe.start_param; if (sp && /^ref_/.test(sp)) return sp.slice(4); } catch (e) {}
+  try { var q = new URLSearchParams(window.location.search).get("ref"); if (q) return q; } catch (e) {}
+  return null;
+}
+
 /* ── T0.2 — bulletproof, date-keyed habit model (LIVE profiles only) ──
    A live habit records each completion as a date key in `h.log` ({ "2026-06-23": true }) —
    an idempotent UPSERT by (habit, day). `done` and `streak` are DERIVED from that log, so a
@@ -984,7 +1003,7 @@ function AppProvider({ children }) {
         hydratingRef.current = true;
         var _doneHydrate = function () { hydratingRef.current = false; };
         setTimeout(_doneHydrate, 9000); // hard safety: never get stuck not-saving
-        var _refBy = null; try { _refBy = new URLSearchParams(window.location.search).get("ref") || null; } catch (e) {}
+        var _refBy = (typeof bosReferralId === "function") ? bosReferralId() : null;
         var _joinTeamId = null; try { _joinTeamId = new URLSearchParams(window.location.search).get("team") || null; } catch (e) {}
         var _locName = saved ? (saved.userName || name) : name;
         var _locAv = saved ? (saved.avatar || avatar || null) : (avatar || null);
