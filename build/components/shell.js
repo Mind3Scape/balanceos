@@ -217,6 +217,7 @@ function TabBar({
   })), tabs.map(t => /*#__PURE__*/React.createElement("button", {
     key: t.id,
     className: "tab tap " + (active === t.id ? "active" : ""),
+    "data-haptic": "selection",
     onClick: () => onTab(t.id)
   }, React.createElement(I[t.icon], {
     size: 24,
@@ -328,6 +329,11 @@ function SwipeRow({
     // Flick left → open, flick right → close; otherwise settle by position (35%).
     var v = c.vx || 0;
     var shouldOpen = v < -0.35 ? true : v > 0.35 ? false : c.last < -W * 0.35;
+    if (shouldOpen && !open) {
+      try {
+        if (window.tgHaptic) tgHaptic("rigid");
+      } catch (_) {}
+    } // crisp detent on commit-to-open
     setReleasing(true);
     setOpen(shouldOpen);
     setDx(shouldOpen ? -W : 0);
@@ -475,6 +481,15 @@ function BottomSheet({
     var c = drag.current;
     if (!c || c.id !== e.pointerId) return;
     c.dy = Math.max(0, e.clientY - c.y0);
+    // Soft tick the instant you've dragged far enough that releasing will dismiss (110px).
+    if (!c.passed && c.dy > 110) {
+      c.passed = true;
+      try {
+        if (window.tgHaptic) tgHaptic("light");
+      } catch (_) {}
+    } else if (c.passed && c.dy <= 110) {
+      c.passed = false;
+    }
     setDragY(c.dy);
   };
   var onUp = () => {
@@ -565,6 +580,7 @@ function Switch({
   return /*#__PURE__*/React.createElement("button", {
     onClick: () => onChange(!on),
     className: "tap",
+    "data-haptic": "selection",
     style: {
       width: 50,
       height: 30,
@@ -579,13 +595,16 @@ function Switch({
     style: {
       position: "absolute",
       top: 3,
-      left: on ? 23 : 3,
+      left: 3,
       width: 24,
       height: 24,
       borderRadius: "50%",
       background: "#fff",
-      transition: "left 0.2s ease",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+      // GPU transform (was animating non-composited `left`) with an iOS-spring settle.
+      transform: on ? "translateX(20px)" : "translateX(0)",
+      transition: "transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1)",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+      willChange: "transform"
     }
   }));
 }

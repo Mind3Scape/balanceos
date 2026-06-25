@@ -784,6 +784,7 @@ function MoodLive() {
         setNote("");
       },
       className: "tap",
+      "data-haptic": "selection",
       "aria-label": m.t,
       style: {
         background: "transparent",

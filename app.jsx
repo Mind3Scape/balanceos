@@ -166,7 +166,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v220";
+const APP_VERSION = "v221";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -910,16 +910,22 @@ function PhoneApp() {
     // Go back on a clear rightward flick OR a third of the way across — so a quick
     // short swipe still completes instead of snapping shut (felt "harsh" before).
     const pop = (d.vx || 0) > 0.4 || d.dx > d.w * 0.3;
-    setDrag({ dx: pop ? d.w : 0, w: d.w, releasing: true });
+    if (pop) { try { if (window.tgHaptic) window.tgHaptic("light"); } catch (_) {} } // native back tick on commit
+    // Release time scales with the fling speed: a fast flick lands quick, a slow drag eases
+    // out — remainingPx / (|vx| px/s), clamped to a natural 0.12–0.34s (was a flat 0.3s).
+    const remaining = pop ? (d.w - d.dx) : d.dx;
+    const speed = Math.abs(d.vx || 0) * 1000; // px/s
+    const dur = Math.max(0.12, Math.min(0.34, speed > 4 ? remaining / speed : 0.3));
+    setDrag({ dx: pop ? d.w : 0, w: d.w, releasing: true, dur });
     window.setTimeout(() => {
       if (pop) setFrames((f) => (f.length > 1 ? f.slice(0, -1) : f));
       setDrag(null);
-    }, 300);
+    }, Math.round(dur * 1000));
   };
 
   const p = drag ? Math.max(0, Math.min(drag.dx / drag.w, 1)) : 0;
   const dragTrans = drag && drag.releasing
-    ? "transform 0.3s var(--ios-ease), opacity 0.3s var(--ios-ease)"
+    ? "transform " + (drag.dur || 0.3) + "s var(--ios-ease), opacity " + (drag.dur || 0.3) + "s var(--ios-ease)"
     : "none";
   const destTab = drag && prevFrame && TAB_ROUTES.has(prevFrame.route) ? prevFrame.route : null;
 

@@ -74,14 +74,25 @@
       document.addEventListener("click", function (e) {
         var t = e.target && e.target.closest && e.target.closest(".tap, button, [role=button]");
         if (!t) return;
-        try { tg.HapticFeedback.impactOccurred("light"); } catch (e2) {}
+        // ONE buzz per tap. An element can opt OUT (data-no-haptic → it fires its own in JS,
+        // e.g. a swipe commit) or pick a FLAVOUR (data-haptic="selection|medium|rigid|success"…)
+        // — e.g. a toggle/tab gets the lighter selection tick instead of the default impact.
+        if (t.closest("[data-no-haptic]")) return;
+        var h = t.getAttribute && t.getAttribute("data-haptic");
+        try {
+          if (h === "selection") tg.HapticFeedback.selectionChanged();
+          else if (h === "success" || h === "error" || h === "warning") tg.HapticFeedback.notificationOccurred(h);
+          else tg.HapticFeedback.impactOccurred(h || "light");
+        } catch (e2) {}
       }, true);
       window.__tgHapticBound = true;
     }
 
     window.tgHaptic = function (kind) {
       try {
-        if (kind === "success" || kind === "error" || kind === "warning") {
+        if (kind === "selection") {
+          tg.HapticFeedback.selectionChanged();
+        } else if (kind === "success" || kind === "error" || kind === "warning") {
           tg.HapticFeedback.notificationOccurred(kind);
         } else {
           tg.HapticFeedback.impactOccurred(kind || "light");

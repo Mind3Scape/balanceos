@@ -113,7 +113,7 @@
   // still fire. Fixes "I dragged to scroll with my finger on a chip / habit row
   // and it navigated instead of scrolling." Capture phase → runs before React.
   (function () {
-    var x0 = 0, y0 = 0, moved = false, down = false, THRESH = 10;
+    var x0 = 0, y0 = 0, moved = false, down = false, THRESH = 15;
     document.addEventListener("pointerdown", function (e) {
       down = true; moved = false; x0 = e.clientX; y0 = e.clientY;
     }, true);

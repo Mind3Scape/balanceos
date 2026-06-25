@@ -99,6 +99,7 @@ function TabBar({ active, dark = false, onTab, style }) {
       </span>
       {tabs.map(t => (
         <button key={t.id} className={"tab tap " + (active === t.id ? "active" : "")}
+          data-haptic="selection"
           onClick={() => onTab(t.id)}>
           {React.createElement(I[t.icon], { size: 24, filled: active === t.id })}
         </button>
@@ -161,6 +162,7 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
     // Flick left → open, flick right → close; otherwise settle by position (35%).
     const v = c.vx || 0;
     const shouldOpen = v < -0.35 ? true : v > 0.35 ? false : c.last < -W * 0.35;
+    if (shouldOpen && !open) { try { if (window.tgHaptic) tgHaptic("rigid"); } catch (_) {} } // crisp detent on commit-to-open
     setReleasing(true); setOpen(shouldOpen); setDx(shouldOpen ? -W : 0);
   };
   const onClickCapture = (e) => {
@@ -241,6 +243,9 @@ function BottomSheet({ open, onClose, children, dark = false }) {
   const onMove = (e) => {
     const c = drag.current; if (!c || c.id !== e.pointerId) return;
     c.dy = Math.max(0, e.clientY - c.y0);
+    // Soft tick the instant you've dragged far enough that releasing will dismiss (110px).
+    if (!c.passed && c.dy > 110) { c.passed = true; try { if (window.tgHaptic) tgHaptic("light"); } catch (_) {} }
+    else if (c.passed && c.dy <= 110) { c.passed = false; }
     setDragY(c.dy);
   };
   const onUp = () => {
@@ -288,18 +293,21 @@ function PageHeader({ title, onBack, right, dark }) {
 // Toggle switch
 function Switch({ on, onChange, dark = false }) {
   return (
-    <button onClick={() => onChange(!on)} className="tap" style={{
+    <button onClick={() => onChange(!on)} className="tap" data-haptic="selection" style={{
       width: 50, height: 30, borderRadius: 999,
       background: on ? "#0a0a0a" : (dark ? "#3f3f46" : "#d4d4d4"),
       border: 0, position: "relative", padding: 0,
       transition: "background 0.18s",
     }}>
       <span style={{
-        position: "absolute", top: 3, left: on ? 23 : 3,
+        position: "absolute", top: 3, left: 3,
         width: 24, height: 24, borderRadius: "50%",
         background: "#fff",
-        transition: "left 0.2s ease",
+        // GPU transform (was animating non-composited `left`) with an iOS-spring settle.
+        transform: on ? "translateX(20px)" : "translateX(0)",
+        transition: "transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+        willChange: "transform",
       }} />
     </button>
   );
