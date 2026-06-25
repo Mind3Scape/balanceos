@@ -6,15 +6,39 @@
    - Heavy, rarely-changing files (vendor libs, images, icons): CACHE-FIRST for
      speed; refreshed in the background.
    Bump CACHE on each release so the new worker re-precaches cleanly. */
-const CACHE = "balanceos-v197";
+const CACHE = "balanceos-v198";
 const PRECACHE = [
   "./", "index.html", "styles.css", "mobile.css", "haptics.js", "telegram.js", "aikey.js", "store.js", "supabase.js", "cloud.js",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js",
-  // Precompiled UI (no Babel shipped).
-  "build/components/icons.js", "build/components/shell.js",
-  "build/screens/home.js", "build/screens/habits.js", "build/screens/community.js",
-  "build/screens/profile.js", "build/screens/extra.js", "build/screens/intro.js",
+  // Precompiled UI (no Babel shipped). This list is AUTO-GENERATED from scripts/build.js
+  // FILES on every build — do not edit between the markers (a file move would otherwise
+  // silently break the offline precache).
+  /* BUILD_PRECACHE_START */
+  "build/components/icons.js",
+  "build/components/shell.js",
+  "build/core/home-kit.js",
+  "build/core/habits-kit.js",
+  "build/core/profile-kit.js",
+  "build/core/community-kit.js",
+  "build/core/extra-kit.js",
+  "build/screens/demo/home.js",
+  "build/screens/demo/habits.js",
+  "build/screens/demo/community.js",
+  "build/screens/demo/profile.js",
+  "build/screens/demo/extra.js",
+  "build/screens/intro.js",
+  "build/screens/live/shared_live.js",
+  "build/screens/live/home_live.js",
+  "build/screens/live/habits_live.js",
+  "build/screens/live/profile_live.js",
+  "build/screens/live/community_live.js",
+  "build/screens/live/home_extra_live.js",
+  "build/screens/live/habits_extra_live.js",
+  "build/screens/live/profile_extra_live.js",
+  "build/screens/live/community_extra_live.js",
+  "build/screens/live/extra_live.js",
   "build/app.js",
+  /* BUILD_PRECACHE_END */
   "assets/sphere.png",
   "manifest.webmanifest",
   "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png",

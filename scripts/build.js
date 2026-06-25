@@ -23,8 +23,8 @@ const FILES = [
   // framework, before any screen that uses it, so both demos AND the live app share ONE copy.
   "core/home-kit.jsx", "core/habits-kit.jsx", "core/profile-kit.jsx",
   "core/community-kit.jsx", "core/extra-kit.jsx",
-  "screens/home.jsx", "screens/habits.jsx", "screens/community.jsx",
-  "screens/profile.jsx", "screens/extra.jsx", "screens/intro.jsx",
+  "screens/demo/home.jsx", "screens/demo/habits.jsx", "screens/demo/community.jsx",
+  "screens/demo/profile.jsx", "screens/demo/extra.jsx", "screens/intro.jsx",
   // live-only forks of the mode-aware bricks (the *Live versions) — load before the
   // live screens that call them.
   "screens/live/shared_live.jsx",
@@ -70,5 +70,12 @@ console.log("stamped index.html build URLs with", ver);
 // deploy can be served stale offline. Stamp it from APP_VERSION every build too.
 let sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 sw = sw.replace(/const CACHE = "balanceos-[^"]*";/, `const CACHE = "balanceos-${ver}";`);
+// Regenerate the build/*.js precache list straight from FILES, so moving/adding a source
+// file can NEVER leave a stale or missing offline-cache entry behind.
+const precacheBlock = FILES.map((f) => `  "build/${f.replace(/\.jsx$/, ".js")}",`).join("\n");
+sw = sw.replace(
+  /\/\* BUILD_PRECACHE_START \*\/[\s\S]*?\/\* BUILD_PRECACHE_END \*\//,
+  `/* BUILD_PRECACHE_START */\n${precacheBlock}\n  /* BUILD_PRECACHE_END */`
+);
 fs.writeFileSync(path.join(root, "sw.js"), sw);
-console.log("stamped sw.js CACHE with", ver);
+console.log("stamped sw.js CACHE with", ver, "+ regenerated precache (" + FILES.length + " build files)");
