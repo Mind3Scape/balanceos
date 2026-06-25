@@ -854,6 +854,9 @@ function AppProvider({ children }) {
   // L1 — the AI "login brief" (personal summary + suggestion pills) for LIVE users.
   // Computed once per login from the real context; cached so it shows instantly.
   const [aiBrief, setAiBrief] = useState(null);
+  // Referral count (people who registered via your invite link) — loaded from the cloud so
+  // the LIVE economy can pay real XP per invited friend. 0 for demo/fresh.
+  const [invitedCount, setInvitedCount] = useState(0);
   const saveTimer = useRef(null);
   // True while a live login is hydrating from the cloud — blocks the autosave below so
   // empty/just-defaulted local state can't race ahead and overwrite real cloud data.
@@ -1123,7 +1126,7 @@ function AppProvider({ children }) {
   useEffect(() => {
     if (mode !== "live" || !persistId || typeof bosEarnedAchIdsLive !== "function") return;
     var KEY = "bos:ach:" + persistId;
-    var earned = bosEarnedAchIdsLive({ habits: habits, goals: goals, dayMoods: dayMoods, dayNotes: dayNotes, teams: teams });
+    var earned = bosEarnedAchIdsLive({ habits: habits, goals: goals, dayMoods: dayMoods, dayNotes: dayNotes, teams: teams, invitedCount: invitedCount });
     var store = achSeenRef.current;
     if (store.pid !== persistId) {
       var saved = null; try { var raw = localStorage.getItem(KEY); if (raw) saved = JSON.parse(raw); } catch (e) {}
@@ -1146,7 +1149,17 @@ function AppProvider({ children }) {
       var a = (typeof bosAchByIdLive === "function") ? bosAchByIdLive(fresh[0]) : null;
       if (a) setPendingAch(a);
     }
-  }, [mode, persistId, habits, goals, dayMoods, dayNotes, teams]);
+  }, [mode, persistId, habits, goals, dayMoods, dayNotes, teams, invitedCount]);
+
+  // Load the referral count (registered invitees) for LIVE users → feeds real referral XP in
+  // the live economy. Refreshes on login and whenever teams change (a proxy for "the circle
+  // may have grown"). Demo/fresh stay at 0.
+  useEffect(() => {
+    if (mode !== "live" || !persistId || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.invitedPeople)) { setInvitedCount(0); return; }
+    var on = true;
+    window.bosCloud.invitedPeople().then(function (list) { if (on && Array.isArray(list)) setInvitedCount(list.length); }).catch(function () {});
+    return function () { on = false; };
+  }, [mode, persistId, teams]);
 
   // Community tab/section view-state lives here so navigating into a detail
   // screen and back doesn't reset it (the screen unmounts on push/pop).
@@ -1161,7 +1174,7 @@ function AppProvider({ children }) {
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
-    aiBrief,
+    aiBrief, invitedCount,
     pendingAch, clearPendingAch,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,

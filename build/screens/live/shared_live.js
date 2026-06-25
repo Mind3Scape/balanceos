@@ -997,7 +997,7 @@ function ShareAppSheetLive({
       color: C.sub,
       marginTop: 3
     }
-  }, "\u0412\u043C\u0435\u0441\u0442\u0435 \u0434\u0435\u0440\u0436\u0430\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441 \u043F\u0440\u043E\u0449\u0435 \u2014 \u043F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0433\u0430")), /*#__PURE__*/React.createElement("div", {
+  }, "+150 XP \u0437\u0430 \u0434\u0440\u0443\u0433\u0430 \u2014 \u0438 \u0431\u043E\u043D\u0443\u0441\u044B \u043A\u0440\u0443\u0433\u0430 \u0434\u043E +3000 XP \uD83D\uDD25")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18
     }

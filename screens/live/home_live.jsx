@@ -61,6 +61,16 @@ function HomeLive() {
   // = false; re-addable in «Виджеты главного».
   const _showLevelBanner = widgets.level !== false;
   const dayStreak = bosMaxStreak(habits);
+  // FOMO invite copy — the REAL next reward you're leaving on the table (honest: real XP, real
+  // proximity to the next circle milestone; no fake countdowns).
+  const _invited = app?.invitedCount || 0;
+  const _inviteMiles = [{ n: 3, b: 300 }, { n: 7, b: 700 }, { n: 15, b: 1500 }, { n: 30, b: 3000 }];
+  const _nextInviteMile = _inviteMiles.find(m => m.n > _invited);
+  const _inviteFomo = _invited === 0
+    ? "Первый друг = +150 XP, трое = +300 сверху. Не упусти 🔥"
+    : _nextInviteMile
+      ? "Ещё " + (_nextInviteMile.n - _invited) + " до +" + _nextInviteMile.b + " XP бонусом 🔥"
+      : "+150 XP за каждого нового друга";
 
   // Bell red dot — only light it when there are REAL unread team-chat messages —
   // same signal NotificationsScreen uses (loadMessages per cloud team vs. the
@@ -343,9 +353,9 @@ function HomeLive() {
         <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <div style={{ fontSize: 15.5, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>Позови своих</div>
-            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg, #FEDE34, #EF9F14)", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+XP</span>
+            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg, #FEDE34, #EF9F14)", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
           </div>
-          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.74)", marginTop: 3, lineHeight: 1.35 }}>Вместе легче — и за каждого друга XP к новому уровню</div>
+          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", marginTop: 3, lineHeight: 1.35, fontWeight: 500 }}>{_inviteFomo}</div>
         </div>
         {/* A LIVE user has no sample people yet, so we show a neutral "add people"
             glyph — never fake names. */}

@@ -56,18 +56,45 @@ function bosTotalXPLive(habits, extras) {
   }
   return xp;
 }
-// BASE live XP = real actions only (habits + state + journal + state-week bonus). This is the
-// foundation for achievement conditions, so badge XP never feeds back into "reach level N".
+// Referral XP — the real reward for bringing people in (David: «в этом весь смысл реферальной
+// программы»). +150 per REGISTERED invitee + cumulative circle-milestone bonuses (3/7/15/30 →
+// 300/700/1500/3000). `invitedCount` is the cloud-loaded count of profiles referred by you, so
+// this only ever pays for people who actually signed up via your link.
+function bosReferralXPLive(app) {
+  var n = app && (app.invitedCount || app.friendsCount) || 0;
+  if (n <= 0) return 0;
+  var xp = n * 150;
+  var miles = [{
+    n: 3,
+    b: 300
+  }, {
+    n: 7,
+    b: 700
+  }, {
+    n: 15,
+    b: 1500
+  }, {
+    n: 30,
+    b: 3000
+  }];
+  for (var i = 0; i < miles.length; i++) {
+    if (n >= miles[i].n) xp += miles[i].b;
+  }
+  return xp;
+}
+// BASE live XP = real ACTIONS only (habits + state + journal + state-week bonus). Achievement
+// conditions use this, so neither badge XP nor referral XP feeds back into "reach level N".
 function bosBaseXPLive(app) {
   return app ? bosTotalXPLive(app.habits, {
     moods: app.dayMoods,
     notes: app.dayNotes
   }) : 0;
 }
-// Displayed live XP = base + bonus XP from unlocked achievements — use this everywhere a level
-// or XP total is SHOWN, so achievements really push the user forward.
+// Displayed live XP = base + achievement bonus + REFERRAL XP. Used everywhere a level/XP total
+// is SHOWN, so both badges and bringing people in really push your level forward — but referral
+// XP rides on top (like badge XP), never silently unlocking a "reach level N" badge.
 function bosLiveXPLive(app) {
-  return bosBaseXPLive(app) + (typeof bosAchievementBonusXPLive === "function" ? bosAchievementBonusXPLive(app) : 0);
+  return bosBaseXPLive(app) + (typeof bosAchievementBonusXPLive === "function" ? bosAchievementBonusXPLive(app) : 0) + (typeof bosReferralXPLive === "function" ? bosReferralXPLive(app) : 0);
 }
 // XP → level. Each level costs a little more than the last (100, 150, 200…): a gentle curve
 // so the first wins come fast and later levels feel earned.

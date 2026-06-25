@@ -82,6 +82,24 @@ function HomeLive() {
   // = false; re-addable in «Виджеты главного».
   var _showLevelBanner = widgets.level !== false;
   var dayStreak = bosMaxStreak(habits);
+  // FOMO invite copy — the REAL next reward you're leaving on the table (honest: real XP, real
+  // proximity to the next circle milestone; no fake countdowns).
+  var _invited = app?.invitedCount || 0;
+  var _inviteMiles = [{
+    n: 3,
+    b: 300
+  }, {
+    n: 7,
+    b: 700
+  }, {
+    n: 15,
+    b: 1500
+  }, {
+    n: 30,
+    b: 3000
+  }];
+  var _nextInviteMile = _inviteMiles.find(m => m.n > _invited);
+  var _inviteFomo = _invited === 0 ? "Первый друг = +150 XP, трое = +300 сверху. Не упусти 🔥" : _nextInviteMile ? "Ещё " + (_nextInviteMile.n - _invited) + " до +" + _nextInviteMile.b + " XP бонусом 🔥" : "+150 XP за каждого нового друга";
 
   // Bell red dot — only light it when there are REAL unread team-chat messages —
   // same signal NotificationsScreen uses (loadMessages per cloud team vs. the
@@ -948,14 +966,15 @@ function HomeLive() {
       borderRadius: 999,
       flexShrink: 0
     }
-  }, "+XP")), /*#__PURE__*/React.createElement("div", {
+  }, "+150 XP")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: "rgba(255,255,255,0.74)",
+      color: "rgba(255,255,255,0.85)",
       marginTop: 3,
-      lineHeight: 1.35
+      lineHeight: 1.35,
+      fontWeight: 500
     }
-  }, "\u0412\u043C\u0435\u0441\u0442\u0435 \u043B\u0435\u0433\u0447\u0435 \u2014 \u0438 \u0437\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0434\u0440\u0443\u0433\u0430 XP \u043A \u043D\u043E\u0432\u043E\u043C\u0443 \u0443\u0440\u043E\u0432\u043D\u044E")), /*#__PURE__*/React.createElement("div", {
+  }, _inviteFomo)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexShrink: 0,

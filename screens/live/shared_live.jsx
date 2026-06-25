@@ -391,7 +391,7 @@ function ShareAppSheetLive({ dark = false }) {
           background: "radial-gradient(circle at 37% 29%, #ffffff 0%, #dbe6f6 14%, #7aa4d0 46%, #3f5f86 72%, #243b5c 100%)",
           boxShadow: "0 8px 24px rgba(122,164,208,0.42)" }} />
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться BalanceOS</div>
-        <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>Вместе держать баланс проще — позови друга</div>
+        <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>+150 XP за друга — и бонусы круга до +3000 XP 🔥</div>
       </div>
 
       <div style={{ marginTop: 18 }}>
