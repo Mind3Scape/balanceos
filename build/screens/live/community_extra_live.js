@@ -43,6 +43,7 @@ function TeamCreateLive() {
   var [accent, setAccent] = useCS("#fef3c7");
   var [duration, setDuration] = useCS("month");
   var [vis, setVis] = useCS("private");
+  var [saving, setSaving] = useCS(false);
 
   // Goal config
   var [goalType, setGoalType] = useCS("collective"); // collective | streak | race
@@ -727,10 +728,19 @@ function TeamCreateLive() {
     size: 12
   }), " \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C"))), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
+    disabled: saving,
     style: {
-      marginTop: 20
+      marginTop: 20,
+      opacity: saving ? 0.65 : 1
     },
     onClick: () => {
+      if (saving) return;
+      setSaving(true);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("success");
+        } catch (e) {}
+      }
       var dur = {
         week: "Эта неделя",
         month: "Этот месяц",
@@ -775,9 +785,9 @@ function TeamCreateLive() {
           });
         }
       } catch (e) {}
-      navigate("community");
+      setTimeout(() => navigate("community"), 300);
     }
-  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"));
+  }, saving ? "Создаём…" : "Создать команду"));
 }
 
 /* Team settings — full screen opened from the gear in Team detail. Edits are
@@ -799,6 +809,7 @@ function TeamSettingsLive() {
   var [priv, setPriv] = useCS(team.vis !== "public");
   var [notify, setNotify] = useCS(team.notify !== false);
   var [members, setMembers] = useCS(team.members || []);
+  var [saving, setSaving] = useCS(false);
   // A cloud team's members live in the cloud — load the REAL roster so the list never shows
   // the stale local cache (the phantom «йога-тест» members). Local teams keep their own.
   React.useEffect(() => {
@@ -823,6 +834,13 @@ function TeamSettingsLive() {
   var accents = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
   var removeMember = i => setMembers(ms => ms.filter((_, j) => j !== i));
   var save = () => {
+    if (saving) return;
+    setSaving(true);
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
     app?.updateTeam(team._id, {
       name: name.trim() || team.name,
       emblem,
@@ -832,9 +850,9 @@ function TeamSettingsLive() {
       notify,
       members
     });
-    navigate("team-detail", {
+    setTimeout(() => navigate("team-detail", {
       team
-    });
+    }), 300);
   };
   // This screen is owner-only (gated by the gear), so deleting goes through the cloud
   // deleteTeam + a confirm sheet (was a silent local-only removeTeam).
@@ -1094,11 +1112,13 @@ function TeamSettingsLive() {
     size: 15
   }), " \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435"), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
+    disabled: saving,
     style: {
-      marginTop: 20
+      marginTop: 20,
+      opacity: saving ? 0.65 : 1
     },
     onClick: save
-  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C"), /*#__PURE__*/React.createElement("button", {
+  }, saving ? "Сохраняем…" : "Сохранить"), /*#__PURE__*/React.createElement("button", {
     onClick: del,
     className: "tap",
     style: {
@@ -2189,7 +2209,14 @@ function CourseDetailLive() {
     size: 15,
     strokeWidth: 3
   }), " \u0412\u044B \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u044B") : /*#__PURE__*/React.createElement("button", {
-    onClick: () => setEnrolled(true),
+    onClick: () => {
+      setEnrolled(true);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("success");
+        } catch (e) {}
+      }
+    },
     className: "tap",
     style: {
       background: "var(--card)",

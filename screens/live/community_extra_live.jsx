@@ -41,6 +41,7 @@ function TeamCreateLive() {
   const [accent, setAccent] = useCS("#fef3c7");
   const [duration, setDuration] = useCS("month");
   const [vis, setVis] = useCS("private");
+  const [saving, setSaving] = useCS(false);
 
   // Goal config
   const [goalType, setGoalType] = useCS("collective"); // collective | streak | race
@@ -283,7 +284,10 @@ function TeamCreateLive() {
         </div>
       </div>
 
-      <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
+      <button className="bos-btn" disabled={saving} style={{ marginTop: 20, opacity: saving ? 0.65 : 1 }} onClick={() => {
+        if (saving) return;
+        setSaving(true);
+        if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
         const dur = { week: "Эта неделя", month: "Этот месяц", quarter: "3 месяца", year: "Год" }[duration] || "Этот месяц";
         const nt = app?.addTeam({
           name: name.trim() || "Новая команда",
@@ -304,8 +308,8 @@ function TeamCreateLive() {
               .then((row) => { if (row && row.id && app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id }); });
           }
         } catch (e) {}
-        navigate("community");
-      }}>Создать команду</button>
+        setTimeout(() => navigate("community"), 300);
+      }}>{saving ? "Создаём…" : "Создать команду"}</button>
     </div>
   );
 }
@@ -324,6 +328,7 @@ function TeamSettingsLive() {
   const [priv, setPriv] = useCS(team.vis !== "public");
   const [notify, setNotify] = useCS(team.notify !== false);
   const [members, setMembers] = useCS(team.members || []);
+  const [saving, setSaving] = useCS(false);
   // A cloud team's members live in the cloud — load the REAL roster so the list never shows
   // the stale local cache (the phantom «йога-тест» members). Local teams keep their own.
   React.useEffect(() => {
@@ -340,8 +345,11 @@ function TeamSettingsLive() {
   const accents = ["#fef3c7","#dbe9ff","#d6f3df","#e9dffd","#fde2e2","#ffe1c8","#d4f0eb","#e3e3e3"];
   const removeMember = (i) => setMembers(ms => ms.filter((_, j) => j !== i));
   const save = () => {
+    if (saving) return;
+    setSaving(true);
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
     app?.updateTeam(team._id, { name: name.trim() || team.name, emblem, accent, goal: goal.trim() || team.goal, vis: priv ? "private" : "public", notify, members });
-    navigate("team-detail", { team });
+    setTimeout(() => navigate("team-detail", { team }), 300);
   };
   // This screen is owner-only (gated by the gear), so deleting goes through the cloud
   // deleteTeam + a confirm sheet (was a silent local-only removeTeam).
@@ -418,7 +426,7 @@ function TeamSettingsLive() {
         </button>
       )}
 
-      <button className="bos-btn" style={{ marginTop: 20 }} onClick={save}>Сохранить</button>
+      <button className="bos-btn" disabled={saving} style={{ marginTop: 20, opacity: saving ? 0.65 : 1 }} onClick={save}>{saving ? "Сохраняем…" : "Сохранить"}</button>
       <button onClick={del} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
         <I.Trash size={17}/> Удалить команду
       </button>
@@ -767,7 +775,7 @@ function CourseDetailLive() {
             <I.Check size={15} strokeWidth={3}/> Вы записаны
           </span>
         ) : (
-          <button onClick={() => setEnrolled(true)} className="tap" style={{ background: "var(--card)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => { setEnrolled(true); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }} className="tap" style={{ background: "var(--card)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
             Записаться <I.ChevronRight size={14}/>
           </button>
         )}

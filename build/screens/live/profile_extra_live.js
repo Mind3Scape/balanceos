@@ -218,12 +218,38 @@ function FriendsSheetLive({
     }
   }, "\u041A\u043E\u0433\u043E \u0442\u044B \u043F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u043B \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435")), people === null ? /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center",
-      padding: "26px 6px",
-      color: C.sub,
-      fontSize: 14
+      marginTop: 14,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
     }
-  }, "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026") : people.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, [0, 1].map(i => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "10px 12px",
+      background: C.tile,
+      borderRadius: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: "50%",
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      display: "block",
+      width: "45%",
+      height: 12,
+      borderRadius: 6
+    }
+  })))) : people.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       padding: "22px 8px",
@@ -232,6 +258,7 @@ function FriendsSheetLive({
       lineHeight: 1.5
     }
   }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0433\u0430 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435 \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0433\u043E \u044D\u043A\u0440\u0430\u043D\u0430 \u2014 \u0437\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E +XP \u043A \u0443\u0440\u043E\u0432\u043D\u044E.") : /*#__PURE__*/React.createElement("div", {
+    className: "bos-acc-in",
     style: {
       marginTop: 14,
       display: "flex",
@@ -675,14 +702,21 @@ function NotificationsLive() {
   var app = typeof useApp === "function" ? useApp() : null;
   // LIVE: real notifications computed from the cloud — unread team-chat messages.
   // Nothing scripted ever reaches a real user, so there is no sample list.
-  var [liveItems, setLiveItems] = React.useState([]);
+  var [liveItems, setLiveItems] = React.useState(null); // null = still loading (skeleton); [] = loaded-empty
   React.useEffect(() => {
-    if (!(window.bosCloud && window.bosCloud.enabled())) return;
+    if (!(window.bosCloud && window.bosCloud.enabled())) {
+      setLiveItems([]);
+      return;
+    }
+    var teams = (app?.teams || []).filter(t => t.cloudId);
+    if (!teams.length) {
+      setLiveItems([]);
+      return;
+    } // no cloud teams → no notifications, skip the skeleton
     var on = true;
     (async () => {
       try {
         var me = await window.bosCloud.uid();
-        var teams = (app?.teams || []).filter(t => t.cloudId);
         var out = [];
         var _loop = async function () {
           var rows = await window.bosCloud.loadMessages(t.cloudId);
@@ -706,13 +740,16 @@ function NotificationsLive() {
           if (await _loop()) continue;
         }
         if (on) setLiveItems(out);
-      } catch (e) {}
+      } catch (e) {
+        if (on) setLiveItems([]);
+      }
     })();
     return () => {
       on = false;
     };
   }, []);
-  var shown = liveItems;
+  var loading = liveItems === null;
+  var shown = liveItems || [];
   var clearAll = () => setLiveItems([]);
   var tap = (n, idx) => {
     if (n.goChat) {
@@ -741,7 +778,52 @@ function NotificationsLive() {
         fontSize: 13
       }
     }, "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C") : null
-  }), shown.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }), loading ? /*#__PURE__*/React.createElement("div", {
+    className: "bos-acc-in",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, [0, 1].map(i => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "bos-sys-card",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: "50%",
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      display: "block",
+      width: "60%",
+      height: 12,
+      borderRadius: 6
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      display: "block",
+      width: "40%",
+      height: 10,
+      borderRadius: 6,
+      marginTop: 7
+    }
+  }))))) : shown.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
     style: {
       textAlign: "center",

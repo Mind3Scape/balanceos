@@ -43,7 +43,21 @@ function CloudTeamsDiscover({ app }) {
     } catch (e) { setList([]); }
     return () => { on = false; };
   }, []);
-  if (!list || !list.length) return null;
+  // Loading (list === null) → a 1-row skeleton in the team-row shape, so the section
+  // breathes in instead of popping. Loaded-empty (list === []) → render nothing.
+  if (list === null) return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>Открытые команды рядом</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+        <span className="bos-skel" style={{ width: 44, height: 44, borderRadius: 14, flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <span className="bos-skel" style={{ display: "block", width: "55%", height: 13, borderRadius: 6 }} />
+          <span className="bos-skel" style={{ display: "block", width: "35%", height: 10, borderRadius: 6, marginTop: 7 }} />
+        </div>
+      </div>
+    </div>
+  );
+  if (!list.length) return null;
   // E: send a JOIN REQUEST («из поиска — по заявке»). The creator approves it later.
   // Pre-SQL (no approval system yet) the call falls back to an instant join.
   const join = (t) => {

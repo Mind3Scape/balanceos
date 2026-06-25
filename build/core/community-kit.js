@@ -114,7 +114,62 @@ function CloudTeamsDiscover({
       on = false;
     };
   }, []);
-  if (!list || !list.length) return null;
+  // Loading (list === null) → a 1-row skeleton in the team-row shape, so the section
+  // breathes in instead of popping. Loaded-empty (list === []) → render nothing.
+  if (list === null) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "4px 4px 8px"
+    }
+  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B \u0440\u044F\u0434\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 14,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      display: "block",
+      width: "55%",
+      height: 13,
+      borderRadius: 6
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      display: "block",
+      width: "35%",
+      height: 10,
+      borderRadius: 6,
+      marginTop: 7
+    }
+  }))));
+  if (!list.length) return null;
   // E: send a JOIN REQUEST («из поиска — по заявке»). The creator approves it later.
   // Pre-SQL (no approval system yet) the call falls back to an instant join.
   var join = t => {

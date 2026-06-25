@@ -95,11 +95,18 @@ function FriendsSheetLive({ dark = false }) {
         <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3 }}>Кого ты пригласил в приложение</div>
       </div>
       {people === null ? (
-        <div style={{ textAlign: "center", padding: "26px 6px", color: C.sub, fontSize: 14 }}>Загрузка…</div>
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+          {[0, 1].map((i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: C.tile, borderRadius: 14 }}>
+              <span className="bos-skel" style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0 }} />
+              <span className="bos-skel" style={{ display: "block", width: "45%", height: 12, borderRadius: 6 }} />
+            </div>
+          ))}
+        </div>
       ) : people.length === 0 ? (
         <div style={{ textAlign: "center", padding: "22px 8px", color: C.sub, fontSize: 14, lineHeight: 1.5 }}>Пока никого. Пригласи друга по ссылке с главного экрана — за каждого +XP к уровню.</div>
       ) : (
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: "52vh", overflowY: "auto" }}>
+        <div className="bos-acc-in" style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: "52vh", overflowY: "auto" }}>
           {people.map((p, i) => {
             const nm = (p && p.username) ? p.username : "Друг";
             return (
@@ -259,14 +266,15 @@ function NotificationsLive() {
   const app = (typeof useApp === "function") ? useApp() : null;
   // LIVE: real notifications computed from the cloud — unread team-chat messages.
   // Nothing scripted ever reaches a real user, so there is no sample list.
-  const [liveItems, setLiveItems] = React.useState([]);
+  const [liveItems, setLiveItems] = React.useState(null);  // null = still loading (skeleton); [] = loaded-empty
   React.useEffect(() => {
-    if (!(window.bosCloud && window.bosCloud.enabled())) return;
+    if (!(window.bosCloud && window.bosCloud.enabled())) { setLiveItems([]); return; }
+    const teams = (app?.teams || []).filter((t) => t.cloudId);
+    if (!teams.length) { setLiveItems([]); return; }   // no cloud teams → no notifications, skip the skeleton
     let on = true;
     (async () => {
       try {
         const me = await window.bosCloud.uid();
-        const teams = (app?.teams || []).filter((t) => t.cloudId);
         const out = [];
         for (const t of teams) {
           const rows = await window.bosCloud.loadMessages(t.cloudId);
@@ -280,11 +288,12 @@ function NotificationsLive() {
           }
         }
         if (on) setLiveItems(out);
-      } catch (e) {}
+      } catch (e) { if (on) setLiveItems([]); }
     })();
     return () => { on = false; };
   }, []);
-  const shown = liveItems;
+  const loading = liveItems === null;
+  const shown = liveItems || [];
   const clearAll = () => setLiveItems([]);
   const tap = (n, idx) => {
     if (n.goChat) { try { localStorage.setItem("bos:chatread:" + n.goChat.cloudId, String(Date.now())); } catch (e) {} navigate("team-chat", { team: n.goChat }); }
@@ -295,7 +304,19 @@ function NotificationsLive() {
       <PageHeader title="Уведомления" onBack={() => navigate(params?.from || "profile")} right={
         shown.length > 0 ? <button onClick={clearAll} className="tap bos-sys-text-2" style={{ background: "transparent", border: 0, fontSize: 13 }}>Очистить</button> : null
       }/>
-      {shown.length === 0 ? (
+      {loading ? (
+        <div className="bos-acc-in" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[0, 1].map((i) => (
+            <div key={i} className="bos-sys-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 14 }}>
+              <span className="bos-skel" style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <span className="bos-skel" style={{ display: "block", width: "60%", height: 12, borderRadius: 6 }} />
+                <span className="bos-skel" style={{ display: "block", width: "40%", height: 10, borderRadius: 6, marginTop: 7 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : shown.length === 0 ? (
         <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "60px 20px", fontSize: 14 }}>
           <div style={{ fontSize: 34, marginBottom: 10 }}>🔔</div>
           Новых уведомлений нет
