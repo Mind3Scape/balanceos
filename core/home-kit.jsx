@@ -40,7 +40,7 @@ function HabitCheck({ done, onToggle, xp = 10 }) {
           }}>+{xp} XP</span>
         </span>
       )}
-      <button className={"check-btn " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}>
+      <button className={"check-btn hit44 " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}>
         {done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
       </button>
     </div>

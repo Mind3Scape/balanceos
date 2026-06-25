@@ -71,7 +71,7 @@ function HabitCheck({
       animation: "bosXpTick 1.2s cubic-bezier(0.22,1,0.36,1) forwards"
     }
   }, "+", xp, " XP")), /*#__PURE__*/React.createElement("button", {
-    className: "check-btn " + (done ? "" : "unchecked"),
+    className: "check-btn hit44 " + (done ? "" : "unchecked"),
     "data-no-haptic": true,
     onClick: onClick
   }, done && /*#__PURE__*/React.createElement(I.Check, {

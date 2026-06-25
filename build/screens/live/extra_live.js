@@ -787,7 +787,7 @@ function MoodLive() {
         setTags([]);
         setNote("");
       },
-      className: "tap",
+      className: "tap hit44",
       "data-haptic": "selection",
       "aria-label": m.t,
       style: {

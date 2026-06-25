@@ -293,7 +293,7 @@ function PageHeader({ title, onBack, right, dark }) {
 // Toggle switch
 function Switch({ on, onChange, dark = false }) {
   return (
-    <button onClick={() => onChange(!on)} className="tap" data-haptic="selection" style={{
+    <button onClick={() => onChange(!on)} className="tap hit44" data-haptic="selection" style={{
       width: 50, height: 30, borderRadius: 999,
       background: on ? "#0a0a0a" : (dark ? "#3f3f46" : "#d4d4d4"),
       border: 0, position: "relative", padding: 0,

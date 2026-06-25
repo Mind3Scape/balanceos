@@ -352,7 +352,7 @@ function MoodLive() {
           {moods.map((m, idx) => {
             const active = picked === idx;
             return (
-              <button key={idx} onClick={() => { setPicked(idx); setTags([]); setNote(""); }} className="tap" data-haptic="selection" aria-label={m.t} style={{
+              <button key={idx} onClick={() => { setPicked(idx); setTags([]); setNote(""); }} className="tap hit44" data-haptic="selection" aria-label={m.t} style={{
                 background: "transparent", border: 0, padding: "6px 2px 8px",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                 color: "var(--text)", cursor: "pointer",

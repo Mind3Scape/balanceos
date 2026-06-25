@@ -316,7 +316,7 @@ function HabitSettingsLive() {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setGoal(Math.max(1, goal - 1)),
-    className: "tap",
+    className: "tap hit44",
     style: {
       width: 32,
       height: 32,
@@ -326,7 +326,7 @@ function HabitSettingsLive() {
     }
   }, "\u2212"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setGoal(goal + 1),
-    className: "tap",
+    className: "tap hit44",
     style: {
       width: 32,
       height: 32,

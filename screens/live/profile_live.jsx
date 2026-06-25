@@ -298,7 +298,7 @@ function AILive() {
           <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
             onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
             style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "10px 6px" }}/>
-          <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap"
+          <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap hit44"
             style={{ width: 36, height: 36, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center" }}>
             <I.Send size={14}/>
           </button>

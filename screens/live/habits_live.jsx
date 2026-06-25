@@ -154,7 +154,7 @@ function HabitsLive() {
           their own quiet «+» on the section header (so both are still one tap away). */}
       <div className="section-label" style={{ marginTop: 20, color: "var(--text-3)", padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span>Цели</span>
-        <button onClick={() => navigate("goal-settings", { mode: "create" })} className="tap" data-no-haptic aria-label="Добавить цель"
+        <button onClick={() => navigate("goal-settings", { mode: "create" })} className="tap hit44" data-no-haptic aria-label="Добавить цель"
           style={{ width: 28, height: 28, borderRadius: 999, background: TH.iconBg, color: "var(--text-3)", border: 0, display: "grid", placeItems: "center", marginRight: -2 }}>
           <I.Plus size={15} strokeWidth={2.4}/>
         </button>

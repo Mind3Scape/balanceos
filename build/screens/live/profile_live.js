@@ -767,7 +767,7 @@ function AILive() {
     onClick: () => navigate("ai-chat", ask.trim() ? {
       prompt: ask
     } : {}),
-    className: "tap",
+    className: "tap hit44",
     style: {
       width: 36,
       height: 36,

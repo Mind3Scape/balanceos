@@ -579,7 +579,7 @@ function Switch({
 }) {
   return /*#__PURE__*/React.createElement("button", {
     onClick: () => onChange(!on),
-    className: "tap",
+    className: "tap hit44",
     "data-haptic": "selection",
     style: {
       width: 50,

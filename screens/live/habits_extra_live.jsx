@@ -158,8 +158,8 @@ function HabitSettingsLive() {
             <div style={{ fontSize: 13, color: "var(--text-4)" }}>или больше в день</div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setGoal(Math.max(1, goal - 1))} className="tap" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0 }}>−</button>
-            <button onClick={() => setGoal(goal + 1)} className="tap" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0 }}>＋</button>
+            <button onClick={() => setGoal(Math.max(1, goal - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0 }}>−</button>
+            <button onClick={() => setGoal(goal + 1)} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0 }}>＋</button>
           </div>
         </div>
         {/* Days-of-week — tap a circle to toggle that day. All on = «каждый день». */}

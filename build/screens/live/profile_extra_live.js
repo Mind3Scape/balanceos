@@ -1063,7 +1063,9 @@ function HistoryLive() {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setMIdx(m => Math.max(0, m - 1)),
-    className: "tap",
+    disabled: mIdx === 0,
+    "data-haptic": "selection",
+    className: "tap hit44",
     style: {
       background: TH.chipBg,
       border: 0,
@@ -1085,7 +1087,9 @@ function HistoryLive() {
     }
   }, monthName, " ", year), /*#__PURE__*/React.createElement("button", {
     onClick: () => setMIdx(m => Math.min(11, m + 1)),
-    className: "tap",
+    disabled: mIdx === 11,
+    "data-haptic": "selection",
+    className: "tap hit44",
     style: {
       background: TH.chipBg,
       border: 0,

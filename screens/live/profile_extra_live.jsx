@@ -471,11 +471,11 @@ function HistoryLive() {
       {/* Month calendar */}
       <SysCard style={{ padding: 16, marginTop: 12, borderRadius: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button onClick={() => setMIdx(m => Math.max(0, m - 1))} className="tap" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
+          <button onClick={() => setMIdx(m => Math.max(0, m - 1))} disabled={mIdx === 0} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
             <I.ChevronLeft size={16}/>
           </button>
           <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
-          <button onClick={() => setMIdx(m => Math.min(11, m + 1))} className="tap" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}>
+          <button onClick={() => setMIdx(m => Math.min(11, m + 1))} disabled={mIdx === 11} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}>
             <I.ChevronRight size={16}/>
           </button>
         </div>
