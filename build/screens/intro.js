@@ -1400,6 +1400,9 @@ function OnbDemoPicker({
     try {
       close && close();
     } catch (e) {}
+    try {
+      if (typeof loadDemoBundle === "function") loadDemoBundle();
+    } catch (e) {}
     if (navigate) navigate("onb-mood", {
       moodOnly: true,
       next
@@ -1649,20 +1652,31 @@ function IntroScreen() {
       try {
         window.__bosOnbMood = moodVal;
       } catch (e) {}
-      try {
-        var nx = params && params.next;
+      var nx = params && params.next;
+      if (nx === "live") {
         // Live user just finished the first-entry dial → remember it so future entries skip
         // straight past it. Demo (fresh/demo) NEVER marks the flag — it always shows the dial.
-        if (nx === "live") {
+        try {
           if (app && app.enterLive) app.enterLive();
           if (typeof bosMarkDialSeen === "function") bosMarkDialSeen();
-        } else if (nx === "demo") {
-          if (app && app.enterDemo) app.enterDemo();
-        } else {
-          if (app && app.enterFresh) app.enterFresh(params && params.name);
-        }
-      } catch (e) {}
-      navigate("home");
+        } catch (e) {}
+        navigate("home");
+      } else {
+        // demo + fresh both render the FROZEN demo SCREENS (not LIVE_SCREENS), whose globals
+        // (HomeScreen…) are lazy-loaded → make sure that bundle is IN before we switch mode +
+        // navigate, else those screens wouldn't exist yet. (Prefetched at pick(), usually instant.)
+        var enterDemoOrFresh = () => {
+          try {
+            if (nx === "demo") {
+              if (app && app.enterDemo) app.enterDemo();
+            } else {
+              if (app && app.enterFresh) app.enterFresh(params && params.name);
+            }
+          } catch (e) {}
+          navigate("home");
+        };
+        if (typeof loadDemoBundle === "function") loadDemoBundle().then(enterDemoOrFresh).catch(() => {});else enterDemoOrFresh();
+      }
       return;
     }
     navigate("signup"); // story → «С чего начнём» (the dial now follows it)

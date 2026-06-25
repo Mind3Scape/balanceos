@@ -109,7 +109,10 @@ const LIVE_SCREENS = {
 };
 function resolveScreen(route, mode) {
   if (mode === "live" && LIVE_SCREENS[route]) return LIVE_SCREENS[route]();
-  return (SCREENS[route] && SCREENS[route]()) || HomeScreen;
+  // Fallback for an unknown route: in LIVE it must resolve to a live screen (HomeLive),
+  // never a demo global — those are lazy-loaded and may not exist yet. Demo/fresh land on
+  // the demo home (its bundle is guaranteed loaded before either mode is entered).
+  return (SCREENS[route] && SCREENS[route]()) || (mode === "live" ? HomeLive : HomeScreen);
 }
 
 /* Design tokens (from the canvas "Tweaks" defaults). Applied once so screens
@@ -163,7 +166,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v218";
+const APP_VERSION = "v219";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.

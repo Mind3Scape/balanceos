@@ -1,6 +1,32 @@
 /* Shared UI bits + iPhone frame for BalanceOS */
 const { useState, useRef, useEffect } = React;
 
+/* ── Lazy demo bundle ──────────────────────────────────────────────────────────
+   The three PURE-demo screen files (home / habits / community — ~370 KB, incl. the
+   208 KB community) are NOT shipped in index.html and NOT precached: the LIVE app
+   never renders them. They're injected on demand the first time the user heads into
+   demo OR fresh mode (both render the frozen SCREENS, not LIVE_SCREENS), then the SW
+   caches them so later entries are instant. profile.js + extra.js DO stay statically
+   loaded — they hold symbols the live app itself uses (SignUpScreen / OnboardingScreen
+   for onboarding; bosAiBrief / AchievementUnlock at runtime). Idempotent; resets on
+   failure so a retry can re-attempt. */
+let _demoBundleP = null;
+function loadDemoBundle() {
+  if (typeof HomeScreen === "function" && typeof HabitsScreen === "function" && typeof CommunityScreen === "function") return Promise.resolve();
+  if (_demoBundleP) return _demoBundleP;
+  const v = (typeof APP_VERSION !== "undefined") ? APP_VERSION : "";
+  const inject = (src) => new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error("demo bundle failed: " + src));
+    document.head.appendChild(s);
+  });
+  // Sequential, in the same order the old static <script> tags used (home → habits → community).
+  _demoBundleP = ["home", "habits", "community"]
+    .reduce((chain, n) => chain.then(() => inject("build/screens/demo/" + n + ".js?v=" + v)), Promise.resolve())
+    .catch((e) => { _demoBundleP = null; try { console.warn(e); } catch (_) {} throw e; });
+  return _demoBundleP;
+}
+
 // Status bar (we draw our own so we can switch between dark/light)
 function StatusBar({ dark = false }) {
   return (

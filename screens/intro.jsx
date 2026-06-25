@@ -690,7 +690,7 @@ function Reveal({ k, children, delay = 0, style }) {
    sheet renders outside the Nav provider) and routes to the state dial (onb-mood) with the mode. */
 function OnbDemoPicker({ navigate, dark }) {
   const { close } = useSheet();
-  const pick = (next) => { try { close && close(); } catch (e) {} if (navigate) navigate("onb-mood", { moodOnly: true, next }); };
+  const pick = (next) => { try { close && close(); } catch (e) {} try { if (typeof loadDemoBundle === "function") loadDemoBundle(); } catch (e) {} if (navigate) navigate("onb-mood", { moodOnly: true, next }); };
   const C = dark
     ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.06)", iconBg: "rgba(255,255,255,0.1)" }
     : { text: "#15233c", sub: "rgba(21,35,60,0.55)", tile: "#f2f5fa", iconBg: "#e7ecf4" };
@@ -807,15 +807,23 @@ function IntroScreen() {
       // Post-signup dial → carry the chosen state, then ENTER the app in the mode the signup
       // button asked for (live / fresh / demo). This dial is the last step before home.
       try { window.__bosOnbMood = moodVal; } catch (e) {}
-      try {
-        var nx = params && params.next;
+      var nx = params && params.next;
+      if (nx === "live") {
         // Live user just finished the first-entry dial → remember it so future entries skip
         // straight past it. Demo (fresh/demo) NEVER marks the flag — it always shows the dial.
-        if (nx === "live") { if (app && app.enterLive) app.enterLive(); if (typeof bosMarkDialSeen === "function") bosMarkDialSeen(); }
-        else if (nx === "demo") { if (app && app.enterDemo) app.enterDemo(); }
-        else { if (app && app.enterFresh) app.enterFresh(params && params.name); }
-      } catch (e) {}
-      navigate("home");
+        try { if (app && app.enterLive) app.enterLive(); if (typeof bosMarkDialSeen === "function") bosMarkDialSeen(); } catch (e) {}
+        navigate("home");
+      } else {
+        // demo + fresh both render the FROZEN demo SCREENS (not LIVE_SCREENS), whose globals
+        // (HomeScreen…) are lazy-loaded → make sure that bundle is IN before we switch mode +
+        // navigate, else those screens wouldn't exist yet. (Prefetched at pick(), usually instant.)
+        var enterDemoOrFresh = () => {
+          try { if (nx === "demo") { if (app && app.enterDemo) app.enterDemo(); } else { if (app && app.enterFresh) app.enterFresh(params && params.name); } } catch (e) {}
+          navigate("home");
+        };
+        if (typeof loadDemoBundle === "function") loadDemoBundle().then(enterDemoOrFresh).catch(() => {});
+        else enterDemoOrFresh();
+      }
       return;
     }
     navigate("signup"); // story → «С чего начнём» (the dial now follows it)

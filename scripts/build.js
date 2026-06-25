@@ -83,9 +83,14 @@ let sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 sw = sw.replace(/const CACHE = "balanceos-[^"]*";/, `const CACHE = "balanceos-${ver}";`);
 // Regenerate the build/*.js precache list straight from FILES, so moving/adding a source
 // file can NEVER leave a stale or missing offline-cache entry behind.
+// The lazy demo bundle (home/habits/community) is injected on demand by loadDemoBundle()
+// in shell.jsx, so it's NOT precached — a live-only user never downloads it. (The SW still
+// caches each file on its first demo-entry fetch via the build/* cache-first rule.)
+// Keep this list in sync with loadDemoBundle's file list in components/shell.jsx.
+const LAZY_DEMO = ["screens/demo/home.jsx", "screens/demo/habits.jsx", "screens/demo/community.jsx"];
 // Stamp the precache entries with ?v=${ver} too, so they match the version-keyed
 // cache-first lookup in sw.js EXACTLY (the SW serves build/*.js by full URL incl. ?v=).
-const precacheBlock = FILES.map((f) => `  "build/${f.replace(/\.jsx$/, ".js")}?v=${ver}",`).join("\n");
+const precacheBlock = FILES.filter((f) => !LAZY_DEMO.includes(f)).map((f) => `  "build/${f.replace(/\.jsx$/, ".js")}?v=${ver}",`).join("\n");
 sw = sw.replace(
   /\/\* BUILD_PRECACHE_START \*\/[\s\S]*?\/\* BUILD_PRECACHE_END \*\//,
   `/* BUILD_PRECACHE_START */\n${precacheBlock}\n  /* BUILD_PRECACHE_END */`
