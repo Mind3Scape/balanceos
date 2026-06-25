@@ -68,11 +68,25 @@ Deno.serve(async (req) => {
     const email = `tg_${tgId}@balanceos.app`;
     const username = tgUser.first_name || tgUser.username || "";
 
+    // referredBy может быть сырым UUID профиля (старые ссылки) ИЛИ коротким ref_code
+    // (красивые ссылки). Превращаем в UUID пригласившего — profiles.referred_by это uuid FK.
+    let referredById: string | null = null;
+    if (referredBy) {
+      const rb = String(referredBy);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rb);
+      if (isUuid) {
+        referredById = rb;
+      } else {
+        const { data: ref } = await admin.from("profiles").select("id").eq("ref_code", rb).maybeSingle();
+        referredById = ref ? ref.id : null;
+      }
+    }
+
     // создаём пользователя при первом входе (метаданные → триггер создаст профиль)
     await admin.auth.admin.createUser({
       email,
       email_confirm: true,
-      user_metadata: { tg_id: tgId, username, referred_by: referredBy || null },
+      user_metadata: { tg_id: tgId, username, referred_by: referredById },
     }).catch(() => { /* уже существует — норм */ });
 
     // одноразовый код для получения сессии на клиенте

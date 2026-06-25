@@ -70,6 +70,21 @@
     try { var r = await c.from("profiles").select("id,username,avatar,created_at").eq("referred_by", id).order("created_at", { ascending: true }); return r.data || []; }
     catch (e) { return []; }
   }
+  // My short, pretty referral code (profiles.ref_code). Null if the column/code isn't there
+  // yet (before patch_ref_codes.sql is run) — callers fall back to the raw uid via inviteCode().
+  var _refCode = null;
+  async function refCode() {
+    if (_refCode) return _refCode;
+    var c = client(); var id = await uid(); if (!c || !id) return null;
+    try { var r = await c.from("profiles").select("ref_code").eq("id", id).maybeSingle(); _refCode = (r.data && r.data.ref_code) || null; return _refCode; }
+    catch (e) { return null; }
+  }
+  // The token for an invite link: the pretty ref_code when available, else the raw uid (so
+  // links keep working before the patch is deployed). tg-auth resolves either.
+  async function inviteCode() {
+    try { var c = await refCode(); if (c) return c; } catch (e) {}
+    try { return await uid(); } catch (e) { return null; }
+  }
   async function signOut() { var c = client(); _uid = null; if (c) { try { await c.auth.signOut(); } catch (e) {} } }
 
   // ── D2 · cross-device snapshot ──────────────────────────────────────────────
@@ -344,7 +359,7 @@
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, currentUser: currentUser,
-    loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople,
+    loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople, refCode: refCode, inviteCode: inviteCode,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,

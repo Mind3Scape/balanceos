@@ -888,8 +888,8 @@ function ShareAppSheetLive({
   React.useEffect(() => {
     var on = true;
     if (window.bosCloud && window.bosCloud.uid) {
-      window.bosCloud.uid().then(id => {
-        if (on && id) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(id) : APP_URL + "?ref=" + id);
+      (window.bosCloud.inviteCode ? window.bosCloud.inviteCode() : window.bosCloud.uid()).then(code => {
+        if (on && code) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(code) : APP_URL + "?ref=" + code);
       }).catch(() => {});
     }
     return () => {
@@ -1169,8 +1169,8 @@ function ShareHabitSheetLive({
   React.useEffect(() => {
     var on = true;
     if (window.bosCloud && window.bosCloud.uid) {
-      window.bosCloud.uid().then(id => {
-        if (on && id) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(id) : APP_URL + "?ref=" + id);
+      (window.bosCloud.inviteCode ? window.bosCloud.inviteCode() : window.bosCloud.uid()).then(code => {
+        if (on && code) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(code) : APP_URL + "?ref=" + code);
       }).catch(() => {});
     }
     return () => {
@@ -1550,8 +1550,8 @@ function ShareGoalSheetLive({
   React.useEffect(() => {
     var on = true;
     if (window.bosCloud && window.bosCloud.uid) {
-      window.bosCloud.uid().then(id => {
-        if (on && id) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(id) : APP_URL + "?ref=" + id);
+      (window.bosCloud.inviteCode ? window.bosCloud.inviteCode() : window.bosCloud.uid()).then(code => {
+        if (on && code) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(code) : APP_URL + "?ref=" + code);
       }).catch(() => {});
     }
     return () => {
