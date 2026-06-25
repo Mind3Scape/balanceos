@@ -799,6 +799,26 @@ function TeamSettingsLive() {
   var [priv, setPriv] = useCS(team.vis !== "public");
   var [notify, setNotify] = useCS(team.notify !== false);
   var [members, setMembers] = useCS(team.members || []);
+  // A cloud team's members live in the cloud — load the REAL roster so the list never shows
+  // the stale local cache (the phantom «йога-тест» members). Local teams keep their own.
+  React.useEffect(() => {
+    if (!(team.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers)) return;
+    var on = true;
+    window.bosCloud.teamMembers(team.cloudId).then(mem => {
+      if (!on || !Array.isArray(mem)) return;
+      var palette = typeof BOS_TEAM_PALETTE !== "undefined" ? BOS_TEAM_PALETTE : ["#7FB3F2"];
+      setMembers(mem.map((m, j) => ({
+        id: m.id,
+        name: m.name || "Участник",
+        avatar: m.avatar,
+        initials: (m.name || "У").slice(0, 1).toUpperCase(),
+        color: palette[j % palette.length]
+      })));
+    }).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [team.cloudId]);
   var emblems = TEAM_EMBLEMS;
   var accents = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
   var removeMember = i => setMembers(ms => ms.filter((_, j) => j !== i));
@@ -2276,6 +2296,8 @@ function TeamChatLive() {
     };
   }, [myName]);
 
+  // Real member count for the header — from the loaded roster, never a fabricated «4».
+  var [memberCount, setMemberCount] = React.useState(null);
   // D4 — cloud chat: load the roster + history, then live-subscribe to new messages.
   React.useEffect(() => {
     if (!cloudId) return;
@@ -2294,6 +2316,7 @@ function TeamChatLive() {
         };
       });
       memberMapRef.current = map;
+      if (on) setMemberCount((mem || []).length);
       return cloud.loadMessages(cloudId);
     }).then(rows => {
       if (on) setMsgs((rows || []).map(mapRow));
@@ -2400,13 +2423,16 @@ function TeamChatLive() {
     onBack: () => navigate("team-detail", {
       team
     }),
-    right: /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-4)",
-        whiteSpace: "nowrap"
-      }
-    }, team.members?.length || 4, " \uD83D\uDC65")
+    right: (() => {
+      var n = memberCount != null ? memberCount : team.members && team.members.length;
+      return n ? /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 12,
+          color: "var(--text-4)",
+          whiteSpace: "nowrap"
+        }
+      }, n, " \uD83D\uDC65") : null;
+    })()
   })), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
     className: "screen-scroll",

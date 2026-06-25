@@ -57,6 +57,7 @@ function LiveTeamCard({
       on = false;
     };
   }, [t.cloudId]);
+  var _loading = _cloud && roster === null; // cloud roster not back yet → skeleton, never «ты один»
   var members = _cloud ? roster || [] : t.members || [];
   var count = members.length;
   var ruPart = n => {
@@ -128,7 +129,7 @@ function LiveTeamCard({
       color: "var(--text-3)",
       marginTop: 2
     }
-  }, t.date, " \xB7 ", count, " ", ruPart(count)), /*#__PURE__*/React.createElement("div", {
+  }, t.date, _loading ? "" : " · " + count + " " + ruPart(count)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -167,7 +168,21 @@ function LiveTeamCard({
       marginTop: 14,
       gap: 8
     }
-  }, count > 0 ? /*#__PURE__*/React.createElement(AvatarStack, {
+  }, _loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex"
+    }
+  }, [0, 1, 2].map(i => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    className: "bos-skel",
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: "50%",
+      marginLeft: i ? -10 : 0,
+      border: "2px solid var(--card)"
+    }
+  }))) : count > 0 ? /*#__PURE__*/React.createElement(AvatarStack, {
     people: members,
     size: 28,
     max: 5,
@@ -829,10 +844,12 @@ function TeamDetailLive() {
       isMain: h && h.isMain || first
     }).then(() => setHabitsTick(n => n + 1));
   };
-  var liveRoster = _rosterLive && cloudRoster;
-  // Live: real cloud roster when synced, else the team's own member list, else empty.
-  // NEVER fabricate a member.
-  var members = liveRoster ? cloudRoster : t.members?.length ? t.members : [];
+  // A CLOUD team's roster lives in the cloud; the passed-in t.members is a STALE local
+  // cache (the «3 снаружи / 0 внутри» mismatch). Until the real roster loads we show a
+  // skeleton — NEVER the stale members, which used to flash phantom people for a beat
+  // (David: «проскакивает заполненный демо-вариант»). Mirrors the teamHabits gate below.
+  var _rosterLoading = _rosterLive && cloudRoster === null;
+  var members = _rosterLive ? cloudRoster || [] : t.members?.length ? t.members : [];
   var ranked = members; // live: roster order (owner first), no contribution sort
   // Live: real cloud habits when synced, else the team's own habits, else empty.
   var teamHabits = _rosterLive ? liveTeamHabits || [] : Array.isArray(t.habits) ? t.habits : [];
@@ -1041,7 +1058,7 @@ function TeamDetailLive() {
       marginTop: 2,
       color: "var(--text)"
     }
-  }, members.length)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, _rosterLoading ? "·" : members.length)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10,
       color: "var(--text-3)",
@@ -1473,14 +1490,56 @@ function TeamDetailLive() {
     style: {
       marginTop: 22
     }
-  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 (", members.length, ")"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438", _rosterLoading ? "" : " (" + members.length + ")"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 8,
       marginTop: 8
     }
-  }, ranked.map((m, i) => {
+  }, _rosterLoading && [0, 1].map(i => /*#__PURE__*/React.createElement("div", {
+    key: "sk" + i,
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 12,
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: "50%"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      display: "block",
+      width: "42%",
+      height: 12,
+      borderRadius: 6
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "bos-skel",
+    style: {
+      display: "block",
+      width: "26%",
+      height: 10,
+      borderRadius: 6,
+      marginTop: 7
+    }
+  }))))), !_rosterLoading && ranked.map((m, i) => {
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {

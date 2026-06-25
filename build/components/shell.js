@@ -175,11 +175,14 @@ function TabBar({
     className: "bos-tabbar " + (dark ? "dark" : ""),
     style: style
   }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-tab-lens",
+    className: "bos-tab-lens-track",
     style: {
       transform: "translateX(" + idx * 100 + "%)"
     }
-  }), tabs.map(t => /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", {
+    key: idx,
+    className: "bos-tab-lens"
+  })), tabs.map(t => /*#__PURE__*/React.createElement("button", {
     key: t.id,
     className: "tab tap " + (active === t.id ? "active" : ""),
     onClick: () => onTab(t.id)
@@ -380,6 +383,7 @@ function SwipeRow({
     style: {
       position: "relative",
       background: rowBg,
+      overflow: "hidden",
       transform: "translateX(" + offset + "px)",
       borderTopRightRadius: offset < 0 ? 16 : 0,
       borderBottomRightRadius: offset < 0 ? 16 : 0,

@@ -13,8 +13,10 @@
    WEEKDAY_LABELS, daysSummary, INFO_TOPICS) + the DeadlineCalendarLive fork
    (shared_live.jsx) + framework (PageHeader, Switch, Segmented, I, hooks useApp/useNav/useSheet,
    window.bosCloud, window.tgHaptic). The ONLY new top-level declarations in this
-   file are exactly: function HabitSettingsLive, function GoalSettingsLive and
-   function InfoLive. */
+   file are exactly: const INFO_TOPICS_LIVE, function HabitSettingsLive,
+   function GoalSettingsLive and function InfoLive. INFO_TOPICS_LIVE is a deepened fork
+   of core INFO_TOPICS (teams guide added, reading-time removed) so the живые гайды grow
+   while the DEMO reader stays frozen on the core originals. */
 
 function HabitSettingsLive() {
   const { navigate, params } = useNav();
@@ -444,32 +446,92 @@ function GoalSettingsLive() {
   );
 }
 
+/* LIVE knowledge guides — a deepened fork of core INFO_TOPICS. Each topic carries an accent
+   colour + a category kicker (NOT a reading time), a richer lede and pull quote, a CTA target,
+   and a «next» that loops habits → teams → goals → habits. The teams guide is the new one
+   (core never covered командные привычки). Demo keeps reading core INFO_TOPICS untouched. */
+const INFO_TOPICS_LIVE = {
+  "habits-basics": {
+    emoji: "🌱", accent: "#34C759", kicker: "Привычки",
+    title: "Основы привычек",
+    lede: "Привычки держатся не на силе воли, а на том, чтобы одно маленькое действие давалось почти без усилий — и повторялось каждый день, пока мозг не перестанет спрашивать «зачем». Вот пять опор, на которых стоит любая прижившаяся привычка.",
+    sections: [
+      { i: "1", h: "Сделай крошечным", b: "Если привычку не вытянуть в самый трудный день — она слишком большая. Две минуты медитации каждый день побеждают полчаса раз в неделю. Сначала закрепи ритуал, потом наращивай — рост придёт сам." },
+      { i: "2", h: "Привяжи к якорю", b: "Поставь новую привычку поверх той, что уже есть: «Налил утренний кофе — пишу одну строку в дневник». Старое действие становится спусковым крючком, и не нужно вспоминать — тело само ведёт." },
+      { i: "3", h: "Отмечай каждый день", b: "Серия — это видимое обещание самому себе. Отмечай привычку даже в трудный день, пусть по минимуму. Важна не цифра, а непрерывность: пока цепочка цела, ты — тот, кто это делает." },
+      { i: "4", h: "Не пропускай дважды", b: "Один пропуск — это просто жизнь. Два подряд — уже новый паттерн. Сорвался? Единственная задача на завтра — появиться, хотя бы в мини-версии. Возвращайся, а не «начинай с понедельника»." },
+      { i: "5", h: "Настрой пространство", b: "Кроссовки — у двери. Телефон — в другой комнате. Привычка живёт в окружении: сделай хорошее очевидным и лёгким, а вредное — неудобным и далёким. Среда сильнее мотивации." },
+    ],
+    pull: "«Ты не поднимаешься до уровня своих целей. Ты падаешь до уровня своих систем.»",
+    cta: "Создать привычку",
+    next: { topic: "teams-101", t: "Командные привычки", e: "🤝" },
+  },
+  "goals-101": {
+    emoji: "🎯", accent: "#FF9500", kicker: "Цели",
+    title: "Ставь хорошие цели",
+    lede: "Цель — это вопрос, на который каждый день отвечают твои привычки. Задашь его точно — и ежедневная работа сама знает, что делать. Размытая цель порождает размытые дни.",
+    sections: [
+      { i: "1", h: "Результат против процесса", b: "«Пробежать марафон» — результат. «Бегать 4 раза в неделю» — процесс. Результат задаёт направление, но двигают тебя процессы. Поставь цель-результат, а отслеживай ежедневный процесс." },
+      { i: "2", h: "Сделай измеримой", b: "«Стать здоровее» — желание. «Спать 7,5 часа 6 ночей в неделю к июлю» — цель. Конкретность = измеримо + срок + честно. Если нельзя проверить «достиг или нет» — это ещё не цель." },
+      { i: "3", h: "Разбей на недели", b: "Цель на 12 недель — это 12 недельных целей подряд. Гору не пройти одним шагом; раздели её на холмы, каждый из которых берётся за неделю. Близкий рубеж тянет сильнее далёкого." },
+      { i: "4", h: "Привяжи одну привычку", b: "У каждой цели должна быть ежедневная опора. Не можешь назвать привычку, что двигает цель вперёд, — цель будет дрейфовать. Привычка — это цель, переведённая на язык сегодняшнего дня." },
+      { i: "5", h: "Празднуй половину пути", b: "Середина — настоящий рубеж, а не «ещё столько же». Отметь её. Мозг, получивший награду за усилие, охотнее приходит и завтра. Без маленьких праздников выдыхаются даже большие цели." },
+    ],
+    pull: "«Результаты — это мечты. Привычки — это действие, у которого есть адрес.»",
+    cta: "Поставить цель",
+    next: { topic: "habits-basics", t: "Основы привычек", e: "🌱" },
+  },
+  "teams-101": {
+    emoji: "🤝", accent: "#0A84FF", kicker: "Команда",
+    title: "Командные привычки",
+    lede: "В одиночку легко договориться с собой и пропустить. Но когда привычку держит команда, ты приходишь ради других даже в дни, когда не пришёл бы ради себя. Это не про контроль — про то, что рядом кто-то идёт тем же путём.",
+    sections: [
+      { i: "1", h: "Один якорь на всех", b: "У команды должна быть ОДНА общая главная привычка — то, что каждый делает каждый день. Не десять разных дел, а один общий ритуал. Общий якорь превращает набор людей в команду." },
+      { i: "2", h: "Виден каждый", b: "Общая серия показывает, кто сегодня появился. Это мягкая ответственность: не «тебя накажут», а «тебя ждут». Знать, что твоя галочка нужна не только тебе, — сильнее любого будильника." },
+      { i: "3", h: "Зови тех, кто рядом по цели", b: "Маленькая команда из тех, кому правда важно, сильнее большой случайной. Зови друзей, которые разделяют именно эту цель. Трое заряженных дадут больше, чем тридцать наблюдателей." },
+      { i: "4", h: "Поддержка, не надзор", b: "Чат команды — место подбодрить и порадоваться, а не отчитать. Кто-то сорвался — верни его поддержкой, а не упрёком. Команда, в которую не стыдно вернуться, не разваливается." },
+      { i: "5", h: "Победа — общая", b: "Дошли до недельной цели — отметьте это вместе. Общие маленькие победы умножают мотивацию: твой прогресс заряжает других, а их — тебя. Так привычка перестаёт быть обязанностью и становится «нашим делом»." },
+    ],
+    pull: "«Хочешь идти быстро — иди один. Хочешь идти далеко — идите вместе.»",
+    cta: "Создать команду",
+    next: { topic: "goals-101", t: "Ставь хорошие цели", e: "🎯" },
+  },
+};
+
 /* ─── INFO SCREEN — knowledge articles (LIVE) ──────────────────── */
 function InfoLive() {
   const { navigate, params } = useNav();
-  const topic = INFO_TOPICS[params?.topic] || INFO_TOPICS["habits-basics"];
+  const topic = INFO_TOPICS_LIVE[params?.topic] || INFO_TOPICS_LIVE["habits-basics"];
+  const accent = topic.accent || "#0a0a0a";
+  const goCta = () => {
+    if (params?.topic === "teams-101") return navigate("community");
+    if (params?.topic === "goals-101") return navigate("goal-settings", { mode: "create" });
+    return navigate("habit-settings", { mode: "create" });
+  };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title={topic.title} onBack={() => navigate("habits")} />
-      {/* Hero */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: "22px 20px", boxShadow: "var(--card-shadow)" }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 30, marginBottom: 12 }}>{topic.emoji}</div>
-        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>{topic.eyebrow}</div>
-        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.5px", marginTop: 4, color: "var(--text)" }}>{topic.title}</div>
-        <div style={{ fontSize: 15, color: "var(--text-3)", marginTop: 12, lineHeight: 1.55, letterSpacing: "-0.1px" }}>{topic.lede}</div>
+      {/* Hero — accent-tinted, dark-aware */}
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 20px", boxShadow: "var(--card-shadow)", position: "relative", overflow: "hidden" }}>
+        <div aria-hidden style={{ position: "absolute", top: -34, right: -26, width: 150, height: 150, borderRadius: "50%", background: accent, opacity: 0.10, pointerEvents: "none" }} />
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: accent + "1f", display: "grid", placeItems: "center", fontSize: 30, marginBottom: 12, position: "relative" }}>{topic.emoji}</div>
+        <div style={{ fontSize: 11, color: accent, textTransform: "uppercase", letterSpacing: 1.6, fontWeight: 700, position: "relative" }}>{topic.kicker}</div>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.5px", marginTop: 5, color: "var(--text)", position: "relative" }}>{topic.title}</div>
+        <div style={{ fontSize: 15, color: "var(--text-3)", marginTop: 12, lineHeight: 1.55, letterSpacing: "-0.1px", position: "relative" }}>{topic.lede}</div>
       </div>
 
       {/* Pull quote */}
       <div style={{ background: "#0a0a0a", color: "#fff", borderRadius: 22, padding: "20px 22px", marginTop: 12, position: "relative", overflow: "hidden" }}>
         <div aria-hidden style={{ position: "absolute", top: -10, right: -10, fontSize: 100, opacity: 0.06, fontFamily: "var(--bos-title-font)", lineHeight: 1 }}>"</div>
+        <div aria-hidden style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: accent }} />
         <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 18, lineHeight: 1.4, position: "relative" }}>{topic.pull}</div>
       </div>
 
       {/* Numbered sections */}
       <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {topic.sections.map((s, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", display: "flex", gap: 14 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{s.i}</div>
+          <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", display: "flex", gap: 14 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: accent, color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{s.i}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{s.h}</div>
               <div style={{ fontSize: 14, color: "var(--text-3)", marginTop: 6, lineHeight: 1.55, textWrap: "pretty" }}>{s.b}</div>
@@ -479,17 +541,17 @@ function InfoLive() {
       </div>
 
       {/* CTA */}
-      <button onClick={() => navigate(params?.topic === "goals-101" ? "goal-settings" : "habit-settings", { mode: "create" })} className="tap"
+      <button onClick={goCta} className="tap"
         style={{ width: "100%", background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, marginTop: 18 }}>
-        {params?.topic === "goals-101" ? "Поставить цель" : "Создать привычку"}
+        {topic.cta}
       </button>
 
       {/* Up next */}
       {topic.next && (
         <button onClick={() => navigate("info", { topic: topic.next.topic })} className="tap"
           style={{ marginTop: 12, width: "100%", background: "transparent", border: 0, padding: 0, textAlign: "left" }}>
-          <div style={{ background: "#fff", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-            <div style={{ width: 38, height: 38, borderRadius: 14, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 20 }}>{topic.next.e}</div>
+          <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 20 }}>{topic.next.e}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600 }}>Далее</div>
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{topic.next.t}</div>

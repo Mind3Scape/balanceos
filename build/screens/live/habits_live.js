@@ -58,6 +58,17 @@ function HabitsLive() {
   };
   var cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
   var [tab, setTab] = React.useState("habits");
+  // «Обучение» cards can be hidden once read (David) — persisted, restorable from Settings.
+  var [learnHidden, setLearnHidden] = React.useState(() => typeof bosLearnHidden === "function" ? bosLearnHidden() : false);
+  React.useEffect(() => {
+    var sync = () => setLearnHidden(typeof bosLearnHidden === "function" ? bosLearnHidden() : false);
+    window.addEventListener("bos:learnchange", sync);
+    return () => window.removeEventListener("bos:learnchange", sync);
+  }, []);
+  var hideLearn = () => {
+    if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(true);
+    setLearnHidden(true);
+  };
   // Shared store — same list the Home screen reads/writes.
   var habits = app?.habits || [];
   var goals = app?.goals || [];
@@ -490,31 +501,58 @@ function HabitsLive() {
         width: Math.min(1, pct) * 100 + "%"
       }
     })))));
-  })), /*#__PURE__*/React.createElement("div", {
+  })), !learnHidden && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22,
-      padding: "0 4px"
+      padding: "0 4px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
     }
-  }, "\u041E\u0431\u0443\u0447\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, "\u041E\u0431\u0443\u0447\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("button", {
+    onClick: hideLearn,
+    className: "tap",
+    "data-no-haptic": true,
+    "aria-label": "\u0421\u043A\u0440\u044B\u0442\u044C \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435",
     style: {
-      marginTop: 8,
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 10
+      background: "transparent",
+      border: 0,
+      color: "var(--text-4)",
+      fontSize: 13,
+      fontWeight: 600,
+      padding: "2px 2px",
+      textTransform: "none",
+      letterSpacing: 0,
+      lineHeight: 1
+    }
+  }, "\u0421\u043A\u0440\u044B\u0442\u044C")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      overflowX: "auto",
+      margin: "8px -12px 0",
+      padding: "0 16px 4px",
+      scrollbarWidth: "none"
     }
   }, [{
     topic: "habits-basics",
     emoji: "🌱",
+    accent: "#34C759",
     t: "Основы привычек",
-    d: "5 мин",
-    b: "Почему маленькое лучше большого — и как не пропускать дважды."
+    b: "Почему маленькое сильнее большого — и как не пропускать дважды."
   }, {
     topic: "goals-101",
     emoji: "🎯",
-    t: "Ставь хорошие цели",
-    d: "5 мин",
+    accent: "#FF9500",
+    t: "Хорошие цели",
     b: "Результат или процесс: что отслеживать и когда."
+  }, {
+    topic: "teams-101",
+    emoji: "🤝",
+    accent: "#0A84FF",
+    t: "Командные привычки",
+    b: "Один общий якорь, общая серия и поддержка вместо контроля."
   }].map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: () => navigate("info", {
@@ -522,6 +560,8 @@ function HabitsLive() {
     }),
     className: "tap",
     style: {
+      flexShrink: 0,
+      width: 176,
       background: TH.cardBg,
       border: 0,
       borderRadius: 22,
@@ -533,42 +573,60 @@ function HabitsLive() {
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      minHeight: 144,
+      minHeight: 158,
       color: "var(--text)"
     }
   }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: -24,
+      right: -20,
+      width: 96,
+      height: 96,
+      borderRadius: "50%",
+      background: c.accent,
+      opacity: 0.10,
+      pointerEvents: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 38,
       height: 38,
       borderRadius: 14,
-      background: TH.iconBg,
+      background: c.accent + "1f",
       display: "grid",
       placeItems: "center",
-      fontSize: 20
+      fontSize: 20,
+      position: "relative"
     }
   }, c.emoji), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 16,
+      fontSize: 15.5,
       fontWeight: 600,
       color: "var(--text)",
-      lineHeight: 1.2
+      lineHeight: 1.2,
+      position: "relative"
     }
   }, c.t), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-4)",
-      lineHeight: 1.45
+      lineHeight: 1.45,
+      position: "relative"
     }
   }, c.b), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      justifyContent: "space-between",
       alignItems: "center",
+      gap: 4,
       marginTop: "auto",
-      fontSize: 11,
-      color: "var(--text-4)"
+      fontSize: 12,
+      fontWeight: 600,
+      color: c.accent,
+      position: "relative"
     }
-  }, /*#__PURE__*/React.createElement("span", null, c.d, " \u0447\u0442\u0435\u043D\u0438\u044F"), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 14
-  }))))));
+  }, "\u0427\u0438\u0442\u0430\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 13
+  })))))));
 }

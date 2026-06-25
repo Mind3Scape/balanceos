@@ -45,6 +45,7 @@ function LiveTeamCard({ t, navigate }) {
     }).catch(() => { if (on) setRoster([]); });
     return () => { on = false; };
   }, [t.cloudId]);
+  const _loading = _cloud && roster === null; // cloud roster not back yet → skeleton, never «ты один»
   const members = _cloud ? (roster || []) : (t.members || []);
   const count = members.length;
   const ruPart = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "участник" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "участника" : "участников"; };
@@ -57,7 +58,7 @@ function LiveTeamCard({ t, navigate }) {
           <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", background: "var(--card-track)", padding: "2px 8px", borderRadius: 999 }}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
         </div>
         <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
-        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date} · {count} {ruPart(count)}</div>
+        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date}{_loading ? "" : " · " + count + " " + ruPart(count)}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
           <span>{t.target ? "К цели" : "Прогресс команды"}</span>
           <span style={{ color: "var(--text)" }}>{t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : Math.round(gp * 100) + "%"}</span>
@@ -66,7 +67,9 @@ function LiveTeamCard({ t, navigate }) {
           <span className="team-card__fill" style={{ display: "block", height: "100%", width: (gp * 100) + "%", borderRadius: 999 }} />
         </div>
         <div style={{ display: "flex", alignItems: "center", marginTop: 14, gap: 8 }}>
-          {count > 0 ? <AvatarStack people={members} size={28} max={5} label={false}/> : <span style={{ fontSize: 12, color: "var(--text-4)" }}>Пока ты один — позови друзей</span>}
+          {_loading
+            ? <div style={{ display: "flex" }}>{[0, 1, 2].map((i) => (<span key={i} className="bos-skel" style={{ width: 28, height: 28, borderRadius: "50%", marginLeft: i ? -10 : 0, border: "2px solid var(--card)" }} />))}</div>
+            : count > 0 ? <AvatarStack people={members} size={28} max={5} label={false}/> : <span style={{ fontSize: 12, color: "var(--text-4)" }}>Пока ты один — позови друзей</span>}
           <button onClick={() => navigate("team-detail", { team: t })} className="tap team-card__cta" style={{ marginLeft: "auto", border: 0, borderRadius: 999, padding: "11px 18px", fontSize: 13.5, fontWeight: 600 }}>
             Открыть команду
           </button>
@@ -362,10 +365,12 @@ function TeamDetailLive() {
     window.bosCloud.toggleTeamHabitToday(h.id, !h.doneByMe).then(() => setHabitsTick((n) => n + 1));
   };
   const addTeamHabitCloud = (h) => { var first = !(liveTeamHabits && liveTeamHabits.length); window.bosCloud.addTeamHabit(t.cloudId, { ...h, isMain: (h && h.isMain) || first }).then(() => setHabitsTick((n) => n + 1)); };
-  const liveRoster = _rosterLive && cloudRoster;
-  // Live: real cloud roster when synced, else the team's own member list, else empty.
-  // NEVER fabricate a member.
-  const members = liveRoster ? cloudRoster : (t.members?.length ? t.members : []);
+  // A CLOUD team's roster lives in the cloud; the passed-in t.members is a STALE local
+  // cache (the «3 снаружи / 0 внутри» mismatch). Until the real roster loads we show a
+  // skeleton — NEVER the stale members, which used to flash phantom people for a beat
+  // (David: «проскакивает заполненный демо-вариант»). Mirrors the teamHabits gate below.
+  const _rosterLoading = _rosterLive && cloudRoster === null;
+  const members = _rosterLive ? (cloudRoster || []) : (t.members?.length ? t.members : []);
   const ranked = members; // live: roster order (owner first), no contribution sort
   // Live: real cloud habits when synced, else the team's own habits, else empty.
   const teamHabits = _rosterLive ? (liveTeamHabits || []) : (Array.isArray(t.habits) ? t.habits : []);
@@ -419,7 +424,7 @@ function TeamDetailLive() {
           })()}
           <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
             <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Привычки</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{teamHabits.length}</div></div>
-            <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Участники</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{members.length}</div></div>
+            <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Участники</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{_rosterLoading ? "·" : members.length}</div></div>
             {/* Team streak is fabricated standing — no honest cross-member streak yet, so live shows «—». */}
             <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Серия</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>—</div></div>
           </div>
@@ -532,9 +537,20 @@ function TeamDetailLive() {
           ))}
         </div>
       </>)}
-      <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length})</div>
+      <div className="section-label" style={{ marginTop: 22 }}>Участники{_rosterLoading ? "" : " (" + members.length + ")"}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {ranked.map((m,i)=>{
+        {_rosterLoading && [0, 1].map((i) => (
+          <div key={"sk" + i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)" }}>
+            <div style={{ padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
+              <span className="bos-skel" style={{ width: 40, height: 40, borderRadius: "50%" }} />
+              <div style={{ flex: 1 }}>
+                <span className="bos-skel" style={{ display: "block", width: "42%", height: 12, borderRadius: 6 }} />
+                <span className="bos-skel" style={{ display: "block", width: "26%", height: 10, borderRadius: 6, marginTop: 7 }} />
+              </div>
+            </div>
+          </div>
+        ))}
+        {!_rosterLoading && ranked.map((m,i)=>{
           return (
           <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
             <div style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>

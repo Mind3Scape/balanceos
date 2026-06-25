@@ -65,8 +65,12 @@ function TabBar({ active, dark = false, onTab, style }) {
   const idx = Math.max(0, tabs.findIndex(t => t.id === active));
   return (
     <div className={"bos-tabbar " + (dark ? "dark" : "")} style={style}>
-      {/* Liquid-glass selection lens — springs between tabs. */}
-      <span className="bos-tab-lens" style={{ transform: "translateX(" + (idx * 100) + "%)" }} />
+      {/* Liquid-glass selection lens: the TRACK springs between tabs (translateX), while the
+          inner droplet replays a stretch-and-settle morph on every change (key→remount) — the
+          «жидкое стекло» cue. Two layers so position and morph never fight over `transform`. */}
+      <span className="bos-tab-lens-track" style={{ transform: "translateX(" + (idx * 100) + "%)" }}>
+        <span key={idx} className="bos-tab-lens" />
+      </span>
       {tabs.map(t => (
         <button key={t.id} className={"tab tap " + (active === t.id ? "active" : "")}
           onClick={() => onTab(t.id)}>
@@ -167,7 +171,7 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
       {/* The WHITE row itself rounds its trailing (right) corners as it slides away,
           so it reads like a card peeling off — the grey beneath is just the
           background flowing through (no rounding on the track). */}
-      <div style={{ position: "relative", background: rowBg, transform: "translateX(" + offset + "px)",
+      <div style={{ position: "relative", background: rowBg, overflow: "hidden", transform: "translateX(" + offset + "px)",
         borderTopRightRadius: offset < 0 ? 16 : 0, borderBottomRightRadius: offset < 0 ? 16 : 0,
         transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.25s ease" : "none", willChange: "transform" }}>
         {children}

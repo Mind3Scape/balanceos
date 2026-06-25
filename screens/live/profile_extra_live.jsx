@@ -137,6 +137,9 @@ function SettingsLive() {
   const setDark = (on) => app?.setThemeOverride(on ? "dark" : "light");
   const wheel = app?.wheelSpheres || (window.DEFAULT_SPHERES || []);
   const setWheel = (arr) => app?.setWheelSpheres && app.setWheelSpheres(arr);
+  // «Обучение» cards on the Habits screen — ON shows them, OFF hides (restore after «Скрыть»).
+  const [learnOn, setLearnOn] = React.useState(() => !(typeof bosLearnHidden === "function" && bosLearnHidden()));
+  const setLearnPersist = (on) => { setLearnOn(on); if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(!on); };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Настройки" onBack={() => navigate("profile")} />
@@ -178,6 +181,7 @@ function SettingsLive() {
           // was demo-only — dropped so a real user never meets a toggle that does nothing.
           { label: "Push-уведомления", icon: I.Bell, val: push, set: setPushPersist },
           { label: "Тёмная тема", icon: I.Eye, val: isDark, set: setDark },
+          { label: "Карточки обучения", icon: I.Book, val: learnOn, set: setLearnPersist },
         ].map((r, i) => (
           <div key={i} className="bos-sys-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 14 }}>
             <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>

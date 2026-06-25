@@ -314,6 +314,12 @@ function SettingsLive() {
   var setDark = on => app?.setThemeOverride(on ? "dark" : "light");
   var wheel = app?.wheelSpheres || window.DEFAULT_SPHERES || [];
   var setWheel = arr => app?.setWheelSpheres && app.setWheelSpheres(arr);
+  // «Обучение» cards on the Habits screen — ON shows them, OFF hides (restore after «Скрыть»).
+  var [learnOn, setLearnOn] = React.useState(() => !(typeof bosLearnHidden === "function" && bosLearnHidden()));
+  var setLearnPersist = on => {
+    setLearnOn(on);
+    if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(!on);
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -452,6 +458,11 @@ function SettingsLive() {
     icon: I.Eye,
     val: isDark,
     set: setDark
+  }, {
+    label: "Карточки обучения",
+    icon: I.Book,
+    val: learnOn,
+    set: setLearnPersist
   }].map((r, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     className: "bos-sys-card",

@@ -18,6 +18,12 @@ async function aiReplyLive(history, ctx) {
   return AI_LIVE_FALLBACK;
 }
 
+/* Learning-cards visibility (Habits → «Обучение»). One persisted flag: hide once read,
+   restore from Settings → Предпочтения. Synced across screens via a window event so the
+   habits screen reacts the moment Settings flips it (David: «прочитал — хочу убрать»). */
+function bosLearnHidden() { try { return localStorage.getItem("bos:hideLearn") === "1"; } catch (e) { return false; } }
+function bosSetLearnHidden(v) { try { localStorage.setItem("bos:hideLearn", v ? "1" : "0"); } catch (e) {} try { window.dispatchEvent(new Event("bos:learnchange")); } catch (e) {} }
+
 /* buildAiContext → live-only: always weave in the real level/XP line (was gated on mode). */
 function buildAiContextLive(app) {
   try {
