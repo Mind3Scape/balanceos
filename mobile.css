@@ -14,13 +14,18 @@
 html {
   /* 100vh on iOS = the FULL screen (incl. safe areas), unlike height:100% which
      resolves to the smaller layout viewport. The themed html/body background
-     then paints the whole screen, covering the home-indicator strip. */
+     then paints the whole screen, covering the home-indicator strip.
+     100dvh (set second → wins where supported) tracks the dynamic viewport on
+     modern WebKit; 100vh stays as the fallback for older engines. */
   height: 100vh;
+  height: 100dvh;
+  -webkit-text-size-adjust: 100%; /* don't let iOS inflate text on rotation */
   background: #0a0a0a; /* JS syncs to the active screen's theme */
 }
 body {
   margin: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
   background: #0a0a0a;

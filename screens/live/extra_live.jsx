@@ -306,10 +306,15 @@ function MoodLive() {
 
       {/* Header — sits over the status bar room */}
       <div style={{ position: "relative", zIndex: 2, padding: "60px 20px 0", display: "flex", alignItems: "center" }}>
-        <button onClick={() => navigate("home")} className="tap"
-          style={{ width: 40, height: 40, borderRadius: 999, background: "rgba(0,0,0,0.05)", border: 0, color: "var(--text)", display: "grid", placeItems: "center", padding: 0 }}>
-          <I.ChevronLeft size={18}/>
-        </button>
+        {/* Inside Telegram the native Back button (driven from app.jsx's nav stack) already
+            shows — hide our in-app chevron so there aren't two "backs". The 40px spacer keeps
+            the title centred. PWA/browser keeps the chevron. (Same guard as PageHeader.) */}
+        {!(typeof window !== "undefined" && window.__TG) ? (
+          <button onClick={() => navigate("home")} className="tap"
+            style={{ width: 40, height: 40, borderRadius: 999, background: "rgba(0,0,0,0.05)", border: 0, color: "var(--text)", display: "grid", placeItems: "center", padding: 0 }}>
+            <I.ChevronLeft size={18}/>
+          </button>
+        ) : <span style={{ width: 40 }}/>}
         <div style={{ flex: 1, textAlign: "center", fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 600 }}>Отметка состояния</div>
         <span style={{ width: 40 }}/>
       </div>

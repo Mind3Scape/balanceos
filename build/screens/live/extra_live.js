@@ -667,7 +667,7 @@ function MoodLive() {
       display: "flex",
       alignItems: "center"
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, !(typeof window !== "undefined" && window.__TG) ? /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("home"),
     className: "tap",
     style: {
@@ -683,7 +683,11 @@ function MoodLive() {
     }
   }, /*#__PURE__*/React.createElement(I.ChevronLeft, {
     size: 18
-  })), /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       textAlign: "center",
