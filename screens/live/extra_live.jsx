@@ -640,10 +640,20 @@ function AIChatLive() {
     send((p && (p.prompt || p.t)) || "");
   };
 
-  // A prompt passed in from the AI tab / quick chips → auto-send it on open.
+  // A priming prompt (from a quick pill / profile / the AI hub) auto-sends ONCE when the
+  // chat opens, then is CONSUMED so it can never replay. Only the top frame stays mounted,
+  // so leaving the chat (tap an action card → mood / journal / habit-settings) and coming
+  // BACK re-mounts this screen; without consuming, the same prompt would re-fire on every
+  // re-entry and duplicate the message (the canvas-swap-bug family — a mount/effect race).
+  // We strip it from THIS frame's params immediately — navigating to the current route just
+  // refreshes its params (no transition, no remount) — so any later mount sees no prompt.
+  // The thread is already restored from localStorage, so returning shows the real
+  // conversation instead of replaying the opener.
   React.useEffect(() => {
-    if (!params?.prompt) return;
-    const t = window.setTimeout(() => send(params.prompt), 350);
+    const primer = params && params.prompt;
+    if (!primer) return;
+    navigate("ai-chat", {});                 // consume: the priming prompt fires exactly once
+    const t = window.setTimeout(() => send(primer), 350);
     return () => window.clearTimeout(t);
   }, []); // eslint-disable-line
 
@@ -763,13 +773,11 @@ function AIChatLive() {
 
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "calc(100% + 90px)", margin: "-60px 0 -30px", color: TH.text, display: "flex", flexDirection: "column", background: TH.bg }}>
-      {/* Minimal top — just a quiet way back. No avatar, no title, nothing: the
-          conversation itself carries the mentor. Clean & native, like iMessage. */}
-      <div style={{ padding: "54px 6px 2px", display: "flex", alignItems: "center" }}>
-        <button className="tap" data-no-haptic onClick={() => navigate("ai")} aria-label="Назад" style={{ width: 44, height: 44, background: "transparent", border: 0, color: TH.muted, display: "grid", placeItems: "center" }}>
-          <I.ChevronLeft size={26}/>
-        </button>
-      </div>
+      {/* No in-app back control. Inside Telegram the native Back button shows on every
+          pushed Mini-App screen (app.jsx wires tgBackButton → goBack), so an in-screen
+          chevron would just DUPLICATE it. We keep a quiet top inset so the first message
+          clears the status bar / Telegram header — the conversation itself is the header. */}
+      <div style={{ height: 54, flexShrink: 0 }} />
 
       <div ref={scrollRef} className="screen-scroll" style={{ flex: 1, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ alignSelf: "center", fontSize: 10, letterSpacing: 1.5, color: TH.dim, textTransform: "uppercase" }}>{_dateLabel}</div>

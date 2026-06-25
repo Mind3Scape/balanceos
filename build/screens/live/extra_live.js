@@ -1415,10 +1415,20 @@ function AIChatLive() {
     send(p && (p.prompt || p.t) || "");
   };
 
-  // A prompt passed in from the AI tab / quick chips → auto-send it on open.
+  // A priming prompt (from a quick pill / profile / the AI hub) auto-sends ONCE when the
+  // chat opens, then is CONSUMED so it can never replay. Only the top frame stays mounted,
+  // so leaving the chat (tap an action card → mood / journal / habit-settings) and coming
+  // BACK re-mounts this screen; without consuming, the same prompt would re-fire on every
+  // re-entry and duplicate the message (the canvas-swap-bug family — a mount/effect race).
+  // We strip it from THIS frame's params immediately — navigating to the current route just
+  // refreshes its params (no transition, no remount) — so any later mount sees no prompt.
+  // The thread is already restored from localStorage, so returning shows the real
+  // conversation instead of replaying the opener.
   React.useEffect(() => {
-    if (!params?.prompt) return;
-    var t = window.setTimeout(() => send(params.prompt), 350);
+    var primer = params && params.prompt;
+    if (!primer) return;
+    navigate("ai-chat", {}); // consume: the priming prompt fires exactly once
+    var t = window.setTimeout(() => send(primer), 350);
     return () => window.clearTimeout(t);
   }, []); // eslint-disable-line
 
@@ -1847,27 +1857,10 @@ function AIChatLive() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "54px 6px 2px",
-      display: "flex",
-      alignItems: "center"
+      height: 54,
+      flexShrink: 0
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    "data-no-haptic": true,
-    onClick: () => navigate("ai"),
-    "aria-label": "\u041D\u0430\u0437\u0430\u0434",
-    style: {
-      width: 44,
-      height: 44,
-      background: "transparent",
-      border: 0,
-      color: TH.muted,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.ChevronLeft, {
-    size: 26
-  }))), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
     className: "screen-scroll",
     style: {
