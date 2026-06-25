@@ -686,7 +686,11 @@ function Reveal({ k, children, delay = 0, style }) {
 }
 
 function IntroScreen() {
-  const { navigate } = useNav();
+  const { navigate, params } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  // moodOnly = the post-signup state dial (reached from «С чего начнём» with {moodOnly,next}),
+  // NOT the cinematic story. Shows only the mood slide; «Продолжить» enters the app.
+  const moodOnly = !!(params && params.moodOnly);
   const [step, setStep] = useIS(0);
   const [prev, setPrev] = useIS(null);
   const [blendStart, setBlendStart] = useIS(0);
@@ -727,14 +731,17 @@ function IntroScreen() {
     if (b !== lastBucket.current) { lastBucket.current = b; moodHaptic(); }
   };
 
-  const slides = [
+  // The cinematic story. The mood dial USED to be the 6th slide; it has moved out to its own
+  // post-signup screen (MOOD_SLIDE below), so the story now ends on «С близкими — шире».
+  const storySlides = [
     { mode: "awake",    eyebrow: "Состояние",         title: "Ты не видишь мир таким, какой он есть", sub: "Ты видишь мир таким, в каком состоянии находишься.", glow: "rgba(160,200,240,0.46)" },
     { mode: "comfort",  eyebrow: "Когда сил мало",     title: "В слабом состоянии мир сжимается", sub: "Всё кажется невозможным. Ты живёшь в узком круге привычного — на автопилоте.", glow: "rgba(96,120,150,0.34)" },
     { mode: "state",    eyebrow: "Когда ты наполнен",  title: "В сильном — раскрывается", sub: "Граница раздвигается сама. Ты видишь решения, которые были рядом всё это время.", glow: "rgba(160,205,245,0.52)" },
     { mode: "compound", eyebrow: "Твой выбор",         title: "Состоянием можно управлять", sub: "Не обстоятельствами, а собой. Большинство отдают этот выбор страхам и чужому мнению — здесь ты учишься выбирать сам.", glow: "rgba(180,210,240,0.45)" },
     { mode: "together", eyebrow: "Не в одиночку",      title: "С близкими — пространство шире", sub: "Рядом со своими граница раздвигается дальше. Объединяйтесь в команды, делитесь привычками, держите друг друга.", glow: "rgba(150,185,225,0.42)" },
-    { mode: "mood",     eyebrow: "Точка отсчёта",      title: "Как ты сейчас?", sub: "Подвинь точку к своему состоянию — отсюда и начнём.", glow: "rgba(180,210,240,0.45)" },
   ];
+  const MOOD_SLIDE = { mode: "mood", eyebrow: "Точка отсчёта", title: "Как ты сейчас?", sub: "Подвинь точку к своему состоянию — отсюда и начнём.", glow: "rgba(180,210,240,0.45)" };
+  const slides = moodOnly ? [MOOD_SLIDE] : storySlides;
   const cur = slides[step];
   const last = step === slides.length - 1;
 
@@ -742,7 +749,7 @@ function IntroScreen() {
   // the top line ("ты не видишь мир таким, какой он есть"); then it SWAPS — the
   // top line shrinks to a caption while the bottom line ("…в каком состоянии
   // находишься") grows bold into the headline. The truer line takes over.
-  const swapScene = step === 0;
+  const swapScene = !moodOnly && step === 0;
   // First-frame focus swap, driven PER FRAME off the animation clock (no CSS
   // transition on font-size/weight/wrap → no re-rasterisation flicker). `sp`
   // eases 0→1 with zero velocity at both ends (smootherstep), so the scale
@@ -757,8 +764,20 @@ function IntroScreen() {
   };
   const finish = () => {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-    try { window.__bosOnbMood = moodVal; } catch (e) {} // carry the chosen state → home widget
-    navigate("signup");
+    if (moodOnly) {
+      // Post-signup dial → carry the chosen state, then ENTER the app in the mode the signup
+      // button asked for (live / fresh / demo). This dial is the last step before home.
+      try { window.__bosOnbMood = moodVal; } catch (e) {}
+      try {
+        var nx = params && params.next;
+        if (nx === "live") { if (app && app.enterLive) app.enterLive(); }
+        else if (nx === "demo") { if (app && app.enterDemo) app.enterDemo(); }
+        else { if (app && app.enterFresh) app.enterFresh(params && params.name); }
+      } catch (e) {}
+      navigate("home");
+      return;
+    }
+    navigate("signup"); // story → «С чего начнём» (the dial now follows it)
   };
 
   // Theme-aware: follows the .theme-light / .theme-dark wrapper from the frame.
@@ -797,11 +816,16 @@ function IntroScreen() {
       {/* Instagram-stories tap zones: left → back, right → forward. They sit
          behind the content (the orb/text above are click-through) while the
          bottom buttons stay on top, so the central area navigates by tap. */}
+      {!moodOnly && (<>
       <div className="tap" aria-label="Назад" onClick={() => { if (step > 0) go(step - 1); }}
         style={{ position: "absolute", left: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
       <div className="tap" aria-label="Вперёд" onClick={() => { last ? finish() : go(step + 1); }}
         style={{ position: "absolute", right: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
+      </>)}
 
+      {moodOnly ? (
+        <div style={{ padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0" }} />
+      ) : (
       <div style={{ position: "relative", padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0", display: "flex", gap: 4, zIndex: 2, pointerEvents: "none" }}>
         {slides.map((_, i) => (
           <div key={i} style={{ flex: 1, height: 2.5, borderRadius: 999, background: i < step ? pal.barDone : pal.barTrack, position: "relative", overflow: "hidden" }}>
@@ -809,6 +833,7 @@ function IntroScreen() {
           </div>
         ))}
       </div>
+      )}
 
       <div style={{ flex: 1, minHeight: 0, display: "grid", placeItems: "center", position: "relative", zIndex: 2, pointerEvents: "none" }}>
         {/* soft ring radiating outward as the orb settles in from the splash */}
@@ -903,8 +928,13 @@ function IntroScreen() {
                 const fade = edge * edge * (3 - 2 * edge);          // smooth fade-out at the ends
                 const filled = tv <= me.val + 0.005;
                 const col = filled ? moodMain : (dark ? "rgba(255,255,255,0.5)" : "rgba(21,35,60,0.3)");
-                return <line key={i} x1={150 + 99 * c} y1={150 - 99 * s} x2={150 + 111 * c} y2={150 - 111 * s}
-                  stroke={col} strokeWidth="1.8" strokeLinecap="round" opacity={(filled ? 0.95 : 0.55) * fade} />;
+                // Watch-face hierarchy: the 7 MAIN marks (one per mood state — at the bucket
+                // centres i = 2,6,10,14,18,22,26) are LONG + bold; the unlabelled in-betweens
+                // are SHORT. The eye reads the scale like a clock face, no labels needed.
+                const main = i % 4 === 2;
+                const rIn = main ? 95 : 105;
+                return <line key={i} x1={150 + rIn * c} y1={150 - rIn * s} x2={150 + 112 * c} y2={150 - 112 * s}
+                  stroke={col} strokeWidth={main ? 2.6 : 1.5} strokeLinecap="round" opacity={(filled ? 0.95 : (main ? 0.62 : 0.4)) * fade} />;
               })}
               {/* clean liquid-glass thumb — neutral glass bead, NO coloured ring
                   (the dial itself carries the colour). Radial sheen + bright rim. */}
@@ -925,11 +955,13 @@ function IntroScreen() {
 
       <div style={{ position: "relative", padding: "20px 24px 28px", zIndex: 2 }}>
         <button onClick={() => (cur.mode === "mood" || last) ? finish() : go(step+1)} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
-          {cur.mode === "mood" ? "Продолжить" : step === 0 ? "Начать" : "Далее"}
+          {(cur.mode === "mood" || last) ? "Продолжить" : step === 0 ? "Начать" : "Далее"}
         </button>
+        {!moodOnly && (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 12 }}>
           <button onClick={() => navigate("signup")} className="tap" style={{ background: "transparent", border: 0, color: pal.ghost, fontSize: 12 }}>Пропустить</button>
         </div>
+        )}
       </div>
 
       <style>{`

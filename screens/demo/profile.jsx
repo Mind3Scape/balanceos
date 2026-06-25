@@ -1329,13 +1329,15 @@ function OnboardingScreen() {
 // take `app` as a prop).
 function DemoPickerSheet({ dark = false, navigate, app }) {
   const { close } = useSheet();
-  const go = (fn) => { try { fn && fn(); } catch (e) {} try { close && close(); } catch (e2) {} if (navigate) navigate("home"); };
+  // Both demos now route through the state dial (onb-mood) first; it calls enterFresh/enterDemo
+  // on «Продолжить», then lands on home. (David: state question follows the «С чего начнём» buttons.)
+  const go = (next) => { try { close && close(); } catch (e) {} if (navigate) navigate("onb-mood", { moodOnly: true, next }); };
   const C = dark
     ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.06)", iconBg: "rgba(255,255,255,0.1)" }
     : { text: "#15233c", sub: "rgba(21,35,60,0.55)", tile: "#f2f5fa", iconBg: "#e7ecf4" };
   const opts = [
-    { i: "✨", t: "Новый пользователь", d: "Пустое приложение — как при первом входе", on: () => go(() => app && app.enterFresh && app.enterFresh()) },
-    { i: "👤", t: "Постоянный пользователь", d: "Заполненный пример активного пользователя", on: () => go(() => app && app.enterDemo && app.enterDemo()) },
+    { i: "✨", t: "Новый пользователь", d: "Пустое приложение — как при первом входе", on: () => go("fresh") },
+    { i: "👤", t: "Постоянный пользователь", d: "Заполненный пример активного пользователя", on: () => go("demo") },
   ];
   return (
     <div style={{ padding: "2px 20px 20px", color: C.text }}>
@@ -1395,8 +1397,9 @@ function SignUpScreen() {
   // Fresh start: enter empty mode and let the gentle bottom-sheet welcome take
   // over on home (no more forced coach-mark tour).
   const goFresh = () => { app?.enterFresh?.(name); navigate("home"); };
-  // The real door: sign in with the Telegram account → everything persists.
-  const goLive = () => { app?.enterLive?.(); navigate("home"); };
+  // The real door: sign in with the Telegram account → everything persists. The state dial
+  // (onb-mood) now runs first; it calls enterLive on «Продолжить», then lands on home.
+  const goLive = () => { navigate("onb-mood", { moodOnly: true, next: "live" }); };
   return (
     <div ref={wrapRef} className="page-in" style={{ height: "100%", color: pal.text, display: "flex", flexDirection: "column", background: pal.bg, position: "relative", overflow: "hidden" }}>
       <div style={{ flex: 1, padding: "max(64px, calc(var(--tg-top-inset, 0px) + 22px)) 24px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>

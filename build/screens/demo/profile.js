@@ -3416,14 +3416,16 @@ function DemoPickerSheet({
   var {
     close
   } = useSheet();
-  var go = fn => {
-    try {
-      fn && fn();
-    } catch (e) {}
+  // Both demos now route through the state dial (onb-mood) first; it calls enterFresh/enterDemo
+  // on «Продолжить», then lands on home. (David: state question follows the «С чего начнём» buttons.)
+  var go = next => {
     try {
       close && close();
-    } catch (e2) {}
-    if (navigate) navigate("home");
+    } catch (e) {}
+    if (navigate) navigate("onb-mood", {
+      moodOnly: true,
+      next
+    });
   };
   var C = dark ? {
     text: "#fff",
@@ -3440,12 +3442,12 @@ function DemoPickerSheet({
     i: "✨",
     t: "Новый пользователь",
     d: "Пустое приложение — как при первом входе",
-    on: () => go(() => app && app.enterFresh && app.enterFresh())
+    on: () => go("fresh")
   }, {
     i: "👤",
     t: "Постоянный пользователь",
     d: "Заполненный пример активного пользователя",
-    on: () => go(() => app && app.enterDemo && app.enterDemo())
+    on: () => go("demo")
   }];
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3595,10 +3597,13 @@ function SignUpScreen() {
     app?.enterFresh?.(name);
     navigate("home");
   };
-  // The real door: sign in with the Telegram account → everything persists.
+  // The real door: sign in with the Telegram account → everything persists. The state dial
+  // (onb-mood) now runs first; it calls enterLive on «Продолжить», then lands on home.
   var goLive = () => {
-    app?.enterLive?.();
-    navigate("home");
+    navigate("onb-mood", {
+      moodOnly: true,
+      next: "live"
+    });
   };
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,

@@ -1387,8 +1387,13 @@ function Reveal({
 }
 function IntroScreen() {
   var {
-    navigate
+    navigate,
+    params
   } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
+  // moodOnly = the post-signup state dial (reached from «С чего начнём» with {moodOnly,next}),
+  // NOT the cinematic story. Shows only the mood slide; «Продолжить» enters the app.
+  var moodOnly = !!(params && params.moodOnly);
   var [step, setStep] = useIS(0);
   var [prev, setPrev] = useIS(null);
   var [blendStart, setBlendStart] = useIS(0);
@@ -1440,7 +1445,10 @@ function IntroScreen() {
       moodHaptic();
     }
   };
-  var slides = [{
+
+  // The cinematic story. The mood dial USED to be the 6th slide; it has moved out to its own
+  // post-signup screen (MOOD_SLIDE below), so the story now ends on «С близкими — шире».
+  var storySlides = [{
     mode: "awake",
     eyebrow: "Состояние",
     title: "Ты не видишь мир таким, какой он есть",
@@ -1470,13 +1478,15 @@ function IntroScreen() {
     title: "С близкими — пространство шире",
     sub: "Рядом со своими граница раздвигается дальше. Объединяйтесь в команды, делитесь привычками, держите друг друга.",
     glow: "rgba(150,185,225,0.42)"
-  }, {
+  }];
+  var MOOD_SLIDE = {
     mode: "mood",
     eyebrow: "Точка отсчёта",
     title: "Как ты сейчас?",
     sub: "Подвинь точку к своему состоянию — отсюда и начнём.",
     glow: "rgba(180,210,240,0.45)"
-  }];
+  };
+  var slides = moodOnly ? [MOOD_SLIDE] : storySlides;
   var cur = slides[step];
   var last = step === slides.length - 1;
 
@@ -1484,7 +1494,7 @@ function IntroScreen() {
   // the top line ("ты не видишь мир таким, какой он есть"); then it SWAPS — the
   // top line shrinks to a caption while the bottom line ("…в каком состоянии
   // находишься") grows bold into the headline. The truer line takes over.
-  var swapScene = step === 0;
+  var swapScene = !moodOnly && step === 0;
   // First-frame focus swap, driven PER FRAME off the animation clock (no CSS
   // transition on font-size/weight/wrap → no re-rasterisation flicker). `sp`
   // eases 0→1 with zero velocity at both ends (smootherstep), so the scale
@@ -1509,10 +1519,26 @@ function IntroScreen() {
         window.tgHaptic("light");
       } catch (e) {}
     }
-    try {
-      window.__bosOnbMood = moodVal;
-    } catch (e) {} // carry the chosen state → home widget
-    navigate("signup");
+    if (moodOnly) {
+      // Post-signup dial → carry the chosen state, then ENTER the app in the mode the signup
+      // button asked for (live / fresh / demo). This dial is the last step before home.
+      try {
+        window.__bosOnbMood = moodVal;
+      } catch (e) {}
+      try {
+        var nx = params && params.next;
+        if (nx === "live") {
+          if (app && app.enterLive) app.enterLive();
+        } else if (nx === "demo") {
+          if (app && app.enterDemo) app.enterDemo();
+        } else {
+          if (app && app.enterFresh) app.enterFresh(params && params.name);
+        }
+      } catch (e) {}
+      navigate("home");
+      return;
+    }
+    navigate("signup"); // story → «С чего начнём» (the dial now follows it)
   };
 
   // Theme-aware: follows the .theme-light / .theme-dark wrapper from the frame.
@@ -1575,7 +1601,7 @@ function IntroScreen() {
     count: dark ? 60 : 34,
     opacity: dark ? 0.45 : 0.5,
     dark: dark
-  }), /*#__PURE__*/React.createElement("div", {
+  }), !moodOnly && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "tap",
     "aria-label": "\u041D\u0430\u0437\u0430\u0434",
     onClick: () => {
@@ -1603,7 +1629,11 @@ function IntroScreen() {
       width: "33%",
       zIndex: 1
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  })), moodOnly ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0"
+    }
+  }) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0",
@@ -1880,16 +1910,21 @@ function IntroScreen() {
     var fade = edge * edge * (3 - 2 * edge); // smooth fade-out at the ends
     var filled = tv <= me.val + 0.005;
     var col = filled ? moodMain : dark ? "rgba(255,255,255,0.5)" : "rgba(21,35,60,0.3)";
+    // Watch-face hierarchy: the 7 MAIN marks (one per mood state — at the bucket
+    // centres i = 2,6,10,14,18,22,26) are LONG + bold; the unlabelled in-betweens
+    // are SHORT. The eye reads the scale like a clock face, no labels needed.
+    var main = i % 4 === 2;
+    var rIn = main ? 95 : 105;
     return /*#__PURE__*/React.createElement("line", {
       key: i,
-      x1: 150 + 99 * c,
-      y1: 150 - 99 * s,
-      x2: 150 + 111 * c,
-      y2: 150 - 111 * s,
+      x1: 150 + rIn * c,
+      y1: 150 - rIn * s,
+      x2: 150 + 112 * c,
+      y2: 150 - 112 * s,
       stroke: col,
-      strokeWidth: "1.8",
+      strokeWidth: main ? 2.6 : 1.5,
       strokeLinecap: "round",
-      opacity: (filled ? 0.95 : 0.55) * fade
+      opacity: (filled ? 0.95 : main ? 0.62 : 0.4) * fade
     });
   }), /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("radialGradient", {
     id: "moodThumbG",
@@ -1936,7 +1971,7 @@ function IntroScreen() {
       letterSpacing: "-0.1px",
       boxShadow: pal.btnShadow
     }
-  }, cur.mode === "mood" ? "Продолжить" : step === 0 ? "Начать" : "Далее"), /*#__PURE__*/React.createElement("div", {
+  }, cur.mode === "mood" || last ? "Продолжить" : step === 0 ? "Начать" : "Далее"), !moodOnly && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "center",

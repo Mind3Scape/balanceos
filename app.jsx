@@ -17,7 +17,7 @@ const { useState, useRef, useEffect, useCallback } = React;
 // in-app immersive screens stay always-dark.
 const DARK_ROUTES = new Set([]);
 const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
-const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup"]);
+const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
 
 // Root (html/body) background per screen — matches each screen's own base
 // colour so the home-indicator safe area is never a mismatched dark bar
@@ -59,6 +59,9 @@ const SCREENS = {
   onboarding: () => IntroScreen,
   intro: () => IntroScreen,
   signup: () => SignUpScreen,
+  // The state dial moved here — it runs AFTER «С чего начнём» (the signup buttons navigate to
+  // it with {moodOnly:true, next}). Same IntroScreen component, in mood-only mode.
+  "onb-mood": () => IntroScreen,
 };
 
 /* ── LIVE (real Telegram user) screen overrides ──────────────────────────────
@@ -160,7 +163,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v212";
+const APP_VERSION = "v213";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
