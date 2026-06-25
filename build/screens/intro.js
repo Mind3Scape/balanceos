@@ -1385,6 +1385,121 @@ function Reveal({
     }
   }, children);
 }
+
+/* Front-door demo picker (Новый / Постоянный), opened from the in-place signup on the
+   onboarding's last frame. Self-contained framework — `navigate` is passed as a prop (the
+   sheet renders outside the Nav provider) and routes to the state dial (onb-mood) with the mode. */
+function OnbDemoPicker({
+  navigate,
+  dark
+}) {
+  var {
+    close
+  } = useSheet();
+  var pick = next => {
+    try {
+      close && close();
+    } catch (e) {}
+    if (navigate) navigate("onb-mood", {
+      moodOnly: true,
+      next
+    });
+  };
+  var C = dark ? {
+    text: "#fff",
+    sub: "rgba(255,255,255,0.5)",
+    tile: "rgba(255,255,255,0.06)",
+    iconBg: "rgba(255,255,255,0.1)"
+  } : {
+    text: "#15233c",
+    sub: "rgba(21,35,60,0.55)",
+    tile: "#f2f5fa",
+    iconBg: "#e7ecf4"
+  };
+  var opts = [{
+    i: "✨",
+    t: "Новый пользователь",
+    d: "Пустое приложение — как при первом входе",
+    on: () => pick("fresh")
+  }, {
+    i: "👤",
+    t: "Постоянный пользователь",
+    d: "Заполненный пример активного пользователя",
+    on: () => pick("demo")
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 20px",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0414\u0435\u043C\u043E-\u0440\u0435\u0436\u0438\u043C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: C.sub,
+      marginTop: 3
+    }
+  }, "\u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0438 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0431\u0435\u0437 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, opts.map((o, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: o.on,
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      textAlign: "left",
+      background: C.tile,
+      border: 0,
+      borderRadius: 18,
+      padding: 15,
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      background: C.iconBg,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 21,
+      flexShrink: 0
+    }
+  }, o.i), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 15.5,
+      fontWeight: 600
+    }
+  }, o.t), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      color: C.sub,
+      marginTop: 2
+    }
+  }, o.d))))));
+}
 function IntroScreen() {
   var {
     navigate,
@@ -1394,6 +1509,15 @@ function IntroScreen() {
   // moodOnly = the post-signup state dial (reached from «С чего начнём» with {moodOnly,next}),
   // NOT the cinematic story. Shows only the mood slide; «Продолжить» enters the app.
   var moodOnly = !!(params && params.moodOnly);
+  // showSignup = the in-place signup on the LAST story frame: «Продолжить» on «С близкими —
+  // шире» flips this true → the orbit Stage STAYS mounted (zero flicker) and only the bottom
+  // morphs to «С чего начнём?» + the two entry buttons. (David: orbit beauty stays, no remount.)
+  var [showSignup, setShowSignup] = useIS(false);
+  var {
+    open: openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: null
+  };
   var [step, setStep] = useIS(0);
   var [prev, setPrev] = useIS(null);
   var [blendStart, setBlendStart] = useIS(0);
@@ -1601,7 +1725,7 @@ function IntroScreen() {
     count: dark ? 60 : 34,
     opacity: dark ? 0.45 : 0.5,
     dark: dark
-  }), !moodOnly && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }), !moodOnly && !showSignup && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "tap",
     "aria-label": "\u041D\u0430\u0437\u0430\u0434",
     onClick: () => {
@@ -1619,7 +1743,7 @@ function IntroScreen() {
     className: "tap",
     "aria-label": "\u0412\u043F\u0435\u0440\u0451\u0434",
     onClick: () => {
-      last ? finish() : go(step + 1);
+      last ? setShowSignup(true) : go(step + 1);
     },
     style: {
       position: "absolute",
@@ -1629,7 +1753,7 @@ function IntroScreen() {
       width: "33%",
       zIndex: 1
     }
-  })), moodOnly ? /*#__PURE__*/React.createElement("div", {
+  })), moodOnly || showSignup ? /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0"
     }
@@ -1719,7 +1843,35 @@ function IntroScreen() {
       minHeight: 150,
       pointerEvents: "none"
     }
-  }, /*#__PURE__*/React.createElement(Reveal, {
+  }, showSignup ?
+  /*#__PURE__*/
+  /* In-place signup title — the «С близкими» headline cross-fades to this; the orbit
+     above is untouched (same Stage), so only this text + the buttons below change. */
+  React.createElement(Reveal, {
+    k: "suTitle",
+    delay: 0.04
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--bos-title-font)",
+      fontSize: 30,
+      fontWeight: 600,
+      lineHeight: 1.12,
+      letterSpacing: "-0.8px",
+      textWrap: "balance",
+      maxWidth: 300,
+      margin: "0 auto",
+      color: pal.title
+    }
+  }, "\u0421 \u0447\u0435\u0433\u043E \u043D\u0430\u0447\u043D\u0451\u043C?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      color: pal.sub,
+      lineHeight: 1.55,
+      textWrap: "pretty",
+      maxWidth: 312,
+      margin: "12px auto 0"
+    }
+  }, "\u0417\u0430\u0433\u043B\u044F\u043D\u0438 \u0432 \u0433\u043E\u0442\u043E\u0432\u044B\u0439 \u043F\u0440\u0438\u043C\u0435\u0440 \u2014 \u0438\u043B\u0438 \u043D\u0430\u0447\u043D\u0438 \u0441\u0432\u043E\u0439 \u043F\u0443\u0442\u044C \u0441 \u0447\u0438\u0441\u0442\u043E\u0433\u043E \u043B\u0438\u0441\u0442\u0430.")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Reveal, {
     k: "eb" + step,
     delay: 0.1,
     style: {
@@ -1836,7 +1988,7 @@ function IntroScreen() {
       maxWidth: 312,
       margin: "0 auto"
     }
-  }, cur.sub)))), cur.mode === "mood" && /*#__PURE__*/React.createElement(Reveal, {
+  }, cur.sub))))), cur.mode === "mood" && /*#__PURE__*/React.createElement(Reveal, {
     k: "moodslider",
     delay: 0.5,
     style: {
@@ -1950,14 +2102,114 @@ function IntroScreen() {
     style: {
       filter: "drop-shadow(0 2px 9px rgba(0,0,0,0.22))"
     }
-  })))), /*#__PURE__*/React.createElement("div", {
+  })))), showSignup ?
+  /*#__PURE__*/
+  /* In-place signup: the two entry doors slide up from the bottom while the orbit above
+     stays put (same Stage, no remount). Demo opens the picker; Telegram → the state dial. */
+  React.createElement("div", {
+    style: {
+      position: "relative",
+      padding: "8px 22px calc(26px + var(--tg-bottom-inset, 0px))",
+      zIndex: 3,
+      animation: "suUp 0.6s cubic-bezier(0.22,0.8,0.32,1) both"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet && openSheet(/*#__PURE__*/React.createElement(OnbDemoPicker, {
+      navigate: navigate,
+      dark: dark
+    })),
+    className: "tap",
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 9,
+      marginBottom: 11,
+      background: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.72)",
+      color: pal.title,
+      border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(20,40,80,0.1)",
+      borderRadius: 999,
+      padding: "16px 18px",
+      fontSize: 15.5,
+      fontWeight: 600,
+      letterSpacing: "-0.1px",
+      WebkitBackdropFilter: "blur(12px)",
+      backdropFilter: "blur(12px)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Eye, {
+    size: 18
+  }), " \u0412\u043E\u0439\u0442\u0438 \u0432 \u0434\u0435\u043C\u043E\u0440\u0435\u0436\u0438\u043C"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("onb-mood", {
+      moodOnly: true,
+      next: "live"
+    }),
+    className: "tap",
+    style: {
+      position: "relative",
+      overflow: "hidden",
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 9,
+      background: "linear-gradient(150deg, #20242c 0%, #0a0a0a 62%)",
+      color: "#fff",
+      border: "1px solid rgba(255,255,255,0.09)",
+      borderRadius: 999,
+      padding: "16px 18px",
+      fontSize: 15.5,
+      fontWeight: 600,
+      letterSpacing: "-0.1px",
+      boxShadow: "0 14px 32px rgba(0,0,0,0.30)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 14,
+      top: "50%",
+      transform: "translateY(-50%)",
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      background: "radial-gradient(120% 120% at 32% 26%, #43b6ea, #229ED9 58%, #1b8ec3)",
+      display: "grid",
+      placeItems: "center",
+      boxShadow: "0 2px 8px rgba(34,158,217,0.55), inset 0 1px 1px rgba(255,255,255,0.45)"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "17",
+    height: "17",
+    viewBox: "0 0 24 24",
+    fill: "#fff",
+    "aria-hidden": true,
+    style: {
+      transform: "translateX(-0.5px)"
+    }
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
+  }))), "\u0412\u043E\u0439\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 Telegram", /*#__PURE__*/React.createElement("span", {
+    className: "bos-shine",
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      width: "42%",
+      pointerEvents: "none",
+      background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.20) 50%, transparent)",
+      transform: "translateX(-160%) skewX(-18deg)",
+      animation: "bosShine 5s ease-in-out 1.4s infinite"
+    }
+  }))) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       padding: "20px 24px 28px",
       zIndex: 2
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => cur.mode === "mood" || last ? finish() : go(step + 1),
+    onClick: () => cur.mode === "mood" ? finish() : last ? setShowSignup(true) : go(step + 1),
     className: "tap",
     style: {
       width: "100%",
@@ -1979,7 +2231,10 @@ function IntroScreen() {
       marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("signup"),
+    onClick: () => {
+      go(storySlides.length - 1);
+      setShowSignup(true);
+    },
     className: "tap",
     style: {
       background: "transparent",
@@ -1990,6 +2245,7 @@ function IntroScreen() {
   }, "\u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C"))), /*#__PURE__*/React.createElement("style", null, `
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
+        @keyframes suUp { from { opacity: 0; transform: translateY(38px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes moodFacePop { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes moodWordPop { 0% { opacity: 0; transform: scale(0.82) translateY(4px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.9); } 55% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }

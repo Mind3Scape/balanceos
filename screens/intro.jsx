@@ -685,12 +685,51 @@ function Reveal({ k, children, delay = 0, style }) {
   return <div key={k} style={{ animation: `introReveal 0.9s ${delay}s ease both`, ...style }}>{children}</div>;
 }
 
+/* Front-door demo picker (Новый / Постоянный), opened from the in-place signup on the
+   onboarding's last frame. Self-contained framework — `navigate` is passed as a prop (the
+   sheet renders outside the Nav provider) and routes to the state dial (onb-mood) with the mode. */
+function OnbDemoPicker({ navigate, dark }) {
+  const { close } = useSheet();
+  const pick = (next) => { try { close && close(); } catch (e) {} if (navigate) navigate("onb-mood", { moodOnly: true, next }); };
+  const C = dark
+    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.06)", iconBg: "rgba(255,255,255,0.1)" }
+    : { text: "#15233c", sub: "rgba(21,35,60,0.55)", tile: "#f2f5fa", iconBg: "#e7ecf4" };
+  const opts = [
+    { i: "✨", t: "Новый пользователь", d: "Пустое приложение — как при первом входе", on: () => pick("fresh") },
+    { i: "👤", t: "Постоянный пользователь", d: "Заполненный пример активного пользователя", on: () => pick("demo") },
+  ];
+  return (
+    <div style={{ padding: "2px 20px 20px", color: C.text }}>
+      <div style={{ textAlign: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Демо-режим</div>
+        <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3 }}>Посмотри приложение без регистрации</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {opts.map((o, i) => (
+          <button key={i} onClick={o.on} className="tap" style={{ display: "flex", alignItems: "center", gap: 13, textAlign: "left", background: C.tile, border: 0, borderRadius: 18, padding: 15, color: C.text }}>
+            <span style={{ width: 42, height: 42, borderRadius: 12, background: C.iconBg, display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{o.i}</span>
+            <span style={{ flex: 1 }}>
+              <span style={{ display: "block", fontSize: 15.5, fontWeight: 600 }}>{o.t}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: C.sub, marginTop: 2 }}>{o.d}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function IntroScreen() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   // moodOnly = the post-signup state dial (reached from «С чего начнём» with {moodOnly,next}),
   // NOT the cinematic story. Shows only the mood slide; «Продолжить» enters the app.
   const moodOnly = !!(params && params.moodOnly);
+  // showSignup = the in-place signup on the LAST story frame: «Продолжить» on «С близкими —
+  // шире» flips this true → the orbit Stage STAYS mounted (zero flicker) and only the bottom
+  // morphs to «С чего начнём?» + the two entry buttons. (David: orbit beauty stays, no remount.)
+  const [showSignup, setShowSignup] = useIS(false);
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: null };
   const [step, setStep] = useIS(0);
   const [prev, setPrev] = useIS(null);
   const [blendStart, setBlendStart] = useIS(0);
@@ -816,14 +855,14 @@ function IntroScreen() {
       {/* Instagram-stories tap zones: left → back, right → forward. They sit
          behind the content (the orb/text above are click-through) while the
          bottom buttons stay on top, so the central area navigates by tap. */}
-      {!moodOnly && (<>
+      {!moodOnly && !showSignup && (<>
       <div className="tap" aria-label="Назад" onClick={() => { if (step > 0) go(step - 1); }}
         style={{ position: "absolute", left: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
-      <div className="tap" aria-label="Вперёд" onClick={() => { last ? finish() : go(step + 1); }}
+      <div className="tap" aria-label="Вперёд" onClick={() => { last ? setShowSignup(true) : go(step + 1); }}
         style={{ position: "absolute", right: 0, top: 0, bottom: 120, width: "33%", zIndex: 1 }} />
       </>)}
 
-      {moodOnly ? (
+      {(moodOnly || showSignup) ? (
         <div style={{ padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0" }} />
       ) : (
       <div style={{ position: "relative", padding: "max(72px, calc(var(--tg-top-inset, 0px) + 14px)) 24px 0", display: "flex", gap: 4, zIndex: 2, pointerEvents: "none" }}>
@@ -851,6 +890,14 @@ function IntroScreen() {
       </div>
 
       <div style={{ position: "relative", padding: "0 28px", textAlign: "center", zIndex: 2, minHeight: 150, pointerEvents: "none" }}>
+        {showSignup ? (
+          /* In-place signup title — the «С близкими» headline cross-fades to this; the orbit
+             above is untouched (same Stage), so only this text + the buttons below change. */
+          <Reveal k="suTitle" delay={0.04}>
+            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.8px", textWrap: "balance", maxWidth: 300, margin: "0 auto", color: pal.title }}>С чего начнём?</div>
+            <div style={{ fontSize: 14.5, color: pal.sub, lineHeight: 1.55, textWrap: "pretty", maxWidth: 312, margin: "12px auto 0" }}>Загляни в готовый пример — или начни свой путь с чистого листа.</div>
+          </Reveal>
+        ) : (<>
         {/* Context label — now grouped right above its title, legible accent + staged in first */}
         <Reveal k={"eb"+step} delay={0.1} style={{ marginBottom: 11 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, letterSpacing: 2.4, textTransform: "uppercase", fontWeight: 700, color: pal.eyebrowStrong }}>
@@ -903,6 +950,7 @@ function IntroScreen() {
             )}
           </>
         )}
+        </>)}
       </div>
 
       {cur.mode === "mood" && (
@@ -953,20 +1001,47 @@ function IntroScreen() {
         </Reveal>
       )}
 
+      {showSignup ? (
+        /* In-place signup: the two entry doors slide up from the bottom while the orbit above
+           stays put (same Stage, no remount). Demo opens the picker; Telegram → the state dial. */
+        <div style={{ position: "relative", padding: "8px 22px calc(26px + var(--tg-bottom-inset, 0px))", zIndex: 3, animation: "suUp 0.6s cubic-bezier(0.22,0.8,0.32,1) both" }}>
+          <button onClick={() => openSheet && openSheet(<OnbDemoPicker navigate={navigate} dark={dark} />)} className="tap"
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginBottom: 11,
+              background: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.72)", color: pal.title,
+              border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(20,40,80,0.1)", borderRadius: 999,
+              padding: "16px 18px", fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.1px",
+              WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)" }}>
+            <I.Eye size={18} /> Войти в деморежим
+          </button>
+          <button onClick={() => navigate("onb-mood", { moodOnly: true, next: "live" })} className="tap"
+            style={{ position: "relative", overflow: "hidden", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+              background: "linear-gradient(150deg, #20242c 0%, #0a0a0a 62%)", color: "#fff",
+              border: "1px solid rgba(255,255,255,0.09)", borderRadius: 999, padding: "16px 18px",
+              fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: "0 14px 32px rgba(0,0,0,0.30)" }}>
+            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, borderRadius: "50%", background: "radial-gradient(120% 120% at 32% 26%, #43b6ea, #229ED9 58%, #1b8ec3)", display: "grid", placeItems: "center", boxShadow: "0 2px 8px rgba(34,158,217,0.55), inset 0 1px 1px rgba(255,255,255,0.45)" }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="#fff" aria-hidden style={{ transform: "translateX(-0.5px)" }}><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+            </span>
+            Войти через Telegram
+            <span className="bos-shine" aria-hidden style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "42%", pointerEvents: "none", background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.20) 50%, transparent)", transform: "translateX(-160%) skewX(-18deg)", animation: "bosShine 5s ease-in-out 1.4s infinite" }} />
+          </button>
+        </div>
+      ) : (
       <div style={{ position: "relative", padding: "20px 24px 28px", zIndex: 2 }}>
-        <button onClick={() => (cur.mode === "mood" || last) ? finish() : go(step+1)} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
+        <button onClick={() => (cur.mode === "mood") ? finish() : (last ? setShowSignup(true) : go(step+1))} className="tap" style={{ width: "100%", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", boxShadow: pal.btnShadow }}>
           {(cur.mode === "mood" || last) ? "Продолжить" : step === 0 ? "Начать" : "Далее"}
         </button>
         {!moodOnly && (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: 12 }}>
-          <button onClick={() => navigate("signup")} className="tap" style={{ background: "transparent", border: 0, color: pal.ghost, fontSize: 12 }}>Пропустить</button>
+          <button onClick={() => { go(storySlides.length - 1); setShowSignup(true); }} className="tap" style={{ background: "transparent", border: 0, color: pal.ghost, fontSize: 12 }}>Пропустить</button>
         </div>
         )}
       </div>
+      )}
 
       <style>{`
         @keyframes introReveal { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
         @keyframes introBar { from { width: 0; } to { width: 100%; } }
+        @keyframes suUp { from { opacity: 0; transform: translateY(38px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes moodFacePop { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes moodWordPop { 0% { opacity: 0; transform: scale(0.82) translateY(4px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes orbIntro { 0% { opacity: 0; transform: scale(0.9); } 55% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
