@@ -735,6 +735,12 @@ function MiniBars({ data, color = "#0a0a0a", height = 60, textMuted = "rgba(0,0,
    All AI goes through the Edge Function proxy (ai-chat), which holds the key as a
    SERVER secret and picks the model via the OPENROUTER_MODEL secret. The client
    never holds the key. No proxy / empty reply → graceful heuristic + honest fallback. */
+
+// ⚙️ ЕДИНАЯ МОДЕЛЬ ИИ — меняется ОДНОЙ этой строкой, потом обычный git push (НЕ Supabase).
+// Живёт в коде приложения; прокси просто передаёт её дальше, ключ остаётся секретом на сервере.
+// Любой id с https://openrouter.ai/models (например "deepseek/deepseek-v4-flash").
+const BOS_AI_MODEL = "deepseek/deepseek-v4-flash";
+
 const AI_SYSTEM = [
   "Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.",
   "У тебя нет имени и нет бренда. Никогда не называй себя «Balance», «ассистентом», «ИИ» или продуктом. Если спросят, как тебя зовут — мягко уйди от ответа: имя не важно, считай меня голосом, который помогает тебе вернуться к себе.",
@@ -834,7 +840,7 @@ async function aiRaw(messages) {
       const res = await aiFetch(sbUrl + "/functions/v1/ai-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sbKey, "apikey": sbKey },
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ messages, model: BOS_AI_MODEL }),
       });
       if (res.ok) { const data = await res.json(); const t = data && data.reply; if (t && t.trim()) return t.trim(); }
     } catch (e) { /* fall through */ }
