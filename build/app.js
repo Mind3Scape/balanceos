@@ -72,7 +72,12 @@ var SCREENS = {
    which stay FROZEN. A route with no live override safely falls back to its demo
    screen, so the fork can land one screen at a time. */
 var LIVE_SCREENS = {
-  home: () => typeof HomeLive === "function" ? HomeLive : HomeScreen
+  home: () => typeof HomeLive === "function" ? HomeLive : HomeScreen,
+  habits: () => typeof HabitsLive === "function" ? HabitsLive : HabitsScreen,
+  community: () => typeof CommunityLive === "function" ? CommunityLive : CommunityScreen,
+  "team-detail": () => typeof TeamDetailLive === "function" ? TeamDetailLive : TeamDetailScreen,
+  profile: () => typeof ProfileLive === "function" ? ProfileLive : ProfileScreen,
+  ai: () => typeof AILive === "function" ? AILive : AIScreen
 };
 function resolveScreen(route, mode) {
   if (mode === "live" && LIVE_SCREENS[route]) {
@@ -131,7 +136,7 @@ var AUTO_RESUME_TG = false;
 var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-var APP_VERSION = "v192";
+var APP_VERSION = "v193";
 try {
   console.log("BalanceOS build", APP_VERSION);
 } catch (e) {}

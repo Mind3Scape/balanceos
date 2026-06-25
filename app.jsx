@@ -68,6 +68,11 @@ const SCREENS = {
    screen, so the fork can land one screen at a time. */
 const LIVE_SCREENS = {
   home: () => (typeof HomeLive === "function" ? HomeLive : HomeScreen),
+  habits: () => (typeof HabitsLive === "function" ? HabitsLive : HabitsScreen),
+  community: () => (typeof CommunityLive === "function" ? CommunityLive : CommunityScreen),
+  "team-detail": () => (typeof TeamDetailLive === "function" ? TeamDetailLive : TeamDetailScreen),
+  profile: () => (typeof ProfileLive === "function" ? ProfileLive : ProfileScreen),
+  ai: () => (typeof AILive === "function" ? AILive : AIScreen),
 };
 function resolveScreen(route, mode) {
   if (mode === "live" && LIVE_SCREENS[route]) { const C = LIVE_SCREENS[route](); if (C) return C; }
@@ -124,7 +129,7 @@ const IS_STANDALONE =
     window.navigator.standalone === true);
 
 // Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v192";
+const APP_VERSION = "v193";
 try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
 
 /* Animation class names per navigation direction. */

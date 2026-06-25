@@ -22,6 +22,9 @@ const FILES = [
   "screens/home.jsx", "screens/habits.jsx", "screens/community.jsx",
   "screens/profile.jsx", "screens/extra.jsx", "screens/intro.jsx",
   "screens/live/home_live.jsx",
+  "screens/live/habits_live.jsx",
+  "screens/live/profile_live.jsx",
+  "screens/live/community_live.jsx",
   "app.jsx",
 ];
 
