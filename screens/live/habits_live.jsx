@@ -76,7 +76,7 @@ function HabitsLive() {
           fades anything inside the button's radius to opacity, so the «+» always reads
           crisp on top while the tags slide beneath it (David). The old Привычки/Цели
           switcher is gone — both sections now stack below like on the Home screen. */}
-      <div data-tour="presets" style={{ marginBottom: 18 }}>
+      <div data-tour="presets" style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600, marginBottom: 8, padding: "0 4px" }}>Быстрое добавление</div>
         <div style={{ position: "relative" }}>
           <div style={{
@@ -112,7 +112,7 @@ function HabitsLive() {
       <div className="section-label" style={{ marginTop: 2, color: "var(--text-3)", padding: "0 4px" }}>Привычки</div>
       {habits.length === 0 ? (
           <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 54, height: 54, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
+            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
             <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки</div>
             <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Начни с одной маленькой. Её можно делать одному или вместе с друзьями.</div>
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать привычку</span>
@@ -152,7 +152,7 @@ function HabitsLive() {
 
       {/* Цели — labelled section. The big black «+» above adds a habit; goals get
           their own quiet «+» on the section header (so both are still one tap away). */}
-      <div className="section-label" style={{ marginTop: 20, color: "var(--text-3)", padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="section-label" style={{ marginTop: 16, color: "var(--text-3)", padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span>Цели</span>
         <button onClick={() => navigate("goal-settings", { mode: "create" })} className="tap hit44" data-no-haptic aria-label="Добавить цель"
           style={{ width: 28, height: 28, borderRadius: 999, background: TH.iconBg, color: "var(--text-3)", border: 0, display: "grid", placeItems: "center", marginRight: -2 }}>
@@ -161,7 +161,7 @@ function HabitsLive() {
       </div>
       {goals.length === 0 ? (
           <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 54, height: 54, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🎯</span>
+            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🎯</span>
             <div style={{ fontSize: 17, fontWeight: 600 }}>Пока нет целей</div>
             <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Цель — это вершина, к которой ведут твои привычки. Поставь первую.</div>
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Поставить цель</span>
@@ -204,7 +204,7 @@ function HabitsLive() {
           header so it's one tap to bring them back (David). The Settings toggle
           «Карточки обучения» flips the same flag. */}
       {!learnHidden ? (<>
-      <div className="section-label" style={{ marginTop: 22, padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="section-label" style={{ marginTop: 16, padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span>Обучение</span>
         <button onClick={hideLearn} className="tap" data-no-haptic aria-label="Скрыть обучение"
           style={{ background: "transparent", border: 0, color: "var(--text-4)", fontSize: 13, fontWeight: 600, padding: "2px 2px", textTransform: "none", letterSpacing: 0, lineHeight: 1, display: "inline-flex", alignItems: "center", gap: 4 }}>

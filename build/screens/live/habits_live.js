@@ -90,7 +90,7 @@ function HabitsLive() {
   }, /*#__PURE__*/React.createElement("div", {
     "data-tour": "presets",
     style: {
-      marginBottom: 18
+      marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -204,7 +204,7 @@ function HabitsLive() {
     style: {
       width: 54,
       height: 54,
-      borderRadius: 14,
+      borderRadius: 16,
       background: TH.iconBg,
       display: "grid",
       placeItems: "center",
@@ -343,7 +343,7 @@ function HabitsLive() {
   })))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
-      marginTop: 20,
+      marginTop: 16,
       color: "var(--text-3)",
       padding: "0 4px",
       display: "flex",
@@ -395,7 +395,7 @@ function HabitsLive() {
     style: {
       width: 54,
       height: 54,
-      borderRadius: 14,
+      borderRadius: 16,
       background: TH.iconBg,
       display: "grid",
       placeItems: "center",
@@ -537,7 +537,7 @@ function HabitsLive() {
   })), !learnHidden ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
-      marginTop: 22,
+      marginTop: 16,
       padding: "0 4px",
       display: "flex",
       alignItems: "center",

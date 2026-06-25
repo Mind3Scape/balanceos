@@ -264,7 +264,7 @@ function HomeLive() {
       <div className="section-label" style={{ marginTop: 16, color: "var(--text-3)", padding: "0 4px" }}>Привычки</div>
       {habits.length === 0 ? (
           <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 52, height: 52, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
+            <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
             <div style={{ fontSize: 16, fontWeight: 600 }}>Здесь будут твои привычки</div>
             <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
             <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
@@ -301,10 +301,10 @@ function HomeLive() {
       )}
 
       {/* Goals — a labelled section, always shown. */}
-      <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Цели</div>
+      <div className="section-label" style={{ marginTop: 16, color: "var(--text-3)", padding: "0 4px" }}>Цели</div>
       {goals.length === 0 ? (
           <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 52, height: 52, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
+            <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
             <div style={{ fontSize: 16, fontWeight: 600 }}>Пока нет целей</div>
             <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
             <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Поставить цель</span>
@@ -326,7 +326,7 @@ function HomeLive() {
                       <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
                   </div>
                   <div className="bos-progress"><span style={{ width: (pct*100) + "%" }} /></div>
                 </div>

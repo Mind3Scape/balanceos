@@ -580,7 +580,7 @@ function HomeLive() {
     style: {
       width: 52,
       height: 52,
-      borderRadius: 14,
+      borderRadius: 16,
       background: iconBg,
       display: "grid",
       placeItems: "center",
@@ -719,7 +719,7 @@ function HomeLive() {
   })))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
-      marginTop: 18,
+      marginTop: 16,
       color: "var(--text-3)",
       padding: "0 4px"
     }
@@ -747,7 +747,7 @@ function HomeLive() {
     style: {
       width: 52,
       height: 52,
-      borderRadius: 14,
+      borderRadius: 16,
       background: iconBg,
       display: "grid",
       placeItems: "center",
@@ -864,7 +864,7 @@ function HomeLive() {
     }, g.current, " / ", g.target, " ", g.unit)), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14,
-        fontWeight: 600,
+        fontWeight: 700,
         color: "var(--text-2)"
       }
     }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {

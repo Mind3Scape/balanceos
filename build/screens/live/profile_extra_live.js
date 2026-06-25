@@ -354,10 +354,7 @@ function SettingsLive() {
     }))
   }].map((r, i) => /*#__PURE__*/React.createElement(SysBtn, {
     key: i,
-    onClick: r.on,
-    style: {
-      padding: 14
-    }
+    onClick: r.on
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
     style: {
@@ -407,10 +404,7 @@ function SettingsLive() {
     }))
   }].map((r, i) => /*#__PURE__*/React.createElement(SysBtn, {
     key: i,
-    onClick: r.on,
-    style: {
-      padding: 14
-    }
+    onClick: r.on
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
     style: {
@@ -505,10 +499,7 @@ function SettingsLive() {
       marginTop: 8
     }
   }, /*#__PURE__*/React.createElement(SysBtn, {
-    onClick: () => navigate("home-customize"),
-    style: {
-      padding: 14
-    }
+    onClick: () => navigate("home-customize")
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
     style: {
@@ -598,10 +589,7 @@ function SettingsLive() {
   }, /*#__PURE__*/React.createElement(SysBtn, {
     onClick: () => navigate("guide", {
       from: "settings"
-    }),
-    style: {
-      padding: 14
-    }
+    })
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
     style: {
@@ -627,10 +615,7 @@ function SettingsLive() {
   })), /*#__PURE__*/React.createElement(SysBtn, {
     onClick: () => navigate("manifest", {
       from: "settings"
-    }),
-    style: {
-      padding: 14
-    }
+    })
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
     style: {
@@ -660,10 +645,7 @@ function SettingsLive() {
       body: "Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта.",
       cta: "\u0413\u043E\u0442\u043E\u0432\u043E",
       dark: routeDark
-    })),
-    style: {
-      padding: 14
-    }
+    }))
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,
@@ -1535,10 +1517,7 @@ function SupportLive() {
   }, FAQ.map((f, i) => /*#__PURE__*/React.createElement("div", {
     key: i
   }, /*#__PURE__*/React.createElement(SysBtn, {
-    onClick: () => setOpenFaq(o => o === f.q ? null : f.q),
-    style: {
-      padding: 14
-    }
+    onClick: () => setOpenFaq(o => o === f.q ? null : f.q)
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,

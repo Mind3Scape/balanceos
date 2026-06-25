@@ -152,7 +152,7 @@ function SettingsLive() {
           { label: "Редактировать профиль", icon: I.Pencil, on: () => openSheet(<EditProfileSheet dark={routeDark}/>) },
           { label: "Вход через Telegram", icon: I.Globe, on: () => openSheet(<InfoSheet title="Вход через Telegram" body="Ты входишь через свой аккаунт Telegram — отдельный пароль не нужен. Твои данные привязаны к нему и переносятся между устройствами." cta="Понятно" dark={routeDark}/>) },
         ].map((r, i) => (
-          <SysBtn key={i} onClick={r.on} style={{ padding: 14 }}>
+          <SysBtn key={i} onClick={r.on}>
             <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
             <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{r.label}</span>
             <I.ChevronRight size={16} className="bos-sys-text-2" />
@@ -166,7 +166,7 @@ function SettingsLive() {
           { label: "История состояния", icon: I.Smile, on: () => openSheet(<StateHistorySheetLive app={app} dark={routeDark} />) },
           { label: "Друзья", icon: I.Users, on: () => openSheet(<FriendsSheetLive dark={routeDark} />) },
         ].map((r, i) => (
-          <SysBtn key={i} onClick={r.on} style={{ padding: 14 }}>
+          <SysBtn key={i} onClick={r.on}>
             <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
             <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{r.label}</span>
             <I.ChevronRight size={16} className="bos-sys-text-2" />
@@ -193,7 +193,7 @@ function SettingsLive() {
 
       <div className="section-label" style={{ marginTop: 22 }}>Главный экран</div>
       <div style={{ marginTop: 8 }}>
-        <SysBtn onClick={() => navigate("home-customize")} style={{ padding: 14 }}>
+        <SysBtn onClick={() => navigate("home-customize")}>
           <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Home size={16} /></span>
           <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Виджеты на главном</span>
           <I.ChevronRight size={16} className="bos-sys-text-2" />
@@ -227,19 +227,19 @@ function SettingsLive() {
 
       <div className="section-label" style={{ marginTop: 22 }}>О приложении</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        <SysBtn onClick={() => navigate("guide", { from: "settings" })} style={{ padding: 14 }}>
+        <SysBtn onClick={() => navigate("guide", { from: "settings" })}>
           <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Compass size={16} /></span>
           <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>О приложении</span>
           <I.ChevronRight size={16} className="bos-sys-text-2" />
         </SysBtn>
-        <SysBtn onClick={() => navigate("manifest", { from: "settings" })} style={{ padding: 14 }}>
+        <SysBtn onClick={() => navigate("manifest", { from: "settings" })}>
           <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={16} /></span>
           <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Манифест</span>
           <I.ChevronRight size={16} className="bos-sys-text-2" />
         </SysBtn>
         {["Политика конфиденциальности", "Условия использования", "Версия 2.4.1"].map((l, i, a) => (
           i < a.length - 1 ? (
-            <SysBtn key={i} onClick={() => openSheet(<InfoSheet title={l} body={"Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта."} cta="Готово" dark={routeDark}/>)} style={{ padding: 14 }}>
+            <SysBtn key={i} onClick={() => openSheet(<InfoSheet title={l} body={"Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта."} cta="Готово" dark={routeDark}/>)}>
               <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{l}</span>
               <I.ChevronRight size={16} className="bos-sys-text-2" />
             </SysBtn>
@@ -660,7 +660,7 @@ function SupportLive() {
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {FAQ.map((f,i)=>(
           <div key={i}>
-            <SysBtn onClick={() => setOpenFaq(o => o === f.q ? null : f.q)} style={{ padding: 14 }}>
+            <SysBtn onClick={() => setOpenFaq(o => o === f.q ? null : f.q)}>
               <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{f.q}</span>
               <I.ChevronRight size={16} className="bos-sys-text-2" style={{ transform: openFaq === f.q ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}/>
             </SysBtn>
