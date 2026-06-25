@@ -1025,13 +1025,25 @@ function ShareAppSheetLive({
   }, "\uD83D\uDD17"), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
-      fontSize: 14,
+      minWidth: 0,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.sub,
+      fontWeight: 600
+    }
+  }, "\u0422\u0432\u043E\u044F \u043B\u0438\u0447\u043D\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
       color: C.text,
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      marginTop: 1
     }
-  }, "t.me/BalanceOS8_bot"), /*#__PURE__*/React.createElement("button", {
+  }, ("" + shareUrl).replace(/^https?:\/\//, ""))), /*#__PURE__*/React.createElement("button", {
     onClick: copyLink,
     className: "tap",
     style: {
