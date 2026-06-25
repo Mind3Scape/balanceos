@@ -945,8 +945,7 @@ function GoalSettingsLive() {
         border: active ? "0" : "1px solid rgba(0,0,0,0.06)"
       }
     }, q);
-  })), showCal && /*#__PURE__*/React.createElement(DeadlineCalendar, {
-    isLive: true,
+  })), showCal && /*#__PURE__*/React.createElement(DeadlineCalendarLive, {
     onPick: s => {
       setDeadline(s);
       setShowCal(false);

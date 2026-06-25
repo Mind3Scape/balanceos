@@ -157,7 +157,7 @@ function CommunityLive() {
         // FABRICATED content — demo-only. The live user gets the honest locked banner
         // instead (real XP paths, no fabricated people), until a real network exists.
         <div style={{ marginTop: 2 }}>
-          <NetworkLocked
+          <NetworkLockedLive
             navigate={navigate}
             live={true}
             level={userLevel}

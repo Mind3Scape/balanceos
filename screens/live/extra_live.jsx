@@ -104,7 +104,7 @@ function HabitDetailLive() {
 
       {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
          so the whole app reads one way. Live = your own real days. */}
-      <PeopleMonthCalendar people={calPeople} dayFrac={habitFrac} label="Календарь привычки" />
+      <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" />
 
       {/* Insight — neutral surface, streak-driven copy */}
       <div className="section-label" style={{ marginTop: 22 }}>Инсайт</div>
@@ -619,7 +619,7 @@ function AIChatLive() {
     setMsgs(history);
     setDraft("");
     setTyping(true);
-    aiReply(history, buildAiContext(app), false)
+    aiReplyLive(history, buildAiContextLive(app))
       .then((reply) => {
         setTyping(false);
         const parsed = bosParseAction(reply);

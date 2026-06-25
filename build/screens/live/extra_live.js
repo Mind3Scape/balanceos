@@ -207,7 +207,7 @@ function HabitDetailLive() {
       fontWeight: 600,
       marginTop: 3
     }
-  }, s.l)))), /*#__PURE__*/React.createElement(PeopleMonthCalendar, {
+  }, s.l)))), /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
     people: calPeople,
     dayFrac: habitFrac,
     label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"
@@ -1381,7 +1381,7 @@ function AIChatLive() {
     setMsgs(history);
     setDraft("");
     setTyping(true);
-    aiReply(history, buildAiContext(app), false).then(reply => {
+    aiReplyLive(history, buildAiContextLive(app)).then(reply => {
       setTyping(false);
       var parsed = bosParseAction(reply);
       var body = parsed.text && parsed.text.trim() ? parsed.text : parsed.action ? "" : reply || AI_LIVE_FALLBACK;

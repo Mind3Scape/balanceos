@@ -6,51 +6,6 @@ var {
 
 /* Theme-aware helpers used across system screens.
    In the dark theme the .bos-sys-card class flips its own bg & text. */
-var sheetColors = d => d ? {
-  text: "#fff",
-  sub: "rgba(255,255,255,0.55)",
-  line: "rgba(255,255,255,0.1)",
-  btn: "#fff",
-  btnFg: "#0a0a0a",
-  field: "rgba(255,255,255,0.06)"
-} : {
-  text: "#0a0a0a",
-  sub: "rgba(0,0,0,0.5)",
-  line: "rgba(0,0,0,0.08)",
-  btn: "#0a0a0a",
-  btnFg: "#fff",
-  field: "#f5f5f7"
-};
-function SheetDone({
-  C,
-  label
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: "16px 0 8px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 52,
-      height: 52,
-      borderRadius: "50%",
-      background: C.btn,
-      color: C.btnFg,
-      display: "grid",
-      placeItems: "center",
-      margin: "0 auto",
-      fontSize: 24
-    }
-  }, "\u2713"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      marginTop: 10
-    }
-  }, label));
-}
-var BOS_SUPPORT_EMAIL = "support@balanceos.app";
 function FeedbackSheet({
   title = "Написать в поддержку",
   dark = false

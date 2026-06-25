@@ -25,6 +25,9 @@ const FILES = [
   "core/community-kit.jsx", "core/extra-kit.jsx",
   "screens/home.jsx", "screens/habits.jsx", "screens/community.jsx",
   "screens/profile.jsx", "screens/extra.jsx", "screens/intro.jsx",
+  // live-only forks of the mode-aware bricks (the *Live versions) — load before the
+  // live screens that call them.
+  "screens/live/shared_live.jsx",
   "screens/live/home_live.jsx",
   "screens/live/habits_live.jsx",
   "screens/live/profile_live.jsx",

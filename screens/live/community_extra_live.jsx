@@ -561,7 +561,7 @@ function LevelsLive() {
           </div>
         )}
 
-        <button onClick={() => openSheet(<ShareAppSheet dark={isDark} />)} className="tap" style={{ width: "100%", marginTop: 14, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 12, fontSize: 14.5, fontWeight: 600 }}>Пригласить друга</button>
+        <button onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)} className="tap" style={{ width: "100%", marginTop: 14, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 12, fontSize: 14.5, fontWeight: 600 }}>Пригласить друга</button>
       </SysCard>
 
       <div className="section-label" style={{ marginTop: 22 }}>Достижения</div>

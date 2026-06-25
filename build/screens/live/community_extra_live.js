@@ -1509,7 +1509,7 @@ function LevelsLive() {
       color: "#E0A500"
     }
   }, "+150 XP"), "."), /*#__PURE__*/React.createElement("button", {
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheet, {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheetLive, {
       dark: isDark
     })),
     className: "tap",

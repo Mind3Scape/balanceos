@@ -387,7 +387,7 @@ function GoalSettingsLive() {
           );
         })}
       </div>
-      {showCal && <DeadlineCalendar isLive={true} onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
+      {showCal && <DeadlineCalendarLive onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
 
       <div className="section-label" style={{ marginTop: 22 }}>Привязать привычку</div>
       <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>

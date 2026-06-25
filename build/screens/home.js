@@ -4,35 +4,6 @@ var {
 } = React;
 
 /* Detect dark/light theme from wrapper class */
-function bosPillLabel(pill) {
-  if (typeof pill === "string") return pill;
-  return pill.label || pill.t || pill.prompt || "";
-}
-function bosPillIcon(pill) {
-  if (typeof pill === "string") return "✨";
-  return pill.i || "✨";
-}
-function bosRoutePill(navigate, pill) {
-  if (typeof pill === "string") {
-    navigate("ai-chat", {
-      prompt: pill
-    });
-    return;
-  }
-  if (pill && pill.kind === "action" && pill.route) {
-    navigate(pill.route, pill.params || {});
-    return;
-  }
-  // kind:"chat" (or any legacy/unknown pill): open the conversation. Prefer an
-  // explicit prompt, else use the label so the chat still opens on-topic.
-  navigate("ai-chat", {
-    prompt: pill && (pill.prompt || pill.label || pill.t) || ""
-  });
-}
-
-/* Habit checkmark with a floating "+XP" pop on completion — the same reward beat
-   as the day-close celebration, but right ON the checkmark so it's always visible
-   (even when the top of the screen is scrolled off). Shared by Home + Habits. */
 function zoneColor(v) {
   if (v >= 0.70) return "#34C759"; // зелёная зона — в балансе
   if (v >= 0.52) return "#FFC400"; // нейтрально
@@ -127,38 +98,6 @@ function BalanceWheel({
 
 /* The little hero orb on the profile-button. Delegates to BosOrbFace (memoji photo /
    emoji on a clean mood sphere / default face), wrapped with the hero's drop shadow. */
-function HeroOrbFace({
-  avatar,
-  inset,
-  size,
-  moodTint
-}) {
-  var shadow = `0 2px 6px rgba(0,0,0,0.08)${moodTint ? `, 0 0 13px ${moodTint[1]}55` : ""}`;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset,
-      borderRadius: "50%",
-      overflow: "hidden",
-      boxShadow: shadow
-    }
-  }, /*#__PURE__*/React.createElement(BosOrbFace, {
-    avatar: avatar,
-    size: size,
-    tint: moodTint,
-    style: {
-      width: "100%",
-      height: "100%"
-    }
-  }));
-}
-
-/* Hero orbit — the SAME constellation as the Profile screen's OrbitField, scaled to
-   live inside the swipe-deck card: you (the mood orb with your avatar) in the centre,
-   orbit rings with small drifting dots, and your real people (team-mates + co-op
-   friends) as memoji discs around you. No green health glow — it follows the mood
-   tint like the hero, and a settings gear sits in the top-right.
-   `people` is REAL data (deduped team members + habit friends); empty → calm rings. */
 function HomeOrbit({
   navigate,
   avatar,

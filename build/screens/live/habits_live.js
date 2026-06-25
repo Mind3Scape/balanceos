@@ -247,7 +247,7 @@ function HabitsLive() {
       tone: "share",
       label: "Поделиться",
       icon: I.Share,
-      onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheet, {
+      onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
         habit: h,
         dark: isDark
       }))

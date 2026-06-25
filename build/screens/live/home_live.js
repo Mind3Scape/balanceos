@@ -228,7 +228,7 @@ function HomeLive() {
     style: {
       position: "relative"
     }
-  }, /*#__PURE__*/React.createElement(HomeHeroSwipe, {
+  }, /*#__PURE__*/React.createElement(HomeHeroSwipeLive, {
     navigate: navigate,
     doneCount: doneCount,
     totalCount: totalCount,
@@ -548,7 +548,7 @@ function HomeLive() {
       tone: "share",
       label: "Поделиться",
       icon: I.Share,
-      onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheet, {
+      onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
         habit: h,
         dark: isDark
       }))
@@ -765,7 +765,7 @@ function HomeLive() {
   })), /*#__PURE__*/React.createElement("button", {
     "data-tour": "share-app",
     className: "tap",
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheet, {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheetLive, {
       dark: isDark
     })),
     style: {
@@ -864,7 +864,7 @@ function HomeLive() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 16,
     strokeWidth: 2.5
-  })))), widgets.mood !== false && mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2 && /*#__PURE__*/React.createElement(MoodWidget, {
+  })))), widgets.mood !== false && mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2 && /*#__PURE__*/React.createElement(MoodWidgetLive, {
     mood: mood,
     app: app,
     isDark: isDark,

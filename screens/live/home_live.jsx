@@ -138,7 +138,7 @@ function HomeLive() {
       </div>
 
       <div data-tour="aihints" style={{ position: "relative" }}>
-        <HomeHeroSwipe navigate={navigate} doneCount={doneCount} totalCount={totalCount} ringPct={ringPct} isDark={isDark} />
+        <HomeHeroSwipeLive navigate={navigate} doneCount={doneCount} totalCount={totalCount} ringPct={ringPct} isDark={isDark} />
         {celebrate && (
           <div key={celebrate.key} aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 6, overflow: "visible" }}>
             <div style={{ position: "absolute", top: 66, right: 16, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5,
@@ -229,7 +229,7 @@ function HomeLive() {
           {habits.map((h) => (
             <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
-                { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheet habit={h} dark={isDark} />) },
+                { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />) },
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
                 <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
@@ -287,7 +287,7 @@ function HomeLive() {
 
       {/* Invite / share the app — a focused dark CTA (stands apart from the white
          habit cards above) that ties sharing to the reward loop: friend → XP → level. */}
-      <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheet dark={isDark} />)}
+      <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)}
         style={{ marginTop: 12, width: "100%", borderRadius: 22, padding: "16px 18px", border: 0, position: "relative", overflow: "hidden",
           background: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)", boxShadow: "0 10px 26px rgba(20,40,80,0.28)",
           color: "#fff", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
@@ -311,7 +311,7 @@ function HomeLive() {
       {/* State widget lives LOWER for live (below «Позови своих») so a new user
           isn't hit with it up top — David's call. Only surfaces once there are at
           least 2 days of marks. */}
-      {widgets.mood !== false && mood && (typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) && <MoodWidget mood={mood} app={app} isDark={isDark} navigate={navigate} />}
+      {widgets.mood !== false && mood && (typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) && <MoodWidgetLive mood={mood} app={app} isDark={isDark} navigate={navigate} />}
     </div>
   );
 }

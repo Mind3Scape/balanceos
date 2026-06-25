@@ -492,3 +492,19 @@ var INFO_TOPICS = {
     }
   }
 };
+
+/* ── v197: deeper deps for the moved bricks (ringHaptic, fmtClock, AVATAR_PALETTE) ── */
+var AVATAR_PALETTE = ["#7FB3F2", "#F4A574", "#76D3A0", "#B89AF0", "#F291AC", "#74CFE0", "#F5C56B"];
+
+/* Per-habit accent. `null` = base (neutral gray, the project default); a value
+   softly tints the icon tile everywhere and fills the stats grid. Kept to calm
+   iOS-system hues so coloured habits still read cohesive with the gray ones. */
+function fmtClock(sec) {
+  var s = Math.max(0, Math.ceil(sec));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+function ringHaptic(kind) {
+  try {
+    if (window.tgHaptic) window.tgHaptic(kind);else if (navigator.vibrate) navigator.vibrate(kind === "success" ? [10, 40, 12] : 7);
+  } catch (_) {}
+}

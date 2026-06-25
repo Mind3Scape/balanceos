@@ -559,12 +559,12 @@ function SupportLive() {
       </div>
       <div className="section-label" style={{ marginTop: 22 }}>Свяжитесь с нами</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
-        <SysCard onClick={() => openSheet(<FeedbackSheet title="Написать нам" dark={routeDark}/>)} style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
+        <SysCard onClick={() => openSheet(<FeedbackSheetLive title="Написать нам" dark={routeDark}/>)} style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
           <I.Mail size={20}/>
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Написать нам</span>
           <span className="bos-sys-text-2" style={{ fontSize: 12 }}>support@balanceos.app</span>
         </SysCard>
-        <SysCard onClick={() => openSheet(<FeedbackSheet title="Чат поддержки" dark={routeDark}/>)} style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
+        <SysCard onClick={() => openSheet(<FeedbackSheetLive title="Чат поддержки" dark={routeDark}/>)} style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, cursor: "pointer" }}>
           <I.MessageCircle size={20}/>
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Чат поддержки</span>
           <span className="bos-sys-text-2" style={{ fontSize: 12 }}>Ответ в среднем 5 мин</span>

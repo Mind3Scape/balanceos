@@ -922,22 +922,6 @@ function TeamCreateScreen() {
 
 /* Colored progress ring for a calendar day — like History's DayRing but any colour
    (per-member tint), so a member's month reads in their own colour. */
-function TeamRing({ pct, color = "#FEDE34", track, sw = 3, glow }) {
-  const r = 16, C = 2 * Math.PI * r;
-  return (
-    <svg viewBox="0 0 40 40" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
-      <circle cx="20" cy="20" r={r} fill="none" stroke={track} strokeWidth={sw} />
-      {pct > 0 && <circle cx="20" cy="20" r={r} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} style={glow ? { filter: `drop-shadow(0 0 1.5px ${color}bf)` } : undefined} />}
-    </svg>
-  );
-}
-
-/* PEOPLE MONTH CALENDAR — ONE shared full-month calendar (paged, like History), used
-   by BOTH a team and an individual habit so the whole app reads the same way. Pass
-   people [{name,initials,color,you?}] and dayFrac(personIdx, day, month)→0..1. With
-   >1 person it shows a "Все" density view + a per-person selector; 1 person = just
-   that month. Selection can be controlled (selPerson/onSelPerson) to sync with a
-   leaderboard, else internal. `granular` shows %-completion in the read-out (teams). */
 function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
@@ -1037,47 +1021,6 @@ function PeopleMonthCalendar({ people = [], dayFrac, label = "Календарь
    Reused for leaving / deleting a team. `onConfirm` may be async; the button shows
    a pending state and closes the sheet when it resolves. Sheets render outside the
    themed page scope, so the page background is light (same as the other team sheets). */
-function ConfirmActionSheet({ emoji = "⚠️", title, message, confirmLabel, confirmIcon, onConfirm }) {
-  const { close } = useSheet();
-  const [busy, setBusy] = React.useState(false);
-  const go = async () => {
-    if (busy) return;
-    setBusy(true);
-    if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e) {} }
-    try { await onConfirm(); } catch (e) {}
-    close();
-  };
-  return (
-    <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: 64, height: 64, borderRadius: "50%", margin: "0 auto 12px", background: "rgba(255,59,48,0.12)", display: "grid", placeItems: "center", fontSize: 32 }}>{emoji}</div>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>{title}</div>
-        {message && <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>{message}</div>}
-      </div>
-      <button onClick={go} disabled={busy} className="tap" style={{ width: "100%", marginTop: 20, border: 0, borderRadius: 999, padding: 15, background: "#FF3B30", color: "#fff", fontSize: 15.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: busy ? 0.6 : 1 }}>
-        {confirmIcon ? React.createElement(confirmIcon, { size: 18 }) : null} {busy ? "Минутку…" : confirmLabel}
-      </button>
-      <button onClick={close} disabled={busy} className="tap" style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 999, padding: 15, background: "var(--surface-3)", color: "var(--text)", fontSize: 15.5, fontWeight: 600 }}>
-        Отмена
-      </button>
-      <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
-    </div>
-  );
-}
-
-/* Leave (member) or delete (owner) a team, then drop it from the local store and go
-   back to the community list. For a cloud team we hit the cloud first; a local-only
-   team (no cloudId) just removes locally. Used by Team detail + Team settings. */
-async function bosExitTeam({ app, team, isOwner }) {
-  try {
-    if (team && team.cloudId && window.bosCloud) {
-      if (isOwner) { if (window.bosCloud.deleteTeam) await window.bosCloud.deleteTeam(team.cloudId); }
-      else { if (window.bosCloud.leaveTeam) await window.bosCloud.leaveTeam(team.cloudId); }
-    }
-  } catch (e) {}
-  if (app && app.removeTeam && team) app.removeTeam(team._id);
-}
-/* Open the iOS confirm sheet for leaving/deleting, wired to bosExitTeam + navigate-back. */
 function TeamDetailScreen() {
   const { navigate, params } = useNav();
   const app = useApp();

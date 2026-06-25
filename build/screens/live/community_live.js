@@ -372,7 +372,7 @@ function CommunityLive() {
     style: {
       marginTop: 2
     }
-  }, /*#__PURE__*/React.createElement(NetworkLocked, {
+  }, /*#__PURE__*/React.createElement(NetworkLockedLive, {
     navigate: navigate,
     live: true,
     level: userLevel,

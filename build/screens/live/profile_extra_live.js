@@ -1251,7 +1251,7 @@ function SupportLive() {
       marginTop: 8
     }
   }, /*#__PURE__*/React.createElement(SysCard, {
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(FeedbackSheet, {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(FeedbackSheetLive, {
       title: "\u041D\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u043D\u0430\u043C",
       dark: routeDark
     })),
@@ -1277,7 +1277,7 @@ function SupportLive() {
       fontSize: 12
     }
   }, "support@balanceos.app")), /*#__PURE__*/React.createElement(SysCard, {
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(FeedbackSheet, {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(FeedbackSheetLive, {
       title: "\u0427\u0430\u0442 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438",
       dark: routeDark
     })),
