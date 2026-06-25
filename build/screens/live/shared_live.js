@@ -1435,11 +1435,222 @@ function ShareHabitSheetLive({
 
 /* MoodWidget → live-only: real per-day mood trail (Пн→Вс), real streak chip + XP copy.
    No demo numeric-days showcase, no fresh-user empty state (live always has the trail). */
+// LIVE daily state CHECK-IN prompt (David: once a day, in-app card — no push).
+// Sits ABOVE habits when today's state isn't logged yet; one tap on a mood orb logs
+// it (setMood + setDayMoods, keyed by the real day) and the slot flips to the widget.
+// Flush (no own margin/radius/shadow) so it drops cleanly into a SwipeRow wrapper.
+function StatePromptLive({
+  app,
+  isDark
+}) {
+  var moods = typeof MOOD_OPTIONS !== "undefined" ? MOOD_OPTIONS : [];
+  var log = i => {
+    if (!app) return;
+    var dayKey = typeof bosTodayKey === "function" ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+    app.setMood && app.setMood(moods[i]);
+    app.setDayMoods && app.setDayMoods({
+      ...(app.dayMoods || {}),
+      [dayKey]: i
+    });
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+  };
+  var bg = isDark ? "linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)" : "#ffffff";
+  var titleColor = isDark ? "#fff" : "var(--text)";
+  var labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)";
+  var subMuted = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "100%",
+      background: bg,
+      padding: 18,
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: labelMuted,
+      textTransform: "uppercase",
+      letterSpacing: 1.4,
+      fontWeight: 600
+    }
+  }, "\u041E\u0442\u043C\u0435\u0442\u044C \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: isDark ? "#9fd5a8" : "#3f7a46",
+      background: "rgba(90,168,90,0.16)",
+      borderRadius: 999,
+      padding: "2px 8px"
+    }
+  }, "+5 XP")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--bos-title-font)",
+      fontSize: 23,
+      fontWeight: 600,
+      lineHeight: 1.12,
+      letterSpacing: "-0.5px",
+      marginTop: 5,
+      color: titleColor
+    }
+  }, "\u041A\u0430\u043A \u0442\u044B \u0441\u0435\u0439\u0447\u0430\u0441?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: subMuted,
+      marginTop: 4
+    }
+  }, "\u041E\u0434\u0438\u043D \u0442\u0430\u043F \u2014 \u0438 \u0434\u0435\u043D\u044C \u0437\u0430\u043F\u0438\u0441\u0430\u043D. \u0422\u0430\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u0441\u0435\u0440\u0438\u044F."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 14,
+      justifyContent: "space-between"
+    }
+  }, moods.map((m, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    className: "tap",
+    "data-no-haptic": true,
+    onClick: () => log(i),
+    title: m.t,
+    "aria-label": m.t,
+    style: {
+      flex: 1,
+      background: "transparent",
+      border: 0,
+      padding: 0,
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: "50%",
+      background: "linear-gradient(160deg, " + m.c + ", " + m.c + "99)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 23,
+      boxShadow: isDark ? "inset 0 0 0 1px rgba(255,255,255,0.08)" : "0 1px 3px rgba(0,0,0,0.08)"
+    }
+  }, m.i)))));
+}
+
+// LIVE share-a-goal sheet — the goal twin of ShareHabitSheetLive, kept minimal: share
+// the app by your referral link with a line about the goal (goals aren't team-joined
+// like habits, so no "do together" roster here).
+function ShareGoalSheetLive({
+  goal,
+  dark = false
+}) {
+  var APP_URL = "https://mind3scape.github.io/balanceos";
+  var [shareUrl, setShareUrl] = React.useState(APP_URL);
+  React.useEffect(() => {
+    var on = true;
+    if (window.bosCloud && window.bosCloud.uid) {
+      window.bosCloud.uid().then(id => {
+        if (on && id) setShareUrl(APP_URL + "?ref=" + id);
+      }).catch(() => {});
+    }
+    return () => {
+      on = false;
+    };
+  }, []);
+  var doShare = () => {
+    var msg = "Иду к цели «" + (goal?.name || "") + "» в BalanceOS — попробуй со мной";
+    if (window.bosShare) window.bosShare(shareUrl, msg);else {
+      try {
+        navigator.clipboard.writeText(shareUrl);
+      } catch (e) {}
+    }
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+  };
+  var C = dark ? {
+    text: "#fff",
+    sub: "rgba(255,255,255,0.5)",
+    tile: "rgba(255,255,255,0.08)",
+    btnBg: "#fff",
+    btnFg: "#0a0a0a"
+  } : {
+    text: "#0a0a0a",
+    sub: "rgba(0,0,0,0.5)",
+    tile: "#f1f1f3",
+    btnBg: "#0a0a0a",
+    btnFg: "#fff"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 22px",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      background: C.tile,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 30,
+      margin: "0 auto 10px"
+    }
+  }, goal?.emoji || "🎯"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0446\u0435\u043B\u044C\u044E"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: C.sub,
+      marginTop: 3
+    }
+  }, "\xAB", goal?.name || "Цель", "\xBB \u2014 \u0440\u0430\u0441\u0441\u043A\u0430\u0436\u0438, \u043A \u0447\u0435\u043C\u0443 \u0438\u0434\u0451\u0448\u044C")), /*#__PURE__*/React.createElement("button", {
+    onClick: doShare,
+    className: "tap",
+    style: {
+      marginTop: 18,
+      width: "100%",
+      border: 0,
+      borderRadius: 16,
+      padding: "15px 16px",
+      background: C.btnBg,
+      color: C.btnFg,
+      fontSize: 15.5,
+      fontWeight: 600,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(I.Share, {
+    size: 17
+  }), " \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0441\u0441\u044B\u043B\u043A\u043E\u0439"));
+}
 function MoodWidgetLive({
   mood,
   app,
   isDark,
-  navigate
+  navigate,
+  flush = false
 }) {
   var _WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   var _monOff = (new Date().getDay() + 6) % 7; // 0=Пн … 6=Вс — TODAY's slot in the week
@@ -1470,16 +1681,16 @@ function MoodWidgetLive({
     className: "tap",
     "data-tour": "state",
     style: {
-      marginTop: 12,
+      marginTop: flush ? 0 : 12,
       width: "100%",
-      border,
+      border: flush ? "0" : border,
       textAlign: "left",
       background: bg,
-      borderRadius: 22,
+      borderRadius: flush ? 0 : 22,
       padding: 18,
       position: "relative",
       overflow: "hidden",
-      boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)",
+      boxShadow: flush ? "none" : isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)",
       display: "block"
     }
   }, /*#__PURE__*/React.createElement("div", {

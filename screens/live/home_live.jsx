@@ -41,6 +41,7 @@ function HomeLive() {
   const isNewbie = (habits.length === 0);
   const toggle = app?.toggleHabit || (() => {});
   const remove = app?.removeHabit || (() => {});
+  const removeGoal = app?.removeGoal || (() => {});
   const doneCount = habits.filter(h => h.done).length;
   const totalCount = habits.length;
   const ringPct = totalCount ? doneCount / totalCount : 0;
@@ -55,9 +56,10 @@ function HomeLive() {
   // Live profiles get REAL numbers from the date-keyed habit model.
   const _liveXP = bosLiveXPLive(app);
   const _lvl = bosLevelInfoLive(_liveXP);
-  // The gold level banner is the live home's XP hero — keep it for EVERY live user,
-  // at any level (David asked twice).
-  const _showLevelBanner = true;
+  // The gold level banner is the live home's XP hero — on by default, but the user can
+  // swipe it away (David: "я всё понял про уровни, хочу только привычки") → widgets.level
+  // = false; re-addable in «Виджеты главного».
+  const _showLevelBanner = widgets.level !== false;
   const dayStreak = bosMaxStreak(habits);
 
   // Bell red dot — only light it when there are REAL unread team-chat messages —
@@ -161,10 +163,14 @@ function HomeLive() {
       {/* Gold LEVEL banner right under "С чего начать" — turns the bare stat into a
           hook ("every habit is XP — learn how to grow"). Always shown for live. */}
       {_showLevelBanner && (
+        <div style={{ marginTop: 12, borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
+          <SwipeRow rowBg="#FEDE34" dark={isDark} actions={[
+            { key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, level: false }) },
+          ]}>
         <button onClick={() => navigate("levels")} className="tap" style={{
-          marginTop: 12, width: "100%", border: 0, borderRadius: 22, padding: "15px 17px",
+          width: "100%", border: 0, padding: "15px 17px",
           background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a",
-          display: "flex", alignItems: "center", gap: 13, textAlign: "left", boxShadow: "0 10px 26px rgba(239,159,20,0.30)",
+          display: "flex", alignItems: "center", gap: 13, textAlign: "left",
         }}>
           <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22 }}>🏆</span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -179,6 +185,8 @@ function HomeLive() {
           </div>
           <I.ChevronRight size={20} color="rgba(0,0,0,0.45)" />
         </button>
+          </SwipeRow>
+        </div>
       )}
 
       {/* Calendar + Community */}
@@ -214,6 +222,30 @@ function HomeLive() {
         )}
       </div>
       )}
+
+      {/* State slot — ABOVE habits (David's call). Honors the `mood` widget toggle and is
+         swipe-to-dismiss (re-add in «Виджеты главного»). Not logged today → the once-a-day
+         check-in prompt; logged + ≥2 days of marks → the streak widget. */}
+      {widgets.mood !== false && (() => {
+        const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+        const _loggedToday = !!(app?.dayMoods && app.dayMoods[_tk] != null);
+        const _hideAction = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, mood: false }) }];
+        if (!_loggedToday) {
+          return (
+            <div style={{ marginTop: 16, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+              <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}><StatePromptLive app={app} isDark={isDark} /></SwipeRow>
+            </div>
+          );
+        }
+        if (mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) {
+          return (
+            <div style={{ marginTop: 16, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+              <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}><MoodWidgetLive mood={mood} app={app} isDark={isDark} navigate={navigate} flush={true} /></SwipeRow>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Habits — a labelled section, always shown (the LIVE home drops the
          segmented Привычки/Цели switcher and stacks both sections with labels). */}
@@ -270,16 +302,23 @@ function HomeLive() {
           {goals.map(g => {
             const pct = g.target ? g.current / g.target : 0;
             return (
-            <div key={g.id} className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: 14, boxShadow: cardShadow, color: "var(--text)", cursor: "pointer" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <span style={{ width: 38, height: 38, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
+            <div key={g.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+              <SwipeRow rowBg={rowBg} dark={isDark} actions={[
+                { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) },
+                { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => removeGoal(g.id) },
+              ]}>
+                <div className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, padding: 14, color: "var(--text)", cursor: "pointer" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                    <span style={{ width: 38, height: 38, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
+                  </div>
+                  <div className="bos-progress"><span style={{ width: (pct*100) + "%" }} /></div>
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
-              </div>
-              <div className="bos-progress"><span style={{ width: (pct*100) + "%" }} /></div>
+              </SwipeRow>
             </div>
             );
           })}
@@ -288,9 +327,14 @@ function HomeLive() {
 
       {/* Invite / share the app — a focused dark CTA (stands apart from the white
          habit cards above) that ties sharing to the reward loop: friend → XP → level. */}
+      {widgets.invite !== false && (
+      <div style={{ marginTop: 12, borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(20,40,80,0.28)" }}>
+        <SwipeRow rowBg="#23375f" dark={isDark} actions={[
+          { key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, invite: false }) },
+        ]}>
       <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)}
-        style={{ marginTop: 12, width: "100%", borderRadius: 22, padding: "16px 18px", border: 0, position: "relative", overflow: "hidden",
-          background: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)", boxShadow: "0 10px 26px rgba(20,40,80,0.28)",
+        style={{ width: "100%", padding: "16px 18px", border: 0, position: "relative", overflow: "hidden",
+          background: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)",
           color: "#fff", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
         <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 10%, rgba(255,255,255,0.16) 0%, transparent 52%)", pointerEvents: "none" }} />
         <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.14)", display: "grid", placeItems: "center", flexShrink: 0, color: "#fff", position: "relative" }}>
@@ -309,10 +353,9 @@ function HomeLive() {
           <span style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.16)", border: "2px solid rgba(255,255,255,0.3)", display: "grid", placeItems: "center", color: "#fff" }}><I.Plus size={16} strokeWidth={2.5} /></span>
         </div>
       </button>
-      {/* State widget lives LOWER for live (below «Позови своих») so a new user
-          isn't hit with it up top — David's call. Only surfaces once there are at
-          least 2 days of marks. */}
-      {widgets.mood !== false && mood && (typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) && <MoodWidgetLive mood={mood} app={app} isDark={isDark} navigate={navigate} />}
+        </SwipeRow>
+      </div>
+      )}
     </div>
   );
 }

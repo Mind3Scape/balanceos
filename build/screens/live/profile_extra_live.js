@@ -22,6 +22,236 @@
    AchievementsLive, ManifestLive, IconPickerLive. (GuideScreen is NOT defined in
    profile.jsx — it lives in app.jsx — so no GuideLive fork is made here.) */
 
+// LIVE state-history sheet (Settings → «История состояния»): the user's REAL day-keyed
+// mood marks, newest first. Honest empty state — never a fake calendar.
+function StateHistorySheetLive({
+  app,
+  dark = false
+}) {
+  var moods = typeof MOOD_OPTIONS !== "undefined" ? MOOD_OPTIONS : [];
+  var dm = app && app.dayMoods || {};
+  var entries = Object.keys(dm).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k) && dm[k] != null).sort().reverse().map(k => ({
+    key: k,
+    m: moods[dm[k]] || null
+  })).filter(e => e.m);
+  var streak = typeof bosMoodStreak === "function" ? bosMoodStreak(dm) : 0;
+  var C = dark ? {
+    text: "#fff",
+    sub: "rgba(255,255,255,0.5)",
+    tile: "rgba(255,255,255,0.07)"
+  } : {
+    text: "#0a0a0a",
+    sub: "rgba(0,0,0,0.5)",
+    tile: "#f4f4f6"
+  };
+  var fmt = k => {
+    try {
+      var a = k.split("-");
+      return new Intl.DateTimeFormat("ru-RU", {
+        day: "numeric",
+        month: "long"
+      }).format(new Date(+a[0], +a[1] - 1, +a[2]));
+    } catch (e) {
+      return k;
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 22px",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: C.sub,
+      marginTop: 3
+    }
+  }, entries.length ? "Отмечено дней: " + entries.length + (streak >= 2 ? "  ·  🔥 " + streak + " " + (typeof bosRuDays === "function" ? bosRuDays(streak) : "дней") + " подряд" : "") : "Здесь будут твои отметки состояния")), entries.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "26px 6px",
+      color: C.sub,
+      fontSize: 14,
+      lineHeight: 1.5
+    }
+  }, "\u041F\u043E\u043A\u0430 \u043F\u0443\u0441\u0442\u043E \u2014 \u043E\u0442\u043C\u0435\u0442\u044C \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u043C \u044D\u043A\u0440\u0430\u043D\u0435.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      maxHeight: "52vh",
+      overflowY: "auto"
+    }
+  }, entries.map((e, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "10px 12px",
+      background: C.tile,
+      borderRadius: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: "50%",
+      background: "linear-gradient(160deg, " + e.m.c + ", " + e.m.c + "99)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 18,
+      flexShrink: 0
+    }
+  }, e.m.i), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, e.m.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.sub,
+      marginTop: 1
+    }
+  }, fmt(e.key)))))));
+}
+
+// LIVE friends sheet (Settings → «Друзья»): the REAL people you invited (referral circle)
+// from the cloud. Honest — name + avatar only, no fabricated profiles; empty state nudges to
+// invite. No tap-through to ContactDetailLive (that screen is a curated mock).
+function FriendsSheetLive({
+  dark = false
+}) {
+  var [people, setPeople] = React.useState(null); // null = loading
+  React.useEffect(() => {
+    var on = true;
+    if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.invitedPeople) {
+      window.bosCloud.invitedPeople().then(list => {
+        if (on) setPeople(Array.isArray(list) ? list : []);
+      }).catch(() => {
+        if (on) setPeople([]);
+      });
+    } else setPeople([]);
+    return () => {
+      on = false;
+    };
+  }, []);
+  var C = dark ? {
+    text: "#fff",
+    sub: "rgba(255,255,255,0.5)",
+    tile: "rgba(255,255,255,0.07)"
+  } : {
+    text: "#0a0a0a",
+    sub: "rgba(0,0,0,0.5)",
+    tile: "#f4f4f6"
+  };
+  var _COLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 22px",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0414\u0440\u0443\u0437\u044C\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: C.sub,
+      marginTop: 3
+    }
+  }, "\u041A\u043E\u0433\u043E \u0442\u044B \u043F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u043B \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435")), people === null ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "26px 6px",
+      color: C.sub,
+      fontSize: 14
+    }
+  }, "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026") : people.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "22px 8px",
+      color: C.sub,
+      fontSize: 14,
+      lineHeight: 1.5
+    }
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0433\u0430 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435 \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0433\u043E \u044D\u043A\u0440\u0430\u043D\u0430 \u2014 \u0437\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E +XP \u043A \u0443\u0440\u043E\u0432\u043D\u044E.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      maxHeight: "52vh",
+      overflowY: "auto"
+    }
+  }, people.map((p, i) => {
+    var nm = p && p.username ? p.username : "Друг";
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 12px",
+        background: C.tile,
+        borderRadius: 14
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: "50%",
+        background: _COLORS[i % _COLORS.length],
+        display: "grid",
+        placeItems: "center",
+        fontSize: 16,
+        fontWeight: 700,
+        color: "rgba(0,0,0,0.55)",
+        flexShrink: 0
+      }
+    }, nm.charAt(0).toUpperCase()), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15,
+        fontWeight: 600
+      }
+    }, nm), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: C.sub,
+        marginTop: 1
+      }
+    }, "\u0412 \u0442\u0432\u043E\u0451\u043C \u043A\u0440\u0443\u0433\u0435")));
+  })));
+}
 function SettingsLive() {
   var {
     navigate
@@ -82,6 +312,59 @@ function SettingsLive() {
       title: "\u0412\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 Telegram",
       body: "\u0422\u044B \u0432\u0445\u043E\u0434\u0438\u0448\u044C \u0447\u0435\u0440\u0435\u0437 \u0441\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 Telegram \u2014 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C \u043D\u0435 \u043D\u0443\u0436\u0435\u043D. \u0422\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u044B \u043A \u043D\u0435\u043C\u0443 \u0438 \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u044F\u0442\u0441\u044F \u043C\u0435\u0436\u0434\u0443 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C\u0438.",
       cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
+      dark: routeDark
+    }))
+  }].map((r, i) => /*#__PURE__*/React.createElement(SysBtn, {
+    key: i,
+    onClick: r.on,
+    style: {
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(r.icon, {
+    size: 16
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, r.label), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-2"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u041B\u0438\u0447\u043D\u043E\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginTop: 8
+    }
+  }, [{
+    label: "История состояния",
+    icon: I.Smile,
+    on: () => openSheet(/*#__PURE__*/React.createElement(StateHistorySheetLive, {
+      app: app,
+      dark: routeDark
+    }))
+  }, {
+    label: "Друзья",
+    icon: I.Users,
+    on: () => openSheet(/*#__PURE__*/React.createElement(FriendsSheetLive, {
       dark: routeDark
     }))
   }].map((r, i) => /*#__PURE__*/React.createElement(SysBtn, {

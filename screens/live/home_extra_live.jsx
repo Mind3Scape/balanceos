@@ -14,11 +14,12 @@ function HomeCustomizeLive() {
   // Only widgets that REALLY exist and are wired into the home render. The old
   // quote/ai/weather/books toggles did nothing — removed so every switch works.
   const opts = [
-    { id: "mood",     i: "💭", t: "Состояние", d: "Твоё самочувствие — нажми, чтобы обновить" },
+    { id: "mood",     i: "💭", t: "Состояние", d: "Ежедневный опрос + твоя серия состояния" },
     { id: "streak",   i: "🔥", t: "Счётчик серии", d: "Дней подряд" },
-    { id: "level",    i: "🏆", t: "Уровень и опыт", d: "Прогресс и награды" },
+    { id: "level",    i: "🏆", t: "Уровень и опыт", d: "Золотой баннер прогресса" },
     { id: "calendar", i: "📅", t: "Календарь", d: "Сегодняшняя дата" },
     { id: "team",     i: "👥", t: "Команды", d: "Активные команды" },
+    { id: "invite",   i: "📣", t: "Позови своих", d: "Приглашай друзей — и +XP к уровню" },
   ];
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>

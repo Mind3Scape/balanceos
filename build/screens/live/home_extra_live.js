@@ -22,7 +22,7 @@ function HomeCustomizeLive() {
     id: "mood",
     i: "💭",
     t: "Состояние",
-    d: "Твоё самочувствие — нажми, чтобы обновить"
+    d: "Ежедневный опрос + твоя серия состояния"
   }, {
     id: "streak",
     i: "🔥",
@@ -32,7 +32,7 @@ function HomeCustomizeLive() {
     id: "level",
     i: "🏆",
     t: "Уровень и опыт",
-    d: "Прогресс и награды"
+    d: "Золотой баннер прогресса"
   }, {
     id: "calendar",
     i: "📅",
@@ -43,6 +43,11 @@ function HomeCustomizeLive() {
     i: "👥",
     t: "Команды",
     d: "Активные команды"
+  }, {
+    id: "invite",
+    i: "📣",
+    t: "Позови своих",
+    d: "Приглашай друзей — и +XP к уровню"
   }];
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",

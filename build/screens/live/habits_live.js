@@ -63,6 +63,7 @@ function HabitsLive() {
   var goals = app?.goals || [];
   var toggle = app?.toggleHabit || (() => {});
   var remove = app?.removeHabit || (() => {});
+  var removeGoal = app?.removeGoal || (() => {});
   var rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
   return /*#__PURE__*/React.createElement("div", {
@@ -402,6 +403,25 @@ function HabitsLive() {
         boxShadow: cardShadow,
         background: TH.cardBg
       }
+    }, /*#__PURE__*/React.createElement(SwipeRow, {
+      rowBg: rowBg,
+      dark: isDark,
+      actions: [{
+        key: "share",
+        tone: "share",
+        label: "Поделиться",
+        icon: I.Share,
+        onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+          goal: g,
+          dark: isDark
+        }))
+      }, {
+        key: "del",
+        tone: "delete",
+        label: "Удалить",
+        icon: I.Trash,
+        onAction: () => removeGoal(g.id)
+      }]
     }, /*#__PURE__*/React.createElement("button", {
       className: "tap",
       onClick: () => navigate("goal-detail", {
@@ -469,7 +489,7 @@ function HabitsLive() {
       style: {
         width: Math.min(1, pct) * 100 + "%"
       }
-    }))));
+    })))));
   })), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {

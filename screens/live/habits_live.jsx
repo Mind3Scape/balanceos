@@ -55,6 +55,7 @@ function HabitsLive() {
   const goals = app?.goals || [];
   const toggle = app?.toggleHabit || (() => {});
   const remove = app?.removeHabit || (() => {});
+  const removeGoal = app?.removeGoal || (() => {});
   const rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
   return (
@@ -148,6 +149,10 @@ function HabitsLive() {
             const pct = g.target > 0 ? g.current / g.target : 0;
             return (
               <div key={g.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>
+                <SwipeRow rowBg={rowBg} dark={isDark} actions={[
+                  { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) },
+                  { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => removeGoal(g.id) },
+                ]}>
                 <button className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ width: "100%", background: "transparent", border: 0, padding: "14px 16px", textAlign: "left", color: "var(--text)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -164,6 +169,7 @@ function HabitsLive() {
                   </div>
                   <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (Math.min(1, pct) * 100) + "%" }}/></div>
                 </button>
+                </SwipeRow>
               </div>
             );
           })}

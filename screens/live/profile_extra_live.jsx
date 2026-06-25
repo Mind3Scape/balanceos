@@ -22,6 +22,94 @@
    AchievementsLive, ManifestLive, IconPickerLive. (GuideScreen is NOT defined in
    profile.jsx — it lives in app.jsx — so no GuideLive fork is made here.) */
 
+// LIVE state-history sheet (Settings → «История состояния»): the user's REAL day-keyed
+// mood marks, newest first. Honest empty state — never a fake calendar.
+function StateHistorySheetLive({ app, dark = false }) {
+  const moods = (typeof MOOD_OPTIONS !== "undefined") ? MOOD_OPTIONS : [];
+  const dm = (app && app.dayMoods) || {};
+  const entries = Object.keys(dm)
+    .filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k) && dm[k] != null)
+    .sort().reverse()
+    .map((k) => ({ key: k, m: moods[dm[k]] || null }))
+    .filter((e) => e.m);
+  const streak = (typeof bosMoodStreak === "function") ? bosMoodStreak(dm) : 0;
+  const C = dark
+    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.07)" }
+    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f4f4f6" };
+  const fmt = (k) => { try { const a = k.split("-"); return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date(+a[0], +a[1] - 1, +a[2])); } catch (e) { return k; } };
+  return (
+    <div style={{ padding: "2px 20px 22px", color: C.text }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>История состояния</div>
+        <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3 }}>
+          {entries.length ? ("Отмечено дней: " + entries.length + (streak >= 2 ? "  ·  🔥 " + streak + " " + (typeof bosRuDays === "function" ? bosRuDays(streak) : "дней") + " подряд" : "")) : "Здесь будут твои отметки состояния"}
+        </div>
+      </div>
+      {entries.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "26px 6px", color: C.sub, fontSize: 14, lineHeight: 1.5 }}>Пока пусто — отметь состояние на главном экране.</div>
+      ) : (
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: "52vh", overflowY: "auto" }}>
+          {entries.map((e, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: C.tile, borderRadius: 14 }}>
+              <span style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(160deg, " + e.m.c + ", " + e.m.c + "99)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{e.m.i}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>{e.m.t}</div>
+                <div style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>{fmt(e.key)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// LIVE friends sheet (Settings → «Друзья»): the REAL people you invited (referral circle)
+// from the cloud. Honest — name + avatar only, no fabricated profiles; empty state nudges to
+// invite. No tap-through to ContactDetailLive (that screen is a curated mock).
+function FriendsSheetLive({ dark = false }) {
+  const [people, setPeople] = React.useState(null); // null = loading
+  React.useEffect(() => {
+    let on = true;
+    if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.invitedPeople) {
+      window.bosCloud.invitedPeople().then((list) => { if (on) setPeople(Array.isArray(list) ? list : []); }).catch(() => { if (on) setPeople([]); });
+    } else setPeople([]);
+    return () => { on = false; };
+  }, []);
+  const C = dark
+    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.07)" }
+    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f4f4f6" };
+  const _COLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
+  return (
+    <div style={{ padding: "2px 20px 22px", color: C.text }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Друзья</div>
+        <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3 }}>Кого ты пригласил в приложение</div>
+      </div>
+      {people === null ? (
+        <div style={{ textAlign: "center", padding: "26px 6px", color: C.sub, fontSize: 14 }}>Загрузка…</div>
+      ) : people.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "22px 8px", color: C.sub, fontSize: 14, lineHeight: 1.5 }}>Пока никого. Пригласи друга по ссылке с главного экрана — за каждого +XP к уровню.</div>
+      ) : (
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: "52vh", overflowY: "auto" }}>
+          {people.map((p, i) => {
+            const nm = (p && p.username) ? p.username : "Друг";
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: C.tile, borderRadius: 14 }}>
+                <span style={{ width: 38, height: 38, borderRadius: "50%", background: _COLORS[i % _COLORS.length], display: "grid", placeItems: "center", fontSize: 16, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{nm.charAt(0).toUpperCase()}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>{nm}</div>
+                  <div style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>В твоём круге</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsLive() {
   const { navigate } = useNav();
   const app = useApp();
@@ -52,6 +140,20 @@ function SettingsLive() {
         {[
           { label: "Редактировать профиль", icon: I.Pencil, on: () => openSheet(<EditProfileSheet dark={routeDark}/>) },
           { label: "Вход через Telegram", icon: I.Globe, on: () => openSheet(<InfoSheet title="Вход через Telegram" body="Ты входишь через свой аккаунт Telegram — отдельный пароль не нужен. Твои данные привязаны к нему и переносятся между устройствами." cta="Понятно" dark={routeDark}/>) },
+        ].map((r, i) => (
+          <SysBtn key={i} onClick={r.on} style={{ padding: 14 }}>
+            <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
+            <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{r.label}</span>
+            <I.ChevronRight size={16} className="bos-sys-text-2" />
+          </SysBtn>
+        ))}
+      </div>
+
+      <div className="section-label" style={{ marginTop: 22 }}>Личное</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {[
+          { label: "История состояния", icon: I.Smile, on: () => openSheet(<StateHistorySheetLive app={app} dark={routeDark} />) },
+          { label: "Друзья", icon: I.Users, on: () => openSheet(<FriendsSheetLive dark={routeDark} />) },
         ].map((r, i) => (
           <SysBtn key={i} onClick={r.on} style={{ padding: 14 }}>
             <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>

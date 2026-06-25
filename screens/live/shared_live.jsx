@@ -520,7 +520,80 @@ function ShareHabitSheetLive({ habit, dark = false }) {
 
 /* MoodWidget → live-only: real per-day mood trail (Пн→Вс), real streak chip + XP copy.
    No demo numeric-days showcase, no fresh-user empty state (live always has the trail). */
-function MoodWidgetLive({ mood, app, isDark, navigate }) {
+// LIVE daily state CHECK-IN prompt (David: once a day, in-app card — no push).
+// Sits ABOVE habits when today's state isn't logged yet; one tap on a mood orb logs
+// it (setMood + setDayMoods, keyed by the real day) and the slot flips to the widget.
+// Flush (no own margin/radius/shadow) so it drops cleanly into a SwipeRow wrapper.
+function StatePromptLive({ app, isDark }) {
+  const moods = (typeof MOOD_OPTIONS !== "undefined") ? MOOD_OPTIONS : [];
+  const log = (i) => {
+    if (!app) return;
+    const dayKey = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+    app.setMood && app.setMood(moods[i]);
+    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [dayKey]: i });
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+  };
+  const bg = isDark ? "linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)" : "#ffffff";
+  const titleColor = isDark ? "#fff" : "var(--text)";
+  const labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)";
+  const subMuted = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
+  return (
+    <div style={{ width: "100%", background: bg, padding: 18, position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ fontSize: 11, color: labelMuted, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Отметь состояние</div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#9fd5a8" : "#3f7a46", background: "rgba(90,168,90,0.16)", borderRadius: 999, padding: "2px 8px" }}>+5 XP</span>
+      </div>
+      <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 23, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.5px", marginTop: 5, color: titleColor }}>Как ты сейчас?</div>
+      <div style={{ fontSize: 12.5, color: subMuted, marginTop: 4 }}>Один тап — и день записан. Так растёт серия.</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "space-between" }}>
+        {moods.map((m, i) => (
+          <button key={i} className="tap" data-no-haptic onClick={() => log(i)} title={m.t} aria-label={m.t}
+            style={{ flex: 1, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", cursor: "pointer" }}>
+            <span style={{ width: 46, height: 46, borderRadius: "50%", background: "linear-gradient(160deg, " + m.c + ", " + m.c + "99)", display: "grid", placeItems: "center", fontSize: 23, boxShadow: isDark ? "inset 0 0 0 1px rgba(255,255,255,0.08)" : "0 1px 3px rgba(0,0,0,0.08)" }}>{m.i}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// LIVE share-a-goal sheet — the goal twin of ShareHabitSheetLive, kept minimal: share
+// the app by your referral link with a line about the goal (goals aren't team-joined
+// like habits, so no "do together" roster here).
+function ShareGoalSheetLive({ goal, dark = false }) {
+  const APP_URL = "https://mind3scape.github.io/balanceos";
+  const [shareUrl, setShareUrl] = React.useState(APP_URL);
+  React.useEffect(() => {
+    let on = true;
+    if (window.bosCloud && window.bosCloud.uid) {
+      window.bosCloud.uid().then((id) => { if (on && id) setShareUrl(APP_URL + "?ref=" + id); }).catch(() => {});
+    }
+    return () => { on = false; };
+  }, []);
+  const doShare = () => {
+    const msg = "Иду к цели «" + (goal?.name || "") + "» в BalanceOS — попробуй со мной";
+    if (window.bosShare) window.bosShare(shareUrl, msg);
+    else { try { navigator.clipboard.writeText(shareUrl); } catch (e) {} }
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+  };
+  const C = dark
+    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", btnBg: "#fff", btnFg: "#0a0a0a" }
+    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", btnBg: "#0a0a0a", btnFg: "#fff" };
+  return (
+    <div style={{ padding: "2px 20px 22px", color: C.text }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{goal?.emoji || "🎯"}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться целью</div>
+        <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>«{goal?.name || "Цель"}» — расскажи, к чему идёшь</div>
+      </div>
+      <button onClick={doShare} className="tap" style={{ marginTop: 18, width: "100%", border: 0, borderRadius: 16, padding: "15px 16px", background: C.btnBg, color: C.btnFg, fontSize: 15.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <I.Share size={17} /> Поделиться ссылкой
+      </button>
+    </div>
+  );
+}
+
+function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
   const _WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const _monOff = (new Date().getDay() + 6) % 7; // 0=Пн … 6=Вс — TODAY's slot in the week
   const last7 = [0, 1, 2, 3, 4, 5, 6].map(i => {
@@ -543,11 +616,11 @@ function MoodWidgetLive({ mood, app, isDark, navigate }) {
   return (
     <button onClick={() => navigate("mood")} className="tap" data-tour="state"
       style={{
-        marginTop: 12, width: "100%", border, textAlign: "left",
+        marginTop: flush ? 0 : 12, width: "100%", border: flush ? "0" : border, textAlign: "left",
         background: bg,
-        borderRadius: 22, padding: 18,
+        borderRadius: flush ? 0 : 22, padding: 18,
         position: "relative", overflow: "hidden",
-        boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)",
+        boxShadow: flush ? "none" : (isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)"),
         display: "block",
       }}>
       <div style={{ display: "flex", gap: 16, alignItems: "center", position: "relative" }}>

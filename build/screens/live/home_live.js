@@ -53,6 +53,7 @@ function HomeLive() {
   var isNewbie = habits.length === 0;
   var toggle = app?.toggleHabit || (() => {});
   var remove = app?.removeHabit || (() => {});
+  var removeGoal = app?.removeGoal || (() => {});
   var doneCount = habits.filter(h => h.done).length;
   var totalCount = habits.length;
   var ringPct = totalCount ? doneCount / totalCount : 0;
@@ -76,9 +77,10 @@ function HomeLive() {
   // Live profiles get REAL numbers from the date-keyed habit model.
   var _liveXP = bosLiveXPLive(app);
   var _lvl = bosLevelInfoLive(_liveXP);
-  // The gold level banner is the live home's XP hero — keep it for EVERY live user,
-  // at any level (David asked twice).
-  var _showLevelBanner = true;
+  // The gold level banner is the live home's XP hero — on by default, but the user can
+  // swipe it away (David: "я всё понял про уровни, хочу только привычки") → widgets.level
+  // = false; re-addable in «Виджеты главного».
+  var _showLevelBanner = widgets.level !== false;
   var dayStreak = bosMaxStreak(habits);
 
   // Bell red dot — only light it when there are REAL unread team-chat messages —
@@ -281,22 +283,39 @@ function HomeLive() {
         ["--sy"]: Math.sin(a) * 44 + "px"
       }
     });
-  }))), _showLevelBanner && /*#__PURE__*/React.createElement("button", {
+  }))), _showLevelBanner && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      borderRadius: 22,
+      overflow: "hidden",
+      boxShadow: "0 10px 26px rgba(239,159,20,0.30)"
+    }
+  }, /*#__PURE__*/React.createElement(SwipeRow, {
+    rowBg: "#FEDE34",
+    dark: isDark,
+    actions: [{
+      key: "hide",
+      tone: "delete",
+      label: "Убрать",
+      icon: I.Trash,
+      onAction: () => app.setWidgets({
+        ...widgets,
+        level: false
+      })
+    }]
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("levels"),
     className: "tap",
     style: {
-      marginTop: 12,
       width: "100%",
       border: 0,
-      borderRadius: 22,
       padding: "15px 17px",
       background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
       color: "#0a0a0a",
       display: "flex",
       alignItems: "center",
       gap: 13,
-      textAlign: "left",
-      boxShadow: "0 10px 26px rgba(239,159,20,0.30)"
+      textAlign: "left"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -359,7 +378,7 @@ function HomeLive() {
   }))), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 20,
     color: "rgba(0,0,0,0.45)"
-  })), (widgets.calendar !== false || widgets.team !== false) && /*#__PURE__*/React.createElement("div", {
+  })))), (widgets.calendar !== false || widgets.team !== false) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: widgets.calendar !== false && widgets.team !== false ? "1fr 1fr" : "1fr",
@@ -461,7 +480,58 @@ function HomeLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 16
-  })))), /*#__PURE__*/React.createElement("div", {
+  })))), widgets.mood !== false && (() => {
+    var _tk = typeof bosTodayKey === "function" ? bosTodayKey() : "";
+    var _loggedToday = !!(app?.dayMoods && app.dayMoods[_tk] != null);
+    var _hideAction = [{
+      key: "hide",
+      tone: "delete",
+      label: "Убрать",
+      icon: I.Trash,
+      onAction: () => app.setWidgets({
+        ...widgets,
+        mood: false
+      })
+    }];
+    if (!_loggedToday) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 16,
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: rowBg,
+        dark: isDark,
+        actions: _hideAction
+      }, /*#__PURE__*/React.createElement(StatePromptLive, {
+        app: app,
+        isDark: isDark
+      })));
+    }
+    if (mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 16,
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: rowBg,
+        dark: isDark,
+        actions: _hideAction
+      }, /*#__PURE__*/React.createElement(MoodWidgetLive, {
+        mood: mood,
+        app: app,
+        isDark: isDark,
+        navigate: navigate,
+        flush: true
+      })));
+    }
+    return null;
+  })(), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 16,
@@ -704,6 +774,31 @@ function HomeLive() {
     var pct = g.target ? g.current / g.target : 0;
     return /*#__PURE__*/React.createElement("div", {
       key: g.id,
+      style: {
+        borderRadius: 22,
+        overflow: "hidden",
+        boxShadow: cardShadow
+      }
+    }, /*#__PURE__*/React.createElement(SwipeRow, {
+      rowBg: rowBg,
+      dark: isDark,
+      actions: [{
+        key: "share",
+        tone: "share",
+        label: "Поделиться",
+        icon: I.Share,
+        onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+          goal: g,
+          dark: isDark
+        }))
+      }, {
+        key: "del",
+        tone: "delete",
+        label: "Удалить",
+        icon: I.Trash,
+        onAction: () => removeGoal(g.id)
+      }]
+    }, /*#__PURE__*/React.createElement("div", {
       className: "tap",
       onClick: () => navigate("goal-detail", {
         goal: g,
@@ -712,9 +807,7 @@ function HomeLive() {
       style: {
         background: cardBg,
         border: cardBorder,
-        borderRadius: 22,
         padding: 14,
-        boxShadow: cardShadow,
         color: "var(--text)",
         cursor: "pointer"
       }
@@ -762,23 +855,40 @@ function HomeLive() {
       style: {
         width: pct * 100 + "%"
       }
-    })));
-  })), /*#__PURE__*/React.createElement("button", {
+    })))));
+  })), widgets.invite !== false && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      borderRadius: 22,
+      overflow: "hidden",
+      boxShadow: "0 10px 26px rgba(20,40,80,0.28)"
+    }
+  }, /*#__PURE__*/React.createElement(SwipeRow, {
+    rowBg: "#23375f",
+    dark: isDark,
+    actions: [{
+      key: "hide",
+      tone: "delete",
+      label: "Убрать",
+      icon: I.Trash,
+      onAction: () => app.setWidgets({
+        ...widgets,
+        invite: false
+      })
+    }]
+  }, /*#__PURE__*/React.createElement("button", {
     "data-tour": "share-app",
     className: "tap",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheetLive, {
       dark: isDark
     })),
     style: {
-      marginTop: 12,
       width: "100%",
-      borderRadius: 22,
       padding: "16px 18px",
       border: 0,
       position: "relative",
       overflow: "hidden",
       background: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)",
-      boxShadow: "0 10px 26px rgba(20,40,80,0.28)",
       color: "#fff",
       display: "flex",
       alignItems: "center",
@@ -865,10 +975,5 @@ function HomeLive() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 16,
     strokeWidth: 2.5
-  })))), widgets.mood !== false && mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2 && /*#__PURE__*/React.createElement(MoodWidgetLive, {
-    mood: mood,
-    app: app,
-    isDark: isDark,
-    navigate: navigate
-  }));
+  })))))));
 }
