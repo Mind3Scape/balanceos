@@ -6,10 +6,10 @@
    bosLevelInfo, the real OrbitField with your invited people, real achievements,
    and the honest AI hub driven by app.aiBrief.
 
-   Reuses the shared globals from profile.jsx (OrbitField, SysCard, SysBtn,
-   AvatarPickerSheet, EditProfileSheet, InfoSheet, useAIT) + the app-wide globals
+   Reuses the shared core/ toolkit (OrbitField, SysCard, SysBtn, AvatarPickerSheet,
+   EditProfileSheet, InfoSheet, useAIT, buildQuickPrompts) + framework
    (PageHeader, BosAvatar, BosOrbFace, SiriOrb, I, hooks useApp/useNav/useSheet,
-   every bos* helper, BOS_ACHIEVEMENTS, tintFromMood, buildQuickPrompts).
+   every bos* helper, BOS_ACHIEVEMENTS, tintFromMood).
 
    TYPOGRAPHY: primary labels (user name, section/row primary titles, list-item
    primary text) carry iOS Headline weight (fontWeight: 600 / 700) — matching the

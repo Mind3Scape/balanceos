@@ -7,7 +7,7 @@
    • CommunityLive — drops the fabricated Нетворк people list (YourImpactCard +
      the curated `network` array + their message/booking buttons) and the demo-only
      Партнёры marketplace tab + its `partners` array. Live Нетворк ALWAYS shows the
-     honest NetworkLocked banner (real XP paths, no fake people); the secondary
+     honest NetworkLockedLive banner (real XP paths, no fake people); the secondary
      scope bar is just Нетворк + Курсы. Курсы are real (kept), with live cohort
      windows computed from today. Teams + cloud "Открытые команды рядом" discovery
      are kept.
@@ -18,10 +18,10 @@
      initials), real team habits (teamHabitsFull / toggleTeamHabitToday), owner
      join-request approvals, leave/delete, and the share-link sheet.
 
-   Everything else reuses the shared globals already defined in community.jsx +
-   app-wide (BosAvatar, BOS_TEAM_PALETTE, AvatarStack, NetworkLocked,
-   CloudTeamsDiscover, PeopleMonthCalendar, ConfirmActionSheet, TeamShareSheet,
-   TeamHabitSheet, PageHeader, the icon object I, the bos* helpers, window.bosCloud,
+   Everything else reuses the shared core/ toolkit (BOS_TEAM_PALETTE, AvatarStack,
+   CloudTeamsDiscover, ConfirmActionSheet, TeamShareSheet, TeamHabitSheet, TeamRing) +
+   the live forks in shared_live.jsx (NetworkLockedLive, PeopleMonthCalendarLive) +
+   framework (BosAvatar, PageHeader, the icon object I, the bos* helpers, window.bosCloud,
    hooks useApp/useNav/useSheet, and useCS = React.useState). The ONLY new top-level
    declarations in this file are `function CommunityLive` and `function TeamDetailLive`. */
 

@@ -5,12 +5,12 @@
    real history from each habit's log, real Telegram sign-in, the real
    bosEarnedAchievements / BOS_ACHIEVEMENTS ladder, real cloud notifications.
 
-   Reuses the shared globals from profile.jsx (SysCard, SysBtn, OrbitField,
-   EditProfileSheet, InfoSheet, FeedbackSheet, AvatarPickerSheet, DayRing) + the
-   app-wide globals (PageHeader, Switch, I, hooks useApp/useNav/useSheet, every
+   Reuses the shared core/ toolkit (SysCard, SysBtn, OrbitField, EditProfileSheet,
+   InfoSheet, AvatarPickerSheet, DayRing) + the FeedbackSheetLive fork (shared_live.jsx)
+   + framework (PageHeader, Switch, I, hooks useApp/useNav/useSheet, every
    bos* helper, BOS_ACHIEVEMENTS / bosEarnedAchievements, MOOD_OPTIONS, StaticOrb,
-   tintFromMood, window.StateOrb, window.ALL_SPHERES / DEFAULT_SPHERES). useP is
-   the file-local React.useState alias already defined in profile.jsx.
+   tintFromMood, window.StateOrb, window.ALL_SPHERES / DEFAULT_SPHERES). useP is the
+   React.useState alias now defined once in core/aliases.jsx.
 
    TYPOGRAPHY (iOS Headline polish): PRIMARY labels (settings-row labels,
    notification titles, history entry titles, achievement names, section titles)

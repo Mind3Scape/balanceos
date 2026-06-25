@@ -5,8 +5,8 @@
    demo-only. The only thing the live fork hard-codes is the iOS-weight primary
    typography: the habit NAME and the goal NAME always render at fontWeight 600 +
    color var(--text) (the `_isLive ? …` ternaries collapse to the live branch).
-   Everything else reuses the shared globals from habits.jsx (EMOJI_CHIPS,
-   HabitRing, AvatarStack, ShareHabitSheet) + the app-wide globals (SwipeRow,
+   Everything else reuses the shared core/ toolkit (EMOJI_CHIPS, HabitRing,
+   AvatarStack) + the ShareHabitSheetLive fork (shared_live.jsx) + framework (SwipeRow,
    HabitCheck, I, hooks useApp/useNav/useSheet). The ONLY new top-level
    declaration in this file is `function HabitsLive`. */
 function HabitsLive() {

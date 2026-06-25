@@ -19,13 +19,15 @@
      (app.dayNotes) and the honest live save (+10 XP only when there's text).
    • AIChatLive — drops the scripted demo seed (greeting/summary/suggestion/insight
      sample turns) and the frozen demo time divider. Keeps the REAL proxy path:
-     aiReply → bosParseAction action-cards → AI_LIVE_FALLBACK, with the live chat
+     aiReplyLive → bosParseAction action-cards → AI_LIVE_FALLBACK, with the live chat
      persisted on-device.
 
-   Reuses every shared global (bos* helpers, AI_SYSTEM/AI_DEMO/AI_LIVE_FALLBACK/
-   aiReply/buildAiContext/bosParseAction, StateOrb/StaticOrb, StateChatOrb, MiniBars,
-   buildQuickPrompts, PeopleMonthCalendar, CountUp, MOOD_OPTIONS/MOOD_TAGS,
-   journalDateLabel, PageHeader, the icon object I, hooks). The ONLY new top-level
+   Reuses the shared core/ toolkit (AI engine AI_SYSTEM/AI_LIVE_FALLBACK/aiRaw,
+   bosParseAction, StateChatOrb, MiniBars, buildQuickPrompts, MOOD_TAGS,
+   journalDateLabel) + the live forks in shared_live.jsx (aiReplyLive,
+   buildAiContextLive, PeopleMonthCalendarLive) + framework (bos* helpers,
+   StateOrb/StaticOrb, CountUp, MOOD_OPTIONS, PageHeader, the icon object I, hooks).
+   The ONLY new top-level
    declarations in this file are exactly: HabitDetailLive, GoalDetailLive, MoodLive,
    JournalLive, AIChatLive. */
 

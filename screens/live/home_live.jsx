@@ -1,10 +1,11 @@
 /* HOME — LIVE-only fork of HomeScreen (real Telegram user, app.mode === "live"
    is ALWAYS true here). The demo/fresh branches are stripped: no segmented
    Привычки/Цели toggle, no demo balance-wheel / demo stat strip / demo MoodWidget,
-   no fresh «Что дальше?» banner. Everything else reuses the shared globals from
-   home.jsx (HomeHeroSwipe, HomeOrbit, HeroOrbFace, HabitCheck, ShareAppSheet) +
-   the app-wide globals (SwipeRow, HabitRing, AvatarStack, BosOrbFace, I, hooks,
-   ShareHabitSheet, MoodWidget, the bos* helpers). The ONLY new top-level
+   no fresh «Что дальше?» banner. Everything else reuses the shared core/ toolkit
+   (HeroOrbFace, HabitCheck, HabitRing, AvatarStack, bosPill* helpers) + the live
+   forks in screens/live/shared_live.jsx (HomeHeroSwipeLive, MoodWidgetLive,
+   ShareAppSheetLive, ShareHabitSheetLive) + framework (SwipeRow, BosOrbFace, I,
+   hooks, the bos* helpers). The ONLY new top-level
    declaration in this file is `function HomeLive`. */
 function HomeLive() {
   const { navigate } = useNav();

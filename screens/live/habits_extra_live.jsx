@@ -2,16 +2,16 @@
    is ALWAYS true here). These three screens get dedicated live copies so the two
    demos (demo & fresh) stay FROZEN on the originals in screens/habits.jsx. In each
    fork the `_isLive` / `app?.mode === "live"` checks collapse to their TRUE branch
-   and the demo/fresh branches are deleted — DeadlineCalendar is always called with
-   isLive={true} (real "today"), the share/invite flow always runs the REAL cloud
+   and the demo/fresh branches are deleted — DeadlineCalendarLive always uses the
+   real "today", the share/invite flow always runs the REAL cloud
    path (createTeam → addTeamHabit → share sheet), and the friend chips start from
    the user's REAL invited circle (no sample faces, no demo cycle-pool). The
    iOS-Headline typography polish is applied: the habit/goal name preview title and
    the «Далее» card title now render at fontWeight 600 + color var(--text) instead
-   of the thin 500. Everything else reuses the shared globals from habits.jsx
-   (DeadlineCalendar, HabitInviteShareSheet, HABIT_ICONS, HABIT_COLORS,
-   HABIT_COLOR_NAMES, WEEKDAY_LABELS, daysSummary, INFO_TOPICS) + the app-wide
-   globals (PageHeader, Switch, Segmented, I, hooks useApp/useNav/useSheet,
+   of the thin 500. Everything else reuses the shared core/ toolkit
+   (HabitInviteShareSheet, HABIT_ICONS, HABIT_COLORS, HABIT_COLOR_NAMES,
+   WEEKDAY_LABELS, daysSummary, INFO_TOPICS) + the DeadlineCalendarLive fork
+   (shared_live.jsx) + framework (PageHeader, Switch, Segmented, I, hooks useApp/useNav/useSheet,
    window.bosCloud, window.tgHaptic). The ONLY new top-level declarations in this
    file are exactly: function HabitSettingsLive, function GoalSettingsLive and
    function InfoLive. */

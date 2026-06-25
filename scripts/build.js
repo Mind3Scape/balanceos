@@ -21,6 +21,7 @@ const FILES = [
   "components/icons.jsx", "components/shell.jsx",
   // core/ — the NEUTRAL shared toolkit (no demo/live branching). Loads after the
   // framework, before any screen that uses it, so both demos AND the live app share ONE copy.
+  "core/aliases.jsx",
   "core/home-kit.jsx", "core/habits-kit.jsx", "core/profile-kit.jsx",
   "core/community-kit.jsx", "core/extra-kit.jsx",
   "screens/demo/home.jsx", "screens/demo/habits.jsx", "screens/demo/community.jsx",
