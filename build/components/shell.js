@@ -1266,6 +1266,22 @@ function bosReferralId() {
    new day clears yesterday's checkmarks while the streak & XP history persist; toggling the
    same day twice can't double-count or corrupt anything. The demo stays a frozen showcase
    (curated `done`/`streak`), untouched by all of this. At T1 the same log syncs to Supabase. */
+// The post-signup state dial (onb-mood) is shown to a LIVE Telegram user EXACTLY ONCE — the
+// first entry after registration. We persist a flag the moment they finish it, so every later
+// entry skips straight to home (David: «первый раз при входе, дальше не показывается»). Demo is
+// exempt: it always shows the dial, so the demo entry paths never read or write this flag.
+function bosDialSeen() {
+  try {
+    return localStorage.getItem("bos:dialSeen") === "1";
+  } catch (e) {
+    return false;
+  }
+}
+function bosMarkDialSeen() {
+  try {
+    localStorage.setItem("bos:dialSeen", "1");
+  } catch (e) {}
+}
 function bosTodayKey(d) {
   var x = d || new Date();
   // local-date key (not UTC) so "today" matches the user's own clock

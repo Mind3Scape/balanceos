@@ -809,7 +809,9 @@ function IntroScreen() {
       try { window.__bosOnbMood = moodVal; } catch (e) {}
       try {
         var nx = params && params.next;
-        if (nx === "live") { if (app && app.enterLive) app.enterLive(); }
+        // Live user just finished the first-entry dial → remember it so future entries skip
+        // straight past it. Demo (fresh/demo) NEVER marks the flag — it always shows the dial.
+        if (nx === "live") { if (app && app.enterLive) app.enterLive(); if (typeof bosMarkDialSeen === "function") bosMarkDialSeen(); }
         else if (nx === "demo") { if (app && app.enterDemo) app.enterDemo(); }
         else { if (app && app.enterFresh) app.enterFresh(params && params.name); }
       } catch (e) {}
@@ -1013,7 +1015,17 @@ function IntroScreen() {
               WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)" }}>
             <I.Eye size={18} /> Войти в деморежим
           </button>
-          <button onClick={() => navigate("onb-mood", { moodOnly: true, next: "live" })} className="tap"
+          <button onClick={() => {
+              // The state dial is a FIRST-ENTRY-only moment for a live user. If they've already
+              // been through it once, log in straight to home — no dial again (David). First
+              // time (no flag): go to the dial, which marks the flag when finished.
+              if (typeof bosDialSeen === "function" && bosDialSeen()) {
+                try { if (app && app.enterLive) app.enterLive(); } catch (e) {}
+                navigate("home");
+              } else {
+                navigate("onb-mood", { moodOnly: true, next: "live" });
+              }
+            }} className="tap"
             style={{ position: "relative", overflow: "hidden", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
               background: "linear-gradient(150deg, #20242c 0%, #0a0a0a 62%)", color: "#fff",
               border: "1px solid rgba(255,255,255,0.09)", borderRadius: 999, padding: "16px 18px",

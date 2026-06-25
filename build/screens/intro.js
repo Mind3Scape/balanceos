@@ -1651,8 +1651,11 @@ function IntroScreen() {
       } catch (e) {}
       try {
         var nx = params && params.next;
+        // Live user just finished the first-entry dial → remember it so future entries skip
+        // straight past it. Demo (fresh/demo) NEVER marks the flag — it always shows the dial.
         if (nx === "live") {
           if (app && app.enterLive) app.enterLive();
+          if (typeof bosMarkDialSeen === "function") bosMarkDialSeen();
         } else if (nx === "demo") {
           if (app && app.enterDemo) app.enterDemo();
         } else {
@@ -2140,10 +2143,22 @@ function IntroScreen() {
   }, /*#__PURE__*/React.createElement(I.Eye, {
     size: 18
   }), " \u0412\u043E\u0439\u0442\u0438 \u0432 \u0434\u0435\u043C\u043E\u0440\u0435\u0436\u0438\u043C"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("onb-mood", {
-      moodOnly: true,
-      next: "live"
-    }),
+    onClick: () => {
+      // The state dial is a FIRST-ENTRY-only moment for a live user. If they've already
+      // been through it once, log in straight to home — no dial again (David). First
+      // time (no flag): go to the dial, which marks the flag when finished.
+      if (typeof bosDialSeen === "function" && bosDialSeen()) {
+        try {
+          if (app && app.enterLive) app.enterLive();
+        } catch (e) {}
+        navigate("home");
+      } else {
+        navigate("onb-mood", {
+          moodOnly: true,
+          next: "live"
+        });
+      }
+    },
     className: "tap",
     style: {
       position: "relative",
