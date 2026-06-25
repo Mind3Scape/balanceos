@@ -25,6 +25,57 @@
    hooks useApp/useNav/useSheet, and useCS = React.useState). The ONLY new top-level
    declarations in this file are `function CommunityLive` and `function TeamDetailLive`. */
 
+// LIVE team card — shows the REAL cloud roster (member count + real avatars) for a team you're
+// in, not the stale local t.members (that mismatch was «3 снаружи / 0 внутри»). AvatarStack
+// already caps at 5 faces + a «+N» overflow chip (iOS-style) and uses each member's real
+// avatar. Local-only teams fall back to their own members; empty cloud team = honest «ты один».
+function LiveTeamCard({ t, navigate }) {
+  const tgt = t.target || 0;
+  const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+  const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
+  const palette = (typeof BOS_TEAM_PALETTE !== "undefined") ? BOS_TEAM_PALETTE : ["#7FB3F2"];
+  const _cloud = !!(t.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers);
+  const [roster, setRoster] = React.useState(null); // null = not loaded yet
+  React.useEffect(() => {
+    if (!_cloud) return;
+    let on = true;
+    window.bosCloud.teamMembers(t.cloudId).then((mem) => {
+      if (!on || !Array.isArray(mem)) return;
+      setRoster(mem.map((m, j) => ({ name: m.name || "Участник", avatar: m.avatar, initials: (m.name || "У").slice(0, 1).toUpperCase(), color: palette[j % palette.length] })));
+    }).catch(() => { if (on) setRoster([]); });
+    return () => { on = false; };
+  }, [t.cloudId]);
+  const members = _cloud ? (roster || []) : (t.members || []);
+  const count = members.length;
+  const ruPart = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "участник" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "участника" : "участников"; };
+  return (
+    <div className="team-card" style={{ ["--team-accent"]: t.accent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden" }}>
+      <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{t.emblem}</div>
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
+          <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", background: "var(--card-track)", padding: "2px 8px", borderRadius: 999 }}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
+        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date} · {count} {ruPart(count)}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
+          <span>{t.target ? "К цели" : "Прогресс команды"}</span>
+          <span style={{ color: "var(--text)" }}>{t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : Math.round(gp * 100) + "%"}</span>
+        </div>
+        <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
+          <span className="team-card__fill" style={{ display: "block", height: "100%", width: (gp * 100) + "%", borderRadius: 999 }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", marginTop: 14, gap: 8 }}>
+          {count > 0 ? <AvatarStack people={members} size={28} max={5} label={false}/> : <span style={{ fontSize: 12, color: "var(--text-4)" }}>Пока ты один — позови друзей</span>}
+          <button onClick={() => navigate("team-detail", { team: t })} className="tap team-card__cta" style={{ marginLeft: "auto", border: 0, borderRadius: 999, padding: "11px 18px", fontSize: 13.5, fontWeight: 600 }}>
+            Открыть команду
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CommunityLive() {
   const { navigate } = useNav();
   const app = useApp();
@@ -99,38 +150,7 @@ function CommunityLive() {
 
       {section === "discover" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
-          {teams.map((t, i) => {
-            const tgt = t.target || 0;
-            const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
-            const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
-            return (
-            <div key={i} className="team-card" style={{ ["--team-accent"]: t.accent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden" }}>
-              {/* soft pastel card + faded emblem watermark — the calmer earlier look (no glow) */}
-              <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{t.emblem}</div>
-              <div style={{ position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
-                  <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", background: "var(--card-track)", padding: "2px 8px", borderRadius: 999 }}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
-                </div>
-                <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
-                <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date} · {t.members.length} участников</div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
-                  <span>{t.target ? "К цели" : "Прогресс команды"}</span>
-                  <span style={{ color: "var(--text)" }}>{t.target ? `${cur} / ${tgt} ${t.unit || ""}` : Math.round(gp * 100) + "%"}</span>
-                </div>
-                <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
-                  <span className="team-card__fill" style={{ display: "block", height: "100%", width: (gp * 100) + "%", borderRadius: 999 }} />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", marginTop: 14, gap: 8 }}>
-                  <AvatarStack people={t.members} size={28} max={5} label={false}/>
-                  <button onClick={() => navigate("team-detail", { team: t })} className="tap team-card__cta" style={{ marginLeft: "auto", border: 0, borderRadius: 999, padding: "11px 18px", fontSize: 13.5, fontWeight: 600 }}>
-                    Открыть команду
-                  </button>
-                </div>
-              </div>
-            </div>
-            );
-          })}
+          {teams.map((t, i) => <LiveTeamCard key={t._id || i} t={t} navigate={navigate} />)}
           {teams.length === 0 && (
             <div style={{ textAlign: "center", padding: "8px 18px 2px", color: "var(--text-4)", fontSize: 13.5, lineHeight: 1.5 }}>
               Команды — это привычки вместе с друзьями. Создай первую или дождись приглашения.

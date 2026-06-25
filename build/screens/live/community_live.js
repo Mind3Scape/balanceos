@@ -25,6 +25,173 @@
    hooks useApp/useNav/useSheet, and useCS = React.useState). The ONLY new top-level
    declarations in this file are `function CommunityLive` and `function TeamDetailLive`. */
 
+// LIVE team card — shows the REAL cloud roster (member count + real avatars) for a team you're
+// in, not the stale local t.members (that mismatch was «3 снаружи / 0 внутри»). AvatarStack
+// already caps at 5 faces + a «+N» overflow chip (iOS-style) and uses each member's real
+// avatar. Local-only teams fall back to their own members; empty cloud team = honest «ты один».
+function LiveTeamCard({
+  t,
+  navigate
+}) {
+  var tgt = t.target || 0;
+  var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+  var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
+  var palette = typeof BOS_TEAM_PALETTE !== "undefined" ? BOS_TEAM_PALETTE : ["#7FB3F2"];
+  var _cloud = !!(t.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers);
+  var [roster, setRoster] = React.useState(null); // null = not loaded yet
+  React.useEffect(() => {
+    if (!_cloud) return;
+    var on = true;
+    window.bosCloud.teamMembers(t.cloudId).then(mem => {
+      if (!on || !Array.isArray(mem)) return;
+      setRoster(mem.map((m, j) => ({
+        name: m.name || "Участник",
+        avatar: m.avatar,
+        initials: (m.name || "У").slice(0, 1).toUpperCase(),
+        color: palette[j % palette.length]
+      })));
+    }).catch(() => {
+      if (on) setRoster([]);
+    });
+    return () => {
+      on = false;
+    };
+  }, [t.cloudId]);
+  var members = _cloud ? roster || [] : t.members || [];
+  var count = members.length;
+  var ruPart = n => {
+    var m = n % 10,
+      h = n % 100;
+    return m === 1 && h !== 11 ? "участник" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "участника" : "участников";
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "team-card",
+    style: {
+      ["--team-accent"]: t.accent,
+      borderRadius: 22,
+      padding: 18,
+      position: "relative",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    className: "team-card__emblem",
+    style: {
+      position: "absolute",
+      top: -10,
+      right: -6,
+      fontSize: 110,
+      lineHeight: 1,
+      pointerEvents: "none",
+      transform: "rotate(8deg)"
+    }
+  }, t.emblem), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 18,
+      color: "var(--text)",
+      letterSpacing: "-0.4px"
+    }
+  }, t.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      background: "var(--card-track)",
+      padding: "2px 8px",
+      borderRadius: 999
+    }
+  }, t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-2)",
+      marginTop: 6,
+      fontWeight: 500
+    }
+  }, "\uD83C\uDFAF ", t.goal), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, t.date, " \xB7 ", count, " ", ruPart(count)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 14,
+      fontSize: 11,
+      color: "var(--text-3)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600
+    }
+  }, /*#__PURE__*/React.createElement("span", null, t.target ? "К цели" : "Прогресс команды"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text)"
+    }
+  }, t.target ? cur + " / " + tgt + " " + (t.unit || "") : Math.round(gp * 100) + "%")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      height: 8,
+      borderRadius: 999,
+      background: "var(--card-track)",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "team-card__fill",
+    style: {
+      display: "block",
+      height: "100%",
+      width: gp * 100 + "%",
+      borderRadius: 999
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      marginTop: 14,
+      gap: 8
+    }
+  }, count > 0 ? /*#__PURE__*/React.createElement(AvatarStack, {
+    people: members,
+    size: 28,
+    max: 5,
+    label: false
+  }) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)"
+    }
+  }, "\u041F\u043E\u043A\u0430 \u0442\u044B \u043E\u0434\u0438\u043D \u2014 \u043F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0437\u0435\u0439"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("team-detail", {
+      team: t
+    }),
+    className: "tap team-card__cta",
+    style: {
+      marginLeft: "auto",
+      border: 0,
+      borderRadius: 999,
+      padding: "11px 18px",
+      fontSize: 13.5,
+      fontWeight: 600
+    }
+  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"))));
+}
 function CommunityLive() {
   var {
     navigate
@@ -183,134 +350,11 @@ function CommunityLive() {
       gap: 12,
       marginTop: 14
     }
-  }, teams.map((t, i) => {
-    var tgt = t.target || 0;
-    var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
-    var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
-    return /*#__PURE__*/React.createElement("div", {
-      key: i,
-      className: "team-card",
-      style: {
-        ["--team-accent"]: t.accent,
-        borderRadius: 22,
-        padding: 18,
-        position: "relative",
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      "aria-hidden": true,
-      className: "team-card__emblem",
-      style: {
-        position: "absolute",
-        top: -10,
-        right: -6,
-        fontSize: 110,
-        lineHeight: 1,
-        pointerEvents: "none",
-        transform: "rotate(8deg)"
-      }
-    }, t.emblem), /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: "relative"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontWeight: 700,
-        fontSize: 18,
-        color: "var(--text)",
-        letterSpacing: "-0.4px"
-      }
-    }, t.name), /*#__PURE__*/React.createElement("span", {
-      style: {
-        flexShrink: 0,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        fontSize: 10.5,
-        fontWeight: 600,
-        color: "var(--text-3)",
-        background: "var(--card-track)",
-        padding: "2px 8px",
-        borderRadius: 999
-      }
-    }, t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        color: "var(--text-2)",
-        marginTop: 6,
-        fontWeight: 500
-      }
-    }, "\uD83C\uDFAF ", t.goal), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-3)",
-        marginTop: 2
-      }
-    }, t.date, " \xB7 ", t.members.length, " \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginTop: 14,
-        fontSize: 11,
-        color: "var(--text-3)",
-        textTransform: "uppercase",
-        letterSpacing: 1,
-        fontWeight: 600
-      }
-    }, /*#__PURE__*/React.createElement("span", null, t.target ? "К цели" : "Прогресс команды"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--text)"
-      }
-    }, t.target ? `${cur} / ${tgt} ${t.unit || ""}` : Math.round(gp * 100) + "%")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 6,
-        height: 8,
-        borderRadius: 999,
-        background: "var(--card-track)",
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "team-card__fill",
-      style: {
-        display: "block",
-        height: "100%",
-        width: gp * 100 + "%",
-        borderRadius: 999
-      }
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        marginTop: 14,
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement(AvatarStack, {
-      people: t.members,
-      size: 28,
-      max: 5,
-      label: false
-    }), /*#__PURE__*/React.createElement("button", {
-      onClick: () => navigate("team-detail", {
-        team: t
-      }),
-      className: "tap team-card__cta",
-      style: {
-        marginLeft: "auto",
-        border: 0,
-        borderRadius: 999,
-        padding: "11px 18px",
-        fontSize: 13.5,
-        fontWeight: 600
-      }
-    }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"))));
-  }), teams.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, teams.map((t, i) => /*#__PURE__*/React.createElement(LiveTeamCard, {
+    key: t._id || i,
+    t: t,
+    navigate: navigate
+  })), teams.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       padding: "8px 18px 2px",
