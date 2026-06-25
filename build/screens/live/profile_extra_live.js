@@ -24,16 +24,33 @@
 
 // LIVE state-history sheet (Settings → «История состояния»): the user's REAL day-keyed
 // mood marks, newest first. Honest empty state — never a fake calendar.
+// Unified STATE + JOURNAL history (David: «состояние и дневник — одно и то же»): every day
+// that has a mood mark OR a written note/tags, newest first, each row showing the state and
+// the day's journal note together. Honest empty state.
 function StateHistorySheetLive({
   app,
   dark = false
 }) {
   var moods = typeof MOOD_OPTIONS !== "undefined" ? MOOD_OPTIONS : [];
   var dm = app && app.dayMoods || {};
-  var entries = Object.keys(dm).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k) && dm[k] != null).sort().reverse().map(k => ({
-    key: k,
-    m: moods[dm[k]] || null
-  })).filter(e => e.m);
+  var dn = app && app.dayNotes || {};
+  var keys = {};
+  Object.keys(dm).forEach(k => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && dm[k] != null) keys[k] = 1;
+  });
+  Object.keys(dn).forEach(k => {
+    var e = dn[k];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && e && (e.note != null && ("" + e.note).trim() || e.tags && e.tags.length)) keys[k] = 1;
+  });
+  var entries = Object.keys(keys).sort().reverse().map(k => {
+    var e = dn[k] || {};
+    return {
+      key: k,
+      m: dm[k] != null ? moods[dm[k]] || null : null,
+      note: ("" + (e.note || "")).trim(),
+      tags: e.tags || []
+    };
+  });
   var streak = typeof bosMoodStreak === "function" ? bosMoodStreak(dm) : 0;
   var C = dark ? {
     text: "#fff",
@@ -76,7 +93,7 @@ function StateHistorySheetLive({
       color: C.sub,
       marginTop: 3
     }
-  }, entries.length ? "Отмечено дней: " + entries.length + (streak >= 2 ? "  ·  🔥 " + streak + " " + (typeof bosRuDays === "function" ? bosRuDays(streak) : "дней") + " подряд" : "") : "Здесь будут твои отметки состояния")), entries.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, entries.length ? "Дней с записью: " + entries.length + (streak >= 2 ? "  ·  🔥 " + streak + " " + (typeof bosRuDays === "function" ? bosRuDays(streak) : "дней") + " подряд" : "") : "Здесь будут твои состояния и записи дневника")), entries.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       padding: "26px 6px",
@@ -97,9 +114,9 @@ function StateHistorySheetLive({
     key: i,
     style: {
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: 12,
-      padding: "10px 12px",
+      padding: "11px 12px",
       background: C.tile,
       borderRadius: 14
     }
@@ -108,13 +125,14 @@ function StateHistorySheetLive({
       width: 36,
       height: 36,
       borderRadius: "50%",
-      background: "linear-gradient(160deg, " + e.m.c + ", " + e.m.c + "99)",
+      background: e.m ? "linear-gradient(160deg, " + e.m.c + ", " + e.m.c + "99)" : "rgba(127,181,255,0.18)",
       display: "grid",
       placeItems: "center",
       fontSize: 18,
-      flexShrink: 0
+      flexShrink: 0,
+      marginTop: 1
     }
-  }, e.m.i), /*#__PURE__*/React.createElement("div", {
+  }, e.m ? e.m.i : "📝"), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -124,13 +142,27 @@ function StateHistorySheetLive({
       fontSize: 15,
       fontWeight: 600
     }
-  }, e.m.t), /*#__PURE__*/React.createElement("div", {
+  }, e.m ? e.m.t : "Запись дня"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: C.sub,
       marginTop: 1
     }
-  }, fmt(e.key)))))));
+  }, fmt(e.key)), e.note && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: C.text,
+      marginTop: 6,
+      lineHeight: 1.4,
+      whiteSpace: "pre-wrap"
+    }
+  }, e.note), !e.note && e.tags.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: C.sub,
+      marginTop: 5
+    }
+  }, e.tags.map(t => "#" + ("" + t).replace(/_/g, " ")).join("  ")))))));
 }
 
 // LIVE friends sheet (Settings → «Друзья»): the REAL people you invited (referral circle)

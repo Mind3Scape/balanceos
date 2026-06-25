@@ -80,7 +80,11 @@ const LIVE_SCREENS = {
   "habit-detail": () => HabitDetailLive,
   "goal-detail": () => GoalDetailLive,
   mood: () => MoodLive,
-  journal: () => JournalLive,
+  // David: «ощущения и дневник — одно и то же». LIVE merges them into ONE menu —
+  // both routes open MoodLive (state picker + the day's journal note), so the AI's
+  // "записать рефлексию" suggestion lands on the same screen where you log state.
+  // (Demo keeps its separate JournalScreen, frozen.)
+  journal: () => MoodLive,
   "ai-chat": () => AIChatLive,
   "habit-settings": () => HabitSettingsLive,
   "goal-settings": () => GoalSettingsLive,
@@ -156,7 +160,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v202";
+const APP_VERSION = "v203";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.

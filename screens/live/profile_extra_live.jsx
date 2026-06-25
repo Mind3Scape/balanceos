@@ -24,14 +24,20 @@
 
 // LIVE state-history sheet (Settings → «История состояния»): the user's REAL day-keyed
 // mood marks, newest first. Honest empty state — never a fake calendar.
+// Unified STATE + JOURNAL history (David: «состояние и дневник — одно и то же»): every day
+// that has a mood mark OR a written note/tags, newest first, each row showing the state and
+// the day's journal note together. Honest empty state.
 function StateHistorySheetLive({ app, dark = false }) {
   const moods = (typeof MOOD_OPTIONS !== "undefined") ? MOOD_OPTIONS : [];
   const dm = (app && app.dayMoods) || {};
-  const entries = Object.keys(dm)
-    .filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k) && dm[k] != null)
-    .sort().reverse()
-    .map((k) => ({ key: k, m: moods[dm[k]] || null }))
-    .filter((e) => e.m);
+  const dn = (app && app.dayNotes) || {};
+  const keys = {};
+  Object.keys(dm).forEach((k) => { if (/^\d{4}-\d{2}-\d{2}$/.test(k) && dm[k] != null) keys[k] = 1; });
+  Object.keys(dn).forEach((k) => { const e = dn[k]; if (/^\d{4}-\d{2}-\d{2}$/.test(k) && e && (((e.note != null) && ("" + e.note).trim()) || (e.tags && e.tags.length))) keys[k] = 1; });
+  const entries = Object.keys(keys).sort().reverse().map((k) => {
+    const e = dn[k] || {};
+    return { key: k, m: (dm[k] != null) ? (moods[dm[k]] || null) : null, note: ("" + (e.note || "")).trim(), tags: (e.tags || []) };
+  });
   const streak = (typeof bosMoodStreak === "function") ? bosMoodStreak(dm) : 0;
   const C = dark
     ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.07)" }
@@ -42,7 +48,7 @@ function StateHistorySheetLive({ app, dark = false }) {
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>История состояния</div>
         <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3 }}>
-          {entries.length ? ("Отмечено дней: " + entries.length + (streak >= 2 ? "  ·  🔥 " + streak + " " + (typeof bosRuDays === "function" ? bosRuDays(streak) : "дней") + " подряд" : "")) : "Здесь будут твои отметки состояния"}
+          {entries.length ? ("Дней с записью: " + entries.length + (streak >= 2 ? "  ·  🔥 " + streak + " " + (typeof bosRuDays === "function" ? bosRuDays(streak) : "дней") + " подряд" : "")) : "Здесь будут твои состояния и записи дневника"}
         </div>
       </div>
       {entries.length === 0 ? (
@@ -50,11 +56,13 @@ function StateHistorySheetLive({ app, dark = false }) {
       ) : (
         <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: "52vh", overflowY: "auto" }}>
           {entries.map((e, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: C.tile, borderRadius: 14 }}>
-              <span style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(160deg, " + e.m.c + ", " + e.m.c + "99)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{e.m.i}</span>
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 12px", background: C.tile, borderRadius: 14 }}>
+              <span style={{ width: 36, height: 36, borderRadius: "50%", background: e.m ? ("linear-gradient(160deg, " + e.m.c + ", " + e.m.c + "99)") : "rgba(127,181,255,0.18)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0, marginTop: 1 }}>{e.m ? e.m.i : "📝"}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600 }}>{e.m.t}</div>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>{e.m ? e.m.t : "Запись дня"}</div>
                 <div style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>{fmt(e.key)}</div>
+                {e.note && <div style={{ fontSize: 13.5, color: C.text, marginTop: 6, lineHeight: 1.4, whiteSpace: "pre-wrap" }}>{e.note}</div>}
+                {!e.note && e.tags.length > 0 && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 5 }}>{e.tags.map((t) => "#" + ("" + t).replace(/_/g, " ")).join("  ")}</div>}
               </div>
             </div>
           ))}
