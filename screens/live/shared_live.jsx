@@ -561,7 +561,10 @@ function StatePromptLive({ app, isDark }) {
         {moods.map((m, i) => (
           <button key={i} className="tap" data-no-haptic onClick={() => log(i)} title={m.t} aria-label={m.t}
             style={{ flex: 1, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", cursor: "pointer" }}>
-            <span style={{ width: 46, height: 46, borderRadius: "50%", background: "linear-gradient(160deg, " + m.c + ", " + m.c + "99)", display: "grid", placeItems: "center", fontSize: 23, boxShadow: isDark ? "inset 0 0 0 1px rgba(255,255,255,0.08)" : "0 1px 3px rgba(0,0,0,0.08)" }}>{m.i}</span>
+            <span style={{ position: "relative", width: 46, height: 46, display: "grid", placeItems: "center" }}>
+              <MiniOrb size={46} tint={tintFromMood(m.c)} style={{ position: "absolute", inset: 0 }} />
+              <span style={{ position: "relative", fontSize: 23, lineHeight: 1, filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.22))" }}>{m.i}</span>
+            </span>
           </button>
         ))}
       </div>

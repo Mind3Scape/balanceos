@@ -17,8 +17,34 @@ function useThemeFlag(ref) {
    should land in ai-chat. Shape: { label, kind:"action"|"chat", route?, params?, prompt?, i? }.
    We stay backwards-compatible with the old shapes ({ t, i } chips, or a bare string),
    which fall back to opening the chat with their text as the prompt. */
-function HabitCheck({ done, onToggle, xp = 10 }) {
+const BOS_XP_PILL = {
+  display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
+  background: "#0a0a0a", color: "#FEDE34", fontSize: 11.5, fontWeight: 800,
+  padding: "3px 9px", borderRadius: 999, boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
+  animation: "bosXpTick 1.2s cubic-bezier(0.22,1,0.36,1) forwards",
+};
+/* The "+XP" pop, lifted to a body-level overlay so it floats ABOVE every card clip
+   (the swipe-row corner clips + the rounded-card wrapper would otherwise shave its
+   right edge mid-bounce). Decorative, pointerEvents none; pinned over the checkmark
+   it celebrates. LIVE-only — the frozen demo keeps its in-place pop, pixel-identical. */
+function XpFloat({ tick, xp, anchorRef }) {
+  const [pos, setPos] = React.useState(null);
+  React.useLayoutEffect(() => {
+    if (!tick || !anchorRef.current) return;
+    const r = anchorRef.current.getBoundingClientRect();
+    setPos({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  }, [tick]);
+  if (!tick || !pos) return null;
+  return ReactDOM.createPortal(
+    <span aria-hidden style={{ position: "fixed", left: pos.x, top: pos.y, transform: "translate(-50%, -50%)", zIndex: 9000, pointerEvents: "none" }}>
+      <span key={tick} style={BOS_XP_PILL}>+{xp} XP</span>
+    </span>,
+    document.body
+  );
+}
+function HabitCheck({ done, onToggle, xp = 10, float = false }) {
   const [tick, setTick] = React.useState(0);
+  const btnRef = React.useRef(null);
   const onClick = (e) => {
     e.stopPropagation();
     const willComplete = !done;
@@ -30,17 +56,13 @@ function HabitCheck({ done, onToggle, xp = 10 }) {
   };
   return (
     <div style={{ position: "relative", flexShrink: 0, display: "grid", placeItems: "center" }}>
-      {tick > 0 && (
+      {!float && tick > 0 && (
         <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 6, pointerEvents: "none" }}>
-          <span key={tick} style={{
-            display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
-            background: "#0a0a0a", color: "#FEDE34", fontSize: 11.5, fontWeight: 800,
-            padding: "3px 9px", borderRadius: 999, boxShadow: "0 4px 12px rgba(0,0,0,0.28)",
-            animation: "bosXpTick 1.2s cubic-bezier(0.22,1,0.36,1) forwards",
-          }}>+{xp} XP</span>
+          <span key={tick} style={BOS_XP_PILL}>+{xp} XP</span>
         </span>
       )}
-      <button className={"check-btn hit44 " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}>
+      {float && <XpFloat tick={tick} xp={xp} anchorRef={btnRef} />}
+      <button ref={btnRef} className={"check-btn hit44 " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}>
         {done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
       </button>
     </div>

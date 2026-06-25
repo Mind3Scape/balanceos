@@ -665,7 +665,7 @@ function SettingsLive() {
   }, "\u041C\u0430\u043D\u0438\u0444\u0435\u0441\u0442"), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 16,
     className: "bos-sys-text-2"
-  })), ["Политика конфиденциальности", "Условия использования", "Версия 2.4.1"].map((l, i, a) => i < a.length - 1 ? /*#__PURE__*/React.createElement(SysBtn, {
+  })), ["Политика конфиденциальности", "Условия использования", "Версия " + APP_VERSION].map((l, i, a) => i < a.length - 1 ? /*#__PURE__*/React.createElement(SysBtn, {
     key: i,
     onClick: () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
       title: l,
@@ -685,14 +685,13 @@ function SettingsLive() {
     className: "bos-sys-text-2"
   })) : /*#__PURE__*/React.createElement("div", {
     key: i,
-    className: "bos-sys-card",
+    className: "bos-sys-text-3",
     style: {
-      padding: 14,
-      fontSize: 15
+      textAlign: "center",
+      padding: "14px 14px 2px",
+      fontSize: 13
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-text-2"
-  }, l)))));
+  }, l))));
 }
 function NotificationsLive() {
   var {
@@ -985,7 +984,7 @@ function HistoryLive() {
   var cellStyle = pct => {
     if (pct == null) return {
       background: TH.cellEmpty,
-      border: "1px dashed " + TH.cellBorder,
+      border: "1px solid " + TH.cellBorder,
       color: TH.cellMuted
     };
     if (pct === 0) return {
@@ -1263,7 +1262,7 @@ function HistoryLive() {
         position: "absolute",
         inset: "17%",
         borderRadius: "50%",
-        border: "1px dashed " + TH.cellBorder
+        border: "1px solid " + TH.cellBorder
       }
     }) : /*#__PURE__*/React.createElement(DayRing, {
       pct: pct,

@@ -237,7 +237,7 @@ function HomeLive() {
     style: {
       position: "absolute",
       top: 8,
-      right: 10,
+      right: 8,
       width: 8,
       height: 8,
       borderRadius: "50%",
@@ -715,7 +715,8 @@ function HomeLive() {
   }), /*#__PURE__*/React.createElement(HabitCheck, {
     done: h.done,
     onToggle: () => toggle(h.id),
-    xp: XP_PER_HABIT
+    xp: XP_PER_HABIT,
+    float: true
   })))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {

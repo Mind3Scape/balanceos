@@ -790,7 +790,7 @@ function AIChatLive() {
         {msgs.map((m, i) => m.who === "ai" ? renderAI(m, i) : renderMe(m, i))}
 
         {typing && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
             <StateChatOrb size={28} tint={stateTint}/>
             <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 22, borderBottomLeftRadius: 4, padding: "12px 14px", display: "flex", gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0s ease-in-out infinite" }}/>

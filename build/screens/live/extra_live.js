@@ -1887,7 +1887,8 @@ function AIChatLive() {
     style: {
       display: "flex",
       gap: 10,
-      alignItems: "flex-end"
+      alignItems: "flex-end",
+      animation: "msgIn 0.4s ease both"
     }
   }, /*#__PURE__*/React.createElement(StateChatOrb, {
     size: 28,

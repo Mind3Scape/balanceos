@@ -244,16 +244,14 @@ function SettingsLive() {
           <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Манифест</span>
           <I.ChevronRight size={16} className="bos-sys-text-2" />
         </SysBtn>
-        {["Политика конфиденциальности", "Условия использования", "Версия 2.4.1"].map((l, i, a) => (
+        {["Политика конфиденциальности", "Условия использования", "Версия " + APP_VERSION].map((l, i, a) => (
           i < a.length - 1 ? (
             <SysBtn key={i} onClick={() => openSheet(<InfoSheet title={l} body={"Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта."} cta="Готово" dark={routeDark}/>)}>
               <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{l}</span>
               <I.ChevronRight size={16} className="bos-sys-text-2" />
             </SysBtn>
           ) : (
-            <div key={i} className="bos-sys-card" style={{ padding: 14, fontSize: 15 }} >
-              <span className="bos-sys-text-2">{l}</span>
-            </div>
+            <div key={i} className="bos-sys-text-3" style={{ textAlign: "center", padding: "14px 14px 2px", fontSize: 13 }}>{l}</div>
           )
         ))}
       </div>
@@ -426,7 +424,7 @@ function HistoryLive() {
   const [selDay, setSelDay] = useP(today);
 
   const cellStyle = (pct) => {
-    if (pct == null) return { background: TH.cellEmpty, border: "1px dashed " + TH.cellBorder, color: TH.cellMuted };
+    if (pct == null) return { background: TH.cellEmpty, border: "1px solid " + TH.cellBorder, color: TH.cellMuted };
     if (pct === 0)   return { background: TH.cellIdle, color: TH.cellMuted };
     if (pct < 1) {
       const h = Math.round(pct * 100);
@@ -534,7 +532,7 @@ function HistoryLive() {
                 {isToday && <span aria-hidden style={{ position: "absolute", width: "62%", aspectRatio: "1/1", borderRadius: "50%", background: TH.todayBg }}/>}
                 {isSelected && !isToday && <span aria-hidden style={{ position: "absolute", width: "66%", aspectRatio: "1/1", borderRadius: "50%", border: "1.5px solid " + (isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)") }}/>}
                 {future
-                  ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px dashed " + TH.cellBorder }}/>
+                  ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px solid " + TH.cellBorder }}/>
                   : <DayRing pct={pct} track={TH.ringTrack} glow={pct === 1} />}
                 <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>
                 {(() => {

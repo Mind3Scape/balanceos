@@ -168,7 +168,7 @@ function HabitsLive() {
       border: 0,
       display: "grid",
       placeItems: "center",
-      boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 4px 14px rgba(0,0,0,0.18)"
+      boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 3px 10px rgba(0,0,0,0.12)"
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 18,
@@ -339,7 +339,8 @@ function HabitsLive() {
   }), /*#__PURE__*/React.createElement(HabitCheck, {
     done: h.done,
     onToggle: () => toggle(h.id),
-    xp: 10
+    xp: 10,
+    float: true
   })))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
@@ -575,7 +576,7 @@ function HabitsLive() {
       gap: 10,
       overflowX: "auto",
       margin: "8px -12px 0",
-      padding: "0 16px 4px",
+      padding: "0 28px 4px 16px",
       scrollbarWidth: "none"
     }
   }, [{

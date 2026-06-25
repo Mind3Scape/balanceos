@@ -95,6 +95,9 @@ var I = {
   Plus: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
     d: "M12 5v14M5 12h14"
   })),
+  Minus: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M5 12h14"
+  })),
   ChevronRight: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
     d: "M9 6l6 6-6 6"
   })),

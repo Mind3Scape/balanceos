@@ -145,7 +145,7 @@ function HomeLive() {
           style={{ width: 42, height: 42, borderRadius: 14, background: iconBg, border: 0, display: "grid", placeItems: "center", position: "relative" }}>
           <I.Bell size={18} color={bellIcon}/>
           {showBellDot && (
-          <span style={{ position: "absolute", top: 8, right: 10, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
+          <span style={{ position: "absolute", top: 8, right: 8, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
           )}
         </button>
       </div>
@@ -292,7 +292,7 @@ function HomeLive() {
                   {h.duration && !h.done && (
                     <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                   )}
-                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} />
+                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} float />
                 </div>
               </SwipeRow>
             </div>

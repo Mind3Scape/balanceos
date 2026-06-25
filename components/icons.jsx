@@ -25,6 +25,7 @@ const I = {
   Check: (p) => <Icon {...p}><path d="M5 12l5 5 9-11"/></Icon>,
   Share: (p) => <Icon {...p}><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M8 11H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></Icon>,
   Plus: (p) => <Icon {...p}><path d="M12 5v14M5 12h14"/></Icon>,
+  Minus: (p) => <Icon {...p}><path d="M5 12h14"/></Icon>,
   ChevronRight: (p) => <Icon {...p}><path d="M9 6l6 6-6 6"/></Icon>,
   ChevronLeft: (p) => <Icon {...p}><path d="M15 6l-6 6 6 6"/></Icon>,
   Search: (p) => <Icon {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></Icon>,

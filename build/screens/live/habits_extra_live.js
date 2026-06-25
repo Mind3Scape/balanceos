@@ -322,9 +322,15 @@ function HabitSettingsLive() {
       height: 32,
       borderRadius: 999,
       background: "var(--surface-3)",
-      border: 0
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
     }
-  }, "\u2212"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement(I.Minus, {
+    size: 16,
+    strokeWidth: 2.4
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => setGoal(goal + 1),
     className: "tap hit44",
     style: {
@@ -332,9 +338,15 @@ function HabitSettingsLive() {
       height: 32,
       borderRadius: 999,
       background: "var(--surface-3)",
-      border: 0
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
     }
-  }, "\uFF0B"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 16,
+    strokeWidth: 2.4
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       paddingTop: 14,

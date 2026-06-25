@@ -101,7 +101,7 @@ function HabitsLive() {
               tag row; the radial mask above keeps the chips clear of it as they scroll. */}
           <button data-tour="add" onClick={() => navigate("habit-settings", { mode: "create" })} className="tap"
             title="Добавить привычку"
-            style={{ position: "absolute", top: "50%", right: 0, transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 999, background: TH.addBtnBg, color: TH.addBtnFg, border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 4px 14px rgba(0,0,0,0.18)" }}>
+            style={{ position: "absolute", top: "50%", right: 0, transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 999, background: TH.addBtnBg, color: TH.addBtnFg, border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 3px 10px rgba(0,0,0,0.12)" }}>
             <I.Plus size={18} strokeWidth={2.2}/>
           </button>
         </div>
@@ -142,7 +142,7 @@ function HabitsLive() {
                   {h.duration && !h.done && (
                     <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                   )}
-                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} />
+                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />
                 </div>
               </SwipeRow>
             </div>
@@ -211,7 +211,7 @@ function HabitsLive() {
           Скрыть <span style={{ display: "inline-flex", transform: "rotate(-90deg)" }}><I.ChevronRight size={13}/></span>
         </button>
       </div>
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "8px -12px 0", padding: "0 16px 4px", scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "8px -12px 0", padding: "0 28px 4px 16px", scrollbarWidth: "none" }}>
         {[
           { topic: "habits-basics", emoji: "🌱", accent: "#34C759", t: "Основы привычек", b: "Почему маленькое сильнее большого — и как не пропускать дважды." },
           { topic: "goals-101",     emoji: "🎯", accent: "#FF9500", t: "Хорошие цели", b: "Результат или процесс: что отслеживать и когда." },
