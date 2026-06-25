@@ -174,12 +174,14 @@ function HomeLive() {
           hook ("every habit is XP — learn how to grow"). Always shown for live. */}
       {_showLevelBanner && (
         <div style={{ marginTop: 12, borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
-          <SwipeRow rowBg="#FEDE34" dark={isDark} actions={[
+          {/* rowBg carries the gradient (not a solid) so the peeling edge has ONE surface —
+              a solid backing under the gradient showed a thin lighter seam at the rounded clip. */}
+          <SwipeRow rowBg="linear-gradient(135deg,#FEDE34,#EF9F14)" dark={isDark} actions={[
             { key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, level: false }) },
           ]}>
         <button onClick={() => navigate("levels")} className="tap" style={{
           width: "100%", border: 0, padding: "15px 17px",
-          background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a",
+          background: "transparent", color: "#0a0a0a",
           display: "flex", alignItems: "center", gap: 13, textAlign: "left",
         }}>
           <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22 }}>🏆</span>
@@ -339,12 +341,12 @@ function HomeLive() {
          habit cards above) that ties sharing to the reward loop: friend → XP → level. */}
       {widgets.invite !== false && (
       <div style={{ marginTop: 12, borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(20,40,80,0.28)" }}>
-        <SwipeRow rowBg="#23375f" dark={isDark} actions={[
+        <SwipeRow rowBg="linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)" dark={isDark} actions={[
           { key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, invite: false }) },
         ]}>
       <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)}
         style={{ width: "100%", padding: "16px 18px", border: 0, position: "relative", overflow: "hidden",
-          background: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)",
+          background: "transparent",
           color: "#fff", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
         <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 10%, rgba(255,255,255,0.16) 0%, transparent 52%)", pointerEvents: "none" }} />
         <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.14)", display: "grid", placeItems: "center", flexShrink: 0, color: "#fff", position: "relative" }}>

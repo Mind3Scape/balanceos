@@ -309,7 +309,7 @@ function HomeLive() {
       boxShadow: "0 10px 26px rgba(239,159,20,0.30)"
     }
   }, /*#__PURE__*/React.createElement(SwipeRow, {
-    rowBg: "#FEDE34",
+    rowBg: "linear-gradient(135deg,#FEDE34,#EF9F14)",
     dark: isDark,
     actions: [{
       key: "hide",
@@ -328,7 +328,7 @@ function HomeLive() {
       width: "100%",
       border: 0,
       padding: "15px 17px",
-      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+      background: "transparent",
       color: "#0a0a0a",
       display: "flex",
       alignItems: "center",
@@ -882,7 +882,7 @@ function HomeLive() {
       boxShadow: "0 10px 26px rgba(20,40,80,0.28)"
     }
   }, /*#__PURE__*/React.createElement(SwipeRow, {
-    rowBg: "#23375f",
+    rowBg: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)",
     dark: isDark,
     actions: [{
       key: "hide",
@@ -906,7 +906,7 @@ function HomeLive() {
       border: 0,
       position: "relative",
       overflow: "hidden",
-      background: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)",
+      background: "transparent",
       color: "#fff",
       display: "flex",
       alignItems: "center",
