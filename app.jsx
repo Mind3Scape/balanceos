@@ -154,9 +154,14 @@ const IS_STANDALONE =
   ((window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
     window.navigator.standalone === true);
 
-// Build tag — shown as a faint watermark bottom-right + logged to console.
-const APP_VERSION = "v199";
-try { console.log("BalanceOS build", APP_VERSION); } catch (e) {}
+// Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
+// shown in the badge for a real Telegram user. Bumped on every live deploy.
+const APP_VERSION = "v200";
+// DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
+// shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
+// don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
+const DEMO_VERSION = "v191";
+try { console.log("BalanceOS build", APP_VERSION, "(demo", DEMO_VERSION + ")"); } catch (e) {}
 
 /* Animation class names per navigation direction. */
 const ANIM = {
@@ -949,7 +954,7 @@ function PhoneApp() {
           <TabBar key="tabbar-drag" active={destTab} dark={themeFor(destTab)}
             onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} />
         )}
-        <div className="bos-version">{APP_VERSION}</div>
+        <div className="bos-version">{app.mode === "live" ? APP_VERSION : DEMO_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
         <FreshOnboarding app={app} dark={topDark} />
         <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} openSheet={sheetApi.open} tourScreen={app.tourScreen} dark={topDark} onAdvance={advanceGuide} onDismiss={dismissGuide} lastScreen={app.tourScreen === "ai"} />
