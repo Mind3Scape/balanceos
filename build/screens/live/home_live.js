@@ -74,8 +74,8 @@ function HomeLive() {
     return m === 1 && h !== 11 ? "команда" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "команды" : "команд";
   };
   // Live profiles get REAL numbers from the date-keyed habit model.
-  var _liveXP = bosLiveXP(app);
-  var _lvl = bosLevelInfo(_liveXP);
+  var _liveXP = bosLiveXPLive(app);
+  var _lvl = bosLevelInfoLive(_liveXP);
   // The gold level banner is the live home's XP hero — keep it for EVERY live user,
   // at any level (David asked twice).
   var _showLevelBanner = true;

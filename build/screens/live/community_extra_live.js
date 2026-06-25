@@ -14,8 +14,8 @@
      "Пригласить по ссылке" referral button (was gated `mode === "live" && cloudId`).
    • LevelsLive — drops every `app?.mode === "demo"` curated number (lvl 7 / 1240 XP /
      980 credits / invited 2 / Павел's achievement array) and collapses the live ternaries
-     to the REAL date-keyed XP model (bosLiveXP/bosLevelInfo), real earned achievements
-     (bosEarnedAchievements) and the real referral count (window.bosCloud.invitedPeople).
+     to the REAL date-keyed XP model (bosLiveXPLive/bosLevelInfoLive), real earned achievements
+     (bosEarnedAchievementsLive) and the real referral count (window.bosCloud.invitedPeople).
      The unused `badges` array is dropped; the rewards catalog + circle milestones are kept.
    • CourseDetailLive — no demo branches; faithful fork of the static programme screen.
    • TeamChatLive — `live` is always true, so the demo/fresh SEED conversation (and the
@@ -1154,11 +1154,11 @@ function LevelsLive() {
     return a[m === 1 && h !== 11 ? 0 : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? 1 : 2];
   };
   // LIVE: real earned ladder (never Павел's curated array).
-  var ach = typeof bosEarnedAchievements === "function" ? bosEarnedAchievements(app) : [];
+  var ach = typeof bosEarnedAchievementsLive === "function" ? bosEarnedAchievementsLive(app) : [];
   var achEarned = ach.filter(a => a.earned);
   // LIVE: real numbers from the date-keyed habit model (T0.2). Titles are shared.
-  var _xpLive = bosLiveXP(app);
-  var _li = bosLevelInfo(_xpLive);
+  var _xpLive = bosLiveXPLive(app);
+  var _li = bosLevelInfoLive(_xpLive);
   var LEVEL_TITLES = ["Новичок", "Первые шаги", "Набираю ритм", "В потоке", "Стойкость", "Уверенность", "Преданный делу", "Сосредоточенный", "Мастер привычек", "Вдохновитель", "Наставник", "Легенда"];
   var titleFor = l => LEVEL_TITLES[Math.min(Math.max(1, l), LEVEL_TITLES.length) - 1];
   var lvl = _li.level;

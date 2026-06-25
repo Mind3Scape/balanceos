@@ -2,14 +2,14 @@
    ALWAYS true here). The demo ("Павел") and fresh branches are stripped: no
    curated level 7 / 72% / 1240 XP, no scripted "Павел Хиллсон" header, no demo
    orbit faces, no fresh Apple-Health intro, no scripted "Павел" insights /
-   patterns / sparkline. Everything is real — real level/XP via bosLiveXP +
-   bosLevelInfo, the real OrbitField with your invited people, real achievements,
+   patterns / sparkline. Everything is real — real level/XP via bosLiveXPLive +
+   bosLevelInfoLive, the real OrbitField with your invited people, real achievements,
    and the honest AI hub driven by app.aiBrief.
 
    Reuses the shared core/ toolkit (OrbitField, SysCard, SysBtn, AvatarPickerSheet,
    EditProfileSheet, InfoSheet, useAIT, buildQuickPrompts) + framework
    (PageHeader, BosAvatar, BosOrbFace, SiriOrb, I, hooks useApp/useNav/useSheet,
-   every bos* helper, BOS_ACHIEVEMENTS, tintFromMood).
+   every bos* helper, BOS_ACHIEVEMENTS_LIVE, tintFromMood).
 
    TYPOGRAPHY: primary labels (user name, section/row primary titles, list-item
    primary text) carry iOS Headline weight (fontWeight: 600 / 700) — matching the
@@ -30,8 +30,8 @@ function ProfileLive() {
     dark: app?.themeOverride === "dark"
   }));
   // LIVE: always real data.
-  var _xp = bosLiveXP(app);
-  var _li = bosLevelInfo(_xp);
+  var _xp = bosLiveXPLive(app);
+  var _li = bosLevelInfoLive(_xp);
   var lvlNum = _li.level;
   var lvlPct = _li.pct;
 
@@ -56,8 +56,8 @@ function ProfileLive() {
   var orbitPeople = livePeople;
 
   // Achievements badge — REAL earned set + emojis.
-  var _liveAch = bosEarnedAchievements(app).filter(a => a.earned);
-  var _achTotal = BOS_ACHIEVEMENTS.length;
+  var _liveAch = bosEarnedAchievementsLive(app).filter(a => a.earned);
+  var _achTotal = BOS_ACHIEVEMENTS_LIVE.length;
   var _achEarnedN = _liveAch.length;
   var _achEmojis = _liveAch.slice(0, 3).map(a => a.i);
   var _achCircles = livePeople.length;
@@ -305,8 +305,8 @@ function AILive() {
   var liveHabits = app.habits || [];
   var doneToday = liveHabits.filter(h => h && h.done).length;
   var maxStreak = typeof bosMaxStreak === "function" ? bosMaxStreak(liveHabits) : 0;
-  var liveXP = typeof bosLiveXP === "function" ? bosLiveXP(app) : 0;
-  var lvl = typeof bosLevelInfo === "function" ? bosLevelInfo(liveXP) : {
+  var liveXP = typeof bosLiveXPLive === "function" ? bosLiveXPLive(app) : 0;
+  var lvl = typeof bosLevelInfoLive === "function" ? bosLevelInfoLive(liveXP) : {
     level: 1
   };
   var moodName = app.mood && app.mood.t || "";

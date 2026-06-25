@@ -27,7 +27,9 @@ const FILES = [
   "screens/demo/home.jsx", "screens/demo/habits.jsx", "screens/demo/community.jsx",
   "screens/demo/profile.jsx", "screens/demo/extra.jsx", "screens/intro.jsx",
   // live-only forks of the mode-aware bricks (the *Live versions) — load before the
-  // live screens that call them.
+  // live screens that call them. economy_live = the forked LIVE gamification economy
+  // (XP / levels / achievements); MUST load before every live screen that reads it.
+  "screens/live/economy_live.jsx",
   "screens/live/shared_live.jsx",
   "screens/live/home_live.jsx",
   "screens/live/habits_live.jsx",

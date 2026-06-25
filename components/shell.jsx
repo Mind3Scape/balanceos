@@ -1096,12 +1096,15 @@ function AppProvider({ children }) {
   // ── Achievements: detect freshly-unlocked badges (live) and pop a celebration ──
   // Seen ids persist per-profile in localStorage. First sight of a profile SEEDS the set
   // with whatever's already earned (no retroactive spam) — only genuinely NEW unlocks pop.
+  // LIVE-only effect: reads the forked LIVE economy (screens/live/economy_live.jsx) via a
+  // typeof-guarded global lookup, so the framework never hard-depends on the live file —
+  // if it's absent the effect simply no-ops (no celebration). Demo never reaches here (gate).
   const clearPendingAch = () => setPendingAch(null);
   const achSeenRef = useRef({ pid: null, ids: null });
   useEffect(() => {
-    if (mode !== "live" || !persistId || typeof bosEarnedAchIds !== "function") return;
+    if (mode !== "live" || !persistId || typeof bosEarnedAchIdsLive !== "function") return;
     var KEY = "bos:ach:" + persistId;
-    var earned = bosEarnedAchIds({ habits: habits, goals: goals, dayMoods: dayMoods, dayNotes: dayNotes, teams: teams });
+    var earned = bosEarnedAchIdsLive({ habits: habits, goals: goals, dayMoods: dayMoods, dayNotes: dayNotes, teams: teams });
     var store = achSeenRef.current;
     if (store.pid !== persistId) {
       var saved = null; try { var raw = localStorage.getItem(KEY); if (raw) saved = JSON.parse(raw); } catch (e) {}
@@ -1121,7 +1124,7 @@ function AppProvider({ children }) {
       var next = store.ids.concat(fresh);
       achSeenRef.current = { pid: persistId, ids: next };
       try { localStorage.setItem(KEY, JSON.stringify(next)); } catch (e3) {}
-      var a = (typeof bosAchById === "function") ? bosAchById(fresh[0]) : null;
+      var a = (typeof bosAchByIdLive === "function") ? bosAchByIdLive(fresh[0]) : null;
       if (a) setPendingAch(a);
     }
   }, [mode, persistId, habits, goals, dayMoods, dayNotes, teams]);

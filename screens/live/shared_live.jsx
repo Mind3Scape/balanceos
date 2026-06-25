@@ -39,8 +39,8 @@ function buildAiContextLive(app) {
     }
     var goals = (app.goals || []).map(function (g) { return g.name || g.title; }).filter(Boolean).slice(0, 5);
     if (goals.length) parts.push("Цели: " + goals.join("; ") + ".");
-    if (typeof bosTotalXP === "function") {
-      var xp = bosTotalXP(habits, { moods: app.dayMoods, notes: app.dayNotes }); var li = (typeof bosLevelInfo === "function") ? bosLevelInfo(xp) : null;
+    if (typeof bosTotalXPLive === "function") {
+      var xp = bosTotalXPLive(habits, { moods: app.dayMoods, notes: app.dayNotes }); var li = (typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(xp) : null;
       if (li) parts.push("Уровень " + li.level + " (" + xp + " XP).");
     }
     if (!parts.length) return "";

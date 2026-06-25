@@ -59,7 +59,7 @@ function CommunityLive() {
 
   // Real level for the live user — never the demo's curated 8/1240/2000. The
   // typeof guard keeps this safe if the XP helpers aren't loaded yet.
-  var _commLvl = typeof bosLiveXP === "function" && typeof bosLevelInfo === "function" ? bosLevelInfo(bosLiveXP(app)) : null;
+  var _commLvl = typeof bosLiveXPLive === "function" && typeof bosLevelInfoLive === "function" ? bosLevelInfoLive(bosLiveXPLive(app)) : null;
   var userLevel = _commLvl ? _commLvl.level : 1;
   var xpInLevel = _commLvl ? _commLvl.into : 0;
   var xpForNext = _commLvl ? _commLvl.span : 2000;

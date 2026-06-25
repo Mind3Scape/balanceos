@@ -3,12 +3,12 @@
    curated April-2026 calendar, no scripted sample notifications, no demo
    ACHIEVEMENTS/courses ladder, no demo-only settings rows. Everything is real —
    real history from each habit's log, real Telegram sign-in, the real
-   bosEarnedAchievements / BOS_ACHIEVEMENTS ladder, real cloud notifications.
+   bosEarnedAchievementsLive / BOS_ACHIEVEMENTS_LIVE ladder, real cloud notifications.
 
    Reuses the shared core/ toolkit (SysCard, SysBtn, OrbitField, EditProfileSheet,
    InfoSheet, AvatarPickerSheet, DayRing) + the FeedbackSheetLive fork (shared_live.jsx)
    + framework (PageHeader, Switch, I, hooks useApp/useNav/useSheet, every
-   bos* helper, BOS_ACHIEVEMENTS / bosEarnedAchievements, MOOD_OPTIONS, StaticOrb,
+   bos* helper, BOS_ACHIEVEMENTS_LIVE / bosEarnedAchievementsLive, MOOD_OPTIONS, StaticOrb,
    tintFromMood, window.StateOrb, window.ALL_SPHERES / DEFAULT_SPHERES). useP is the
    React.useState alias now defined once in core/aliases.jsx.
 
@@ -1311,8 +1311,8 @@ function AchievementsLive() {
   } = useNav();
   var app = typeof useApp === "function" ? useApp() : null;
   var back = params?.from || "profile";
-  // LIVE: achievements earned by real signals — the real bosEarnedAchievements ladder.
-  var LIST = bosEarnedAchievements(app);
+  // LIVE: achievements earned by real signals — the real bosEarnedAchievementsLive ladder.
+  var LIST = bosEarnedAchievementsLive(app);
   var earned = LIST.filter(a => a.earned);
   var locked = LIST.filter(a => !a.earned);
   // Live ladder grants bonus XP per badge; total earned bonus is the hero number.

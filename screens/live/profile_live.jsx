@@ -2,14 +2,14 @@
    ALWAYS true here). The demo ("Павел") and fresh branches are stripped: no
    curated level 7 / 72% / 1240 XP, no scripted "Павел Хиллсон" header, no demo
    orbit faces, no fresh Apple-Health intro, no scripted "Павел" insights /
-   patterns / sparkline. Everything is real — real level/XP via bosLiveXP +
-   bosLevelInfo, the real OrbitField with your invited people, real achievements,
+   patterns / sparkline. Everything is real — real level/XP via bosLiveXPLive +
+   bosLevelInfoLive, the real OrbitField with your invited people, real achievements,
    and the honest AI hub driven by app.aiBrief.
 
    Reuses the shared core/ toolkit (OrbitField, SysCard, SysBtn, AvatarPickerSheet,
    EditProfileSheet, InfoSheet, useAIT, buildQuickPrompts) + framework
    (PageHeader, BosAvatar, BosOrbFace, SiriOrb, I, hooks useApp/useNav/useSheet,
-   every bos* helper, BOS_ACHIEVEMENTS, tintFromMood).
+   every bos* helper, BOS_ACHIEVEMENTS_LIVE, tintFromMood).
 
    TYPOGRAPHY: primary labels (user name, section/row primary titles, list-item
    primary text) carry iOS Headline weight (fontWeight: 600 / 700) — matching the
@@ -24,8 +24,8 @@ function ProfileLive() {
   const { open: openSheet } = useSheet();
   const openAvatar = () => openSheet(<AvatarPickerSheet dark={app?.themeOverride === "dark"} />);
   // LIVE: always real data.
-  const _xp = bosLiveXP(app);
-  const _li = bosLevelInfo(_xp);
+  const _xp = bosLiveXPLive(app);
+  const _li = bosLevelInfoLive(_xp);
   const lvlNum = _li.level;
   const lvlPct = _li.pct;
 
@@ -46,8 +46,8 @@ function ProfileLive() {
   const orbitPeople = livePeople;
 
   // Achievements badge — REAL earned set + emojis.
-  const _liveAch = bosEarnedAchievements(app).filter((a) => a.earned);
-  const _achTotal = BOS_ACHIEVEMENTS.length;
+  const _liveAch = bosEarnedAchievementsLive(app).filter((a) => a.earned);
+  const _achTotal = BOS_ACHIEVEMENTS_LIVE.length;
   const _achEarnedN = _liveAch.length;
   const _achEmojis = _liveAch.slice(0, 3).map((a) => a.i);
   const _achCircles = livePeople.length;
@@ -129,8 +129,8 @@ function AILive() {
   const liveHabits = app.habits || [];
   const doneToday = liveHabits.filter((h) => h && h.done).length;
   const maxStreak = (typeof bosMaxStreak === "function") ? bosMaxStreak(liveHabits) : 0;
-  const liveXP = (typeof bosLiveXP === "function") ? bosLiveXP(app) : 0;
-  const lvl = (typeof bosLevelInfo === "function") ? bosLevelInfo(liveXP) : { level: 1 };
+  const liveXP = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
+  const lvl = (typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(liveXP) : { level: 1 };
   const moodName = (app.mood && app.mood.t) || "";
   const moodIcon = (app.mood && app.mood.i) || "";
   // ONE real line about the user today: prefer the AI brief summary; otherwise

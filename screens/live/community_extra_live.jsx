@@ -14,8 +14,8 @@
      "Пригласить по ссылке" referral button (was gated `mode === "live" && cloudId`).
    • LevelsLive — drops every `app?.mode === "demo"` curated number (lvl 7 / 1240 XP /
      980 credits / invited 2 / Павел's achievement array) and collapses the live ternaries
-     to the REAL date-keyed XP model (bosLiveXP/bosLevelInfo), real earned achievements
-     (bosEarnedAchievements) and the real referral count (window.bosCloud.invitedPeople).
+     to the REAL date-keyed XP model (bosLiveXPLive/bosLevelInfoLive), real earned achievements
+     (bosEarnedAchievementsLive) and the real referral count (window.bosCloud.invitedPeople).
      The unused `badges` array is dropped; the rewards catalog + circle milestones are kept.
    • CourseDetailLive — no demo branches; faithful fork of the static programme screen.
    • TeamChatLive — `live` is always true, so the demo/fresh SEED conversation (and the
@@ -442,11 +442,11 @@ function LevelsLive() {
   const prevMileN = ([...CIRCLE_MILESTONES].reverse().find(t => t.n <= invited) || { n: 0 }).n;
   const ruPpl = (n, a) => { const m = n % 10, h = n % 100; return a[(m === 1 && h !== 11) ? 0 : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? 1 : 2]; };
   // LIVE: real earned ladder (never Павел's curated array).
-  const ach = (typeof bosEarnedAchievements === "function") ? bosEarnedAchievements(app) : [];
+  const ach = (typeof bosEarnedAchievementsLive === "function") ? bosEarnedAchievementsLive(app) : [];
   const achEarned = ach.filter(a => a.earned);
   // LIVE: real numbers from the date-keyed habit model (T0.2). Titles are shared.
-  const _xpLive = bosLiveXP(app);
-  const _li = bosLevelInfo(_xpLive);
+  const _xpLive = bosLiveXPLive(app);
+  const _li = bosLevelInfoLive(_xpLive);
   const LEVEL_TITLES = ["Новичок", "Первые шаги", "Набираю ритм", "В потоке", "Стойкость", "Уверенность", "Преданный делу", "Сосредоточенный", "Мастер привычек", "Вдохновитель", "Наставник", "Легенда"];
   const titleFor = (l) => LEVEL_TITLES[Math.min(Math.max(1, l), LEVEL_TITLES.length) - 1];
   const lvl = _li.level;
