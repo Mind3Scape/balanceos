@@ -1321,6 +1321,44 @@ function OnboardingScreen() {
   );
 }
 
+// Demo-mode picker (David: signup has ONE «Войти в деморежим» pill that opens this iOS
+// sheet to choose which demo, instead of two big cards). «Новый пользователь» = fresh
+// clean slate; «Постоянный пользователь» = the filled showcase. Both are demo, never saved.
+// navigate + app are passed as PROPS (sheet content renders inside BottomSheet, OUTSIDE the
+// Nav/App providers, so useNav()/useApp() are null here — same reason the other live sheets
+// take `app` as a prop).
+function DemoPickerSheet({ dark = false, navigate, app }) {
+  const { close } = useSheet();
+  const go = (fn) => { try { fn && fn(); } catch (e) {} try { close && close(); } catch (e2) {} if (navigate) navigate("home"); };
+  const C = dark
+    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.06)", iconBg: "rgba(255,255,255,0.1)" }
+    : { text: "#15233c", sub: "rgba(21,35,60,0.55)", tile: "#f2f5fa", iconBg: "#e7ecf4" };
+  const opts = [
+    { i: "✨", t: "Новый пользователь", d: "Пустое приложение — как при первом входе", on: () => go(() => app && app.enterFresh && app.enterFresh()) },
+    { i: "👤", t: "Постоянный пользователь", d: "Заполненный пример активного пользователя", on: () => go(() => app && app.enterDemo && app.enterDemo()) },
+  ];
+  return (
+    <div style={{ padding: "2px 20px 20px", color: C.text }}>
+      <div style={{ textAlign: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Демо-режим</div>
+        <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3 }}>Посмотри приложение без регистрации</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {opts.map((o, i) => (
+          <button key={i} onClick={o.on} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left", background: C.tile, border: 0, borderRadius: 16, padding: "14px 15px", color: C.text }}>
+            <span style={{ width: 42, height: 42, borderRadius: 12, background: C.iconBg, display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{o.i}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.2px" }}>{o.t}</div>
+              <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2, lineHeight: 1.35 }}>{o.d}</div>
+            </div>
+            <I.ChevronRight size={18} color={C.sub} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SignUpScreen() {
   const { navigate } = useNav();
   const [name, setName] = useP("");
@@ -1383,35 +1421,18 @@ function SignUpScreen() {
         </div>
       </div>
       <div style={{ background: pal.sheet, borderTop: pal.sheetBorder, borderRadius: "33px 33px 0 0", padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))", animation: "suSheetIn 0.62s 0.56s cubic-bezier(0.22,0.8,0.32,1) both" }}>
-        {/* ── Group 1 — DEMO: both doors are showcases, nothing is ever saved ── */}
-        <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase", color: pal.sub, margin: "2px 0 11px 4px" }}>Демо — просто посмотреть</div>
-        {/* Door 1 — filled demo (where a shared link should land) */}
-        <button onClick={goDemo} className="tap" style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left",
-          background: "linear-gradient(135deg, #FEDE34, #EF9F14)", color: "#0a0a0a",
-          border: 0, borderRadius: 22, padding: "15px 16px", boxShadow: "0 12px 30px rgba(254,222,52,0.32)", marginBottom: 11,
+        {/* Two doors only (David): a secondary «Войти в деморежим» pill on top — opens a
+            sheet to pick WHICH demo (new vs. filled) — and the real Telegram entry below,
+            same pill shape. No more two big demo cards. */}
+        <button onClick={() => openSheet(<DemoPickerSheet dark={dark} navigate={navigate} app={app} />)} className="tap" style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+          background: pal.socialBg, color: pal.socialText, border: pal.socialBorder, borderRadius: 999,
+          padding: "16px 18px", fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.1px", marginBottom: 11,
         }}>
-          <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.55)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={23} color="#0a0a0a"/></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Посмотреть демо</div>
-            <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.6)", marginTop: 2, lineHeight: 1.35 }}>Заполненный пример — как у активного пользователя</div>
-          </div>
-          <I.ChevronRight size={20} color="rgba(0,0,0,0.5)" />
-        </button>
-        {/* Door 2 — new-user onboarding (clean slate). Also a demo: never persists. */}
-        <button onClick={goFresh} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, textAlign: "left", background: pal.btnBg, color: pal.btnFg, border: 0, borderRadius: 22, padding: "15px 16px" }}>
-          <span style={{ width: 44, height: 44, borderRadius: 14, background: dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.22)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Plus size={22} color={pal.btnFg}/></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Начать с чистого листа</div>
-            <div style={{ fontSize: 12.5, opacity: 0.6, marginTop: 2, lineHeight: 1.35 }}>Пустое приложение — попробовать как новичок</div>
-          </div>
-          <span style={{ opacity: 0.5, display: "flex", flexShrink: 0 }}><I.ChevronRight size={20} color={pal.btnFg} /></span>
+          <I.Eye size={18} /> Войти в деморежим
         </button>
 
-        {/* ── Group 2 — THE REAL APP: your Telegram account, saved for real ── */}
-        <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase", color: pal.sub, margin: "24px 0 11px 4px" }}>Войти по-настоящему</div>
-        {/* A pill — same long, rounded shape as onboarding's «Далее» (continuity),
-            so it reads as THE action and stands apart from the two demo cards above. */}
+        {/* THE REAL APP — your Telegram account, saved for real. */}
         <button onClick={goLive} className="tap" style={{
           position: "relative", overflow: "hidden",
           width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,

@@ -3401,6 +3401,130 @@ function OnboardingScreen() {
     }
   }, "\u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C"));
 }
+
+// Demo-mode picker (David: signup has ONE «Войти в деморежим» pill that opens this iOS
+// sheet to choose which demo, instead of two big cards). «Новый пользователь» = fresh
+// clean slate; «Постоянный пользователь» = the filled showcase. Both are demo, never saved.
+// navigate + app are passed as PROPS (sheet content renders inside BottomSheet, OUTSIDE the
+// Nav/App providers, so useNav()/useApp() are null here — same reason the other live sheets
+// take `app` as a prop).
+function DemoPickerSheet({
+  dark = false,
+  navigate,
+  app
+}) {
+  var {
+    close
+  } = useSheet();
+  var go = fn => {
+    try {
+      fn && fn();
+    } catch (e) {}
+    try {
+      close && close();
+    } catch (e2) {}
+    if (navigate) navigate("home");
+  };
+  var C = dark ? {
+    text: "#fff",
+    sub: "rgba(255,255,255,0.5)",
+    tile: "rgba(255,255,255,0.06)",
+    iconBg: "rgba(255,255,255,0.1)"
+  } : {
+    text: "#15233c",
+    sub: "rgba(21,35,60,0.55)",
+    tile: "#f2f5fa",
+    iconBg: "#e7ecf4"
+  };
+  var opts = [{
+    i: "✨",
+    t: "Новый пользователь",
+    d: "Пустое приложение — как при первом входе",
+    on: () => go(() => app && app.enterFresh && app.enterFresh())
+  }, {
+    i: "👤",
+    t: "Постоянный пользователь",
+    d: "Заполненный пример активного пользователя",
+    on: () => go(() => app && app.enterDemo && app.enterDemo())
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 20px",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0414\u0435\u043C\u043E-\u0440\u0435\u0436\u0438\u043C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: C.sub,
+      marginTop: 3
+    }
+  }, "\u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0438 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0431\u0435\u0437 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, opts.map((o, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: o.on,
+    className: "tap",
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      textAlign: "left",
+      background: C.tile,
+      border: 0,
+      borderRadius: 16,
+      padding: "14px 15px",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      background: C.iconBg,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 21,
+      flexShrink: 0
+    }
+  }, o.i), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 600,
+      letterSpacing: "-0.2px"
+    }
+  }, o.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: C.sub,
+      marginTop: 2,
+      lineHeight: 1.35
+    }
+  }, o.d)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    color: C.sub
+  })))));
+}
 function SignUpScreen() {
   var {
     navigate
@@ -3597,131 +3721,32 @@ function SignUpScreen() {
       padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))",
       animation: "suSheetIn 0.62s 0.56s cubic-bezier(0.22,0.8,0.32,1) both"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 600,
-      letterSpacing: "0.6px",
-      textTransform: "uppercase",
-      color: pal.sub,
-      margin: "2px 0 11px 4px"
-    }
-  }, "\u0414\u0435\u043C\u043E \u2014 \u043F\u0440\u043E\u0441\u0442\u043E \u043F\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"), /*#__PURE__*/React.createElement("button", {
-    onClick: goDemo,
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(DemoPickerSheet, {
+      dark: dark,
+      navigate: navigate,
+      app: app
+    })),
     className: "tap",
     style: {
       width: "100%",
       display: "flex",
       alignItems: "center",
-      gap: 13,
-      textAlign: "left",
-      background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
-      color: "#0a0a0a",
-      border: 0,
-      borderRadius: 22,
-      padding: "15px 16px",
-      boxShadow: "0 12px 30px rgba(254,222,52,0.32)",
+      justifyContent: "center",
+      gap: 9,
+      background: pal.socialBg,
+      color: pal.socialText,
+      border: pal.socialBorder,
+      borderRadius: 999,
+      padding: "16px 18px",
+      fontSize: 15.5,
+      fontWeight: 600,
+      letterSpacing: "-0.1px",
       marginBottom: 11
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      background: "rgba(255,255,255,0.55)",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 23,
-    color: "#0a0a0a"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 700,
-      letterSpacing: "-0.3px"
-    }
-  }, "\u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0434\u0435\u043C\u043E"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "rgba(0,0,0,0.6)",
-      marginTop: 2,
-      lineHeight: 1.35
-    }
-  }, "\u0417\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0439 \u043F\u0440\u0438\u043C\u0435\u0440 \u2014 \u043A\u0430\u043A \u0443 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 20,
-    color: "rgba(0,0,0,0.5)"
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: goFresh,
-    className: "tap",
-    style: {
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      textAlign: "left",
-      background: pal.btnBg,
-      color: pal.btnFg,
-      border: 0,
-      borderRadius: 22,
-      padding: "15px 16px"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      background: dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.22)",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 22,
-    color: pal.btnFg
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 700,
-      letterSpacing: "-0.3px"
-    }
-  }, "\u041D\u0430\u0447\u0430\u0442\u044C \u0441 \u0447\u0438\u0441\u0442\u043E\u0433\u043E \u043B\u0438\u0441\u0442\u0430"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      opacity: 0.6,
-      marginTop: 2,
-      lineHeight: 1.35
-    }
-  }, "\u041F\u0443\u0441\u0442\u043E\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u043E\u043F\u0440\u043E\u0431\u043E\u0432\u0430\u0442\u044C \u043A\u0430\u043A \u043D\u043E\u0432\u0438\u0447\u043E\u043A")), /*#__PURE__*/React.createElement("span", {
-    style: {
-      opacity: 0.5,
-      display: "flex",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 20,
-    color: pal.btnFg
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 600,
-      letterSpacing: "0.6px",
-      textTransform: "uppercase",
-      color: pal.sub,
-      margin: "24px 0 11px 4px"
-    }
-  }, "\u0412\u043E\u0439\u0442\u0438 \u043F\u043E-\u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0435\u043C\u0443"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement(I.Eye, {
+    size: 18
+  }), " \u0412\u043E\u0439\u0442\u0438 \u0432 \u0434\u0435\u043C\u043E\u0440\u0435\u0436\u0438\u043C"), /*#__PURE__*/React.createElement("button", {
     onClick: goLive,
     className: "tap",
     style: {
