@@ -6,9 +6,10 @@
    typography: the habit NAME and the goal NAME always render at fontWeight 600 +
    color var(--text) (the `_isLive ? …` ternaries collapse to the live branch).
    Everything else reuses the shared core/ toolkit (EMOJI_CHIPS, HabitRing,
-   AvatarStack) + the ShareHabitSheetLive fork (shared_live.jsx) + framework (SwipeRow,
-   HabitCheck, I, hooks useApp/useNav/useSheet). The ONLY new top-level
-   declaration in this file is `function HabitsLive`. */
+   AvatarStack) + the shared_live.jsx forks (ShareHabitSheetLive, HabitWeekStrip +
+   bosHabitColor/BOS_APPLE_COLORS) + framework (SwipeRow, HabitCheck, I, hooks
+   useApp/useNav/useSheet). The ONLY new top-level declaration in this file is
+   `function HabitsLive`. */
 function HabitsLive() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
@@ -131,22 +132,30 @@ function HabitsLive() {
               ]}>
                 <div className="tap"
                   onClick={() => navigate("habit-detail", { habit: h, from: "habits" })}
-                  style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
-                    {(h.friends?.length || h.duration) && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
-                        {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
-                        {h.friends?.length > 0 && <AvatarStack people={h.friends} size={16} max={3} label={false}/>}
-                        {h.friends?.length > 0 && <span>совместно</span>}
-                      </div>
+                  style={{ padding: "14px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                      {(h.friends?.length || h.duration) && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 11, color: "var(--text-4)" }}>
+                          {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
+                          {h.duration && h.friends?.length > 0 && <span>·</span>}
+                          {h.friends?.length > 0 && <span>вместе</span>}
+                        </div>
+                      )}
+                    </div>
+                    {h.duration && !h.done && (
+                      <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                     )}
+                    <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />
                   </div>
-                  {h.duration && !h.done && (
-                    <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
-                  )}
-                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />
+                  {/* NEW (v235): week-strip Пн→Вс + co-op avatars. Home card stays compact — this
+                      richer bottom row lives only on the Привычки page (David). */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12 }}>
+                    <HabitWeekStrip habit={h} />
+                    {h.friends?.length > 0 && <AvatarStack people={h.friends} size={22} max={4} label={false}/>}
+                  </div>
                 </div>
               </SwipeRow>
             </div>

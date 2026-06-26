@@ -2448,3 +2448,67 @@ function CloudTeamsDiscoverLive({
     }
   }, requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить")))));
 }
+
+/* ── Привычки-страница: нижняя полоска недели + Apple-палитра (live-only, v235). The
+   HOME card stays the compact row — only the Привычки-page card grows this strip.
+   Colours are the iOS SYSTEM palette (no invented hues — David: «используй Apple-цвета»). ── */
+var BOS_APPLE_COLORS = ["#34C759", "#007AFF", "#FF9500", "#AF52DE", "#FF2D55", "#30B0C7", "#5856D6", "#FF3B30", "#FFCC00"];
+
+// 7 LOCAL day-keys for the CURRENT week, Пн→Вс (left→right) — matches the strip order.
+function bosWeekKeys() {
+  var now = new Date();
+  now.setHours(0, 0, 0, 0);
+  var dow = (now.getDay() + 6) % 7; // Mon=0 … Sun=6
+  var mon = new Date(now);
+  mon.setDate(now.getDate() - dow);
+  var out = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    out.push(bosTodayKey(d));
+  }
+  return out;
+}
+
+// A habit's accent: its chosen colour, else a STABLE Apple colour derived from its id —
+// so the strip already looks intentional before the create-screen palette ships.
+function bosHabitColor(habit) {
+  if (habit && habit.color) return habit.color;
+  var id = habit && habit.id ? String(habit.id) : "";
+  var sum = 0;
+  for (var i = 0; i < id.length; i++) sum += id.charCodeAt(i);
+  return BOS_APPLE_COLORS[(id ? sum : 0) % BOS_APPLE_COLORS.length];
+}
+
+// Week-strip: 7 rounded cells Пн→Вс. Filled (a soft top-light gradient over the accent) =
+// closed that day; faint same-hue tint = not closed — so the whole row stays ONE colour
+// family (David). NO «today» marker on purpose: the current day is already obvious, a ring
+// only added noise. Display-only; reads the REAL date-log (same source as the streak).
+function HabitWeekStrip({
+  habit
+}) {
+  if (!habit) return null;
+  var accent = bosHabitColor(habit);
+  var log = habit.log || {};
+  var keys = bosWeekKeys();
+  var fill = "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + accent;
+  var empty = accent[0] === "#" && accent.length === 7 ? accent + "1a" : "rgba(120,120,128,0.12)"; // ~10% same hue
+  return /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, keys.map(function (k, i) {
+    return /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        width: 20,
+        height: 20,
+        borderRadius: 6,
+        flexShrink: 0,
+        background: log[k] ? fill : empty
+      }
+    });
+  }));
+}

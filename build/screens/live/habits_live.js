@@ -6,9 +6,10 @@
    typography: the habit NAME and the goal NAME always render at fontWeight 600 +
    color var(--text) (the `_isLive ? …` ternaries collapse to the live branch).
    Everything else reuses the shared core/ toolkit (EMOJI_CHIPS, HabitRing,
-   AvatarStack) + the ShareHabitSheetLive fork (shared_live.jsx) + framework (SwipeRow,
-   HabitCheck, I, hooks useApp/useNav/useSheet). The ONLY new top-level
-   declaration in this file is `function HabitsLive`. */
+   AvatarStack) + the shared_live.jsx forks (ShareHabitSheetLive, HabitWeekStrip +
+   bosHabitColor/BOS_APPLE_COLORS) + framework (SwipeRow, HabitCheck, I, hooks
+   useApp/useNav/useSheet). The ONLY new top-level declaration in this file is
+   `function HabitsLive`. */
 function HabitsLive() {
   var {
     navigate
@@ -298,10 +299,13 @@ function HabitsLive() {
       from: "habits"
     }),
     style: {
+      padding: "14px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
       alignItems: "center",
-      gap: 14,
-      padding: "14px 16px"
+      gap: 14
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -330,9 +334,8 @@ function HabitsLive() {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 10,
+      gap: 6,
       marginTop: 3,
-      flexWrap: "wrap",
       fontSize: 11,
       color: "var(--text-4)"
     }
@@ -344,12 +347,7 @@ function HabitsLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Clock, {
     size: 11
-  }), " ", h.duration, " \u043C\u0438\u043D"), h.friends?.length > 0 && /*#__PURE__*/React.createElement(AvatarStack, {
-    people: h.friends,
-    size: 16,
-    max: 3,
-    label: false
-  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration && !h.done && /*#__PURE__*/React.createElement(HabitRing, {
+  }), " ", h.duration, " \u043C\u0438\u043D"), h.duration && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration && !h.done && /*#__PURE__*/React.createElement(HabitRing, {
     habit: h,
     dark: isDark,
     onComplete: () => {
@@ -360,7 +358,22 @@ function HabitsLive() {
     onToggle: () => toggle(h.id),
     xp: 10,
     float: true
-  })))))), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
+    habit: h
+  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement(AvatarStack, {
+    people: h.friends,
+    size: 22,
+    max: 4,
+    label: false
+  }))))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 16,
