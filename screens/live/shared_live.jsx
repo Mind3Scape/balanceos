@@ -196,7 +196,9 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             </button>
             {people.map((m, i) => (
               <button key={i} onClick={() => setSelPerson(i)} className="tap" style={chip(selPerson === i)}>
-                <span style={{ width: 18, height: 18, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{m.initials}</span>
+                {m.avatar && typeof BosAvatar !== "undefined"
+                  ? <BosAvatar avatar={m.avatar} size={18} />
+                  : <span style={{ width: 18, height: 18, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{m.initials}</span>}
                 {m.you ? "Ты" : (m.name || "").split(" ")[0]}
               </button>
             ))}
@@ -598,22 +600,23 @@ function ShareHabitSheetLive({ habit, dark = false }) {
    days in the habit's colour — you literally see each other's progress on the calendar
    (David: «видеть прогресс друг друга на календарике»). Reads the cloud shared logs; quietly
    waits while the friend hasn't joined. Rendered only when the habit carries a shareCode. */
-function SharedBuddiesLive({ habit, isDark }) {
+function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
   const [data, setData] = React.useState(null);
   const code = habit && habit.shareCode;
   React.useEffect(() => {
+    if (membersProp) return; // parent already fetched the members → don't poll twice
     let on = true;
     if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
     const load = () => window.bosCloud.sharedHabitProgress(code).then((d) => { if (on) setData(d); }).catch(() => {});
     load();
     const iv = setInterval(load, 20000); // light poll so a friend's fresh mark turns up
     return () => { on = false; clearInterval(iv); };
-  }, [code]);
+  }, [code, !!membersProp]);
   if (!code) return null;
   const accent = (typeof bosHabitColor === "function") ? bosHabitColor(habit) : (habit.color || "#0a0a0a");
   const today = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
   const keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
-  const members = (data && data.members) || [];
+  const members = membersProp || (data && data.members) || [];
   const card = isDark ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" } : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
   return (
     <>

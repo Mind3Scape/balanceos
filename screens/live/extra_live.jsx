@@ -58,16 +58,27 @@ function HabitDetailLive() {
   // colour only if the user picked one — it tints the tile and fills the grid.
   const tileBg  = h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
 
-  // Live has no real per-friend logs client-side → always the solo REAL view (your own
-  // log), never invented friend standings. People + per-day completion feed the shared
-  // PeopleMonthCalendar (same calendar the team uses → one consistent look).
-  const calPeople = [{ name: "Ты", initials: "Я", color: h.color || "#FEDE34", you: true }];
+  // SHARED habit (buddy): pull BOTH members' real day-maps so the month calendar AND the
+  // «Вместе» card show WHO did WHICH day, each in their own colour-coded track (David:
+  // «на календаре у кого какой день»). Solo habit → just you. Light poll so a friend's
+  // fresh mark turns up. The SAME PeopleMonthCalendar the team uses → one consistent look.
+  const [buddies, setBuddies] = React.useState(null);
+  React.useEffect(() => {
+    let on = true;
+    if (!h.shareCode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
+    const load = () => window.bosCloud.sharedHabitProgress(h.shareCode).then((d) => { if (on && d && d.members) setBuddies(d.members); }).catch(() => {});
+    load(); const iv = setInterval(load, 20000);
+    return () => { on = false; clearInterval(iv); };
+  }, [h.shareCode]);
+  const _shared = !!(buddies && buddies.length > 1);
   const _calYear = new Date().getFullYear();
-  const habitFrac = (pi, d, mi) => {
-    // The REAL calendar — did you actually check this habit on that date (h.log)?
-    const k = _calYear + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-    return _log[k] ? 1 : 0;
-  };
+  const _calKey = (d, mi) => _calYear + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  const calPeople = _shared
+    ? buddies.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "Д").charAt(0).toUpperCase()), color: h.color || "#FEDE34", you: !!m.me, avatar: m.avatar }))
+    : [{ name: "Ты", initials: "Я", color: h.color || "#FEDE34", you: true }];
+  const habitFrac = _shared
+    ? (pi, d, mi) => (buddies[pi] && buddies[pi].days[_calKey(d, mi)] ? 1 : 0)
+    : (pi, d, mi) => (_log[_calKey(d, mi)] ? 1 : 0);
 
   const card = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
@@ -109,8 +120,9 @@ function HabitDetailLive() {
          so the whole app reads one way. Live = your own real days. */}
       <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" />
 
-      {/* Shared habit (habit buddy) — you + friend, real avatars, mutual day-strips. */}
-      {h.shareCode && <SharedBuddiesLive habit={h} isDark={isDark} />}
+      {/* Shared habit (habit buddy) — you + friend, real avatars, mutual day-strips.
+          Shares the already-fetched `buddies` so it doesn't poll the cloud twice. */}
+      {h.shareCode && <SharedBuddiesLive habit={h} isDark={isDark} members={buddies} />}
 
       {/* Insight — neutral surface, streak-driven copy */}
       <div className="section-label" style={{ marginTop: 22 }}>Инсайт</div>

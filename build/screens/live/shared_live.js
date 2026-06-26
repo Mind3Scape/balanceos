@@ -442,7 +442,10 @@ function PeopleMonthCalendarLive({
     onClick: () => setSelPerson(i),
     className: "tap",
     style: chip(selPerson === i)
-  }, /*#__PURE__*/React.createElement("span", {
+  }, m.avatar && typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: m.avatar,
+    size: 18
+  }) : /*#__PURE__*/React.createElement("span", {
     style: {
       width: 18,
       height: 18,
@@ -1628,11 +1631,13 @@ function ShareHabitSheetLive({
    waits while the friend hasn't joined. Rendered only when the habit carries a shareCode. */
 function SharedBuddiesLive({
   habit,
-  isDark
+  isDark,
+  members: membersProp
 }) {
   var [data, setData] = React.useState(null);
   var code = habit && habit.shareCode;
   React.useEffect(() => {
+    if (membersProp) return; // parent already fetched the members → don't poll twice
     var on = true;
     if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
     var load = () => window.bosCloud.sharedHabitProgress(code).then(d => {
@@ -1644,12 +1649,12 @@ function SharedBuddiesLive({
       on = false;
       clearInterval(iv);
     };
-  }, [code]);
+  }, [code, !!membersProp]);
   if (!code) return null;
   var accent = typeof bosHabitColor === "function" ? bosHabitColor(habit) : habit.color || "#0a0a0a";
   var today = typeof bosTodayKey === "function" ? bosTodayKey() : "";
   var keys = typeof bosWeekKeys === "function" ? bosWeekKeys() : [];
-  var members = data && data.members || [];
+  var members = membersProp || data && data.members || [];
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"

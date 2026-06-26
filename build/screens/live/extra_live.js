@@ -84,21 +84,40 @@ function HabitDetailLive() {
   // colour only if the user picked one — it tints the tile and fills the grid.
   var tileBg = h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
 
-  // Live has no real per-friend logs client-side → always the solo REAL view (your own
-  // log), never invented friend standings. People + per-day completion feed the shared
-  // PeopleMonthCalendar (same calendar the team uses → one consistent look).
-  var calPeople = [{
+  // SHARED habit (buddy): pull BOTH members' real day-maps so the month calendar AND the
+  // «Вместе» card show WHO did WHICH day, each in their own colour-coded track (David:
+  // «на календаре у кого какой день»). Solo habit → just you. Light poll so a friend's
+  // fresh mark turns up. The SAME PeopleMonthCalendar the team uses → one consistent look.
+  var [buddies, setBuddies] = React.useState(null);
+  React.useEffect(() => {
+    var on = true;
+    if (!h.shareCode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
+    var load = () => window.bosCloud.sharedHabitProgress(h.shareCode).then(d => {
+      if (on && d && d.members) setBuddies(d.members);
+    }).catch(() => {});
+    load();
+    var iv = setInterval(load, 20000);
+    return () => {
+      on = false;
+      clearInterval(iv);
+    };
+  }, [h.shareCode]);
+  var _shared = !!(buddies && buddies.length > 1);
+  var _calYear = new Date().getFullYear();
+  var _calKey = (d, mi) => _calYear + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  var calPeople = _shared ? buddies.map(m => ({
+    name: m.me ? "Ты" : m.name,
+    initials: m.me ? "Я" : (m.name || "Д").charAt(0).toUpperCase(),
+    color: h.color || "#FEDE34",
+    you: !!m.me,
+    avatar: m.avatar
+  })) : [{
     name: "Ты",
     initials: "Я",
     color: h.color || "#FEDE34",
     you: true
   }];
-  var _calYear = new Date().getFullYear();
-  var habitFrac = (pi, d, mi) => {
-    // The REAL calendar — did you actually check this habit on that date (h.log)?
-    var k = _calYear + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-    return _log[k] ? 1 : 0;
-  };
+  var habitFrac = _shared ? (pi, d, mi) => buddies[pi] && buddies[pi].days[_calKey(d, mi)] ? 1 : 0 : (pi, d, mi) => _log[_calKey(d, mi)] ? 1 : 0;
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -212,7 +231,8 @@ function HabitDetailLive() {
     label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"
   }), h.shareCode && /*#__PURE__*/React.createElement(SharedBuddiesLive, {
     habit: h,
-    isDark: isDark
+    isDark: isDark,
+    members: buddies
   }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
