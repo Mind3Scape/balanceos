@@ -346,6 +346,7 @@ function TeamDetailLive() {
   const [liveTeamHabits, setLiveTeamHabits] = React.useState(null);
   const [habitsTick, setHabitsTick] = React.useState(0);
   const [mainProg, setMainProg] = React.useState(null); // per-member day-map for the anchor habit (who did which day)
+  const [goalProg, setGoalProg] = React.useState(null); // team-goal progress COMPUTED from habit marks (current + per-member contribution)
   React.useEffect(() => {
     if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
     let on = true;
@@ -389,6 +390,14 @@ function TeamDetailLive() {
     load(); const iv = setInterval(load, 20000);
     return () => { on = false; clearInterval(iv); };
   }, [_rosterLive, t.cloudId, _mainId, habitsTick]);
+  // Team GOAL progress — computed from the habit marks per mode (collective/streak/race).
+  React.useEffect(() => {
+    let on = true;
+    if (!_rosterLive || !t.cloudId || !window.bosCloud.teamGoalProgress) { setGoalProg(null); return; }
+    const load = () => window.bosCloud.teamGoalProgress(t.cloudId).then((d) => { if (on && d) setGoalProg(d); }).catch(() => {});
+    load(); const iv = setInterval(load, 20000);
+    return () => { on = false; clearInterval(iv); };
+  }, [_rosterLive, t.cloudId, habitsTick]);
   const openAddHabit = () => openSheet(<TeamHabitSheet team={t} members={members} onAdd={(h) => { if (_rosterLive) addTeamHabitCloud(h); else app?.addTeamHabit(t._id, h); }} />);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -415,20 +424,38 @@ function TeamDetailLive() {
           {/* The GOAL — the team's destination. Real progress toward the target
              (not the weekly habit aggregate), and it COMPLETES at target. */}
           {(() => {
-            const tgt = t.target || 0;
-            const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+            // Goal progress is COMPUTED FROM THE HABIT MARKS (David) via teamGoalProgress —
+            // current + each member's contribution. Falls back to the local team fields until
+            // it loads (or pre-SQL). Mode-aware label: общий счёт / серия у каждого / гонка.
+            const gpd = goalProg;
+            const unit = (gpd && gpd.unit) || t.unit || "";
+            const tgt = (gpd && gpd.target) || t.target || 0;
+            const cur = gpd ? gpd.current : (t.current != null ? t.current : Math.round((t.progress || 0) * tgt));
             const done = tgt > 0 && cur >= tgt;
             const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
+            const modeLabel = gpd ? ({ streak: "Серия у каждого", race: "Гонка — лидер", collective: "Общий счёт" }[gpd.type] || "До цели вместе") : "До цели вместе";
+            const contrib = (gpd && Array.isArray(gpd.members)) ? gpd.members : [];
             return (
               <div style={{ marginTop: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{done ? "Цель достигнута 🎉" : "До цели вместе"}</span>
-                  {tgt > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{cur} / {tgt} {t.unit || ""}</span>}
+                  <span style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{done ? "Цель достигнута 🎉" : modeLabel}</span>
+                  {tgt > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{cur} / {tgt} {unit}</span>}
                 </div>
                 <div style={{ height: 9, background: "rgba(255,255,255,0.55)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
                   <span style={{ display: "block", height: "100%", width: (gp * 100) + "%", background: done ? "linear-gradient(90deg,#FEDE34,#EF9F14)" : "var(--card-fill)", borderRadius: 999, transition: "width 0.6s ease" }} />
                 </div>
-                {tgt > 0 && !done && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>Осталось {tgt - cur} {t.unit || ""} — закроем вместе</div>}
+                {tgt > 0 && !done && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>Осталось {Math.max(0, tgt - cur)} {unit} — закроем вместе</div>}
+                {/* Вклад каждого — кто сколько внёс (из их отметок), с реальным аватаром. */}
+                {contrib.length > 0 && (
+                  <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap" }}>
+                    {contrib.map((m) => (
+                      <span key={m.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.55)", borderRadius: 999, padding: "3px 10px 3px 3px" }}>
+                        {typeof BosAvatar !== "undefined" ? <BosAvatar avatar={m.avatar} size={20} /> : <span style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.1)" }} />}
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{m.me ? "Ты" : (m.name || "").split(" ")[0]} · {m.value}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })()}

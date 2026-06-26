@@ -306,7 +306,7 @@ function TeamCreateLive() {
         // keeps working even if the cloud is off.
         try {
           if (nt && window.bosCloud && window.bosCloud.enabled()) {
-            window.bosCloud.createTeam({ name: nt.name, emblem, vis, goalKind: nt.goal, goalTarget: Number(target) || 0 })
+            window.bosCloud.createTeam({ name: nt.name, emblem, vis, goalKind: nt.goal, goalTarget: Number(target) || 0, goal: { type: goalType, target: Number(target) || 0, unit: unit, title: goalTitle || (target + " " + unit) } })
               .then((row) => { if (row && row.id && app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id }); });
           }
         } catch (e) {}

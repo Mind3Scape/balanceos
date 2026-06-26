@@ -178,16 +178,22 @@
     var c = client(); var id = await uid(); if (!c || !id) return null;
     // E: prefer the SECURITY DEFINER function (owner + first member atomically). Falls back
     // to the old direct insert if the function isn't deployed yet → no breakage pre-SQL.
+    var row = null;
     try {
       var rpc = await c.rpc("create_team", { p_name: (t && t.name) || "Команда", p_emblem: (t && t.emblem) || "✨", p_vis: (t && t.vis) || "private", p_goal_kind: (t && t.goalKind) || null, p_goal_target: (t && t.goalTarget) || null });
-      if (!rpc.error && rpc.data) return Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+      if (!rpc.error && rpc.data) row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
     } catch (e) {}
-    try {
-      var ins = await c.from("teams").insert({ name: (t && t.name) || "Команда", emblem: (t && t.emblem) || "✨", vis: (t && t.vis) || "private", owner_id: id, goal_kind: (t && t.goalKind) || null, goal_target: (t && t.goalTarget) || null }).select().single();
-      if (ins.error || !ins.data) return null;
-      await c.from("team_members").insert({ team_id: ins.data.id, user_id: id, role: "owner" });
-      return ins.data;
-    } catch (e) { return null; }
+    if (!row) {
+      try {
+        var ins = await c.from("teams").insert({ name: (t && t.name) || "Команда", emblem: (t && t.emblem) || "✨", vis: (t && t.vis) || "private", owner_id: id, goal_kind: (t && t.goalKind) || null, goal_target: (t && t.goalTarget) || null }).select().single();
+        if (!ins.error && ins.data) { row = ins.data; await c.from("team_members").insert({ team_id: row.id, user_id: id, role: "owner" }); }
+      } catch (e) {}
+    }
+    // Store the GOAL CONFIG ({type,target,unit,title}) so team-goal progress can be COMPUTED
+    // from the habit marks per mode (collective/streak/race). No-op until patch_team_goal.sql
+    // adds the column — the team still works without it.
+    if (row && row.id && t && t.goal) { try { await c.from("teams").update({ goal: t.goal }).eq("id", row.id); } catch (e) {} }
+    return row;
   }
   // Public teams you're NOT in yet (with member counts) — the discovery list.
   async function discoverTeams() {
@@ -420,6 +426,54 @@
     } catch (e) { return null; }
   }
 
+  // Current consecutive-day streak ending today (or yesterday, if today isn't marked yet)
+  // from a {dayKey:true} set. Used to derive the «серия у каждого» goal mode.
+  function _bosStreakDays(daySet) {
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    var k = function (dt) { return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); };
+    if (!daySet[k(d)]) { d.setDate(d.getDate() - 1); if (!daySet[k(d)]) return 0; }
+    var s = 0; while (daySet[k(d)]) { s++; d.setDate(d.getDate() - 1); }
+    return s;
+  }
+  // TEAM GOAL progress — COMPUTED FROM THE HABIT MARKS (David: «цель считается из привычек»),
+  // per the stored mode. Reads teams.goal config + ALL team-habit logs + roster, returns the
+  // aggregate `current` and EACH member's contribution (avatar/name + value):
+  //   collective — value = #отметок, current = сумма всех (each mark = +1)
+  //   race       — value = #отметок, current = у лидера (max)
+  //   streak     — value = его серия, current = МИН серия (команда проходит если держат все)
+  async function teamGoalProgress(teamId) {
+    var c = client(); var me = await uid(); if (!c || !teamId) return null;
+    try {
+      // `goal` jsonb may not exist yet (before patch_team_goal.sql) — selecting it would error
+      // the whole query, so fall back to goal_target only. Works pre- AND post-deploy.
+      var goal = {}, gt = 0;
+      var tr = await c.from("teams").select("goal,goal_target").eq("id", teamId).maybeSingle();
+      if (!tr.error && tr.data) { goal = tr.data.goal || {}; gt = tr.data.goal_target || 0; }
+      else { var tr2 = await c.from("teams").select("goal_target").eq("id", teamId).maybeSingle(); if (!tr2.error && tr2.data) gt = tr2.data.goal_target || 0; }
+      var type = goal.type || "collective";
+      var target = Number(goal.target != null ? goal.target : gt) || 0;
+      var unit = goal.unit || "";
+      var hs = await c.from("team_habits").select("id").eq("team_id", teamId);
+      var hids = ((hs && hs.data) || []).map(function (h) { return h.id; });
+      var rows = [];
+      if (hids.length) { var lg = await c.from("team_habit_logs").select("user_id,day").in("team_habit_id", hids); rows = (lg && lg.data) || []; }
+      var mem = await c.from("team_members").select("user_id,role,profiles(username,avatar)").eq("team_id", teamId).neq("role", "pending");
+      var members = ((mem && mem.data) || []).map(function (m) {
+        var daySet = {}, marks = 0;
+        rows.forEach(function (r) { if (r.user_id === m.user_id) { marks++; daySet["" + r.day] = true; } });
+        return { id: m.user_id, me: m.user_id === me, name: (m.profiles && m.profiles.username) || "Участник", avatar: (m.profiles && m.profiles.avatar) || "default", marks: marks, streak: _bosStreakDays(daySet) };
+      });
+      var current = 0, pick = function (x) { return x.marks; };
+      if (type === "streak") { pick = function (x) { return x.streak; }; current = members.length ? Math.min.apply(null, members.map(function (m) { return m.streak; })) : 0; }
+      else if (type === "race") { current = members.length ? Math.max.apply(null, members.map(function (m) { return m.marks; })) : 0; }
+      else { current = members.reduce(function (a, m) { return a + m.marks; }, 0); } // collective
+      var out = members.map(function (m) { return { id: m.id, me: m.me, name: m.name, avatar: m.avatar, value: pick(m) }; });
+      if (type === "race") out.sort(function (a, b) { return b.value - a.value; });
+      else out.sort(function (a, b) { return (b.me ? 1 : 0) - (a.me ? 1 : 0); });
+      return { type: type, target: target, unit: unit, current: current, members: out };
+    } catch (e) { return null; }
+  }
+
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
@@ -433,7 +487,7 @@
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, sharedHabitProgress: sharedHabitProgress,
-    teamHabitProgress: teamHabitProgress,
+    teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
     signOut: signOut,
     _client: client,

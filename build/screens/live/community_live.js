@@ -808,6 +808,7 @@ function TeamDetailLive() {
   var [liveTeamHabits, setLiveTeamHabits] = React.useState(null);
   var [habitsTick, setHabitsTick] = React.useState(0);
   var [mainProg, setMainProg] = React.useState(null); // per-member day-map for the anchor habit (who did which day)
+  var [goalProg, setGoalProg] = React.useState(null); // team-goal progress COMPUTED from habit marks (current + per-member contribution)
   React.useEffect(() => {
     if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
     var on = true;
@@ -881,6 +882,23 @@ function TeamDetailLive() {
       clearInterval(iv);
     };
   }, [_rosterLive, t.cloudId, _mainId, habitsTick]);
+  // Team GOAL progress — computed from the habit marks per mode (collective/streak/race).
+  React.useEffect(() => {
+    var on = true;
+    if (!_rosterLive || !t.cloudId || !window.bosCloud.teamGoalProgress) {
+      setGoalProg(null);
+      return;
+    }
+    var load = () => window.bosCloud.teamGoalProgress(t.cloudId).then(d => {
+      if (on && d) setGoalProg(d);
+    }).catch(() => {});
+    load();
+    var iv = setInterval(load, 20000);
+    return () => {
+      on = false;
+      clearInterval(iv);
+    };
+  }, [_rosterLive, t.cloudId, habitsTick]);
   var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheet, {
     team: t,
     members: members,
@@ -984,10 +1002,21 @@ function TeamDetailLive() {
       borderRadius: 999
     }
   }, t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"), (() => {
-    var tgt = t.target || 0;
-    var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+    // Goal progress is COMPUTED FROM THE HABIT MARKS (David) via teamGoalProgress —
+    // current + each member's contribution. Falls back to the local team fields until
+    // it loads (or pre-SQL). Mode-aware label: общий счёт / серия у каждого / гонка.
+    var gpd = goalProg;
+    var unit = gpd && gpd.unit || t.unit || "";
+    var tgt = gpd && gpd.target || t.target || 0;
+    var cur = gpd ? gpd.current : t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
     var done = tgt > 0 && cur >= tgt;
     var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
+    var modeLabel = gpd ? {
+      streak: "Серия у каждого",
+      race: "Гонка — лидер",
+      collective: "Общий счёт"
+    }[gpd.type] || "До цели вместе" : "До цели вместе";
+    var contrib = gpd && Array.isArray(gpd.members) ? gpd.members : [];
     return /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 14
@@ -1006,13 +1035,13 @@ function TeamDetailLive() {
         letterSpacing: 1,
         fontWeight: 600
       }
-    }, done ? "Цель достигнута 🎉" : "До цели вместе"), tgt > 0 && /*#__PURE__*/React.createElement("span", {
+    }, done ? "Цель достигнута 🎉" : modeLabel), tgt > 0 && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 15,
         fontWeight: 700,
         color: "var(--text)"
       }
-    }, cur, " / ", tgt, " ", t.unit || "")), /*#__PURE__*/React.createElement("div", {
+    }, cur, " / ", tgt, " ", unit)), /*#__PURE__*/React.createElement("div", {
       style: {
         height: 9,
         background: "rgba(255,255,255,0.55)",
@@ -1035,7 +1064,40 @@ function TeamDetailLive() {
         color: "var(--text-3)",
         marginTop: 6
       }
-    }, "\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", tgt - cur, " ", t.unit || "", " \u2014 \u0437\u0430\u043A\u0440\u043E\u0435\u043C \u0432\u043C\u0435\u0441\u0442\u0435"));
+    }, "\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", Math.max(0, tgt - cur), " ", unit, " \u2014 \u0437\u0430\u043A\u0440\u043E\u0435\u043C \u0432\u043C\u0435\u0441\u0442\u0435"), contrib.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 7,
+        marginTop: 11,
+        flexWrap: "wrap"
+      }
+    }, contrib.map(m => /*#__PURE__*/React.createElement("span", {
+      key: m.id,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        background: "rgba(255,255,255,0.55)",
+        borderRadius: 999,
+        padding: "3px 10px 3px 3px"
+      }
+    }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+      avatar: m.avatar,
+      size: 20
+    }) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 20,
+        height: 20,
+        borderRadius: "50%",
+        background: "rgba(0,0,0,0.1)"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "var(--text-2)"
+      }
+    }, m.me ? "Ты" : (m.name || "").split(" ")[0], " \xB7 ", m.value)))));
   })(), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
