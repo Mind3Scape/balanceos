@@ -36,7 +36,7 @@ function HabitSettingsLive() {
   };
   // Every habit carries an Apple colour now (coherent with the week-strip). Old null-colour
   // habits resolve to their stable bosHabitColor when edited.
-  const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#34C759")) : (preset?.color ?? "#34C759"));
+  const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a")) : (preset?.color ?? "#0a0a0a"));
   const [goal, setGoal] = useHS(editing ? (params.habit.goalPerDay || 1) : 1);
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
   const [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7
@@ -157,11 +157,15 @@ function HabitSettingsLive() {
         </div>
         {/* Apple system palette + custom wheel */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
-          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof color === "string" && color[0] === "#" && !BOS_APPLE_COLORS.includes(color)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
-            <input type="color" value={(typeof color === "string" && color[0] === "#") ? color : "#34C759"} onChange={(e) => setColor(e.target.value)} aria-label="Свой цвет"
+          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof color === "string" && color[0] === "#" && color !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(color)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
+            <input type="color" value={(typeof color === "string" && color[0] === "#") ? color : "#0a0a0a"} onChange={(e) => setColor(e.target.value)} aria-label="Свой цвет"
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
           </label>
           <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
+          {/* Чёрный — СТАНДАРТ (чёрно-белая тема): графитовый градиент, выбран по умолчанию. */}
+          <button key="black" className="tap" data-haptic="selection" onClick={() => setColor("#0a0a0a")} aria-label="Чёрный (стандарт)"
+            style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(180deg, #46464a, #0a0a0a)", border: 0, flexShrink: 0, cursor: "pointer",
+              boxShadow: color === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none", transition: "box-shadow 0.15s" }} />
           {BOS_APPLE_COLORS.map((c) => (
             <button key={c} className="tap" data-haptic="selection" onClick={() => setColor(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
               style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer",

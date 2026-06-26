@@ -637,7 +637,7 @@ function HabitsLive() {
     className: "tap",
     style: {
       flexShrink: 0,
-      width: 176,
+      width: 168,
       background: TH.cardBg,
       border: 0,
       borderRadius: 22,
@@ -649,28 +649,15 @@ function HabitsLive() {
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      minHeight: 158,
+      minHeight: 150,
       color: "var(--text)"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      top: -24,
-      right: -20,
-      width: 96,
-      height: 96,
-      borderRadius: "50%",
-      background: c.accent,
-      opacity: 0.10,
-      pointerEvents: "none"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 38,
       height: 38,
       borderRadius: 14,
-      background: c.accent + "1f",
+      background: "var(--surface-3)",
       display: "grid",
       placeItems: "center",
       fontSize: 20,
@@ -699,7 +686,7 @@ function HabitsLive() {
       marginTop: "auto",
       fontSize: 12,
       fontWeight: 600,
-      color: c.accent,
+      color: "var(--text-3)",
       position: "relative"
     }
   }, "\u0427\u0438\u0442\u0430\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {

@@ -232,15 +232,15 @@ function HabitsLive() {
         ].map((c, i) => (
           <button key={i} onClick={() => navigate("info", { topic: c.topic })} className="tap"
             style={{
-              flexShrink: 0, width: 176, background: TH.cardBg, border: 0, borderRadius: 22, padding: 16, textAlign: "left",
+              flexShrink: 0, width: 168, background: TH.cardBg, border: 0, borderRadius: 22, padding: 16, textAlign: "left",
               boxShadow: cardShadow, position: "relative", overflow: "hidden",
-              display: "flex", flexDirection: "column", gap: 8, minHeight: 158, color: "var(--text)",
+              display: "flex", flexDirection: "column", gap: 8, minHeight: 150, color: "var(--text)",
             }}>
-            <div aria-hidden style={{ position: "absolute", top: -24, right: -20, width: 96, height: 96, borderRadius: "50%", background: c.accent, opacity: 0.10, pointerEvents: "none" }} />
-            <div style={{ width: 38, height: 38, borderRadius: 14, background: c.accent + "1f", display: "grid", placeItems: "center", fontSize: 20, position: "relative" }}>{c.emoji}</div>
+            {/* b&w theme — neutral tile + neutral «Читать», no coloured corner circle (David). */}
+            <div style={{ width: 38, height: 38, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 20, position: "relative" }}>{c.emoji}</div>
             <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", lineHeight: 1.2, position: "relative" }}>{c.t}</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, position: "relative" }}>{c.b}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: "auto", fontSize: 12, fontWeight: 600, color: c.accent, position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: "auto", fontSize: 12, fontWeight: 600, color: "var(--text-3)", position: "relative" }}>
               Читать <I.ChevronRight size={13}/>
             </div>
           </button>

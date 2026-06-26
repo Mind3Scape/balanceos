@@ -946,13 +946,12 @@ function bosWeekKeys() {
   return out;
 }
 
-// A habit's accent: its chosen colour, else a STABLE Apple colour derived from its id —
-// so the strip already looks intentional before the create-screen palette ships.
+// A habit's accent: its chosen colour, else the app's BLACK (the black-and-white theme,
+// David) — the week-strip renders it as a soft graphite gradient (the generic top-light
+// overlay turns #0a0a0a into ~#404040→#0a0a0a). NOT a random Apple colour: «стандартный
+// должен быть чёрный, не фиолетовый».
 function bosHabitColor(habit) {
-  if (habit && habit.color) return habit.color;
-  var id = (habit && habit.id) ? String(habit.id) : "";
-  var sum = 0; for (var i = 0; i < id.length; i++) sum += id.charCodeAt(i);
-  return BOS_APPLE_COLORS[(id ? sum : 0) % BOS_APPLE_COLORS.length];
+  return (habit && habit.color) ? habit.color : "#0a0a0a";
 }
 
 // Week-strip: 7 rounded cells Пн→Вс. Filled (a soft top-light gradient over the accent) =
