@@ -709,9 +709,12 @@ function bosAchById(id) { for (var i = 0; i < BOS_ACHIEVEMENTS.length; i++) { if
 // habit (had `done`, no `log`) forward so a currently-checked habit isn't lost on upgrade.
 function bosRollHabit(h) {
   if (!h) return h;
+  // `done` is derived STRICTLY from whether TODAY is in the log, so a habit checked on a
+  // previous day shows unchecked once the date rolls over (streak/XP still come from the log).
+  // (Removed a "migrate done→today" line that RE-STAMPED today on every roll — it made any
+  //  log-less `done:true` habit look permanently completed and never reset overnight.)
   var tk = bosTodayKey();
   var log = h.log ? Object.assign({}, h.log) : {};
-  if (!h.log && h.done) log[tk] = true; // one-time migration
   return Object.assign({}, h, { log: log, done: !!log[tk], streak: bosStreak(log) });
 }
 
