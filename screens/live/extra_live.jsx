@@ -38,6 +38,7 @@
 function HabitDetailLive() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const back = params?.from || "habits";
   const seed = params?.habit || { id: 0, emoji: "🏃🏼‍♀️", name: "Утренняя пробежка", streak: 12 };
   // Live copy from the shared store so streak / done reflect taps made elsewhere.
@@ -122,6 +123,13 @@ function HabitDetailLive() {
       {/* Actions */}
       <button onClick={() => app?.toggleHabit && app.toggleHabit(h.id)} className="bos-btn" style={{ marginTop: 22, background: h.done ? (isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)") : undefined, color: h.done ? "var(--text-2)" : undefined }}>
         {h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"}
+      </button>
+      {/* Invite a friend — make the habit shared right from INSIDE it, not only from the
+          settings menu (David: «удобнее звать друга из самой привычки»). Tinted secondary
+          action in the habit's own colour; opens the same ShareHabitSheetLive. */}
+      <button onClick={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)} className="tap" data-haptic="selection"
+        style={{ marginTop: 10, width: "100%", background: (h.color || "#0a0a0a") + "14", border: 0, padding: "14px", borderRadius: 16, color: h.color || "var(--text)", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <I.Users size={18}/> Позвать друга
       </button>
     </div>
   );

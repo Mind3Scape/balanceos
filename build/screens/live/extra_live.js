@@ -41,6 +41,11 @@ function HabitDetailLive() {
     params
   } = useNav();
   var app = typeof useApp === "function" ? useApp() : null;
+  var {
+    open: openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
   var back = params?.from || "habits";
   var seed = params?.habit || {
     id: 0,
@@ -245,7 +250,31 @@ function HabitDetailLive() {
       background: h.done ? isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)" : undefined,
       color: h.done ? "var(--text-2)" : undefined
     }
-  }, h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"));
+  }, h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+      habit: h,
+      dark: isDark
+    })),
+    className: "tap",
+    "data-haptic": "selection",
+    style: {
+      marginTop: 10,
+      width: "100%",
+      background: (h.color || "#0a0a0a") + "14",
+      border: 0,
+      padding: "14px",
+      borderRadius: 16,
+      color: h.color || "var(--text)",
+      fontSize: 15,
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(I.Users, {
+    size: 18
+  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0430"));
 }
 
 /* GOAL DETAIL — LIVE. Progress ring, the habits it's built from (cross-linked into
