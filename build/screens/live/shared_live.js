@@ -2732,11 +2732,198 @@ var BOS_EMOJI_CATS = [{
   ic: "❤️",
   list: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💖", "💗", "💕", "❣️", "💔", "✨", "⭐", "🌟", "💫", "⚡", "✅", "☑️", "✔️", "❌", "➕", "➖", "❓", "❗", "💯", "🔥", "🎉", "🎊", "🏁", "🚩", "♻️", "⚠️", "🔔", "💤", "🆗", "🆕", "🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "⚫", "⚪", "🟤"]
 }];
-/* SF-Symbols-style monochrome icon set (our hand-rolled `I` glyphs). Picked by name and
-   stored on the habit/goal/team as "sf:<Name>", then rendered via bosIcon() in the chosen
-   accent — the Apple-Journal way: a tasteful FIXED set, not an infinite list. David:
-   «слева ч/б iOS-символы, справа цветные эмодзи». */
-var BOS_SYMBOLS = ["Heart", "Dumbbell", "Foot", "Book", "Moon", "Sparkles", "Target", "Trophy", "Flag", "Bolt", "Bulb", "Mic", "Play", "Compass", "MapPin", "Globe", "Calendar", "Clock", "Bell", "Briefcase", "Wallet", "Users", "Phone", "Mail", "MessageCircle", "Home", "ChartBar", "Eye"];
+/* SF-Symbols-style glyphs. Apple's REAL SF Symbols are licence-locked to Apple platforms
+   and can't ship on the web — these are faithful look-alikes: clean rounded line icons on
+   the same 24-grid as the UI set `I`. This map ADDS the shapes `I` lacks (fitness, food,
+   nature, hobbies…); bosSymCmp resolves BOS_SF first, then falls back to `I`, so the picker
+   offers ~47 icons across every habit/goal/team category. David: «настоящие iOS-символы,
+   и их мало» → больше и ближе к стандарту. (`Icon` is the shared wrapper from icons.jsx.) */
+var BOS_SF = {
+  Flame: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 3c.4 3 2.2 4.2 3.4 5.8A6 6 0 1 1 6.5 12c0-1.4.5-2.4 1.2-3.2.2 1.1.9 1.8 1.8 2C10.8 9 11 6 12 3z"
+  })),
+  Drop: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 3c3 3.8 6 7 6 10.4A6 6 0 1 1 6 13.4C6 10 9 6.8 12 3z"
+  })),
+  Leaf: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M5 21C4 12 9 4 20 4c0 11-7 16-15 16z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M9 17c3-4 6-6 9-7.5"
+  })),
+  Bed: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M3 19V8M3 13h13a4 4 0 0 1 4 4v2M7 13v-1.5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 12 11.5V13"
+  })),
+  Sun: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "4"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"
+  })),
+  Sunrise: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M3 18.5h18M6.5 18.5a5.5 5.5 0 0 1 11 0M12 3.5V8M5 11l1.6 1.6M19 11l-1.6 1.6M2 15h2M20 15h2M9 8.5L12 5.5l3 3"
+  })),
+  Star: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 3.6l2.6 5.2 5.8.9-4.2 4.1 1 5.7L12 16.8 6.8 19.5l1-5.7L3.6 9.7l5.8-.9L12 3.6z"
+  })),
+  Mountain: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M3 20l5.5-10 3.5 5 2.2-3.5L21 20z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8 10.5l1.6-2.8"
+  })),
+  Tree: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 3.5c2.8 0 4.6 2.2 4.6 4.6 1.9.2 3 1.6 3 3.2 0 1.5-1.2 2.7-3 2.7H7.4c-1.8 0-3-1.2-3-2.7 0-1.6 1.1-3 3-3.2 0-2.4 1.8-4.6 4.6-4.6z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 14v6.5M9 19.5h6"
+  })),
+  Sprout: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 21v-7.5"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 14C12 10.4 9.1 8 5.5 8 5.5 11.6 8.4 14 12 14z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 12.5c0-3.1 2.6-5.5 6.5-5.5 0 3.1-2.9 5.5-6.5 5.5z"
+  })),
+  Snowflake: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 3v18M4.2 7.5l15.6 9M19.8 7.5L4.2 16.5"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M9.7 4.3L12 6l2.3-1.7M14.3 19.7L12 18l-2.3 1.7M5.7 8.9l.2 2.8M5.7 8.9l-2.7.7M18.3 15.1l-.2-2.8M18.3 15.1l2.7-.7M18.3 8.9l-.2 2.8M18.3 8.9l2.7.7M5.7 15.1l.2-2.8M5.7 15.1l-2.7-.7"
+  })),
+  Bicycle: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
+    cx: "6",
+    cy: "17",
+    r: "3.3"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "18",
+    cy: "17",
+    r: "3.3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M6 17l4-7h4M9.5 10l3 4.5M12 10l2.5-2.5"
+  })),
+  Activity: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M3 12.5h3.5l2-5.5 3.5 11 2.2-5.5H21"
+  })),
+  Cup: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M5 8h11v5a4.5 4.5 0 0 1-4.5 4.5h-2A4.5 4.5 0 0 1 5 13V8z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16 9.5h1.8a2.2 2.2 0 0 1 0 4.4H16"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8.2 3.2c-.5.9.5 1.7 0 2.6M11.5 3.2c-.5.9.5 1.7 0 2.6"
+  })),
+  Apple: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 7.5c-1-1.8-3.2-2.2-4.8-1C5.8 7.7 5.4 10 6.4 12.8s2.6 5 4.1 5c.7 0 1-.4 1.5-.4s.8.4 1.5.4c1.5 0 3.1-2.2 4.1-5s.6-5.1-.8-6.3c-1.6-1.2-3.8-.8-4.8 1z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 7.5c.2-1.8 1.3-2.9 2.8-3.3"
+  })),
+  Pill: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("rect", {
+    x: "2.5",
+    y: "9",
+    width: "12",
+    height: "6.5",
+    rx: "3.25",
+    transform: "rotate(-45 8.5 12.25)"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M6.3 8.7l4.6 4.6"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "16.5",
+    cy: "15.5",
+    r: "5"
+  })),
+  Music: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M9 18V6l11-2.2V16"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "6.2",
+    cy: "18",
+    r: "2.8"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "17.2",
+    cy: "16",
+    r: "2.8"
+  })),
+  Headphones: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M4.5 14v-1.5a7.5 7.5 0 0 1 15 0V14"
+  }), /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "13.5",
+    width: "4",
+    height: "6.5",
+    rx: "2"
+  }), /*#__PURE__*/React.createElement("rect", {
+    x: "17",
+    y: "13.5",
+    width: "4",
+    height: "6.5",
+    rx: "2"
+  })),
+  Palette: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 3a9 9 0 0 0 0 18c1.2 0 2-1 2-2 0-.6-.3-1-.6-1.4-.3-.4-.6-.8-.6-1.4 0-1.1.9-2 2-2h1.5A4.7 4.7 0 0 0 21 9.5C21 5.9 16.9 3 12 3z"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "8",
+    cy: "11",
+    r: "1"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "8.5",
+    r: "1"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "16",
+    cy: "11",
+    r: "1"
+  })),
+  Camera: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "7.5",
+    width: "18",
+    height: "12.5",
+    rx: "3"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "13.5",
+    r: "3.2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8.5 7.5L9.7 5h4.6l1.2 2.5"
+  })),
+  Game: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("rect", {
+    x: "2",
+    y: "8",
+    width: "20",
+    height: "9.5",
+    rx: "4.75"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M7 11v3.2M5.4 12.6h3.2"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "16",
+    cy: "11.6",
+    r: "1"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "18.4",
+    cy: "14",
+    r: "1"
+  })),
+  Gift: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("rect", {
+    x: "3.5",
+    y: "9.5",
+    width: "17",
+    height: "10.5",
+    rx: "1.5"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3.5 13.5h17M12 9.5V20"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 9.5C9.3 9.5 7.5 8.6 7.5 7.2 7.5 6 8.6 5.4 9.7 6c1.4.8 2.3 3.5 2.3 3.5s.9-2.7 2.3-3.5c1.1-.6 2.2 0 2.2 1.2 0 1.4-1.8 2.3-4.5 2.3z"
+  })),
+  Dollar: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M14.7 9.3C14.1 8.3 13.1 8 12 8c-1.6 0-2.6 1-2.6 2.1 0 1 .8 1.7 2.6 2 1.9.3 2.7 1 2.7 2.1 0 1.1-1 2-2.7 2-1.1 0-2.1-.4-2.7-1.4M12 6.4v11.2"
+  }))
+};
+// Curated order, grouped by category — what the picker shows. Each name resolves through
+// bosSymCmp (BOS_SF first, then the UI set I).
+var BOS_SYMBOLS = ["Heart", "Activity", "Dumbbell", "Bicycle", "Flame", "Drop", "Bed", "Pill", "Apple", "Cup", "Bulb", "Book", "Pencil", "Music", "Headphones", "Palette", "Mic", "Sun", "Sunrise", "Moon", "Clock", "Bell", "Calendar", "Target", "Trophy", "Flag", "Sparkles", "Star", "Sprout", "ChartBar", "Users", "Globe", "MapPin", "Mountain", "Tree", "Camera", "Game", "Gift", "Compass", "Briefcase", "Wallet", "Dollar", "Home", "Phone", "Mail", "Snowflake"];
+function bosSymCmp(nm) {
+  return typeof BOS_SF !== "undefined" && BOS_SF[nm] || (window.I || {})[nm] || null;
+}
 
 // Render a habit/goal/team icon. A "sf:<Name>" sentinel → the monochrome glyph in `color`;
 // anything else (a normal emoji string) is returned UNCHANGED, so existing data and the
@@ -2744,11 +2931,11 @@ var BOS_SYMBOLS = ["Heart", "Dumbbell", "Foot", "Book", "Moon", "Sparkles", "Tar
 // everywhere, never as raw "sf:…" text.
 function bosIcon(val, size, color) {
   if (typeof val === "string" && val.slice(0, 3) === "sf:") {
-    var Cmp = (window.I || {})[val.slice(3)];
+    var Cmp = bosSymCmp(val.slice(3));
     if (Cmp) return React.createElement(Cmp, {
       size: size || 22,
       color: color || "currentColor",
-      strokeWidth: 2
+      strokeWidth: 1.85
     });
     return null;
   }
@@ -2824,7 +3011,7 @@ function EmojiPickerLive({
       padding: "2px 0"
     }
   }, BOS_SYMBOLS.map((nm, i) => {
-    var Cmp = (window.I || {})[nm];
+    var Cmp = bosSymCmp(nm);
     if (!Cmp) return null;
     return /*#__PURE__*/React.createElement("button", {
       key: i,

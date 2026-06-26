@@ -391,7 +391,8 @@ function HabitSettingsLive() {
         fontSize: 12.5,
         fontWeight: 600,
         letterSpacing: "-0.2px",
-        background: on ? color || "#0a0a0a" : "var(--surface-3)",
+        background: on ? "#0a0a0a" : "var(--surface-3)",
+        // neutral graphite, NOT the habit colour (David: «нафига в днях недели цвет — лишнее»)
         color: on ? "#fff" : "var(--text-4)",
         boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none",
         transform: on ? "scale(1.04)" : "none",
