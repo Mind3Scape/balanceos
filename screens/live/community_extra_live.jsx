@@ -409,12 +409,11 @@ function TeamSettingsLive() {
       {/* Demo's SUGGEST invite chips (gated `app?.mode !== "live"`) are gone — live invites
           everyone through the real referral link below. */}
       {team.cloudId && (
-        <button onClick={async () => {
-          // Same referral link as TeamShareSheet: ?team=<id>&ref=<myUid> so invites are
-          // credited to the inviter. Falls back to the plain link if uid isn't ready.
-          var b = (typeof location !== "undefined" ? (location.origin + location.pathname) : "https://mind3scape.github.io/balanceos/");
-          var link = b + "?team=" + team.cloudId;
-          try { var id = (window.bosCloud && window.bosCloud.uid) ? await window.bosCloud.uid() : null; if (id) link += "&ref=" + id; } catch (e) {}
+        <button onClick={() => {
+          // Telegram team deep-link (t.me/<bot>?startapp=team_<cloudId>) — same link as
+          // TeamShareSheetLive; the launch path decodes it → joinViaLink. NOT the github.io
+          // /?team= web URL (can't open the Mini App from Telegram).
+          var link = (typeof bosTeamInviteLink === "function") ? bosTeamInviteLink(team.cloudId) : ("https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId);
           var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
           if (window.bosShare) window.bosShare(link, text);
           else { try { navigator.clipboard.writeText(link); } catch (e) {} }

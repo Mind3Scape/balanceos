@@ -879,7 +879,7 @@ function TeamDetailLive() {
         alignItems: "center"
       }
     }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheet, {
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
         team: t
       })),
       className: "tap",

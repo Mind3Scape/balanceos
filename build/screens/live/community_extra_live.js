@@ -1054,15 +1054,11 @@ function TeamSettingsLive() {
       padding: "6px 0"
     }
   }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439 \u043D\u0438\u0436\u0435.")), team.cloudId && /*#__PURE__*/React.createElement("button", {
-    onClick: async () => {
-      // Same referral link as TeamShareSheet: ?team=<id>&ref=<myUid> so invites are
-      // credited to the inviter. Falls back to the plain link if uid isn't ready.
-      var b = typeof location !== "undefined" ? location.origin + location.pathname : "https://mind3scape.github.io/balanceos/";
-      var link = b + "?team=" + team.cloudId;
-      try {
-        var id = window.bosCloud && window.bosCloud.uid ? await window.bosCloud.uid() : null;
-        if (id) link += "&ref=" + id;
-      } catch (e) {}
+    onClick: () => {
+      // Telegram team deep-link (t.me/<bot>?startapp=team_<cloudId>) — same link as
+      // TeamShareSheetLive; the launch path decodes it → joinViaLink. NOT the github.io
+      // /?team= web URL (can't open the Mini App from Telegram).
+      var link = typeof bosTeamInviteLink === "function" ? bosTeamInviteLink(team.cloudId) : "https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId;
       var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
       if (window.bosShare) window.bosShare(link, text);else {
         try {

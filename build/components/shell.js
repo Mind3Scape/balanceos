@@ -1297,6 +1297,12 @@ var BOS_BOT_USERNAME = "BalanceOS8_bot";
 function bosInviteLink(uid) {
   return "https://t.me/" + BOS_BOT_USERNAME + (uid ? "?startapp=ref_" + uid : "");
 }
+// Team INVITE deep-link: t.me/<bot>?startapp=team_<cloudId>. Opening it launches the Mini
+// App with start_param="team_<cloudId>", which the live hydration decodes (bosJoinTeamId)
+// and joins via joinViaLink. startapp allows [A-Za-z0-9_-] — a uuid cloudId fits.
+function bosTeamInviteLink(cloudId) {
+  return "https://t.me/" + BOS_BOT_USERNAME + (cloudId ? "?startapp=team_" + cloudId : "");
+}
 // The referral id that brought THIS user in: from the Telegram start_param ("ref_<uid>")
 // when launched via the bot deep-link, else the web ?ref= query. Null if organic.
 function bosReferralId() {
@@ -1306,6 +1312,19 @@ function bosReferralId() {
   } catch (e) {}
   try {
     var q = new URLSearchParams(window.location.search).get("ref");
+    if (q) return q;
+  } catch (e) {}
+  return null;
+}
+// The team to auto-join on launch: from the Telegram start_param ("team_<cloudId>") when
+// opened via a team deep-link, else the web ?team= query. Null if neither.
+function bosJoinTeamId() {
+  try {
+    var sp = window.__TG && window.__TG.initDataUnsafe && window.__TG.initDataUnsafe.start_param;
+    if (sp && /^team_/.test(sp)) return sp.slice(5);
+  } catch (e) {}
+  try {
+    var q = new URLSearchParams(window.location.search).get("team");
     if (q) return q;
   } catch (e) {}
   return null;
@@ -2343,10 +2362,7 @@ function AppProvider({
         };
         setTimeout(_doneHydrate, 9000); // hard safety: never get stuck not-saving
         var _refBy = typeof bosReferralId === "function" ? bosReferralId() : null;
-        var _joinTeamId = null;
-        try {
-          _joinTeamId = new URLSearchParams(window.location.search).get("team") || null;
-        } catch (e) {}
+        var _joinTeamId = typeof bosJoinTeamId === "function" ? bosJoinTeamId() : null; // Telegram start_param=team_<id> OR web ?team=
         var _locName = saved ? saved.userName || name : name;
         var _locAv = saved ? saved.avatar || avatar || null : avatar || null;
         window.bosCloud.signIn(_refBy).then(function (u) {

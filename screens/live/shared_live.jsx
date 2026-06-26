@@ -1120,3 +1120,48 @@ function EditGlassButtonLive({ onClick, label = "Изменить" }) {
     </button>
   );
 }
+
+/* Team share — LIVE fork of core TeamShareSheet. The ONLY change: the invite link is a
+   TELEGRAM deep-link t.me/<bot>?startapp=team_<cloudId> (not the github.io/?team= web URL,
+   which can't open the Mini App from Telegram). The launch path decodes that start_param
+   → joinViaLink. A local team without a cloudId falls back to the plain bot link. */
+function TeamShareSheetLive({ team }) {
+  const [copied, setCopied] = React.useState(false);
+  const isPublic = team?.vis === "public";
+  const link = (team && team.cloudId && typeof bosTeamInviteLink === "function")
+    ? bosTeamInviteLink(team.cloudId)
+    : ((typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot");
+  const shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team?.name || "") + "» в BalanceOS";
+  const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  const shareTelegram = () => {
+    const url = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent(shareText);
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) { window.Telegram.WebApp.openTelegramLink(url); return; } } catch (e) {}
+    try { window.open(url, "_blank"); } catch (e) {}
+  };
+  return (
+    <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 22, margin: "0 auto 12px", background: team?.accent || "#fef3c7", display: "grid", placeItems: "center", fontSize: 34 }}>{team?.emblem || "✨"}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться командой</div>
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>
+          Вести привычки вместе — веселее, и за совместные привычки больше XP ✨
+        </div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", background: "var(--surface-3)", padding: "4px 11px", borderRadius: 999 }}>
+          {isPublic ? "🌐 Открытая · ссылка ведёт прямо в команду" : "🔒 Приватная · войдут только по этой ссылке"}
+        </div>
+      </div>
+      <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10, background: "var(--surface-3)", borderRadius: 14, padding: "11px 8px 11px 14px" }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link}</span>
+        <button onClick={copyLink} className="tap" style={{ flexShrink: 0, border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "8px 15px", fontSize: 12.5, fontWeight: 600 }}>{copied ? "Готово" : "Копировать"}</button>
+      </div>
+      <button onClick={copyLink} className="tap" style={{ width: "100%", marginTop: 12, border: 0, borderRadius: 999, padding: 14, background: "#0a0a0a", color: "#fff", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <span style={{ fontSize: 17, lineHeight: 1 }}>🔗</span> {copied ? "Ссылка скопирована" : "Скопировать ссылку"}
+      </button>
+      <button onClick={shareTelegram} className="tap" style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 999, padding: 14, background: "#229ED9", color: "#fff", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <I.Send size={18}/> Поделиться в Telegram
+      </button>
+      <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
+    </div>
+  );
+}

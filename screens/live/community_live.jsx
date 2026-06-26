@@ -382,7 +382,7 @@ function TeamDetailLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={() => openSheet(<TeamShareSheet team={t} />)} className="tap" title="Поделиться командой" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
+          <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" title="Поделиться командой" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
             <I.Share size={18}/>
           </button>
           {/* Edit = the same Liquid Glass «Изменить» as habit/goal, but ONLY the team's

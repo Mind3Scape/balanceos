@@ -2891,3 +2891,174 @@ function EditGlassButtonLive({
     strokeWidth: 2
   }), " ", label);
 }
+
+/* Team share — LIVE fork of core TeamShareSheet. The ONLY change: the invite link is a
+   TELEGRAM deep-link t.me/<bot>?startapp=team_<cloudId> (not the github.io/?team= web URL,
+   which can't open the Mini App from Telegram). The launch path decodes that start_param
+   → joinViaLink. A local team without a cloudId falls back to the plain bot link. */
+function TeamShareSheetLive({
+  team
+}) {
+  var [copied, setCopied] = React.useState(false);
+  var isPublic = team?.vis === "public";
+  var link = team && team.cloudId && typeof bosTeamInviteLink === "function" ? bosTeamInviteLink(team.cloudId) : typeof bosInviteLink === "function" ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
+  var shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team?.name || "") + "» в BalanceOS";
+  var copyLink = () => {
+    try {
+      navigator.clipboard.writeText(link);
+    } catch (e) {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+  };
+  var shareTelegram = () => {
+    var url = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent(shareText);
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    try {
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(url);
+        return;
+      }
+    } catch (e) {}
+    try {
+      window.open(url, "_blank");
+    } catch (e) {}
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 0",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 64,
+      height: 64,
+      borderRadius: 22,
+      margin: "0 auto 12px",
+      background: team?.accent || "#fef3c7",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 34
+    }
+  }, team?.emblem || "✨"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-3)",
+      marginTop: 6,
+      maxWidth: 290,
+      marginInline: "auto",
+      lineHeight: 1.45
+    }
+  }, "\u0412\u0435\u0441\u0442\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 \u0432\u0435\u0441\u0435\u043B\u0435\u0435, \u0438 \u0437\u0430 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 XP \u2728"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 10,
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      background: "var(--surface-3)",
+      padding: "4px 11px",
+      borderRadius: 999
+    }
+  }, isPublic ? "🌐 Открытая · ссылка ведёт прямо в команду" : "🔒 Приватная · войдут только по этой ссылке")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      background: "var(--surface-3)",
+      borderRadius: 14,
+      padding: "11px 8px 11px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 13,
+      color: "var(--text-2)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, link), /*#__PURE__*/React.createElement("button", {
+    onClick: copyLink,
+    className: "tap",
+    style: {
+      flexShrink: 0,
+      border: 0,
+      background: "#0a0a0a",
+      color: "#fff",
+      borderRadius: 999,
+      padding: "8px 15px",
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, copied ? "Готово" : "Копировать")), /*#__PURE__*/React.createElement("button", {
+    onClick: copyLink,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 12,
+      border: 0,
+      borderRadius: 999,
+      padding: 14,
+      background: "#0a0a0a",
+      color: "#fff",
+      fontSize: 15,
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 17,
+      lineHeight: 1
+    }
+  }, "\uD83D\uDD17"), " ", copied ? "Ссылка скопирована" : "Скопировать ссылку"), /*#__PURE__*/React.createElement("button", {
+    onClick: shareTelegram,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 8,
+      border: 0,
+      borderRadius: 999,
+      padding: 14,
+      background: "#229ED9",
+      color: "#fff",
+      fontSize: 15,
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(I.Send, {
+    size: 18
+  }), " \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0432 Telegram"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "max(8px, var(--tg-bottom-inset, 0px))"
+    }
+  }));
+}
