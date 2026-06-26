@@ -400,6 +400,26 @@
     } catch (e) { return null; }
   }
 
+  // Team-habit per-person day-map (WHO did WHICH day). The data is already per-user in
+  // team_habit_logs — this just exposes it in the SAME shape as sharedHabitProgress so the
+  // team detail can reuse the same per-person calendar/card. Members come from the roster
+  // (so people who haven't marked yet still appear, with empty days + real avatar).
+  async function teamHabitProgress(teamId, habitId) {
+    var c = client(); var me = await uid(); if (!c || !teamId || !habitId) return null;
+    try {
+      var mem = await c.from("team_members").select("user_id,role,profiles(username,avatar)").eq("team_id", teamId).neq("role", "pending");
+      if (mem.error) return null;
+      var lg = await c.from("team_habit_logs").select("user_id,day").eq("team_habit_id", habitId);
+      var rows = (lg && lg.data) || [];
+      var members = (mem.data || []).map(function (m) {
+        var days = {}; rows.forEach(function (r) { if (r.user_id === m.user_id) days["" + r.day] = true; });
+        return { id: m.user_id, me: m.user_id === me, name: (m.profiles && m.profiles.username) || "Участник", avatar: (m.profiles && m.profiles.avatar) || "default", days: days };
+      });
+      members.sort(function (a, b) { return (b.me ? 1 : 0) - (a.me ? 1 : 0); }); // self first
+      return { members: members };
+    } catch (e) { return null; }
+  }
+
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
@@ -413,6 +433,7 @@
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, sharedHabitProgress: sharedHabitProgress,
+    teamHabitProgress: teamHabitProgress,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
     signOut: signOut,
     _client: client,

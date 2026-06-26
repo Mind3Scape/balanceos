@@ -807,6 +807,7 @@ function TeamDetailLive() {
   // REAL shared team habits for live teams (from the cloud): real names + per-member completion.
   var [liveTeamHabits, setLiveTeamHabits] = React.useState(null);
   var [habitsTick, setHabitsTick] = React.useState(0);
+  var [mainProg, setMainProg] = React.useState(null); // per-member day-map for the anchor habit (who did which day)
   React.useEffect(() => {
     if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
     var on = true;
@@ -857,6 +858,29 @@ function TeamDetailLive() {
   var teamHabits = _rosterLive ? liveTeamHabits || [] : Array.isArray(t.habits) ? t.habits : [];
   var main = teamHabits.find(h => h.isMain);
   var others = teamHabits.filter(h => !h.isMain);
+  // Per-person "who did which day" for the team ANCHOR habit → feeds the SAME month calendar
+  // the personal/shared habits use (data already per-user in team_habit_logs). Light poll.
+  var _tCalKey = (d, mi) => {
+    var y = new Date().getFullYear();
+    return y + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  };
+  var _mainId = main && main.id;
+  React.useEffect(() => {
+    var on = true;
+    if (!_rosterLive || !_mainId || !window.bosCloud.teamHabitProgress) {
+      setMainProg(null);
+      return;
+    }
+    var load = () => window.bosCloud.teamHabitProgress(t.cloudId, _mainId).then(d => {
+      if (on && d && d.members) setMainProg(d.members);
+    }).catch(() => {});
+    load();
+    var iv = setInterval(load, 20000);
+    return () => {
+      on = false;
+      clearInterval(iv);
+    };
+  }, [_rosterLive, t.cloudId, _mainId, habitsTick]);
   var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheet, {
     team: t,
     members: members,
@@ -1258,7 +1282,17 @@ function TeamDetailLive() {
       background: main.doneByMe ? "rgba(0,0,0,0.12)" : "#0a0a0a",
       color: main.doneByMe ? "#0a0a0a" : "#FEDE34"
     }
-  }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"))), /*#__PURE__*/React.createElement("div", {
+  }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"))), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
+    people: mainProg.map(m => ({
+      name: m.me ? "Ты" : m.name,
+      initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
+      color: "#FEDE34",
+      you: !!m.me,
+      avatar: m.avatar
+    })),
+    dayFrac: (pi, d, mi) => mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0,
+    label: "Кто отметил «" + main.name + "»"
+  }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22

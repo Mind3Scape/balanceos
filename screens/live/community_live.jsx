@@ -345,6 +345,7 @@ function TeamDetailLive() {
   // REAL shared team habits for live teams (from the cloud): real names + per-member completion.
   const [liveTeamHabits, setLiveTeamHabits] = React.useState(null);
   const [habitsTick, setHabitsTick] = React.useState(0);
+  const [mainProg, setMainProg] = React.useState(null); // per-member day-map for the anchor habit (who did which day)
   React.useEffect(() => {
     if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
     let on = true;
@@ -377,6 +378,17 @@ function TeamDetailLive() {
   const teamHabits = _rosterLive ? (liveTeamHabits || []) : (Array.isArray(t.habits) ? t.habits : []);
   const main = teamHabits.find(h => h.isMain);
   const others = teamHabits.filter(h => !h.isMain);
+  // Per-person "who did which day" for the team ANCHOR habit → feeds the SAME month calendar
+  // the personal/shared habits use (data already per-user in team_habit_logs). Light poll.
+  const _tCalKey = (d, mi) => { const y = new Date().getFullYear(); return y + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); };
+  const _mainId = main && main.id;
+  React.useEffect(() => {
+    let on = true;
+    if (!_rosterLive || !_mainId || !window.bosCloud.teamHabitProgress) { setMainProg(null); return; }
+    const load = () => window.bosCloud.teamHabitProgress(t.cloudId, _mainId).then((d) => { if (on && d && d.members) setMainProg(d.members); }).catch(() => {});
+    load(); const iv = setInterval(load, 20000);
+    return () => { on = false; clearInterval(iv); };
+  }, [_rosterLive, t.cloudId, _mainId, habitsTick]);
   const openAddHabit = () => openSheet(<TeamHabitSheet team={t} members={members} onAdd={(h) => { if (_rosterLive) addTeamHabitCloud(h); else app?.addTeamHabit(t._id, h); }} />);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -484,6 +496,17 @@ function TeamDetailLive() {
         )}
       </div>
       </>)}
+
+      {/* WHO did WHICH day — per-person month calendar for the team anchor habit (the SAME
+          calendar the personal/shared habits use, real avatars on the chips). David: «у кого
+          какой день на календаре — и в командах должно работать». */}
+      {_rosterLive && main && mainProg && mainProg.length > 0 && (
+        <PeopleMonthCalendarLive
+          people={mainProg.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "У").charAt(0).toUpperCase()), color: "#FEDE34", you: !!m.me, avatar: m.avatar }))}
+          dayFrac={(pi, d, mi) => (mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0)}
+          label={"Кто отметил «" + main.name + "»"}
+        />
+      )}
 
       <div className="section-label" style={{ marginTop: 22 }}>Привычки команды ({others.length})</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
