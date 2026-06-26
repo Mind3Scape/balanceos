@@ -809,6 +809,8 @@ function TeamDetailLive() {
   var [habitsTick, setHabitsTick] = React.useState(0);
   var [mainProg, setMainProg] = React.useState(null); // per-member day-map for the anchor habit (who did which day)
   var [goalProg, setGoalProg] = React.useState(null); // team-goal progress COMPUTED from habit marks (current + per-member contribution)
+  var [settlements, setSettlements] = React.useState(null); // { user_id: {xp, won} } — team-goal XP payouts (cloud ledger)
+  var settledRef = React.useRef(false); // settle-once guard (per mount per reached goal)
   React.useEffect(() => {
     if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
     var on = true;
@@ -899,6 +901,32 @@ function TeamDetailLive() {
       clearInterval(iv);
     };
   }, [_rosterLive, t.cloudId, habitsTick]);
+  // PAYOUT — when a STAKED goal is reached, OPEN the bank: idempotently settle MY row (co-op:
+  // +stake; race: leader +bank), refresh the global team-goal XP so the level lifts, then read
+  // everyone's payouts for the card. Settle runs once per mount (settledRef); the read re-runs on
+  // each goalProg poll so other members' payouts appear as they open the team. Unlock-only —
+  // nothing is ever deducted, so missing the goal just means the bank never opened.
+  React.useEffect(() => {
+    if (!_rosterLive || !t.cloudId || !window.bosCloud.settleTeamGoal) return;
+    if (!goalProg || !goalProg.done || !(goalProg.stake > 0)) return;
+    var on = true;
+    var loadSettle = () => window.bosCloud.teamSettlements(t.cloudId).then(s => {
+      if (on) setSettlements(s || {});
+    }).catch(() => {});
+    if (settledRef.current) {
+      loadSettle();
+    } else {
+      settledRef.current = true;
+      window.bosCloud.settleTeamGoal(t.cloudId).then(res => {
+        if (!on) return;
+        loadSettle();
+        if (res && res.settled && app && app.refreshTeamGoalXP) app.refreshTeamGoalXP();
+      }).catch(loadSettle);
+    }
+    return () => {
+      on = false;
+    };
+  }, [_rosterLive, t.cloudId, goalProg]);
   var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheet, {
     team: t,
     members: members,
@@ -1017,6 +1045,18 @@ function TeamDetailLive() {
       collective: "Общий счёт"
     }[gpd.type] || "До цели вместе" : "До цели вместе";
     var contrib = gpd && Array.isArray(gpd.members) ? gpd.members : [];
+    // Optional XP STAKE → bank. Unlock-only: reaching the goal OPENS the payout (co-op: each
+    // gets stake; race: the leader takes the whole bank). Per-member payout = ledger truth if
+    // settled, else the rule (contrib[0] is the race leader — sorted by value desc).
+    var isRace = !!(gpd && gpd.type === "race");
+    var stake = gpd && gpd.stake || t.stake || 0;
+    var bank = gpd && gpd.bank || stake * Math.max(1, contrib.length || members.length);
+    var payFor = (m, i) => {
+      if (!done || stake <= 0) return 0;
+      if (settlements && settlements[m.id]) return settlements[m.id].xp || 0;
+      return isRace ? i === 0 ? bank : 0 : stake;
+    };
+    var myPay = done && stake > 0 ? contrib.reduce((acc, m, i) => acc + (m.me ? payFor(m, i) : 0), 0) : 0;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 14
@@ -1064,40 +1104,91 @@ function TeamDetailLive() {
         color: "var(--text-3)",
         marginTop: 6
       }
-    }, "\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", Math.max(0, tgt - cur), " ", unit, " \u2014 \u0437\u0430\u043A\u0440\u043E\u0435\u043C \u0432\u043C\u0435\u0441\u0442\u0435"), contrib.length > 0 && /*#__PURE__*/React.createElement("div", {
+    }, "\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", Math.max(0, tgt - cur), " ", unit, " \u2014 \u0437\u0430\u043A\u0440\u043E\u0435\u043C \u0432\u043C\u0435\u0441\u0442\u0435"), stake > 0 && !done && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        marginTop: 8,
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "var(--text-2)",
+        background: "rgba(255,255,255,0.5)",
+        padding: "4px 11px",
+        borderRadius: 999
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "\uD83E\uDE99 \u0411\u0430\u043D\u043A ", bank, " XP"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--text-3)",
+        fontWeight: 500
+      }
+    }, "\xB7 ", isRace ? "лидер забирает всё" : `дойдём — каждому +${stake}`)), done && stake > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 11,
+        padding: "11px 13px",
+        borderRadius: 16,
+        background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+        color: "#0a0a0a"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 800,
+        letterSpacing: "-0.2px"
+      }
+    }, "\uD83C\uDF89 \u0426\u0435\u043B\u044C \u0434\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442\u0430!"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 600,
+        marginTop: 3,
+        lineHeight: 1.4
+      }
+    }, isRace ? myPay > 0 ? `Ты лидер гонки — весь банк твой: +${myPay} XP 👑` : `Банк ${bank} XP забрал лидер гонки` : `Банк раскрыт — тебе +${myPay || stake} XP, и столько же каждому`)), contrib.length > 0 && /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         gap: 7,
         marginTop: 11,
         flexWrap: "wrap"
       }
-    }, contrib.map(m => /*#__PURE__*/React.createElement("span", {
-      key: m.id,
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        background: "rgba(255,255,255,0.55)",
-        borderRadius: 999,
-        padding: "3px 10px 3px 3px"
-      }
-    }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
-      avatar: m.avatar,
-      size: 20
-    }) : /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 20,
-        height: 20,
-        borderRadius: "50%",
-        background: "rgba(0,0,0,0.1)"
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 600,
-        color: "var(--text-2)"
-      }
-    }, m.me ? "Ты" : (m.name || "").split(" ")[0], " \xB7 ", m.value)))));
+    }, contrib.map((m, i) => {
+      var pay = payFor(m, i);
+      return /*#__PURE__*/React.createElement("span", {
+        key: m.id,
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          background: "rgba(255,255,255,0.55)",
+          borderRadius: 999,
+          padding: "3px 10px 3px 3px"
+        }
+      }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+        avatar: m.avatar,
+        size: 20
+      }) : /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          background: "rgba(0,0,0,0.1)"
+        }
+      }), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11.5,
+          fontWeight: 600,
+          color: "var(--text-2)"
+        }
+      }, m.me ? "Ты" : (m.name || "").split(" ")[0], " \xB7 ", m.value), pay > 0 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          fontWeight: 800,
+          color: "#7a5300",
+          background: "rgba(254,222,52,0.95)",
+          borderRadius: 999,
+          padding: "1px 6px"
+        }
+      }, "+", pay, isRace ? " 👑" : ""));
+    })));
   })(), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,

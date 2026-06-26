@@ -53,7 +53,6 @@ function TeamCreateLive() {
   var [goalTitle, setGoalTitle] = useCS("50 добрых дел");
   var [target, setTarget] = useCS(50);
   var [unit, setUnit] = useCS("дел");
-  var [splitMode, setSplitMode] = useCS("auto"); // auto | custom
   var [linkedHabits, setLinkedHabits] = useCS({
     "🙏": true,
     "🧘🏼‍♀️": false,
@@ -81,7 +80,6 @@ function TeamCreateLive() {
     on: !x.on
   } : x));
   var activeMembers = members.filter(m => m.on);
-  var perMember = Math.max(1, Math.ceil(target / Math.max(1, activeMembers.length)));
   var goalTypes = [{
     id: "collective",
     e: "🌊",
@@ -491,7 +489,7 @@ function TeamCreateLive() {
       marginTop: 2,
       lineHeight: 1.5
     }
-  }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0430 \u043F\u043E \u044D\u0442\u0438\u043C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430\u043C = +1 \u043A \u0446\u0435\u043B\u0438. \u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043C\u043E\u0433\u0443\u0442 \u0434\u043E\u0431\u0430\u0432\u043B\u044F\u0442\u044C \u0441\u0432\u043E\u0451 \u0447\u0438\u0441\u043B\u043E \u0432\u0440\u0443\u0447\u043D\u0443\u044E.")), /*#__PURE__*/React.createElement("span", {
+  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0430 \u043F\u043E \u043A\u043E\u043C\u0430\u043D\u0434\u043D\u043E\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0435 \u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0446\u0435\u043B\u044C \u043D\u0430 +1 \u2014 \u0437\u0430\u043A\u0440\u044B\u0432\u0430\u0435\u0442\u0435 \u0435\u0451 \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       fontWeight: 700,
@@ -556,14 +554,7 @@ function TeamCreateLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 12
-  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), goalType === "collective" && /*#__PURE__*/React.createElement(SplitEditor, {
-    target: target,
-    unit: unit,
-    members: members,
-    setMembers: setMembers,
-    splitMode: splitMode,
-    setSplitMode: setSplitMode
-  }), /*#__PURE__*/React.createElement("div", {
+  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -795,6 +786,8 @@ function TeamCreateLive() {
         target: Number(target) || 0,
         current: 0,
         unit,
+        stake: stakes ? Number(stakeAmount) || 0 : 0,
+        // optional XP wager per person
         date: dur,
         progress: 0,
         members: activeMembers.map(m => ({
@@ -820,7 +813,8 @@ function TeamCreateLive() {
               type: goalType,
               target: Number(target) || 0,
               unit: unit,
-              title: goalTitle || target + " " + unit
+              title: goalTitle || target + " " + unit,
+              stake: stakes ? Number(stakeAmount) || 0 : 0
             }
           }).then(row => {
             if (row && row.id && app.updateTeam) app.updateTeam(nt._id, {

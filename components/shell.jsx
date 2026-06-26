@@ -952,6 +952,9 @@ function AppProvider({ children }) {
   // Referral count (people who registered via your invite link) — loaded from the cloud so
   // the LIVE economy can pay real XP per invited friend. 0 for demo/fresh.
   const [invitedCount, setInvitedCount] = useState(0);
+  // Team-goal winnings (settled XP from staked team goals you reached) — loaded from the cloud
+  // ledger so the LIVE economy can lift your level by it. 0 for demo/fresh.
+  const [teamGoalXP, setTeamGoalXP] = useState(0);
   const saveTimer = useRef(null);
   // True while a live login is hydrating from the cloud — blocks the autosave below so
   // empty/just-defaulted local state can't race ahead and overwrite real cloud data.
@@ -1272,6 +1275,15 @@ function AppProvider({ children }) {
     return function () { on = false; };
   }, [mode, persistId, teams]);
 
+  // Load my team-goal winnings (settled XP) for LIVE users → feeds real team-goal XP in the live
+  // economy (lifts the DISPLAYED level). `refreshTeamGoalXP` is also exposed in context so the team
+  // detail can re-pull the moment a goal settles. Refreshes on login + whenever teams change.
+  const refreshTeamGoalXP = function () {
+    if (mode !== "live" || !persistId || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.myTeamGoalXP)) { setTeamGoalXP(0); return; }
+    window.bosCloud.myTeamGoalXP().then(function (xp) { setTeamGoalXP(xp || 0); }).catch(function () {});
+  };
+  useEffect(function () { refreshTeamGoalXP(); }, [mode, persistId, teams]);
+
   // Community tab/section view-state lives here so navigating into a detail
   // screen and back doesn't reset it (the screen unmounts on push/pop).
   const [communityView, setCommunityViewRaw] = useState({ section: "discover", discTab: "teams", commTab: "network", networkUnlocked: false });
@@ -1285,7 +1297,7 @@ function AppProvider({ children }) {
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
-    aiBrief, invitedCount,
+    aiBrief, invitedCount, teamGoalXP, refreshTeamGoalXP,
     pendingAch, clearPendingAch,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,

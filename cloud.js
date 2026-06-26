@@ -453,6 +453,7 @@
       var type = goal.type || "collective";
       var target = Number(goal.target != null ? goal.target : gt) || 0;
       var unit = goal.unit || "";
+      var stake = Number(goal.stake) || 0; // optional XP wager per person (teams.goal.stake)
       var hs = await c.from("team_habits").select("id").eq("team_id", teamId);
       var hids = ((hs && hs.data) || []).map(function (h) { return h.id; });
       var rows = [];
@@ -470,8 +471,54 @@
       var out = members.map(function (m) { return { id: m.id, me: m.me, name: m.name, avatar: m.avatar, value: pick(m) }; });
       if (type === "race") out.sort(function (a, b) { return b.value - a.value; });
       else out.sort(function (a, b) { return (b.me ? 1 : 0) - (a.me ? 1 : 0); });
-      return { type: type, target: target, unit: unit, current: current, members: out };
+      var bank = stake * members.length;        // co-op: each gets stake; race: leader takes bank
+      var done = target > 0 && current >= target;
+      return { type: type, target: target, unit: unit, current: current, stake: stake, bank: bank, done: done, members: out };
     } catch (e) { return null; }
+  }
+
+  // SETTLE a reached team goal — idempotent, OWN-write (each member opens their own payout when
+  // they next view the team). Unlock-only: nothing was deducted, so a win just OPENS bonus XP.
+  // Co-op (collective/streak): I award MYSELF +stake. Race: only the LEADER (max value, id-tiebreak
+  // so every client agrees) awards themselves the whole BANK; everyone else wins nothing. Returns
+  // the outcome for the celebration, or null if the goal isn't reached / has no stake.
+  async function settleTeamGoal(teamId) {
+    var c = client(); var me = await uid(); if (!c || !me || !teamId) return null;
+    try {
+      var prog = await teamGoalProgress(teamId);
+      if (!prog || !prog.done || !(prog.stake > 0)) return null;
+      var xp = prog.stake, won = true;
+      if (prog.type === "race") {
+        var leader = null;
+        (prog.members || []).forEach(function (m) {
+          if (!leader || m.value > leader.value || (m.value === leader.value && ("" + m.id) < ("" + leader.id))) leader = m;
+        });
+        if (!leader || leader.id !== me) return { settled: false, won: false, xp: 0, type: prog.type, bank: prog.bank, stake: prog.stake };
+        xp = prog.bank || prog.stake;
+      }
+      var r = await c.from("team_goal_settlements").upsert({ team_id: teamId, user_id: me, xp: xp, won: won }, { onConflict: "team_id,user_id", ignoreDuplicates: true });
+      if (r.error) return null;
+      return { settled: true, won: won, xp: xp, type: prog.type, bank: prog.bank, stake: prog.stake };
+    } catch (e) { return null; }
+  }
+  // My total team-goal winnings (sum of my settlement rows) → feeds the DISPLAYED live XP/level.
+  async function myTeamGoalXP() {
+    var c = client(); var id = await uid(); if (!c || !id) return 0;
+    try {
+      var r = await c.from("team_goal_settlements").select("xp").eq("user_id", id);
+      if (r.error || !r.data) return 0;
+      return r.data.reduce(function (a, row) { return a + (row.xp || 0); }, 0);
+    } catch (e) { return 0; }
+  }
+  // All payouts for ONE team (members read their team's settlements via RLS) → the per-member
+  // «кто сколько получил» on the goal card. Returns a map { user_id: { xp, won } }.
+  async function teamSettlements(teamId) {
+    var c = client(); if (!c || !teamId) return {};
+    try {
+      var r = await c.from("team_goal_settlements").select("user_id,xp,won").eq("team_id", teamId);
+      var out = {}; ((r && r.data) || []).forEach(function (s) { out[s.user_id] = { xp: s.xp || 0, won: !!s.won }; });
+      return out;
+    } catch (e) { return {}; }
   }
 
   window.bosCloud = {
@@ -488,6 +535,7 @@
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, sharedHabitProgress: sharedHabitProgress,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
+    settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
     signOut: signOut,
     _client: client,

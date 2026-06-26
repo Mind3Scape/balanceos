@@ -347,6 +347,8 @@ function TeamDetailLive() {
   const [habitsTick, setHabitsTick] = React.useState(0);
   const [mainProg, setMainProg] = React.useState(null); // per-member day-map for the anchor habit (who did which day)
   const [goalProg, setGoalProg] = React.useState(null); // team-goal progress COMPUTED from habit marks (current + per-member contribution)
+  const [settlements, setSettlements] = React.useState(null); // { user_id: {xp, won} } — team-goal XP payouts (cloud ledger)
+  const settledRef = React.useRef(false);                      // settle-once guard (per mount per reached goal)
   React.useEffect(() => {
     if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
     let on = true;
@@ -398,6 +400,23 @@ function TeamDetailLive() {
     load(); const iv = setInterval(load, 20000);
     return () => { on = false; clearInterval(iv); };
   }, [_rosterLive, t.cloudId, habitsTick]);
+  // PAYOUT — when a STAKED goal is reached, OPEN the bank: idempotently settle MY row (co-op:
+  // +stake; race: leader +bank), refresh the global team-goal XP so the level lifts, then read
+  // everyone's payouts for the card. Settle runs once per mount (settledRef); the read re-runs on
+  // each goalProg poll so other members' payouts appear as they open the team. Unlock-only —
+  // nothing is ever deducted, so missing the goal just means the bank never opened.
+  React.useEffect(() => {
+    if (!_rosterLive || !t.cloudId || !window.bosCloud.settleTeamGoal) return;
+    if (!goalProg || !goalProg.done || !(goalProg.stake > 0)) return;
+    let on = true;
+    const loadSettle = () => window.bosCloud.teamSettlements(t.cloudId).then((s) => { if (on) setSettlements(s || {}); }).catch(() => {});
+    if (settledRef.current) { loadSettle(); }
+    else {
+      settledRef.current = true;
+      window.bosCloud.settleTeamGoal(t.cloudId).then((res) => { if (!on) return; loadSettle(); if (res && res.settled && app && app.refreshTeamGoalXP) app.refreshTeamGoalXP(); }).catch(loadSettle);
+    }
+    return () => { on = false; };
+  }, [_rosterLive, t.cloudId, goalProg]);
   const openAddHabit = () => openSheet(<TeamHabitSheet team={t} members={members} onAdd={(h) => { if (_rosterLive) addTeamHabitCloud(h); else app?.addTeamHabit(t._id, h); }} />);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -435,6 +454,18 @@ function TeamDetailLive() {
             const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
             const modeLabel = gpd ? ({ streak: "Серия у каждого", race: "Гонка — лидер", collective: "Общий счёт" }[gpd.type] || "До цели вместе") : "До цели вместе";
             const contrib = (gpd && Array.isArray(gpd.members)) ? gpd.members : [];
+            // Optional XP STAKE → bank. Unlock-only: reaching the goal OPENS the payout (co-op: each
+            // gets stake; race: the leader takes the whole bank). Per-member payout = ledger truth if
+            // settled, else the rule (contrib[0] is the race leader — sorted by value desc).
+            const isRace = !!(gpd && gpd.type === "race");
+            const stake = (gpd && gpd.stake) || t.stake || 0;
+            const bank = (gpd && gpd.bank) || (stake * Math.max(1, contrib.length || members.length));
+            const payFor = (m, i) => {
+              if (!done || stake <= 0) return 0;
+              if (settlements && settlements[m.id]) return settlements[m.id].xp || 0;
+              return isRace ? (i === 0 ? bank : 0) : stake;
+            };
+            const myPay = (done && stake > 0) ? contrib.reduce((acc, m, i) => acc + (m.me ? payFor(m, i) : 0), 0) : 0;
             return (
               <div style={{ marginTop: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -445,15 +476,37 @@ function TeamDetailLive() {
                   <span style={{ display: "block", height: "100%", width: (gp * 100) + "%", background: done ? "linear-gradient(90deg,#FEDE34,#EF9F14)" : "var(--card-fill)", borderRadius: 999, transition: "width 0.6s ease" }} />
                 </div>
                 {tgt > 0 && !done && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>Осталось {Math.max(0, tgt - cur)} {unit} — закроем вместе</div>}
-                {/* Вклад каждого — кто сколько внёс (из их отметок), с реальным аватаром. */}
+                {/* The XP STAKE while the goal is still open — what's in the pot + how it pays. */}
+                {stake > 0 && !done && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 11px", borderRadius: 999 }}>
+                    <span>🪙 Банк {bank} XP</span>
+                    <span style={{ color: "var(--text-3)", fontWeight: 500 }}>· {isRace ? "лидер забирает всё" : `дойдём — каждому +${stake}`}</span>
+                  </div>
+                )}
+                {/* PAYOUT — a real moment: the bank opens, XP lands. Mode-aware. */}
+                {done && stake > 0 && (
+                  <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: 16, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a" }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px" }}>🎉 Цель достигнута!</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, lineHeight: 1.4 }}>
+                      {isRace
+                        ? (myPay > 0 ? `Ты лидер гонки — весь банк твой: +${myPay} XP 👑` : `Банк ${bank} XP забрал лидер гонки`)
+                        : `Банк раскрыт — тебе +${myPay || stake} XP, и столько же каждому`}
+                    </div>
+                  </div>
+                )}
+                {/* Вклад каждого — кто сколько внёс (из их отметок), с реальным аватаром + выплата. */}
                 {contrib.length > 0 && (
                   <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap" }}>
-                    {contrib.map((m) => (
-                      <span key={m.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.55)", borderRadius: 999, padding: "3px 10px 3px 3px" }}>
-                        {typeof BosAvatar !== "undefined" ? <BosAvatar avatar={m.avatar} size={20} /> : <span style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.1)" }} />}
-                        <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{m.me ? "Ты" : (m.name || "").split(" ")[0]} · {m.value}</span>
-                      </span>
-                    ))}
+                    {contrib.map((m, i) => {
+                      const pay = payFor(m, i);
+                      return (
+                        <span key={m.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.55)", borderRadius: 999, padding: "3px 10px 3px 3px" }}>
+                          {typeof BosAvatar !== "undefined" ? <BosAvatar avatar={m.avatar} size={20} /> : <span style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.1)" }} />}
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{m.me ? "Ты" : (m.name || "").split(" ")[0]} · {m.value}</span>
+                          {pay > 0 && <span style={{ fontSize: 10, fontWeight: 800, color: "#7a5300", background: "rgba(254,222,52,0.95)", borderRadius: 999, padding: "1px 6px" }}>+{pay}{isRace ? " 👑" : ""}</span>}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
               </div>

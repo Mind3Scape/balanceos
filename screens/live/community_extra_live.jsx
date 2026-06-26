@@ -49,7 +49,6 @@ function TeamCreateLive() {
   const [goalTitle, setGoalTitle] = useCS("50 добрых дел");
   const [target, setTarget] = useCS(50);
   const [unit, setUnit] = useCS("дел");
-  const [splitMode, setSplitMode] = useCS("auto"); // auto | custom
   const [linkedHabits, setLinkedHabits] = useCS({
     "🙏": true, "🧘🏼‍♀️": false, "📖": false, "🥗": false, "🏃🏼‍♀️": false,
   });
@@ -66,7 +65,6 @@ function TeamCreateLive() {
   const [members, setMembers] = useCS(allMembers);
   const toggleMember = (i) => setMembers(m => m.map((x, j) => j === i ? { ...x, on: !x.on } : x));
   const activeMembers = members.filter(m => m.on);
-  const perMember = Math.max(1, Math.ceil(target / Math.max(1, activeMembers.length)));
 
   const goalTypes = [
     { id: "collective", e: "🌊", t: "Общий счёт",  d: "Отметки всех складываются в одно число.", example: `напр. ${target} ${unit} вместе` },
@@ -186,7 +184,7 @@ function TeamCreateLive() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500, lineHeight: 1.4 }}>Двигать цель привычками</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Отметка каждого участника по этим привычкам = +1 к цели. Участники также могут добавлять своё число вручную.</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Каждая отметка участника по командной привычке двигает цель на +1 — закрываете её вместе.</div>
           </div>
           <span style={{ fontSize: 11, fontWeight: 700, color: linkedCount > 0 ? "#1e6b3a" : "var(--text-4)", background: linkedCount > 0 ? "#e5f5ea" : "#e8e8e8", padding: "3px 9px", borderRadius: 999, flexShrink: 0 }}>{linkedCount} привязано</span>
         </div>
@@ -215,9 +213,6 @@ function TeamCreateLive() {
           }}><I.Plus size={12}/> Новая привычка</button>
         </div>
       </div>
-
-      {/* Per-member split (only for collective goals) */}
-      {goalType === "collective" && <SplitEditor target={target} unit={unit} members={members} setMembers={setMembers} splitMode={splitMode} setSplitMode={setSplitMode}/>}
 
       {/* DURATION & VISIBILITY */}
       <div className="section-label" style={{ marginTop: 22 }}>Длительность</div>
@@ -296,6 +291,7 @@ function TeamCreateLive() {
           emblem, accent, vis, // private / public — preserved from the toggle above
           goal: goalTitle || (target + " " + unit),
           target: Number(target) || 0, current: 0, unit,
+          stake: stakes ? (Number(stakeAmount) || 0) : 0, // optional XP wager per person
           date: dur,
           progress: 0,
           members: activeMembers.map(m => ({ name: m.name, initials: m.initials, color: m.color, pct: 0 })),
@@ -306,7 +302,7 @@ function TeamCreateLive() {
         // keeps working even if the cloud is off.
         try {
           if (nt && window.bosCloud && window.bosCloud.enabled()) {
-            window.bosCloud.createTeam({ name: nt.name, emblem, vis, goalKind: nt.goal, goalTarget: Number(target) || 0, goal: { type: goalType, target: Number(target) || 0, unit: unit, title: goalTitle || (target + " " + unit) } })
+            window.bosCloud.createTeam({ name: nt.name, emblem, vis, goalKind: nt.goal, goalTarget: Number(target) || 0, goal: { type: goalType, target: Number(target) || 0, unit: unit, title: goalTitle || (target + " " + unit), stake: stakes ? (Number(stakeAmount) || 0) : 0 } })
               .then((row) => { if (row && row.id && app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id }); });
           }
         } catch (e) {}

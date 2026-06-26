@@ -90,11 +90,18 @@ function bosBaseXPLive(app) {
     notes: app.dayNotes
   }) : 0;
 }
-// Displayed live XP = base + achievement bonus + REFERRAL XP. Used everywhere a level/XP total
-// is SHOWN, so both badges and bringing people in really push your level forward — but referral
-// XP rides on top (like badge XP), never silently unlocking a "reach level N" badge.
+// Team-goal winnings — bonus XP UNLOCKED when a staked team goal is reached (co-op: your stake;
+// race: the leader's bank). Loaded from the cloud settlement ledger into app.teamGoalXP on
+// enterLive (mirrors invitedCount). Rides on TOP of base, like referral/badge XP — so finishing a
+// team goal really lifts your level, but never silently unlocks a "reach level N" badge.
+function bosTeamGoalXPLive(app) {
+  return app && app.teamGoalXP || 0;
+}
+// Displayed live XP = base + achievement bonus + REFERRAL XP + TEAM-GOAL XP. Used everywhere a
+// level/XP total is SHOWN, so badges, bringing people in, AND winning team goals all push your
+// level forward — each riding on top of base (never feeding "reach level N").
 function bosLiveXPLive(app) {
-  return bosBaseXPLive(app) + (typeof bosAchievementBonusXPLive === "function" ? bosAchievementBonusXPLive(app) : 0) + (typeof bosReferralXPLive === "function" ? bosReferralXPLive(app) : 0);
+  return bosBaseXPLive(app) + (typeof bosAchievementBonusXPLive === "function" ? bosAchievementBonusXPLive(app) : 0) + (typeof bosReferralXPLive === "function" ? bosReferralXPLive(app) : 0) + (typeof bosTeamGoalXPLive === "function" ? bosTeamGoalXPLive(app) : 0);
 }
 // XP → level. Each level costs a little more than the last (100, 150, 200…): a gentle curve
 // so the first wins come fast and later levels feel earned.
