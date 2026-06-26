@@ -572,6 +572,52 @@ function StatePromptLive({ app, isDark }) {
   );
 }
 
+/* Universal create menu (B1) — a small iOS-style glass popover that springs out of the
+   floating «+», offering Привычку · Цель · Команду and routing to the existing create
+   flows. Reuses the app's own spring + glass vocabulary (no new lib); portaled above
+   everything with a light dim behind. Rendered purely off `open` (+ a measured anchor
+   position) so it opens AND closes reliably — no internal timers to get wedged; the
+   entrance springs via the bosMenuPop keyframe, and tapping the dim or an item closes it. */
+function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
+  const [pos, setPos] = React.useState(null);
+  React.useEffect(() => {
+    if (open && anchorRef && anchorRef.current) {
+      const r = anchorRef.current.getBoundingClientRect();
+      setPos({ right: Math.round(window.innerWidth - r.right), top: Math.round(r.bottom + 10) });
+    }
+  }, [open]);
+  if (!open || !pos) return null;
+  const items = [
+    { emoji: "🌱", label: "Привычку", go: () => navigate("habit-settings", { mode: "create" }) },
+    { emoji: "🎯", label: "Цель",     go: () => navigate("goal-settings", { mode: "create" }) },
+    { emoji: "🤝", label: "Команду",  go: () => navigate("team-create", {}) },
+  ];
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
+      <div role="menu" onClick={(e) => e.stopPropagation()} style={{
+        position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right",
+        animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
+        minWidth: 212, padding: 7, borderRadius: 22,
+        background: "rgba(255,255,255,0.74)",
+        WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)",
+        border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)",
+      }}>
+        {items.map((it, i) => (
+          <button key={i} role="menuitem" data-haptic="selection" onClick={() => { onClose(); it.go(); }} className="tap" style={{
+            display: "flex", alignItems: "center", gap: 13, width: "100%",
+            padding: "12px 14px", border: 0, background: "transparent", borderRadius: 16,
+            fontSize: 16, fontWeight: 600, color: "#0a0a0a", cursor: "pointer", textAlign: "left",
+          }}>
+            <span aria-hidden style={{ fontSize: 22, width: 26, textAlign: "center", lineHeight: 1 }}>{it.emoji}</span>
+            {it.label}
+          </button>
+        ))}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // LIVE share-a-goal sheet — the goal twin of ShareHabitSheetLive, kept minimal: share
 // the app by your referral link with a line about the goal (goals aren't team-joined
 // like habits, so no "do together" roster here).

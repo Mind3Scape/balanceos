@@ -65,9 +65,13 @@ function HabitsLive() {
   const remove = app?.removeHabit || (() => {});
   const removeGoal = app?.removeGoal || (() => {});
   const rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
+  // The floating «+» is the ONE universal create entry — it opens a small menu (B1).
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const addBtnRef = React.useRef(null);
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
+      <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
       {/* Page header removed (experiment) — the «Привычки / Цели» control below
           already names the context; the tab bar shows the section. */}
 
@@ -99,10 +103,10 @@ function HabitsLive() {
           </div>
           {/* The black «+» — primary add (a new habit). Pinned over the right edge of the
               tag row; the radial mask above keeps the chips clear of it as they scroll. */}
-          <button data-tour="add" onClick={() => navigate("habit-settings", { mode: "create" })} className="tap"
-            title="Добавить привычку"
+          <button ref={addBtnRef} data-tour="add" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
+            title="Создать" aria-haspopup="menu" aria-expanded={createOpen}
             style={{ position: "absolute", top: "50%", right: 0, transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 999, background: TH.addBtnBg, color: TH.addBtnFg, border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 3px 10px rgba(0,0,0,0.12)" }}>
-            <I.Plus size={18} strokeWidth={2.2}/>
+            <I.Plus size={18} strokeWidth={2.2} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }}/>
           </button>
         </div>
       </div>

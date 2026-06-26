@@ -80,14 +80,21 @@ function HabitsLive() {
   var remove = app?.removeHabit || (() => {});
   var removeGoal = app?.removeGoal || (() => {});
   var rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
-
+  // The floating «+» is the ONE universal create entry — it opens a small menu (B1).
+  var [createOpen, setCreateOpen] = React.useState(false);
+  var addBtnRef = React.useRef(null);
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
     className: "page-in",
     style: {
       padding: "0 12px 24px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(CreateMenuLive, {
+    open: createOpen,
+    onClose: () => setCreateOpen(false),
+    anchorRef: addBtnRef,
+    navigate: navigate
+  }), /*#__PURE__*/React.createElement("div", {
     "data-tour": "presets",
     style: {
       marginBottom: 16
@@ -149,12 +156,20 @@ function HabitsLive() {
     size: 12,
     color: TH.plusIcon
   })))), /*#__PURE__*/React.createElement("button", {
+    ref: addBtnRef,
     "data-tour": "add",
-    onClick: () => navigate("habit-settings", {
-      mode: "create"
-    }),
+    onClick: () => {
+      setCreateOpen(true);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
+      }
+    },
     className: "tap",
-    title: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443",
+    title: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C",
+    "aria-haspopup": "menu",
+    "aria-expanded": createOpen,
     style: {
       position: "absolute",
       top: "50%",
@@ -172,7 +187,11 @@ function HabitsLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 18,
-    strokeWidth: 2.2
+    strokeWidth: 2.2,
+    style: {
+      transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)",
+      transform: createOpen ? "rotate(45deg)" : "none"
+    }
   })))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
