@@ -1331,15 +1331,45 @@ function ShareHabitSheetLive({
   var {
     close
   } = useSheet();
+  var app = typeof useApp === "function" ? useApp() : null;
   var APP_URL = typeof bosInviteLink === "function" ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   var [shareUrl, setShareUrl] = React.useState(APP_URL);
+  // Build the invite link. For a SAVED habit on the live cloud → a SHARED-HABIT link
+  // (hb_<code>__<ref>): the friend joins the SAME habit and you see each other's calendar.
+  // The code is created once and remembered on the habit; the link still carries your ref
+  // so the friend also lands in your orbit. Otherwise → the plain app-referral link.
   React.useEffect(() => {
     var on = true;
-    if (window.bosCloud && window.bosCloud.uid) {
-      (window.bosCloud.inviteCode ? window.bosCloud.inviteCode() : window.bosCloud.uid()).then(code => {
-        if (on && code) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(code) : APP_URL + "?ref=" + code);
-      }).catch(() => {});
-    }
+    (async () => {
+      var ref = null;
+      try {
+        ref = window.bosCloud && window.bosCloud.inviteCode ? await window.bosCloud.inviteCode() : null;
+      } catch (e) {}
+      if (habit && habit.id && window.bosCloud && window.bosCloud.enabled() && typeof bosSharedHabitLink === "function" && window.bosCloud.createSharedHabit) {
+        var code = habit.shareCode;
+        if (!code && typeof bosGenShareCode === "function") code = bosGenShareCode();
+        if (code) {
+          try {
+            await window.bosCloud.createSharedHabit({
+              code: code,
+              name: habit.name,
+              emoji: habit.emoji,
+              color: habit.color
+            });
+          } catch (e) {}
+          try {
+            if (!habit.shareCode && app && app.updateHabit) app.updateHabit(habit.id, {
+              shareCode: code
+            });
+          } catch (e) {}
+          if (on) {
+            setShareUrl(bosSharedHabitLink(code, ref));
+            return;
+          }
+        }
+      }
+      if (on) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(ref) : APP_URL);
+    })();
     return () => {
       on = false;
     };
@@ -1589,6 +1619,137 @@ function ShareHabitSheetLive({
       fontWeight: 600
     }
   }, "\u0413\u043E\u0442\u043E\u0432\u043E"));
+}
+
+/* Shared-habit «Вместе» card — the multiplayer view for a habit buddy. Each member (you +
+   friend) with their REAL avatar (BosAvatar), today's ✓, and a Пн→Вс strip of their marked
+   days in the habit's colour — you literally see each other's progress on the calendar
+   (David: «видеть прогресс друг друга на календарике»). Reads the cloud shared logs; quietly
+   waits while the friend hasn't joined. Rendered only when the habit carries a shareCode. */
+function SharedBuddiesLive({
+  habit,
+  isDark
+}) {
+  var [data, setData] = React.useState(null);
+  var code = habit && habit.shareCode;
+  React.useEffect(() => {
+    var on = true;
+    if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
+    var load = () => window.bosCloud.sharedHabitProgress(code).then(d => {
+      if (on) setData(d);
+    }).catch(() => {});
+    load();
+    var iv = setInterval(load, 20000); // light poll so a friend's fresh mark turns up
+    return () => {
+      on = false;
+      clearInterval(iv);
+    };
+  }, [code]);
+  if (!code) return null;
+  var accent = typeof bosHabitColor === "function" ? bosHabitColor(habit) : habit.color || "#0a0a0a";
+  var today = typeof bosTodayKey === "function" ? bosTodayKey() : "";
+  var keys = typeof bosWeekKeys === "function" ? bosWeekKeys() : [];
+  var members = data && data.members || [];
+  var card = isDark ? {
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.08)"
+  } : {
+    background: "#fff",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+  };
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0412\u043C\u0435\u0441\u0442\u0435", members.length > 1 ? " · " + members.length : ""), /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card,
+      borderRadius: 22,
+      padding: 14,
+      marginTop: 8
+    }
+  }, members.length < 2 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      fontSize: 13,
+      color: "var(--text-3)",
+      lineHeight: 1.4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: "50%",
+      background: accent + "1f",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 16,
+      flexShrink: 0
+    }
+  }, "\uD83D\uDD17"), "\u0416\u0434\u0451\u043C \u0434\u0440\u0443\u0433\u0430 \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u044C \u0441\u0441\u044B\u043B\u043A\u0443 \xAB\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0430\xBB, \u0438 \u0435\u0433\u043E \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
+    }
+  }, members.map(m => {
+    var doneToday = !!m.days[today];
+    return /*#__PURE__*/React.createElement("div", {
+      key: m.id,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 12
+      }
+    }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+      avatar: m.avatar,
+      size: 40
+    }) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        background: accent
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        fontSize: 14.5,
+        fontWeight: 600,
+        color: "var(--text)"
+      }
+    }, m.me ? "Ты" : m.name, doneToday && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: accent
+      }
+    }, "\u2713 \u0441\u0435\u0433\u043E\u0434\u043D\u044F")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        marginTop: 6
+      }
+    }, keys.map((k, j) => /*#__PURE__*/React.createElement("span", {
+      key: j,
+      style: {
+        width: 16,
+        height: 16,
+        borderRadius: 5,
+        background: m.days[k] ? "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + accent : accent + "1a"
+      }
+    })))));
+  }))));
 }
 
 /* MoodWidget → live-only: real per-day mood trail (Пн→Вс), real streak chip + XP copy.

@@ -210,6 +210,9 @@ function HabitDetailLive() {
     people: calPeople,
     dayFrac: habitFrac,
     label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"
+  }), h.shareCode && /*#__PURE__*/React.createElement(SharedBuddiesLive, {
+    habit: h,
+    isDark: isDark
   }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {

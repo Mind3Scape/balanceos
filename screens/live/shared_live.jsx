@@ -494,13 +494,29 @@ function HabitInviteBannerLive({ amount = 75 }) {
 
 function ShareHabitSheetLive({ habit, dark = false }) {
   const { close } = useSheet();
+  const app = (typeof useApp === "function") ? useApp() : null;
   const APP_URL = (typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   const [shareUrl, setShareUrl] = React.useState(APP_URL);
+  // Build the invite link. For a SAVED habit on the live cloud → a SHARED-HABIT link
+  // (hb_<code>__<ref>): the friend joins the SAME habit and you see each other's calendar.
+  // The code is created once and remembered on the habit; the link still carries your ref
+  // so the friend also lands in your orbit. Otherwise → the plain app-referral link.
   React.useEffect(() => {
     let on = true;
-    if (window.bosCloud && window.bosCloud.uid) {
-      (window.bosCloud.inviteCode ? window.bosCloud.inviteCode() : window.bosCloud.uid()).then((code) => { if (on && code) setShareUrl((typeof bosInviteLink === "function") ? bosInviteLink(code) : (APP_URL + "?ref=" + code)); }).catch(() => {});
-    }
+    (async () => {
+      let ref = null;
+      try { ref = (window.bosCloud && window.bosCloud.inviteCode) ? await window.bosCloud.inviteCode() : null; } catch (e) {}
+      if (habit && habit.id && window.bosCloud && window.bosCloud.enabled() && typeof bosSharedHabitLink === "function" && window.bosCloud.createSharedHabit) {
+        let code = habit.shareCode;
+        if (!code && typeof bosGenShareCode === "function") code = bosGenShareCode();
+        if (code) {
+          try { await window.bosCloud.createSharedHabit({ code: code, name: habit.name, emoji: habit.emoji, color: habit.color }); } catch (e) {}
+          try { if (!habit.shareCode && app && app.updateHabit) app.updateHabit(habit.id, { shareCode: code }); } catch (e) {}
+          if (on) { setShareUrl(bosSharedHabitLink(code, ref)); return; }
+        }
+      }
+      if (on) setShareUrl((typeof bosInviteLink === "function") ? bosInviteLink(ref) : APP_URL);
+    })();
     return () => { on = false; };
   }, []);
   const shareLink = () => {
@@ -574,6 +590,65 @@ function ShareHabitSheetLive({ habit, dark = false }) {
 
       <button className="tap" onClick={close} style={{ width: "100%", marginTop: 22, background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>Готово</button>
     </div>
+  );
+}
+
+/* Shared-habit «Вместе» card — the multiplayer view for a habit buddy. Each member (you +
+   friend) with their REAL avatar (BosAvatar), today's ✓, and a Пн→Вс strip of their marked
+   days in the habit's colour — you literally see each other's progress on the calendar
+   (David: «видеть прогресс друг друга на календарике»). Reads the cloud shared logs; quietly
+   waits while the friend hasn't joined. Rendered only when the habit carries a shareCode. */
+function SharedBuddiesLive({ habit, isDark }) {
+  const [data, setData] = React.useState(null);
+  const code = habit && habit.shareCode;
+  React.useEffect(() => {
+    let on = true;
+    if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
+    const load = () => window.bosCloud.sharedHabitProgress(code).then((d) => { if (on) setData(d); }).catch(() => {});
+    load();
+    const iv = setInterval(load, 20000); // light poll so a friend's fresh mark turns up
+    return () => { on = false; clearInterval(iv); };
+  }, [code]);
+  if (!code) return null;
+  const accent = (typeof bosHabitColor === "function") ? bosHabitColor(habit) : (habit.color || "#0a0a0a");
+  const today = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+  const keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
+  const members = (data && data.members) || [];
+  const card = isDark ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" } : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
+  return (
+    <>
+      <div className="section-label" style={{ marginTop: 22 }}>Вместе{members.length > 1 ? " · " + members.length : ""}</div>
+      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 8 }}>
+        {members.length < 2 ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-3)", lineHeight: 1.4 }}>
+            <span style={{ width: 34, height: 34, borderRadius: "50%", background: accent + "1f", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>🔗</span>
+            Ждём друга — отправь ссылку «Позвать друга», и его прогресс появится здесь.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {members.map((m) => {
+              const doneToday = !!m.days[today];
+              return (
+                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {(typeof BosAvatar !== "undefined") ? <BosAvatar avatar={m.avatar} size={40} /> : <div style={{ width: 40, height: 40, borderRadius: "50%", background: accent }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>
+                      {m.me ? "Ты" : m.name}
+                      {doneToday && <span style={{ fontSize: 11, fontWeight: 700, color: accent }}>✓ сегодня</span>}
+                    </div>
+                    <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
+                      {keys.map((k, j) => (
+                        <span key={j} style={{ width: 16, height: 16, borderRadius: 5, background: m.days[k] ? ("linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + accent) : (accent + "1a") }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

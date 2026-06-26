@@ -109,6 +109,9 @@ function HabitDetailLive() {
          so the whole app reads one way. Live = your own real days. */}
       <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" />
 
+      {/* Shared habit (habit buddy) — you + friend, real avatars, mutual day-strips. */}
+      {h.shareCode && <SharedBuddiesLive habit={h} isDark={isDark} />}
+
       {/* Insight — neutral surface, streak-driven copy */}
       <div className="section-label" style={{ marginTop: 22 }}>Инсайт</div>
       <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>

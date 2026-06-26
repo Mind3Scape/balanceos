@@ -579,6 +579,13 @@ function bosJoinSharedHabitId() {
   try { var q = new URLSearchParams(window.location.search).get("habit"); if (q) return q; } catch (e) {}
   return null;
 }
+// A short, link-safe code for a shared habit (7 chars a–z0–9). Math.random is fine in the
+// browser; collisions are astronomically unlikely for one user's handful of shared habits.
+function bosGenShareCode() {
+  var s = "", a = "abcdefghijklmnopqrstuvwxyz0123456789";
+  for (var i = 0; i < 7; i++) s += a.charAt(Math.floor(Math.random() * a.length));
+  return s;
+}
 
 /* ── T0.2 — bulletproof, date-keyed habit model (LIVE profiles only) ──
    A live habit records each completion as a date key in `h.log` ({ "2026-06-23": true }) —
@@ -863,6 +870,8 @@ function AppProvider({ children }) {
     var log = h.log ? Object.assign({}, h.log) : {};
     var on; if (log[tk]) { delete log[tk]; on = false; } else { log[tk] = true; on = true; }
     try { if (h.cloudId && _liveCloud()) window.bosCloud.toggleHabitLog(h.cloudId, tk, on); } catch (e) {}
+    // SHARED habit (habit buddy): mirror today's mark to the shared log so the friend sees it.
+    try { if (h.shareCode && _liveCloud() && window.bosCloud.setSharedLog) window.bosCloud.setSharedLog(h.shareCode, tk, on); } catch (e) {}
     return Object.assign({}, h, { log: log, done: !!log[tk], streak: bosStreak(log) });
   }));
   const addHabit = (h) => {
@@ -1094,6 +1103,7 @@ function AppProvider({ children }) {
         setTimeout(_doneHydrate, 9000); // hard safety: never get stuck not-saving
         var _refBy = (typeof bosReferralId === "function") ? bosReferralId() : null;
         var _joinTeamId = (typeof bosJoinTeamId === "function") ? bosJoinTeamId() : null; // Telegram start_param=team_<id> OR web ?team=
+        var _joinShareId = (typeof bosJoinSharedHabitId === "function") ? bosJoinSharedHabitId() : null; // start_param=hb_<code> → join the SAME shared habit
         var _locName = saved ? (saved.userName || name) : name;
         var _locAv = saved ? (saved.avatar || avatar || null) : (avatar || null);
         window.bosCloud.signIn(_refBy).then(function (u) {
@@ -1172,6 +1182,21 @@ function AppProvider({ children }) {
                   setHabits(wi.map(bosRollHabit));
                   wi.forEach(function (h) { try { window.bosCloud.upsertHabit(h); var lg = h.log || {}; Object.keys(lg).forEach(function (day) { if (lg[day]) window.bosCloud.toggleHabitLog(h.cloudId, day, true); }); } catch (e) {} });
                 }
+              }).then(function () {
+                // hb_<code> link → join the SAME shared habit (a buddy, NOT a team): append it
+                // to your habits (so it appears) AFTER hydration so the load can't clobber it;
+                // your check-ins then mirror to the shared log → you both see the calendar.
+                if (!_joinShareId || !window.bosCloud.joinSharedHabit) return;
+                return window.bosCloud.joinSharedHabit(_joinShareId).then(function (sh) {
+                  if (!sh) return;
+                  setHabits(function (prev) {
+                    if ((prev || []).some(function (x) { return x.shareCode === _joinShareId; })) return prev || [];
+                    var nh = bosRollHabit({ id: _nid(), cloudId: _uuid(), name: sh.name || "Привычка", emoji: sh.emoji || "✨", color: sh.color || null, shareCode: _joinShareId, log: {}, done: false, streak: 0, days: [1, 1, 1, 1, 1, 1, 1], goalPerDay: 1 });
+                    try { window.bosCloud.upsertHabit(nh); } catch (e) {}
+                    return [nh].concat(prev || []);
+                  });
+                  try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+                });
               });
               window.bosCloud.loadGoals().then(function (rows) {
                 if (rows === null) return;

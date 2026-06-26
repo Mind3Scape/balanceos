@@ -26,8 +26,8 @@ create table if not exists public.shared_habit_members (
 create table if not exists public.shared_habit_logs (
   code     text not null references public.shared_habits(code) on delete cascade,
   user_id  uuid not null references public.profiles(id) on delete cascade,
-  log_date date not null,
-  primary key (code, user_id, log_date)         -- идемпотентно: один день — одна отметка
+  day      date not null,                        -- LOCAL «YYYY-MM-DD» (как habit_logs.day)
+  primary key (code, user_id, day)               -- идемпотентно: один день — одна отметка
 );
 create index if not exists shared_habit_logs_code_idx on public.shared_habit_logs (code);
 

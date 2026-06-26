@@ -355,6 +355,51 @@
     } catch (e) { return null; }
   }
 
+  // ── ОБЩИЕ ПРИВЫЧКИ (habit buddy: одна привычка — двое, видят отметки друг друга) ──
+  // НЕ команда (никакого чата). Создатель пишет shared_habits + себя в members; друг по
+  // ссылке hb_<code> вступает; обе стороны пишут свои отметки в shared_habit_logs → общий
+  // календарь. Всё guarded: до запуска patch_shared_habits.sql тихо no-op (фича спит).
+  async function createSharedHabit(h) {
+    var c = client(); var id = await uid(); if (!c || !id || !h || !h.code) return null;
+    try {
+      await c.from("shared_habits").upsert({ code: h.code, name: h.name || "Привычка", emoji: h.emoji || "✨", color: h.color || null, owner_id: id }, { onConflict: "code", ignoreDuplicates: true });
+      await c.from("shared_habit_members").upsert({ code: h.code, user_id: id }, { onConflict: "code,user_id", ignoreDuplicates: true });
+      return { code: h.code };
+    } catch (e) { return null; }
+  }
+  async function joinSharedHabit(code) {
+    var c = client(); var id = await uid(); if (!c || !id || !code) return null;
+    try {
+      await c.from("shared_habit_members").upsert({ code: code, user_id: id }, { onConflict: "code,user_id", ignoreDuplicates: true });
+      var r = await c.from("shared_habits").select("code,name,emoji,color,owner_id").eq("code", code).maybeSingle();
+      return (r && r.data) || { code: code, name: "Привычка" };
+    } catch (e) { return { code: code, name: "Привычка" }; }
+  }
+  async function setSharedLog(code, day, on) {
+    var c = client(); var id = await uid(); if (!c || !id || !code || !day) return false;
+    try {
+      if (on) await c.from("shared_habit_logs").upsert({ code: code, user_id: id, day: day }, { onConflict: "code,user_id,day", ignoreDuplicates: true });
+      else await c.from("shared_habit_logs").delete().eq("code", code).eq("user_id", id).eq("day", day);
+      return true;
+    } catch (e) { return false; }
+  }
+  // Members (REAL name+avatar from profiles) + everyone's marked days → the shared calendar.
+  async function sharedHabitProgress(code) {
+    var c = client(); var me = await uid(); if (!c || !code) return null;
+    try {
+      var mem = await c.from("shared_habit_members").select("user_id,profiles(username,avatar)").eq("code", code);
+      if (mem.error) return null;
+      var logs = await c.from("shared_habit_logs").select("user_id,day").eq("code", code);
+      var rows = (logs && logs.data) || [];
+      var members = (mem.data || []).map(function (m) {
+        var days = {}; rows.forEach(function (r) { if (r.user_id === m.user_id) days["" + r.day] = true; });
+        return { id: m.user_id, me: m.user_id === me, name: (m.profiles && m.profiles.username) || "Друг", avatar: (m.profiles && m.profiles.avatar) || "default", days: days };
+      });
+      members.sort(function (a, b) { return (b.me ? 1 : 0) - (a.me ? 1 : 0); }); // self first
+      return { members: members };
+    } catch (e) { return null; }
+  }
+
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
@@ -367,6 +412,7 @@
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
+    createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, sharedHabitProgress: sharedHabitProgress,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
     signOut: signOut,
     _client: client,
