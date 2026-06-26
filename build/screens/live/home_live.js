@@ -846,7 +846,7 @@ function HomeLive() {
         width: 38,
         height: 38,
         borderRadius: 14,
-        background: iconBg,
+        background: g.color ? g.color + "26" : iconBg,
         display: "grid",
         placeItems: "center",
         fontSize: 18
@@ -877,7 +877,7 @@ function HomeLive() {
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         width: pct * 100 + "%",
-        background: "linear-gradient(90deg,#FEDE34,#EF9F14)"
+        background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
       }
     })))));
   })), widgets.invite !== false && /*#__PURE__*/React.createElement("div", {

@@ -157,6 +157,7 @@ function GoalDetailLive() {
     : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
   const ringTrack = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
   const R = 54, CIRC = 2 * Math.PI * R;
+  const goalColor = g.color || "#0a0a0a";  // goal fill = its chosen colour, default black (b&w base)
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
@@ -168,13 +169,8 @@ function GoalDetailLive() {
       <div style={{ textAlign: "center", padding: "6px 0 18px" }}>
         <div style={{ position: "relative", width: 170, height: 170, margin: "0 auto" }}>
           <svg width="170" height="170" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
-            <defs>
-              <linearGradient id="goalGradLive" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" />
-              </linearGradient>
-            </defs>
             <circle cx="70" cy="70" r={R} fill="none" stroke={ringTrack} strokeWidth="13" />
-            {pct > 0 && <circle cx="70" cy="70" r={R} fill="none" stroke="url(#goalGradLive)" strokeWidth="13" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - pct)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(done ? { filter: "drop-shadow(0 0 6px rgba(239,159,20,0.5))" } : {}) }} />}
+            {pct > 0 && <circle cx="70" cy="70" r={R} fill="none" stroke={goalColor} strokeWidth="13" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - pct)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(done ? { filter: "drop-shadow(0 0 6px " + goalColor + "80)" } : {}) }} />}
           </svg>
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
             <div>

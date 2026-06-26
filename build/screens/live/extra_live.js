@@ -315,6 +315,8 @@ function GoalDetailLive() {
   var ringTrack = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
   var R = 54,
     CIRC = 2 * Math.PI * R;
+  var goalColor = g.color || "#0a0a0a"; // goal fill = its chosen colour, default black (b&w base)
+
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -357,19 +359,7 @@ function GoalDetailLive() {
     style: {
       transform: "rotate(-90deg)"
     }
-  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
-    id: "goalGradLive",
-    x1: "0",
-    y1: "0",
-    x2: "1",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "#FEDE34"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "1",
-    stopColor: "#EF9F14"
-  }))), /*#__PURE__*/React.createElement("circle", {
+  }, /*#__PURE__*/React.createElement("circle", {
     cx: "70",
     cy: "70",
     r: R,
@@ -381,7 +371,7 @@ function GoalDetailLive() {
     cy: "70",
     r: R,
     fill: "none",
-    stroke: "url(#goalGradLive)",
+    stroke: goalColor,
     strokeWidth: "13",
     strokeLinecap: "round",
     strokeDasharray: CIRC,
@@ -389,7 +379,7 @@ function GoalDetailLive() {
     style: {
       transition: "stroke-dashoffset 0.6s ease",
       ...(done ? {
-        filter: "drop-shadow(0 0 6px rgba(239,159,20,0.5))"
+        filter: "drop-shadow(0 0 6px " + goalColor + "80)"
       } : {})
     }
   })), /*#__PURE__*/React.createElement("div", {

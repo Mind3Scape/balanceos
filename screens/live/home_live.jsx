@@ -323,14 +323,14 @@ function HomeLive() {
               ]}>
                 <div className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, padding: 14, color: "var(--text)", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                    <span style={{ width: 38, height: 38, borderRadius: 14, background: iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
+                    <span style={{ width: 38, height: 38, borderRadius: 14, background: g.color ? g.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
                   </div>
-                  <div className="bos-progress"><span style={{ width: (pct*100) + "%", background: "linear-gradient(90deg,#FEDE34,#EF9F14)" }} /></div>
+                  <div className="bos-progress"><span style={{ width: (pct*100) + "%", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }} /></div>
                 </div>
               </SwipeRow>
             </div>

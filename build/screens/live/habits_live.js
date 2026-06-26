@@ -528,7 +528,7 @@ function HabitsLive() {
         width: 40,
         height: 40,
         borderRadius: 14,
-        background: TH.iconBg,
+        background: g.color ? g.color + "26" : TH.iconBg,
         display: "grid",
         placeItems: "center",
         fontSize: 20,
@@ -569,7 +569,7 @@ function HabitsLive() {
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         width: Math.min(1, pct) * 100 + "%",
-        background: "linear-gradient(90deg,#FEDE34,#EF9F14)"
+        background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
       }
     })))));
   })), !learnHidden ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
