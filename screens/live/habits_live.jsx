@@ -137,15 +137,15 @@ function HabitsLive() {
                     <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
-                      {(h.friends?.length || h.duration) && (
+                      {(h.friends?.length > 0 || h.duration > 0) && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 11, color: "var(--text-4)" }}>
-                          {h.duration && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
-                          {h.duration && h.friends?.length > 0 && <span>·</span>}
+                          {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
+                          {h.duration > 0 && h.friends?.length > 0 && <span>·</span>}
                           {h.friends?.length > 0 && <span>вместе</span>}
                         </div>
                       )}
                     </div>
-                    {h.duration && !h.done && !(h.goalPerDay > 1) && (
+                    {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
                       <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                     )}
                     {h.goalPerDay > 1
@@ -205,7 +205,7 @@ function HabitsLive() {
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>
                   </div>
-                  <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (Math.min(1, pct) * 100) + "%" }}/></div>
+                  <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (Math.min(1, pct) * 100) + "%", background: "linear-gradient(90deg,#FEDE34,#EF9F14)" }}/></div>
                 </button>
                 </SwipeRow>
               </div>

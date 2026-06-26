@@ -683,7 +683,7 @@ function HomeLive() {
       color: "var(--text)",
       letterSpacing: "-0.2px"
     }
-  }, h.name), (h.friends?.length || h.duration) && /*#__PURE__*/React.createElement("div", {
+  }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -693,7 +693,7 @@ function HomeLive() {
       fontSize: 11,
       color: "var(--text-4)"
     }
-  }, h.duration && /*#__PURE__*/React.createElement("span", {
+  }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -706,7 +706,7 @@ function HomeLive() {
     size: 16,
     max: 3,
     label: false
-  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
     habit: h,
     dark: isDark,
     onComplete: () => {
@@ -876,7 +876,8 @@ function HomeLive() {
       className: "bos-progress"
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: pct * 100 + "%"
+        width: pct * 100 + "%",
+        background: "linear-gradient(90deg,#FEDE34,#EF9F14)"
       }
     })))));
   })), widgets.invite !== false && /*#__PURE__*/React.createElement("div", {

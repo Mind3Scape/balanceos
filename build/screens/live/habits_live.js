@@ -330,7 +330,7 @@ function HabitsLive() {
       color: "var(--text)",
       letterSpacing: "-0.2px"
     }
-  }, h.name), (h.friends?.length || h.duration) && /*#__PURE__*/React.createElement("div", {
+  }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -339,7 +339,7 @@ function HabitsLive() {
       fontSize: 11,
       color: "var(--text-4)"
     }
-  }, h.duration && /*#__PURE__*/React.createElement("span", {
+  }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -347,7 +347,7 @@ function HabitsLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Clock, {
     size: 11
-  }), " ", h.duration, " \u043C\u0438\u043D"), h.duration && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+  }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
     habit: h,
     dark: isDark,
     onComplete: () => {
@@ -568,7 +568,8 @@ function HabitsLive() {
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: Math.min(1, pct) * 100 + "%"
+        width: Math.min(1, pct) * 100 + "%",
+        background: "linear-gradient(90deg,#FEDE34,#EF9F14)"
       }
     })))));
   })), !learnHidden ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {

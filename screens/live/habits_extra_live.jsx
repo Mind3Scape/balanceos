@@ -303,11 +303,11 @@ function HabitSettingsLive() {
 function GoalSettingsLive() {
   const { navigate, params } = useNav();
   const app = useApp();
+  const { open: openSheet } = useSheet();
   const editing = params?.mode === "edit";
   const g0 = editing ? params.goal : null;
   const [name, setName] = useHS(g0?.name || "Пробежать марафон");
   const [iconPick, setIconPick] = useHS(g0?.emoji || "🎯");
-  const [showIcons, setShowIcons] = useHS(false);
   const [target, setTarget] = useHS(g0?.target || 22);
   const [unit, setUnit] = useHS(g0?.unit || "недель");
   const [deadline, setDeadline] = useHS(g0?.deadline || "Месяц");
@@ -323,35 +323,18 @@ function GoalSettingsLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title={editing ? "Изменить цель" : "Новая цель"} onBack={() => navigate("habits")} />
 
-      <div className="section-label">Чего ты хочешь</div>
-      <input className="bos-input" value={name} onChange={e => setName(e.target.value)} style={{ marginTop: 8 }} placeholder="напр. Пробежать марафон" />
-
-      <div className="section-label" style={{ marginTop: 22 }}>Иконка</div>
-      <button className="tap" data-no-haptic onClick={() => setShowIcons(v => !v)}
-        style={{ marginTop: 8, width: "100%", background: "#fff", border: 0, borderRadius: 22, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ width: 50, height: 50, borderRadius: 14, background: "#e8e8e8", display: "grid", placeItems: "center", fontSize: 26 }}>{iconPick}</div>
-        <div style={{ textAlign: "left", flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>{name || "Цель"}</div>
-          <div style={{ fontSize: 13, color: "var(--text-4)" }}>{showIcons ? "выбери иконку" : "нажми, чтобы изменить"}</div>
+      {/* Identity — icon (tap → emoji panel) + inline name in ONE card, same logic as the
+          habit create screen (David: «модифицируй создание целей в той же логике»). */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} />)}
+            style={{ width: 56, height: 56, borderRadius: 16, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer" }}>
+            {iconPick}
+          </button>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели" aria-label="Название цели"
+            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
-        <I.ChevronRight size={18} color="var(--text-4)" style={{ transform: showIcons ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}/>
-      </button>
-      {showIcons && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8, marginTop: 10 }}>
-          {HABIT_ICONS.map((e) => {
-            const on = e === iconPick;
-            return (
-              <button key={e} className="tap" data-no-haptic onClick={() => { setIconPick(e); setShowIcons(false); }}
-                style={{ aspectRatio: "1/1", borderRadius: 14, fontSize: 24, border: 0, cursor: "pointer",
-                  background: on ? "#0a0a0a" : "var(--surface-3)",
-                  boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
-                  transform: on ? "scale(1.06)" : "none", transition: "transform 0.12s, background 0.12s" }}>
-                {e}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      </div>
 
       <div className="section-label" style={{ marginTop: 22 }}>Цель (значение)</div>
       <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>

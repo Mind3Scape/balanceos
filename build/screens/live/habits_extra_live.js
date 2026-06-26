@@ -715,11 +715,13 @@ function GoalSettingsLive() {
     params
   } = useNav();
   var app = useApp();
+  var {
+    open: openSheet
+  } = useSheet();
   var editing = params?.mode === "edit";
   var g0 = editing ? params.goal : null;
   var [name, setName] = useHS(g0?.name || "Пробежать марафон");
   var [iconPick, setIconPick] = useHS(g0?.emoji || "🎯");
-  var [showIcons, setShowIcons] = useHS(false);
   var [target, setTarget] = useHS(g0?.target || 22);
   var [unit, setUnit] = useHS(g0?.unit || "недель");
   var [deadline, setDeadline] = useHS(g0?.deadline || "Месяц");
@@ -747,99 +749,55 @@ function GoalSettingsLive() {
     title: editing ? "Изменить цель" : "Новая цель",
     onBack: () => navigate("habits")
   }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label"
-  }, "\u0427\u0435\u0433\u043E \u0442\u044B \u0445\u043E\u0447\u0435\u0448\u044C"), /*#__PURE__*/React.createElement("input", {
-    className: "bos-input",
-    value: name,
-    onChange: e => setName(e.target.value),
     style: {
-      marginTop: 8
-    },
-    placeholder: "\u043D\u0430\u043F\u0440. \u041F\u0440\u043E\u0431\u0435\u0436\u0430\u0442\u044C \u043C\u0430\u0440\u0430\u0444\u043E\u043D"
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0418\u043A\u043E\u043D\u043A\u0430"), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    "data-no-haptic": true,
-    onClick: () => setShowIcons(v => !v),
-    style: {
-      marginTop: 8,
-      width: "100%",
       background: "#fff",
-      border: 0,
       borderRadius: 22,
-      padding: 12,
+      padding: 14,
+      boxShadow: "var(--card-shadow)",
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
       alignItems: "center",
-      gap: 12,
-      boxShadow: "var(--card-shadow)"
+      gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-haptic": "selection",
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
+      onPick: setIconPick
+    })),
     style: {
-      width: 50,
-      height: 50,
-      borderRadius: 14,
-      background: "#e8e8e8",
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      background: "var(--surface-3)",
       display: "grid",
       placeItems: "center",
-      fontSize: 26
+      fontSize: 28,
+      flexShrink: 0,
+      border: 0,
+      cursor: "pointer"
     }
-  }, iconPick), /*#__PURE__*/React.createElement("div", {
+  }, iconPick), /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0446\u0435\u043B\u0438",
+    "aria-label": "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0446\u0435\u043B\u0438",
     style: {
-      textAlign: "left",
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
+      flex: 1,
+      minWidth: 0,
+      border: 0,
+      outline: "none",
+      background: "transparent",
+      fontSize: 17,
       fontWeight: 600,
-      fontSize: 16,
-      color: "var(--text)"
+      color: "var(--text)",
+      letterSpacing: "-0.2px",
+      padding: "6px 0"
     }
-  }, name || "Цель"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)"
-    }
-  }, showIcons ? "выбери иконку" : "нажми, чтобы изменить")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 18,
-    color: "var(--text-4)",
-    style: {
-      transform: showIcons ? "rotate(90deg)" : "none",
-      transition: "transform 0.2s"
-    }
-  })), showIcons && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(6,1fr)",
-      gap: 8,
-      marginTop: 10
-    }
-  }, HABIT_ICONS.map(e => {
-    var on = e === iconPick;
-    return /*#__PURE__*/React.createElement("button", {
-      key: e,
-      className: "tap",
-      "data-no-haptic": true,
-      onClick: () => {
-        setIconPick(e);
-        setShowIcons(false);
-      },
-      style: {
-        aspectRatio: "1/1",
-        borderRadius: 14,
-        fontSize: 24,
-        border: 0,
-        cursor: "pointer",
-        background: on ? "#0a0a0a" : "var(--surface-3)",
-        boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
-        transform: on ? "scale(1.06)" : "none",
-        transition: "transform 0.12s, background 0.12s"
-      }
-    }, e);
-  })), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
