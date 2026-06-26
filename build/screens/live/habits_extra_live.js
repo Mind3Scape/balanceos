@@ -94,40 +94,22 @@ function HabitSettingsLive() {
   };
   // Invite-now (the «Пригласить» button): build the shared team and open the real
   // share sheet. Falls back to a plain referral link if the team step fails.
-  var inviteFriend = async () => {
+  // Invite = the gamified ShareHabitSheetLive (real t.me/<bot>?startapp=ref_<uid> referral
+  // link via bosInviteLink — NOT the old github.io/?team= link, which can't open the Mini
+  // App from Telegram). No phantom mini-team is created (h.shared/teamId were unused).
+  var inviteFriend = () => {
     if (window.tgHaptic) {
       try {
         window.tgHaptic("light");
       } catch (e) {}
     }
-    var made = await ensureSharedTeam();
-    if (made) {
-      openSheet(/*#__PURE__*/React.createElement(HabitInviteShareSheet, {
-        habit: {
-          name: name.trim() || "Новая привычка",
-          emoji: iconPick,
-          color
-        },
-        link: made.link
-      }));
-      return;
-    }
-    // Fallback: still let them share a plain referral link so the button is never dead.
-    if (window.bosCloud && window.bosCloud.enabled()) {
-      try {
-        var ref = (await window.bosCloud.uid()) || "";
-        var link = location.origin + location.pathname + (ref ? "?ref=" + ref : "");
-        setInviteNote("");
-        openSheet(/*#__PURE__*/React.createElement(HabitInviteShareSheet, {
-          habit: {
-            name: name.trim() || "Новая привычка",
-            emoji: iconPick,
-            color
-          },
-          link: link
-        }));
-      } catch (e) {}
-    }
+    openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+      habit: {
+        name: name.trim() || "Новая привычка",
+        emoji: iconPick,
+        color
+      }
+    }));
   };
   // Soft pastel palette so each real friend chip still gets a pleasant colour.
   var _FCOLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
@@ -668,23 +650,15 @@ function HabitSettingsLive() {
       // SHARED habit: if sharing is on, spin up the mini-team + team-habit and open
       // the share sheet. Guarded — if anything fails, the habit is still saved.
       if (shareOn) {
-        var made = await ensureSharedTeam();
-        if (made && made.team) {
-          base.shared = true;
-          base.teamId = made.team.id;
-        }
         if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);
         navigate("habits"); // the sheet lives above the router, so it stays open over the list
-        if (made && made.link) {
-          openSheet(/*#__PURE__*/React.createElement(HabitInviteShareSheet, {
-            habit: {
-              name: nm,
-              emoji: iconPick,
-              color
-            },
-            link: made.link
-          }));
-        }
+        openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+          habit: {
+            name: nm,
+            emoji: iconPick,
+            color
+          }
+        }));
         return;
       }
       if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);

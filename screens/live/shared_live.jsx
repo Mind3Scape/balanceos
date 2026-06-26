@@ -486,8 +486,8 @@ function ShareHabitSheetLive({ habit, dark = false }) {
     <div style={{ padding: "2px 20px 0", color: C.text }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{habit?.emoji || "✨"}</div>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться привычкой</div>
-        <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>«{habit?.name || "Привычка"}» — зовите друзей делать вместе</div>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Позови друга</div>
+        <div style={{ fontSize: 14, color: C.sub, marginTop: 3, lineHeight: 1.4 }}>«{habit?.name || "Привычка"}» вместе — больше XP. Отправь ссылку, и друг присоединится.</div>
       </div>
 
       <div style={{ marginTop: 16 }}>
