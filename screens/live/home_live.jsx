@@ -224,7 +224,7 @@ function HomeLive() {
           {teams.length > 0 ? (
           <div style={{ display: "flex" }}>
             {teams.slice(0, 4).map((t, i) => (
-              <span key={t._id || i} title={t.name} style={{ width: 28, height: 28, borderRadius: "50%", background: t.accent || "var(--surface-3)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: i ? -10 : 0, display: "grid", placeItems: "center", fontSize: 14, lineHeight: 1 }}>{t.emblem || "👥"}</span>
+              <span key={t._id || i} title={t.name} style={{ width: 28, height: 28, borderRadius: "50%", background: t.accent || "var(--surface-3)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: i ? -10 : 0, display: "grid", placeItems: "center", fontSize: 14, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 14, t.accent)}</span>
             ))}
           </div>
           ) : (
@@ -278,7 +278,7 @@ function HomeLive() {
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
                 <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                  <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
                     {(h.friends?.length > 0 || h.duration > 0) && (
@@ -323,7 +323,7 @@ function HomeLive() {
               ]}>
                 <div className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, padding: 14, color: "var(--text)", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                    <span style={{ width: 38, height: 38, borderRadius: 14, background: g.color ? g.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{g.emoji}</span>
+                    <span style={{ width: 38, height: 38, borderRadius: 14, background: g.color ? g.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{bosIcon(g.emoji, 20, g.color)}</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>

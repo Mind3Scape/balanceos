@@ -134,7 +134,7 @@ function HabitsLive() {
                   onClick={() => navigate("habit-detail", { habit: h, from: "habits" })}
                   style={{ padding: "14px 16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{h.emoji}</span>
+                    <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
                       {(h.friends?.length > 0 || h.duration > 0) && (
@@ -165,15 +165,11 @@ function HabitsLive() {
         </div>
       )}
 
-      {/* Цели — labelled section. The big black «+» above adds a habit; goals get
-          their own quiet «+» on the section header (so both are still one tap away). */}
-      <div className="section-label" style={{ marginTop: 16, color: "var(--text-3)", padding: "0 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span>Цели</span>
-        <button onClick={() => navigate("goal-settings", { mode: "create" })} className="tap hit44" data-no-haptic aria-label="Добавить цель"
-          style={{ width: 28, height: 28, borderRadius: 999, background: TH.iconBg, color: "var(--text-3)", border: 0, display: "grid", placeItems: "center", marginRight: -2 }}>
-          <I.Plus size={15} strokeWidth={2.4}/>
-        </button>
-      </div>
+      {/* Цели — labelled section. No own «+»: every create (habit / goal / team) goes
+          through the ONE black «+» at the top (CreateMenuLive). David: «всё добавляется
+          плюсиком сверху — у целей лишний». The empty-state card below still offers the
+          first goal as a full CTA (not a redundant «+»). */}
+      <div className="section-label" style={{ marginTop: 16, color: "var(--text-3)", padding: "0 4px" }}>Цели</div>
       {goals.length === 0 ? (
           <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
             <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🎯</span>
@@ -194,7 +190,7 @@ function HabitsLive() {
                 <button className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ width: "100%", background: "transparent", border: 0, padding: "14px 16px", textAlign: "left", color: "var(--text)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 14, background: g.color ? g.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{g.emoji}</span>
+                    <span style={{ width: 40, height: 40, borderRadius: 14, background: g.color ? g.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji, 20, g.color)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15.5, color: "var(--text)", letterSpacing: "-0.2px", fontWeight: 600 }}>{g.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3, display: "flex", gap: 10 }}>

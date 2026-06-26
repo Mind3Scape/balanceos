@@ -111,9 +111,9 @@ function HabitSettingsLive() {
       <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {/* Tap the tile → emoji PANEL (opens straight on emojis, no ABC keyboard). */}
-          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} />)}
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} current={iconPick} accent={color} />)}
             style={{ width: 56, height: 56, borderRadius: 16, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
-            {iconPick}
+            {bosIcon(iconPick, 28, color)}
           </button>
           {/* Name is edited right here — tap to type, no separate field above. */}
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
@@ -319,9 +319,9 @@ function GoalSettingsLive() {
           habit create screen (David: «модифицируй создание целей в той же логике»). */}
       <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} />)}
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} current={iconPick} accent={color} />)}
             style={{ width: 56, height: 56, borderRadius: 16, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
-            {iconPick}
+            {bosIcon(iconPick, 28, color)}
           </button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели" aria-label="Название цели"
             style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
@@ -403,7 +403,7 @@ function GoalSettingsLive() {
                 color: h.on ? "#fff" : "var(--text-3)",
                 border: 0, fontSize: 12, fontWeight: 500, transition: "background 0.15s, color 0.15s",
               }}>
-                <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", fontSize: 13 }}>{h.e}</span>
+                <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", fontSize: 13 }}>{bosIcon(h.e, 14, null)}</span>
                 {h.n}
                 {h.on && <I.Check size={12} strokeWidth={3}/>}
               </button>

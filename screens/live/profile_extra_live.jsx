@@ -630,7 +630,7 @@ function HistoryLive() {
               return (
                 <div key={i}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
-                    <span style={{ width: 36, height: 36, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{h.e}</span>
+                    <span style={{ width: 36, height: 36, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{bosIcon(h.e, 18, null)}</span>
                     <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.n}</span>
                     <span style={{
                       width: 26, height: 26, borderRadius: "50%",

@@ -486,7 +486,7 @@ function HomeLive() {
       fontSize: 14,
       lineHeight: 1
     }
-  }, t.emblem || "👥"))) : /*#__PURE__*/React.createElement("span", {
+  }, bosIcon(t.emblem || "👥", 14, t.accent)))) : /*#__PURE__*/React.createElement("span", {
     style: {
       width: 30,
       height: 30,
@@ -671,7 +671,7 @@ function HomeLive() {
       fontSize: 20,
       flexShrink: 0
     }
-  }, h.emoji), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -851,7 +851,7 @@ function HomeLive() {
         placeItems: "center",
         fontSize: 18
       }
-    }, g.emoji), /*#__PURE__*/React.createElement("div", {
+    }, bosIcon(g.emoji, 20, g.color)), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1
       }

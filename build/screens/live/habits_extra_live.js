@@ -163,7 +163,9 @@ function HabitSettingsLive() {
     type: "button",
     "data-haptic": "selection",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
-      onPick: setIconPick
+      onPick: setIconPick,
+      current: iconPick,
+      accent: color
     })),
     style: {
       width: 56,
@@ -178,7 +180,7 @@ function HabitSettingsLive() {
       cursor: "pointer",
       transition: "background 0.2s"
     }
-  }, iconPick), /*#__PURE__*/React.createElement("input", {
+  }, bosIcon(iconPick, 28, color)), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
     placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438",
@@ -743,7 +745,9 @@ function GoalSettingsLive() {
     type: "button",
     "data-haptic": "selection",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
-      onPick: setIconPick
+      onPick: setIconPick,
+      current: iconPick,
+      accent: color
     })),
     style: {
       width: 56,
@@ -758,7 +762,7 @@ function GoalSettingsLive() {
       cursor: "pointer",
       transition: "background 0.2s"
     }
-  }, iconPick), /*#__PURE__*/React.createElement("input", {
+  }, bosIcon(iconPick, 28, color)), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
     placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0446\u0435\u043B\u0438",
@@ -1073,7 +1077,7 @@ function GoalSettingsLive() {
       placeItems: "center",
       fontSize: 13
     }
-  }, h.e), h.n, h.on && /*#__PURE__*/React.createElement(I.Check, {
+  }, bosIcon(h.e, 14, null)), h.n, h.on && /*#__PURE__*/React.createElement(I.Check, {
     size: 12,
     strokeWidth: 3
   }))), /*#__PURE__*/React.createElement("button", {

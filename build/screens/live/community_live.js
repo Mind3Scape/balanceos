@@ -87,7 +87,7 @@ function LiveTeamCard({
       pointerEvents: "none",
       transform: "rotate(8deg)"
     }
-  }, t.emblem), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(t.emblem, 88, t.accent)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative"
     }
@@ -922,7 +922,7 @@ function TeamDetailLive() {
       filter: "saturate(0.9)",
       transform: "rotate(8deg)"
     }
-  }, t.emblem || "✨"), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(t.emblem || "✨", 116, t.accent)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative"
     }
@@ -1169,7 +1169,7 @@ function TeamDetailLive() {
     style: {
       fontSize: 38
     }
-  }, main.emoji), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(main.emoji, 34, main.color)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
@@ -1299,7 +1299,7 @@ function TeamDetailLive() {
       fontSize: 22,
       flexShrink: 0
     }
-  }, h.emoji), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0

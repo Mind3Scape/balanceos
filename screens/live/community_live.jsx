@@ -52,7 +52,7 @@ function LiveTeamCard({ t, navigate }) {
   const ruPart = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "участник" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "участника" : "участников"; };
   return (
     <div className="team-card" style={{ ["--team-accent"]: t.accent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden" }}>
-      <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{t.emblem}</div>
+      <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, t.accent)}</div>
       <div style={{ position: "relative" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
@@ -392,7 +392,7 @@ function TeamDetailLive() {
         </div>
       }/>
       <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden" }}>
-        <div aria-hidden style={{ position: "absolute", top: -14, right: -10, fontSize: 150, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{t.emblem || "✨"}</div>
+        <div aria-hidden style={{ position: "absolute", top: -14, right: -10, fontSize: 150, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{bosIcon(t.emblem || "✨", 116, t.accent)}</div>
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{t.name}</div>
           <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
@@ -450,7 +450,7 @@ function TeamDetailLive() {
       </div>
       <div style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 22, padding: 18, marginTop: 8, color: "#0a0a0a", position: "relative", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ fontSize: 38 }}>{main.emoji}</span>
+          <span style={{ fontSize: 38 }}>{bosIcon(main.emoji, 34, main.color)}</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.4, opacity: 0.6 }}>Якорь команды</div>
             <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.4px", marginTop: 2 }}>{main.name}</div>
@@ -492,7 +492,7 @@ function TeamDetailLive() {
         )}
         {others.map((h, i) => (
           <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-            <span style={{ width: 40, height: 40, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{h.emoji}</span>
+            <span style={{ width: 40, height: 40, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{h.name}</div>
               {/* Aggregate weekly consistency — the day-by-day view lives in the calendar above */}

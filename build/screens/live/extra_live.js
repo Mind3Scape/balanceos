@@ -141,7 +141,7 @@ function HabitDetailLive() {
     style: {
       fontSize: 44
     }
-  }, h.emoji)), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(h.emoji, 40, h.color))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 26,
       fontWeight: 700,
@@ -378,7 +378,7 @@ function GoalDetailLive() {
       fontSize: 34,
       lineHeight: 1
     }
-  }, g.emoji), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(g.emoji, 32, g.color)), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 28,
       fontWeight: 800,
@@ -493,7 +493,7 @@ function GoalDetailLive() {
       fontSize: 19,
       flexShrink: 0
     }
-  }, h.emoji), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(h.emoji, 20, h.color)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0

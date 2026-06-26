@@ -1498,7 +1498,7 @@ function HistoryLive() {
         fontSize: 18,
         flexShrink: 0
       }
-    }, h.e), /*#__PURE__*/React.createElement("span", {
+    }, bosIcon(h.e, 18, null)), /*#__PURE__*/React.createElement("span", {
       style: {
         flex: 1,
         fontSize: 15,

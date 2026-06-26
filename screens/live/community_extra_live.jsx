@@ -39,7 +39,7 @@ function TeamCreateLive() {
   const { open: openSheet } = useSheet();
   const [name, setName] = useCS("");
   const [emblem, setEmblem] = useCS("✨");
-  const [accent, setAccent] = useCS("#fef3c7");
+  const [accent, setAccent] = useCS("#84A4B8");   // Journal «Грифельный» — calm neutral default (a team needs a visible cover, so not pure black like habits)
   const [duration, setDuration] = useCS("month");
   const [vis, setVis] = useCS("private");
   const [saving, setSaving] = useCS(false);
@@ -102,22 +102,26 @@ function TeamCreateLive() {
           position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1,
           opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)",
           transform: "rotate(8deg)",
-        }}>{emblem}</div>
+        }}>{bosIcon(emblem, 92, accent)}</div>
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Название команды</div>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Команда создателей"
             style={{ width: "100%", marginTop: 6, fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap", position: "relative", maxHeight: 142, overflowY: "auto", scrollbarWidth: "none", paddingRight: 2 }}>
-          {emblemChoices.map(e => (
-            <button key={e} onClick={() => setEmblem(e)} className="tap"
-              style={{ width: 36, height: 36, borderRadius: "50%", background: emblem === e ? "#0a0a0a" : "rgba(255,255,255,0.7)", border: 0, fontSize: 18, display: "grid", placeItems: "center", boxShadow: emblem === e ? "none" : "inset 0 0 0 1px rgba(0,0,0,0.06)" }}>{e}</button>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", position: "relative" }}>
-          {accentSwatches.map(c => (
-            <button key={c} onClick={() => setAccent(c)} className="tap"
-              style={{ width: 28, height: 28, borderRadius: "50%", background: c, border: 0, padding: 0, boxShadow: accent === c ? "0 0 0 2px #0a0a0a, 0 0 0 4px #fff" : "inset 0 0 0 1px rgba(0,0,0,0.08)" }}/>
+        {/* Emoji/symbol panel + Journal colours — same picker as habits & goals (David). */}
+        <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap"
+          style={{ position: "relative", marginTop: 14, display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.75)", border: 0, borderRadius: 14, padding: "7px 14px 7px 7px", cursor: "pointer", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}>
+          <span style={{ width: 40, height: 40, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 24, accent)}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
+        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, position: "relative", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 2px" }}>
+          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 30, height: 30, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof accent === "string" && accent[0] === "#" && !BOS_APPLE_COLORS.includes(accent)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
+            <input type="color" value={(typeof accent === "string" && accent[0] === "#") ? accent : "#84A4B8"} onChange={(e) => setAccent(e.target.value)} aria-label="Свой цвет" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
+          </label>
+          <span style={{ width: 1, height: 24, background: "rgba(0,0,0,0.12)", flexShrink: 0 }} />
+          {BOS_APPLE_COLORS.map((c) => (
+            <button key={c} type="button" className="tap" data-haptic="selection" onClick={() => setAccent(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
+              style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
           ))}
         </div>
       </div>
@@ -360,17 +364,24 @@ function TeamSettingsLive() {
       <div className="section-label">Название</div>
       <input className="bos-input" value={name} onChange={e => setName(e.target.value)} style={{ marginTop: 8 }} />
 
-      <div className="section-label" style={{ marginTop: 22 }}>Эмблема</div>
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "8px -16px 0", padding: "0 16px 4px", scrollbarWidth: "none" }}>
-        {emblems.map(e => (
-          <button key={e} onClick={() => setEmblem(e)} className="tap" data-no-haptic style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 14, fontSize: 22, lineHeight: 1, background: e === emblem ? "#0a0a0a" : "#f1f1f3", border: 0 }}>{e}</button>
-        ))}
-      </div>
+      {/* Icon = emoji/symbol panel, colour = Journal palette + wheel — one picker across
+          habits, goals AND teams (David: «выбор эмоди и цветов как у привычек»). */}
+      <div className="section-label" style={{ marginTop: 22 }}>Иконка</div>
+      <button onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" data-haptic="selection"
+        style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 12, background: "#fff", border: 0, borderRadius: 18, padding: "10px 16px 10px 10px", boxShadow: "var(--card-shadow)", cursor: "pointer" }}>
+        <span style={{ width: 52, height: 52, borderRadius: 14, background: (accent && accent[0] === "#") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26 }}>{bosIcon(emblem, 28, accent)}</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
+      </button>
 
       <div className="section-label" style={{ marginTop: 22 }}>Цвет</div>
-      <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-        {accents.map(c => (
-          <button key={c} onClick={() => setAccent(c)} className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: c, border: c === accent ? "3px solid #0a0a0a" : "3px solid transparent" }}/>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 2px" }}>
+        <label className="tap" data-haptic="selection" style={{ position: "relative", width: 36, height: 36, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof accent === "string" && accent[0] === "#" && !BOS_APPLE_COLORS.includes(accent)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
+          <input type="color" value={(typeof accent === "string" && accent[0] === "#") ? accent : "#84A4B8"} onChange={(e) => setAccent(e.target.value)} aria-label="Свой цвет" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
+        </label>
+        <span style={{ width: 1, height: 28, background: "var(--line)", flexShrink: 0 }} />
+        {BOS_APPLE_COLORS.map((c) => (
+          <button key={c} className="tap" data-haptic="selection" onClick={() => setAccent(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
+            style={{ width: 36, height: 36, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
         ))}
       </div>
 

@@ -318,7 +318,7 @@ function HabitsLive() {
       fontSize: 20,
       flexShrink: 0
     }
-  }, h.emoji), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -382,33 +382,9 @@ function HabitsLive() {
     style: {
       marginTop: 16,
       color: "var(--text-3)",
-      padding: "0 4px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
+      padding: "0 4px"
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\u0426\u0435\u043B\u0438"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("goal-settings", {
-      mode: "create"
-    }),
-    className: "tap hit44",
-    "data-no-haptic": true,
-    "aria-label": "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C",
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: 999,
-      background: TH.iconBg,
-      color: "var(--text-3)",
-      border: 0,
-      display: "grid",
-      placeItems: "center",
-      marginRight: -2
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 15,
-    strokeWidth: 2.4
-  }))), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  }, "\u0426\u0435\u043B\u0438"), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"
@@ -534,7 +510,7 @@ function HabitsLive() {
         fontSize: 20,
         flexShrink: 0
       }
-    }, g.emoji), /*#__PURE__*/React.createElement("div", {
+    }, bosIcon(g.emoji, 20, g.color)), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0

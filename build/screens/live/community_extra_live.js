@@ -43,7 +43,7 @@ function TeamCreateLive() {
   } = useSheet();
   var [name, setName] = useCS("");
   var [emblem, setEmblem] = useCS("✨");
-  var [accent, setAccent] = useCS("#fef3c7");
+  var [accent, setAccent] = useCS("#84A4B8"); // Journal «Грифельный» — calm neutral default (a team needs a visible cover, so not pure black like habits)
   var [duration, setDuration] = useCS("month");
   var [vis, setVis] = useCS("private");
   var [saving, setSaving] = useCS(false);
@@ -157,7 +157,7 @@ function TeamCreateLive() {
       filter: "saturate(0.9)",
       transform: "rotate(8deg)"
     }
-  }, emblem), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(emblem, 92, accent)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative"
     }
@@ -185,53 +185,110 @@ function TeamCreateLive() {
       padding: 0,
       letterSpacing: "-0.4px"
     }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 14,
-      flexWrap: "wrap",
-      position: "relative",
-      maxHeight: 142,
-      overflowY: "auto",
-      scrollbarWidth: "none",
-      paddingRight: 2
-    }
-  }, emblemChoices.map(e => /*#__PURE__*/React.createElement("button", {
-    key: e,
-    onClick: () => setEmblem(e),
+  })), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-haptic": "selection",
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
+      onPick: setEmblem,
+      current: emblem,
+      accent: accent
+    })),
     className: "tap",
     style: {
-      width: 36,
-      height: 36,
-      borderRadius: "50%",
-      background: emblem === e ? "#0a0a0a" : "rgba(255,255,255,0.7)",
+      position: "relative",
+      marginTop: 14,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 10,
+      background: "rgba(255,255,255,0.75)",
       border: 0,
-      fontSize: 18,
+      borderRadius: 14,
+      padding: "7px 14px 7px 7px",
+      cursor: "pointer",
+      WebkitBackdropFilter: "blur(8px)",
+      backdropFilter: "blur(8px)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      background: "#fff",
       display: "grid",
       placeItems: "center",
-      boxShadow: emblem === e ? "none" : "inset 0 0 0 1px rgba(0,0,0,0.06)"
+      fontSize: 22,
+      boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
     }
-  }, e))), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(emblem, 24, accent)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8,
+      alignItems: "center",
+      gap: 10,
       marginTop: 12,
-      flexWrap: "wrap",
-      position: "relative"
+      position: "relative",
+      overflowX: "auto",
+      scrollbarWidth: "none",
+      WebkitOverflowScrolling: "touch",
+      padding: "6px 2px"
     }
-  }, accentSwatches.map(c => /*#__PURE__*/React.createElement("button", {
-    key: c,
-    onClick: () => setAccent(c),
+  }, /*#__PURE__*/React.createElement("label", {
     className: "tap",
+    "data-haptic": "selection",
     style: {
-      width: 28,
-      height: 28,
+      position: "relative",
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      flexShrink: 0,
+      cursor: "pointer",
+      boxShadow: typeof accent === "string" && accent[0] === "#" && !BOS_APPLE_COLORS.includes(accent) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none",
+      background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "color",
+    value: typeof accent === "string" && accent[0] === "#" ? accent : "#84A4B8",
+    onChange: e => setAccent(e.target.value),
+    "aria-label": "\u0421\u0432\u043E\u0439 \u0446\u0432\u0435\u0442",
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      opacity: 0,
+      border: 0,
+      padding: 0,
+      cursor: "pointer"
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 1,
+      height: 24,
+      background: "rgba(0,0,0,0.12)",
+      flexShrink: 0
+    }
+  }), BOS_APPLE_COLORS.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c,
+    type: "button",
+    className: "tap",
+    "data-haptic": "selection",
+    onClick: () => setAccent(c),
+    "aria-label": BOS_APPLE_COLOR_NAMES[c] || "Цвет",
+    style: {
+      width: 30,
+      height: 30,
       borderRadius: "50%",
       background: c,
       border: 0,
-      padding: 0,
-      boxShadow: accent === c ? "0 0 0 2px #0a0a0a, 0 0 0 4px #fff" : "inset 0 0 0 1px rgba(0,0,0,0.08)"
+      flexShrink: 0,
+      cursor: "pointer",
+      boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none",
+      transition: "box-shadow 0.15s"
     }
   })))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
@@ -874,31 +931,43 @@ function TeamSettingsLive() {
     style: {
       marginTop: 22
     }
-  }, "\u042D\u043C\u0431\u043B\u0435\u043C\u0430"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      overflowX: "auto",
-      margin: "8px -16px 0",
-      padding: "0 16px 4px",
-      scrollbarWidth: "none"
-    }
-  }, emblems.map(e => /*#__PURE__*/React.createElement("button", {
-    key: e,
-    onClick: () => setEmblem(e),
+  }, "\u0418\u043A\u043E\u043D\u043A\u0430"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
+      onPick: setEmblem,
+      current: emblem,
+      accent: accent
+    })),
     className: "tap",
-    "data-no-haptic": true,
+    "data-haptic": "selection",
     style: {
-      flexShrink: 0,
-      width: 46,
-      height: 46,
-      borderRadius: 14,
-      fontSize: 22,
-      lineHeight: 1,
-      background: e === emblem ? "#0a0a0a" : "#f1f1f3",
-      border: 0
+      marginTop: 8,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 12,
+      background: "#fff",
+      border: 0,
+      borderRadius: 18,
+      padding: "10px 16px 10px 10px",
+      boxShadow: "var(--card-shadow)",
+      cursor: "pointer"
     }
-  }, e))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 52,
+      height: 52,
+      borderRadius: 14,
+      background: accent && accent[0] === "#" ? accent + "26" : "var(--surface-3)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 26
+    }
+  }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -906,20 +975,65 @@ function TeamSettingsLive() {
   }, "\u0426\u0432\u0435\u0442"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
+      alignItems: "center",
       gap: 10,
       marginTop: 8,
-      flexWrap: "wrap"
+      overflowX: "auto",
+      scrollbarWidth: "none",
+      WebkitOverflowScrolling: "touch",
+      padding: "6px 2px"
     }
-  }, accents.map(c => /*#__PURE__*/React.createElement("button", {
-    key: c,
-    onClick: () => setAccent(c),
+  }, /*#__PURE__*/React.createElement("label", {
     className: "tap",
+    "data-haptic": "selection",
     style: {
-      width: 40,
-      height: 40,
+      position: "relative",
+      width: 36,
+      height: 36,
+      borderRadius: "50%",
+      flexShrink: 0,
+      cursor: "pointer",
+      boxShadow: typeof accent === "string" && accent[0] === "#" && !BOS_APPLE_COLORS.includes(accent) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none",
+      background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "color",
+    value: typeof accent === "string" && accent[0] === "#" ? accent : "#84A4B8",
+    onChange: e => setAccent(e.target.value),
+    "aria-label": "\u0421\u0432\u043E\u0439 \u0446\u0432\u0435\u0442",
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      opacity: 0,
+      border: 0,
+      padding: 0,
+      cursor: "pointer"
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 1,
+      height: 28,
+      background: "var(--line)",
+      flexShrink: 0
+    }
+  }), BOS_APPLE_COLORS.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c,
+    className: "tap",
+    "data-haptic": "selection",
+    onClick: () => setAccent(c),
+    "aria-label": BOS_APPLE_COLOR_NAMES[c] || "Цвет",
+    style: {
+      width: 36,
+      height: 36,
       borderRadius: "50%",
       background: c,
-      border: c === accent ? "3px solid #0a0a0a" : "3px solid transparent"
+      border: 0,
+      flexShrink: 0,
+      cursor: "pointer",
+      boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none",
+      transition: "box-shadow 0.15s"
     }
   }))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",

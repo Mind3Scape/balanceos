@@ -82,7 +82,7 @@ function HabitDetailLive() {
       {/* Hero — neutral tile (or the habit's soft colour), like the lists outside */}
       <div style={{ textAlign: "center", padding: "6px 0 22px" }}>
         <div style={{ width: 88, height: 88, borderRadius: 22, margin: "0 auto", background: tileBg, display: "grid", placeItems: "center", boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
-          <span style={{ fontSize: 44 }}>{h.emoji}</span>
+          <span style={{ fontSize: 44 }}>{bosIcon(h.emoji, 40, h.color)}</span>
         </div>
         <div style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", marginTop: 16, letterSpacing: "-0.5px" }}>{h.name}</div>
         <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
@@ -174,7 +174,7 @@ function GoalDetailLive() {
           </svg>
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
             <div>
-              <div style={{ fontSize: 34, lineHeight: 1 }}>{g.emoji}</div>
+              <div style={{ fontSize: 34, lineHeight: 1 }}>{bosIcon(g.emoji, 32, g.color)}</div>
               <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px" }}><Count value={Math.round(pct * 100)} />%</div>
             </div>
           </div>
@@ -208,7 +208,7 @@ function GoalDetailLive() {
             {linked.map((h, i) => (
               <div key={h.id}>
                 <button className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "goal-detail" })} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: 0, textAlign: "left", color: "var(--text)" }}>
-                  <span style={{ width: 38, height: 38, borderRadius: 14, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{h.emoji}</span>
+                  <span style={{ width: 38, height: 38, borderRadius: 14, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 20, h.color)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600 }}>{h.name}</div>
                     <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {(typeof bosStreak === "function") ? bosStreak(h.log) : (h.streak || 0)}д серия</div>

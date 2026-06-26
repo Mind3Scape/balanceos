@@ -445,6 +445,53 @@ function ShareAppSheetLive({ dark = false }) {
 
 /* ShareHabitSheet → live-only: REAL referral circle + ?ref=<uid> link (no demo friends,
    no demo "истории/ещё" targets). */
+/* Invite banner (live) — the «Позови друга» reward card. A LIVE fork of XPRewardCard so
+   the corner gets our ORBIT motif with little MEMOJI faces «orbiting» instead of a plain
+   radial wash (David: «классно бы — орбиты с лицами участников, ощущение „вместе"»). The
+   shared XPRewardCard stays untouched → demo pixel-identical. */
+function HabitInviteBannerLive({ amount = 75 }) {
+  const ink = "#0a0a0a", inkSub = "rgba(0,0,0,0.62)";
+  const faces = [
+    { f: "🧑🏻", ang: -68, rad: 54, sz: 27 },
+    { f: "👩🏽", ang: -18, rad: 36, sz: 23 },
+    { f: "🧔🏾", ang: 26, rad: 57, sz: 25 },
+  ];
+  return (
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 17px",
+      background: "linear-gradient(135deg, #FEDE34, #EF9F14)", color: ink,
+      boxShadow: "0 12px 30px rgba(254,222,52,0.34)" }}>
+      {/* Orbits + memoji — the «вместе» cue. */}
+      <div aria-hidden style={{ position: "absolute", right: -30, top: -34, width: 150, height: 150, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", inset: 16, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.4)" }} />
+        <div style={{ position: "absolute", inset: 42, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.5)" }} />
+        {faces.map((p, i) => {
+          const a = p.ang * Math.PI / 180, cx = 75 + p.rad * Math.cos(a), cy = 75 + p.rad * Math.sin(a);
+          return (
+            <span key={i} style={{ position: "absolute", left: cx - p.sz / 2, top: cy - p.sz / 2, width: p.sz, height: p.sz, borderRadius: "50%",
+              background: "rgba(255,255,255,0.94)", display: "grid", placeItems: "center", fontSize: p.sz * 0.62,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.16)" }}>{p.f}</span>
+          );
+        })}
+      </div>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 13 }}>
+        <span style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(255,255,255,0.6)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <I.Sparkles size={23} color={ink} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span style={{ fontSize: 33, fontWeight: 800, letterSpacing: "-1.2px", lineHeight: 1 }}>+<CountUp value={amount} /></span>
+            <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px" }}>XP</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: inkSub, marginTop: 3, lineHeight: 1.35 }}>когда друг присоединится к этой привычке</div>
+        </div>
+      </div>
+      <div style={{ position: "relative", marginTop: 13, paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.10)", fontSize: 12, color: inkSub, lineHeight: 1.4 }}>
+        А когда ведёте привычку вместе — каждая отметка приносит <b style={{ color: ink }}>+15 XP</b> вместо +10.
+      </div>
+    </div>
+  );
+}
+
 function ShareHabitSheetLive({ habit, dark = false }) {
   const { close } = useSheet();
   const APP_URL = (typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
@@ -485,13 +532,13 @@ function ShareHabitSheetLive({ habit, dark = false }) {
   return (
     <div style={{ padding: "2px 20px 0", color: C.text }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{habit?.emoji || "✨"}</div>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{bosIcon(habit?.emoji || "✨", 30, habit?.color)}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Позови друга</div>
         <div style={{ fontSize: 14, color: C.sub, marginTop: 3, lineHeight: 1.4 }}>«{habit?.name || "Привычка"}» вместе — больше XP. Отправь ссылку, и друг присоединится.</div>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <XPRewardCard amount={75} reason="когда друг присоединится к этой привычке" mode="habit" dark={dark} />
+        <HabitInviteBannerLive amount={75} />
       </div>
 
       <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "22px 0 12px" }}>Делать вместе</div>
@@ -518,7 +565,7 @@ function ShareHabitSheetLive({ habit, dark = false }) {
       <div style={{ height: 1, background: C.line, margin: "18px 0" }} />
 
       <button onClick={shareLink} className="tap" style={{
-        width: "100%", border: 0, borderRadius: 16, padding: "15px 16px",
+        width: "100%", border: 0, borderRadius: 999, padding: 15,
         background: "#229ED9", color: "#fff", fontSize: 15.5, fontWeight: 600,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
       }}>
@@ -643,7 +690,7 @@ function ShareGoalSheetLive({ goal, dark = false }) {
   return (
     <div style={{ padding: "2px 20px 22px", color: C.text }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{goal?.emoji || "🎯"}</div>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{bosIcon(goal?.emoji || "🎯", 30, goal?.color)}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться целью</div>
         <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>«{goal?.name || "Цель"}» — расскажи, к чему идёшь</div>
       </div>
@@ -918,7 +965,7 @@ function CloudTeamsDiscoverLive({ app }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {list.map((t) => (
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-            <span style={{ width: 44, height: 44, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{t.emblem || "✨"}</span>
+            <span style={{ width: 44, height: 44, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, t.accent)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
               <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2 }}>🌐 Открытая · {t.members} участ.</div>
@@ -933,8 +980,9 @@ function CloudTeamsDiscoverLive({ app }) {
 
 /* ── Привычки-страница: нижняя полоска недели + Apple-палитра (live-only, v235). The
    HOME card stays the compact row — only the Привычки-page card grows this strip.
-   Colours are the iOS SYSTEM palette (no invented hues — David: «используй Apple-цвета»). ── */
-const BOS_APPLE_COLORS = ["#34C759", "#007AFF", "#FF9500", "#AF52DE", "#FF2D55", "#30B0C7", "#5856D6", "#FF3B30", "#FFCC00"];
+   Colours = the Apple JOURNAL palette (David found it: «такие же цвета, как в Журнале») —
+   muted warm→cool tints, softer & more refined than the raw system colours. ── */
+const BOS_APPLE_COLORS = ["#A06A86", "#F0564C", "#E08AC4", "#E59B9B", "#CBA98D", "#F0A24E", "#19B89B", "#54C3E4", "#4A6CD6", "#84A4B8", "#7F9AF2", "#8676E6"];
 
 // 7 LOCAL day-keys for the CURRENT week, Пн→Вс (left→right) — matches the strip order.
 function bosWeekKeys() {
@@ -976,7 +1024,9 @@ function HabitWeekStrip({ habit }) {
 
 // Names for the live Apple palette (the create-screen picker label). Includes the old
 // core #0A84FF so habits made before the v235 palette still read a colour name.
-const BOS_APPLE_COLOR_NAMES = { "#34C759": "Зелёный", "#007AFF": "Синий", "#0A84FF": "Синий", "#FF9500": "Оранжевый", "#AF52DE": "Фиолетовый", "#FF2D55": "Розовый", "#30B0C7": "Бирюзовый", "#5856D6": "Индиго", "#FF3B30": "Красный", "#FFCC00": "Жёлтый" };
+const BOS_APPLE_COLOR_NAMES = { "#A06A86": "Сливовый", "#F0564C": "Коралловый", "#E08AC4": "Орхидея", "#E59B9B": "Лосось", "#CBA98D": "Глина", "#F0A24E": "Оранжевый", "#19B89B": "Мятный", "#54C3E4": "Голубой", "#4A6CD6": "Синий", "#84A4B8": "Грифельный", "#7F9AF2": "Барвинок", "#8676E6": "Индиго",
+  /* legacy system hues — kept so habits made before the Journal palette still read a name */
+  "#34C759": "Зелёный", "#007AFF": "Синий", "#0A84FF": "Синий", "#FF9500": "Оранжевый", "#AF52DE": "Фиолетовый", "#FF2D55": "Розовый", "#30B0C7": "Бирюзовый", "#5856D6": "Индиго", "#FF3B30": "Красный", "#FFCC00": "Жёлтый" };
 
 // Pull the LAST emoji grapheme a user typed, so the icon picker can BE the system emoji
 // keyboard (David: «открывается клавиатура с эмодзи», not a fixed grid). Intl.Segmenter
@@ -1002,24 +1052,69 @@ const BOS_EMOJI_CATS = [
   { ic: "💡", list: ["⌚","📱","💻","⌨️","🖥️","🖨️","🕹️","💡","🔦","🕯️","📷","🎥","📺","📻","⏰","⏱️","⌛","💰","💳","💎","🔧","🔨","🧰","🔑","🔒","🛏️","🚿","🛁","🧴","🧹","🧺","🧸","🎁","🎈","🎀","📦","✏️","📝","📌","📎","📏","✂️","🗑️","🔋","🧲"] },
   { ic: "❤️", list: ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💖","💗","💕","❣️","💔","✨","⭐","🌟","💫","⚡","✅","☑️","✔️","❌","➕","➖","❓","❗","💯","🔥","🎉","🎊","🏁","🚩","♻️","⚠️","🔔","💤","🆗","🆕","🔴","🟠","🟡","🟢","🔵","🟣","⚫","⚪","🟤"] },
 ];
-function EmojiPickerLive({ onPick }) {
+/* SF-Symbols-style monochrome icon set (our hand-rolled `I` glyphs). Picked by name and
+   stored on the habit/goal/team as "sf:<Name>", then rendered via bosIcon() in the chosen
+   accent — the Apple-Journal way: a tasteful FIXED set, not an infinite list. David:
+   «слева ч/б iOS-символы, справа цветные эмодзи». */
+const BOS_SYMBOLS = ["Heart", "Dumbbell", "Foot", "Book", "Moon", "Sparkles", "Target", "Trophy", "Flag", "Bolt", "Bulb", "Mic", "Play", "Compass", "MapPin", "Globe", "Calendar", "Clock", "Bell", "Briefcase", "Wallet", "Users", "Phone", "Mail", "MessageCircle", "Home", "ChartBar", "Eye"];
+
+// Render a habit/goal/team icon. A "sf:<Name>" sentinel → the monochrome glyph in `color`;
+// anything else (a normal emoji string) is returned UNCHANGED, so existing data and the
+// DEMO stay pixel-identical. Used at every live icon site so a chosen symbol shows up
+// everywhere, never as raw "sf:…" text.
+function bosIcon(val, size, color) {
+  if (typeof val === "string" && val.slice(0, 3) === "sf:") {
+    var Cmp = (window.I || {})[val.slice(3)];
+    if (Cmp) return React.createElement(Cmp, { size: size || 22, color: color || "currentColor", strokeWidth: 2 });
+    return null;
+  }
+  return val || "";
+}
+
+function EmojiPickerLive({ onPick, accent = "#0a0a0a", current }) {
   const { close } = useSheet();
+  const [mode, setMode] = React.useState((typeof current === "string" && current.slice(0, 3) === "sf:") ? "symbol" : "emoji");
   const [cat, setCat] = React.useState(0);
   const pick = (e) => { if (onPick) onPick(e); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } close(); };
+  const symColor = (typeof accent === "string" && accent[0] === "#") ? accent : "#0a0a0a";
   return (
     <div style={{ padding: "2px 10px 6px", color: "#0a0a0a" }}>
       <div style={{ textAlign: "center", fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Выбери иконку</div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
-        {BOS_EMOJI_CATS.map((c, i) => (
-          <button key={i} className="tap" data-no-haptic onClick={() => setCat(i)} aria-label={"Категория " + (i + 1)}
-            style={{ flex: 1, height: 38, borderRadius: 11, border: 0, fontSize: 19, cursor: "pointer", background: i === cat ? "var(--surface-3)" : "transparent" }}>{c.ic}</button>
+      {/* Toggle — monochrome iOS-style СИМВОЛЫ (left) / colourful ЭМОДЗИ (right), David. */}
+      <div style={{ display: "flex", gap: 4, padding: 3, background: "var(--surface-3)", borderRadius: 12, marginBottom: 12 }}>
+        {[["symbol", "Символы"], ["emoji", "Эмодзи"]].map((m) => (
+          <button key={m[0]} className="tap" data-no-haptic onClick={() => setMode(m[0])}
+            style={{ flex: 1, height: 34, borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
+              background: mode === m[0] ? "#fff" : "transparent", color: mode === m[0] ? "#0a0a0a" : "var(--text-3)",
+              boxShadow: mode === m[0] ? "0 1px 3px rgba(0,0,0,0.10)" : "none", transition: "background 0.15s" }}>{m[1]}</button>
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 2, maxHeight: 248, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-        {BOS_EMOJI_CATS[cat].list.map((e, i) => (
-          <button key={i} className="tap" data-no-haptic onClick={() => pick(e)} style={{ aspectRatio: "1 / 1", borderRadius: 10, border: 0, background: "transparent", fontSize: 25, cursor: "pointer", padding: 0 }}>{e}</button>
-        ))}
-      </div>
+      {mode === "symbol" ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, maxHeight: 264, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "2px 0" }}>
+          {BOS_SYMBOLS.map((nm, i) => {
+            var Cmp = (window.I || {})[nm];
+            if (!Cmp) return null;
+            return (
+              <button key={i} className="tap" data-no-haptic onClick={() => pick("sf:" + nm)} aria-label={nm}
+                style={{ aspectRatio: "1 / 1", borderRadius: 14, border: 0, background: "var(--surface-3)", display: "grid", placeItems: "center", cursor: "pointer", padding: 0 }}>
+                <Cmp size={23} color={symColor} strokeWidth={2} />
+              </button>
+            );
+          })}
+        </div>
+      ) : (<>
+        <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+          {BOS_EMOJI_CATS.map((c, i) => (
+            <button key={i} className="tap" data-no-haptic onClick={() => setCat(i)} aria-label={"Категория " + (i + 1)}
+              style={{ flex: 1, height: 38, borderRadius: 11, border: 0, fontSize: 19, cursor: "pointer", background: i === cat ? "var(--surface-3)" : "transparent" }}>{c.ic}</button>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 2, maxHeight: 248, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          {BOS_EMOJI_CATS[cat].list.map((e, i) => (
+            <button key={i} className="tap" data-no-haptic onClick={() => pick(e)} style={{ aspectRatio: "1 / 1", borderRadius: 10, border: 0, background: "transparent", fontSize: 25, cursor: "pointer", padding: 0 }}>{e}</button>
+          ))}
+        </div>
+      </>)}
     </div>
   );
 }
@@ -1055,7 +1150,7 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   const endLP = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } };
   const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } apply(isDone ? 0 : count + 1); };
 
-  const SIZE = 36, R = 13.5, CX = SIZE / 2, C = 2 * Math.PI * R;
+  const SIZE = 30, R = 11, CX = SIZE / 2, C = 2 * Math.PI * R;   // == standard .check-btn (30px) so the DONE tick matches every other card (David: «один размер»)
   const track = "rgba(10,10,10,0.10)";
   let body;
   if (isDone) {
@@ -1071,22 +1166,22 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
     for (let i = 0; i < goal; i++) {
       const a0 = -90 + i * pitch + gap / 2, a1 = -90 + (i + 1) * pitch - gap / 2;
       const p0 = pt(a0), p1 = pt(a1);
-      segs.push(<path key={i} d={"M " + p0[0] + " " + p0[1] + " A " + R + " " + R + " 0 0 1 " + p1[0] + " " + p1[1]} fill="none" stroke={i < count ? accent : track} strokeWidth="3.4" strokeLinecap="round" />);
+      segs.push(<path key={i} d={"M " + p0[0] + " " + p0[1] + " A " + R + " " + R + " 0 0 1 " + p1[0] + " " + p1[1]} fill="none" stroke={i < count ? accent : track} strokeWidth="3" strokeLinecap="round" />);
     }
     body = (
       <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
         <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0 }}>{segs}</svg>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
       </span>
     );
   } else {
     body = (
       <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
         <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0 }}>
-          <circle cx={CX} cy={CX} r={R} fill="none" stroke={track} strokeWidth="3.4" />
-          <circle cx={CX} cy={CX} r={R} fill="none" stroke={accent} strokeWidth="3.4" strokeLinecap="round" strokeDasharray={C.toFixed(2)} strokeDashoffset={(C * (1 - count / goal)).toFixed(2)} transform={"rotate(-90 " + CX + " " + CX + ")"} />
+          <circle cx={CX} cy={CX} r={R} fill="none" stroke={track} strokeWidth="3" />
+          <circle cx={CX} cy={CX} r={R} fill="none" stroke={accent} strokeWidth="3" strokeLinecap="round" strokeDasharray={C.toFixed(2)} strokeDashoffset={(C * (1 - count / goal)).toFixed(2)} transform={"rotate(-90 " + CX + " " + CX + ")"} />
         </svg>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
       </span>
     );
   }
