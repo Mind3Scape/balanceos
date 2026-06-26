@@ -89,6 +89,18 @@ Deno.serve(async (req) => {
       user_metadata: { tg_id: tgId, username, referred_by: referredById },
     }).catch(() => { /* уже существует — норм */ });
 
+    // Back-fill: createUser выше тихо ничего не делает, если аккаунт уже есть — поэтому друг,
+    // который ОТКРЫВАЛ BalanceOS раньше, по новой ссылке никогда не привязывался (referred_by
+    // пишется только при создании). Дописываем referred_by ТОЛЬКО когда он сейчас пустой
+    // (никогда не перетираем уже существующего пригласившего). Это и чинит «друг не появился
+    // в орбитах» для уже зарегистрированных.
+    if (referredById) {
+      try {
+        await admin.from("profiles").update({ referred_by: referredById })
+          .eq("tg_id", tgId).is("referred_by", null);
+      } catch (_e) { /* ignore */ }
+    }
+
     // одноразовый код для получения сессии на клиенте
     const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
     if (error || !data) return json({ error: "session link failed: " + (error?.message || "") }, 500);

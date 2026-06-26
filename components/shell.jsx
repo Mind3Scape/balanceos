@@ -544,7 +544,15 @@ function bosTeamInviteLink(cloudId) {
 // The referral id that brought THIS user in: from the Telegram start_param ("ref_<uid>")
 // when launched via the bot deep-link, else the web ?ref= query. Null if organic.
 function bosReferralId() {
-  try { var sp = window.__TG && window.__TG.initDataUnsafe && window.__TG.initDataUnsafe.start_param; if (sp && /^ref_/.test(sp)) return sp.slice(4); } catch (e) {}
+  try {
+    var sp = window.__TG && window.__TG.initDataUnsafe && window.__TG.initDataUnsafe.start_param;
+    if (sp) {
+      if (/^ref_/.test(sp)) return sp.slice(4);
+      // A shared-habit link can ALSO carry the referrer: hb_<code>__<refcode> — so sharing a
+      // habit attributes the friend on the inviter's orbit too (one start_param, two jobs).
+      if (/^hb_/.test(sp)) { var pp = sp.indexOf("__"); if (pp >= 0) return sp.slice(pp + 2); }
+    }
+  } catch (e) {}
   try { var q = new URLSearchParams(window.location.search).get("ref"); if (q) return q; } catch (e) {}
   return null;
 }
@@ -553,6 +561,22 @@ function bosReferralId() {
 function bosJoinTeamId() {
   try { var sp = window.__TG && window.__TG.initDataUnsafe && window.__TG.initDataUnsafe.start_param; if (sp && /^team_/.test(sp)) return sp.slice(5); } catch (e) {}
   try { var q = new URLSearchParams(window.location.search).get("team"); if (q) return q; } catch (e) {}
+  return null;
+}
+// SHARED HABIT (habit buddy, NOT a team — David: «свою привычку сделать общей с другом,
+// видеть прогресс друг друга на календарике»). Link: t.me/<bot>?startapp=hb_<code>, with an
+// optional __<refcode> tail so the same link also attributes the referral. enterLive decodes
+// the code (bosJoinSharedHabitId) → bosCloud.joinSharedHabit joins the SAME shared habit.
+function bosSharedHabitLink(code, refCode) {
+  if (!code) return "https://t.me/" + BOS_BOT_USERNAME;
+  return "https://t.me/" + BOS_BOT_USERNAME + "?startapp=hb_" + code + (refCode ? "__" + refCode : "");
+}
+function bosJoinSharedHabitId() {
+  try {
+    var sp = window.__TG && window.__TG.initDataUnsafe && window.__TG.initDataUnsafe.start_param;
+    if (sp && /^hb_/.test(sp)) { var rest = sp.slice(3); var pp = rest.indexOf("__"); return pp >= 0 ? rest.slice(0, pp) : rest; }
+  } catch (e) {}
+  try { var q = new URLSearchParams(window.location.search).get("habit"); if (q) return q; } catch (e) {}
   return null;
 }
 
