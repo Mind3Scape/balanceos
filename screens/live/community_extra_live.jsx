@@ -36,6 +36,7 @@
 function TeamCreateLive() {
   const { navigate } = useNav();
   const app = useApp();
+  const { open: openSheet } = useSheet();
   const [name, setName] = useCS("");
   const [emblem, setEmblem] = useCS("✨");
   const [accent, setAccent] = useCS("#fef3c7");
@@ -55,15 +56,12 @@ function TeamCreateLive() {
   const [stakes, setStakes] = useCS(true);
   const [stakeAmount, setStakeAmount] = useCS(100);
 
-  // Members for split preview — the create form's own roster (used in every mode to
-  // configure who's on the new team), NOT a demo data branch.
+  // A real user starts a team as just THEMSELVES — no invented roster (the old
+  // Павел/Ник/Светлана… were demo personas leaking into live). Others come in via
+  // the «Пригласить» link, and the goal split fills out as they actually join.
+  const _youName = (app?.userName || "").trim();
   const allMembers = [
-    { name: "Павел (вы)", initials: "П",  color: "#FEDE34", on: true,  you: true },
-    { name: "Ник",      initials: "Н",  color: "#a8b9d4", on: true },
-    { name: "Светлана",  initials: "С",  color: "#e8c8a8", on: true },
-    { name: "Вадим",     initials: "В",  color: "#a8d4e8", on: false },
-    { name: "Анна",      initials: "А",  color: "#d4a8b9", on: false },
-    { name: "Лена",      initials: "Л",  color: "#d4b8e8", on: false },
+    { name: (_youName ? _youName + " " : "") + "(вы)", initials: (_youName || "В").slice(0, 1).toUpperCase(), color: "#FEDE34", on: true, you: true },
   ];
   const [members, setMembers] = useCS(allMembers);
   const toggleMember = (i) => setMembers(m => m.map((x, j) => j === i ? { ...x, on: !x.on } : x));
@@ -275,7 +273,7 @@ function TeamCreateLive() {
               {p.on && <I.Check size={12} strokeWidth={3}/>}
             </button>
           ))}
-          <button className="tap" style={{
+          <button className="tap" onClick={() => openSheet(<ShareAppSheetLive />)} style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "5px 11px", borderRadius: 999,
             background: "transparent", border: "1px dashed rgba(0,0,0,0.18)",
@@ -951,9 +949,11 @@ function TeamChatLive() {
 function ContactDetailLive() {
   const { navigate, params } = useNav();
   const { open: openSheet } = useSheet();
+  const app = useApp();
   const [booked, setBooked] = useCS({}); // booked offers (by index)
   const [added, setAdded] = useCS(false);
-  const userLevel = 8;
+  // YOUR real level (was a hardcoded 8) so an offer's lock reflects actual XP.
+  const userLevel = bosLevelInfoLive(bosLiveXPLive(app)).level;
   const p = params?.contact || {
     name: "Александра Иванова", initials: "АИ", color: "#e8c8a8",
     city: "Москва", role: "Маркетинг", level: 12, impact: 1840,

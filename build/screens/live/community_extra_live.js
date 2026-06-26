@@ -38,6 +38,9 @@ function TeamCreateLive() {
     navigate
   } = useNav();
   var app = useApp();
+  var {
+    open: openSheet
+  } = useSheet();
   var [name, setName] = useCS("");
   var [emblem, setEmblem] = useCS("✨");
   var [accent, setAccent] = useCS("#fef3c7");
@@ -61,39 +64,16 @@ function TeamCreateLive() {
   var [stakes, setStakes] = useCS(true);
   var [stakeAmount, setStakeAmount] = useCS(100);
 
-  // Members for split preview — the create form's own roster (used in every mode to
-  // configure who's on the new team), NOT a demo data branch.
+  // A real user starts a team as just THEMSELVES — no invented roster (the old
+  // Павел/Ник/Светлана… were demo personas leaking into live). Others come in via
+  // the «Пригласить» link, and the goal split fills out as they actually join.
+  var _youName = (app?.userName || "").trim();
   var allMembers = [{
-    name: "Павел (вы)",
-    initials: "П",
+    name: (_youName ? _youName + " " : "") + "(вы)",
+    initials: (_youName || "В").slice(0, 1).toUpperCase(),
     color: "#FEDE34",
     on: true,
     you: true
-  }, {
-    name: "Ник",
-    initials: "Н",
-    color: "#a8b9d4",
-    on: true
-  }, {
-    name: "Светлана",
-    initials: "С",
-    color: "#e8c8a8",
-    on: true
-  }, {
-    name: "Вадим",
-    initials: "В",
-    color: "#a8d4e8",
-    on: false
-  }, {
-    name: "Анна",
-    initials: "А",
-    color: "#d4a8b9",
-    on: false
-  }, {
-    name: "Лена",
-    initials: "Л",
-    color: "#d4b8e8",
-    on: false
   }];
   var [members, setMembers] = useCS(allMembers);
   var toggleMember = i => setMembers(m => m.map((x, j) => j === i ? {
@@ -712,6 +692,7 @@ function TeamCreateLive() {
     strokeWidth: 3
   }))), /*#__PURE__*/React.createElement("button", {
     className: "tap",
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheetLive, null)),
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -2705,9 +2686,11 @@ function ContactDetailLive() {
   var {
     open: openSheet
   } = useSheet();
+  var app = useApp();
   var [booked, setBooked] = useCS({}); // booked offers (by index)
   var [added, setAdded] = useCS(false);
-  var userLevel = 8;
+  // YOUR real level (was a hardcoded 8) so an offer's lock reflects actual XP.
+  var userLevel = bosLevelInfoLive(bosLiveXPLive(app)).level;
   var p = params?.contact || {
     name: "Александра Иванова",
     initials: "АИ",
