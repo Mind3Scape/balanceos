@@ -26,8 +26,17 @@ function HabitSettingsLive() {
   const preset = params?.preset; // quick-add chip → {i: emoji, t: label}
   const [name, setName] = useHS(editing ? params.habit.name : (preset?.t || "Прогулка"));
   const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : (preset?.i || "👟"));
-  const [showIcons, setShowIcons] = useHS(false);
-  const [color, setColor] = useHS(editing ? (params.habit.color ?? null) : (preset?.color ?? null));
+  // Icon = the SYSTEM emoji keyboard: a transparent input over the tile; whatever emoji the
+  // user types replaces the icon (no fixed grid). bosExtractEmoji keeps the last emoji only.
+  const emojiInputRef = React.useRef(null);
+  const onEmojiInput = (e) => {
+    const em = (typeof bosExtractEmoji === "function") ? bosExtractEmoji(e.target.value) : "";
+    if (em) { setIconPick(em); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } }
+    e.target.value = "";
+  };
+  // Every habit carries an Apple colour now (coherent with the week-strip). Old null-colour
+  // habits resolve to their stable bosHabitColor when edited.
+  const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#34C759")) : (preset?.color ?? "#34C759"));
   const [goal, setGoal] = useHS(editing ? (params.habit.goalPerDay || 1) : 1);
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
   const [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7
@@ -112,41 +121,53 @@ function HabitSettingsLive() {
       <div className="section-label">Название</div>
       <input className="bos-input" value={name} onChange={e => setName(e.target.value)} style={{ marginTop: 8 }} />
 
-      {/* Icon + colour — neutral by default; tap a swatch to tint it */}
+      {/* Icon + colour — iOS-26: the icon IS the system emoji keyboard (tap the tile → type
+          any emoji), with quick presets; colour is the full Apple palette + a custom wheel.
+          Core HABIT_ICONS/HABIT_COLORS stay untouched — this is the live picker only. */}
       <div className="section-label" style={{ marginTop: 22 }}>Иконка и цвет</div>
-      <button className="tap" data-no-haptic onClick={() => setShowIcons(v => !v)}
-        style={{ width: "100%", background: "#fff", border: 0, borderRadius: 22, padding: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)", marginTop: 8 }}>
-        <div style={{ width: 50, height: 50, borderRadius: 14, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, transition: "background 0.2s" }}>{iconPick}</div>
-        <div style={{ textAlign: "left", flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>{name || "Привычка"}</div>
-          <div style={{ fontSize: 13, color: "var(--text-4)" }}>{color ? HABIT_COLOR_NAMES[color] : "Базовый"} · {showIcons ? "выбери иконку" : "сменить иконку"}</div>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Transparent input over the tile: a tap focuses it → the system keyboard opens →
+              the user switches to emoji and the typed glyph replaces the icon, live. */}
+          <div style={{ position: "relative", width: 56, height: 56, borderRadius: 16, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, transition: "background 0.2s" }}>
+            {iconPick}
+            <input ref={emojiInputRef} defaultValue="" onInput={onEmojiInput} aria-label="Эмодзи с клавиатуры"
+              inputMode="text" autoCapitalize="none" autoCorrect="off" autoComplete="off"
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, background: "transparent", fontSize: 16, color: "transparent", caretColor: "transparent", textAlign: "center", outline: "none", borderRadius: 16, cursor: "pointer" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>{name || "Привычка"}</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.35 }}>Нажми на иконку → клавиатура с эмодзи 😀</div>
+          </div>
         </div>
-        <I.ChevronRight size={18} color="var(--text-4)" style={{ transform: showIcons ? "rotate(90deg)" : "none", transition: "transform 0.2s" }} />
-      </button>
-      {showIcons && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8, marginTop: 10 }}>
-          {HABIT_ICONS.map((e) => {
+        {/* Quick presets — one tap for speed */}
+        <div style={{ display: "flex", gap: 8, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
+          {["🏃","💪","🧘","📖","💧","🍎","😴","🔥","🎯","🌱","☕","✍️"].map((e) => {
             const on = e === iconPick;
             return (
-              <button key={e} className="tap" data-no-haptic onClick={() => { setIconPick(e); setShowIcons(false); }}
-                style={{ aspectRatio: "1/1", borderRadius: 14, fontSize: 24, border: 0, cursor: "pointer",
-                  background: on ? (color || "#0a0a0a") : "var(--surface-3)",
-                  boxShadow: on ? "0 3px 10px rgba(0,0,0,0.18)" : "none",
-                  transform: on ? "scale(1.06)" : "none", transition: "transform 0.12s, background 0.12s" }}>
+              <button key={e} className="tap" data-haptic="selection" onClick={() => setIconPick(e)}
+                style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 12, fontSize: 20, border: 0, cursor: "pointer",
+                  background: on ? (color || "#0a0a0a") + "26" : "var(--surface-3)",
+                  boxShadow: on ? "inset 0 0 0 2px " + (color || "#0a0a0a") : "none",
+                  display: "grid", placeItems: "center", transition: "background 0.12s, box-shadow 0.12s" }}>
                 {e}
               </button>
             );
           })}
         </div>
-      )}
-      <div style={{ display: "flex", gap: 10, marginTop: 12, padding: "2px 2px 0", flexWrap: "wrap" }}>
-        {HABIT_COLORS.map((c) => (
-          <button key={c.id} className="tap" data-no-haptic onClick={() => setColor(c.val)}
-            style={{ width: 34, height: 34, borderRadius: "50%", background: c.val || "var(--surface-3)", border: 0, display: "grid", placeItems: "center", cursor: "pointer",
-              boxShadow: color === c.val ? "0 0 0 2px var(--bg), 0 0 0 4px var(--text)" : (c.val ? "none" : "inset 0 0 0 1px rgba(0,0,0,0.12)") }}>
-            {color === c.val && <I.Check size={15} strokeWidth={3} color={c.val ? "#fff" : "var(--text-2)"} />}
-          </button>
-        ))}
+        {/* Apple system palette + custom wheel */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
+          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof color === "string" && color[0] === "#" && !BOS_APPLE_COLORS.includes(color)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
+            <input type="color" value={(typeof color === "string" && color[0] === "#") ? color : "#34C759"} onChange={(e) => setColor(e.target.value)} aria-label="Свой цвет"
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
+          </label>
+          <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
+          {BOS_APPLE_COLORS.map((c) => (
+            <button key={c} className="tap" data-haptic="selection" onClick={() => setColor(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
+              style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer",
+                boxShadow: color === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
+          ))}
+        </div>
       </div>
 
       {/* Goal */}

@@ -2512,3 +2512,39 @@ function HabitWeekStrip({
     });
   }));
 }
+
+// Names for the live Apple palette (the create-screen picker label). Includes the old
+// core #0A84FF so habits made before the v235 palette still read a colour name.
+var BOS_APPLE_COLOR_NAMES = {
+  "#34C759": "Зелёный",
+  "#007AFF": "Синий",
+  "#0A84FF": "Синий",
+  "#FF9500": "Оранжевый",
+  "#AF52DE": "Фиолетовый",
+  "#FF2D55": "Розовый",
+  "#30B0C7": "Бирюзовый",
+  "#5856D6": "Индиго",
+  "#FF3B30": "Красный",
+  "#FFCC00": "Жёлтый"
+};
+
+// Pull the LAST emoji grapheme a user typed, so the icon picker can BE the system emoji
+// keyboard (David: «открывается клавиатура с эмодзи», not a fixed grid). Intl.Segmenter
+// keeps multi-codepoint emoji (🧘‍♀️) whole; Extended_Pictographic filters out letters.
+function bosExtractEmoji(s) {
+  if (!s) return "";
+  var picks;
+  try {
+    picks = Array.from(new Intl.Segmenter(undefined, {
+      granularity: "grapheme"
+    }).segment(s), function (x) {
+      return x.segment;
+    });
+  } catch (e) {
+    picks = Array.from(s);
+  }
+  for (var i = picks.length - 1; i >= 0; i--) {
+    if (/\p{Extended_Pictographic}/u.test(picks[i])) return picks[i];
+  }
+  return "";
+}
