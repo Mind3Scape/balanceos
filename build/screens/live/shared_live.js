@@ -2733,7 +2733,7 @@ function HabitCountCheck({
       strokeWidth: 2.6,
       color: "#fff"
     }));
-  } else if (goal <= 6) {
+  } else if (goal <= 7) {
     var pitch = 360 / goal,
       gap = Math.min(22, pitch * 0.34);
     var pt = deg => {

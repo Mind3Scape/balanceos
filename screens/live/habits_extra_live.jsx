@@ -112,45 +112,24 @@ function HabitSettingsLive() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title={editing ? "Изменить привычку" : "Новая привычка"} onBack={() => navigate("habits")} />
-      {/* Name */}
-      <div className="section-label">Название</div>
-      <input className="bos-input" value={name} onChange={e => setName(e.target.value)} style={{ marginTop: 8 }} />
-
-      {/* Icon + colour — iOS-26: the icon IS the system emoji keyboard (tap the tile → type
-          any emoji), with quick presets; colour is the full Apple palette + a custom wheel.
-          Core HABIT_ICONS/HABIT_COLORS stay untouched — this is the live picker only. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Иконка и цвет</div>
-      <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 8 }}>
+      {/* Identity — icon (tap → emoji panel), name (tap → type) and colour all in ONE card;
+          no separate «Название» field, no preset row (the emoji panel already has every
+          emoji). David: «зачем целое отдельное поле… сделай целостно». */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* Tap the tile → an emoji PANEL opens straight on emojis (no ABC keyboard). */}
+          {/* Tap the tile → emoji PANEL (opens straight on emojis, no ABC keyboard). */}
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} />)}
             style={{ width: 56, height: 56, borderRadius: 16, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {iconPick}
           </button>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>{name || "Привычка"}</div>
-            <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.35 }}>Нажми на иконку — выбери эмодзи</div>
-          </div>
-        </div>
-        {/* Quick presets — one tap for speed */}
-        <div style={{ display: "flex", gap: 8, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
-          {["🏃","💪","🧘","📖","💧","🍎","😴","🔥","🎯","🌱","☕","✍️"].map((e) => {
-            const on = e === iconPick;
-            return (
-              <button key={e} className="tap" data-haptic="selection" onClick={() => setIconPick(e)}
-                style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 12, fontSize: 20, border: 0, cursor: "pointer",
-                  background: on ? (color || "#0a0a0a") + "26" : "var(--surface-3)",
-                  boxShadow: on ? "inset 0 0 0 2px " + (color || "#0a0a0a") : "none",
-                  display: "grid", placeItems: "center", transition: "background 0.12s, box-shadow 0.12s" }}>
-                {e}
-              </button>
-            );
-          })}
+          {/* Name is edited right here — tap to type, no separate field above. */}
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
+            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
         {/* Apple system palette + custom wheel. The selected swatch has a 4px outset ring —
             the row needs padding so an overflow-x scroller doesn't clip it (David: «колечко
             выпирает и обрезается»). 6px all round > the 4px ring. */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
           <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof color === "string" && color[0] === "#" && color !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(color)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
             <input type="color" value={(typeof color === "string" && color[0] === "#") ? color : "#0a0a0a"} onChange={(e) => setColor(e.target.value)} aria-label="Свой цвет"
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />

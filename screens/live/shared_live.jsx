@@ -1064,7 +1064,7 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
         <I.Check size={18} strokeWidth={2.6} color="#fff" />
       </span>
     );
-  } else if (goal <= 6) {
+  } else if (goal <= 7) {
     const pitch = 360 / goal, gap = Math.min(22, pitch * 0.34);
     const pt = (deg) => { const a = deg * Math.PI / 180; return [(CX + R * Math.cos(a)).toFixed(2), (CX + R * Math.sin(a)).toFixed(2)]; };
     const segs = [];

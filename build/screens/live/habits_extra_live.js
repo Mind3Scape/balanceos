@@ -164,26 +164,12 @@ function HabitSettingsLive() {
     title: editing ? "Изменить привычку" : "Новая привычка",
     onBack: () => navigate("habits")
   }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label"
-  }, "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("input", {
-    className: "bos-input",
-    value: name,
-    onChange: e => setName(e.target.value),
-    style: {
-      marginTop: 8
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0418\u043A\u043E\u043D\u043A\u0430 \u0438 \u0446\u0432\u0435\u0442"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
       padding: 14,
       boxShadow: "var(--card-shadow)",
-      marginTop: 8
+      marginTop: 6
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -210,62 +196,29 @@ function HabitSettingsLive() {
       cursor: "pointer",
       transition: "background 0.2s"
     }
-  }, iconPick), /*#__PURE__*/React.createElement("div", {
+  }, iconPick), /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438",
+    "aria-label": "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438",
     style: {
       flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
+      minWidth: 0,
+      border: 0,
+      outline: "none",
+      background: "transparent",
+      fontSize: 17,
       fontWeight: 600,
-      fontSize: 16,
-      color: "var(--text)"
+      color: "var(--text)",
+      letterSpacing: "-0.2px",
+      padding: "6px 0"
     }
-  }, name || "Привычка"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-4)",
-      marginTop: 2,
-      lineHeight: 1.35
-    }
-  }, "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0438\u043A\u043E\u043D\u043A\u0443 \u2014 \u0432\u044B\u0431\u0435\u0440\u0438 \u044D\u043C\u043E\u0434\u0437\u0438"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginTop: 12,
-      overflowX: "auto",
-      scrollbarWidth: "none",
-      WebkitOverflowScrolling: "touch",
-      paddingBottom: 2
-    }
-  }, ["🏃", "💪", "🧘", "📖", "💧", "🍎", "😴", "🔥", "🎯", "🌱", "☕", "✍️"].map(e => {
-    var on = e === iconPick;
-    return /*#__PURE__*/React.createElement("button", {
-      key: e,
-      className: "tap",
-      "data-haptic": "selection",
-      onClick: () => setIconPick(e),
-      style: {
-        flexShrink: 0,
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        fontSize: 20,
-        border: 0,
-        cursor: "pointer",
-        background: on ? (color || "#0a0a0a") + "26" : "var(--surface-3)",
-        boxShadow: on ? "inset 0 0 0 2px " + (color || "#0a0a0a") : "none",
-        display: "grid",
-        placeItems: "center",
-        transition: "background 0.12s, box-shadow 0.12s"
-      }
-    }, e);
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
-      marginTop: 8,
+      marginTop: 12,
       overflowX: "auto",
       scrollbarWidth: "none",
       WebkitOverflowScrolling: "touch",
