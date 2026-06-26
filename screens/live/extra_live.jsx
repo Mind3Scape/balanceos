@@ -76,7 +76,7 @@ function HabitDetailLive() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
-        <button onClick={() => navigate("habit-settings", { mode: "edit", habit: h })} className="tap" style={{ background: "transparent", border: 0, fontSize: 15, fontWeight: 500, color: "var(--text-2)" }}>Изменить</button>
+        <EditGlassButtonLive onClick={() => navigate("habit-settings", { mode: "edit", habit: h })} />
       } />
 
       {/* Hero — neutral tile (or the habit's soft colour), like the lists outside */}
@@ -162,7 +162,7 @@ function GoalDetailLive() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
-        <button onClick={() => navigate("goal-settings", { mode: "edit", goal: g })} className="tap" style={{ background: "transparent", border: 0, fontSize: 15, fontWeight: 500, color: "var(--text-2)" }}>Изменить</button>
+        <EditGlassButtonLive onClick={() => navigate("goal-settings", { mode: "edit", goal: g })} />
       } />
 
       {/* Hero — progress ring (Apple-Watch style), % counts up on open */}

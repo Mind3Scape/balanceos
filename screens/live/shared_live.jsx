@@ -1102,3 +1102,21 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
     </div>
   );
 }
+
+/* iOS-26 Liquid Glass «Изменить» — one standardised edit pill for habit / goal / team
+   detail headers (David: «классная кнопка по стандартам iOS 26»). Frosted translucent
+   capsule: backdrop blur + bright specular edge + layered soft shadow. */
+function EditGlassButtonLive({ onClick, label = "Изменить" }) {
+  return (
+    <button onClick={onClick} className="tap" data-haptic="selection" aria-label={label}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 14px", borderRadius: 999,
+        border: "0.5px solid rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.62)",
+        WebkitBackdropFilter: "blur(20px) saturate(180%)", backdropFilter: "blur(20px) saturate(180%)",
+        color: "var(--text)", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1, cursor: "pointer",
+        boxShadow: "0 1px 1px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9)",
+      }}>
+      <I.Pencil size={14} strokeWidth={2} /> {label}
+    </button>
+  );
+}

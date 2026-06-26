@@ -381,17 +381,14 @@ function TeamDetailLive() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => openSheet(<TeamShareSheet team={t} />)} className="tap" title="Поделиться командой" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
             <I.Share size={18}/>
           </button>
-          {/* E — only the team's CREATOR sees the gear. _isOwner reads the real roster role
-              (so a creator on a second device still gets it), falling back to !t.joined. */}
-          {_isOwner && (
-          <button onClick={() => navigate("team-settings", { team: t })} className="tap" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
-            <I.Settings size={18}/>
-          </button>
-          )}
+          {/* Edit = the same Liquid Glass «Изменить» as habit/goal, but ONLY the team's
+              CREATOR (David: «кнопка Изменить у создателя команды»). _isOwner reads the
+              real roster role, falling back to !t.joined. */}
+          {_isOwner && <EditGlassButtonLive onClick={() => navigate("team-settings", { team: t })} />}
         </div>
       }/>
       <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden" }}>

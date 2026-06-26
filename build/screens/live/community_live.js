@@ -875,7 +875,8 @@ function TeamDetailLive() {
     right: /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 8
+        gap: 8,
+        alignItems: "center"
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheet, {
@@ -894,23 +895,11 @@ function TeamDetailLive() {
       }
     }, /*#__PURE__*/React.createElement(I.Share, {
       size: 18
-    })), _isOwner && /*#__PURE__*/React.createElement("button", {
+    })), _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: () => navigate("team-settings", {
         team: t
-      }),
-      className: "tap",
-      style: {
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        background: "var(--surface-3)",
-        border: 0,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement(I.Settings, {
-      size: 18
-    })))
+      })
+    }))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,

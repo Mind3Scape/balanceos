@@ -115,20 +115,12 @@ function HabitDetailLive() {
     dark: isDark,
     title: "",
     onBack: () => navigate(back),
-    right: /*#__PURE__*/React.createElement("button", {
+    right: /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: () => navigate("habit-settings", {
         mode: "edit",
         habit: h
-      }),
-      className: "tap",
-      style: {
-        background: "transparent",
-        border: 0,
-        fontSize: 15,
-        fontWeight: 500,
-        color: "var(--text-2)"
-      }
-    }, "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C")
+      })
+    })
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
@@ -326,20 +318,12 @@ function GoalDetailLive() {
     dark: isDark,
     title: "",
     onBack: () => navigate(back),
-    right: /*#__PURE__*/React.createElement("button", {
+    right: /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: () => navigate("goal-settings", {
         mode: "edit",
         goal: g
-      }),
-      className: "tap",
-      style: {
-        background: "transparent",
-        border: 0,
-        fontSize: 15,
-        fontWeight: 500,
-        color: "var(--text-2)"
-      }
-    }, "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C")
+      })
+    })
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
