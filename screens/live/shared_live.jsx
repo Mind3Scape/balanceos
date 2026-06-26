@@ -451,18 +451,58 @@ function ShareAppSheetLive({ dark = false }) {
    the corner gets our ORBIT motif with little MEMOJI faces «orbiting» instead of a plain
    radial wash (David: «классно бы — орбиты с лицами участников, ощущение „вместе"»). The
    shared XPRewardCard stays untouched → demo pixel-identical. */
+/* ── Shared-habit BUDDY data: stale-while-revalidate cache ─────────────────────
+   Avatars must appear INSTANTLY and never flash on re-entry (David: «мигания совсем не
+   нравятся, аватар должен отображаться прям реально»). A module-level cache holds the last
+   members[] per shareCode; a component seeds its state FROM the cache synchronously (no
+   null→data pop-in), then revalidates in the background and re-renders ONLY if the data
+   actually changed (no poll churn, no flicker). */
+var _bosBuddyCache = {};
+function _bosBuddySig(ms) {
+  if (!ms) return "";
+  try { return ms.map(function (m) { return m.id + ":" + (m.avatar || "") + ":" + (m.name || "") + ":" + (m.value != null ? m.value : "") + ":" + Object.keys(m.days || {}).length; }).join("|"); }
+  catch (e) { return "" + (ms && ms.length); }
+}
+function useBuddyMembersLive(code) {
+  var st = React.useState(function () { return (code && _bosBuddyCache[code]) || null; });
+  var members = st[0], setMembers = st[1];
+  React.useEffect(function () {
+    if (!code) { setMembers(null); return; }
+    if (_bosBuddyCache[code]) setMembers(_bosBuddyCache[code]); // instant from cache — no flash
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
+    var on = true;
+    var load = function () {
+      window.bosCloud.sharedHabitProgress(code).then(function (d) {
+        if (!on || !d || !d.members) return;
+        var changed = _bosBuddySig(_bosBuddyCache[code]) !== _bosBuddySig(d.members);
+        _bosBuddyCache[code] = d.members;
+        if (changed) setMembers(d.members);  // swap ONLY when something really changed
+      }).catch(function () {});
+    };
+    load();
+    var iv = setInterval(load, 25000);
+    return function () { on = false; clearInterval(iv); };
+  }, [code]);
+  return members;
+}
+
+/* A buddy/member face that's ALWAYS visible: a custom emoji/memoji avatar via BosAvatar, else
+   a coloured initial disc (David: базовый аватар был белый на белом → его не было видно). */
+function BuddyFaceLive({ avatar, name, size }) {
+  size = size || 24;
+  var a = "" + (avatar || "");
+  var isCustom = a.indexOf("emoji:") === 0 || /^m\d+$/.test(a);
+  if (isCustom && typeof BosAvatar !== "undefined") return <BosAvatar avatar={avatar} size={size} />;
+  var color = (typeof bosUserColor === "function") ? bosUserColor(name || a || "?") : "#9AA3AE";
+  var initial = ((name || "?").trim().charAt(0) || "?").toUpperCase();
+  return <div style={{ width: size, height: size, borderRadius: "50%", background: color, color: "#fff", display: "grid", placeItems: "center", fontSize: Math.round(size * 0.46), fontWeight: 700, flexShrink: 0, lineHeight: 1 }}>{initial}</div>;
+}
+
 function HabitInviteBannerLive({ amount = 75, habit }) {
   const ink = "#0a0a0a", inkSub = "rgba(0,0,0,0.62)";
-  // Show the REAL faces of people who've already joined this habit; before anyone joins, a
-  // decorative trio keeps the «вместе» cue.
-  const [buddies, setBuddies] = React.useState(null);
-  const _code = habit && habit.shareCode;
-  React.useEffect(() => {
-    let on = true;
-    if (!_code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
-    window.bosCloud.sharedHabitProgress(_code).then((d) => { if (on && d && d.members) setBuddies(d.members.filter((m) => !m.me)); }).catch(() => {});
-    return () => { on = false; };
-  }, [_code]);
+  // Real faces of people who've already joined (cache-backed → no flash); decorative trio before anyone joins.
+  const _members = useBuddyMembersLive(habit && habit.shareCode);
+  const buddies = _members ? _members.filter((m) => !m.me) : null;
   const slots = [{ ang: -68, rad: 54, sz: 27 }, { ang: -18, rad: 36, sz: 23 }, { ang: 26, rad: 57, sz: 25 }];
   const placeholders = ["🧑🏻", "👩🏽", "🧔🏾"];
   const real = buddies && buddies.length ? buddies.slice(0, 3) : null;
@@ -481,7 +521,7 @@ function HabitInviteBannerLive({ amount = 75, habit }) {
           return (
             <span key={i} style={{ position: "absolute", left: cx - p.sz / 2, top: cy - p.sz / 2, width: p.sz, height: p.sz, borderRadius: "50%",
               background: "rgba(255,255,255,0.94)", display: "grid", placeItems: "center", fontSize: p.sz * 0.62, overflow: "hidden",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.16)" }}>{m ? (typeof BosAvatar !== "undefined" ? <BosAvatar avatar={m.avatar} size={p.sz} /> : "🙂") : placeholders[i]}</span>
+              boxShadow: "0 2px 6px rgba(0,0,0,0.16)" }}>{m ? <BuddyFaceLive avatar={m.avatar} name={m.name} size={p.sz} /> : placeholders[i]}</span>
           );
         })}
       </div>
@@ -542,14 +582,8 @@ function JoinWelcomeLive({ info, onClose }) {
    people you share the habit with (their real avatars), replacing the legacy empty h.friends.
    Falls back to h.friends only for a local (no-shareCode) habit. LIVE only. */
 function HabitBuddyAvatarsLive({ habit, size = 22, max = 4 }) {
-  const [members, setMembers] = React.useState(null);
   const code = habit && habit.shareCode;
-  React.useEffect(() => {
-    let on = true;
-    if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) { setMembers(null); return; }
-    window.bosCloud.sharedHabitProgress(code).then((d) => { if (on && d && d.members) setMembers(d.members); }).catch(() => {});
-    return () => { on = false; };
-  }, [code]);
+  const members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
   if (!code) {
     return (habit && habit.friends && habit.friends.length > 0 && typeof AvatarStack !== "undefined")
       ? <AvatarStack people={habit.friends} size={size} max={max} label={false} /> : null;
@@ -561,7 +595,7 @@ function HabitBuddyAvatarsLive({ habit, size = 22, max = 4 }) {
     <div style={{ display: "flex", alignItems: "center" }} aria-hidden>
       {shown.map((m, i) => (
         <span key={m.id} style={{ marginLeft: i ? -7 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)", display: "block" }}>
-          {typeof BosAvatar !== "undefined" ? <BosAvatar avatar={m.avatar} size={size} /> : <span style={{ width: size, height: size, borderRadius: "50%", background: "rgba(0,0,0,0.12)", display: "block" }} />}
+          <BuddyFaceLive avatar={m.avatar} name={m.name} size={size} />
         </span>
       ))}
       {extra > 0 && <span style={{ marginLeft: -7, width: size, height: size, borderRadius: "50%", background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: Math.round(size * 0.42), fontWeight: 700, display: "grid", placeItems: "center", boxShadow: "0 0 0 2px var(--card, #fff)" }}>+{extra}</span>}
@@ -676,22 +710,14 @@ function ShareHabitSheetLive({ habit, dark = false }) {
    (David: «видеть прогресс друг друга на календарике»). Reads the cloud shared logs; quietly
    waits while the friend hasn't joined. Rendered only when the habit carries a shareCode. */
 function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
-  const [data, setData] = React.useState(null);
   const code = habit && habit.shareCode;
-  React.useEffect(() => {
-    if (membersProp) return; // parent already fetched the members → don't poll twice
-    let on = true;
-    if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
-    const load = () => window.bosCloud.sharedHabitProgress(code).then((d) => { if (on) setData(d); }).catch(() => {});
-    load();
-    const iv = setInterval(load, 20000); // light poll so a friend's fresh mark turns up
-    return () => { on = false; clearInterval(iv); };
-  }, [code, !!membersProp]);
+  // Cache-backed (no flash); when the parent already provides members, skip the fetch entirely.
+  const fetched = useBuddyMembersLive(membersProp ? null : code);
   if (!code) return null;
   const accent = (typeof bosHabitColor === "function") ? bosHabitColor(habit) : (habit.color || "#0a0a0a");
   const today = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
   const keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
-  const members = membersProp || (data && data.members) || [];
+  const members = membersProp || fetched || [];
   const card = isDark ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" } : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
   return (
     <>
@@ -708,7 +734,7 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
               const doneToday = !!m.days[today];
               return (
                 <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  {(typeof BosAvatar !== "undefined") ? <BosAvatar avatar={m.avatar} size={40} /> : <div style={{ width: 40, height: 40, borderRadius: "50%", background: accent }} />}
+                  <BuddyFaceLive avatar={m.avatar} name={m.name} size={40} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>
                       {m.me ? "Ты" : m.name}

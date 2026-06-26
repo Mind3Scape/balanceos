@@ -1183,26 +1183,96 @@ function ShareAppSheetLive({
    the corner gets our ORBIT motif with little MEMOJI faces «orbiting» instead of a plain
    radial wash (David: «классно бы — орбиты с лицами участников, ощущение „вместе"»). The
    shared XPRewardCard stays untouched → demo pixel-identical. */
+/* ── Shared-habit BUDDY data: stale-while-revalidate cache ─────────────────────
+   Avatars must appear INSTANTLY and never flash on re-entry (David: «мигания совсем не
+   нравятся, аватар должен отображаться прям реально»). A module-level cache holds the last
+   members[] per shareCode; a component seeds its state FROM the cache synchronously (no
+   null→data pop-in), then revalidates in the background and re-renders ONLY if the data
+   actually changed (no poll churn, no flicker). */
+var _bosBuddyCache = {};
+function _bosBuddySig(ms) {
+  if (!ms) return "";
+  try {
+    return ms.map(function (m) {
+      return m.id + ":" + (m.avatar || "") + ":" + (m.name || "") + ":" + (m.value != null ? m.value : "") + ":" + Object.keys(m.days || {}).length;
+    }).join("|");
+  } catch (e) {
+    return "" + (ms && ms.length);
+  }
+}
+function useBuddyMembersLive(code) {
+  var st = React.useState(function () {
+    return code && _bosBuddyCache[code] || null;
+  });
+  var members = st[0],
+    setMembers = st[1];
+  React.useEffect(function () {
+    if (!code) {
+      setMembers(null);
+      return;
+    }
+    if (_bosBuddyCache[code]) setMembers(_bosBuddyCache[code]); // instant from cache — no flash
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
+    var on = true;
+    var load = function () {
+      window.bosCloud.sharedHabitProgress(code).then(function (d) {
+        if (!on || !d || !d.members) return;
+        var changed = _bosBuddySig(_bosBuddyCache[code]) !== _bosBuddySig(d.members);
+        _bosBuddyCache[code] = d.members;
+        if (changed) setMembers(d.members); // swap ONLY when something really changed
+      }).catch(function () {});
+    };
+    load();
+    var iv = setInterval(load, 25000);
+    return function () {
+      on = false;
+      clearInterval(iv);
+    };
+  }, [code]);
+  return members;
+}
+
+/* A buddy/member face that's ALWAYS visible: a custom emoji/memoji avatar via BosAvatar, else
+   a coloured initial disc (David: базовый аватар был белый на белом → его не было видно). */
+function BuddyFaceLive({
+  avatar,
+  name,
+  size
+}) {
+  size = size || 24;
+  var a = "" + (avatar || "");
+  var isCustom = a.indexOf("emoji:") === 0 || /^m\d+$/.test(a);
+  if (isCustom && typeof BosAvatar !== "undefined") return /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: avatar,
+    size: size
+  });
+  var color = typeof bosUserColor === "function" ? bosUserColor(name || a || "?") : "#9AA3AE";
+  var initial = ((name || "?").trim().charAt(0) || "?").toUpperCase();
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      background: color,
+      color: "#fff",
+      display: "grid",
+      placeItems: "center",
+      fontSize: Math.round(size * 0.46),
+      fontWeight: 700,
+      flexShrink: 0,
+      lineHeight: 1
+    }
+  }, initial);
+}
 function HabitInviteBannerLive({
   amount = 75,
   habit
 }) {
   var ink = "#0a0a0a",
     inkSub = "rgba(0,0,0,0.62)";
-  // Show the REAL faces of people who've already joined this habit; before anyone joins, a
-  // decorative trio keeps the «вместе» cue.
-  var [buddies, setBuddies] = React.useState(null);
-  var _code = habit && habit.shareCode;
-  React.useEffect(() => {
-    var on = true;
-    if (!_code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
-    window.bosCloud.sharedHabitProgress(_code).then(d => {
-      if (on && d && d.members) setBuddies(d.members.filter(m => !m.me));
-    }).catch(() => {});
-    return () => {
-      on = false;
-    };
-  }, [_code]);
+  // Real faces of people who've already joined (cache-backed → no flash); decorative trio before anyone joins.
+  var _members = useBuddyMembersLive(habit && habit.shareCode);
+  var buddies = _members ? _members.filter(m => !m.me) : null;
   var slots = [{
     ang: -68,
     rad: 54,
@@ -1274,10 +1344,11 @@ function HabitInviteBannerLive({
         overflow: "hidden",
         boxShadow: "0 2px 6px rgba(0,0,0,0.16)"
       }
-    }, m ? typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+    }, m ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
       avatar: m.avatar,
+      name: m.name,
       size: p.sz
-    }) : "🙂" : placeholders[i]);
+    }) : placeholders[i]);
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -1470,21 +1541,8 @@ function HabitBuddyAvatarsLive({
   size = 22,
   max = 4
 }) {
-  var [members, setMembers] = React.useState(null);
   var code = habit && habit.shareCode;
-  React.useEffect(() => {
-    var on = true;
-    if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) {
-      setMembers(null);
-      return;
-    }
-    window.bosCloud.sharedHabitProgress(code).then(d => {
-      if (on && d && d.members) setMembers(d.members);
-    }).catch(() => {});
-    return () => {
-      on = false;
-    };
-  }, [code]);
+  var members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
   if (!code) {
     return habit && habit.friends && habit.friends.length > 0 && typeof AvatarStack !== "undefined" ? /*#__PURE__*/React.createElement(AvatarStack, {
       people: habit.friends,
@@ -1511,17 +1569,10 @@ function HabitBuddyAvatarsLive({
       boxShadow: "0 0 0 2px var(--card, #fff)",
       display: "block"
     }
-  }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
     avatar: m.avatar,
+    name: m.name,
     size: size
-  }) : /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: size,
-      height: size,
-      borderRadius: "50%",
-      background: "rgba(0,0,0,0.12)",
-      display: "block"
-    }
   }))), extra > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
       marginLeft: -7,
@@ -1846,27 +1897,14 @@ function SharedBuddiesLive({
   isDark,
   members: membersProp
 }) {
-  var [data, setData] = React.useState(null);
   var code = habit && habit.shareCode;
-  React.useEffect(() => {
-    if (membersProp) return; // parent already fetched the members → don't poll twice
-    var on = true;
-    if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
-    var load = () => window.bosCloud.sharedHabitProgress(code).then(d => {
-      if (on) setData(d);
-    }).catch(() => {});
-    load();
-    var iv = setInterval(load, 20000); // light poll so a friend's fresh mark turns up
-    return () => {
-      on = false;
-      clearInterval(iv);
-    };
-  }, [code, !!membersProp]);
+  // Cache-backed (no flash); when the parent already provides members, skip the fetch entirely.
+  var fetched = useBuddyMembersLive(membersProp ? null : code);
   if (!code) return null;
   var accent = typeof bosHabitColor === "function" ? bosHabitColor(habit) : habit.color || "#0a0a0a";
   var today = typeof bosTodayKey === "function" ? bosTodayKey() : "";
   var keys = typeof bosWeekKeys === "function" ? bosWeekKeys() : [];
-  var members = membersProp || data && data.members || [];
+  var members = membersProp || fetched || [];
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -1921,16 +1959,10 @@ function SharedBuddiesLive({
         alignItems: "center",
         gap: 12
       }
-    }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
       avatar: m.avatar,
+      name: m.name,
       size: 40
-    }) : /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        background: accent
-      }
     }), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,

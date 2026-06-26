@@ -88,20 +88,9 @@ function HabitDetailLive() {
   // «Вместе» card show WHO did WHICH day, each in their own colour-coded track (David:
   // «на календаре у кого какой день»). Solo habit → just you. Light poll so a friend's
   // fresh mark turns up. The SAME PeopleMonthCalendar the team uses → one consistent look.
-  var [buddies, setBuddies] = React.useState(null);
-  React.useEffect(() => {
-    var on = true;
-    if (!h.shareCode || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
-    var load = () => window.bosCloud.sharedHabitProgress(h.shareCode).then(d => {
-      if (on && d && d.members) setBuddies(d.members);
-    }).catch(() => {});
-    load();
-    var iv = setInterval(load, 20000);
-    return () => {
-      on = false;
-      clearInterval(iv);
-    };
-  }, [h.shareCode]);
+  // Cache-backed (stale-while-revalidate): seeds from the last-known members instantly, so the
+  // «Вместе» card + month calendar don't flash/jump on every enter/exit (David: «мигания»).
+  var buddies = useBuddyMembersLive(h.shareCode);
   var _shared = !!(buddies && buddies.length > 1);
   var _calYear = new Date().getFullYear();
   var _calKey = (d, mi) => _calYear + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");

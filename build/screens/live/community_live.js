@@ -660,6 +660,21 @@ function CommunityLive() {
     size: 14
   })))))));
 }
+
+/* Per-team stale-while-revalidate cache (roster / habits / anchor-progress / goal) so
+   re-opening a team renders INSTANTLY from the last-known data instead of flashing through
+   a skeleton every time (David: «каждый раз вижу обновление экрана, дёргать не нравится»).
+   Keyed by cloudId; the effects below still revalidate in the background. */
+var _bosTeamCache = {};
+function _bosTeamGet(k) {
+  return k && _bosTeamCache[k] !== undefined ? _bosTeamCache[k] : null;
+}
+function _bosTeamPut(k, v) {
+  if (k) {
+    _bosTeamCache[k] = v;
+  }
+  return v;
+}
 function TeamDetailLive() {
   var {
     navigate,
@@ -735,7 +750,7 @@ function TeamDetailLive() {
   // LIVE teams: load the REAL roster (real names + avatars + roles) from the cloud, so the
   // member list is honest — real teammates, no fabricated standings until real progress exists.
   var _rosterLive = !!(window.bosCloud && window.bosCloud.enabled() && t.cloudId);
-  var [cloudRoster, setCloudRoster] = React.useState(null);
+  var [cloudRoster, setCloudRoster] = React.useState(() => _bosTeamGet("roster:" + t.cloudId));
   var [meId, setMeId] = React.useState(null); // current user's cloud id — to find myself in the roster
   var [rosterTick, setRosterTick] = React.useState(0);
   React.useEffect(() => {
@@ -759,14 +774,14 @@ function TeamDetailLive() {
       var palette = BOS_TEAM_PALETTE;
       // owner first, then members, in join order
       var sorted = mem.slice().sort((a, b) => a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0);
-      setCloudRoster(sorted.map((m, i) => ({
+      setCloudRoster(_bosTeamPut("roster:" + t.cloudId, sorted.map((m, i) => ({
         id: m.id,
         name: m.name || "Участник",
         avatar: m.avatar,
         role: m.role,
         initials: (m.name || "У").slice(0, 1).toUpperCase(),
         color: palette[i % palette.length]
-      })));
+      }))));
     }).catch(() => {});
     return () => {
       on = false;
@@ -805,17 +820,17 @@ function TeamDetailLive() {
   };
 
   // REAL shared team habits for live teams (from the cloud): real names + per-member completion.
-  var [liveTeamHabits, setLiveTeamHabits] = React.useState(null);
+  var [liveTeamHabits, setLiveTeamHabits] = React.useState(() => _bosTeamGet("habits:" + t.cloudId));
   var [habitsTick, setHabitsTick] = React.useState(0);
-  var [mainProg, setMainProg] = React.useState(null); // per-member day-map for the anchor habit (who did which day)
-  var [goalProg, setGoalProg] = React.useState(null); // team-goal progress COMPUTED from habit marks (current + per-member contribution)
+  var [mainProg, setMainProg] = React.useState(() => _bosTeamGet("mainprog:" + t.cloudId)); // per-member day-map for the anchor habit (who did which day)
+  var [goalProg, setGoalProg] = React.useState(() => _bosTeamGet("goal:" + t.cloudId)); // team-goal progress COMPUTED from habit marks (current + per-member contribution)
   var [settlements, setSettlements] = React.useState(null); // { user_id: {xp, won} } — team-goal XP payouts (cloud ledger)
   var settledRef = React.useRef(false); // settle-once guard (per mount per reached goal)
   React.useEffect(() => {
     if (!_rosterLive || !window.bosCloud.teamHabitsFull) return;
     var on = true;
     window.bosCloud.teamHabitsFull(t.cloudId).then(hs => {
-      if (on) setLiveTeamHabits(Array.isArray(hs) ? hs : []);
+      if (on) setLiveTeamHabits(_bosTeamPut("habits:" + t.cloudId, Array.isArray(hs) ? hs : []));
     }).catch(() => {});
     return () => {
       on = false;
@@ -875,7 +890,7 @@ function TeamDetailLive() {
       return;
     }
     var load = () => window.bosCloud.teamHabitProgress(t.cloudId, _mainId).then(d => {
-      if (on && d && d.members) setMainProg(d.members);
+      if (on && d && d.members) setMainProg(_bosTeamPut("mainprog:" + t.cloudId, d.members));
     }).catch(() => {});
     load();
     var iv = setInterval(load, 20000);
@@ -892,7 +907,7 @@ function TeamDetailLive() {
       return;
     }
     var load = () => window.bosCloud.teamGoalProgress(t.cloudId).then(d => {
-      if (on && d) setGoalProg(d);
+      if (on && d) setGoalProg(_bosTeamPut("goal:" + t.cloudId, d));
     }).catch(() => {});
     load();
     var iv = setInterval(load, 20000);
@@ -1162,16 +1177,10 @@ function TeamDetailLive() {
           borderRadius: 999,
           padding: "3px 10px 3px 3px"
         }
-      }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+      }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
         avatar: m.avatar,
+        name: m.name,
         size: 20
-      }) : /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          background: "rgba(0,0,0,0.1)"
-        }
       }), /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11.5,
@@ -1445,17 +1454,10 @@ function TeamDetailLive() {
           display: "block",
           opacity: did ? 1 : 0.4
         }
-      }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+      }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
         avatar: m.avatar,
+        name: m.name,
         size: 28
-      }) : /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 28,
-          height: 28,
-          borderRadius: "50%",
-          background: "rgba(0,0,0,0.15)",
-          display: "block"
-        }
       }), did && /*#__PURE__*/React.createElement("span", {
         style: {
           position: "absolute",
