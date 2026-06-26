@@ -289,10 +289,12 @@ function HomeLive() {
                       </div>
                     )}
                   </div>
-                  {h.duration && !h.done && (
+                  {h.duration && !h.done && !(h.goalPerDay > 1) && (
                     <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                   )}
-                  <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} float />
+                  {h.goalPerDay > 1
+                    ? <HabitCountCheck habit={h} app={app} xp={XP_PER_HABIT} />
+                    : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} float />}
                 </div>
               </SwipeRow>
             </div>

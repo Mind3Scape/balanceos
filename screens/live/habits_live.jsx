@@ -145,10 +145,12 @@ function HabitsLive() {
                         </div>
                       )}
                     </div>
-                    {h.duration && !h.done && (
+                    {h.duration && !h.done && !(h.goalPerDay > 1) && (
                       <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
                     )}
-                    <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />
+                    {h.goalPerDay > 1
+                      ? <HabitCountCheck habit={h} app={app} xp={10} />
+                      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
                   </div>
                   {/* NEW (v235): week-strip Пн→Вс + co-op avatars. Home card stays compact — this
                       richer bottom row lives only on the Привычки page (David). */}

@@ -1023,3 +1023,82 @@ function EmojiPickerLive({ onPick }) {
     </div>
   );
 }
+
+/* Count check (live) — for habits whose DAILY goal is >1 (e.g. 20 отжиманий). Tap = +1,
+   long-press = −1; a ring (big goals) or radial SEGMENTS (≤6) fill with the count. The day
+   is marked done — and XP granted — ONLY at the FULL count (David: «экспа только за
+   закрытие полной привычки»). Done flips through the shared toggleHabit (XP derives from
+   the date-log); the running count lives in habit.counts[dayKey] via updateHabit (no XP). */
+function HabitCountCheck({ habit, app, xp = 10 }) {
+  const goal = Math.max(2, habit.goalPerDay || 2);
+  const today = bosTodayKey();
+  const isDone = !!habit.done;
+  const count = isDone ? goal : ((habit.counts && habit.counts[today]) || 0);
+  const accent = bosHabitColor(habit);
+  const [tick, setTick] = React.useState(0);
+  const btnRef = React.useRef(null);
+  const lpTimer = React.useRef(null);
+  const suppress = React.useRef(false);
+
+  const apply = (raw) => {
+    const next = Math.max(0, Math.min(goal, raw));
+    if (next === count) return;
+    const willDone = next >= goal;
+    const counts = Object.assign({}, habit.counts || {});
+    counts[today] = next;
+    if (app && app.updateHabit) app.updateHabit(habit.id, { counts });
+    if (willDone !== isDone && app && app.toggleHabit) app.toggleHabit(habit.id); // flips done + XP
+    if (willDone && !isDone) setTick(function (t) { return t + 1; });             // XP pop
+    if (window.tgHaptic) { try { window.tgHaptic(willDone ? "success" : "light"); } catch (_) {} }
+  };
+  const startLP = (e) => { e.stopPropagation(); suppress.current = false; lpTimer.current = setTimeout(function () { suppress.current = true; if (window.tgHaptic) { try { window.tgHaptic("rigid"); } catch (_) {} } apply(count - 1); }, 480); };
+  const endLP = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } };
+  const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } apply(isDone ? 0 : count + 1); };
+
+  const SIZE = 36, R = 13.5, CX = SIZE / 2, C = 2 * Math.PI * R;
+  const track = "rgba(10,10,10,0.10)";
+  let body;
+  if (isDone) {
+    body = (
+      <span style={{ width: SIZE, height: SIZE, borderRadius: "50%", background: accent, display: "grid", placeItems: "center" }}>
+        <I.Check size={18} strokeWidth={2.6} color="#fff" />
+      </span>
+    );
+  } else if (goal <= 6) {
+    const pitch = 360 / goal, gap = Math.min(22, pitch * 0.34);
+    const pt = (deg) => { const a = deg * Math.PI / 180; return [(CX + R * Math.cos(a)).toFixed(2), (CX + R * Math.sin(a)).toFixed(2)]; };
+    const segs = [];
+    for (let i = 0; i < goal; i++) {
+      const a0 = -90 + i * pitch + gap / 2, a1 = -90 + (i + 1) * pitch - gap / 2;
+      const p0 = pt(a0), p1 = pt(a1);
+      segs.push(<path key={i} d={"M " + p0[0] + " " + p0[1] + " A " + R + " " + R + " 0 0 1 " + p1[0] + " " + p1[1]} fill="none" stroke={i < count ? accent : track} strokeWidth="3.4" strokeLinecap="round" />);
+    }
+    body = (
+      <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
+        <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0 }}>{segs}</svg>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
+      </span>
+    );
+  } else {
+    body = (
+      <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
+        <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0 }}>
+          <circle cx={CX} cy={CX} r={R} fill="none" stroke={track} strokeWidth="3.4" />
+          <circle cx={CX} cy={CX} r={R} fill="none" stroke={accent} strokeWidth="3.4" strokeLinecap="round" strokeDasharray={C.toFixed(2)} strokeDashoffset={(C * (1 - count / goal)).toFixed(2)} transform={"rotate(-90 " + CX + " " + CX + ")"} />
+        </svg>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
+      </span>
+    );
+  }
+  return (
+    <div style={{ position: "relative", flexShrink: 0, display: "grid", placeItems: "center" }}>
+      <XpFloat tick={tick} xp={xp} anchorRef={btnRef} />
+      <button ref={btnRef} className="tap hit44" data-no-haptic onClick={onClick}
+        onPointerDown={startLP} onPointerUp={endLP} onPointerLeave={endLP} onPointerCancel={endLP}
+        aria-label={"Прогресс " + count + " из " + goal + ", тап +1, удержание −1"}
+        style={{ border: 0, background: "transparent", padding: 0, display: "grid", placeItems: "center", cursor: "pointer" }}>
+        {body}
+      </button>
+    </div>
+  );
+}

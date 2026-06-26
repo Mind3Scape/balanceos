@@ -706,13 +706,17 @@ function HomeLive() {
     size: 16,
     max: 3,
     label: false
-  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration && !h.done && /*#__PURE__*/React.createElement(HabitRing, {
+  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
     habit: h,
     dark: isDark,
     onComplete: () => {
       if (!h.done) toggle(h.id);
     }
-  }), /*#__PURE__*/React.createElement(HabitCheck, {
+  }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+    habit: h,
+    app: app,
+    xp: XP_PER_HABIT
+  }) : /*#__PURE__*/React.createElement(HabitCheck, {
     done: h.done,
     onToggle: () => toggle(h.id),
     xp: XP_PER_HABIT,

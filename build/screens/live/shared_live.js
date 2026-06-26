@@ -2646,3 +2646,211 @@ function EmojiPickerLive({
     }
   }, e))));
 }
+
+/* Count check (live) — for habits whose DAILY goal is >1 (e.g. 20 отжиманий). Tap = +1,
+   long-press = −1; a ring (big goals) or radial SEGMENTS (≤6) fill with the count. The day
+   is marked done — and XP granted — ONLY at the FULL count (David: «экспа только за
+   закрытие полной привычки»). Done flips through the shared toggleHabit (XP derives from
+   the date-log); the running count lives in habit.counts[dayKey] via updateHabit (no XP). */
+function HabitCountCheck({
+  habit,
+  app,
+  xp = 10
+}) {
+  var goal = Math.max(2, habit.goalPerDay || 2);
+  var today = bosTodayKey();
+  var isDone = !!habit.done;
+  var count = isDone ? goal : habit.counts && habit.counts[today] || 0;
+  var accent = bosHabitColor(habit);
+  var [tick, setTick] = React.useState(0);
+  var btnRef = React.useRef(null);
+  var lpTimer = React.useRef(null);
+  var suppress = React.useRef(false);
+  var apply = raw => {
+    var next = Math.max(0, Math.min(goal, raw));
+    if (next === count) return;
+    var willDone = next >= goal;
+    var counts = Object.assign({}, habit.counts || {});
+    counts[today] = next;
+    if (app && app.updateHabit) app.updateHabit(habit.id, {
+      counts
+    });
+    if (willDone !== isDone && app && app.toggleHabit) app.toggleHabit(habit.id); // flips done + XP
+    if (willDone && !isDone) setTick(function (t) {
+      return t + 1;
+    }); // XP pop
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic(willDone ? "success" : "light");
+      } catch (_) {}
+    }
+  };
+  var startLP = e => {
+    e.stopPropagation();
+    suppress.current = false;
+    lpTimer.current = setTimeout(function () {
+      suppress.current = true;
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("rigid");
+        } catch (_) {}
+      }
+      apply(count - 1);
+    }, 480);
+  };
+  var endLP = () => {
+    if (lpTimer.current) {
+      clearTimeout(lpTimer.current);
+      lpTimer.current = null;
+    }
+  };
+  var onClick = e => {
+    e.stopPropagation();
+    if (suppress.current) {
+      suppress.current = false;
+      return;
+    }
+    apply(isDone ? 0 : count + 1);
+  };
+  var SIZE = 36,
+    R = 13.5,
+    CX = SIZE / 2,
+    C = 2 * Math.PI * R;
+  var track = "rgba(10,10,10,0.10)";
+  var body;
+  if (isDone) {
+    body = /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: SIZE,
+        height: SIZE,
+        borderRadius: "50%",
+        background: accent,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement(I.Check, {
+      size: 18,
+      strokeWidth: 2.6,
+      color: "#fff"
+    }));
+  } else if (goal <= 6) {
+    var pitch = 360 / goal,
+      gap = Math.min(22, pitch * 0.34);
+    var pt = deg => {
+      var a = deg * Math.PI / 180;
+      return [(CX + R * Math.cos(a)).toFixed(2), (CX + R * Math.sin(a)).toFixed(2)];
+    };
+    var segs = [];
+    for (var i = 0; i < goal; i++) {
+      var a0 = -90 + i * pitch + gap / 2,
+        a1 = -90 + (i + 1) * pitch - gap / 2;
+      var p0 = pt(a0),
+        p1 = pt(a1);
+      segs.push(/*#__PURE__*/React.createElement("path", {
+        key: i,
+        d: "M " + p0[0] + " " + p0[1] + " A " + R + " " + R + " 0 0 1 " + p1[0] + " " + p1[1],
+        fill: "none",
+        stroke: i < count ? accent : track,
+        strokeWidth: "3.4",
+        strokeLinecap: "round"
+      }));
+    }
+    body = /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "relative",
+        width: SIZE,
+        height: SIZE,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: SIZE,
+      height: SIZE,
+      viewBox: "0 0 " + SIZE + " " + SIZE,
+      style: {
+        position: "absolute",
+        inset: 0
+      }
+    }, segs), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: count > 0 ? accent : "var(--text-4)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, count));
+  } else {
+    body = /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "relative",
+        width: SIZE,
+        height: SIZE,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: SIZE,
+      height: SIZE,
+      viewBox: "0 0 " + SIZE + " " + SIZE,
+      style: {
+        position: "absolute",
+        inset: 0
+      }
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: CX,
+      cy: CX,
+      r: R,
+      fill: "none",
+      stroke: track,
+      strokeWidth: "3.4"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: CX,
+      cy: CX,
+      r: R,
+      fill: "none",
+      stroke: accent,
+      strokeWidth: "3.4",
+      strokeLinecap: "round",
+      strokeDasharray: C.toFixed(2),
+      strokeDashoffset: (C * (1 - count / goal)).toFixed(2),
+      transform: "rotate(-90 " + CX + " " + CX + ")"
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: count > 0 ? accent : "var(--text-4)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, count));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(XpFloat, {
+    tick: tick,
+    xp: xp,
+    anchorRef: btnRef
+  }), /*#__PURE__*/React.createElement("button", {
+    ref: btnRef,
+    className: "tap hit44",
+    "data-no-haptic": true,
+    onClick: onClick,
+    onPointerDown: startLP,
+    onPointerUp: endLP,
+    onPointerLeave: endLP,
+    onPointerCancel: endLP,
+    "aria-label": "Прогресс " + count + " из " + goal + ", тап +1, удержание −1",
+    style: {
+      border: 0,
+      background: "transparent",
+      padding: 0,
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer"
+    }
+  }, body));
+}

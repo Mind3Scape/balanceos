@@ -347,13 +347,17 @@ function HabitsLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Clock, {
     size: 11
-  }), " ", h.duration, " \u043C\u0438\u043D"), h.duration && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration && !h.done && /*#__PURE__*/React.createElement(HabitRing, {
+  }), " ", h.duration, " \u043C\u0438\u043D"), h.duration && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
     habit: h,
     dark: isDark,
     onComplete: () => {
       if (!h.done) toggle(h.id);
     }
-  }), /*#__PURE__*/React.createElement(HabitCheck, {
+  }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+    habit: h,
+    app: app,
+    xp: 10
+  }) : /*#__PURE__*/React.createElement(HabitCheck, {
     done: h.done,
     onToggle: () => toggle(h.id),
     xp: 10,
