@@ -31,21 +31,9 @@ function HabitSettingsLive() {
   var preset = params?.preset; // quick-add chip → {i: emoji, t: label}
   var [name, setName] = useHS(editing ? params.habit.name : preset?.t || "Прогулка");
   var [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : preset?.i || "👟");
-  // Icon = the SYSTEM emoji keyboard: a transparent input over the tile; whatever emoji the
-  // user types replaces the icon (no fixed grid). bosExtractEmoji keeps the last emoji only.
-  var emojiInputRef = React.useRef(null);
-  var onEmojiInput = e => {
-    var em = typeof bosExtractEmoji === "function" ? bosExtractEmoji(e.target.value) : "";
-    if (em) {
-      setIconPick(em);
-      if (window.tgHaptic) {
-        try {
-          window.tgHaptic("light");
-        } catch (_) {}
-      }
-    }
-    e.target.value = "";
-  };
+  // Icon = the EmojiPickerLive panel (opens straight on emojis). The iOS keyboard can't be
+  // forced into emoji mode — it opened on ABC, «непонятно что делать» (David) — so we use
+  // our own emoji sheet, opened by tapping the tile below.
   // Every habit carries an Apple colour now (coherent with the week-strip). Old null-colour
   // habits resolve to their stable bosHabitColor when edited.
   var [color, setColor] = useHS(editing ? params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a") : preset?.color ?? "#0a0a0a");
@@ -203,9 +191,13 @@ function HabitSettingsLive() {
       alignItems: "center",
       gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-haptic": "selection",
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
+      onPick: setIconPick
+    })),
     style: {
-      position: "relative",
       width: 56,
       height: 56,
       borderRadius: 16,
@@ -214,34 +206,11 @@ function HabitSettingsLive() {
       placeItems: "center",
       fontSize: 28,
       flexShrink: 0,
+      border: 0,
+      cursor: "pointer",
       transition: "background 0.2s"
     }
-  }, iconPick, /*#__PURE__*/React.createElement("input", {
-    ref: emojiInputRef,
-    defaultValue: "",
-    onInput: onEmojiInput,
-    "aria-label": "\u042D\u043C\u043E\u0434\u0437\u0438 \u0441 \u043A\u043B\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u044B",
-    inputMode: "text",
-    autoCapitalize: "none",
-    autoCorrect: "off",
-    autoComplete: "off",
-    style: {
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      opacity: 0,
-      border: 0,
-      background: "transparent",
-      fontSize: 16,
-      color: "transparent",
-      caretColor: "transparent",
-      textAlign: "center",
-      outline: "none",
-      borderRadius: 16,
-      cursor: "pointer"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
+  }, iconPick), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -259,7 +228,7 @@ function HabitSettingsLive() {
       marginTop: 2,
       lineHeight: 1.35
     }
-  }, "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0438\u043A\u043E\u043D\u043A\u0443 \u2192 \u043A\u043B\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u0430 \u0441 \u044D\u043C\u043E\u0434\u0437\u0438 \uD83D\uDE00"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0438\u043A\u043E\u043D\u043A\u0443 \u2014 \u0432\u044B\u0431\u0435\u0440\u0438 \u044D\u043C\u043E\u0434\u0437\u0438"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -296,11 +265,11 @@ function HabitSettingsLive() {
       display: "flex",
       alignItems: "center",
       gap: 10,
-      marginTop: 14,
+      marginTop: 8,
       overflowX: "auto",
       scrollbarWidth: "none",
       WebkitOverflowScrolling: "touch",
-      paddingBottom: 2
+      padding: "6px 6px"
     }
   }, /*#__PURE__*/React.createElement("label", {
     className: "tap",

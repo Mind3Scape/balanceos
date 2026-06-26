@@ -2546,3 +2546,103 @@ function bosExtractEmoji(s) {
   }
   return "";
 }
+
+/* Emoji PANEL (live) — opens STRAIGHT on emojis. The iOS system keyboard can't be forced
+   into emoji mode (it opened on ABC — David: «непонятно что делать»), so the icon tile
+   opens this own sheet instead: categorised grid, tap → onPick + close. */
+var BOS_EMOJI_CATS = [{
+  ic: "😀",
+  list: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🙂", "🙃", "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😋", "😜", "🤪", "🤗", "🤔", "🤨", "😐", "😏", "😌", "😔", "😴", "😎", "🤓", "🧐", "🥳", "🤯", "😤", "😡", "🥺", "😱", "🤝", "🙏", "💪", "🧠", "👀", "🗣️", "👍", "👎", "👏", "🙌", "✌️", "🤞", "🔥"]
+}, {
+  ic: "🐶",
+  list: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🦆", "🦅", "🦉", "🐝", "🦋", "🐢", "🐍", "🐙", "🦀", "🐬", "🐳", "🐠", "🌱", "🌿", "☘️", "🍀", "🌳", "🌲", "🌵", "🌴", "🌷", "🌸", "🌹", "🌻", "🌼", "🍁", "🌙", "⭐", "☀️", "🌈", "❄️", "💧"]
+}, {
+  ic: "🍎",
+  list: ["🍎", "🍏", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🥑", "🥦", "🥕", "🌽", "🥗", "🍞", "🧀", "🥚", "🍳", "🥩", "🍗", "🍔", "🍟", "🍕", "🌮", "🍜", "🍣", "🍱", "🍦", "🍰", "🎂", "🍫", "🍬", "🍭", "☕", "🍵", "🥤", "🧃", "🍷", "🍺", "💊", "🥛", "🧂"]
+}, {
+  ic: "⚽",
+  list: ["⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱", "🏓", "🏸", "🥊", "🥋", "⛳", "🏌️", "🏃", "🚶", "🧗", "🚴", "🏊", "🏄", "🧘", "🤸", "⛹️", "🏋️", "🤾", "🚣", "⛷️", "🏂", "🏆", "🥇", "🥈", "🥉", "🎯", "🎮", "🎲", "🎸", "🎹", "🎵", "🎨", "📷", "🎬", "✍️", "📖", "📚", "💻", "🧩", "♟️", "🎤"]
+}, {
+  ic: "✈️",
+  list: ["🚗", "🚕", "🚙", "🚌", "🏎️", "🚓", "🚑", "🚒", "🚲", "🛴", "🛵", "🏍️", "✈️", "🚀", "🚁", "⛵", "🚤", "🚢", "🏠", "🏡", "🏢", "🏥", "🏦", "🏨", "🏫", "⛪", "🗼", "🗽", "🏔️", "⛰️", "🌋", "🏕️", "🏖️", "🏝️", "🌅", "🌆", "🌃", "🌉", "🗺️", "🧭", "⛺", "🚩"]
+}, {
+  ic: "💡",
+  list: ["⌚", "📱", "💻", "⌨️", "🖥️", "🖨️", "🕹️", "💡", "🔦", "🕯️", "📷", "🎥", "📺", "📻", "⏰", "⏱️", "⌛", "💰", "💳", "💎", "🔧", "🔨", "🧰", "🔑", "🔒", "🛏️", "🚿", "🛁", "🧴", "🧹", "🧺", "🧸", "🎁", "🎈", "🎀", "📦", "✏️", "📝", "📌", "📎", "📏", "✂️", "🗑️", "🔋", "🧲"]
+}, {
+  ic: "❤️",
+  list: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💖", "💗", "💕", "❣️", "💔", "✨", "⭐", "🌟", "💫", "⚡", "✅", "☑️", "✔️", "❌", "➕", "➖", "❓", "❗", "💯", "🔥", "🎉", "🎊", "🏁", "🚩", "♻️", "⚠️", "🔔", "💤", "🆗", "🆕", "🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "⚫", "⚪", "🟤"]
+}];
+function EmojiPickerLive({
+  onPick
+}) {
+  var {
+    close
+  } = useSheet();
+  var [cat, setCat] = React.useState(0);
+  var pick = e => {
+    if (onPick) onPick(e);
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (_) {}
+    }
+    close();
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 10px 6px",
+      color: "#0a0a0a"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      fontSize: 17,
+      fontWeight: 700,
+      marginBottom: 12
+    }
+  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0438\u043A\u043E\u043D\u043A\u0443"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      marginBottom: 10
+    }
+  }, BOS_EMOJI_CATS.map((c, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    className: "tap",
+    "data-no-haptic": true,
+    onClick: () => setCat(i),
+    "aria-label": "Категория " + (i + 1),
+    style: {
+      flex: 1,
+      height: 38,
+      borderRadius: 11,
+      border: 0,
+      fontSize: 19,
+      cursor: "pointer",
+      background: i === cat ? "var(--surface-3)" : "transparent"
+    }
+  }, c.ic))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(8, 1fr)",
+      gap: 2,
+      maxHeight: 248,
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch"
+    }
+  }, BOS_EMOJI_CATS[cat].list.map((e, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    className: "tap",
+    "data-no-haptic": true,
+    onClick: () => pick(e),
+    style: {
+      aspectRatio: "1 / 1",
+      borderRadius: 10,
+      border: 0,
+      background: "transparent",
+      fontSize: 25,
+      cursor: "pointer",
+      padding: 0
+    }
+  }, e))));
+}
