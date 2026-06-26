@@ -2290,3 +2290,161 @@ function HomeHeroSwipeLive({
     }
   }, page1)));
 }
+
+/* CloudTeamsDiscoverLive — live-only fork of core's CloudTeamsDiscover. Same cloud fetch
+   + join flow, but QUIET while loading: for a real user the «open teams nearby» result is
+   usually empty, and the core version shows a skeleton that then collapses to nothing —
+   a flash-then-vanish at the page bottom (David: «показывает на секунду, потом исчезает»).
+   Here it stays silent until real teams arrive, then the section appears once, below the
+   create-CTA, shifting nothing above it. The frozen demo keeps core's CloudTeamsDiscover. */
+function CloudTeamsDiscoverLive({
+  app
+}) {
+  var [list, setList] = React.useState(null);
+  var [busy, setBusy] = React.useState({});
+  var [requested, setRequested] = React.useState({});
+  React.useEffect(() => {
+    var on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled()) {
+        window.bosCloud.discoverTeams().then(ts => {
+          if (on) setList(Array.isArray(ts) ? ts : []);
+        }).catch(() => {
+          if (on) setList([]);
+        });
+      } else setList([]);
+    } catch (e) {
+      setList([]);
+    }
+    return () => {
+      on = false;
+    };
+  }, []);
+  // Loading (null) AND loaded-empty ([]) → render NOTHING. No promissory skeleton, so the
+  // section can never pop then collapse — it only ever appears with real teams in it.
+  if (!list || !list.length) return null;
+  // Send a JOIN REQUEST («из поиска — по заявке»). The creator approves it later; pre-SQL
+  // (no approval system yet) the call falls back to an instant join.
+  var join = t => {
+    setBusy(b => Object.assign({}, b, {
+      [t.id]: true
+    }));
+    try {
+      window.bosCloud.requestJoin(t.id).then(res => {
+        setBusy(b => Object.assign({}, b, {
+          [t.id]: false
+        }));
+        if (!res) return;
+        if (res.pending) {
+          setRequested(r => Object.assign({}, r, {
+            [t.id]: true
+          }));
+          return;
+        }
+        // fallback: actually joined → add to my teams + drop from the discover list
+        window.bosCloud.teamMembers(t.id).then(mem => {
+          if (app && app.addTeam) app.addTeam({
+            cloudId: t.id,
+            joined: true,
+            name: t.name,
+            emblem: t.emblem || "✨",
+            accent: "#dbe9ff",
+            vis: t.vis,
+            goal: "Общая цель",
+            target: t.goalTarget || 0,
+            current: 0,
+            unit: "",
+            date: "",
+            progress: 0,
+            members: (mem || []).map(m => ({
+              name: m.name || "Участник",
+              initials: (m.name || "?").slice(0, 1),
+              color: "#cfe1ff",
+              avatar: m.avatar,
+              pct: 0
+            }))
+          });
+          setList(l => (l || []).filter(x => x.id !== t.id));
+        });
+      });
+    } catch (e) {
+      setBusy(b => Object.assign({}, b, {
+        [t.id]: false
+      }));
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "4px 4px 8px"
+    }
+  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B \u0440\u044F\u0434\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, list.map(t => /*#__PURE__*/React.createElement("div", {
+    key: t.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 14,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: "var(--card-2)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 24,
+      flexShrink: 0
+    }
+  }, t.emblem || "✨"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, t.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, "\uD83C\uDF10 \u041E\u0442\u043A\u0440\u044B\u0442\u0430\u044F \xB7 ", t.members, " \u0443\u0447\u0430\u0441\u0442.")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => join(t),
+    disabled: busy[t.id] || requested[t.id],
+    className: "tap",
+    style: {
+      flexShrink: 0,
+      background: busy[t.id] || requested[t.id] ? "var(--card-2)" : "#0a0a0a",
+      color: busy[t.id] || requested[t.id] ? "var(--text-3)" : "#fff",
+      border: 0,
+      borderRadius: 999,
+      padding: "9px 16px",
+      fontSize: 13,
+      fontWeight: 600,
+      whiteSpace: "nowrap"
+    }
+  }, requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить")))));
+}

@@ -19,8 +19,9 @@
      join-request approvals, leave/delete, and the share-link sheet.
 
    Everything else reuses the shared core/ toolkit (BOS_TEAM_PALETTE, AvatarStack,
-   CloudTeamsDiscover, ConfirmActionSheet, TeamShareSheet, TeamHabitSheet, TeamRing) +
-   the live forks in shared_live.jsx (NetworkLockedLive, PeopleMonthCalendarLive) +
+   ConfirmActionSheet, TeamShareSheet, TeamHabitSheet, TeamRing) +
+   the live forks in shared_live.jsx (NetworkLockedLive, PeopleMonthCalendarLive,
+   CloudTeamsDiscoverLive) +
    framework (BosAvatar, PageHeader, the icon object I, the bos* helpers, window.bosCloud,
    hooks useApp/useNav/useSheet, and useCS = React.useState). The ONLY new top-level
    declarations in this file are `function CommunityLive` and `function TeamDetailLive`. */
@@ -127,7 +128,8 @@ function LiveTeamCard({
     style: {
       fontSize: 12,
       color: "var(--text-3)",
-      marginTop: 2
+      marginTop: 2,
+      minHeight: 16
     }
   }, t.date, _loading ? "" : " · " + count + " " + ruPart(count)), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -420,7 +422,7 @@ function CommunityLive() {
     }
   }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439, \u043F\u043E\u0441\u0442\u0430\u0432\u044C \u043E\u0431\u0449\u0443\u044E \u0446\u0435\u043B\u044C, \u0432\u044B\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0439\u0442\u0435 \u0441\u0435\u0440\u0438\u0438 \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18
-  })), /*#__PURE__*/React.createElement(CloudTeamsDiscover, {
+  })), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
     app: app
   })), section === "community" && commTabEff === "network" &&
   /*#__PURE__*/

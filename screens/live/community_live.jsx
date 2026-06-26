@@ -19,8 +19,9 @@
      join-request approvals, leave/delete, and the share-link sheet.
 
    Everything else reuses the shared core/ toolkit (BOS_TEAM_PALETTE, AvatarStack,
-   CloudTeamsDiscover, ConfirmActionSheet, TeamShareSheet, TeamHabitSheet, TeamRing) +
-   the live forks in shared_live.jsx (NetworkLockedLive, PeopleMonthCalendarLive) +
+   ConfirmActionSheet, TeamShareSheet, TeamHabitSheet, TeamRing) +
+   the live forks in shared_live.jsx (NetworkLockedLive, PeopleMonthCalendarLive,
+   CloudTeamsDiscoverLive) +
    framework (BosAvatar, PageHeader, the icon object I, the bos* helpers, window.bosCloud,
    hooks useApp/useNav/useSheet, and useCS = React.useState). The ONLY new top-level
    declarations in this file are `function CommunityLive` and `function TeamDetailLive`. */
@@ -58,7 +59,7 @@ function LiveTeamCard({ t, navigate }) {
           <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", background: "var(--card-track)", padding: "2px 8px", borderRadius: 999 }}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
         </div>
         <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
-        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date}{_loading ? "" : " · " + count + " " + ruPart(count)}</div>
+        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2, minHeight: 16 }}>{t.date}{_loading ? "" : " · " + count + " " + ruPart(count)}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
           <span>{t.target ? "К цели" : "Прогресс команды"}</span>
           <span style={{ color: "var(--text)" }}>{t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : Math.round(gp * 100) + "%"}</span>
@@ -171,7 +172,7 @@ function CommunityLive() {
           </button>
           {/* D3 — open teams from the cloud you can join (live user, always shown when
               the cloud surfaces joinable teams). */}
-          <CloudTeamsDiscover app={app} />
+          <CloudTeamsDiscoverLive app={app} />
         </div>
       )}
 
