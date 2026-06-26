@@ -583,19 +583,53 @@ function ShareHabitSheetLive({ habit, dark = false }) {
 // Sits ABOVE habits when today's state isn't logged yet; one tap on a mood orb logs
 // it (setMood + setDayMoods, keyed by the real day) and the slot flips to the widget.
 // Flush (no own margin/radius/shadow) so it drops cleanly into a SwipeRow wrapper.
+// Daily state CHECK-IN — a SWIPE SPINNER (David: «адаптируй крутилку с онбординга, где
+// свайпаем и личико меняется»). Scrub the glass orb left↔right and it morphs through the 6
+// moods (same StateOrb + tintFromMood as the onboarding dial), the face + word change with a
+// haptic notch per mood; «Отметить» logs the day. Logs the real MOOD_OPTIONS index, so the
+// week-trail / calendar / MoodWidget keep reading it unchanged.
 function StatePromptLive({ app, isDark }) {
   const moods = (typeof MOOD_OPTIONS !== "undefined") ? MOOD_OPTIONS : [];
-  const log = (i) => {
+  const N = Math.max(1, moods.length);
+  const [idx, setIdx] = React.useState(Math.min(1, N - 1)); // start on «Радость»
+  const trackRef = React.useRef(null);
+  const dragOn = React.useRef(false);
+  const lastIdx = React.useRef(Math.min(1, N - 1));
+
+  const setFromX = (clientX) => {
+    const el = trackRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    let f = (clientX - r.left) / Math.max(1, r.width);
+    f = f < 0 ? 0 : (f > 0.9999 ? 0.9999 : f);
+    const i = Math.floor(f * N);
+    if (i !== lastIdx.current) {
+      lastIdx.current = i; setIdx(i);
+      if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    }
+  };
+  const onDown = (e) => { dragOn.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setFromX(e.clientX); };
+  const onMove = (e) => { if (dragOn.current) setFromX(e.clientX); };
+  const onUp = () => { dragOn.current = false; };
+  const jump = (i) => { lastIdx.current = i; setIdx(i); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+
+  const log = () => {
     if (!app) return;
     const dayKey = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
-    app.setMood && app.setMood(moods[i]);
-    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [dayKey]: i });
-    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    app.setMood && app.setMood(moods[idx]);
+    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [dayKey]: idx });
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
   };
+
+  const m = moods[idx] || { i: "🙂", t: "", c: "#5BC57E" };
+  const tint = (typeof tintFromMood === "function") ? tintFromMood(m.c) : null;
+  // readable button ink: dark on the light moods (e.g. yellow «Энергия»), white on the rest.
+  const ink = (function (hex) { try { var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); return (0.299 * r + 0.587 * g + 0.114 * b) > 168 ? "#0a0a0a" : "#fff"; } catch (e) { return "#fff"; } })(m.c);
   const bg = isDark ? "linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)" : "#ffffff";
   const titleColor = isDark ? "#fff" : "var(--text)";
   const labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)";
   const subMuted = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
+  const dotTrack = isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.13)";
+
   return (
     <div style={{ width: "100%", background: bg, padding: 18, position: "relative" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -603,18 +637,29 @@ function StatePromptLive({ app, isDark }) {
         <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#9fd5a8" : "#3f7a46", background: "rgba(90,168,90,0.16)", borderRadius: 999, padding: "2px 8px" }}>+5 XP</span>
       </div>
       <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 23, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.5px", marginTop: 5, color: titleColor }}>Как ты сейчас?</div>
-      <div style={{ fontSize: 12.5, color: subMuted, marginTop: 4 }}>Один тап — и день записан. Так растёт серия.</div>
-      <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "space-between" }}>
-        {moods.map((m, i) => (
-          <button key={i} className="tap" data-no-haptic onClick={() => log(i)} title={m.t} aria-label={m.t}
-            style={{ flex: 1, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", cursor: "pointer" }}>
-            <span style={{ position: "relative", width: 46, height: 46, display: "grid", placeItems: "center" }}>
-              <MiniOrb size={46} tint={tintFromMood(m.c)} style={{ position: "absolute", inset: 0 }} />
-              <span style={{ position: "relative", fontSize: 23, lineHeight: 1, filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.22))" }}>{m.i}</span>
-            </span>
-          </button>
-        ))}
+      <div style={{ fontSize: 12.5, color: subMuted, marginTop: 4 }}>Проведи по орбу — он подстроится под тебя.</div>
+
+      <div ref={trackRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onPointerCancel={onUp}
+        style={{ marginTop: 12, display: "flex", flexDirection: "column", alignItems: "center", cursor: "grab", touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none" }}>
+        <div style={{ position: "relative", width: 92, height: 92 }}>
+          {(typeof StateOrb !== "undefined")
+            ? <StateOrb size={92} tint={tint} intensity={1.18} />
+            : <div style={{ width: 92, height: 92, borderRadius: "50%", background: m.c }} />}
+          <span aria-hidden style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 38, lineHeight: 1, filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))", pointerEvents: "none" }}>{m.i}</span>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 16, fontWeight: 700, letterSpacing: "-0.2px", color: titleColor }}>{m.t}</div>
+        <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
+          {moods.map((mm, i) => (
+            <button key={i} className="tap" data-no-haptic aria-label={mm.t} onClick={() => jump(i)}
+              style={{ width: i === idx ? 18 : 7, height: 7, borderRadius: 999, border: 0, padding: 0, cursor: "pointer", background: i === idx ? m.c : dotTrack, transition: "width 0.2s, background 0.2s" }} />
+          ))}
+        </div>
       </div>
+
+      <button onClick={log} className="tap" data-no-haptic
+        style={{ width: "100%", marginTop: 16, border: 0, borderRadius: 999, padding: 14, background: m.c, color: ink, fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px", boxShadow: "0 6px 18px " + m.c + "55", transition: "background 0.2s, box-shadow 0.2s, color 0.2s" }}>
+        Отметить
+      </button>
     </div>
   );
 }
@@ -1117,9 +1162,10 @@ function EmojiPickerLive({ onPick, accent = "#0a0a0a", current }) {
   return (
     <div style={{ padding: "2px 10px 6px", color: "#0a0a0a" }}>
       <div style={{ textAlign: "center", fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Выбери иконку</div>
-      {/* Toggle — monochrome iOS-style СИМВОЛЫ (left) / colourful ЭМОДЗИ (right), David. */}
+      {/* Toggle — colourful ЭМОДЗИ (left, default) / monochrome iOS-style СИМВОЛЫ (right). David
+          flipped the order: emoji first. */}
       <div style={{ display: "flex", gap: 4, padding: 3, background: "var(--surface-3)", borderRadius: 12, marginBottom: 12 }}>
-        {[["symbol", "Символы"], ["emoji", "Эмодзи"]].map((m) => (
+        {[["emoji", "Эмодзи"], ["symbol", "Символы"]].map((m) => (
           <button key={m[0]} className="tap" data-no-haptic onClick={() => setMode(m[0])}
             style={{ flex: 1, height: 34, borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
               background: mode === m[0] ? "#fff" : "transparent", color: mode === m[0] ? "#0a0a0a" : "var(--text-3)",

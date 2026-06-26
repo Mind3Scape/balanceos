@@ -1597,29 +1597,96 @@ function ShareHabitSheetLive({
 // Sits ABOVE habits when today's state isn't logged yet; one tap on a mood orb logs
 // it (setMood + setDayMoods, keyed by the real day) and the slot flips to the widget.
 // Flush (no own margin/radius/shadow) so it drops cleanly into a SwipeRow wrapper.
+// Daily state CHECK-IN — a SWIPE SPINNER (David: «адаптируй крутилку с онбординга, где
+// свайпаем и личико меняется»). Scrub the glass orb left↔right and it morphs through the 6
+// moods (same StateOrb + tintFromMood as the onboarding dial), the face + word change with a
+// haptic notch per mood; «Отметить» logs the day. Logs the real MOOD_OPTIONS index, so the
+// week-trail / calendar / MoodWidget keep reading it unchanged.
 function StatePromptLive({
   app,
   isDark
 }) {
   var moods = typeof MOOD_OPTIONS !== "undefined" ? MOOD_OPTIONS : [];
-  var log = i => {
-    if (!app) return;
-    var dayKey = typeof bosTodayKey === "function" ? bosTodayKey() : new Date().toISOString().slice(0, 10);
-    app.setMood && app.setMood(moods[i]);
-    app.setDayMoods && app.setDayMoods({
-      ...(app.dayMoods || {}),
-      [dayKey]: i
-    });
+  var N = Math.max(1, moods.length);
+  var [idx, setIdx] = React.useState(Math.min(1, N - 1)); // start on «Радость»
+  var trackRef = React.useRef(null);
+  var dragOn = React.useRef(false);
+  var lastIdx = React.useRef(Math.min(1, N - 1));
+  var setFromX = clientX => {
+    var el = trackRef.current;
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    var f = (clientX - r.left) / Math.max(1, r.width);
+    f = f < 0 ? 0 : f > 0.9999 ? 0.9999 : f;
+    var i = Math.floor(f * N);
+    if (i !== lastIdx.current) {
+      lastIdx.current = i;
+      setIdx(i);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
+      }
+    }
+  };
+  var onDown = e => {
+    dragOn.current = true;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_) {}
+    setFromX(e.clientX);
+  };
+  var onMove = e => {
+    if (dragOn.current) setFromX(e.clientX);
+  };
+  var onUp = () => {
+    dragOn.current = false;
+  };
+  var jump = i => {
+    lastIdx.current = i;
+    setIdx(i);
     if (window.tgHaptic) {
       try {
         window.tgHaptic("light");
       } catch (e) {}
     }
   };
+  var log = () => {
+    if (!app) return;
+    var dayKey = typeof bosTodayKey === "function" ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+    app.setMood && app.setMood(moods[idx]);
+    app.setDayMoods && app.setDayMoods({
+      ...(app.dayMoods || {}),
+      [dayKey]: idx
+    });
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+  };
+  var m = moods[idx] || {
+    i: "🙂",
+    t: "",
+    c: "#5BC57E"
+  };
+  var tint = typeof tintFromMood === "function" ? tintFromMood(m.c) : null;
+  // readable button ink: dark on the light moods (e.g. yellow «Энергия»), white on the rest.
+  var ink = function (hex) {
+    try {
+      var r = parseInt(hex.slice(1, 3), 16),
+        g = parseInt(hex.slice(3, 5), 16),
+        b = parseInt(hex.slice(5, 7), 16);
+      return 0.299 * r + 0.587 * g + 0.114 * b > 168 ? "#0a0a0a" : "#fff";
+    } catch (e) {
+      return "#fff";
+    }
+  }(m.c);
   var bg = isDark ? "linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)" : "#ffffff";
   var titleColor = isDark ? "#fff" : "var(--text)";
   var labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)";
   var subMuted = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
+  var dotTrack = isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.13)";
   return /*#__PURE__*/React.createElement("div", {
     style: {
       width: "100%",
@@ -1666,52 +1733,101 @@ function StatePromptLive({
       color: subMuted,
       marginTop: 4
     }
-  }, "\u041E\u0434\u0438\u043D \u0442\u0430\u043F \u2014 \u0438 \u0434\u0435\u043D\u044C \u0437\u0430\u043F\u0438\u0441\u0430\u043D. \u0422\u0430\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u0441\u0435\u0440\u0438\u044F."), /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u0440\u043E\u0432\u0435\u0434\u0438 \u043F\u043E \u043E\u0440\u0431\u0443 \u2014 \u043E\u043D \u043F\u043E\u0434\u0441\u0442\u0440\u043E\u0438\u0442\u0441\u044F \u043F\u043E\u0434 \u0442\u0435\u0431\u044F."), /*#__PURE__*/React.createElement("div", {
+    ref: trackRef,
+    onPointerDown: onDown,
+    onPointerMove: onMove,
+    onPointerUp: onUp,
+    onPointerLeave: onUp,
+    onPointerCancel: onUp,
+    style: {
+      marginTop: 12,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      cursor: "grab",
+      touchAction: "pan-y",
+      userSelect: "none",
+      WebkitUserSelect: "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: 92,
+      height: 92
+    }
+  }, typeof StateOrb !== "undefined" ? /*#__PURE__*/React.createElement(StateOrb, {
+    size: 92,
+    tint: tint,
+    intensity: 1.18
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 92,
+      height: 92,
+      borderRadius: "50%",
+      background: m.c
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 38,
+      lineHeight: 1,
+      filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
+      pointerEvents: "none"
+    }
+  }, m.i)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      fontSize: 16,
+      fontWeight: 700,
+      letterSpacing: "-0.2px",
+      color: titleColor
+    }
+  }, m.t), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8,
-      marginTop: 14,
-      justifyContent: "space-between"
+      gap: 7,
+      marginTop: 10
     }
-  }, moods.map((m, i) => /*#__PURE__*/React.createElement("button", {
+  }, moods.map((mm, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     className: "tap",
     "data-no-haptic": true,
-    onClick: () => log(i),
-    title: m.t,
-    "aria-label": m.t,
+    "aria-label": mm.t,
+    onClick: () => jump(i),
     style: {
-      flex: 1,
-      background: "transparent",
+      width: i === idx ? 18 : 7,
+      height: 7,
+      borderRadius: 999,
       border: 0,
       padding: 0,
-      display: "grid",
-      placeItems: "center",
-      cursor: "pointer"
+      cursor: "pointer",
+      background: i === idx ? m.c : dotTrack,
+      transition: "width 0.2s, background 0.2s"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  })))), /*#__PURE__*/React.createElement("button", {
+    onClick: log,
+    className: "tap",
+    "data-no-haptic": true,
     style: {
-      position: "relative",
-      width: 46,
-      height: 46,
-      display: "grid",
-      placeItems: "center"
+      width: "100%",
+      marginTop: 16,
+      border: 0,
+      borderRadius: 999,
+      padding: 14,
+      background: m.c,
+      color: ink,
+      fontSize: 15,
+      fontWeight: 700,
+      letterSpacing: "-0.2px",
+      boxShadow: "0 6px 18px " + m.c + "55",
+      transition: "background 0.2s, box-shadow 0.2s, color 0.2s"
     }
-  }, /*#__PURE__*/React.createElement(MiniOrb, {
-    size: 46,
-    tint: tintFromMood(m.c),
-    style: {
-      position: "absolute",
-      inset: 0
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "relative",
-      fontSize: 23,
-      lineHeight: 1,
-      filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.22))"
-    }
-  }, m.i))))));
+  }, "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C"));
 }
 
 /* Universal create menu (B1) — a small iOS-style glass popover that springs out of the
@@ -2982,7 +3098,7 @@ function EmojiPickerLive({
       borderRadius: 12,
       marginBottom: 12
     }
-  }, [["symbol", "Символы"], ["emoji", "Эмодзи"]].map(m => /*#__PURE__*/React.createElement("button", {
+  }, [["emoji", "Эмодзи"], ["symbol", "Символы"]].map(m => /*#__PURE__*/React.createElement("button", {
     key: m[0],
     className: "tap",
     "data-no-haptic": true,
