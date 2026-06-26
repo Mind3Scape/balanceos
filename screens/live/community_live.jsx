@@ -559,16 +559,33 @@ function TeamDetailLive() {
           <span style={{ display: "block", height: "100%", width: Math.min(100, (main.doneToday/denom*100))+"%", background: "#0a0a0a" }} />
         </div>
         ); })()}
-        {/* Member dots */}
-        <div style={{ display: "flex", gap: 4, marginTop: 12, flexWrap: "wrap" }}>
-          {Array.from({length: Math.max(0, main.total)}).map((_, i) => (
-            <span key={i} style={{
-              width: 22, height: 22, borderRadius: "50%",
-              background: i < main.doneToday ? "#0a0a0a" : "rgba(0,0,0,0.15)",
-              display: "grid", placeItems: "center", color: "#FEDE34", fontSize: 11, fontWeight: 700,
-            }}>{i < main.doneToday ? "✓" : ""}</span>
-          ))}
-        </div>
+        {/* Member faces — REAL avatars (David: «реальные аватарки в командах»), dimmed until they
+            check in today. Falls back to lightweight anonymous dots only while the roster loads. */}
+        {(() => {
+          const todayK = new Date().toISOString().slice(0, 10);
+          const doneSet = {}; (mainProg || []).forEach((m) => { if (m.days && m.days[todayK]) doneSet[m.id] = true; });
+          const faces = (Array.isArray(members) && members.length) ? members : null;
+          if (!faces) return (
+            <div style={{ display: "flex", gap: 4, marginTop: 12, flexWrap: "wrap" }}>
+              {Array.from({ length: Math.max(0, main.total) }).map((_, i) => (
+                <span key={i} style={{ width: 22, height: 22, borderRadius: "50%", background: i < main.doneToday ? "#0a0a0a" : "rgba(0,0,0,0.15)", display: "grid", placeItems: "center", color: "#FEDE34", fontSize: 11, fontWeight: 700 }}>{i < main.doneToday ? "✓" : ""}</span>
+              ))}
+            </div>
+          );
+          return (
+            <div style={{ display: "flex", gap: 7, marginTop: 12, flexWrap: "wrap" }}>
+              {faces.map((m) => {
+                const did = !!doneSet[m.id] || (m.id === meId && main.doneByMe);
+                return (
+                  <span key={m.id} style={{ position: "relative", display: "block", opacity: did ? 1 : 0.4 }}>
+                    {typeof BosAvatar !== "undefined" ? <BosAvatar avatar={m.avatar} size={28} /> : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.15)", display: "block" }} />}
+                    {did && <span style={{ position: "absolute", right: -1, bottom: -1, width: 13, height: 13, borderRadius: "50%", background: "#0a0a0a", color: "#FEDE34", fontSize: 8, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 0 0 1.5px #FEDE34" }}>✓</span>}
+                  </span>
+                );
+              })}
+            </div>
+          );
+        })()}
         {_rosterLive && (
           <button onClick={() => toggleMyTeamHabit(main)} className="tap" style={{ width: "100%", marginTop: 14, border: 0, borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 700, background: main.doneByMe ? "rgba(0,0,0,0.12)" : "#0a0a0a", color: main.doneByMe ? "#0a0a0a" : "#FEDE34" }}>
             {main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"}

@@ -372,11 +372,10 @@ function HabitsLive() {
     }
   }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
     habit: h
-  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement(AvatarStack, {
-    people: h.friends,
+  }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+    habit: h,
     size: 22,
-    max: 4,
-    label: false
+    max: 4
   }))))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {

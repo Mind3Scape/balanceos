@@ -683,7 +683,7 @@ function HomeLive() {
       color: "var(--text)",
       letterSpacing: "-0.2px"
     }
-  }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+  }, h.name), (h.shareCode || h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -701,12 +701,11 @@ function HomeLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Clock, {
     size: 11
-  }), " ", h.duration, " \u043C\u0438\u043D"), h.friends?.length > 0 && /*#__PURE__*/React.createElement(AvatarStack, {
-    people: h.friends,
+  }), " ", h.duration, " \u043C\u0438\u043D"), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+    habit: h,
     size: 16,
-    max: 3,
-    label: false
-  }), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u043E"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+    max: 3
+  }))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
     habit: h,
     dark: isDark,
     onComplete: () => {

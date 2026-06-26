@@ -1903,6 +1903,7 @@ function AppProvider({
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.
   var [mode, setMode] = useState("demo"); // "demo" | "fresh"
   var [pendingAch, setPendingAch] = useState(null); // a freshly-unlocked achievement to celebrate
+  var [pendingJoinWelcome, setPendingJoinWelcome] = useState(null); // freshly-joined shared habit / team via invite link → greet «X позвал тебя»
   var [userName, setUserName] = useState("Павел");
   var [avatar, setAvatar] = useState(null); // null = default Memoji (assets/sphere.png)
   // Guided coach-mark tour. -1 = off; 0..N = current stop. Started on entering demo.
@@ -2560,6 +2561,15 @@ function AppProvider({
                     } catch (e) {}
                     return [nh].concat(prev || []);
                   });
+                  // Greet the friend: «X позвал тебя вести «привычка» вместе» (the silent join was confusing).
+                  setPendingJoinWelcome({
+                    kind: "habit",
+                    name: sh.name || "Привычка",
+                    emoji: sh.emoji || "✨",
+                    color: sh.color || null,
+                    inviterName: sh.ownerName || "",
+                    inviterAvatar: sh.ownerAvatar || "default"
+                  });
                   try {
                     history.replaceState(null, "", window.location.pathname);
                   } catch (e) {}
@@ -2611,10 +2621,19 @@ function AppProvider({
                   current: 0,
                   progress: 0
                 };
+                var _already = (teams || []).some(function (x) {
+                  return x.cloudId === row.id;
+                });
                 setTeams(function (prev) {
                   return (prev || []).some(function (x) {
                     return x.cloudId === row.id;
                   }) ? prev : [lt].concat(prev || []);
+                });
+                if (!_already) setPendingJoinWelcome({
+                  kind: "team",
+                  name: row.name || "Команда",
+                  emoji: row.emblem || "✨",
+                  color: "#84A4B8"
                 });
                 try {
                   history.replaceState(null, "", window.location.pathname);
@@ -2639,6 +2658,7 @@ function AppProvider({
   // typeof-guarded global lookup, so the framework never hard-depends on the live file —
   // if it's absent the effect simply no-ops (no celebration). Demo never reaches here (gate).
   var clearPendingAch = () => setPendingAch(null);
+  var clearPendingJoinWelcome = () => setPendingJoinWelcome(null);
   var achSeenRef = useRef({
     pid: null,
     ids: null
@@ -2773,6 +2793,8 @@ function AppProvider({
       refreshTeamGoalXP,
       pendingAch,
       clearPendingAch,
+      pendingJoinWelcome,
+      clearPendingJoinWelcome,
       tourStep,
       setTourStep,
       startTour,

@@ -1399,29 +1399,82 @@ function TeamDetailLive() {
         background: "#0a0a0a"
       }
     }));
-  })(), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 4,
-      marginTop: 12,
-      flexWrap: "wrap"
-    }
-  }, Array.from({
-    length: Math.max(0, main.total)
-  }).map((_, i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      width: 22,
-      height: 22,
-      borderRadius: "50%",
-      background: i < main.doneToday ? "#0a0a0a" : "rgba(0,0,0,0.15)",
-      display: "grid",
-      placeItems: "center",
-      color: "#FEDE34",
-      fontSize: 11,
-      fontWeight: 700
-    }
-  }, i < main.doneToday ? "✓" : ""))), _rosterLive && /*#__PURE__*/React.createElement("button", {
+  })(), (() => {
+    var todayK = new Date().toISOString().slice(0, 10);
+    var doneSet = {};
+    (mainProg || []).forEach(m => {
+      if (m.days && m.days[todayK]) doneSet[m.id] = true;
+    });
+    var faces = Array.isArray(members) && members.length ? members : null;
+    if (!faces) return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4,
+        marginTop: 12,
+        flexWrap: "wrap"
+      }
+    }, Array.from({
+      length: Math.max(0, main.total)
+    }).map((_, i) => /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        width: 22,
+        height: 22,
+        borderRadius: "50%",
+        background: i < main.doneToday ? "#0a0a0a" : "rgba(0,0,0,0.15)",
+        display: "grid",
+        placeItems: "center",
+        color: "#FEDE34",
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, i < main.doneToday ? "✓" : "")));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 7,
+        marginTop: 12,
+        flexWrap: "wrap"
+      }
+    }, faces.map(m => {
+      var did = !!doneSet[m.id] || m.id === meId && main.doneByMe;
+      return /*#__PURE__*/React.createElement("span", {
+        key: m.id,
+        style: {
+          position: "relative",
+          display: "block",
+          opacity: did ? 1 : 0.4
+        }
+      }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+        avatar: m.avatar,
+        size: 28
+      }) : /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          background: "rgba(0,0,0,0.15)",
+          display: "block"
+        }
+      }), did && /*#__PURE__*/React.createElement("span", {
+        style: {
+          position: "absolute",
+          right: -1,
+          bottom: -1,
+          width: 13,
+          height: 13,
+          borderRadius: "50%",
+          background: "#0a0a0a",
+          color: "#FEDE34",
+          fontSize: 8,
+          fontWeight: 800,
+          display: "grid",
+          placeItems: "center",
+          boxShadow: "0 0 0 1.5px #FEDE34"
+        }
+      }, "\u2713"));
+    }));
+  })(), _rosterLive && /*#__PURE__*/React.createElement("button", {
     onClick: () => toggleMyTeamHabit(main),
     className: "tap",
     style: {

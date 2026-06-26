@@ -451,13 +451,21 @@ function ShareAppSheetLive({ dark = false }) {
    the corner gets our ORBIT motif with little MEMOJI faces «orbiting» instead of a plain
    radial wash (David: «классно бы — орбиты с лицами участников, ощущение „вместе"»). The
    shared XPRewardCard stays untouched → demo pixel-identical. */
-function HabitInviteBannerLive({ amount = 75 }) {
+function HabitInviteBannerLive({ amount = 75, habit }) {
   const ink = "#0a0a0a", inkSub = "rgba(0,0,0,0.62)";
-  const faces = [
-    { f: "🧑🏻", ang: -68, rad: 54, sz: 27 },
-    { f: "👩🏽", ang: -18, rad: 36, sz: 23 },
-    { f: "🧔🏾", ang: 26, rad: 57, sz: 25 },
-  ];
+  // Show the REAL faces of people who've already joined this habit; before anyone joins, a
+  // decorative trio keeps the «вместе» cue.
+  const [buddies, setBuddies] = React.useState(null);
+  const _code = habit && habit.shareCode;
+  React.useEffect(() => {
+    let on = true;
+    if (!_code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) return;
+    window.bosCloud.sharedHabitProgress(_code).then((d) => { if (on && d && d.members) setBuddies(d.members.filter((m) => !m.me)); }).catch(() => {});
+    return () => { on = false; };
+  }, [_code]);
+  const slots = [{ ang: -68, rad: 54, sz: 27 }, { ang: -18, rad: 36, sz: 23 }, { ang: 26, rad: 57, sz: 25 }];
+  const placeholders = ["🧑🏻", "👩🏽", "🧔🏾"];
+  const real = buddies && buddies.length ? buddies.slice(0, 3) : null;
   return (
     <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 17px",
       background: "linear-gradient(135deg, #FEDE34, #EF9F14)", color: ink,
@@ -466,12 +474,14 @@ function HabitInviteBannerLive({ amount = 75 }) {
       <div aria-hidden style={{ position: "absolute", right: -30, top: -34, width: 150, height: 150, pointerEvents: "none" }}>
         <div style={{ position: "absolute", inset: 16, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.4)" }} />
         <div style={{ position: "absolute", inset: 42, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.5)" }} />
-        {faces.map((p, i) => {
+        {slots.map((p, i) => {
           const a = p.ang * Math.PI / 180, cx = 75 + p.rad * Math.cos(a), cy = 75 + p.rad * Math.sin(a);
+          const m = real && real[i];
+          if (real && !m) return null;
           return (
             <span key={i} style={{ position: "absolute", left: cx - p.sz / 2, top: cy - p.sz / 2, width: p.sz, height: p.sz, borderRadius: "50%",
-              background: "rgba(255,255,255,0.94)", display: "grid", placeItems: "center", fontSize: p.sz * 0.62,
-              boxShadow: "0 2px 6px rgba(0,0,0,0.16)" }}>{p.f}</span>
+              background: "rgba(255,255,255,0.94)", display: "grid", placeItems: "center", fontSize: p.sz * 0.62, overflow: "hidden",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.16)" }}>{m ? (typeof BosAvatar !== "undefined" ? <BosAvatar avatar={m.avatar} size={p.sz} /> : "🙂") : placeholders[i]}</span>
           );
         })}
       </div>
@@ -490,6 +500,71 @@ function HabitInviteBannerLive({ amount = 75 }) {
       <div style={{ position: "relative", marginTop: 13, paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.10)", fontSize: 12, color: inkSub, lineHeight: 1.4 }}>
         А когда ведёте привычку вместе — каждая отметка приносит <b style={{ color: ink }}>+15 XP</b> вместо +10.
       </div>
+    </div>
+  );
+}
+
+/* Welcome modal shown when you open an invite LINK and land in a shared habit / team — so the
+   join is never silent (David: «человек не понимает, что его позвали»). Rendered at app root
+   from app.pendingJoinWelcome (mirrors AchievementUnlock). Spring-in glass card. LIVE only. */
+function JoinWelcomeLive({ info, onClose }) {
+  const [shown, setShown] = React.useState(false);
+  React.useEffect(() => { const r = requestAnimationFrame(() => setShown(true)); return () => cancelAnimationFrame(r); }, []);
+  if (!info) return null;
+  const isTeam = info.kind === "team";
+  const accent = (typeof info.color === "string" && info.color[0] === "#") ? info.color : "#84A4B8";
+  const inviter = (info.inviterName || "").trim();
+  const close = () => { setShown(false); setTimeout(() => { try { onClose && onClose(); } catch (e) {} }, 220); };
+  return (
+    <div onClick={close} style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(10,10,12,0.42)", WebkitBackdropFilter: "blur(6px)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: 24, opacity: shown ? 1 : 0, transition: "opacity 0.25s ease" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 340, background: "var(--card, #fff)", borderRadius: 28, padding: "26px 22px 22px", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,0.28)", transform: shown ? "scale(1) translateY(0)" : "scale(0.9) translateY(12px)", opacity: shown ? 1 : 0, transition: "transform 0.34s cubic-bezier(0.22,1.2,0.36,1), opacity 0.25s ease" }}>
+        {!isTeam && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            {typeof BosAvatar !== "undefined" ? <BosAvatar avatar={info.inviterAvatar || "default"} size={54} /> : null}
+            <div style={{ fontSize: 13.5, color: "var(--text-3)", fontWeight: 600 }}>{inviter ? inviter + " зовёт тебя" : "Тебя позвали вести вместе"}</div>
+          </div>
+        )}
+        <div style={{ margin: (isTeam ? "4px auto 0" : "16px auto 0"), width: 76, height: 76, borderRadius: 22, background: accent, display: "grid", placeItems: "center", fontSize: 38, boxShadow: "0 8px 22px " + accent + "55" }}>
+          {typeof bosIcon === "function" ? bosIcon(info.emoji || "✨", 40, "#fff") : (info.emoji || "✨")}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>{isTeam ? "Команда" : "Совместная привычка"}</div>
+        <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", color: "var(--text)", marginTop: 3 }}>{info.name}</div>
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 8, lineHeight: 1.45 }}>
+          {isTeam ? "Ты в команде — ведите цели вместе, и всем виден прогресс каждого." : "Ведите привычку вместе: вы видите календарь друг друга, и каждая отметка приносит +15 XP."}
+        </div>
+        <button onClick={close} className="bos-btn" style={{ marginTop: 20 }}>{isTeam ? "Отлично!" : "Веду вместе!"}</button>
+      </div>
+    </div>
+  );
+}
+
+/* Real shared-habit buddies (cloud) for the habit CARDS — fills the side slot with the ACTUAL
+   people you share the habit with (their real avatars), replacing the legacy empty h.friends.
+   Falls back to h.friends only for a local (no-shareCode) habit. LIVE only. */
+function HabitBuddyAvatarsLive({ habit, size = 22, max = 4 }) {
+  const [members, setMembers] = React.useState(null);
+  const code = habit && habit.shareCode;
+  React.useEffect(() => {
+    let on = true;
+    if (!code || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.sharedHabitProgress)) { setMembers(null); return; }
+    window.bosCloud.sharedHabitProgress(code).then((d) => { if (on && d && d.members) setMembers(d.members); }).catch(() => {});
+    return () => { on = false; };
+  }, [code]);
+  if (!code) {
+    return (habit && habit.friends && habit.friends.length > 0 && typeof AvatarStack !== "undefined")
+      ? <AvatarStack people={habit.friends} size={size} max={max} label={false} /> : null;
+  }
+  const others = (members || []).filter((m) => !m.me);
+  if (!others.length) return null;
+  const shown = others.slice(0, max), extra = others.length - shown.length;
+  return (
+    <div style={{ display: "flex", alignItems: "center" }} aria-hidden>
+      {shown.map((m, i) => (
+        <span key={m.id} style={{ marginLeft: i ? -7 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)", display: "block" }}>
+          {typeof BosAvatar !== "undefined" ? <BosAvatar avatar={m.avatar} size={size} /> : <span style={{ width: size, height: size, borderRadius: "50%", background: "rgba(0,0,0,0.12)", display: "block" }} />}
+        </span>
+      ))}
+      {extra > 0 && <span style={{ marginLeft: -7, width: size, height: size, borderRadius: "50%", background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: Math.round(size * 0.42), fontWeight: 700, display: "grid", placeItems: "center", boxShadow: "0 0 0 2px var(--card, #fff)" }}>+{extra}</span>}
     </div>
   );
 }
@@ -556,7 +631,7 @@ function ShareHabitSheetLive({ habit, dark = false }) {
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <HabitInviteBannerLive amount={75} />
+        <HabitInviteBannerLive amount={75} habit={habit} />
       </div>
 
       <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "22px 0 12px" }}>Делать вместе</div>

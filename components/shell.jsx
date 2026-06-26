@@ -827,6 +827,7 @@ function AppProvider({ children }) {
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.
   const [mode, setMode] = useState("demo");      // "demo" | "fresh"
   const [pendingAch, setPendingAch] = useState(null); // a freshly-unlocked achievement to celebrate
+  const [pendingJoinWelcome, setPendingJoinWelcome] = useState(null); // freshly-joined shared habit / team via invite link → greet «X позвал тебя»
   const [userName, setUserName] = useState("Павел");
   const [avatar, setAvatar] = useState(null); // null = default Memoji (assets/sphere.png)
   // Guided coach-mark tour. -1 = off; 0..N = current stop. Started on entering demo.
@@ -1198,6 +1199,8 @@ function AppProvider({ children }) {
                     try { window.bosCloud.upsertHabit(nh); } catch (e) {}
                     return [nh].concat(prev || []);
                   });
+                  // Greet the friend: «X позвал тебя вести «привычка» вместе» (the silent join was confusing).
+                  setPendingJoinWelcome({ kind: "habit", name: sh.name || "Привычка", emoji: sh.emoji || "✨", color: sh.color || null, inviterName: sh.ownerName || "", inviterAvatar: sh.ownerAvatar || "default" });
                   try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
                 });
               });
@@ -1217,7 +1220,9 @@ function AppProvider({ children }) {
               window.bosCloud.joinViaLink(_joinTeamId).then(function (row) {
                 if (!row) return;
                 var lt = { _id: "cloud-" + row.id, cloudId: row.id, joined: true, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: "", members: [], target: row.goal_target || 0, current: 0, progress: 0 };
+                var _already = (teams || []).some(function (x) { return x.cloudId === row.id; });
                 setTeams(function (prev) { return (prev || []).some(function (x) { return x.cloudId === row.id; }) ? prev : [lt].concat(prev || []); });
+                if (!_already) setPendingJoinWelcome({ kind: "team", name: row.name || "Команда", emoji: row.emblem || "✨", color: "#84A4B8" });
                 try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
               });
             }
@@ -1236,6 +1241,7 @@ function AppProvider({ children }) {
   // typeof-guarded global lookup, so the framework never hard-depends on the live file —
   // if it's absent the effect simply no-ops (no celebration). Demo never reaches here (gate).
   const clearPendingAch = () => setPendingAch(null);
+  const clearPendingJoinWelcome = () => setPendingJoinWelcome(null);
   const achSeenRef = useRef({ pid: null, ids: null });
   useEffect(() => {
     if (mode !== "live" || !persistId || typeof bosEarnedAchIdsLive !== "function") return;
@@ -1299,6 +1305,7 @@ function AppProvider({ children }) {
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
     aiBrief, invitedCount, teamGoalXP, refreshTeamGoalXP,
     pendingAch, clearPendingAch,
+    pendingJoinWelcome, clearPendingJoinWelcome,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,
