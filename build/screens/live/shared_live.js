@@ -330,6 +330,33 @@ function DeadlineCalendarLive({
   }, "\u0413\u043E\u0442\u043E\u0432\u043E")));
 }
 
+/* ONE soft, glossy completion-fill — the calendar AND the week strip share it, so the whole app
+   speaks one colour (David: «заливки слишком яркие; рассинхрон с мягкой иконкой; чёрный прям
+   чёрный; и хочется градиент с лёгким блеском Liquid-Glass, а не сплошняк»). A light TOP sheen over
+   a directional tint of the habit's colour `hx`, intensity by p (0..1). Capped well below full
+   saturation → soft, never neon; black lands as a soft graphite, not pure black. */
+function bosCellFill(hx, p) {
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
+  var bot = 0.24 + 0.52 * Math.max(0, Math.min(1, p)); // bottom alpha — caps ~0.76, never solid
+  var top = bot * 0.55; // lighter top → the sheen
+  var hex = function (a) {
+    return Math.round(a * 255).toString(16).padStart(2, "0");
+  };
+  return "linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 52%), " + "linear-gradient(180deg, " + hx + hex(top) + ", " + hx + hex(bot) + ")";
+}
+// Number ink for a filled day in «подробно» — contrast over the soft fill (white on dark hues,
+// ink on light hues). Favours dark text when borderline (the sheen lightens the centre).
+function bosCellInk(hx, p, isDark) {
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
+  var a = (0.24 + 0.52 * Math.max(0, Math.min(1, p))) * 0.8;
+  var ch = isDark ? 30 : 255;
+  var r = parseInt(hx.slice(1, 3), 16),
+    g = parseInt(hx.slice(3, 5), 16),
+    b = parseInt(hx.slice(5, 7), 16);
+  var lum = 0.299 * (r * a + ch * (1 - a)) + 0.587 * (g * a + ch * (1 - a)) + 0.114 * (b * a + ch * (1 - a));
+  return lum > 170 ? "var(--text)" : "#fff";
+}
+
 /* PeopleMonthCalendar → live-only: always the REAL calendar (demo's frozen showcase date gone). */
 function PeopleMonthCalendarLive({
   people = [],
@@ -562,15 +589,8 @@ function PeopleMonthCalendarLive({
     var isToday = isCurMonth && c.d === today;
     var isSel = selDay === c.d;
     var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#FEDE34";
-    var a = fut ? 0 : pct <= 0 ? 0 : 0.32 + 0.68 * Math.min(1, pct);
-    var ah = Math.round(a * 255).toString(16).padStart(2, "0");
-    var ch = isDark ? 30 : 255;
-    var cr = parseInt(hx.slice(1, 3), 16),
-      cg = parseInt(hx.slice(3, 5), 16),
-      cb = parseInt(hx.slice(5, 7), 16);
-    var lum = 0.299 * (cr * a + ch * (1 - a)) + 0.587 * (cg * a + ch * (1 - a)) + 0.114 * (cb * a + ch * (1 - a));
-    var ink = fut ? "var(--text-4)" : lum > 150 ? "var(--text)" : "#fff";
-    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? track : hx + ah;
+    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? track : bosCellFill(hx, pct);
+    var ink = fut ? "var(--text-4)" : pct <= 0 ? "var(--text)" : bosCellInk(hx, pct, isDark);
     var ring = !compact && isSel ? selRing : isToday ? isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)" : null;
     return /*#__PURE__*/React.createElement("button", {
       key: c.key,
@@ -3062,7 +3082,7 @@ function HabitWeekStrip({
   var log = habit.log || {};
   var keys = bosWeekKeys();
   var todayK = typeof bosTodayKey === "function" ? bosTodayKey() : null;
-  var done = accent[0] === "#" && accent.length === 7 ? accent : "#FEDE34";
+  var doneFill = bosCellFill(accent, 1); // SAME soft glossy fill as the month calendar (continuity)
   var empty = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var ringC = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
   return /*#__PURE__*/React.createElement("div", {
@@ -3079,7 +3099,7 @@ function HabitWeekStrip({
         height: 20,
         borderRadius: "30%",
         flexShrink: 0,
-        background: log[k] ? done : empty,
+        background: log[k] ? doneFill : empty,
         boxShadow: k === todayK ? "0 0 0 1.5px " + ringC : "none"
       }
     });
