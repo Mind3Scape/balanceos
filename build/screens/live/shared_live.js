@@ -442,22 +442,11 @@ function PeopleMonthCalendarLive({
     onClick: () => setSelPerson(i),
     className: "tap",
     style: chip(selPerson === i)
-  }, m.avatar && typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
     avatar: m.avatar,
+    name: m.name,
     size: 18
-  }) : /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 18,
-      height: 18,
-      borderRadius: "50%",
-      background: m.color,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 9,
-      fontWeight: 700,
-      color: "rgba(0,0,0,0.6)"
-    }
-  }, m.initials), m.you ? "Ты" : (m.name || "").split(" ")[0]))), /*#__PURE__*/React.createElement("div", {
+  }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -1232,28 +1221,42 @@ function useBuddyMembersLive(code) {
   return members;
 }
 
-/* A buddy/member face = the person's REAL avatar, pulled from the ONE source (BosAvatar) so it's
-   IDENTICAL everywhere (David: «аватарки должны совпадать с настоящими, из единого места»): their
-   custom emoji/memoji, or the standard default FACE (sphere.png) — never a stand-in initial.
-   (`name` kept for call-site compatibility; the real avatar already carries the identity.) */
+/* The ONE live avatar chip — a person's chosen avatar on a STANDARDISED soft-grey disc, so faces
+   read cleanly and never blend into white cards (David: «на сероватом фоне классно, на белом
+   сливаются — стандартизируй на сером»). We show ONLY what the person picked — emoji or memoji
+   photo; base users (no custom avatar) get the clean grey disc. No mood/state tint at this level —
+   simple, consistent, beautiful everywhere. (`name` kept for call-site compatibility.) */
 function BuddyFaceLive({
   avatar,
   name,
   size
 }) {
   size = size || 24;
-  if (typeof BosAvatar !== "undefined") return /*#__PURE__*/React.createElement(BosAvatar, {
-    avatar: avatar,
-    size: size
+  var a = "" + (avatar || "");
+  var disc = {
+    width: size,
+    height: size,
+    borderRadius: "50%",
+    flexShrink: 0,
+    background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
+    boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.07)"
+  };
+  if (/^m\d+$/.test(a)) return /*#__PURE__*/React.createElement("div", {
+    style: Object.assign({}, disc, {
+      background: "url(./assets/people/" + a + ".png) center/cover no-repeat, linear-gradient(150deg,#eef1f6,#dadfe7)",
+      boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)"
+    })
   });
+  if (a.indexOf("emoji:") === 0) return /*#__PURE__*/React.createElement("div", {
+    style: Object.assign({}, disc, {
+      display: "grid",
+      placeItems: "center",
+      fontSize: Math.round(size * 0.54),
+      lineHeight: 1
+    })
+  }, a.slice(6));
   return /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: size,
-      height: size,
-      borderRadius: "50%",
-      background: "url(./assets/sphere.png) center/cover no-repeat",
-      flexShrink: 0
-    }
+    style: disc
   });
 }
 function HabitInviteBannerLive({
@@ -1471,10 +1474,10 @@ function JoinWelcomeLive({
       alignItems: "center",
       gap: 8
     }
-  }, typeof BosAvatar !== "undefined" ? /*#__PURE__*/React.createElement(BosAvatar, {
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
     avatar: info.inviterAvatar || "default",
     size: 54
-  }) : null, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
       color: "var(--text-3)",

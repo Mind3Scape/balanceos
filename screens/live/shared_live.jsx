@@ -196,9 +196,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             </button>
             {people.map((m, i) => (
               <button key={i} onClick={() => setSelPerson(i)} className="tap" style={chip(selPerson === i)}>
-                {m.avatar && typeof BosAvatar !== "undefined"
-                  ? <BosAvatar avatar={m.avatar} size={18} />
-                  : <span style={{ width: 18, height: 18, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{m.initials}</span>}
+                <BuddyFaceLive avatar={m.avatar} name={m.name} size={18} />
                 {m.you ? "Ты" : (m.name || "").split(" ")[0]}
               </button>
             ))}
@@ -486,14 +484,20 @@ function useBuddyMembersLive(code) {
   return members;
 }
 
-/* A buddy/member face = the person's REAL avatar, pulled from the ONE source (BosAvatar) so it's
-   IDENTICAL everywhere (David: «аватарки должны совпадать с настоящими, из единого места»): their
-   custom emoji/memoji, or the standard default FACE (sphere.png) — never a stand-in initial.
-   (`name` kept for call-site compatibility; the real avatar already carries the identity.) */
+/* The ONE live avatar chip — a person's chosen avatar on a STANDARDISED soft-grey disc, so faces
+   read cleanly and never blend into white cards (David: «на сероватом фоне классно, на белом
+   сливаются — стандартизируй на сером»). We show ONLY what the person picked — emoji or memoji
+   photo; base users (no custom avatar) get the clean grey disc. No mood/state tint at this level —
+   simple, consistent, beautiful everywhere. (`name` kept for call-site compatibility.) */
 function BuddyFaceLive({ avatar, name, size }) {
   size = size || 24;
-  if (typeof BosAvatar !== "undefined") return <BosAvatar avatar={avatar} size={size} />;
-  return <div style={{ width: size, height: size, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", flexShrink: 0 }} />;
+  var a = "" + (avatar || "");
+  var disc = { width: size, height: size, borderRadius: "50%", flexShrink: 0,
+    background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
+    boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.07)" };
+  if (/^m\d+$/.test(a)) return <div style={Object.assign({}, disc, { background: "url(./assets/people/" + a + ".png) center/cover no-repeat, linear-gradient(150deg,#eef1f6,#dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
+  if (a.indexOf("emoji:") === 0) return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", fontSize: Math.round(size * 0.54), lineHeight: 1 })}>{a.slice(6)}</div>;
+  return <div style={disc} />;
 }
 
 function HabitInviteBannerLive({ amount = 75, habit }) {
@@ -558,7 +562,7 @@ function JoinWelcomeLive({ info, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 340, background: "var(--card, #fff)", borderRadius: 28, padding: "26px 22px 22px", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,0.28)", transform: shown ? "scale(1) translateY(0)" : "scale(0.9) translateY(12px)", opacity: shown ? 1 : 0, transition: "transform 0.34s cubic-bezier(0.22,1.2,0.36,1), opacity 0.25s ease" }}>
         {!isTeam && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            {typeof BosAvatar !== "undefined" ? <BosAvatar avatar={info.inviterAvatar || "default"} size={54} /> : null}
+            <BuddyFaceLive avatar={info.inviterAvatar || "default"} size={54} />
             <div style={{ fontSize: 13.5, color: "var(--text-3)", fontWeight: 600 }}>{inviter ? inviter + " зовёт тебя" : "Тебя позвали вести вместе"}</div>
           </div>
         )}

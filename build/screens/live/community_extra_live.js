@@ -2630,12 +2630,10 @@ function TeamChatLive() {
       gap: 8,
       alignItems: "flex-end"
     }
-  }, m.avatar && typeof BosAvatar === "function" ? /*#__PURE__*/React.createElement(BosAvatar, {
+  }, typeof BuddyFaceLive === "function" ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
     avatar: m.avatar,
-    size: 30,
-    style: {
-      flexShrink: 0
-    }
+    name: m.who,
+    size: 30
   }) : /*#__PURE__*/React.createElement("span", {
     style: {
       width: 30,

@@ -922,8 +922,8 @@ function TeamChatLive() {
           </div>
         ) : (
           <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-            {m.avatar && typeof BosAvatar === "function"
-              ? <BosAvatar avatar={m.avatar} size={30} style={{ flexShrink: 0 }} />
+            {typeof BuddyFaceLive === "function"
+              ? <BuddyFaceLive avatar={m.avatar} name={m.who} size={30} />
               : <span style={{ width: 30, height: 30, borderRadius: "50%", background: m.c, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{(m.who || "?")[0]}</span>}
             <div style={{ maxWidth: "78%", background: otherBubble, borderRadius: "18px 18px 18px 5px", padding: m.img ? 8 : "9px 13px", boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.05)" }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: m.img ? 4 : 2 }}>{m.who}</div>
