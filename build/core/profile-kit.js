@@ -463,6 +463,7 @@ function OrbitField({
   var avIsMemoji = /^m\d+$/.test(avStr);
   var avIsEmoji = avStr.indexOf("emoji:") === 0;
   var centreInitial = ("" + (name || "")).trim().charAt(0).toUpperCase();
+  var TILE_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -537,6 +538,18 @@ function OrbitField({
     offset: "1",
     stopColor: "#ffffff",
     stopOpacity: "0"
+  })), /*#__PURE__*/React.createElement("linearGradient", {
+    id: "orbDiscBg",
+    x1: "0.2",
+    y1: "0",
+    x2: "0.7",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#eef1f6"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#dadfe7"
   }))), drawRings.map(r => {
     var R = radius(r),
       op = ((dark ? 0.20 : 0.17) - r * 0.035) * eo * fadeAt(R);
@@ -622,7 +635,7 @@ function OrbitField({
         cx: "0",
         cy: "0",
         r: "16",
-        fill: PAL.pdisc
+        fill: "url(#orbDiscBg)"
       }), /*#__PURE__*/React.createElement("circle", {
         cx: "0",
         cy: "0",
@@ -666,7 +679,7 @@ function OrbitField({
         cx: "0",
         cy: "0",
         r: "16",
-        fill: PAL.disc
+        fill: "url(#orbDiscBg)"
       }), /*#__PURE__*/React.createElement("circle", {
         cx: "0",
         cy: "0",
@@ -712,7 +725,7 @@ function OrbitField({
       cx: "0",
       cy: "0",
       r: "16",
-      fill: PAL.pdisc
+      fill: "url(#orbDiscBg)"
     }), isEmoji ? /*#__PURE__*/React.createElement("text", {
       x: "0",
       y: "0.5",
@@ -764,8 +777,8 @@ function OrbitField({
       position: "absolute",
       inset: 0,
       borderRadius: "50%",
-      background: (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : !avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "") + "linear-gradient(150deg,#eef1f6,#dadfe7)",
-      boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.14)",
+      background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : !avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "") + "linear-gradient(150deg,#eef1f6,#dadfe7)",
+      boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
       display: "grid",
       placeItems: "center",
       fontSize: 27,

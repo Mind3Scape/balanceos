@@ -168,6 +168,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
   const avIsMemoji = /^m\d+$/.test(avStr);
   const avIsEmoji = avStr.indexOf("emoji:") === 0;
   const centreInitial = ("" + (name || "")).trim().charAt(0).toUpperCase();
+  const TILE_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
   return (
     <div style={{ position: "relative", width: "100%", height: 300, margin: "0 auto", overflow: "visible" }}>
       <svg viewBox="-160 -160 320 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none", overflow: "visible" }}>
@@ -185,6 +186,11 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             <stop offset="0" stopColor="#ffffff" stopOpacity="0.95" />
             <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.18" />
             <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
+          {/* disc base = the SAME grey as the centre avatar (#eef1f6→#dadfe7) so everything matches */}
+          <linearGradient id="orbDiscBg" x1="0.2" y1="0" x2="0.7" y2="1">
+            <stop offset="0" stopColor="#eef1f6" />
+            <stop offset="1" stopColor="#dadfe7" />
           </linearGradient>
         </defs>
 
@@ -237,7 +243,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           if (n.kind === "more") {
             return (
               <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
-                <circle cx="0" cy="0" r="16" fill={PAL.pdisc} />
+                <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
                 <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
                 <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
                 <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="600" style={{ fill: dark ? "#cfe0ff" : "#5b6473" }}>+{n.count}</text>
@@ -248,7 +254,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             return (
               <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
                 {dark && <circle cx="0" cy="0" r="19" fill={glow} opacity="0.18" style={{ filter: "blur(5px)" }} />}
-                <circle cx="0" cy="0" r="16" fill={PAL.disc} />
+                <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
                 <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
                 <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
                 <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{n.emoji}</text>
@@ -260,7 +266,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           return (
             <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
               {dark && <circle cx="0" cy="0" r="18.5" fill={glow} opacity="0.16" style={{ filter: "blur(5px)" }} />}
-              <circle cx="0" cy="0" r="16" fill={PAL.pdisc} />
+              <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
               {isEmoji
                 ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
                 : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
@@ -275,8 +281,8 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           with your avatar nested inside it. tap to change avatar */}
       <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
         <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
-          background: (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg,#eef1f6,#dadfe7)",
-          boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.14)",
+          background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg,#eef1f6,#dadfe7)",
+          boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
           display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, color: "#5b6473", fontWeight: 600 }}>
           {avIsEmoji ? avStr.slice(6) : (!avIsMemoji ? (centreInitial || null) : null)}
         </div>
