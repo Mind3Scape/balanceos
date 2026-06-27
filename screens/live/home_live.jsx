@@ -278,7 +278,7 @@ function HomeLive() {
                 { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
               ]}>
                 <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
+                  <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
                     {(h.shareCode || h.duration > 0) && (
@@ -322,7 +322,7 @@ function HomeLive() {
               ]}>
                 <div className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, padding: 14, color: "var(--text)", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                    <span style={{ width: 38, height: 38, borderRadius: 14, background: g.color ? g.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 18 }}>{bosIcon(g.emoji, 20, g.color)}</span>
+                    <span style={{ width: 38, height: 38, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 18 }}>{bosIcon(g.emoji, 20, g.color)}</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>

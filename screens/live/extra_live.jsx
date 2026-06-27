@@ -86,7 +86,7 @@ function HabitDetailLive() {
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
-  const tileBg  = h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
+  const tileBg  = h.color ? h.color + "20" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
 
   // SHARED habit (buddy): pull BOTH members' real day-maps so the month calendar AND the
   // «Вместе» card show WHO did WHICH day, each in their own colour-coded track (David:
@@ -116,8 +116,8 @@ function HabitDetailLive() {
       } />
 
       {/* Hero — neutral tile (or the habit's soft colour), like the lists outside */}
-      <div style={{ textAlign: "center", padding: "6px 0 22px" }}>
-        <div style={{ width: 88, height: 88, borderRadius: 22, margin: "0 auto", display: "grid", placeItems: "center", background: "linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 58%), " + tileBg, boxShadow: bosCellGlass(isDark) }}>
+      <div style={{ textAlign: "center", padding: "6px 0 12px" }}>
+        <div style={{ width: 88, height: 88, borderRadius: 22, margin: "0 auto", display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
           <span style={{ fontSize: 44 }}>{bosIcon(h.emoji, 40, h.color)}</span>
         </div>
         <div style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", marginTop: 16, letterSpacing: "-0.5px" }}>{h.name}</div>
@@ -142,7 +142,7 @@ function HabitDetailLive() {
       <SharedBuddiesLive habit={h} isDark={isDark} members={buddies} />
 
       {/* Insight — label INSIDE the card (David: надписи в блоках) */}
-      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22 }}>
+      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
           <I.Sparkles size={16} color={h.color || (isDark ? "#fff" : "#0a0a0a")} />
           <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)" }}>Инсайт</span>
@@ -156,7 +156,7 @@ function HabitDetailLive() {
 
       {/* ONE action button. Done state is a clear OUTLINED «✓ Сделано сегодня» (David: серая
           сливалась) — legible for any habit colour; the check carries the habit's colour. */}
-      <button onClick={() => app?.toggleHabit && app.toggleHabit(h.id)} className="bos-btn" style={{ marginTop: 22,
+      <button onClick={() => app?.toggleHabit && app.toggleHabit(h.id)} className="bos-btn" style={{ marginTop: 12,
         ...(h.done ? { background: "transparent", color: "var(--text)", border: isDark ? "1.5px solid rgba(255,255,255,0.22)" : "1.5px solid rgba(0,0,0,0.16)", boxShadow: "none" } : {}) }}>
         {h.done ? <span><span style={{ color: h.color || "var(--text)" }}>✓</span> Сделано сегодня</span> : "Отметить выполненной"}
       </button>

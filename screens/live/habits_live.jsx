@@ -134,7 +134,7 @@ function HabitsLive() {
                   onClick={() => navigate("habit-detail", { habit: h, from: "habits" })}
                   style={{ padding: "14px 16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
+                    <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
                       {(h.friends?.length > 0 || h.duration > 0) && (
@@ -190,7 +190,7 @@ function HabitsLive() {
                 <button className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ width: "100%", background: "transparent", border: 0, padding: "14px 16px", textAlign: "left", color: "var(--text)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 14, background: g.color ? g.color + "26" : TH.iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji, 20, g.color)}</span>
+                    <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji, 20, g.color)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15.5, color: "var(--text)", letterSpacing: "-0.2px", fontWeight: 600 }}>{g.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3, display: "flex", gap: 10 }}>

@@ -157,7 +157,7 @@ function HabitDetailLive() {
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
-  var tileBg = h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
+  var tileBg = h.color ? h.color + "20" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
 
   // SHARED habit (buddy): pull BOTH members' real day-maps so the month calendar AND the
   // «Вместе» card show WHO did WHICH day, each in their own colour-coded track (David:
@@ -207,7 +207,7 @@ function HabitDetailLive() {
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      padding: "6px 0 22px"
+      padding: "6px 0 12px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -217,8 +217,8 @@ function HabitDetailLive() {
       margin: "0 auto",
       display: "grid",
       placeItems: "center",
-      background: "linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 58%), " + tileBg,
-      boxShadow: bosCellGlass(isDark)
+      background: BOS_TILE_SHEEN + ", " + tileBg,
+      boxShadow: bosTileGlass(isDark)
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -279,7 +279,7 @@ function HabitDetailLive() {
       ...card,
       borderRadius: 22,
       padding: 14,
-      marginTop: 22
+      marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -308,7 +308,7 @@ function HabitDetailLive() {
     onClick: () => app?.toggleHabit && app.toggleHabit(h.id),
     className: "bos-btn",
     style: {
-      marginTop: 22,
+      marginTop: 12,
       ...(h.done ? {
         background: "transparent",
         color: "var(--text)",

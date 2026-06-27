@@ -350,6 +350,13 @@ function bosCellFill(hx, p) {
 function bosCellGlass(isDark) {
   return isDark ? "inset 0 1px 0.5px rgba(255,255,255,0.16), inset 0 0 0 0.6px rgba(255,255,255,0.06)" : "inset 0 1px 0.5px rgba(255,255,255,0.5), inset 0 0 0 0.6px rgba(0,0,0,0.06)";
 }
+// Glass for the habit/goal ICON tiles — a BRIGHTER specular top + soft edge + depth than the small
+// day-cell glass (David: «на главной иконке привычки стекло еле видно — чуть светлее и заметнее, и
+// так ВЕЗДЕ где привычки видны»). Pair with BOS_TILE_SHEEN on the background.
+function bosTileGlass(isDark) {
+  return isDark ? "inset 0 1.5px 0.5px rgba(255,255,255,0.22), inset 0 0 0 0.7px rgba(255,255,255,0.07), 0 1px 2px rgba(0,0,0,0.18)" : "inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05)";
+}
+var BOS_TILE_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
 // Number ink for a filled day in «подробно» — contrast over the fill (white on dark hues, ink on
 // light hues). Favours dark text when borderline (the top sheen lightens the centre).
 function bosCellInk(hx, p, isDark) {
@@ -444,7 +451,7 @@ function PeopleMonthCalendarLive({
       borderRadius: 22,
       padding: 14,
       boxShadow: "var(--card-shadow)",
-      marginTop: label ? 22 : 0
+      marginTop: label ? 12 : 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2001,7 +2008,7 @@ function SharedBuddiesLive({
       ...card,
       borderRadius: 22,
       padding: 14,
-      marginTop: 22
+      marginTop: 12
     }
   }, hasBuddies ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2066,6 +2073,49 @@ function SharedBuddiesLive({
         boxShadow: m.days[k] ? bosCellGlass(isDark) : "none"
       }
     })))));
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: invite,
+    className: "tap",
+    "data-haptic": "selection",
+    style: {
+      width: "100%",
+      marginTop: 14,
+      paddingTop: 12,
+      background: "transparent",
+      border: 0,
+      borderTop: "1px solid var(--line)",
+      borderRadius: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      cursor: "pointer",
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: "50%",
+      background: accent + "1f",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 15,
+    color: accent,
+    strokeWidth: 2.5
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 600
+    }
+  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0435\u0449\u0451"), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    color: "var(--text-4)",
+    style: {
+      marginLeft: "auto"
+    }
   }))) :
   /*#__PURE__*/
   // No buddy yet → the invite IS this block (tappable), not a separate bottom button (David:
