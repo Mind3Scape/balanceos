@@ -117,7 +117,7 @@ function HabitDetailLive() {
 
       {/* Hero — neutral tile (or the habit's soft colour), like the lists outside */}
       <div style={{ textAlign: "center", padding: "6px 0 22px" }}>
-        <div style={{ width: 88, height: 88, borderRadius: 22, margin: "0 auto", background: tileBg, display: "grid", placeItems: "center", boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
+        <div style={{ width: 88, height: 88, borderRadius: 22, margin: "0 auto", display: "grid", placeItems: "center", background: "linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 58%), " + tileBg, boxShadow: bosCellGlass(isDark) }}>
           <span style={{ fontSize: 44 }}>{bosIcon(h.emoji, 40, h.color)}</span>
         </div>
         <div style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", marginTop: 16, letterSpacing: "-0.5px" }}>{h.name}</div>
@@ -137,31 +137,28 @@ function HabitDetailLive() {
          so the whole app reads one way. Live = your own real days. */}
       <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" />
 
-      {/* Shared habit (habit buddy) — you + friend, real avatars, mutual day-strips.
-          Shares the already-fetched `buddies` so it doesn't poll the cloud twice. */}
-      {h.shareCode && <SharedBuddiesLive habit={h} isDark={isDark} members={buddies} />}
+      {/* «Вместе» block — ALWAYS shown: with buddies it lists them; alone it's the TAPPABLE invite
+          (the only invite affordance now — the separate bottom button is gone). Label lives inside. */}
+      <SharedBuddiesLive habit={h} isDark={isDark} members={buddies} />
 
-      {/* Insight — neutral surface, streak-driven copy */}
-      <div className="section-label" style={{ marginTop: 22 }}>Инсайт</div>
-      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
-        <I.Sparkles size={18} color={h.color || (isDark ? "#fff" : "#0a0a0a")} />
-        <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
+      {/* Insight — label INSIDE the card (David: надписи в блоках) */}
+      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+          <I.Sparkles size={16} color={h.color || (isDark ? "#fff" : "#0a0a0a")} />
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)" }}>Инсайт</span>
+        </div>
+        <div style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.5 }}>
           {streak >= 7
             ? `Серия уже ${streak} дней — это работает на автопилоте. Не разрывай цепочку сегодня.`
             : `Ещё ${Math.max(1, 7 - streak)} дн. — и привычка станет автоматической. Сейчас самый важный момент.`}
         </div>
       </div>
 
-      {/* Actions */}
-      <button onClick={() => app?.toggleHabit && app.toggleHabit(h.id)} className="bos-btn" style={{ marginTop: 22, background: h.done ? (isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)") : undefined, color: h.done ? "var(--text-2)" : undefined }}>
-        {h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"}
-      </button>
-      {/* Invite a friend — make the habit shared right from INSIDE it, not only from the
-          settings menu (David: «удобнее звать друга из самой привычки»). Tinted secondary
-          action in the habit's own colour; opens the same ShareHabitSheetLive. */}
-      <button onClick={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)} className="tap" data-haptic="selection"
-        style={{ marginTop: 10, width: "100%", background: (h.color || "#0a0a0a") + "14", border: 0, padding: "14px", borderRadius: 16, color: h.color || "var(--text)", fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <I.Users size={18}/> Позвать друга
+      {/* ONE action button. Done state is a clear OUTLINED «✓ Сделано сегодня» (David: серая
+          сливалась) — legible for any habit colour; the check carries the habit's colour. */}
+      <button onClick={() => app?.toggleHabit && app.toggleHabit(h.id)} className="bos-btn" style={{ marginTop: 22,
+        ...(h.done ? { background: "transparent", color: "var(--text)", border: isDark ? "1.5px solid rgba(255,255,255,0.22)" : "1.5px solid rgba(0,0,0,0.16)", boxShadow: "none" } : {}) }}>
+        {h.done ? <span><span style={{ color: h.color || "var(--text)" }}>✓</span> Сделано сегодня</span> : "Отметить выполненной"}
       </button>
     </div>
   );

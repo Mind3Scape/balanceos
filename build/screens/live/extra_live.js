@@ -215,10 +215,10 @@ function HabitDetailLive() {
       height: 88,
       borderRadius: 22,
       margin: "0 auto",
-      background: tileBg,
       display: "grid",
       placeItems: "center",
-      boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.6)"
+      background: "linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 58%), " + tileBg,
+      boxShadow: bosCellGlass(isDark)
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -270,31 +270,37 @@ function HabitDetailLive() {
     people: calPeople,
     dayFrac: habitFrac,
     label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"
-  }), h.shareCode && /*#__PURE__*/React.createElement(SharedBuddiesLive, {
+  }), /*#__PURE__*/React.createElement(SharedBuddiesLive, {
     habit: h,
     isDark: isDark,
     members: buddies
   }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0418\u043D\u0441\u0430\u0439\u0442"), /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
       borderRadius: 22,
       padding: 14,
-      marginTop: 8,
+      marginTop: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
-      gap: 10
+      alignItems: "center",
+      gap: 7,
+      marginBottom: 8
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 18,
+    size: 16,
     color: h.color || (isDark ? "#fff" : "#0a0a0a")
-  }), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: 1,
       fontSize: 13,
+      fontWeight: 700,
+      letterSpacing: "-0.2px",
+      color: "var(--text-2)"
+    }
+  }, "\u0418\u043D\u0441\u0430\u0439\u0442")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
       color: "var(--text-2)",
       lineHeight: 1.5
     }
@@ -303,34 +309,18 @@ function HabitDetailLive() {
     className: "bos-btn",
     style: {
       marginTop: 22,
-      background: h.done ? isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)" : undefined,
-      color: h.done ? "var(--text-2)" : undefined
+      ...(h.done ? {
+        background: "transparent",
+        color: "var(--text)",
+        border: isDark ? "1.5px solid rgba(255,255,255,0.22)" : "1.5px solid rgba(0,0,0,0.16)",
+        boxShadow: "none"
+      } : {})
     }
-  }, h.done ? "✓ Выполнено сегодня" : "Отметить выполненной"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
-      habit: h,
-      dark: isDark
-    })),
-    className: "tap",
-    "data-haptic": "selection",
+  }, h.done ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     style: {
-      marginTop: 10,
-      width: "100%",
-      background: (h.color || "#0a0a0a") + "14",
-      border: 0,
-      padding: "14px",
-      borderRadius: 16,
-      color: h.color || "var(--text)",
-      fontSize: 15,
-      fontWeight: 600,
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8
+      color: h.color || "var(--text)"
     }
-  }, /*#__PURE__*/React.createElement(I.Users, {
-    size: 18
-  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0430"));
+  }, "\u2713"), " \u0421\u0434\u0435\u043B\u0430\u043D\u043E \u0441\u0435\u0433\u043E\u0434\u043D\u044F") : "Отметить выполненной"));
 }
 
 /* GOAL DETAIL — LIVE. Progress ring, the habits it's built from (cross-linked into

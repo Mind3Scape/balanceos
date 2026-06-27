@@ -440,16 +440,25 @@ function PeopleMonthCalendarLive({
   var selName = selPerson != null && people[selPerson] ? people[selPerson].name : null;
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 14,
+      boxShadow: "var(--card-shadow)",
+      marginTop: label ? 22 : 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      marginTop: 22,
-      marginBottom: 8
+      marginBottom: 12
     }
   }, label ? /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
-      margin: 0
+      fontSize: 13,
+      fontWeight: 700,
+      letterSpacing: "-0.2px",
+      color: "var(--text-2)"
     }
   }, label) : /*#__PURE__*/React.createElement("span", null), /*#__PURE__*/React.createElement("button", {
     onClick: () => setCompact(c => !c),
@@ -472,14 +481,7 @@ function PeopleMonthCalendarLive({
   }, /*#__PURE__*/React.createElement(I.Eye, {
     size: 14,
     color: "var(--text-3)"
-  }), compact ? "Подробно" : "Красиво")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "var(--card)",
-      borderRadius: 22,
-      padding: 14,
-      boxShadow: "var(--card-shadow)"
-    }
-  }, !solo && /*#__PURE__*/React.createElement("div", {
+  }), compact ? "Подробно" : "Красиво")), !solo && /*#__PURE__*/React.createElement("div", {
     className: "screen-scroll",
     style: {
       display: "flex",
@@ -1966,13 +1968,18 @@ function SharedBuddiesLive({
   members: membersProp
 }) {
   var code = habit && habit.shareCode;
+  var {
+    open: openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
   // Cache-backed (no flash); when the parent already provides members, skip the fetch entirely.
   var fetched = useBuddyMembersLive(membersProp ? null : code);
-  if (!code) return null;
   var accent = typeof bosHabitColor === "function" ? bosHabitColor(habit) : habit.color || "#0a0a0a";
   var today = typeof bosTodayKey === "function" ? bosTodayKey() : "";
   var keys = typeof bosWeekKeys === "function" ? bosWeekKeys() : [];
   var members = membersProp || fetched || [];
+  var emptyCell = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -1980,39 +1987,31 @@ function SharedBuddiesLive({
     background: "#fff",
     boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
   };
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0412\u043C\u0435\u0441\u0442\u0435", members.length > 1 ? " · " + members.length : ""), /*#__PURE__*/React.createElement("div", {
+  var hasBuddies = members.length >= 2;
+  var invite = () => {
+    try {
+      openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+        habit: habit,
+        dark: isDark
+      }));
+    } catch (e) {}
+  };
+  return /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
       borderRadius: 22,
       padding: 14,
-      marginTop: 8
+      marginTop: 22
     }
-  }, members.length < 2 ? /*#__PURE__*/React.createElement("div", {
+  }, hasBuddies ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
       fontSize: 13,
-      color: "var(--text-3)",
-      lineHeight: 1.4
+      fontWeight: 700,
+      letterSpacing: "-0.2px",
+      color: "var(--text-2)",
+      marginBottom: 12
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 34,
-      height: 34,
-      borderRadius: "50%",
-      background: accent + "1f",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 16,
-      flexShrink: 0
-    }
-  }, "\uD83D\uDD17"), "\u0416\u0434\u0451\u043C \u0434\u0440\u0443\u0433\u0430 \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u044C \u0441\u0441\u044B\u043B\u043A\u0443 \xAB\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0430\xBB, \u0438 \u0435\u0433\u043E \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C.") : /*#__PURE__*/React.createElement("div", {
+  }, "\u0412\u043C\u0435\u0441\u0442\u0435 \xB7 ", members.length), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -2062,11 +2061,72 @@ function SharedBuddiesLive({
       style: {
         width: 16,
         height: 16,
-        borderRadius: 5,
-        background: m.days[k] ? "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + accent : accent + "1a"
+        borderRadius: "30%",
+        background: m.days[k] ? bosCellFill(accent, 1) : emptyCell,
+        boxShadow: m.days[k] ? bosCellGlass(isDark) : "none"
       }
     })))));
-  }))));
+  }))) :
+  /*#__PURE__*/
+  // No buddy yet → the invite IS this block (tappable), not a separate bottom button (David:
+  // «нижняя кнопка не нужна — кликаю по блоку с цепочкой; и про XP расскажи»).
+  React.createElement("button", {
+    onClick: invite,
+    className: "tap",
+    "data-haptic": "selection",
+    style: {
+      width: "100%",
+      textAlign: "left",
+      background: "transparent",
+      border: 0,
+      padding: 0,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      background: accent + "1f",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20,
+      flexShrink: 0
+    }
+  }, "\uD83D\uDD17"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u0412\u0435\u0434\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, "\u041F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0433\u0430: ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "+75 XP"), ", \u0438 \u043A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "+15 XP"), " \u0432\u043C\u0435\u0441\u0442\u043E +10.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    color: "var(--text-4)"
+  })));
 }
 
 /* MoodWidget → live-only: real per-day mood trail (Пн→Вс), real streak chip + XP copy.

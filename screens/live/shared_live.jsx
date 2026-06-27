@@ -221,16 +221,16 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 22, marginBottom: 8 }}>
-        {label ? <div className="section-label" style={{ margin: 0 }}>{label}</div> : <span />}
-        {/* Eye toggle — «красиво» (just pretty cells) ↔ «подробно» (dates + day labels). David:
-            «базово красивые квадратики без дат; на глазик — подробно». */}
-        <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Красиво"}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, background: chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-          <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Красиво"}
-        </button>
-      </div>
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: label ? 22 : 0 }}>
+        {/* Title + eye toggle live INSIDE the card now (David: «надписи вписаны в блок, не вынесены —
+            чтобы блоки читались бум-бум-бум»). «Красиво» = pretty cells ↔ «Подробно» = dates+labels. */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          {label ? <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)" }}>{label}</div> : <span />}
+          <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Красиво"}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+            <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Красиво"}
+          </button>
+        </div>
         {!solo && (
           <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2, marginBottom: 12 }}>
             <button onClick={() => setSelPerson(null)} className="tap" style={chip(selPerson == null)}>
@@ -786,24 +786,22 @@ function ShareHabitSheetLive({ habit, dark = false }) {
    waits while the friend hasn't joined. Rendered only when the habit carries a shareCode. */
 function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
   const code = habit && habit.shareCode;
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   // Cache-backed (no flash); when the parent already provides members, skip the fetch entirely.
   const fetched = useBuddyMembersLive(membersProp ? null : code);
-  if (!code) return null;
   const accent = (typeof bosHabitColor === "function") ? bosHabitColor(habit) : (habit.color || "#0a0a0a");
   const today = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
   const keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
   const members = membersProp || fetched || [];
+  const emptyCell = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   const card = isDark ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" } : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
+  const hasBuddies = members.length >= 2;
+  const invite = () => { try { openSheet(<ShareHabitSheetLive habit={habit} dark={isDark} />); } catch (e) {} };
   return (
-    <>
-      <div className="section-label" style={{ marginTop: 22 }}>Вместе{members.length > 1 ? " · " + members.length : ""}</div>
-      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 8 }}>
-        {members.length < 2 ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-3)", lineHeight: 1.4 }}>
-            <span style={{ width: 34, height: 34, borderRadius: "50%", background: accent + "1f", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>🔗</span>
-            Ждём друга — отправь ссылку «Позвать друга», и его прогресс появится здесь.
-          </div>
-        ) : (
+    <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22 }}>
+      {hasBuddies ? (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)", marginBottom: 12 }}>Вместе · {members.length}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {members.map((m) => {
               const doneToday = !!m.days[today];
@@ -817,7 +815,7 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
                     </div>
                     <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
                       {keys.map((k, j) => (
-                        <span key={j} style={{ width: 16, height: 16, borderRadius: 5, background: m.days[k] ? ("linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + accent) : (accent + "1a") }} />
+                        <span key={j} style={{ width: 16, height: 16, borderRadius: "30%", background: m.days[k] ? bosCellFill(accent, 1) : emptyCell, boxShadow: m.days[k] ? bosCellGlass(isDark) : "none" }} />
                       ))}
                     </div>
                   </div>
@@ -825,9 +823,20 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
               );
             })}
           </div>
-        )}
-      </div>
-    </>
+        </>
+      ) : (
+        // No buddy yet → the invite IS this block (tappable), not a separate bottom button (David:
+        // «нижняя кнопка не нужна — кликаю по блоку с цепочкой; и про XP расскажи»).
+        <button onClick={invite} className="tap" data-haptic="selection" style={{ width: "100%", textAlign: "left", background: "transparent", border: 0, padding: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, color: "var(--text)" }}>
+          <span style={{ width: 42, height: 42, borderRadius: 14, background: accent + "1f", display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>🔗</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>Веди привычку вместе</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.4 }}>Позови друга: <b style={{ color: "var(--text-2)" }}>+75 XP</b>, и каждая отметка вместе — <b style={{ color: "var(--text-2)" }}>+15 XP</b> вместо +10.</div>
+          </div>
+          <I.ChevronRight size={18} color="var(--text-4)" />
+        </button>
+      )}
+    </div>
   );
 }
 
