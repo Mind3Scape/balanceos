@@ -22,7 +22,7 @@ function ProfileLive() {
   const { navigate } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const { open: openSheet } = useSheet();
-  const openAvatar = () => openSheet(<AvatarPickerSheet dark={app?.themeOverride === "dark"} />);
+  const openAvatar = () => openSheet(<AvatarPickerSheetLive dark={app?.themeOverride === "dark"} />);
   // LIVE: always real data.
   const _xp = bosLiveXPLive(app);
   const _li = bosLevelInfoLive(_xp);

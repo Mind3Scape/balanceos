@@ -1717,6 +1717,65 @@ function EmojiPickerLive({ onPick, accent = "#0a0a0a", current }) {
   );
 }
 
+/* LIVE avatar picker — the SAME rich emoji panel as habit/goal/team creation (BOS_EMOJI_CATS,
+   category row + 8-col grid), with Memoji as the second tab. David: «не наш урезанный выбор —
+   богатый как при создании привычек; слева эмодзи, справа мемодзи». SF-symbols are intentionally
+   omitted here (they don't render as an avatar face). Lives live-only so it can use the rich panel;
+   the shared core AvatarPickerSheet (demo + edit-profile sheet) stays untouched. */
+function AvatarPickerSheetLive({ dark = false }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const { close } = useSheet();
+  const C = (typeof sheetColors === "function") ? sheetColors(dark) : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", field: "#f4f4f6", btn: "#0a0a0a", btnFg: "#fff" };
+  const cur = "" + (app?.avatar || "");
+  const [tab, setTab] = React.useState(cur.indexOf("emoji:") === 0 ? "emoji" : "memoji");
+  const [cat, setCat] = React.useState(0);
+  const pick = (val) => { try { app && app.setAvatar && app.setAvatar(val); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  const CATS = (typeof BOS_EMOJI_CATS !== "undefined") ? BOS_EMOJI_CATS : [];
+  const MEMO = (typeof BOS_MEMOJI !== "undefined") ? BOS_MEMOJI : [];
+  return (
+    <div style={{ padding: "2px 16px 8px", color: C.text }}>
+      <div style={{ fontSize: 19, fontWeight: 700, textAlign: "center" }}>Аватар</div>
+      <div style={{ fontSize: 12.5, color: C.sub, textAlign: "center", marginTop: 3, lineHeight: 1.4 }}>Выбери лицо — Эмодзи или Мемоджи. Сменить можно когда угодно.</div>
+      <div style={{ display: "flex", gap: 6, background: C.field, borderRadius: 999, padding: 4, margin: "14px auto 12px", width: "fit-content" }}>
+        {[["emoji", "Эмодзи"], ["memoji", "Мемоджи"]].map(function (m) {
+          return <button key={m[0]} onClick={() => setTab(m[0])} className="tap" data-no-haptic style={{ border: 0, borderRadius: 999, padding: "7px 22px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", background: tab === m[0] ? C.btn : "transparent", color: tab === m[0] ? C.btnFg : C.sub }}>{m[1]}</button>;
+        })}
+      </div>
+      {tab === "emoji" ? (
+        <>
+          <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+            {CATS.map(function (c, i) {
+              return <button key={i} className="tap" data-no-haptic onClick={() => setCat(i)} aria-label={"Категория " + (i + 1)}
+                style={{ flex: 1, height: 38, borderRadius: 11, border: 0, fontSize: 19, cursor: "pointer", background: i === cat ? C.field : "transparent" }}>{c.ic}</button>;
+            })}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 2, maxHeight: 248, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+            {(CATS[cat] ? CATS[cat].list : []).map(function (e, i) {
+              var v = "emoji:" + e;
+              return <button key={i} className="tap" data-no-haptic onClick={() => pick(v)} style={{ aspectRatio: "1 / 1", borderRadius: 10, border: 0, background: cur === v ? C.field : "transparent", fontSize: 25, cursor: "pointer", padding: 0 }}>{e}</button>;
+            })}
+          </div>
+        </>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 13, maxHeight: 296, overflowY: "auto", padding: "2px 2px 4px" }}>
+          {MEMO.map(function (m) {
+            var val = m === "default" ? null : m;
+            var sel = m === "default" ? (!cur || cur === "default") : cur === m;
+            return (
+              <button key={m} onClick={() => pick(val)} className="tap" aria-label="Аватар" style={{ padding: 0, border: 0, background: "transparent", display: "grid", placeItems: "center", justifySelf: "center" }}>
+                <div style={{ borderRadius: "50%", padding: 3, boxShadow: sel ? "0 0 0 2.5px " + C.text : "none" }}>
+                  <BosAvatar avatar={val} size={52} style={{ border: "2px solid " + (dark ? "#1c1c1e" : "#fff") }} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <button onClick={close} className="tap" style={{ width: "100%", marginTop: 16, background: C.btn, color: C.btnFg, border: 0, borderRadius: 999, padding: 13, fontSize: 15, fontWeight: 600 }}>Готово</button>
+    </div>
+  );
+}
+
 /* Count check (live) — for habits whose DAILY goal is >1 (e.g. 20 отжиманий). Tap = +1,
    long-press = −1; a ring (big goals) or radial SEGMENTS (≤6) fill with the count. The day
    is marked done — and XP granted — ONLY at the FULL count (David: «экспа только за

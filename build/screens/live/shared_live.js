@@ -4121,6 +4121,190 @@ function EmojiPickerLive({
   }, e)))));
 }
 
+/* LIVE avatar picker — the SAME rich emoji panel as habit/goal/team creation (BOS_EMOJI_CATS,
+   category row + 8-col grid), with Memoji as the second tab. David: «не наш урезанный выбор —
+   богатый как при создании привычек; слева эмодзи, справа мемодзи». SF-symbols are intentionally
+   omitted here (they don't render as an avatar face). Lives live-only so it can use the rich panel;
+   the shared core AvatarPickerSheet (demo + edit-profile sheet) stays untouched. */
+function AvatarPickerSheetLive({
+  dark = false
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var {
+    close
+  } = useSheet();
+  var C = typeof sheetColors === "function" ? sheetColors(dark) : {
+    text: "#0a0a0a",
+    sub: "rgba(0,0,0,0.5)",
+    field: "#f4f4f6",
+    btn: "#0a0a0a",
+    btnFg: "#fff"
+  };
+  var cur = "" + (app?.avatar || "");
+  var [tab, setTab] = React.useState(cur.indexOf("emoji:") === 0 ? "emoji" : "memoji");
+  var [cat, setCat] = React.useState(0);
+  var pick = val => {
+    try {
+      app && app.setAvatar && app.setAvatar(val);
+    } catch (e) {}
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+  };
+  var CATS = typeof BOS_EMOJI_CATS !== "undefined" ? BOS_EMOJI_CATS : [];
+  var MEMO = typeof BOS_MEMOJI !== "undefined" ? BOS_MEMOJI : [];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 16px 8px",
+      color: C.text
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 19,
+      fontWeight: 700,
+      textAlign: "center"
+    }
+  }, "\u0410\u0432\u0430\u0442\u0430\u0440"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: C.sub,
+      textAlign: "center",
+      marginTop: 3,
+      lineHeight: 1.4
+    }
+  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u043B\u0438\u0446\u043E \u2014 \u042D\u043C\u043E\u0434\u0437\u0438 \u0438\u043B\u0438 \u041C\u0435\u043C\u043E\u0434\u0436\u0438. \u0421\u043C\u0435\u043D\u0438\u0442\u044C \u043C\u043E\u0436\u043D\u043E \u043A\u043E\u0433\u0434\u0430 \u0443\u0433\u043E\u0434\u043D\u043E."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      background: C.field,
+      borderRadius: 999,
+      padding: 4,
+      margin: "14px auto 12px",
+      width: "fit-content"
+    }
+  }, [["emoji", "Эмодзи"], ["memoji", "Мемоджи"]].map(function (m) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: m[0],
+      onClick: () => setTab(m[0]),
+      className: "tap",
+      "data-no-haptic": true,
+      style: {
+        border: 0,
+        borderRadius: 999,
+        padding: "7px 22px",
+        fontSize: 13.5,
+        fontWeight: 600,
+        cursor: "pointer",
+        background: tab === m[0] ? C.btn : "transparent",
+        color: tab === m[0] ? C.btnFg : C.sub
+      }
+    }, m[1]);
+  })), tab === "emoji" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      marginBottom: 10
+    }
+  }, CATS.map(function (c, i) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      className: "tap",
+      "data-no-haptic": true,
+      onClick: () => setCat(i),
+      "aria-label": "Категория " + (i + 1),
+      style: {
+        flex: 1,
+        height: 38,
+        borderRadius: 11,
+        border: 0,
+        fontSize: 19,
+        cursor: "pointer",
+        background: i === cat ? C.field : "transparent"
+      }
+    }, c.ic);
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(8, 1fr)",
+      gap: 2,
+      maxHeight: 248,
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch"
+    }
+  }, (CATS[cat] ? CATS[cat].list : []).map(function (e, i) {
+    var v = "emoji:" + e;
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      className: "tap",
+      "data-no-haptic": true,
+      onClick: () => pick(v),
+      style: {
+        aspectRatio: "1 / 1",
+        borderRadius: 10,
+        border: 0,
+        background: cur === v ? C.field : "transparent",
+        fontSize: 25,
+        cursor: "pointer",
+        padding: 0
+      }
+    }, e);
+  }))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(5,1fr)",
+      gap: 13,
+      maxHeight: 296,
+      overflowY: "auto",
+      padding: "2px 2px 4px"
+    }
+  }, MEMO.map(function (m) {
+    var val = m === "default" ? null : m;
+    var sel = m === "default" ? !cur || cur === "default" : cur === m;
+    return /*#__PURE__*/React.createElement("button", {
+      key: m,
+      onClick: () => pick(val),
+      className: "tap",
+      "aria-label": "\u0410\u0432\u0430\u0442\u0430\u0440",
+      style: {
+        padding: 0,
+        border: 0,
+        background: "transparent",
+        display: "grid",
+        placeItems: "center",
+        justifySelf: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        borderRadius: "50%",
+        padding: 3,
+        boxShadow: sel ? "0 0 0 2.5px " + C.text : "none"
+      }
+    }, /*#__PURE__*/React.createElement(BosAvatar, {
+      avatar: val,
+      size: 52,
+      style: {
+        border: "2px solid " + (dark ? "#1c1c1e" : "#fff")
+      }
+    })));
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: close,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 16,
+      background: C.btn,
+      color: C.btnFg,
+      border: 0,
+      borderRadius: 999,
+      padding: 13,
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E"));
+}
+
 /* Count check (live) — for habits whose DAILY goal is >1 (e.g. 20 отжиманий). Tap = +1,
    long-press = −1; a ring (big goals) or radial SEGMENTS (≤6) fill with the count. The day
    is marked done — and XP granted — ONLY at the FULL count (David: «экспа только за

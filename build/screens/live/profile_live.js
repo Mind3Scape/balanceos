@@ -26,7 +26,7 @@ function ProfileLive() {
   var {
     open: openSheet
   } = useSheet();
-  var openAvatar = () => openSheet(/*#__PURE__*/React.createElement(AvatarPickerSheet, {
+  var openAvatar = () => openSheet(/*#__PURE__*/React.createElement(AvatarPickerSheetLive, {
     dark: app?.themeOverride === "dark"
   }));
   // LIVE: always real data.
