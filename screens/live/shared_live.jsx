@@ -307,7 +307,12 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
             const bg = fut ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)")
               : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : track) : bosCellFill(hx, pct));
-            const ink = fut ? "var(--text-4)" : (pct <= 0 ? (itx ? hx : "var(--text)") : bosCellInk(hx, pct, isDark));
+            // One COHESIVE today-glyph colour (David: «цвет цифры прыгает с чёрного на белый на 4→5 —
+            // бред; пусть пока копится и в конце ВСЕГДА белый; „+" пусть остаётся в цвете обводки»).
+            // Filled today = ALWAYS white number/✓ (never flips) + soft shadow so it reads on any fill;
+            // empty today = accent «+» (harmonises with the ring). Non-today keeps the heat-map ink.
+            const ink = fut ? "var(--text-4)" : (pct <= 0 ? (itx ? hx : "var(--text)") : (itx ? "#fff" : bosCellInk(hx, pct, isDark)));
+            const todayGlow = (itx && filled) ? "0 0.5px 1.5px rgba(0,0,0,0.55)" : "none";
             const todayRing = itx ? hx : (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)");
             const ring = (!compact && isSel) ? selRing : (isToday ? todayRing : null);
             const ringW = (itx && isToday) ? 2 : 1.6;
@@ -320,8 +325,8 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
                 background: bg, boxShadow: shadow, color: ink, position: "relative" }}>
                 {itx
                   ? (done
-                      ? <I.Check size={15} strokeWidth={3} color={ink} />
-                      : <span style={{ fontSize: (todayTap.hint && todayTap.hint.length > 1) ? 12 : 15, fontWeight: 800, lineHeight: 1, color: ink, fontVariantNumeric: "tabular-nums" }}>{todayTap.hint}</span>)
+                      ? <I.Check size={15} strokeWidth={3} color={ink} style={{ filter: todayGlow !== "none" ? "drop-shadow(0 0.5px 1px rgba(0,0,0,0.5))" : "none" }} />
+                      : <span style={{ fontSize: (todayTap.hint && todayTap.hint.length > 1) ? 12 : 15, fontWeight: 800, lineHeight: 1, color: ink, textShadow: todayGlow, fontVariantNumeric: "tabular-nums" }}>{todayTap.hint}</span>)
                   : (!compact && !fut && <span>{c.d}</span>)}
               </button>
             );

@@ -120,7 +120,10 @@
   async function loadHabits() {
     var c = client(); var id = await uid(); if (!c || !id) return null;
     try {
-      var hs = await c.from("habits").select("id,data,sort").order("sort", { ascending: true });
+      // STABLE order: sort, then created_at — without the created_at tiebreak, habits that share
+      // the default sort=0 come back in arbitrary order every fetch → they «swap places» on each
+      // app open (David: «привычки меняются местами когда захожу/выхожу»). created_at = creation order.
+      var hs = await c.from("habits").select("id,data,sort,created_at").order("sort", { ascending: true }).order("created_at", { ascending: true });
       if (hs.error) return null;
       var lg = await c.from("habit_logs").select("habit_id,day");
       var rows = (lg && lg.data) || [];
@@ -152,7 +155,7 @@
   async function loadGoals() {
     var c = client(); var id = await uid(); if (!c || !id) return null;
     try {
-      var gs = await c.from("goals").select("id,data,sort").order("sort", { ascending: true });
+      var gs = await c.from("goals").select("id,data,sort,created_at").order("sort", { ascending: true }).order("created_at", { ascending: true });
       if (gs.error) return null;
       return (gs.data || []).map(function (g) { return Object.assign({}, g.data || {}, { cloudId: g.id, sort: g.sort || 0 }); });
     } catch (e) { return null; }

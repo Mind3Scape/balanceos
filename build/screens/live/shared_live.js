@@ -652,7 +652,12 @@ function PeopleMonthCalendarLive({
     var filled = !fut && pct > 0;
     // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
     var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : track : bosCellFill(hx, pct);
-    var ink = fut ? "var(--text-4)" : pct <= 0 ? itx ? hx : "var(--text)" : bosCellInk(hx, pct, isDark);
+    // One COHESIVE today-glyph colour (David: «цвет цифры прыгает с чёрного на белый на 4→5 —
+    // бред; пусть пока копится и в конце ВСЕГДА белый; „+" пусть остаётся в цвете обводки»).
+    // Filled today = ALWAYS white number/✓ (never flips) + soft shadow so it reads on any fill;
+    // empty today = accent «+» (harmonises with the ring). Non-today keeps the heat-map ink.
+    var ink = fut ? "var(--text-4)" : pct <= 0 ? itx ? hx : "var(--text)" : itx ? "#fff" : bosCellInk(hx, pct, isDark);
+    var todayGlow = itx && filled ? "0 0.5px 1.5px rgba(0,0,0,0.55)" : "none";
     var todayRing = itx ? hx : isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)";
     var ring = !compact && isSel ? selRing : isToday ? todayRing : null;
     var ringW = itx && isToday ? 2 : 1.6;
@@ -683,13 +688,17 @@ function PeopleMonthCalendarLive({
     }), itx ? done ? /*#__PURE__*/React.createElement(I.Check, {
       size: 15,
       strokeWidth: 3,
-      color: ink
+      color: ink,
+      style: {
+        filter: todayGlow !== "none" ? "drop-shadow(0 0.5px 1px rgba(0,0,0,0.5))" : "none"
+      }
     }) : /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: todayTap.hint && todayTap.hint.length > 1 ? 12 : 15,
         fontWeight: 800,
         lineHeight: 1,
         color: ink,
+        textShadow: todayGlow,
         fontVariantNumeric: "tabular-nums"
       }
     }, todayTap.hint) : !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
