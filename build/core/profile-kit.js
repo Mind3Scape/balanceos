@@ -327,7 +327,8 @@ function OrbitField({
   levelPct = 2,
   onTap,
   moodC,
-  dark = false
+  dark = false,
+  hideLevelArc = false
 }) {
   var t = useOrbClock();
   var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
@@ -500,19 +501,38 @@ function OrbitField({
     stdDeviation: "2.2",
     floodColor: "#000",
     floodOpacity: "0.16"
-  })), /*#__PURE__*/React.createElement("radialGradient", {
+  })), /*#__PURE__*/React.createElement("linearGradient", {
     id: "orbGlass",
-    cx: "0.34",
-    cy: "0.26",
-    r: "0.85"
+    x1: "0.12",
+    y1: "0",
+    x2: "0.6",
+    y2: "1"
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0",
     stopColor: "#ffffff",
-    stopOpacity: "0.6"
+    stopOpacity: "0.55"
   }), /*#__PURE__*/React.createElement("stop", {
-    offset: "0.45",
+    offset: "0.46",
     stopColor: "#ffffff",
-    stopOpacity: "0.14"
+    stopOpacity: "0.12"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.72",
+    stopColor: "#ffffff",
+    stopOpacity: "0"
+  })), /*#__PURE__*/React.createElement("linearGradient", {
+    id: "orbEdge",
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#ffffff",
+    stopOpacity: "0.95"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.5",
+    stopColor: "#ffffff",
+    stopOpacity: "0.18"
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "1",
     stopColor: "#ffffff",
@@ -559,7 +579,7 @@ function OrbitField({
         opacity: dark ? "0.85" : "0.6"
       }));
     });
-  }), /*#__PURE__*/React.createElement("g", {
+  }), !hideLevelArc && /*#__PURE__*/React.createElement("g", {
     transform: "rotate(-90)",
     opacity: eo
   }, /*#__PURE__*/React.createElement("circle", {
@@ -613,8 +633,8 @@ function OrbitField({
         cy: "0",
         r: "16",
         fill: "none",
-        stroke: PAL.pstroke,
-        strokeWidth: "1.2"
+        stroke: "url(#orbEdge)",
+        strokeWidth: "1.3"
       }), /*#__PURE__*/React.createElement("text", {
         x: "0",
         y: "0.5",
@@ -657,8 +677,8 @@ function OrbitField({
         cy: "0",
         r: "16",
         fill: "none",
-        stroke: PAL.discStroke,
-        strokeWidth: "0.9"
+        stroke: "url(#orbEdge)",
+        strokeWidth: "1.3"
       }), /*#__PURE__*/React.createElement("text", {
         x: "0",
         y: "0.5",
@@ -717,7 +737,7 @@ function OrbitField({
       cy: "0",
       r: "16.6",
       fill: "none",
-      stroke: PAL.pstroke,
+      stroke: "url(#orbEdge)",
       strokeWidth: "1.4"
     }));
   })), /*#__PURE__*/React.createElement("button", {

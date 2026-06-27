@@ -135,7 +135,8 @@ function ProfileLive() {
     levelPct: lvlPct,
     onTap: openAvatar,
     moodC: app?.mood?.c,
-    dark: app?.themeOverride === "dark"
+    dark: app?.themeOverride === "dark",
+    hideLevelArc: true
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",

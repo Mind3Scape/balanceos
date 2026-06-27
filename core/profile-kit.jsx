@@ -94,7 +94,7 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
-function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false }) {
+function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false }) {
   const t = useOrbClock();
   const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -174,12 +174,18 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
         <defs>
           <clipPath id="orbAvClip"><circle cx="0" cy="0" r="16" /></clipPath>
           <filter id="orbShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="2.2" floodColor="#000" floodOpacity="0.16" /></filter>
-          {/* glass sheen for the orbiting discs (David: «эффект стекла на кружочки в орбитах») */}
-          <radialGradient id="orbGlass" cx="0.34" cy="0.26" r="0.85">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0.6" />
-            <stop offset="0.45" stopColor="#ffffff" stopOpacity="0.14" />
+          {/* glass for the orbiting discs — SAME tile-glass vocabulary as the pencil button
+              (BOS_TILE_SHEEN directional sheen + a bright top edge), not a soft radial blob. */}
+          <linearGradient id="orbGlass" x1="0.12" y1="0" x2="0.6" y2="1">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.55" />
+            <stop offset="0.46" stopColor="#ffffff" stopOpacity="0.12" />
+            <stop offset="0.72" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="orbEdge" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.95" />
+            <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.18" />
             <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
-          </radialGradient>
+          </linearGradient>
         </defs>
 
         {/* concentric orbits */}
@@ -207,12 +213,15 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           });
         })}
 
-        {/* gold level arc hugging the centre orb */}
+        {/* gold level arc — hidden in live (David: «жёлтое кольцо не нужно»; level lives in the
+            stat plaque). Demo keeps it (it passes no hideLevelArc). */}
+        {!hideLevelArc && (
         <g transform="rotate(-90)" opacity={eo}>
           <circle cx="0" cy="0" r={lr} fill="none" stroke={PAL.lvlTrack} strokeWidth="4" />
           <circle cx="0" cy="0" r={lr} fill="none" stroke="#FEDE34" strokeWidth="4" strokeLinecap="round"
             strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - Math.max(0.02, (levelPct || 2) / 100))} />
         </g>
+        )}
 
         {/* planets — habits (glass discs w/ emoji) + people (memoji discs) */}
         {nodes.map((n) => {
@@ -230,7 +239,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
               <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
                 <circle cx="0" cy="0" r="16" fill={PAL.pdisc} />
                 <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
-                <circle cx="0" cy="0" r="16" fill="none" stroke={PAL.pstroke} strokeWidth="1.2" />
+                <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
                 <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="600" style={{ fill: dark ? "#cfe0ff" : "#5b6473" }}>+{n.count}</text>
               </g>
             );
@@ -241,7 +250,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
                 {dark && <circle cx="0" cy="0" r="19" fill={glow} opacity="0.18" style={{ filter: "blur(5px)" }} />}
                 <circle cx="0" cy="0" r="16" fill={PAL.disc} />
                 <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
-                <circle cx="0" cy="0" r="16" fill="none" stroke={PAL.discStroke} strokeWidth="0.9" />
+                <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
                 <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{n.emoji}</text>
               </g>
             );
@@ -256,7 +265,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
                 ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
                 : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
               <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
-              <circle cx="0" cy="0" r="16.6" fill="none" stroke={PAL.pstroke} strokeWidth="1.4" />
+              <circle cx="0" cy="0" r="16.6" fill="none" stroke="url(#orbEdge)" strokeWidth="1.4" />
             </g>
           );
         })}
