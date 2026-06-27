@@ -104,7 +104,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
   // Ring STRUCTURE (sort by streak, build nodes, assign even angular spread, ring set)
   // depends ONLY on [habits, people] — memo it so it isn't rebuilt on every animation frame;
   // only the per-frame positions (cos/sin of t, below) recompute each tick.
-  const MAXR = 2; // 3 belts, like the onboarding cosmos; the rest fold into a "+N" whisper
+  const MAXR = 3; // 4 belts — orbits may run under the cards below; the rest fold into a "+N" whisper
   const { nodes, drawRings, maxStreak } = React.useMemo(() => {
     // Strongest habit first → inner belt + bigger; people by invite order (1st = closest).
     const hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0));
@@ -147,7 +147,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
   // SECOND inner avatar disc when the user actually picked a Memoji/Emoji — otherwise the
   // default sphere would render twice (a big + a small orb stacked = the duplicate bug).
   const hasCustomAvatar = !!avatar && avatar !== "default";
-  const lr = 54, CIRC = 2 * Math.PI * lr; // gold level arc hugging the centre orb
+  const lr = 36, CIRC = 2 * Math.PI * lr; // gold level arc hugging the (smaller ~37%) centre orb
   // (nodes / maxRing / drawRings now come from the memo above — they depend only on habits/people)
 
   // NO background of its own — the constellation floats on the SAME page background as
@@ -249,12 +249,12 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
 
       {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
           with your avatar nested inside it. tap to change avatar */}
-      <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 96, height: 96, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: "0 6px 18px rgba(0,0,0,0.18)" + (dark ? ", 0 0 18px " + glow + "55" : "") }}>
-          <BosOrbFace avatar={avatar} size={96} tint={tint} style={{ width: "100%", height: "100%" }} />
+      <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: "0 5px 14px rgba(0,0,0,0.18)" + (dark ? ", 0 0 14px " + glow + "55" : "") }}>
+          <BosOrbFace avatar={avatar} size={60} tint={tint} style={{ width: "100%", height: "100%" }} />
         </div>
-        <span style={{ position: "absolute", right: 1, bottom: 1, width: 27, height: 27, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2.5px solid " + PAL.badge, boxShadow: "0 2px 6px rgba(0,0,0,0.25)", zIndex: 2 }}>
-          <I.Pencil size={12} />
+        <span style={{ position: "absolute", right: -1, bottom: -1, width: 20, height: 20, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2px solid " + PAL.badge, boxShadow: "0 2px 6px rgba(0,0,0,0.25)", zIndex: 2 }}>
+          <I.Pencil size={10} />
         </span>
       </button>
     </div>

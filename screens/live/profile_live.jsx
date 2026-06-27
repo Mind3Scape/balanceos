@@ -51,6 +51,10 @@ function ProfileLive() {
   const _achEarnedN = _liveAch.length;
   const _achEmojis = _liveAch.slice(0, 3).map((a) => a.i);
   const _achCircles = livePeople.length;
+  const isDark = app?.themeOverride === "dark";
+  const statCard = isDark
+    ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
+    : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
   // Grouped iOS-style menu (v280): plain render-fn so re-renders never remount the rows.
   const chip = (icon) => <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(icon, { size: 16 })}</span>;
   const navRow = (icon, label, id, last) => (
@@ -71,14 +75,13 @@ function ProfileLive() {
           <I.Sparkles size={11} /> Уровень {lvlNum}
         </div>
         <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 14, color: "var(--text)" }}>{app?.userName || "Ты"}</div>
-        {/* Quick stats — real for live */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 14 }}>
-          {[{ l: "Уровень", v: "" + lvlNum }, { l: "До " + (lvlNum + 1) + " ур.", v: lvlPct + "%" }, { l: "Опыт", v: "" + _xp }].map((s, i) => (
-            <div key={i} className="bos-sys-card" style={{ padding: "8px 16px", borderRadius: 22, minWidth: 72 }}>
-              <div className="bos-sys-text-3" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>{s.l}</div>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.4px", marginTop: 1 }}>{s.v}</div>
-            </div>
-          ))}
+        {/* Quick stats — one unified plaque (the SAME StatTrioLive band as the Habits page) */}
+        <div style={{ marginTop: 14 }}>
+          <StatTrioLive isDark={isDark} card={statCard} items={[
+            { l: "Уровень", v: lvlNum, icon: <I.Trophy size={14} color="var(--text-4)" /> },
+            { l: "До " + (lvlNum + 1) + " ур.", v: lvlPct, suf: "%", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
+            { l: "Опыт", v: _xp, icon: <I.Sparkles size={14} color="var(--text-4)" /> },
+          ]} />
         </div>
       </div>
 
@@ -114,11 +117,11 @@ function ProfileLive() {
       </SysCard>
 
       {/* App menu — one grouped iOS card, hairline-divided rows */}
+      {/* App menu — Настройки first, Уведомления under (David). ИИ-инсайты removed (ИИ is its
+          own tab) and История removed (it's reachable from the home calendar). */}
       <div className="bos-sys-card" style={{ marginTop: 12, padding: 0, overflow: "hidden" }}>
-        {navRow(I.Clock, "История", "history")}
-        {navRow(I.Sparkles, "ИИ-инсайты", "ai")}
-        {navRow(I.Bell, "Уведомления", "notifications")}
         {navRow(I.Settings, "Настройки", "settings")}
+        {navRow(I.Bell, "Уведомления", "notifications")}
         {navRow(I.Help, "Поддержка и помощь", "support", true)}
       </div>
       <SysBtn onClick={() => navigate("onboarding", { from: "profile" })} style={{ marginTop: 12, color: "var(--accent-red)" }}>

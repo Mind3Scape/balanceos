@@ -61,6 +61,14 @@ function ProfileLive() {
   var _achEarnedN = _liveAch.length;
   var _achEmojis = _liveAch.slice(0, 3).map(a => a.i);
   var _achCircles = livePeople.length;
+  var isDark = app?.themeOverride === "dark";
+  var statCard = isDark ? {
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.08)"
+  } : {
+    background: "#fff",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+  };
   // Grouped iOS-style menu (v280): plain render-fn so re-renders never remount the rows.
   var chip = icon => /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
@@ -151,44 +159,35 @@ function ProfileLive() {
     }
   }, app?.userName || "Ты"), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      justifyContent: "center",
-      gap: 8,
       marginTop: 14
     }
-  }, [{
-    l: "Уровень",
-    v: "" + lvlNum
-  }, {
-    l: "До " + (lvlNum + 1) + " ур.",
-    v: lvlPct + "%"
-  }, {
-    l: "Опыт",
-    v: "" + _xp
-  }].map((s, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    className: "bos-sys-card",
-    style: {
-      padding: "8px 16px",
-      borderRadius: 22,
-      minWidth: 72
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 10,
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
-      fontWeight: 600
-    }
-  }, s.l), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 18,
-      fontWeight: 700,
-      letterSpacing: "-0.4px",
-      marginTop: 1
-    }
-  }, s.v))))), /*#__PURE__*/React.createElement(SysCard, {
+  }, /*#__PURE__*/React.createElement(StatTrioLive, {
+    isDark: isDark,
+    card: statCard,
+    items: [{
+      l: "Уровень",
+      v: lvlNum,
+      icon: /*#__PURE__*/React.createElement(I.Trophy, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "До " + (lvlNum + 1) + " ур.",
+      v: lvlPct,
+      suf: "%",
+      icon: /*#__PURE__*/React.createElement(I.ChartBar, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Опыт",
+      v: _xp,
+      icon: /*#__PURE__*/React.createElement(I.Sparkles, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }]
+  }))), /*#__PURE__*/React.createElement(SysCard, {
     className: "tap",
     onClick: () => navigate("achievements", {
       from: "profile"
@@ -317,7 +316,7 @@ function ProfileLive() {
       padding: 0,
       overflow: "hidden"
     }
-  }, navRow(I.Clock, "История", "history"), navRow(I.Sparkles, "ИИ-инсайты", "ai"), navRow(I.Bell, "Уведомления", "notifications"), navRow(I.Settings, "Настройки", "settings"), navRow(I.Help, "Поддержка и помощь", "support", true)), /*#__PURE__*/React.createElement(SysBtn, {
+  }, navRow(I.Settings, "Настройки", "settings"), navRow(I.Bell, "Уведомления", "notifications"), navRow(I.Help, "Поддержка и помощь", "support", true)), /*#__PURE__*/React.createElement(SysBtn, {
     onClick: () => navigate("onboarding", {
       from: "profile"
     }),
