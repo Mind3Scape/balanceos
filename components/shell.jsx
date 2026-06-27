@@ -119,7 +119,7 @@ function swipeTone(tone, dark) {
 /* Swipe-to-reveal row actions, styled as iOS-app round icon buttons. Drag a row
    left to expose the actions; a tap on a closed row passes through to its own
    onClick, a tap on an open row closes it; vertical drags fall through to scroll. */
-function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, dark = false, trackBg }) {
+function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, actionSize = 40, dark = false, trackBg }) {
   const [open, setOpen] = useState(false);
   const [dx, setDx] = useState(0);
   const [releasing, setReleasing] = useState(true);
@@ -187,9 +187,9 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, da
             <button key={a.key || i} className="tap" aria-label={a.label} title={a.label} onClick={(e) => { e.stopPropagation(); close(); a.onAction && a.onAction(); }}
               style={{ width: actionWidth, border: 0, background: "transparent",
                 display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-              <span style={{ width: 40, height: 40, borderRadius: "50%", background: ts.bg, display: "grid", placeItems: "center",
+              <span style={{ width: actionSize, height: actionSize, borderRadius: "50%", background: ts.bg, display: "grid", placeItems: "center",
                 boxShadow: dark ? "none" : "0 1px 3px rgba(0,0,0,0.10)" }}>
-                {React.createElement(a.icon, { size: 18, color: ts.fg, strokeWidth: a.tone === "done" ? 2.6 : 2, style: { display: "block" } })}
+                {React.createElement(a.icon, { size: Math.max(14, Math.round(actionSize * 0.46)), color: ts.fg, strokeWidth: a.tone === "done" ? 2.6 : 2, style: { display: "block" } })}
               </span>
             </button>
           );

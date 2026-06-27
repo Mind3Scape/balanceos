@@ -867,13 +867,17 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
     <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 12 }}>
       {hasBuddies ? (
         <>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)", marginBottom: 12 }}>Вместе · {visible.length}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)", marginBottom: 10 }}>Вместе · {visible.length}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {visible.map((m) => {
               const doneToday = !!m.days[today];
+              // Each person sits on a SUBTLE chip (David: «капельку выделять людей»), distinct from the
+              // grey week-squares; the OWNER can swipe a buddy (never yourself) → a SMALLER «Убрать»
+              // circle with breathing room, and the slid corner matches the chip radius (16).
+              const chipBg = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)";
               const rowInner = (
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <BuddyFaceLive avatar={m.avatar} name={m.name} size={40} />
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px" }}>
+                  <BuddyFaceLive avatar={m.avatar} name={m.name} size={38} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>
                       {m.me ? "Ты" : m.name}
@@ -887,17 +891,16 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
                   </div>
                 </div>
               );
-              // Owner can swipe a buddy away (never yourself); everyone else sees a plain row.
               return (iAmOwner && !m.me)
                 ? (
-                  <div key={m.id} style={{ borderRadius: 12, overflow: "hidden" }}>
-                    <SwipeRow rowBg={isDark ? "#1c1c1f" : "#fff"} dark={isDark} actionWidth={56}
+                  <div key={m.id} style={{ borderRadius: 16, overflow: "hidden" }}>
+                    <SwipeRow rowBg={chipBg} dark={isDark} actionWidth={52} actionSize={30}
                       actions={[{ key: "rm", tone: "delete", label: "Убрать", icon: I.X, onAction: () => removeMember(m) }]}>
                       {rowInner}
                     </SwipeRow>
                   </div>
                 )
-                : <div key={m.id}>{rowInner}</div>;
+                : <div key={m.id} style={{ borderRadius: 16, background: chipBg }}>{rowInner}</div>;
             })}
           </div>
           {/* Always offer to invite MORE — even with buddies (David: «хочу звать ещё, даже если уже поделился»). */}
@@ -1365,21 +1368,38 @@ function bosHabitColor(habit) {
 // family (David). NO «today» marker on purpose: the current day is already obvious, a ring
 // only added noise. Display-only; reads the REAL date-log (same source as the streak).
 function HabitWeekStrip({ habit }) {
-  if (!habit) return null;
   // Same cell language as the month calendar (Э4 continuity): squircle, FLAT accent when done,
   // neutral track when empty, a subtle ring on today — so the week strip on the card reads as
   // the exact same «day = square» tile as the detail calendar.
   var app = (typeof useApp === "function") ? useApp() : null;
   var isDark = app && app.themeOverride === "dark";
-  var accent = bosHabitColor(habit);
-  var log = habit.log || {};
   var keys = bosWeekKeys();
   var todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+  // Ripple OUTSIDE the habit: completing a habit from the LIST sends a wave radiating BOTH ways
+  // from today's weekday cell (David: «снаружи привычки, когда полностью закрываю — клёвая волна в
+  // обе стороны от сегодняшнего дня»). Fires only on the done false→true flip (covers binary AND
+  // quantitative-at-full). Web-Animations, staggered by distance from today; auto-cleans.
+  var stripRef = React.useRef(null);
+  var doneNow = !!(habit && habit.done);
+  var prevDone = React.useRef(doneNow);
+  React.useEffect(function () {
+    if (doneNow && !prevDone.current && stripRef.current) {
+      var ti = keys.indexOf(todayK), kids = stripRef.current.children;
+      for (var i = 0; i < kids.length; i++) {
+        var dist = ti >= 0 ? Math.abs(i - ti) : 0;
+        try { kids[i].animate([{ transform: "scale(1)" }, { transform: "scale(1.32)" }, { transform: "scale(1)" }], { duration: 440, delay: dist * 55, easing: "cubic-bezier(0.22,0.9,0.3,1.2)" }); } catch (e) {}
+      }
+    }
+    prevDone.current = doneNow;
+  }, [doneNow]);
+  if (!habit) return null;
+  var accent = bosHabitColor(habit);
+  var log = habit.log || {};
   var doneFill = bosCellFill(accent, 1);   // SAME soft glossy fill as the month calendar (continuity)
   var empty = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var ringC = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
   return (
-    <div aria-hidden style={{ display: "flex", gap: 6 }}>
+    <div ref={stripRef} aria-hidden style={{ display: "flex", gap: 6 }}>
       {keys.map(function (k, i) {
         var fl = !!log[k];
         var sh = [fl ? bosCellGlass(isDark) : "", (k === todayK) ? ("0 0 0 1.5px " + ringC) : ""].filter(Boolean).join(", ") || "none";
@@ -1603,23 +1623,23 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   );
 }
 
-/* iOS-26 Liquid Glass «Изменить» — one standardised edit pill for habit / goal / team
-   detail headers (David: «классная кнопка по стандартам iOS 26»). Frosted translucent
-   capsule: backdrop blur + bright specular edge + layered soft shadow. */
+/* Edit affordance — a ROUND glass pencil icon (NOT a text pill), the iOS way (David: «зачем
+   писать „Изменить" — сделай иконку-карандаш в кружочке с тем же отражением, что у главной
+   иконки привычки; стандартизировать по всему приложению»). One button for habit / goal / team
+   (team = owner only). Same size as the header back button (.icon-btn 40px circle), with the hero
+   tile's glass (BOS_TILE_SHEEN + bosTileGlass) so it reads as that nice reflective tile. */
 function EditGlassButtonLive({ onClick, label = "Изменить" }) {
-  // Grounded to match the header back button + the cards (David: «тень выбивается, парит над всем —
-  // сделай по той же continuity, что и блоки»). Same flat surface as the back button (.icon-btn:
-  // var(--surface-3), or a faint white fill in dark) — no float shadow, no glass blur.
   const app = (typeof useApp === "function") ? useApp() : null;
   const dark = app?.themeOverride === "dark";
   return (
-    <button onClick={onClick} className="tap" data-haptic="selection" aria-label={label}
+    <button onClick={onClick} className="tap" data-haptic="selection" aria-label={label} title={label}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 14px", borderRadius: 999, border: 0,
-        background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
-        color: dark ? "#fff" : "var(--text)", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1, cursor: "pointer",
+        width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+        color: dark ? "#fff" : "var(--text)",
+        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
+        boxShadow: bosTileGlass(dark),
       }}>
-      <I.Pencil size={14} strokeWidth={2} /> {label}
+      <I.Pencil size={16} strokeWidth={2} />
     </button>
   );
 }

@@ -259,6 +259,7 @@ function SwipeRow({
   actions = [],
   rowBg = "#fff",
   actionWidth = 64,
+  actionSize = 40,
   dark = false,
   trackBg
 }) {
@@ -401,8 +402,8 @@ function SwipeRow({
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 40,
-        height: 40,
+        width: actionSize,
+        height: actionSize,
         borderRadius: "50%",
         background: ts.bg,
         display: "grid",
@@ -410,7 +411,7 @@ function SwipeRow({
         boxShadow: dark ? "none" : "0 1px 3px rgba(0,0,0,0.10)"
       }
     }, React.createElement(a.icon, {
-      size: 18,
+      size: Math.max(14, Math.round(actionSize * 0.46)),
       color: ts.fg,
       strokeWidth: a.tone === "done" ? 2.6 : 2,
       style: {
