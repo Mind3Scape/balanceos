@@ -145,6 +145,16 @@ function HabitDetailLive() {
     onTap: _markToday,
   };
 
+  // BACKFILL «вместе»: push YOUR existing personal-log days into the shared log so buddies see your
+  // WHOLE streak, not just marks made from now on (toggleHabit already mirrors TODAY going forward;
+  // older days predate that / never landed). Idempotent (upsert ignoreDuplicates), best-effort, once
+  // per shared habit on open. Your buddy's app does the same for their days → you both see everything.
+  React.useEffect(function () {
+    if (!h.shareCode || !(window.bosCloud && window.bosCloud.setSharedLogBulk)) return;
+    var days = Object.keys(_log).filter(function (k) { return _log[k] && /^\d{4}-\d{2}-\d{2}$/.test(k); });
+    if (days.length) { try { window.bosCloud.setSharedLogBulk(h.shareCode, days); } catch (e) {} }
+  }, [h.shareCode]);
+
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={

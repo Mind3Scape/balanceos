@@ -395,6 +395,17 @@
       return true;
     } catch (e) { return false; }
   }
+  // Bulk-mirror MANY of your days into the shared log at once (idempotent) — backfills your existing
+  // streak so buddies see your PAST days, not only new ones. RLS lets you write your own rows, so no
+  // SQL patch is needed. Best-effort: any failure just leaves the shared calendar as-is.
+  async function setSharedLogBulk(code, days) {
+    var c = client(); var id = await uid(); if (!c || !id || !code || !days || !days.length) return false;
+    try {
+      var rows = days.map(function (d) { return { code: code, user_id: id, day: d }; });
+      var r = await c.from("shared_habit_logs").upsert(rows, { onConflict: "code,user_id,day", ignoreDuplicates: true });
+      return !r.error;
+    } catch (e) { return false; }
+  }
   // Members (REAL name+avatar from profiles) + everyone's marked days → the shared calendar.
   async function sharedHabitProgress(code) {
     var c = client(); var me = await uid(); if (!c || !code) return null;
@@ -551,7 +562,7 @@
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
-    createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
+    createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
