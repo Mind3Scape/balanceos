@@ -677,7 +677,8 @@ function XPRewardCard({
   mode = "app",
   circleNow = 2,
   circleGoal = 3,
-  circleBonus = 300
+  circleBonus = 300,
+  flat = false
 }) {
   var ink = "#0a0a0a";
   var inkSub = "rgba(0,0,0,0.62)";
@@ -692,7 +693,7 @@ function XPRewardCard({
       color: ink,
       boxShadow: "0 12px 30px rgba(254,222,52,0.34)"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, !flat && /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: "absolute",

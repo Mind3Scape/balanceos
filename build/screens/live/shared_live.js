@@ -1140,7 +1140,8 @@ function ShareAppSheetLive({
     dark: dark,
     circleNow: friends.length,
     circleGoal: _nextMile.n,
-    circleBonus: _nextMile.bonus
+    circleBonus: _nextMile.bonus,
+    flat: true
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -1190,73 +1191,12 @@ function ShareAppSheetLive({
       transition: "background 0.2s",
       whiteSpace: "nowrap"
     }
-  }, copied ? "Скопировано ✓" : "Копировать")), friends.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: C.sub,
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600,
-      margin: "20px 0 12px"
-    }
-  }, "\u0422\u0432\u043E\u0439 \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 14,
-      overflowX: "auto",
-      margin: "0 -20px",
-      padding: "0 20px 4px",
-      scrollbarWidth: "none"
-    }
-  }, friends.map((p, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    onClick: shareLink,
-    className: "tap",
-    "data-no-haptic": true,
-    style: {
-      background: "transparent",
-      border: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 7,
-      flexShrink: 0,
-      width: 56,
-      color: C.text
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 54,
-      height: 54,
-      borderRadius: "50%",
-      background: p.c,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 19,
-      fontWeight: 700,
-      color: "rgba(0,0,0,0.55)"
-    }
-  }, p.i), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: C.sub,
-      maxWidth: 56,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  }, p.name)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: C.line,
-      margin: "18px 0"
-    }
-  })), /*#__PURE__*/React.createElement("button", {
+  }, copied ? "Скопировано ✓" : "Копировать")), /*#__PURE__*/React.createElement("button", {
     onClick: shareLink,
     className: "tap",
     style: {
       width: "100%",
-      marginTop: friends.length > 0 ? 4 : 18,
+      marginTop: 18,
       border: 0,
       borderRadius: 16,
       padding: "15px 16px",
@@ -1403,24 +1343,7 @@ function HabitInviteBannerLive({
 }) {
   var ink = "#0a0a0a",
     inkSub = "rgba(0,0,0,0.62)";
-  // Real faces of people who've already joined (cache-backed → no flash); decorative trio before anyone joins.
-  var _members = useBuddyMembersLive(habit && habit.shareCode);
-  var buddies = _members ? _members.filter(m => !m.me) : null;
-  var slots = [{
-    ang: -68,
-    rad: 54,
-    sz: 27
-  }, {
-    ang: -18,
-    rad: 36,
-    sz: 23
-  }, {
-    ang: 26,
-    rad: 57,
-    sz: 25
-  }];
-  var placeholders = ["🧑🏻", "👩🏽", "🧔🏾"];
-  var real = buddies && buddies.length ? buddies.slice(0, 3) : null;
+  // Plain gold banner — orbits/memoji removed (David: «орбиты убрать, оставить просто золотые баннеры»).
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -1432,57 +1355,6 @@ function HabitInviteBannerLive({
       boxShadow: "0 12px 30px rgba(254,222,52,0.34)"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      right: -30,
-      top: -34,
-      width: 150,
-      height: 150,
-      pointerEvents: "none"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 16,
-      borderRadius: "50%",
-      border: "1.5px solid rgba(255,255,255,0.4)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 42,
-      borderRadius: "50%",
-      border: "1.5px solid rgba(255,255,255,0.5)"
-    }
-  }), slots.map((p, i) => {
-    var a = p.ang * Math.PI / 180,
-      cx = 75 + p.rad * Math.cos(a),
-      cy = 75 + p.rad * Math.sin(a);
-    var m = real && real[i];
-    if (real && !m) return null;
-    return /*#__PURE__*/React.createElement("span", {
-      key: i,
-      style: {
-        position: "absolute",
-        left: cx - p.sz / 2,
-        top: cy - p.sz / 2,
-        width: p.sz,
-        height: p.sz,
-        borderRadius: "50%",
-        background: "rgba(255,255,255,0.94)",
-        display: "grid",
-        placeItems: "center",
-        fontSize: p.sz * 0.62,
-        overflow: "hidden",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.16)"
-      }
-    }, m ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
-      avatar: m.avatar,
-      name: m.name,
-      size: p.sz
-    }) : placeholders[i]);
-  })), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       display: "flex",
@@ -1857,40 +1729,6 @@ function ShareHabitSheetLive({
     line: "rgba(0,0,0,0.06)",
     ring: "#fff"
   };
-  var _FCOLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
-  var [friends, setFriends] = React.useState([]);
-  React.useEffect(() => {
-    if (!(window.bosCloud && window.bosCloud.enabled())) return;
-    var on = true;
-    try {
-      window.bosCloud.invitedPeople().then(list => {
-        if (!on || !Array.isArray(list)) return;
-        setFriends(list.map((p, idx) => {
-          var nm = p && p.username ? p.username : "Друг";
-          return {
-            name: nm,
-            i: nm.charAt(0).toUpperCase(),
-            c: _FCOLORS[idx % _FCOLORS.length],
-            on: false
-          };
-        }));
-      }).catch(() => {});
-    } catch (e) {}
-    return () => {
-      on = false;
-    };
-  }, []);
-  var toggleF = idx => setFriends(f => f.map((x, i) => i === idx ? {
-    ...x,
-    on: !x.on
-  } : x));
-  var targets = [{
-    e: "💬",
-    t: "Сообщения"
-  }, {
-    e: "🔗",
-    t: "Ссылка"
-  }];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "2px 20px 0",
@@ -1931,124 +1769,12 @@ function ShareHabitSheetLive({
   }, /*#__PURE__*/React.createElement(HabitInviteBannerLive, {
     amount: 75,
     habit: habit
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: C.sub,
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600,
-      margin: "22px 0 12px"
-    }
-  }, "\u0414\u0435\u043B\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435"), friends.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: C.sub,
-      lineHeight: 1.45,
-      padding: "2px 2px 4px"
-    }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u043A\u043E\u0433\u043E \u043F\u043E\u0437\u0432\u0430\u0442\u044C \u2014 \u043F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0433\u0430 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435 \u043D\u0438\u0436\u0435.") : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 14,
-      overflowX: "auto",
-      margin: "0 -20px",
-      padding: "0 20px 4px",
-      scrollbarWidth: "none"
-    }
-  }, friends.map((p, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    className: "tap",
-    "data-no-haptic": true,
-    onClick: () => toggleF(i),
-    style: {
-      background: "transparent",
-      border: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 7,
-      flexShrink: 0,
-      width: 56,
-      color: C.text
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "relative",
-      width: 54,
-      height: 54,
-      borderRadius: "50%",
-      background: p.c,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 19,
-      fontWeight: 700,
-      color: "rgba(0,0,0,0.55)",
-      opacity: p.on ? 1 : 0.45,
-      transition: "opacity 0.2s"
-    }
-  }, p.i, p.on && /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      right: -2,
-      bottom: -2,
-      width: 20,
-      height: 20,
-      borderRadius: "50%",
-      background: "#34c759",
-      border: "2px solid " + C.ring,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Check, {
-    size: 11,
-    strokeWidth: 3,
-    color: "#fff"
-  }))), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: C.sub
-    }
-  }, p.name))), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: shareLink,
-    style: {
-      background: "transparent",
-      border: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 7,
-      flexShrink: 0,
-      width: 56,
-      color: C.sub
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 54,
-      height: 54,
-      borderRadius: "50%",
-      border: "1.5px dashed " + C.sub,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 20
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12
-    }
-  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: C.line,
-      margin: "18px 0"
-    }
-  }), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: shareLink,
     className: "tap",
     style: {
       width: "100%",
+      marginTop: 20,
       border: 0,
       borderRadius: 999,
       padding: 15,

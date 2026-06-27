@@ -505,7 +505,7 @@ function ShareAppSheetLive({ dark = false }) {
       </div>
 
       <div style={{ marginTop: 18 }}>
-        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" dark={dark} circleNow={friends.length} circleGoal={_nextMile.n} circleBonus={_nextMile.bonus} />
+        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" dark={dark} circleNow={friends.length} circleGoal={_nextMile.n} circleBonus={_nextMile.bonus} flat />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.tile, borderRadius: 14, padding: "11px 14px", marginTop: 14 }}>
@@ -517,25 +517,11 @@ function ShareAppSheetLive({ dark = false }) {
         <button onClick={copyLink} className="tap" style={{ background: copied ? "#34C759" : (dark ? "#fff" : "#0a0a0a"), color: copied ? "#fff" : (dark ? "#0a0a0a" : "#fff"), border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 600, transition: "background 0.2s", whiteSpace: "nowrap" }}>{copied ? "Скопировано ✓" : "Копировать"}</button>
       </div>
 
-      {friends.length > 0 && (<>
-      <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "20px 0 12px" }}>Твой круг</div>
-      <div style={{ display: "flex", gap: 14, overflowX: "auto", margin: "0 -20px", padding: "0 20px 4px", scrollbarWidth: "none" }}>
-        {friends.map((p, i) => (
-          <button key={i} onClick={shareLink} className="tap" data-no-haptic style={{ background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0, width: 56, color: C.text }}>
-            <span style={{ width: 54, height: 54, borderRadius: "50%", background: p.c, display: "grid", placeItems: "center", fontSize: 19, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
-            <span style={{ fontSize: 12, color: C.sub, maxWidth: 56, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
-          </button>
-        ))}
-      </div>
-
-      <div style={{ height: 1, background: C.line, margin: "18px 0" }} />
-      </>)}
-
-      {/* ONE clear, labelled primary action — opens Telegram's native "forward to a
-          contact" picker with the bot invite link (was two icon-only circles that read
-          as blank black buttons). */}
+      {/* ONE clear, labelled primary action — Telegram's native "forward to a contact"
+          picker with the bot invite link. Friends list removed (David: «всё равно шлётся
+          через Telegram» → лишний выбор, минималистично). */}
       <button onClick={shareLink} className="tap" style={{
-        width: "100%", marginTop: friends.length > 0 ? 4 : 18, border: 0, borderRadius: 16, padding: "15px 16px",
+        width: "100%", marginTop: 18, border: 0, borderRadius: 16, padding: "15px 16px",
         background: "#229ED9", color: "#fff", fontSize: 15.5, fontWeight: 600,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
       }}>
@@ -611,31 +597,11 @@ function BuddyFaceLive({ avatar, name, size }) {
 
 function HabitInviteBannerLive({ amount = 75, habit }) {
   const ink = "#0a0a0a", inkSub = "rgba(0,0,0,0.62)";
-  // Real faces of people who've already joined (cache-backed → no flash); decorative trio before anyone joins.
-  const _members = useBuddyMembersLive(habit && habit.shareCode);
-  const buddies = _members ? _members.filter((m) => !m.me) : null;
-  const slots = [{ ang: -68, rad: 54, sz: 27 }, { ang: -18, rad: 36, sz: 23 }, { ang: 26, rad: 57, sz: 25 }];
-  const placeholders = ["🧑🏻", "👩🏽", "🧔🏾"];
-  const real = buddies && buddies.length ? buddies.slice(0, 3) : null;
+  // Plain gold banner — orbits/memoji removed (David: «орбиты убрать, оставить просто золотые баннеры»).
   return (
     <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 17px",
       background: "linear-gradient(135deg, #FEDE34, #EF9F14)", color: ink,
       boxShadow: "0 12px 30px rgba(254,222,52,0.34)" }}>
-      {/* Orbits + memoji — the «вместе» cue. */}
-      <div aria-hidden style={{ position: "absolute", right: -30, top: -34, width: 150, height: 150, pointerEvents: "none" }}>
-        <div style={{ position: "absolute", inset: 16, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.4)" }} />
-        <div style={{ position: "absolute", inset: 42, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.5)" }} />
-        {slots.map((p, i) => {
-          const a = p.ang * Math.PI / 180, cx = 75 + p.rad * Math.cos(a), cy = 75 + p.rad * Math.sin(a);
-          const m = real && real[i];
-          if (real && !m) return null;
-          return (
-            <span key={i} style={{ position: "absolute", left: cx - p.sz / 2, top: cy - p.sz / 2, width: p.sz, height: p.sz, borderRadius: "50%",
-              background: "rgba(255,255,255,0.94)", display: "grid", placeItems: "center", fontSize: p.sz * 0.62, overflow: "hidden",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.16)" }}>{m ? <BuddyFaceLive avatar={m.avatar} name={m.name} size={p.sz} /> : placeholders[i]}</span>
-          );
-        })}
-      </div>
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 13 }}>
         <span style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(255,255,255,0.6)", display: "grid", placeItems: "center", flexShrink: 0 }}>
           <I.Sparkles size={23} color={ink} />
@@ -787,24 +753,6 @@ function ShareHabitSheetLive({ habit, dark = false }) {
   const C = dark
     ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.09)", ring: "#1c1c1e" }
     : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", line: "rgba(0,0,0,0.06)", ring: "#fff" };
-  const _FCOLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
-  const [friends, setFriends] = React.useState([]);
-  React.useEffect(() => {
-    if (!(window.bosCloud && window.bosCloud.enabled())) return;
-    let on = true;
-    try {
-      window.bosCloud.invitedPeople().then((list) => {
-        if (!on || !Array.isArray(list)) return;
-        setFriends(list.map((p, idx) => {
-          const nm = (p && p.username) ? p.username : "Друг";
-          return { name: nm, i: nm.charAt(0).toUpperCase(), c: _FCOLORS[idx % _FCOLORS.length], on: false };
-        }));
-      }).catch(() => {});
-    } catch (e) {}
-    return () => { on = false; };
-  }, []);
-  const toggleF = (idx) => setFriends(f => f.map((x, i) => i === idx ? { ...x, on: !x.on } : x));
-  const targets = [{ e: "💬", t: "Сообщения" }, { e: "🔗", t: "Ссылка" }];
   return (
     <div style={{ padding: "2px 20px 0", color: C.text }}>
       <div style={{ textAlign: "center" }}>
@@ -817,31 +765,8 @@ function ShareHabitSheetLive({ habit, dark = false }) {
         <HabitInviteBannerLive amount={75} habit={habit} />
       </div>
 
-      <div style={{ fontSize: 12, color: C.sub, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "22px 0 12px" }}>Делать вместе</div>
-      {friends.length === 0 ? (
-        <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.45, padding: "2px 2px 4px" }}>Пока некого позвать — пригласи друга по ссылке ниже.</div>
-      ) : (
-      <div style={{ display: "flex", gap: 14, overflowX: "auto", margin: "0 -20px", padding: "0 20px 4px", scrollbarWidth: "none" }}>
-        {friends.map((p, i) => (
-          <button key={i} className="tap" data-no-haptic onClick={() => toggleF(i)} style={{ background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0, width: 56, color: C.text }}>
-            <span style={{ position: "relative", width: 54, height: 54, borderRadius: "50%", background: p.c, display: "grid", placeItems: "center", fontSize: 19, fontWeight: 700, color: "rgba(0,0,0,0.55)", opacity: p.on ? 1 : 0.45, transition: "opacity 0.2s" }}>
-              {p.i}
-              {p.on && <span style={{ position: "absolute", right: -2, bottom: -2, width: 20, height: 20, borderRadius: "50%", background: "#34c759", border: "2px solid " + C.ring, display: "grid", placeItems: "center" }}><I.Check size={11} strokeWidth={3} color="#fff" /></span>}
-            </span>
-            <span style={{ fontSize: 12, color: C.sub }}>{p.name}</span>
-          </button>
-        ))}
-        <button className="tap" onClick={shareLink} style={{ background: "transparent", border: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0, width: 56, color: C.sub }}>
-          <span style={{ width: 54, height: 54, borderRadius: "50%", border: "1.5px dashed " + C.sub, display: "grid", placeItems: "center" }}><I.Plus size={20} /></span>
-          <span style={{ fontSize: 12 }}>Позвать</span>
-        </button>
-      </div>
-      )}
-
-      <div style={{ height: 1, background: C.line, margin: "18px 0" }} />
-
       <button onClick={shareLink} className="tap" style={{
-        width: "100%", border: 0, borderRadius: 999, padding: 15,
+        width: "100%", marginTop: 20, border: 0, borderRadius: 999, padding: 15,
         background: "#229ED9", color: "#fff", fontSize: 15.5, fontWeight: 600,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
       }}>

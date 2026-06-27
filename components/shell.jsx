@@ -358,7 +358,7 @@ function CountUp({ value, duration = 800, decimals = 0 }) {
    the back for depth (single tone, not multi-colour). Big XP number + an
    understated, capped multiplier line. The first thing the eye lands on when a
    share sheet opens. Reused by ShareAppSheet (+150) & ShareHabitSheet (+75). */
-function XPRewardCard({ amount = 150, reason = "когда друг начнёт пользоваться приложением", dark = false, mode = "app", circleNow = 2, circleGoal = 3, circleBonus = 300 }) {
+function XPRewardCard({ amount = 150, reason = "когда друг начнёт пользоваться приложением", dark = false, mode = "app", circleNow = 2, circleGoal = 3, circleBonus = 300, flat = false }) {
   const ink = "#0a0a0a";
   const inkSub = "rgba(0,0,0,0.62)";
   const left = Math.max(0, circleGoal - circleNow);
@@ -366,8 +366,8 @@ function XPRewardCard({ amount = 150, reason = "когда друг начнёт
     <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 17px",
       background: "linear-gradient(135deg, #FEDE34, #EF9F14)", color: ink,
       boxShadow: "0 12px 30px rgba(254,222,52,0.34)" }}>
-      <div aria-hidden style={{ position: "absolute", right: -34, top: -38, width: 168, height: 168, borderRadius: "50%",
-        border: "20px solid rgba(255,255,255,0.18)", boxShadow: "0 0 0 20px rgba(255,255,255,0.09)", pointerEvents: "none" }} />
+      {!flat && <div aria-hidden style={{ position: "absolute", right: -34, top: -38, width: 168, height: 168, borderRadius: "50%",
+        border: "20px solid rgba(255,255,255,0.18)", boxShadow: "0 0 0 20px rgba(255,255,255,0.09)", pointerEvents: "none" }} />}
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 13 }}>
         <span style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(255,255,255,0.6)", display: "grid", placeItems: "center", flexShrink: 0 }}>
           <I.Sparkles size={23} color={ink} />
