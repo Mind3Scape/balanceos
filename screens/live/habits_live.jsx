@@ -130,12 +130,15 @@ function HabitsLive() {
         </div>
       </div>
 
-      {/* 2 — TRIAD switcher, directly under the quick-add block (David). Same segmented
-          control family as Сообщество (.tab-pill) for continuity; active label a touch heavier. */}
-      <div className="tab-pill" style={{ marginBottom: 14 }}>
+      {/* 2 — TRIAD switcher, directly under the quick-add block (David). Standard iOS
+          segmented control = a DEFINED grey track + a white floating pill. The default
+          .tab-pill track (--surface-3 #efefef) is only ~2 levels off the page (#f1f1f1) so
+          it vanished; we override to a clearly-darker cool grey so the control reads as a
+          block, and give the active pill a crisper float. Active label a touch heavier. */}
+      <div className="tab-pill" style={{ marginBottom: 14, background: isDark ? "rgba(255,255,255,0.07)" : "#E6E6EA" }}>
         {TRIAD.map((s) => (
           <button key={s.id} className={"tap " + (tab === s.id ? "active" : "")} onClick={() => setTab(s.id)}
-            style={{ fontSize: 14, fontWeight: tab === s.id ? 600 : 500, letterSpacing: "-0.2px", padding: "11px 8px" }}>{s.t}</button>
+            style={{ fontSize: 14, fontWeight: tab === s.id ? 600 : 500, letterSpacing: "-0.2px", padding: "11px 8px", boxShadow: tab === s.id ? (isDark ? "0 1px 4px rgba(0,0,0,0.45)" : "0 1px 3px rgba(0,0,0,0.14)") : "none" }}>{s.t}</button>
         ))}
       </div>
 

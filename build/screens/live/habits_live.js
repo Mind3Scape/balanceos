@@ -248,7 +248,8 @@ function HabitsLive() {
   })))), /*#__PURE__*/React.createElement("div", {
     className: "tab-pill",
     style: {
-      marginBottom: 14
+      marginBottom: 14,
+      background: isDark ? "rgba(255,255,255,0.07)" : "#E6E6EA"
     }
   }, TRIAD.map(s => /*#__PURE__*/React.createElement("button", {
     key: s.id,
@@ -258,7 +259,8 @@ function HabitsLive() {
       fontSize: 14,
       fontWeight: tab === s.id ? 600 : 500,
       letterSpacing: "-0.2px",
-      padding: "11px 8px"
+      padding: "11px 8px",
+      boxShadow: tab === s.id ? isDark ? "0 1px 4px rgba(0,0,0,0.45)" : "0 1px 3px rgba(0,0,0,0.14)" : "none"
     }
   }, s.t))), tab === "habits" && (habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
