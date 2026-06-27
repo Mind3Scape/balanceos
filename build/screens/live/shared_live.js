@@ -368,7 +368,10 @@ function PeopleMonthCalendarLive({
   };
   var dayPct = d => selPerson == null ? allFrac(d) : pf(selPerson, d);
   var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
-  var selColor = selPerson == null ? "#FEDE34" : people[selPerson]?.color || "#FEDE34";
+  // «Все» (aggregate) tints in the habit's OWN colour, not a hardcoded yellow (David: «база чёрная
+  // — и агрегат должен быть чёрным: полная заливка если все отметились, частичная если не все»).
+  var aggColor = people[0] && people[0].color || "#FEDE34";
+  var selColor = selPerson == null ? aggColor : people[selPerson]?.color || aggColor;
   var todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)";
   var selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
   var chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
@@ -523,8 +526,8 @@ function PeopleMonthCalendarLive({
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
-      gap: 4,
-      maxWidth: 260,
+      gap: 6,
+      maxWidth: 300,
       width: "100%",
       margin: "12px auto 0"
     }
@@ -541,8 +544,8 @@ function PeopleMonthCalendarLive({
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
-      gap: 4,
-      maxWidth: 260,
+      gap: 6,
+      maxWidth: 300,
       width: "100%",
       margin: compact ? "0 auto" : "6px auto 0"
     }

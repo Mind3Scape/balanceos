@@ -174,7 +174,10 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const allFrac = (d) => { if (future(d)) return null; const v = people.map((_, i) => pf(i, d)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; };
   const dayPct = (d) => (selPerson == null ? allFrac(d) : pf(selPerson, d));
   const track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
-  const selColor = selPerson == null ? "#FEDE34" : (people[selPerson]?.color || "#FEDE34");
+  // «Все» (aggregate) tints in the habit's OWN colour, not a hardcoded yellow (David: «база чёрная
+  // — и агрегат должен быть чёрным: полная заливка если все отметились, частичная если не все»).
+  const aggColor = (people[0] && people[0].color) || "#FEDE34";
+  const selColor = selPerson == null ? aggColor : (people[selPerson]?.color || aggColor);
   const todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)";
   const selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
   const chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
@@ -221,13 +224,13 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         )}
 
         {!compact && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, maxWidth: 260, width: "100%", margin: "12px auto 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "12px auto 0" }}>
             {weekday.map((w, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, letterSpacing: 0.3, color: "var(--text-4)" }}>{w}</div>)}
           </div>
         )}
         {/* Day cells — SQUIRCLES (time = rounded squares; people = circles, the chips above), filled as
             a heat-cell by completion. «Красиво» hides numbers/labels/nav for a glanceable grid. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, maxWidth: 260, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 300, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
           {cells.map((c) => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }} />;
             const pct = dayPct(c.d);
