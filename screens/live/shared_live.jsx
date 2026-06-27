@@ -196,9 +196,9 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
           <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Красиво"}
         </button>
       </div>
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)" }}>
         {!solo && (
-          <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2, marginBottom: 14 }}>
+          <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2, marginBottom: 12 }}>
             <button onClick={() => setSelPerson(null)} className="tap" style={chip(selPerson == null)}>
               <span style={{ width: 18, height: 18, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)", display: "grid", placeItems: "center", fontSize: 10 }}>👥</span>
               Все
@@ -215,19 +215,19 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         {!compact && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <button onClick={() => setMIdx((m) => Math.max(0, m - 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}><I.ChevronLeft size={16} /></button>
-            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{MONTHS[mIdx]} {year}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>{MONTHS[mIdx]} {year}</div>
             <button onClick={() => setMIdx((m) => Math.min(11, m + 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}><I.ChevronRight size={16} /></button>
           </div>
         )}
 
         {!compact && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginTop: 14 }}>
-            {weekday.map((w, i) => <div key={i} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6, color: "var(--text-4)" }}>{w}</div>)}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, maxWidth: 260, width: "100%", margin: "12px auto 0" }}>
+            {weekday.map((w, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, letterSpacing: 0.3, color: "var(--text-4)" }}>{w}</div>)}
           </div>
         )}
         {/* Day cells — SQUIRCLES (time = rounded squares; people = circles, the chips above), filled as
             a heat-cell by completion. «Красиво» hides numbers/labels/nav for a glanceable grid. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginTop: compact ? 0 : 6 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, maxWidth: 260, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
           {cells.map((c) => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }} />;
             const pct = dayPct(c.d);
@@ -246,7 +246,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             return (
               <button key={c.key} onClick={compact ? undefined : () => setSelDay(c.d)} className="tap" style={{
                 aspectRatio: "1/1", border: 0, borderRadius: "30%", padding: 0, display: "grid", placeItems: "center",
-                fontSize: 12.5, fontWeight: isToday ? 700 : 500, cursor: compact ? "default" : "pointer",
+                fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: compact ? "default" : "pointer",
                 background: bg, boxShadow: ring ? ("0 0 0 1.6px " + ring) : "none", color: ink }}>
                 {!compact && !fut && <span>{c.d}</span>}
               </button>
@@ -255,7 +255,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         </div>
 
         {!compact && (
-          <div style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid var(--line)", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.45 }}>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", fontSize: 12, color: "var(--text-3)", lineHeight: 1.45 }}>
             {future(selDay) ? `${MONTHS[mIdx]} ${selDay} — ещё впереди`
               : solo
                 ? <span><b style={{ color: "var(--text)" }}>{MONTHS[mIdx]} {selDay}</b> · {(dayPct(selDay) || 0) > 0 ? "выполнено ✓" : "пропущено"}</span>
@@ -1462,14 +1462,17 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
    detail headers (David: «классная кнопка по стандартам iOS 26»). Frosted translucent
    capsule: backdrop blur + bright specular edge + layered soft shadow. */
 function EditGlassButtonLive({ onClick, label = "Изменить" }) {
+  // Grounded to match the header back button + the cards (David: «тень выбивается, парит над всем —
+  // сделай по той же continuity, что и блоки»). Same flat surface as the back button (.icon-btn:
+  // var(--surface-3), or a faint white fill in dark) — no float shadow, no glass blur.
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const dark = app?.themeOverride === "dark";
   return (
     <button onClick={onClick} className="tap" data-haptic="selection" aria-label={label}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 14px", borderRadius: 999,
-        border: "0.5px solid rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.62)",
-        WebkitBackdropFilter: "blur(20px) saturate(180%)", backdropFilter: "blur(20px) saturate(180%)",
-        color: "var(--text)", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1, cursor: "pointer",
-        boxShadow: "0 1px 1px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9)",
+        display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 14px", borderRadius: 999, border: 0,
+        background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+        color: dark ? "#fff" : "var(--text)", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1, cursor: "pointer",
       }}>
       <I.Pencil size={14} strokeWidth={2} /> {label}
     </button>

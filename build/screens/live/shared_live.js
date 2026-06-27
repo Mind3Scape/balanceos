@@ -440,7 +440,7 @@ function PeopleMonthCalendarLive({
     style: {
       background: "var(--card)",
       borderRadius: 22,
-      padding: 16,
+      padding: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, !solo && /*#__PURE__*/React.createElement("div", {
@@ -450,7 +450,7 @@ function PeopleMonthCalendarLive({
       gap: 7,
       overflowX: "auto",
       paddingBottom: 2,
-      marginBottom: 14
+      marginBottom: 12
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setSelPerson(null),
@@ -499,7 +499,7 @@ function PeopleMonthCalendarLive({
     size: 16
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: 700,
       letterSpacing: "-0.3px"
     }
@@ -523,24 +523,28 @@ function PeopleMonthCalendarLive({
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
-      gap: 5,
-      marginTop: 14
+      gap: 4,
+      maxWidth: 260,
+      width: "100%",
+      margin: "12px auto 0"
     }
   }, weekday.map((w, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       textAlign: "center",
-      fontSize: 10.5,
+      fontSize: 9.5,
       fontWeight: 600,
-      letterSpacing: 0.6,
+      letterSpacing: 0.3,
       color: "var(--text-4)"
     }
   }, w))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
-      gap: 5,
-      marginTop: compact ? 0 : 6
+      gap: 4,
+      maxWidth: 260,
+      width: "100%",
+      margin: compact ? "0 auto" : "6px auto 0"
     }
   }, cells.map(c => {
     if (c.blank) return /*#__PURE__*/React.createElement("span", {
@@ -576,7 +580,7 @@ function PeopleMonthCalendarLive({
         padding: 0,
         display: "grid",
         placeItems: "center",
-        fontSize: 12.5,
+        fontSize: 11,
         fontWeight: isToday ? 700 : 500,
         cursor: compact ? "default" : "pointer",
         background: bg,
@@ -586,10 +590,10 @@ function PeopleMonthCalendarLive({
     }, !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
   })), !compact && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 14,
-      paddingTop: 13,
+      marginTop: 12,
+      paddingTop: 12,
       borderTop: "1px solid var(--line)",
-      fontSize: 12.5,
+      fontSize: 12,
       color: "var(--text-3)",
       lineHeight: 1.45
     }
@@ -3709,6 +3713,11 @@ function EditGlassButtonLive({
   onClick,
   label = "Изменить"
 }) {
+  // Grounded to match the header back button + the cards (David: «тень выбивается, парит над всем —
+  // сделай по той же continuity, что и блоки»). Same flat surface as the back button (.icon-btn:
+  // var(--surface-3), or a faint white fill in dark) — no float shadow, no glass blur.
+  var app = typeof useApp === "function" ? useApp() : null;
+  var dark = app?.themeOverride === "dark";
   return /*#__PURE__*/React.createElement("button", {
     onClick: onClick,
     className: "tap",
@@ -3720,17 +3729,14 @@ function EditGlassButtonLive({
       gap: 5,
       padding: "8px 14px",
       borderRadius: 999,
-      border: "0.5px solid rgba(255,255,255,0.85)",
-      background: "rgba(255,255,255,0.62)",
-      WebkitBackdropFilter: "blur(20px) saturate(180%)",
-      backdropFilter: "blur(20px) saturate(180%)",
-      color: "var(--text)",
+      border: 0,
+      background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+      color: dark ? "#fff" : "var(--text)",
       fontSize: 14,
       fontWeight: 600,
       letterSpacing: "-0.2px",
       lineHeight: 1,
-      cursor: "pointer",
-      boxShadow: "0 1px 1px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9)"
+      cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement(I.Pencil, {
     size: 14,
