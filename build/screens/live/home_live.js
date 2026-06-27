@@ -5,8 +5,15 @@
    (HeroOrbFace, HabitCheck, HabitRing, AvatarStack, bosPill* helpers) + the live
    forks in screens/live/shared_live.jsx (HomeHeroSwipeLive, MoodWidgetLive,
    ShareAppSheetLive, ShareHabitSheetLive) + framework (SwipeRow, BosOrbFace, I,
-   hooks, the bos* helpers). The ONLY new top-level
-   declaration in this file is `function HomeLive`. */
+   hooks, the bos* helpers).
+
+   The home is a CUSTOMIZABLE WIDGET BOARD: every block under the greeting is a widget
+   rendered through BosReorderList — long-press → jiggle → drag to reorder (order saved
+   in widgets.order, which already syncs to the cloud), a glass «−» badge removes a widget,
+   and a «+» tile opens the «available widgets» sheet to add one back. Visibility is a single
+   per-id flag (widgets[id] !== false); removing just flips it to false and the widget
+   reappears in the «+» sheet — nothing is ever deleted. The ONLY new top-level declaration
+   in this file is `function HomeLive`. */
 function HomeLive() {
   var {
     navigate
@@ -77,10 +84,6 @@ function HomeLive() {
   // Live profiles get REAL numbers from the date-keyed habit model.
   var _liveXP = bosLiveXPLive(app);
   var _lvl = bosLevelInfoLive(_liveXP);
-  // The gold level banner is the live home's XP hero — on by default, but the user can
-  // swipe it away (David: "я всё понял про уровни, хочу только привычки") → widgets.level
-  // = false; re-addable in «Виджеты главного».
-  var _showLevelBanner = widgets.level !== false;
   var dayStreak = bosMaxStreak(habits);
   // FOMO invite copy — the REAL next reward you're leaving on the table (honest: real XP, real
   // proximity to the next circle milestone; no fake countdowns).
@@ -183,6 +186,821 @@ function HomeLive() {
   var cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
   var rowBg = isDark ? "#1b1b1e" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
+  // ── Widget board plumbing ────────────────────────────────────────────────────
+  var DEFAULT_ORDER = BOS_HOME_WIDGETS.map(w => w.id);
+  var isWidgetOn = id => widgets[id] !== false; // undefined → on
+  var hideWidget = id => app.setWidgets({
+    ...widgets,
+    [id]: false
+  });
+
+  // Each widget's content. Returns null when a widget is ON but has nothing to show
+  // right now (e.g. mood logged today with <2 days of history) — it then drops off the
+  // board but stays «on» (not offered in the add sheet). No per-widget marginTop: the
+  // board's gap owns the spacing.
+  var nodeOf = id => {
+    if (id === "hero") {
+      return /*#__PURE__*/React.createElement("div", {
+        "data-tour": "aihints",
+        style: {
+          position: "relative"
+        }
+      }, /*#__PURE__*/React.createElement(HomeHeroSwipeLive, {
+        navigate: navigate,
+        doneCount: doneCount,
+        totalCount: totalCount,
+        ringPct: ringPct,
+        isDark: isDark
+      }), celebrate && /*#__PURE__*/React.createElement("div", {
+        key: celebrate.key,
+        "aria-hidden": true,
+        style: {
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          zIndex: 6,
+          overflow: "visible"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          position: "absolute",
+          top: 66,
+          right: 16,
+          whiteSpace: "nowrap",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          background: "#0a0a0a",
+          color: "#FEDE34",
+          fontSize: celebrate.full ? 13 : 12,
+          fontWeight: 800,
+          padding: celebrate.full ? "7px 12px" : "5px 10px",
+          borderRadius: 999,
+          boxShadow: "0 8px 22px rgba(0,0,0,0.3)",
+          animation: "bosXpPop 1.15s cubic-bezier(0.22,1,0.36,1) forwards"
+        }
+      }, "\u2726 +", celebrate.xp, " XP", celebrate.full ? " · день закрыт" : ""), celebrate.full && [0, 1, 2, 3, 4, 5, 6, 7].map(i => {
+        var a = i / 8 * Math.PI * 2;
+        return /*#__PURE__*/React.createElement("span", {
+          key: i,
+          style: {
+            position: "absolute",
+            top: 52,
+            right: 52,
+            width: 5,
+            height: 5,
+            borderRadius: "50%",
+            background: "#FEDE34",
+            boxShadow: "0 0 6px #FEDE34",
+            animation: "bosSpark 0.9s ease-out forwards",
+            ["--sx"]: Math.cos(a) * 44 + "px",
+            ["--sy"]: Math.sin(a) * 44 + "px"
+          }
+        });
+      })));
+    }
+    if (id === "level") {
+      // Gold LEVEL banner — turns the bare stat into a hook ("every habit is XP — learn how to grow").
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: "0 10px 26px rgba(239,159,20,0.30)"
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+        dark: isDark,
+        actions: [{
+          key: "hide",
+          tone: "delete",
+          label: "Убрать",
+          icon: I.X,
+          onAction: () => hideWidget("level")
+        }]
+      }, /*#__PURE__*/React.createElement("button", {
+        onClick: () => navigate("levels"),
+        className: "tap",
+        style: {
+          width: "100%",
+          border: 0,
+          padding: "15px 17px",
+          background: "transparent",
+          color: "#0a0a0a",
+          display: "flex",
+          alignItems: "center",
+          gap: 13,
+          textAlign: "left"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          background: "rgba(255,255,255,0.5)",
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+          fontSize: 22
+        }
+      }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "baseline",
+          gap: 6
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 15.5,
+          fontWeight: 700,
+          letterSpacing: "-0.2px"
+        }
+      }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", _lvl.level), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11.5,
+          fontWeight: 700,
+          opacity: 0.55
+        }
+      }, _liveXP, " XP")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12.5,
+          color: "rgba(0,0,0,0.62)",
+          marginTop: 2,
+          lineHeight: 1.35
+        }
+      }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u2014 \u044D\u0442\u043E \u043E\u043F\u044B\u0442. \u0423\u0437\u043D\u0430\u0439, \u043A\u0430\u043A \u0440\u0430\u0441\u0442\u0438 \u2192"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "block",
+          height: 5,
+          borderRadius: 999,
+          background: "rgba(0,0,0,0.14)",
+          overflow: "hidden",
+          marginTop: 8
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "block",
+          height: "100%",
+          width: _lvl.pct + "%",
+          borderRadius: 999,
+          background: "rgba(0,0,0,0.82)"
+        }
+      }))), /*#__PURE__*/React.createElement(I.ChevronRight, {
+        size: 20,
+        color: "rgba(0,0,0,0.45)"
+      }))));
+    }
+    if (id === "summary") {
+      // Calendar + Community — kept as the compact 2-up pair (one widget).
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 8
+        }
+      }, /*#__PURE__*/React.createElement("button", {
+        className: "tap",
+        onClick: () => navigate("history"),
+        style: {
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: 22,
+          padding: "14px 14px 12px",
+          textAlign: "left",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: cardShadow,
+          color: "var(--text)"
+        }
+      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "var(--text-4)",
+          textTransform: "uppercase",
+          letterSpacing: 1,
+          fontWeight: 600
+        }
+      }, "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 14,
+          color: "var(--text-2)",
+          marginTop: 4,
+          fontWeight: 500
+        }
+      }, _calLabel)), /*#__PURE__*/React.createElement(I.Calendar, {
+        size: 28,
+        color: isDark ? "rgba(255,255,255,0.7)" : "#787878",
+        strokeWidth: 1.5
+      })), /*#__PURE__*/React.createElement("button", {
+        className: "tap",
+        onClick: () => navigate("community"),
+        style: {
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: 22,
+          padding: "14px 14px 12px",
+          textAlign: "left",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: cardShadow,
+          color: "var(--text)"
+        }
+      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "var(--text-4)",
+          textTransform: "uppercase",
+          letterSpacing: 1,
+          fontWeight: 600
+        }
+      }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 14,
+          color: "var(--text-2)",
+          marginTop: 4,
+          fontWeight: 500
+        }
+      }, teams.length ? teams.length + " " + ruTeam(teams.length) : "Создай команду")), teams.length > 0 ? /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex"
+        }
+      }, teams.slice(0, 4).map((t, i) => /*#__PURE__*/React.createElement("span", {
+        key: t._id || i,
+        title: t.name,
+        style: {
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          background: t.accent || "var(--surface-3)",
+          border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
+          marginLeft: i ? -10 : 0,
+          display: "grid",
+          placeItems: "center",
+          fontSize: 14,
+          lineHeight: 1
+        }
+      }, bosIcon(t.emblem || "👥", 14, t.accent)))) : /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 30,
+          height: 30,
+          borderRadius: "50%",
+          background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+          display: "grid",
+          placeItems: "center",
+          color: "var(--text-3)"
+        }
+      }, /*#__PURE__*/React.createElement(I.Plus, {
+        size: 16
+      }))));
+    }
+    if (id === "mood") {
+      // State check-in (not logged today) → the once-a-day slider; logged + ≥2 days → streak widget.
+      var _tk = typeof bosTodayKey === "function" ? bosTodayKey() : "";
+      var _loggedToday = !!(app?.dayMoods && app.dayMoods[_tk] != null);
+      var _hideAction = [{
+        key: "hide",
+        tone: "delete",
+        label: "Убрать",
+        icon: I.X,
+        onAction: () => hideWidget("mood")
+      }];
+      if (!_loggedToday) {
+        return /*#__PURE__*/React.createElement("div", {
+          style: {
+            borderRadius: 22,
+            overflow: "hidden",
+            boxShadow: cardShadow
+          }
+        }, /*#__PURE__*/React.createElement(SwipeRow, {
+          rowBg: rowBg,
+          dark: isDark,
+          actions: _hideAction
+        }, /*#__PURE__*/React.createElement(StateSliderLive, {
+          app: app,
+          isDark: isDark
+        })));
+      }
+      if (mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) {
+        return /*#__PURE__*/React.createElement("div", {
+          style: {
+            borderRadius: 22,
+            overflow: "hidden",
+            boxShadow: cardShadow
+          }
+        }, /*#__PURE__*/React.createElement(SwipeRow, {
+          rowBg: rowBg,
+          dark: isDark,
+          actions: _hideAction
+        }, /*#__PURE__*/React.createElement(MoodWidgetLive, {
+          mood: mood,
+          app: app,
+          isDark: isDark,
+          navigate: navigate,
+          flush: true
+        })));
+      }
+      return null;
+    }
+    if (id === "habits") {
+      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        className: "section-label",
+        style: {
+          color: "var(--text-3)",
+          padding: "0 4px"
+        }
+      }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
+        className: "tap",
+        onClick: () => navigate("habit-settings", {
+          mode: "create"
+        }),
+        style: {
+          marginTop: 10,
+          width: "100%",
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: 22,
+          padding: "30px 20px",
+          boxShadow: cardShadow,
+          color: "var(--text)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          gap: 10
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 52,
+          height: 52,
+          borderRadius: 16,
+          background: iconBg,
+          display: "grid",
+          placeItems: "center",
+          fontSize: 26
+        }
+      }, "\uD83C\uDF31"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 16,
+          fontWeight: 600
+        }
+      }, "\u0417\u0434\u0435\u0441\u044C \u0431\u0443\u0434\u0443\u0442 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          color: "var(--text-4)",
+          lineHeight: 1.45,
+          maxWidth: 235
+        }
+      }, "\u041D\u0430\u0447\u043D\u0438 \u0441 \u043E\u0434\u043D\u043E\u0439 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u043E\u0439 \u2014 \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, \u0441\u0442\u0430\u043A\u0430\u043D \u0432\u043E\u0434\u044B \u0443\u0442\u0440\u043E\u043C."), /*#__PURE__*/React.createElement("span", {
+        style: {
+          marginTop: 4,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          background: isDark ? "#fff" : "#0a0a0a",
+          color: isDark ? "#0a0a0a" : "#fff",
+          borderRadius: 999,
+          padding: "9px 16px",
+          fontSize: 14,
+          fontWeight: 600
+        }
+      }, /*#__PURE__*/React.createElement(I.Plus, {
+        size: 15,
+        strokeWidth: 2.5
+      }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          color: "var(--text)"
+        }
+      }, habits.map(h => /*#__PURE__*/React.createElement("div", {
+        key: h.id,
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: rowBg,
+        dark: isDark,
+        actions: [{
+          key: "share",
+          tone: "share",
+          label: "Поделиться",
+          icon: I.Share,
+          onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+            habit: h,
+            dark: isDark
+          }))
+        }, {
+          key: "del",
+          tone: "delete",
+          label: "Удалить",
+          icon: I.X,
+          onAction: () => bosConfirmDelete(openSheet, {
+            title: "Удалить привычку?",
+            message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
+            confirmLabel: "Удалить",
+            onConfirm: () => remove(h.id)
+          })
+        }]
+      }, /*#__PURE__*/React.createElement("div", {
+        className: "tap",
+        onClick: () => navigate("habit-detail", {
+          habit: h,
+          from: "home"
+        }),
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "14px 16px"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg),
+          boxShadow: bosTileGlass(isDark),
+          display: "grid",
+          placeItems: "center",
+          fontSize: 20,
+          flexShrink: 0
+        }
+      }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 16,
+          fontWeight: 600,
+          color: "var(--text)",
+          letterSpacing: "-0.2px"
+        }
+      }, h.name), (h.shareCode || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginTop: 3,
+          flexWrap: "wrap",
+          fontSize: 11,
+          color: "var(--text-4)"
+        }
+      }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3
+        }
+      }, /*#__PURE__*/React.createElement(I.Clock, {
+        size: 11
+      }), " ", h.duration, " \u043C\u0438\u043D"), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+        habit: h,
+        size: 16,
+        max: 5
+      }))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+        habit: h,
+        dark: isDark,
+        onComplete: () => {
+          if (!h.done) toggle(h.id);
+        }
+      }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+        habit: h,
+        app: app,
+        xp: XP_PER_HABIT
+      }) : /*#__PURE__*/React.createElement(HabitCheck, {
+        done: h.done,
+        onToggle: () => toggle(h.id),
+        xp: XP_PER_HABIT,
+        float: true
+      })))))));
+    }
+    if (id === "goals") {
+      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        className: "section-label",
+        style: {
+          color: "var(--text-3)",
+          padding: "0 4px"
+        }
+      }, "\u0426\u0435\u043B\u0438"), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+        className: "tap",
+        onClick: () => navigate("goal-settings", {
+          mode: "create"
+        }),
+        style: {
+          marginTop: 10,
+          width: "100%",
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: 22,
+          padding: "30px 20px",
+          boxShadow: cardShadow,
+          color: "var(--text)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          gap: 10
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 52,
+          height: 52,
+          borderRadius: 16,
+          background: iconBg,
+          display: "grid",
+          placeItems: "center",
+          fontSize: 26
+        }
+      }, "\uD83C\uDFAF"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 16,
+          fontWeight: 600
+        }
+      }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0446\u0435\u043B\u0435\u0439"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          color: "var(--text-4)",
+          lineHeight: 1.45,
+          maxWidth: 235
+        }
+      }, "\u0411\u043E\u043B\u044C\u0448\u0430\u044F \u0446\u0435\u043B\u044C \u2014 \u044D\u0442\u043E \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u0441\u043B\u043E\u0436\u0435\u043D\u043D\u044B\u0435 \u0432\u043C\u0435\u0441\u0442\u0435."), /*#__PURE__*/React.createElement("span", {
+        style: {
+          marginTop: 4,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          background: isDark ? "#fff" : "#0a0a0a",
+          color: isDark ? "#0a0a0a" : "#fff",
+          borderRadius: 999,
+          padding: "9px 16px",
+          fontSize: 14,
+          fontWeight: 600
+        }
+      }, /*#__PURE__*/React.createElement(I.Plus, {
+        size: 15,
+        strokeWidth: 2.5
+      }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8
+        }
+      }, goals.map(g => {
+        var pct = g.target ? g.current / g.target : 0;
+        return /*#__PURE__*/React.createElement("div", {
+          key: g.id,
+          style: {
+            borderRadius: 22,
+            overflow: "hidden",
+            boxShadow: cardShadow
+          }
+        }, /*#__PURE__*/React.createElement(SwipeRow, {
+          rowBg: rowBg,
+          dark: isDark,
+          actions: [{
+            key: "share",
+            tone: "share",
+            label: "Поделиться",
+            icon: I.Share,
+            onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+              goal: g,
+              dark: isDark
+            }))
+          }, {
+            key: "del",
+            tone: "delete",
+            label: "Удалить",
+            icon: I.X,
+            onAction: () => bosConfirmDelete(openSheet, {
+              title: "Удалить цель?",
+              message: "«" + g.name + "» удалится навсегда.",
+              confirmLabel: "Удалить",
+              onConfirm: () => removeGoal(g.id)
+            })
+          }]
+        }, /*#__PURE__*/React.createElement("div", {
+          className: "tap",
+          onClick: () => navigate("goal-detail", {
+            goal: g,
+            from: "home"
+          }),
+          style: {
+            background: cardBg,
+            border: cardBorder,
+            padding: 14,
+            color: "var(--text)",
+            cursor: "pointer"
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 10
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            width: 38,
+            height: 38,
+            borderRadius: 14,
+            background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg),
+            boxShadow: bosTileGlass(isDark),
+            display: "grid",
+            placeItems: "center",
+            fontSize: 18
+          }
+        }, bosIcon(g.emoji, 20, g.color)), /*#__PURE__*/React.createElement("div", {
+          style: {
+            flex: 1
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 15.5,
+            color: "var(--text)",
+            fontWeight: 600
+          }
+        }, g.name), /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 11,
+            color: "var(--text-4)"
+          }
+        }, g.current, " / ", g.target, " ", g.unit)), /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 14,
+            fontWeight: 700,
+            color: "var(--text-2)"
+          }
+        }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {
+          className: "bos-progress"
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            width: pct * 100 + "%",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
+          }
+        })))));
+      })));
+    }
+    if (id === "invite") {
+      // Invite / share the app — a focused dark CTA that ties sharing to the reward loop.
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: "0 10px 26px rgba(20,40,80,0.28)"
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)",
+        dark: isDark,
+        actions: [{
+          key: "hide",
+          tone: "delete",
+          label: "Убрать",
+          icon: I.X,
+          onAction: () => hideWidget("invite")
+        }]
+      }, /*#__PURE__*/React.createElement("button", {
+        "data-tour": "share-app",
+        className: "tap",
+        onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheetLive, {
+          dark: isDark
+        })),
+        style: {
+          width: "100%",
+          padding: "16px 18px",
+          border: 0,
+          position: "relative",
+          background: "transparent",
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          textAlign: "left"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        "aria-hidden": true,
+        style: {
+          position: "absolute",
+          inset: 0,
+          background: "radial-gradient(circle at 86% 10%, rgba(255,255,255,0.16) 0%, transparent 52%)",
+          pointerEvents: "none"
+        }
+      }), /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          background: "rgba(255,255,255,0.14)",
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+          color: "#fff",
+          position: "relative"
+        }
+      }, /*#__PURE__*/React.createElement(I.Share, {
+        size: 20
+      })), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0,
+          position: "relative"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 7
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 15.5,
+          fontWeight: 700,
+          color: "#fff",
+          letterSpacing: "-0.2px"
+        }
+      }, "\u041F\u043E\u0437\u043E\u0432\u0438 \u0441\u0432\u043E\u0438\u0445"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          fontSize: 10.5,
+          fontWeight: 800,
+          color: "#0a0a0a",
+          background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
+          padding: "2px 8px",
+          borderRadius: 999,
+          flexShrink: 0
+        }
+      }, "+150 XP")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12.5,
+          color: "rgba(255,255,255,0.85)",
+          marginTop: 3,
+          lineHeight: 1.35,
+          fontWeight: 500
+        }
+      }, _inviteFomo)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          flexShrink: 0,
+          position: "relative"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 34,
+          height: 34,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.16)",
+          border: "2px solid rgba(255,255,255,0.3)",
+          display: "grid",
+          placeItems: "center",
+          color: "#fff"
+        }
+      }, /*#__PURE__*/React.createElement(I.Plus, {
+        size: 16,
+        strokeWidth: 2.5
+      }))))));
+    }
+    return null;
+  };
+
+  // Saved order (only known ids), with any new/missing widget ids appended so they still appear.
+  var savedOrder = (Array.isArray(widgets.order) ? widgets.order : []).filter(id => DEFAULT_ORDER.includes(id));
+  var fullOrder = [...savedOrder, ...DEFAULT_ORDER.filter(id => !savedOrder.includes(id))];
+  var nodes = {};
+  fullOrder.forEach(id => {
+    if (isWidgetOn(id)) {
+      var n = nodeOf(id);
+      if (n != null) nodes[id] = n;
+    }
+  });
+  var visibleIds = fullOrder.filter(id => nodes[id] != null);
+
+  // Reorder commits the new VISIBLE order back into the full order, keeping any hidden ids in
+  // place — so a removed-then-re-added widget returns to roughly where it was.
+  var onReorderWidgets = newVisible => {
+    var vi = 0;
+    var merged = fullOrder.map(id => visibleIds.indexOf(id) >= 0 ? newVisible[vi++] : id);
+    app.setWidgets({
+      ...widgets,
+      order: merged
+    });
+  };
+  var openAddSheet = () => openSheet(/*#__PURE__*/React.createElement(AddWidgetSheetLive, {
+    defs: BOS_HOME_WIDGETS,
+    dark: isDark
+  }));
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
     className: "page-in",
@@ -244,771 +1062,57 @@ function HomeLive() {
       background: "var(--accent-red)",
       border: "2px solid " + (isDark ? "#0a0a0a" : "#fff")
     }
-  }))), /*#__PURE__*/React.createElement("div", {
-    "data-tour": "aihints",
-    style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement(HomeHeroSwipeLive, {
-    navigate: navigate,
-    doneCount: doneCount,
-    totalCount: totalCount,
-    ringPct: ringPct,
-    isDark: isDark
-  }), celebrate && /*#__PURE__*/React.createElement("div", {
-    key: celebrate.key,
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      inset: 0,
-      pointerEvents: "none",
-      zIndex: 6,
-      overflow: "visible"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: 66,
-      right: 16,
-      whiteSpace: "nowrap",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "#0a0a0a",
-      color: "#FEDE34",
-      fontSize: celebrate.full ? 13 : 12,
-      fontWeight: 800,
-      padding: celebrate.full ? "7px 12px" : "5px 10px",
-      borderRadius: 999,
-      boxShadow: "0 8px 22px rgba(0,0,0,0.3)",
-      animation: "bosXpPop 1.15s cubic-bezier(0.22,1,0.36,1) forwards"
-    }
-  }, "\u2726 +", celebrate.xp, " XP", celebrate.full ? " · день закрыт" : ""), celebrate.full && [0, 1, 2, 3, 4, 5, 6, 7].map(i => {
-    var a = i / 8 * Math.PI * 2;
-    return /*#__PURE__*/React.createElement("span", {
-      key: i,
+  }))), visibleIds.length > 0 ? /*#__PURE__*/React.createElement(BosReorderList, {
+    ids: visibleIds,
+    gap: 12,
+    onReorder: onReorderWidgets,
+    onAdd: openAddSheet,
+    addLabel: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432\u0438\u0434\u0436\u0435\u0442",
+    renderItem: (id, {
+      mode
+    }) => /*#__PURE__*/React.createElement("div", {
       style: {
-        position: "absolute",
-        top: 52,
-        right: 52,
-        width: 5,
-        height: 5,
-        borderRadius: "50%",
-        background: "#FEDE34",
-        boxShadow: "0 0 6px #FEDE34",
-        animation: "bosSpark 0.9s ease-out forwards",
-        ["--sx"]: Math.cos(a) * 44 + "px",
-        ["--sy"]: Math.sin(a) * 44 + "px"
+        position: "relative"
       }
-    });
-  }))), _showLevelBanner && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      borderRadius: 22,
-      overflow: "hidden",
-      boxShadow: "0 10px 26px rgba(239,159,20,0.30)"
-    }
-  }, /*#__PURE__*/React.createElement(SwipeRow, {
-    rowBg: "linear-gradient(135deg,#FEDE34,#EF9F14)",
-    dark: isDark,
-    actions: [{
-      key: "hide",
-      tone: "delete",
-      label: "Убрать",
-      icon: I.X,
-      onAction: () => app.setWidgets({
-        ...widgets,
-        level: false
-      })
-    }]
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("levels"),
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        pointerEvents: mode ? "none" : "auto"
+      }
+    }, nodes[id]), mode && /*#__PURE__*/React.createElement(WidgetMinusLive, {
+      onRemove: () => hideWidget(id)
+    }))
+  }) : /*#__PURE__*/React.createElement("button", {
+    onClick: openAddSheet,
     className: "tap",
     style: {
+      marginTop: 40,
       width: "100%",
-      border: 0,
-      padding: "15px 17px",
+      borderRadius: 22,
+      padding: "28px 16px",
+      border: "1.5px dashed var(--line)",
       background: "transparent",
-      color: "#0a0a0a",
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      textAlign: "left"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      background: "rgba(255,255,255,0.5)",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0,
-      fontSize: 22
-    }
-  }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "baseline",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 700,
-      letterSpacing: "-0.2px"
-    }
-  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", _lvl.level), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      opacity: 0.55
-    }
-  }, _liveXP, " XP")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "rgba(0,0,0,0.62)",
-      marginTop: 2,
-      lineHeight: 1.35
-    }
-  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u2014 \u044D\u0442\u043E \u043E\u043F\u044B\u0442. \u0423\u0437\u043D\u0430\u0439, \u043A\u0430\u043A \u0440\u0430\u0441\u0442\u0438 \u2192"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      height: 5,
-      borderRadius: 999,
-      background: "rgba(0,0,0,0.14)",
-      overflow: "hidden",
-      marginTop: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      height: "100%",
-      width: _lvl.pct + "%",
-      borderRadius: 999,
-      background: "rgba(0,0,0,0.82)"
-    }
-  }))), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 20,
-    color: "rgba(0,0,0,0.45)"
-  })))), (widgets.calendar !== false || widgets.team !== false) && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: widgets.calendar !== false && widgets.team !== false ? "1fr 1fr" : "1fr",
-      gap: 8,
-      marginTop: 8
-    }
-  }, widgets.calendar !== false && /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: () => navigate("history"),
-    style: {
-      background: cardBg,
-      border: cardBorder,
-      borderRadius: 22,
-      padding: "14px 14px 12px",
-      textAlign: "left",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      boxShadow: cardShadow,
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--text-2)",
-      marginTop: 4,
-      fontWeight: 500
-    }
-  }, _calLabel)), /*#__PURE__*/React.createElement(I.Calendar, {
-    size: 28,
-    color: isDark ? "rgba(255,255,255,0.7)" : "#787878",
-    strokeWidth: 1.5
-  })), widgets.team !== false && /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: () => navigate("community"),
-    style: {
-      background: cardBg,
-      border: cardBorder,
-      borderRadius: 22,
-      padding: "14px 14px 12px",
-      textAlign: "left",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      boxShadow: cardShadow,
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--text-2)",
-      marginTop: 4,
-      fontWeight: 500
-    }
-  }, teams.length ? teams.length + " " + ruTeam(teams.length) : "Создай команду")), teams.length > 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex"
-    }
-  }, teams.slice(0, 4).map((t, i) => /*#__PURE__*/React.createElement("span", {
-    key: t._id || i,
-    title: t.name,
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: "50%",
-      background: t.accent || "var(--surface-3)",
-      border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
-      marginLeft: i ? -10 : 0,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 14,
-      lineHeight: 1
-    }
-  }, bosIcon(t.emblem || "👥", 14, t.accent)))) : /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
-      display: "grid",
-      placeItems: "center",
-      color: "var(--text-3)"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 16
-  })))), widgets.mood !== false && (() => {
-    var _tk = typeof bosTodayKey === "function" ? bosTodayKey() : "";
-    var _loggedToday = !!(app?.dayMoods && app.dayMoods[_tk] != null);
-    var _hideAction = [{
-      key: "hide",
-      tone: "delete",
-      label: "Убрать",
-      icon: I.X,
-      onAction: () => app.setWidgets({
-        ...widgets,
-        mood: false
-      })
-    }];
-    if (!_loggedToday) {
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginTop: 16,
-          borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow
-        }
-      }, /*#__PURE__*/React.createElement(SwipeRow, {
-        rowBg: rowBg,
-        dark: isDark,
-        actions: _hideAction
-      }, /*#__PURE__*/React.createElement(StateSliderLive, {
-        app: app,
-        isDark: isDark
-      })));
-    }
-    if (mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) {
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginTop: 16,
-          borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow
-        }
-      }, /*#__PURE__*/React.createElement(SwipeRow, {
-        rowBg: rowBg,
-        dark: isDark,
-        actions: _hideAction
-      }, /*#__PURE__*/React.createElement(MoodWidgetLive, {
-        mood: mood,
-        app: app,
-        isDark: isDark,
-        navigate: navigate,
-        flush: true
-      })));
-    }
-    return null;
-  })(), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 16,
       color: "var(--text-3)",
-      padding: "0 4px"
-    }
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: () => navigate("habit-settings", {
-      mode: "create"
-    }),
-    style: {
-      marginTop: 10,
-      width: "100%",
-      background: cardBg,
-      border: cardBorder,
-      borderRadius: 22,
-      padding: "30px 20px",
-      boxShadow: cardShadow,
-      color: "var(--text)",
       display: "flex",
       flexDirection: "column",
-      alignItems: "center",
-      textAlign: "center",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 52,
-      height: 52,
-      borderRadius: 16,
-      background: iconBg,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 26
-    }
-  }, "\uD83C\uDF31"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 600
-    }
-  }, "\u0417\u0434\u0435\u0441\u044C \u0431\u0443\u0434\u0443\u0442 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)",
-      lineHeight: 1.45,
-      maxWidth: 235
-    }
-  }, "\u041D\u0430\u0447\u043D\u0438 \u0441 \u043E\u0434\u043D\u043E\u0439 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u043E\u0439 \u2014 \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, \u0441\u0442\u0430\u043A\u0430\u043D \u0432\u043E\u0434\u044B \u0443\u0442\u0440\u043E\u043C."), /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginTop: 4,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      background: isDark ? "#fff" : "#0a0a0a",
-      color: isDark ? "#0a0a0a" : "#fff",
-      borderRadius: 999,
-      padding: "9px 16px",
-      fontSize: 14,
-      fontWeight: 600
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 15,
-    strokeWidth: 2.5
-  }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      color: "var(--text)"
-    }
-  }, habits.map(h => /*#__PURE__*/React.createElement("div", {
-    key: h.id,
-    style: {
-      borderRadius: 22,
-      overflow: "hidden",
-      boxShadow: cardShadow
-    }
-  }, /*#__PURE__*/React.createElement(SwipeRow, {
-    rowBg: rowBg,
-    dark: isDark,
-    actions: [{
-      key: "share",
-      tone: "share",
-      label: "Поделиться",
-      icon: I.Share,
-      onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
-        habit: h,
-        dark: isDark
-      }))
-    }, {
-      key: "del",
-      tone: "delete",
-      label: "Удалить",
-      icon: I.X,
-      onAction: () => bosConfirmDelete(openSheet, {
-        title: "Удалить привычку?",
-        message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
-        confirmLabel: "Удалить",
-        onConfirm: () => remove(h.id)
-      })
-    }]
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "tap",
-    onClick: () => navigate("habit-detail", {
-      habit: h,
-      from: "home"
-    }),
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      padding: "14px 16px"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 14,
-      background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg),
-      boxShadow: bosTileGlass(isDark),
-      display: "grid",
-      placeItems: "center",
-      fontSize: 20,
-      flexShrink: 0
-    }
-  }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 600,
-      color: "var(--text)",
-      letterSpacing: "-0.2px"
-    }
-  }, h.name), (h.shareCode || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
       alignItems: "center",
       gap: 10,
-      marginTop: 3,
-      flexWrap: "wrap",
-      fontSize: 11,
-      color: "var(--text-4)"
-    }
-  }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 3
-    }
-  }, /*#__PURE__*/React.createElement(I.Clock, {
-    size: 11
-  }), " ", h.duration, " \u043C\u0438\u043D"), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
-    habit: h,
-    size: 16,
-    max: 5
-  }))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
-    habit: h,
-    dark: isDark,
-    onComplete: () => {
-      if (!h.done) toggle(h.id);
-    }
-  }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
-    habit: h,
-    app: app,
-    xp: XP_PER_HABIT
-  }) : /*#__PURE__*/React.createElement(HabitCheck, {
-    done: h.done,
-    onToggle: () => toggle(h.id),
-    xp: XP_PER_HABIT,
-    float: true
-  })))))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 16,
-      color: "var(--text-3)",
-      padding: "0 4px"
-    }
-  }, "\u0426\u0435\u043B\u0438"), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: () => navigate("goal-settings", {
-      mode: "create"
-    }),
-    style: {
-      marginTop: 10,
-      width: "100%",
-      background: cardBg,
-      border: cardBorder,
-      borderRadius: 22,
-      padding: "30px 20px",
-      boxShadow: cardShadow,
-      color: "var(--text)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      textAlign: "center",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 52,
-      height: 52,
-      borderRadius: 16,
-      background: iconBg,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 26
-    }
-  }, "\uD83C\uDFAF"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 600
-    }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0446\u0435\u043B\u0435\u0439"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)",
-      lineHeight: 1.45,
-      maxWidth: 235
-    }
-  }, "\u0411\u043E\u043B\u044C\u0448\u0430\u044F \u0446\u0435\u043B\u044C \u2014 \u044D\u0442\u043E \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u0441\u043B\u043E\u0436\u0435\u043D\u043D\u044B\u0435 \u0432\u043C\u0435\u0441\u0442\u0435."), /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginTop: 4,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      background: isDark ? "#fff" : "#0a0a0a",
-      color: isDark ? "#0a0a0a" : "#fff",
-      borderRadius: 999,
-      padding: "9px 16px",
       fontSize: 14,
-      fontWeight: 600
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 15,
-    strokeWidth: 2.5
-  }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, goals.map(g => {
-    var pct = g.target ? g.current / g.target : 0;
-    return /*#__PURE__*/React.createElement("div", {
-      key: g.id,
-      style: {
-        borderRadius: 22,
-        overflow: "hidden",
-        boxShadow: cardShadow
-      }
-    }, /*#__PURE__*/React.createElement(SwipeRow, {
-      rowBg: rowBg,
-      dark: isDark,
-      actions: [{
-        key: "share",
-        tone: "share",
-        label: "Поделиться",
-        icon: I.Share,
-        onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
-          goal: g,
-          dark: isDark
-        }))
-      }, {
-        key: "del",
-        tone: "delete",
-        label: "Удалить",
-        icon: I.X,
-        onAction: () => bosConfirmDelete(openSheet, {
-          title: "Удалить цель?",
-          message: "«" + g.name + "» удалится навсегда.",
-          confirmLabel: "Удалить",
-          onConfirm: () => removeGoal(g.id)
-        })
-      }]
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "tap",
-      onClick: () => navigate("goal-detail", {
-        goal: g,
-        from: "home"
-      }),
-      style: {
-        background: cardBg,
-        border: cardBorder,
-        padding: 14,
-        color: "var(--text)",
-        cursor: "pointer"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        marginBottom: 10
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 38,
-        height: 38,
-        borderRadius: 14,
-        background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg),
-        boxShadow: bosTileGlass(isDark),
-        display: "grid",
-        placeItems: "center",
-        fontSize: 18
-      }
-    }, bosIcon(g.emoji, 20, g.color)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15.5,
-        color: "var(--text)",
-        fontWeight: 600
-      }
-    }, g.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "var(--text-4)"
-      }
-    }, g.current, " / ", g.target, " ", g.unit)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: "var(--text-2)"
-      }
-    }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {
-      className: "bos-progress"
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: pct * 100 + "%",
-        background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
-      }
-    })))));
-  })), widgets.invite !== false && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      borderRadius: 22,
-      overflow: "hidden",
-      boxShadow: "0 10px 26px rgba(20,40,80,0.28)"
-    }
-  }, /*#__PURE__*/React.createElement(SwipeRow, {
-    rowBg: "linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)",
-    dark: isDark,
-    actions: [{
-      key: "hide",
-      tone: "delete",
-      label: "Убрать",
-      icon: I.X,
-      onAction: () => app.setWidgets({
-        ...widgets,
-        invite: false
-      })
-    }]
-  }, /*#__PURE__*/React.createElement("button", {
-    "data-tour": "share-app",
-    className: "tap",
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheetLive, {
-      dark: isDark
-    })),
-    style: {
-      width: "100%",
-      padding: "16px 18px",
-      border: 0,
-      position: "relative",
-      background: "transparent",
-      color: "#fff",
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      textAlign: "left"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      inset: 0,
-      background: "radial-gradient(circle at 86% 10%, rgba(255,255,255,0.16) 0%, transparent 52%)",
-      pointerEvents: "none"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      background: "rgba(255,255,255,0.14)",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0,
-      color: "#fff",
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement(I.Share, {
-    size: 20
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 700,
-      color: "#fff",
-      letterSpacing: "-0.2px"
-    }
-  }, "\u041F\u043E\u0437\u043E\u0432\u0438 \u0441\u0432\u043E\u0438\u0445"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      fontSize: 10.5,
-      fontWeight: 800,
-      color: "#0a0a0a",
-      background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
-      padding: "2px 8px",
-      borderRadius: 999,
-      flexShrink: 0
-    }
-  }, "+150 XP")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "rgba(255,255,255,0.85)",
-      marginTop: 3,
-      lineHeight: 1.35,
-      fontWeight: 500
-    }
-  }, _inviteFomo)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexShrink: 0,
-      position: "relative"
+      fontWeight: 600,
+      cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 34,
-      height: 34,
+      width: 46,
+      height: 46,
       borderRadius: "50%",
-      background: "rgba(255,255,255,0.16)",
-      border: "2px solid rgba(255,255,255,0.3)",
       display: "grid",
       placeItems: "center",
-      color: "#fff"
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(isDark),
+      color: "var(--text)"
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 16,
+    size: 20,
     strokeWidth: 2.5
-  })))))));
+  })), "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432\u0438\u0434\u0436\u0435\u0442\u044B \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E"));
 }

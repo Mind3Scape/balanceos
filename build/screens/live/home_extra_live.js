@@ -16,39 +16,14 @@ function HomeCustomizeLive() {
     ...widgets,
     [id]: v
   });
-  // Only widgets that REALLY exist and are wired into the home render. The old
-  // quote/ai/weather/books toggles did nothing — removed so every switch works.
-  var opts = [{
-    id: "mood",
-    i: "💭",
-    t: "Состояние",
-    d: "Ежедневный опрос + твоя серия состояния"
-  }, {
-    id: "streak",
-    i: "🔥",
-    t: "Счётчик серии",
-    d: "Дней подряд"
-  }, {
-    id: "level",
-    i: "🏆",
-    t: "Уровень и опыт",
-    d: "Золотой баннер прогресса"
-  }, {
-    id: "calendar",
-    i: "📅",
-    t: "Календарь",
-    d: "Сегодняшняя дата"
-  }, {
-    id: "team",
-    i: "👥",
-    t: "Команды",
-    d: "Активные команды"
-  }, {
-    id: "invite",
-    i: "📣",
-    t: "Позови своих",
-    d: "Приглашай друзей — и +XP к уровню"
-  }];
+  // ONE source of truth with the home board (BOS_HOME_WIDGETS) so this screen and the
+  // long-press «+»/«−» board never drift apart. Every switch maps to widgets[id].
+  var opts = (typeof BOS_HOME_WIDGETS !== "undefined" ? BOS_HOME_WIDGETS : []).map(w => ({
+    id: w.id,
+    i: w.emoji,
+    t: w.t,
+    d: w.d
+  }));
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -65,7 +40,7 @@ function HomeCustomizeLive() {
       lineHeight: 1.5,
       padding: "0 2px"
     }
-  }, "\u0412\u043A\u043B\u044E\u0447\u0430\u0439 \u0438 \u0432\u044B\u043A\u043B\u044E\u0447\u0430\u0439 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u043C. \u0421\u0432\u043E\u0434\u043A\u0430 \u0438 \u0430\u0432\u0430\u0442\u0430\u0440 \u0441\u0432\u0435\u0440\u0445\u0443 \u2014 \u0432\u0441\u0435\u0433\u0434\u0430 \u043D\u0430 \u043C\u0435\u0441\u0442\u0435."), /*#__PURE__*/React.createElement("div", {
+  }, "\u0412\u043A\u043B\u044E\u0447\u0430\u0439 \u0438 \u0432\u044B\u043A\u043B\u044E\u0447\u0430\u0439 \u0432\u0438\u0434\u0436\u0435\u0442\u044B \u0433\u043B\u0430\u0432\u043D\u043E\u0439. \u0410 \u0435\u0449\u0451 \u2014 \u0437\u0430\u0436\u043C\u0438 \u043B\u044E\u0431\u043E\u0439 \u0432\u0438\u0434\u0436\u0435\u0442 \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439, \u0447\u0442\u043E\u0431\u044B \u043F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u044C, \u0443\u0431\u0440\u0430\u0442\u044C \u0438\u043B\u0438 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

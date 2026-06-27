@@ -2465,7 +2465,9 @@ function BosReorderList({
   ids,
   onReorder,
   renderItem,
-  gap = 8
+  gap = 8,
+  onAdd,
+  addLabel
 }) {
   var [mode, setMode] = React.useState(false);
   var [order, setOrder] = React.useState(ids);
@@ -2690,7 +2692,244 @@ function BosReorderList({
       mode,
       dragging: isDrag
     })));
-  })));
+  })), mode && onAdd && /*#__PURE__*/React.createElement("button", {
+    onClick: onAdd,
+    className: "tap",
+    "data-haptic": "selection",
+    style: {
+      marginTop: gap,
+      width: "100%",
+      borderRadius: 22,
+      padding: "15px 16px",
+      border: "1.5px dashed var(--line)",
+      background: "transparent",
+      color: "var(--text-3)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 9,
+      fontSize: 14,
+      fontWeight: 600,
+      cursor: "pointer",
+      animation: "dimIn 0.2s ease both"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(false),
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 15,
+    strokeWidth: 2.5
+  })), addLabel || "Добавить"));
+}
+
+/* The home widget CATALOGUE — one source of truth shared by the board (home_live), the add
+   sheet, and the «Виджеты главного» settings screen (home_extra_live). `var` so it's global
+   across the built files. id = the widgets[id] visibility flag; order lives in widgets.order. */
+var BOS_HOME_WIDGETS = [{
+  id: "hero",
+  t: "Подсказки",
+  d: "ИИ-сводка дня и аватар",
+  emoji: "✨"
+}, {
+  id: "level",
+  t: "Уровень",
+  d: "Прогресс и опыт",
+  emoji: "🏆"
+}, {
+  id: "summary",
+  t: "Сводка",
+  d: "Календарь и команды",
+  emoji: "🗂️"
+}, {
+  id: "mood",
+  t: "Состояние",
+  d: "Ежедневный чек-ин",
+  emoji: "💭"
+}, {
+  id: "habits",
+  t: "Привычки",
+  d: "Список привычек на день",
+  emoji: "🌱"
+}, {
+  id: "goals",
+  t: "Цели",
+  d: "Твои цели",
+  emoji: "🎯"
+}, {
+  id: "invite",
+  t: "Позови своих",
+  d: "Приглашай друзей — +XP",
+  emoji: "📣"
+}];
+
+/* iOS-style «−» remove badge for the home widget board — a small GLASS circle pinned to the
+   block's top-left (same reflective material as the pencil button). Stops the pointer so a tap
+   removes the widget instead of starting a drag. David: «минус в кружочке-стекле слева сверху». */
+function WidgetMinusLive({
+  onRemove
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var dark = app?.themeOverride === "dark";
+  return /*#__PURE__*/React.createElement("button", {
+    onPointerDown: e => e.stopPropagation(),
+    onClick: e => {
+      e.stopPropagation();
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("rigid");
+        } catch (_) {}
+      }
+      onRemove();
+    },
+    className: "tap",
+    "aria-label": "\u0423\u0431\u0440\u0430\u0442\u044C \u0432\u0438\u0434\u0436\u0435\u0442 \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439",
+    style: {
+      position: "absolute",
+      top: -7,
+      left: -7,
+      zIndex: 30,
+      width: 27,
+      height: 27,
+      borderRadius: "50%",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      color: dark ? "#fff" : "var(--text)",
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+      boxShadow: "0 2px 9px rgba(0,0,0,0.24), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Minus, {
+    size: 16,
+    strokeWidth: 3
+  }));
+}
+
+/* Bottom sheet listing the home widgets that are currently OFF — tap one to put it back on the
+   home. Reads app.widgets live, so the list shrinks as you add (multi-add without reopening).
+   `defs` = the full board widget catalogue [{ id, t, d, emoji }]; LIVE only. */
+function AddWidgetSheetLive({
+  defs = [],
+  dark = false
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var widgets = app?.widgets || {};
+  var hidden = defs.filter(d => widgets[d.id] === false);
+  var add = id => {
+    app?.setWidgets({
+      ...(app.widgets || {}),
+      [id]: true
+    });
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (_) {}
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 18px 8px",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 800,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432\u0438\u0434\u0436\u0435\u0442"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-3)",
+      marginTop: 5
+    }
+  }, "\u0427\u0442\u043E \u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E")), hidden.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "22px 10px 30px",
+      color: "var(--text-4)",
+      fontSize: 13.5
+    }
+  }, "\u0412\u0441\u0435 \u0432\u0438\u0434\u0436\u0435\u0442\u044B \u0443\u0436\u0435 \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439 \uD83C\uDF89") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, hidden.map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.id,
+    className: "tap",
+    "data-haptic": "selection",
+    onClick: () => add(o.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      width: "100%",
+      textAlign: "left",
+      padding: 12,
+      borderRadius: 18,
+      border: 0,
+      cursor: "pointer",
+      background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20,
+      flexShrink: 0,
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"),
+      boxShadow: bosTileGlass(dark)
+    }
+  }, o.emoji), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 600
+    }
+  }, o.t), o.d && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, o.d)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      background: "#0a0a0a",
+      color: "#fff"
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 15,
+    strokeWidth: 2.5
+  }))))));
 }
 function CreateMenuLive({
   open,

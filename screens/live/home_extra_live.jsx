@@ -11,21 +11,14 @@ function HomeCustomizeLive() {
   const widgets = app?.widgets || {};
   const isDark = app?.themeOverride === "dark";
   const setOne = (id, v) => app?.setWidgets({ ...widgets, [id]: v });
-  // Only widgets that REALLY exist and are wired into the home render. The old
-  // quote/ai/weather/books toggles did nothing — removed so every switch works.
-  const opts = [
-    { id: "mood",     i: "💭", t: "Состояние", d: "Ежедневный опрос + твоя серия состояния" },
-    { id: "streak",   i: "🔥", t: "Счётчик серии", d: "Дней подряд" },
-    { id: "level",    i: "🏆", t: "Уровень и опыт", d: "Золотой баннер прогресса" },
-    { id: "calendar", i: "📅", t: "Календарь", d: "Сегодняшняя дата" },
-    { id: "team",     i: "👥", t: "Команды", d: "Активные команды" },
-    { id: "invite",   i: "📣", t: "Позови своих", d: "Приглашай друзей — и +XP к уровню" },
-  ];
+  // ONE source of truth with the home board (BOS_HOME_WIDGETS) so this screen and the
+  // long-press «+»/«−» board never drift apart. Every switch maps to widgets[id].
+  const opts = (typeof BOS_HOME_WIDGETS !== "undefined" ? BOS_HOME_WIDGETS : []).map((w) => ({ id: w.id, i: w.emoji, t: w.t, d: w.d }));
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Виджеты главного" onBack={() => navigate("settings")} />
       <div className="bos-sys-text-3" style={{ fontSize: 13, marginBottom: 14, lineHeight: 1.5, padding: "0 2px" }}>
-        Включай и выключай карточки на главном. Сводка и аватар сверху — всегда на месте.
+        Включай и выключай виджеты главной. А ещё — зажми любой виджет на главной, чтобы перетащить, убрать или добавить.
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {opts.map(o => (
