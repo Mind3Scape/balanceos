@@ -164,7 +164,7 @@ function HabitSettingsLive() {
               const on = !!days[i];
               return (
                 <button key={i} className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
-                  style={{ flex: 1, aspectRatio: "1/1", maxWidth: 40, borderRadius: "50%", border: 0, cursor: "pointer",
+                  style={{ flex: 1, aspectRatio: "1/1", maxWidth: 40, borderRadius: "30%", border: 0, cursor: "pointer",
                     fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.2px",
                     background: on ? "#0a0a0a" : "var(--surface-3)",   // neutral graphite, NOT the habit colour (David: «нафига в днях недели цвет — лишнее»)
                     color: on ? "#fff" : "var(--text-4)",

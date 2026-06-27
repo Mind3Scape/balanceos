@@ -3050,11 +3050,18 @@ function HabitWeekStrip({
   habit
 }) {
   if (!habit) return null;
+  // Same cell language as the month calendar (Э4 continuity): squircle, FLAT accent when done,
+  // neutral track when empty, a subtle ring on today — so the week strip on the card reads as
+  // the exact same «day = square» tile as the detail calendar.
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isDark = app && app.themeOverride === "dark";
   var accent = bosHabitColor(habit);
   var log = habit.log || {};
   var keys = bosWeekKeys();
-  var fill = "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + accent;
-  var empty = accent[0] === "#" && accent.length === 7 ? accent + "1a" : "rgba(120,120,128,0.12)"; // ~10% same hue
+  var todayK = typeof bosTodayKey === "function" ? bosTodayKey() : null;
+  var done = accent[0] === "#" && accent.length === 7 ? accent : "#FEDE34";
+  var empty = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
+  var ringC = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
   return /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
@@ -3067,9 +3074,10 @@ function HabitWeekStrip({
       style: {
         width: 20,
         height: 20,
-        borderRadius: 6,
+        borderRadius: "30%",
         flexShrink: 0,
-        background: log[k] ? fill : empty
+        background: log[k] ? done : empty,
+        boxShadow: k === todayK ? "0 0 0 1.5px " + ringC : "none"
       }
     });
   }));
