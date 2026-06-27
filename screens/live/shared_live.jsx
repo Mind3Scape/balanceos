@@ -164,6 +164,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const selPerson = selProp !== undefined ? selProp : selInner;
   const setSelPerson = (v) => { if (onSelPerson) onSelPerson(v); else setSelInner(v); };
   const [selDay, setSelDay] = React.useState(today);
+  const [compact, setCompact] = React.useState(true); // «красиво» (default, just cells) ↔ «подробно» по глазику
   const daysInMonth = new Date(year, mIdx + 1, 0).getDate();
   const startWeekday = new Date(year, mIdx, 1).getDay();
   const isCurMonth = mIdx === CUR_M;
@@ -186,8 +187,16 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
 
   return (
     <>
-      {label && <div className="section-label" style={{ marginTop: 22 }}>{label}</div>}
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: label ? 8 : 0, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 22, marginBottom: 8 }}>
+        {label ? <div className="section-label" style={{ margin: 0 }}>{label}</div> : <span />}
+        {/* Eye toggle — «красиво» (just pretty cells) ↔ «подробно» (dates + day labels). David:
+            «базово красивые квадратики без дат; на глазик — подробно». */}
+        <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Красиво"}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, background: chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+          <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Красиво"}
+        </button>
+      </div>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)" }}>
         {!solo && (
           <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2, marginBottom: 14 }}>
             <button onClick={() => setSelPerson(null)} className="tap" style={chip(selPerson == null)}>
@@ -203,42 +212,58 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
           </div>
         )}
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button onClick={() => setMIdx((m) => Math.max(0, m - 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}><I.ChevronLeft size={16} /></button>
-          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{MONTHS[mIdx]} {year}</div>
-          <button onClick={() => setMIdx((m) => Math.min(11, m + 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}><I.ChevronRight size={16} /></button>
-        </div>
+        {!compact && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button onClick={() => setMIdx((m) => Math.max(0, m - 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}><I.ChevronLeft size={16} /></button>
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{MONTHS[mIdx]} {year}</div>
+            <button onClick={() => setMIdx((m) => Math.min(11, m + 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}><I.ChevronRight size={16} /></button>
+          </div>
+        )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginTop: 14 }}>
-          {weekday.map((w, i) => <div key={i} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6, color: "var(--text-4)" }}>{w}</div>)}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginTop: 6 }}>
+        {!compact && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginTop: 14 }}>
+            {weekday.map((w, i) => <div key={i} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6, color: "var(--text-4)" }}>{w}</div>)}
+          </div>
+        )}
+        {/* Day cells — SQUIRCLES (time = rounded squares; people = circles, the chips above), filled as
+            a heat-cell by completion. «Красиво» hides numbers/labels/nav for a glanceable grid. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginTop: compact ? 0 : 6 }}>
           {cells.map((c) => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }} />;
             const pct = dayPct(c.d);
             const fut = pct == null;
             const isToday = isCurMonth && c.d === today;
             const isSel = selDay === c.d;
+            const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#FEDE34";
+            const a = fut ? 0 : (pct <= 0 ? 0 : (0.32 + 0.68 * Math.min(1, pct)));
+            const ah = Math.round(a * 255).toString(16).padStart(2, "0");
+            const ch = isDark ? 30 : 255;
+            const cr = parseInt(hx.slice(1, 3), 16), cg = parseInt(hx.slice(3, 5), 16), cb = parseInt(hx.slice(5, 7), 16);
+            const lum = 0.299 * (cr * a + ch * (1 - a)) + 0.587 * (cg * a + ch * (1 - a)) + 0.114 * (cb * a + ch * (1 - a));
+            const ink = fut ? "var(--text-4)" : (lum > 150 ? "var(--text)" : "#fff");
+            const bg = fut ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)") : (pct <= 0 ? track : (hx + ah));
+            const ring = (!compact && isSel) ? selRing : (isToday ? (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)") : null);
             return (
-              <button key={c.key} onClick={() => setSelDay(c.d)} className="tap" style={{ aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, display: "grid", placeItems: "center", position: "relative", fontSize: 13, fontWeight: isToday ? 700 : 500, cursor: "pointer", background: "transparent", color: fut ? "var(--text-4)" : (isDark ? "#fff" : "var(--text)") }}>
-                {isToday && <span aria-hidden style={{ position: "absolute", width: "62%", aspectRatio: "1/1", borderRadius: "50%", background: todayBg }} />}
-                {isSel && !isToday && <span aria-hidden style={{ position: "absolute", width: "66%", aspectRatio: "1/1", borderRadius: "50%", border: "1.5px solid " + selRing }} />}
-                {fut ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)") }} />
-                  : <TeamRing pct={pct} color={selColor} track={track} glow={pct === 1} />}
-                <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>
+              <button key={c.key} onClick={compact ? undefined : () => setSelDay(c.d)} className="tap" style={{
+                aspectRatio: "1/1", border: 0, borderRadius: "30%", padding: 0, display: "grid", placeItems: "center",
+                fontSize: 12.5, fontWeight: isToday ? 700 : 500, cursor: compact ? "default" : "pointer",
+                background: bg, boxShadow: ring ? ("0 0 0 1.6px " + ring) : "none", color: ink }}>
+                {!compact && !fut && <span>{c.d}</span>}
               </button>
             );
           })}
         </div>
 
-        <div style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid var(--line)", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.45 }}>
-          {future(selDay) ? `${MONTHS[mIdx]} ${selDay} — ещё впереди`
-            : solo
-              ? <span><b style={{ color: "var(--text)" }}>{MONTHS[mIdx]} {selDay}</b> · {(dayPct(selDay) || 0) > 0 ? "выполнено ✓" : "пропущено"}</span>
-              : selPerson == null
-                ? <span><b style={{ color: "var(--text)" }}>{MONTHS[mIdx]} {selDay}</b> · отметилось {selActive} из {people.length}{granular && selAvg != null ? ` · ${selAvg}%` : ""}</span>
-                : <span><b style={{ color: "var(--text)" }}>{selName}</b> · {MONTHS[mIdx]} {selDay} · {granular ? `${Math.round((dayPct(selDay) || 0) * 100)}% привычек` : ((dayPct(selDay) || 0) > 0 ? "отмечался ✓" : "пропустил")}</span>}
-        </div>
+        {!compact && (
+          <div style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid var(--line)", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.45 }}>
+            {future(selDay) ? `${MONTHS[mIdx]} ${selDay} — ещё впереди`
+              : solo
+                ? <span><b style={{ color: "var(--text)" }}>{MONTHS[mIdx]} {selDay}</b> · {(dayPct(selDay) || 0) > 0 ? "выполнено ✓" : "пропущено"}</span>
+                : selPerson == null
+                  ? <span><b style={{ color: "var(--text)" }}>{MONTHS[mIdx]} {selDay}</b> · отметилось {selActive} из {people.length}{granular && selAvg != null ? ` · ${selAvg}%` : ""}</span>
+                  : <span><b style={{ color: "var(--text)" }}>{selName}</b> · {MONTHS[mIdx]} {selDay} · {granular ? `${Math.round((dayPct(selDay) || 0) * 100)}% привычек` : ((dayPct(selDay) || 0) > 0 ? "отмечался ✓" : "пропустил")}</span>}
+          </div>
+        )}
       </div>
     </>
   );

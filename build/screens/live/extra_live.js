@@ -44,11 +44,20 @@ function StatTrioLive({
     value
   }) => value;
   var div = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  var sufStyle = {
+    fontSize: 11,
+    color: "var(--text-4)",
+    fontWeight: 600,
+    marginLeft: 1
+  };
+  // Thin uniform band (David: «слишком толстый — сделай тонкой линией; и низ неровный из-за
+  // разных кеглей»). Icon sits IN LINE with the value; EVERY value is the same size (16px) so a
+  // text value like «31 дек» no longer breaks the rhythm next to the numbers. Two tight rows.
   return /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
-      borderRadius: 22,
-      padding: "16px 0",
+      borderRadius: 18,
+      padding: "11px 0",
       display: "flex",
       alignItems: "stretch"
     }
@@ -56,35 +65,43 @@ function StatTrioLive({
     key: i,
     style: {
       flex: 1,
-      textAlign: "center",
-      padding: "0 6px",
       minWidth: 0,
-      borderLeft: i > 0 ? "0.5px solid " + div : "none"
+      padding: "0 6px",
+      borderLeft: i > 0 ? "0.5px solid " + div : "none",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 4
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "grid",
-      placeItems: "center",
-      height: 19
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      color: "var(--text)",
+      fontWeight: 600,
+      fontSize: 16,
+      letterSpacing: "-0.3px",
+      lineHeight: 1
     }
-  }, s.icon), /*#__PURE__*/React.createElement("div", {
+  }, s.icon, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: s.text ? 14 : 22,
-      fontWeight: 700,
-      marginTop: 7,
-      letterSpacing: "-0.6px",
-      color: "var(--text)"
+      display: "inline-flex",
+      alignItems: "baseline",
+      minWidth: 0
     }
-  }, s.text ? s.text : /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement(Count, {
+  }, s.text ? s.text : /*#__PURE__*/React.createElement(Count, {
     value: s.v
-  }), s.suf || "")), /*#__PURE__*/React.createElement("div", {
+  }), !s.text && s.suf ? /*#__PURE__*/React.createElement("span", {
+    style: sufStyle
+  }, s.suf) : null)), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 9.5,
       color: "var(--text-4)",
       textTransform: "uppercase",
-      letterSpacing: 1,
+      letterSpacing: 0.8,
       fontWeight: 600,
-      marginTop: 4
+      lineHeight: 1
     }
   }, s.l))));
 }
@@ -229,7 +246,7 @@ function HabitDetailLive() {
       v: streak,
       suf: "д",
       icon: /*#__PURE__*/React.createElement(I.Flame, {
-        size: 17,
+        size: 14,
         color: "var(--text-4)"
       })
     }, {
@@ -237,7 +254,7 @@ function HabitDetailLive() {
       v: best,
       suf: "д",
       icon: /*#__PURE__*/React.createElement(I.Trophy, {
-        size: 17,
+        size: 14,
         color: "var(--text-4)"
       })
     }, {
@@ -245,7 +262,7 @@ function HabitDetailLive() {
       v: total,
       suf: "",
       icon: /*#__PURE__*/React.createElement(I.ChartBar, {
-        size: 16,
+        size: 14,
         color: "var(--text-4)"
       })
     }]
@@ -457,21 +474,21 @@ function GoalDetailLive() {
       l: "Осталось",
       v: remaining,
       icon: /*#__PURE__*/React.createElement(I.Target, {
-        size: 17,
+        size: 14,
         color: "var(--text-4)"
       })
     }, {
       l: "Сделано",
       v: g.current || 0,
       icon: /*#__PURE__*/React.createElement(I.Check, {
-        size: 18,
+        size: 15,
         color: "var(--text-4)"
       })
     }, {
       l: "Срок",
       text: g.deadline,
       icon: /*#__PURE__*/React.createElement(I.Calendar, {
-        size: 16,
+        size: 14,
         color: "var(--text-4)"
       })
     }]

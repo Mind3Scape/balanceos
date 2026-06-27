@@ -38,15 +38,23 @@
 function StatTrioLive({ items, card, isDark }) {
   const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
   const div = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  const sufStyle = { fontSize: 11, color: "var(--text-4)", fontWeight: 600, marginLeft: 1 };
+  // Thin uniform band (David: «слишком толстый — сделай тонкой линией; и низ неровный из-за
+  // разных кеглей»). Icon sits IN LINE with the value; EVERY value is the same size (16px) so a
+  // text value like «31 дек» no longer breaks the rhythm next to the numbers. Two tight rows.
   return (
-    <div style={{ ...card, borderRadius: 22, padding: "16px 0", display: "flex", alignItems: "stretch" }}>
+    <div style={{ ...card, borderRadius: 18, padding: "11px 0", display: "flex", alignItems: "stretch" }}>
       {items.map((s, i) => (
-        <div key={i} style={{ flex: 1, textAlign: "center", padding: "0 6px", minWidth: 0, borderLeft: i > 0 ? ("0.5px solid " + div) : "none" }}>
-          <div style={{ display: "grid", placeItems: "center", height: 19 }}>{s.icon}</div>
-          <div style={{ fontSize: s.text ? 14 : 22, fontWeight: 700, marginTop: 7, letterSpacing: "-0.6px", color: "var(--text)" }}>
-            {s.text ? s.text : <span><Count value={s.v} />{s.suf || ""}</span>}
+        <div key={i} style={{ flex: 1, minWidth: 0, padding: "0 6px", borderLeft: i > 0 ? ("0.5px solid " + div) : "none",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text)", fontWeight: 600, fontSize: 16, letterSpacing: "-0.3px", lineHeight: 1 }}>
+            {s.icon}
+            <span style={{ display: "inline-flex", alignItems: "baseline", minWidth: 0 }}>
+              {s.text ? s.text : <Count value={s.v} />}
+              {(!s.text && s.suf) ? <span style={sufStyle}>{s.suf}</span> : null}
+            </span>
           </div>
-          <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 4 }}>{s.l}</div>
+          <div style={{ fontSize: 9.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600, lineHeight: 1 }}>{s.l}</div>
         </div>
       ))}
     </div>
@@ -120,9 +128,9 @@ function HabitDetailLive() {
 
       {/* Stat row — native: thin line icons, one card, hairline dividers (StatTrioLive) */}
       <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={17} color="var(--text-4)" /> },
-        { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={17} color="var(--text-4)" /> },
-        { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} color="var(--text-4)" /> },
+        { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={14} color="var(--text-4)" /> },
+        { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={14} color="var(--text-4)" /> },
+        { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
       ]} />
 
       {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
@@ -211,9 +219,9 @@ function GoalDetailLive() {
 
       {/* Stat row — shared native row (StatTrioLive), same rhythm as the habit page */}
       <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Осталось", v: remaining, icon: <I.Target size={17} color="var(--text-4)" /> },
-        { l: "Сделано", v: g.current || 0, icon: <I.Check size={18} color="var(--text-4)" /> },
-        { l: "Срок", text: g.deadline, icon: <I.Calendar size={16} color="var(--text-4)" /> },
+        { l: "Осталось", v: remaining, icon: <I.Target size={14} color="var(--text-4)" /> },
+        { l: "Сделано", v: g.current || 0, icon: <I.Check size={15} color="var(--text-4)" /> },
+        { l: "Срок", text: g.deadline, icon: <I.Calendar size={14} color="var(--text-4)" /> },
       ]} />
 
       {/* Built from these habits — tap drills into the habit's own stats */}

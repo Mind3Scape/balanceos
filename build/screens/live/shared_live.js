@@ -354,6 +354,7 @@ function PeopleMonthCalendarLive({
     if (onSelPerson) onSelPerson(v);else setSelInner(v);
   };
   var [selDay, setSelDay] = React.useState(today);
+  var [compact, setCompact] = React.useState(true); // «красиво» (default, just cells) ↔ «подробно» по глазику
   var daysInMonth = new Date(year, mIdx + 1, 0).getDate();
   var startWeekday = new Date(year, mIdx, 1).getDay();
   var isCurMonth = mIdx === CUR_M;
@@ -401,17 +402,45 @@ function PeopleMonthCalendarLive({
   var selActive = future(selDay) ? null : people.filter((_, i) => (pf(i, selDay) ?? 0) >= 0.5).length;
   var selAvg = future(selDay) ? null : Math.round((allFrac(selDay) || 0) * 100);
   var selName = selPerson != null && people[selPerson] ? people[selPerson].name : null;
-  return /*#__PURE__*/React.createElement(React.Fragment, null, label && /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 22,
+      marginBottom: 8
+    }
+  }, label ? /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
-      marginTop: 22
+      margin: 0
     }
-  }, label), /*#__PURE__*/React.createElement("div", {
+  }, label) : /*#__PURE__*/React.createElement("span", null), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCompact(c => !c),
+    className: "tap",
+    "aria-label": compact ? "Подробно" : "Красиво",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      background: chipBg,
+      border: 0,
+      borderRadius: 999,
+      padding: "5px 11px",
+      color: "var(--text-2)",
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Eye, {
+    size: 14,
+    color: "var(--text-3)"
+  }), compact ? "Подробно" : "Красиво")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
-      marginTop: label ? 8 : 0,
       boxShadow: "var(--card-shadow)"
     }
   }, !solo && /*#__PURE__*/React.createElement("div", {
@@ -446,7 +475,7 @@ function PeopleMonthCalendarLive({
     avatar: m.avatar,
     name: m.name,
     size: 18
-  }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), /*#__PURE__*/React.createElement("div", {
+  }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -490,11 +519,11 @@ function PeopleMonthCalendarLive({
     }
   }, /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 16
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
-      gap: 4,
+      gap: 5,
       marginTop: 14
     }
   }, weekday.map((w, i) => /*#__PURE__*/React.createElement("div", {
@@ -510,8 +539,8 @@ function PeopleMonthCalendarLive({
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
-      gap: 4,
-      marginTop: 6
+      gap: 5,
+      marginTop: compact ? 0 : 6
     }
   }, cells.map(c => {
     if (c.blank) return /*#__PURE__*/React.createElement("span", {
@@ -525,62 +554,37 @@ function PeopleMonthCalendarLive({
     var fut = pct == null;
     var isToday = isCurMonth && c.d === today;
     var isSel = selDay === c.d;
+    var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#FEDE34";
+    var a = fut ? 0 : pct <= 0 ? 0 : 0.32 + 0.68 * Math.min(1, pct);
+    var ah = Math.round(a * 255).toString(16).padStart(2, "0");
+    var ch = isDark ? 30 : 255;
+    var cr = parseInt(hx.slice(1, 3), 16),
+      cg = parseInt(hx.slice(3, 5), 16),
+      cb = parseInt(hx.slice(5, 7), 16);
+    var lum = 0.299 * (cr * a + ch * (1 - a)) + 0.587 * (cg * a + ch * (1 - a)) + 0.114 * (cb * a + ch * (1 - a));
+    var ink = fut ? "var(--text-4)" : lum > 150 ? "var(--text)" : "#fff";
+    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? track : hx + ah;
+    var ring = !compact && isSel ? selRing : isToday ? isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)" : null;
     return /*#__PURE__*/React.createElement("button", {
       key: c.key,
-      onClick: () => setSelDay(c.d),
+      onClick: compact ? undefined : () => setSelDay(c.d),
       className: "tap",
       style: {
         aspectRatio: "1/1",
         border: 0,
-        borderRadius: "50%",
+        borderRadius: "30%",
         padding: 0,
         display: "grid",
         placeItems: "center",
-        position: "relative",
-        fontSize: 13,
+        fontSize: 12.5,
         fontWeight: isToday ? 700 : 500,
-        cursor: "pointer",
-        background: "transparent",
-        color: fut ? "var(--text-4)" : isDark ? "#fff" : "var(--text)"
+        cursor: compact ? "default" : "pointer",
+        background: bg,
+        boxShadow: ring ? "0 0 0 1.6px " + ring : "none",
+        color: ink
       }
-    }, isToday && /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        width: "62%",
-        aspectRatio: "1/1",
-        borderRadius: "50%",
-        background: todayBg
-      }
-    }), isSel && !isToday && /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        width: "66%",
-        aspectRatio: "1/1",
-        borderRadius: "50%",
-        border: "1.5px solid " + selRing
-      }
-    }), fut ? /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        inset: "17%",
-        borderRadius: "50%",
-        border: "1px dashed " + (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)")
-      }
-    }) : /*#__PURE__*/React.createElement(TeamRing, {
-      pct: pct,
-      color: selColor,
-      track: track,
-      glow: pct === 1
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        position: "relative",
-        zIndex: 1
-      }
-    }, c.d));
-  })), /*#__PURE__*/React.createElement("div", {
+    }, !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
+  })), !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       paddingTop: 13,
