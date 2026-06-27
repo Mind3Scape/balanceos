@@ -33,7 +33,7 @@
   // Sign in (idempotent). referredBy = id of the person whose invite link brought you.
   async function signIn(referredBy) {
     var c = client(); if (!c) return null;
-    var existing = await currentUser(); if (existing) { _uid = existing.id; return existing; }
+    var existing = await currentUser(); if (existing) { _uid = existing.id; try { flushQueue(); } catch (e) {} return existing; }
     if (inTelegram()) {
       try {
         var resp = await fetch(URL + "/functions/v1/tg-auth", {
@@ -85,24 +85,86 @@
     try { var c = await refCode(); if (c) return c; } catch (e) {}
     try { return await uid(); } catch (e) { return null; }
   }
-  async function signOut() { var c = client(); _uid = null; if (c) { try { await c.auth.signOut(); } catch (e) {} } }
+  async function signOut() { var c = client(); _uid = null; _q = []; _qSave(); if (c) { try { await c.auth.signOut(); } catch (e) {} } }
+
+  // ── DURABLE WRITE QUEUE ─────────────────────────────────────────────────────
+  // Local-first stays the source of truth; cloud writes are a background mirror. A flaky network used
+  // to drop a mirror write SILENTLY (fire-and-forget) → cloud quietly diverged. Now a FAILED write is
+  // queued (persisted to localStorage so it survives a reload), COALESCED BY KEY (newest desired state
+  // per key replaces the old → no pile-up), and retried on `online`, on app foreground, on sign-in, and
+  // after any successful write (network is clearly up). Every op is an idempotent upsert/delete, so
+  // replay is always safe. Per-user: cleared on signOut; the CURRENT uid is used at replay time.
+  var QKEY = "bos_sync_queue_v1";
+  var _q = [];
+  try { _q = JSON.parse(localStorage.getItem(QKEY) || "[]"); if (!Array.isArray(_q)) _q = []; } catch (e) { _q = []; }
+  function _qSave() { try { localStorage.setItem(QKEY, JSON.stringify(_q)); } catch (e) {} }
+  function _qAdd(op) {
+    _q = _q.filter(function (o) { return o.key !== op.key; });           // latest state per key wins
+    if (op.type === "deleteHabit") _q = _q.filter(function (o) { return o.key !== "upsertHabit:" + op.args.cloudId; }); // delete supersedes a pending create
+    if (op.type === "deleteGoal")  _q = _q.filter(function (o) { return o.key !== "upsertGoal:" + op.args.cloudId; });
+    _q.push(op); _qSave();
+  }
+  // The ONE place that performs each cloud write — used both for the live write AND for replay.
+  async function runOp(op) {
+    var c = client(); var id = await uid(); if (!c || !id) return false;
+    var a = op.args || {};
+    try {
+      switch (op.type) {
+        case "habitLog":
+          if (a.on) { var r = await c.from("habit_logs").upsert({ habit_id: a.cloudId, user_id: id, day: a.day }, { onConflict: "habit_id,day", ignoreDuplicates: true }); return !r.error; }
+          { var rd = await c.from("habit_logs").delete().eq("habit_id", a.cloudId).eq("day", a.day); return !rd.error; }
+        case "upsertHabit": { var ru = await c.from("habits").upsert({ id: a.cloudId, user_id: id, data: a.data, sort: a.sort || 0 }, { onConflict: "id" }); return !ru.error; }
+        case "deleteHabit": { var rh = await c.from("habits").delete().eq("id", a.cloudId); return !rh.error; }
+        case "upsertGoal":  { var rg = await c.from("goals").upsert({ id: a.cloudId, user_id: id, data: a.data, sort: a.sort || 0 }, { onConflict: "id" }); return !rg.error; }
+        case "deleteGoal":  { var rdg = await c.from("goals").delete().eq("id", a.cloudId); return !rdg.error; }
+        case "sharedLog":
+          if (a.on) { var rs = await c.from("shared_habit_logs").upsert({ code: a.code, user_id: id, day: a.day }, { onConflict: "code,user_id,day", ignoreDuplicates: true }); return !rs.error; }
+          { var rsd = await c.from("shared_habit_logs").delete().eq("code", a.code).eq("user_id", id).eq("day", a.day); return !rsd.error; }
+        case "snapshot": {
+          var rp = await c.from("user_state").upsert({ id: id, snapshot: a.env, updated_at: new Date().toISOString() }, { onConflict: "id" });
+          if (!rp.error) return true;
+          var rp2 = await c.from("profiles").update({ snapshot: a.env }).eq("id", id); return !rp2.error; // pre-patch fallback
+        }
+      }
+    } catch (e) { return false; }
+    return false;
+  }
+  // Try an op now; on failure queue it for retry. On success, drain any backlog (the network is up).
+  async function _durable(op) {
+    var ok = await runOp(op);
+    if (ok) { if (_q.length) { flushQueue(); } return true; }
+    _qAdd(op); return false;
+  }
+  var _flushing = false;
+  async function flushQueue() {
+    if (_flushing || !_q.length || !client()) return;
+    _flushing = true;
+    try {
+      var pending = _q.slice();
+      for (var i = 0; i < pending.length; i++) {
+        var ok = await runOp(pending[i]);
+        if (ok) { var k = pending[i].key; _q = _q.filter(function (o) { return o.key !== k; }); _qSave(); }
+        else break; // still failing (offline / server down) — keep the rest for the next trigger
+      }
+    } catch (e) {} finally { _flushing = false; }
+  }
+  try {
+    window.addEventListener("online", function () { flushQueue(); });
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") flushQueue(); });
+  } catch (e) {}
 
   // ── D2 · cross-device snapshot ──────────────────────────────────────────────
   // The whole life-blob (habits, goals, teams, mood history, widgets…) is mirrored
   // into a single `snapshot jsonb` column on the user's profile row. Last-write-wins
   // by device save-time. If the column doesn't exist yet (David hasn't run the 1-line
   // ALTER), these just return false/null and the app stays perfectly local — no break.
+  // PRIVATE mirror: the life-blob (incl. the journal) lives in user_state (RLS = owner only), NOT the
+  // world-readable profiles table; runOp("snapshot") falls back to the old profiles column pre-patch.
+  // DURABLE + coalesced under the single key "snapshot" → only the LATEST blob is ever retried
+  // (last-write-wins, which is the blob's semantics), so the journal can't be silently lost.
   async function saveSnapshot(data) {
-    var c = client(); var id = await uid(); if (!c || !id) return false;
     var env = { savedAt: Date.now(), data: data || {} };
-    // PRIVATE mirror: the life-blob (incl. the journal) lives in user_state — RLS = owner
-    // only — NOT in the world-readable profiles table. Falls back to the old column until
-    // patch_privacy_snapshot.sql has run, so deploy order can't lose data.
-    try {
-      var r = await c.from("user_state").upsert({ id: id, snapshot: env, updated_at: new Date().toISOString() }, { onConflict: "id" });
-      if (!r.error) return true;
-    } catch (e) {}
-    try { var r2 = await c.from("profiles").update({ snapshot: env }).eq("id", id); return !r2.error; } catch (e2) { return false; }
+    return _durable({ type: "snapshot", key: "snapshot", args: { env: env } });
   }
   async function loadSnapshot() {
     var c = client(); var id = await uid(); if (!c || !id) return null;
@@ -134,23 +196,21 @@
       });
     } catch (e) { return null; }
   }
+  // Writes are DURABLE now: try immediately, queue-and-retry on failure (see runOp/_durable). Strip
+  // local-only fields before mirroring; the queued args carry exactly what runOp re-sends.
   async function upsertHabit(h) {
-    var c = client(); var id = await uid(); if (!c || !id || !h || !h.cloudId) return false;
+    if (!h || !h.cloudId) return false;
     var data = Object.assign({}, h); delete data.id; delete data.cloudId; delete data.log; delete data.done; delete data.streak; delete data.sort;
-    try { var r = await c.from("habits").upsert({ id: h.cloudId, user_id: id, data: data, sort: h.sort || 0 }, { onConflict: "id" }); return !r.error; } catch (e) { return false; }
+    return _durable({ type: "upsertHabit", key: "upsertHabit:" + h.cloudId, args: { cloudId: h.cloudId, data: data, sort: h.sort || 0 } });
   }
   async function deleteHabit(cloudId) {
-    var c = client(); if (!c || !cloudId) return false;
-    try { var r = await c.from("habits").delete().eq("id", cloudId); return !r.error; } catch (e) { return false; }
+    if (!cloudId) return false;
+    return _durable({ type: "deleteHabit", key: "deleteHabit:" + cloudId, args: { cloudId: cloudId } });
   }
   // Toggle ONE day's mark (idempotent — the (habit_id,day) PK makes re-tap safe).
   async function toggleHabitLog(cloudId, day, on) {
-    var c = client(); var id = await uid(); if (!c || !id || !cloudId || !day) return false;
-    try {
-      if (on) { await c.from("habit_logs").upsert({ habit_id: cloudId, user_id: id, day: day }, { onConflict: "habit_id,day", ignoreDuplicates: true }); }
-      else { await c.from("habit_logs").delete().eq("habit_id", cloudId).eq("day", day); }
-      return true;
-    } catch (e) { return false; }
+    if (!cloudId || !day) return false;
+    return _durable({ type: "habitLog", key: "habitLog:" + cloudId + ":" + day, args: { cloudId: cloudId, day: day, on: !!on } });
   }
   async function loadGoals() {
     var c = client(); var id = await uid(); if (!c || !id) return null;
@@ -161,13 +221,13 @@
     } catch (e) { return null; }
   }
   async function upsertGoal(g) {
-    var c = client(); var id = await uid(); if (!c || !id || !g || !g.cloudId) return false;
+    if (!g || !g.cloudId) return false;
     var data = Object.assign({}, g); delete data.id; delete data.cloudId; delete data.sort;
-    try { var r = await c.from("goals").upsert({ id: g.cloudId, user_id: id, data: data, sort: g.sort || 0 }, { onConflict: "id" }); return !r.error; } catch (e) { return false; }
+    return _durable({ type: "upsertGoal", key: "upsertGoal:" + g.cloudId, args: { cloudId: g.cloudId, data: data, sort: g.sort || 0 } });
   }
   async function deleteGoal(cloudId) {
-    var c = client(); if (!c || !cloudId) return false;
-    try { var r = await c.from("goals").delete().eq("id", cloudId); return !r.error; } catch (e) { return false; }
+    if (!cloudId) return false;
+    return _durable({ type: "deleteGoal", key: "deleteGoal:" + cloudId, args: { cloudId: cloudId } });
   }
 
   // ── D3 · команды в облаке (создать / найти / вступить) ──────────────────────
@@ -388,12 +448,8 @@
     } catch (e) { return { code: code, name: "Привычка" }; }
   }
   async function setSharedLog(code, day, on) {
-    var c = client(); var id = await uid(); if (!c || !id || !code || !day) return false;
-    try {
-      if (on) await c.from("shared_habit_logs").upsert({ code: code, user_id: id, day: day }, { onConflict: "code,user_id,day", ignoreDuplicates: true });
-      else await c.from("shared_habit_logs").delete().eq("code", code).eq("user_id", id).eq("day", day);
-      return true;
-    } catch (e) { return false; }
+    if (!code || !day) return false;
+    return _durable({ type: "sharedLog", key: "sharedLog:" + code + ":" + day, args: { code: code, day: day, on: !!on } });
   }
   // Bulk-mirror MANY of your days into the shared log at once (idempotent) — backfills your existing
   // streak so buddies see your PAST days, not only new ones. RLS lets you write your own rows, so no
