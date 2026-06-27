@@ -51,11 +51,41 @@ function ProfileLive() {
   const _achEarnedN = _liveAch.length;
   const _achEmojis = _liveAch.slice(0, 3).map((a) => a.i);
   const _achCircles = livePeople.length;
+  // Grouped iOS-style menu (v280): plain render-fn so re-renders never remount the rows.
+  const chip = (icon) => <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(icon, { size: 16 })}</span>;
+  const navRow = (icon, label, id, last) => (
+    <button key={id} onClick={() => navigate(id, { from: "profile" })} className="tap" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", background: "transparent", border: 0, borderBottom: last ? "none" : "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+      {chip(icon)}
+      <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: "var(--text)" }}>{label}</span>
+      <I.ChevronRight size={18} className="bos-sys-text-2" />
+    </button>
+  );
+  const heroRef = React.useRef(null);
+  // A4 — the cosmos recedes into opacity as you scroll into the menu (David: «уводить в opacity»).
+  // Pure opacity/transform on a ref (no reflow → no jank); the top rubber-band is native to
+  // .bos-page. Safe no-op if the scroll parent isn't found.
+  React.useEffect(() => {
+    const el = heroRef.current; if (!el) return;
+    const sc = el.closest(".bos-page"); if (!sc) return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const k = Math.min(1, Math.max(0, sc.scrollTop) / 240);
+        el.style.opacity = String(1 - 0.85 * k);
+        el.style.transform = "translateY(" + (-28 * k).toFixed(1) + "px) scale(" + (1 - 0.06 * k).toFixed(3) + ")";
+      });
+    };
+    sc.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => { sc.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader onBack={() => navigate("home")} title="" />
 
-      <div style={{ textAlign: "center", marginTop: 4 }}>
+      <div ref={heroRef} style={{ textAlign: "center", marginTop: 4, transformOrigin: "50% 0", willChange: "opacity, transform" }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
         <OrbitField avatar={app?.avatar} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} onTap={openAvatar} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 2, background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999 }}>
@@ -87,29 +117,37 @@ function ProfileLive() {
         <I.ChevronRight size={18} className="bos-sys-text-2"/>
       </SysCard>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-        {[
-          { id: "settings", icon: I.Settings, label: "Настройки" },
-          { id: "notifications", icon: I.Bell, label: "Уведомления" },
-          { id: "history", icon: I.Clock, label: "История" },
-          { id: "ai", icon: I.Sparkles, label: "ИИ-инсайты" },
-          { id: "support", icon: I.Help, label: "Поддержка и помощь" },
-        ].map(r => (
-          <SysBtn key={r.id} onClick={() => navigate(r.id, { from: "profile" })}>
-            <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>
-              {React.createElement(r.icon, { size: 16 })}
-            </span>
-            <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: "var(--text)" }}>{r.label}</span>
-            <I.ChevronRight size={18} className="bos-sys-text-2" />
-          </SysBtn>
-        ))}
-        <SysBtn onClick={() => navigate("onboarding", { from: "profile" })} style={{ color: "var(--accent-red)" }}>
-          <span style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(239,68,68,0.12)" }}>
-            <I.Logout size={16} />
-          </span>
-          <span style={{ flex: 1, fontSize: 16, fontWeight: 600 }}>Выйти</span>
-        </SysBtn>
+      {/* Друзья — твои приглашённые на орбите (поднято из Настроек к орбу) */}
+      <SysCard className="tap" onClick={() => openSheet(<FriendsSheetLive dark={app?.themeOverride === "dark"} />)} style={{ marginTop: 12, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
+        <span style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(95,168,255,0.16)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🪐</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Друзья</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>
+            {livePeople.length > 0 ? (livePeople.length + (livePeople.length === 1 ? " человек на орбите" : " на твоей орбите")) : "Позови первого — он появится на орбите"}
+          </div>
+        </div>
+        {livePeople.length > 0 && (
+          <div style={{ display: "flex", marginRight: 4 }}>
+            {livePeople.slice(0, 4).map((p, i) => <span key={i} style={{ marginLeft: i ? -8 : 0 }}><BosAvatar avatar={p.avatar} size={26} style={{ border: "1.5px solid var(--card)" }} /></span>)}
+          </div>
+        )}
+        <I.ChevronRight size={18} className="bos-sys-text-2"/>
+      </SysCard>
+
+      {/* App menu — one grouped iOS card, hairline-divided rows */}
+      <div className="bos-sys-card" style={{ marginTop: 12, padding: 0, overflow: "hidden" }}>
+        {navRow(I.Clock, "История", "history")}
+        {navRow(I.Sparkles, "ИИ-инсайты", "ai")}
+        {navRow(I.Bell, "Уведомления", "notifications")}
+        {navRow(I.Settings, "Настройки", "settings")}
+        {navRow(I.Help, "Поддержка и помощь", "support", true)}
       </div>
+      <SysBtn onClick={() => navigate("onboarding", { from: "profile" })} style={{ marginTop: 12, color: "var(--accent-red)" }}>
+        <span style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(239,68,68,0.12)" }}>
+          <I.Logout size={16} />
+        </span>
+        <span style={{ flex: 1, fontSize: 16, fontWeight: 600 }}>Выйти</span>
+      </SysBtn>
     </div>
   );
 }

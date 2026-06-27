@@ -439,12 +439,7 @@ function SettingsLive() {
     body: "\u0422\u044B \u0432\u0445\u043E\u0434\u0438\u0448\u044C \u0447\u0435\u0440\u0435\u0437 \u0441\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 Telegram \u2014 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C \u043D\u0435 \u043D\u0443\u0436\u0435\u043D. \u0422\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u044B \u043A \u043D\u0435\u043C\u0443 \u0438 \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u044F\u0442\u0441\u044F \u043C\u0435\u0436\u0434\u0443 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C\u0438.",
     cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
     dark: routeDark
-  })), true)]), group("Предпочтения", [toggleRow(I.Eye, "Тёмная тема", isDark, setDark), toggleRow(I.Bell, "Push-уведомления", push, setPushPersist), toggleRow(I.Book, "Карточки-подсказки", learnOn, setLearnPersist, true)]), group("Главный экран", [row(I.Home, "Виджеты на главном", () => navigate("home-customize"), true)]), group("Личное", [row(I.Smile, "История состояния", () => openSheet(/*#__PURE__*/React.createElement(StateHistorySheetLive, {
-    app: app,
-    dark: routeDark
-  }))), row(I.Users, "Друзья", () => openSheet(/*#__PURE__*/React.createElement(FriendsSheetLive, {
-    dark: routeDark
-  })), true)]), group("О приложении", [row(I.Sparkles, "Манифест", () => navigate("manifest", {
+  })), true)]), group("Предпочтения", [toggleRow(I.Eye, "Тёмная тема", isDark, setDark), toggleRow(I.Bell, "Push-уведомления", push, setPushPersist), toggleRow(I.Book, "Карточки-подсказки", learnOn, setLearnPersist, true)]), group("Главный экран", [row(I.Home, "Виджеты на главном", () => navigate("home-customize"), true)]), group("О приложении", [row(I.Sparkles, "Манифест", () => navigate("manifest", {
     from: "settings"
   })), row(null, "Политика конфиденциальности", () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
     title: "\u041F\u043E\u043B\u0438\u0442\u0438\u043A\u0430 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438",
@@ -1470,29 +1465,85 @@ function AchievementsLive() {
     params
   } = useNav();
   var app = typeof useApp === "function" ? useApp() : null;
+  var {
+    open: openSheet
+  } = useSheet();
+  var dark = app?.themeOverride === "dark";
   var back = params?.from || "profile";
   // LIVE: achievements earned by real signals — the real bosEarnedAchievementsLive ladder.
   var LIST = bosEarnedAchievementsLive(app);
-  var earned = LIST.filter(a => a.earned);
-  var locked = LIST.filter(a => !a.earned);
-  // Live ladder grants bonus XP per badge; total earned bonus is the hero number.
-  var _achXP = earned.reduce((s, a) => s + (a.xp || 0), 0);
-  // LIVE "circles of contacts" = real people you actually invited (referral circle).
-  var [invited, setInvited] = React.useState(0);
-  React.useEffect(() => {
-    var on = true;
-    try {
-      if (window.bosCloud && window.bosCloud.enabled()) {
-        window.bosCloud.invitedPeople().then(list => {
-          if (on && Array.isArray(list)) setInvited(list.length);
-        }).catch(() => {});
-      }
-    } catch (e) {}
-    return () => {
-      on = false;
-    };
-  }, []);
-  var circles = invited;
+  var byId = {};
+  LIST.forEach(a => {
+    byId[a.id] = a;
+  });
+  var earnedN = LIST.filter(a => a.earned).length;
+  var _achXP = LIST.filter(a => a.earned).reduce((s, a) => s + (a.xp || 0), 0);
+  // Category ladders — each badge grows within its branch (Apple-Fitness-style award grid).
+  // Emoji art for now (David: native custom art later); grouped by what earns it.
+  var CATS = [{
+    t: "Старт",
+    ids: ["first_habit"]
+  }, {
+    t: "Уровни",
+    ids: ["lvl5", "lvl10", "lvl15", "lvl20", "lvl25"]
+  }, {
+    t: "Серии привычек",
+    ids: ["habit21", "habit60"]
+  }, {
+    t: "Забота о себе",
+    ids: ["week_state", "care30", "care100", "care180", "year"]
+  }, {
+    t: "Цели и команда",
+    ids: ["goal", "team"]
+  }];
+  var showDetail = a => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
+    dark: dark,
+    title: a.t,
+    body: (a.earned ? "Открыто ✓\n\n" : "Как открыть: " + (a.how || "") + "\n\n") + a.d + (a.xp ? "  ·  +" + a.xp + " XP" : ""),
+    cta: "\u0413\u043E\u0442\u043E\u0432\u043E"
+  }));
+  var tile = a => /*#__PURE__*/React.createElement("button", {
+    key: a.id,
+    onClick: () => showDetail(a),
+    className: "tap",
+    "aria-label": a.t,
+    style: {
+      border: 0,
+      background: "transparent",
+      padding: 0,
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: "100%",
+      maxWidth: 58,
+      aspectRatio: "1",
+      borderRadius: 16,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 27,
+      position: "relative",
+      background: a.earned ? a.accent + "26" : "var(--card-2)",
+      boxShadow: a.earned ? "inset 0 0 0 1.5px " + a.accent + "55" : "none",
+      filter: a.earned ? "none" : "grayscale(1)",
+      opacity: a.earned ? 1 : 0.5
+    }
+  }, a.i, !a.earned && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: -2,
+      bottom: -2,
+      width: 18,
+      height: 18,
+      borderRadius: "50%",
+      background: "var(--card)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 9
+    }
+  }, "\uD83D\uDD12")));
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1514,7 +1565,7 @@ function AchievementsLive() {
       letterSpacing: 1.2,
       fontWeight: 700
     }
-  }, "\u0422\u0432\u043E\u0438 \u0430\u0447\u0438\u0432\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0422\u0432\u043E\u0438 \u043D\u0430\u0433\u0440\u0430\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "baseline",
@@ -1527,7 +1578,7 @@ function AchievementsLive() {
       fontWeight: 800,
       letterSpacing: "-0.6px"
     }
-  }, earned.length), /*#__PURE__*/React.createElement("span", {
+  }, earnedN), /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-text-2",
     style: {
       fontSize: 14
@@ -1539,172 +1590,40 @@ function AchievementsLive() {
       lineHeight: 1.5,
       marginTop: 6
     }
-  }, "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u044F \u0437\u0430 \u0443\u0440\u043E\u0432\u043D\u0438, \u0441\u0435\u0440\u0438\u0438 \u0438 \u0437\u0430\u0431\u043E\u0442\u0443 \u043E \u0441\u0435\u0431\u0435. \u041A\u0430\u0436\u0434\u043E\u0435 \u0434\u0430\u0451\u0442 \u0431\u043E\u043D\u0443\u0441 XP", _achXP > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 \u0442\u044B \u0443\u0436\u0435 \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043B ", /*#__PURE__*/React.createElement("b", null, "+", _achXP, " XP"), ".") : /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 \u043E\u0442\u043A\u0440\u043E\u0439 \u043F\u0435\u0440\u0432\u043E\u0435.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 12,
-      flexWrap: "wrap"
-    }
-  }, earned.map((a, i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      width: 34,
-      height: 34,
-      borderRadius: 14,
-      background: a.accent + "26",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 18
-    }
-  }, a.i)))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22,
-      padding: "0 4px"
-    }
-  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u043E"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 8
-    }
-  }, earned.map((a, i) => /*#__PURE__*/React.createElement(SysCard, {
-    key: i,
-    className: "tap",
-    onClick: () => navigate("community"),
-    style: {
-      padding: 14,
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 46,
-      height: 46,
-      borderRadius: 14,
-      background: a.accent + "26",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 24,
-      flexShrink: 0
-    }
-  }, a.i), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 600,
-      color: "var(--text)",
-      letterSpacing: "-0.2px"
-    }
-  }, a.t), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 12,
-      marginTop: 2
-    }
-  }, a.d), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-2",
-    style: {
-      fontSize: 12,
-      marginTop: 5,
-      fontWeight: 600,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 11,
-    color: a.accent
-  }), " ", a.xp ? "+" + a.xp + " XP" : "открыл: " + a.opens)), /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 11,
-      flexShrink: 0
-    }
-  }, a.date)))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22,
-      padding: "0 4px"
-    }
-  }, "\u0412 \u043F\u0443\u0442\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 8
-    }
-  }, locked.map((a, i) => /*#__PURE__*/React.createElement(SysCard, {
-    key: i,
-    className: "tap",
-    onClick: () => navigate("community"),
-    style: {
-      padding: 14,
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 46,
-      height: 46,
-      borderRadius: 14,
-      background: "var(--card-2)",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      flexShrink: 0,
-      filter: "grayscale(1)",
-      opacity: 0.45
-    }
-  }, a.i), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 600,
-      color: "var(--text)",
-      letterSpacing: "-0.2px",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, a.t, " ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11
-    }
-  }, "\uD83D\uDD12")), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 12,
-      marginTop: 2
-    }
-  }, "\u041A\u0430\u043A \u043E\u0442\u043A\u0440\u044B\u0442\u044C: ", a.how || a.req), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-2",
-    style: {
-      fontSize: 12,
-      marginTop: 5,
-      fontWeight: 500
-    }
-  }, a.xp ? "+" + a.xp + " XP" : "→ откроет: " + a.opens)), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    className: "bos-sys-text-3",
-    style: {
-      flexShrink: 0
-    }
-  })))));
+  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0434\u0430\u0451\u0442 \u0431\u043E\u043D\u0443\u0441 XP", _achXP > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 \u0442\u044B \u0443\u0436\u0435 \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043B ", /*#__PURE__*/React.createElement("b", null, "+", _achXP, " XP"), ".") : /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 \u043E\u0442\u043A\u0440\u043E\u0439 \u043F\u0435\u0440\u0432\u0443\u044E."))), CATS.map(cat => {
+    var items = cat.ids.map(id => byId[id]).filter(Boolean);
+    if (!items.length) return null;
+    var got = items.filter(a => a.earned).length;
+    return /*#__PURE__*/React.createElement(React.Fragment, {
+      key: cat.t
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "section-label",
+      style: {
+        marginTop: 22,
+        padding: "0 4px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline"
+      }
+    }, /*#__PURE__*/React.createElement("span", null, cat.t), /*#__PURE__*/React.createElement("span", {
+      className: "bos-sys-text-3",
+      style: {
+        fontWeight: 600,
+        fontSize: 12
+      }
+    }, got, "/", items.length)), /*#__PURE__*/React.createElement(SysCard, {
+      style: {
+        padding: "16px 14px",
+        marginTop: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(5, 1fr)",
+        gap: 12
+      }
+    }, items.map(tile))));
+  }));
 }
 
 // Manifesto — the full philosophical text behind the onboarding, for those who

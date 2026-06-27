@@ -340,28 +340,59 @@ function OrbitField({
   // Ring STRUCTURE (sort by streak, build nodes, assign even angular spread, ring set)
   // depends ONLY on [habits, people] — memo it so it isn't rebuilt on every animation frame;
   // only the per-frame positions (cos/sin of t, below) recompute each tick.
+  var MAXR = 3; // belts you can see; the rest fold into a "+N" whisper at the edge
   var {
     nodes,
-    maxRing,
-    drawRings
+    drawRings,
+    maxStreak
   } = React.useMemo(() => {
-    // Strongest habit first → inner ring + bigger; newest (low streak) → outer + small.
+    // Strongest habit first → inner belt + bigger; people by invite order (1st = closest).
     var hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0));
-    var pp = (people || []).slice(); // invite order: index 0 = first = closest
+    var pp = (people || []).slice();
+    var maxStreak = hb.reduce((m, h) => Math.max(m, h.streak || 0), 1);
+    // A2 — BELTS: one ring holds MANY (4,8,12,16…), so 10 habits + 50 friends stay calm
+    // instead of becoming 60 rings. Habits fill inner belts, people the belts just outside.
+    var cap = r => 4 + r * 4;
     var nodes = [];
-    hb.forEach((h, i) => nodes.push({
-      ring: i,
+    var ring = 0,
+      slot = 0,
+      overflow = 0;
+    var place = mk => {
+      while (ring <= MAXR && slot >= cap(ring)) {
+        ring++;
+        slot = 0;
+      }
+      if (ring > MAXR) {
+        overflow++;
+        return;
+      }
+      mk(ring);
+      slot++;
+    };
+    hb.forEach((h, i) => place(r => nodes.push({
+      ring: r,
       kind: "h",
       emoji: h.emoji || "✨",
+      streak: h.streak || 0,
       key: "h" + (h.id != null ? h.id : i)
-    }));
-    pp.forEach((p, j) => nodes.push({
-      ring: j + 1,
+    })));
+    if (slot > 0) {
+      ring++;
+      slot = 0;
+    } // people start their own belt, just outside your habits
+    pp.forEach((p, j) => place(r => nodes.push({
+      ring: r,
       kind: "p",
       avatar: p.avatar,
       key: "p" + j
-    })); // people just outside your hero habit
-    // Even angular spread within each ring (so nothing collides), then a per-ring spin.
+    })));
+    if (overflow > 0) nodes.push({
+      ring: MAXR,
+      kind: "more",
+      count: overflow,
+      key: "more"
+    });
+    // Even angular spread within each belt (so nothing collides), then a per-ring spin.
     var byRing = {};
     nodes.forEach(n => {
       (byRing[n.ring] = byRing[n.ring] || []).push(n);
@@ -372,21 +403,21 @@ function OrbitField({
         n.baseAng = idx / a.length * Math.PI * 2 + Number(r) * 0.7 - Math.PI / 2;
       });
     });
-    var maxRing = nodes.reduce((m, n) => Math.max(m, n.ring), 2); // ≥3 rings, even when empty
     var drawRings = [];
-    for (var r = 0; r <= Math.min(maxRing, 6); r++) drawRings.push(r);
+    for (var r = 0; r <= MAXR; r++) drawRings.push(r);
     return {
       nodes,
-      maxRing,
-      drawRings
+      drawRings,
+      maxStreak
     };
   }, [habits, people]);
   var RBASE = 82,
     RSTEP = 26;
   var radius = ring => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
   var spin = ring => (ring % 2 ? -1 : 1) * 0.06 / (1 + ring * 0.18);
-  var fadeAt = R => clamp(1 - (R - 138) / 56, 0, 1); // outer rings whisper toward the edge
-
+  // A3 — softer fade: outer belts whisper toward the edge but never fully vanish (floor ~0.34),
+  // so a power user with many belts still senses the whole cosmos instead of losing it to black.
+  var fadeAt = R => clamp(1 - (R - 150) / 150, 0.34, 1);
   var tint = typeof tintFromMood === "function" ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
   var glow = tint[1];
   // The centre orb's glossy shell already paints the default sphere face. Only nest a
@@ -429,7 +460,7 @@ function OrbitField({
       overflow: "visible"
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    viewBox: "-160 -160 320 320",
+    viewBox: "-178 -178 356 356",
     width: "100%",
     height: "100%",
     preserveAspectRatio: "xMidYMid meet",
@@ -526,9 +557,41 @@ function OrbitField({
       y = Math.sin(ang) * R;
     var op = clamp(eo * fadeAt(R), 0, 1);
     if (op <= 0.02) return null;
-    var sz = lerp(18, 10.5, clamp(n.ring / 4, 0, 1)); // inner big → outer small
+    // A1 — meaning in size: a habit grows with its streak (the more you keep it, the
+    // bigger/closer it reads); a person grows with closeness; the "+N" whisper is fixed.
+    var sz = n.kind === "h" ? lerp(11, 18, clamp((n.streak || 0) / maxStreak, 0, 1)) : n.kind === "more" ? 15 : lerp(16, 10, clamp(n.ring / MAXR, 0, 1));
     var pop = smooth((t - n.ring * 0.08) / 0.5); // inner rings settle first
     var gs = (sz / 16 * pop).toFixed(3); // canonical r=16, scaled per ring
+    if (n.kind === "more") {
+      return /*#__PURE__*/React.createElement("g", {
+        key: n.key,
+        transform: "translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")",
+        opacity: op.toFixed(2),
+        filter: PAL.shadow ? "url(#orbShadow)" : undefined
+      }, /*#__PURE__*/React.createElement("circle", {
+        cx: "0",
+        cy: "0",
+        r: "16",
+        fill: PAL.pdisc
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "0",
+        cy: "0",
+        r: "16",
+        fill: "none",
+        stroke: PAL.pstroke,
+        strokeWidth: "1.2"
+      }), /*#__PURE__*/React.createElement("text", {
+        x: "0",
+        y: "0.5",
+        textAnchor: "middle",
+        dominantBaseline: "central",
+        fontSize: "12",
+        fontWeight: "600",
+        style: {
+          fill: dark ? "#cfe0ff" : "#5b6473"
+        }
+      }, "+", n.count));
+    }
     if (n.kind === "h") {
       return /*#__PURE__*/React.createElement("g", {
         key: n.key,

@@ -188,11 +188,6 @@ function SettingsLive() {
         row(I.Home, "Виджеты на главном", () => navigate("home-customize"), true),
       ])}
 
-      {group("Личное", [
-        row(I.Smile, "История состояния", () => openSheet(<StateHistorySheetLive app={app} dark={routeDark} />)),
-        row(I.Users, "Друзья", () => openSheet(<FriendsSheetLive dark={routeDark} />), true),
-      ])}
-
       {group("О приложении", [
         row(I.Sparkles, "Манифест", () => navigate("manifest", { from: "settings" })),
         row(null, "Политика конфиденциальности", () => openSheet(<InfoSheet title="Политика конфиденциальности" body={PRIVACY_BODY} cta="Готово" dark={routeDark}/>)),
@@ -654,79 +649,73 @@ function SupportLive() {
 function AchievementsLive() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
+  const { open: openSheet } = useSheet();
+  const dark = app?.themeOverride === "dark";
   const back = params?.from || "profile";
   // LIVE: achievements earned by real signals — the real bosEarnedAchievementsLive ladder.
   const LIST = bosEarnedAchievementsLive(app);
-  const earned = LIST.filter(a => a.earned);
-  const locked = LIST.filter(a => !a.earned);
-  // Live ladder grants bonus XP per badge; total earned bonus is the hero number.
-  const _achXP = earned.reduce((s, a) => s + (a.xp || 0), 0);
-  // LIVE "circles of contacts" = real people you actually invited (referral circle).
-  const [invited, setInvited] = React.useState(0);
-  React.useEffect(() => {
-    let on = true;
-    try {
-      if (window.bosCloud && window.bosCloud.enabled()) {
-        window.bosCloud.invitedPeople().then((list) => { if (on && Array.isArray(list)) setInvited(list.length); }).catch(() => {});
-      }
-    } catch (e) {}
-    return () => { on = false; };
-  }, []);
-  const circles = invited;
+  const byId = {}; LIST.forEach((a) => { byId[a.id] = a; });
+  const earnedN = LIST.filter((a) => a.earned).length;
+  const _achXP = LIST.filter((a) => a.earned).reduce((s, a) => s + (a.xp || 0), 0);
+  // Category ladders — each badge grows within its branch (Apple-Fitness-style award grid).
+  // Emoji art for now (David: native custom art later); grouped by what earns it.
+  const CATS = [
+    { t: "Старт", ids: ["first_habit"] },
+    { t: "Уровни", ids: ["lvl5", "lvl10", "lvl15", "lvl20", "lvl25"] },
+    { t: "Серии привычек", ids: ["habit21", "habit60"] },
+    { t: "Забота о себе", ids: ["week_state", "care30", "care100", "care180", "year"] },
+    { t: "Цели и команда", ids: ["goal", "team"] },
+  ];
+  const showDetail = (a) => openSheet(<InfoSheet dark={dark} title={a.t}
+    body={(a.earned ? "Открыто ✓\n\n" : "Как открыть: " + (a.how || "") + "\n\n") + a.d + (a.xp ? "  ·  +" + a.xp + " XP" : "")}
+    cta="Готово" />);
+  const tile = (a) => (
+    <button key={a.id} onClick={() => showDetail(a)} className="tap" aria-label={a.t}
+      style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", display: "grid", placeItems: "center" }}>
+      <span style={{ width: "100%", maxWidth: 58, aspectRatio: "1", borderRadius: 16, display: "grid", placeItems: "center", fontSize: 27, position: "relative",
+        background: a.earned ? a.accent + "26" : "var(--card-2)",
+        boxShadow: a.earned ? "inset 0 0 0 1.5px " + a.accent + "55" : "none",
+        filter: a.earned ? "none" : "grayscale(1)", opacity: a.earned ? 1 : 0.5 }}>
+        {a.i}
+        {!a.earned && <span style={{ position: "absolute", right: -2, bottom: -2, width: 18, height: 18, borderRadius: "50%", background: "var(--card)", display: "grid", placeItems: "center", fontSize: 9 }}>🔒</span>}
+      </span>
+    </button>
+  );
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Достижения" onBack={() => navigate(back)} />
 
-      {/* Hero — real earned XP from the ladder */}
+      {/* Hero — real earned count + XP from the ladder */}
       <SysCard style={{ padding: 18, borderRadius: 22 }}>
-        <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Твои ачивки</div>
+        <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Твои награды</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
-          <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.6px" }}>{earned.length}</span>
+          <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.6px" }}>{earnedN}</span>
           <span className="bos-sys-text-2" style={{ fontSize: 14 }}>из {LIST.length} открыто</span>
         </div>
         <div className="bos-sys-text-2" style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
-          Достижения за уровни, серии и заботу о себе. Каждое даёт бонус XP{_achXP > 0 ? <> — ты уже заработал <b>+{_achXP} XP</b>.</> : <> — открой первое.</>}
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
-          {earned.map((a, i) => (
-            <span key={i} style={{ width: 34, height: 34, borderRadius: 14, background: a.accent + "26", display: "grid", placeItems: "center", fontSize: 18 }}>{a.i}</span>
-          ))}
+          Каждая награда даёт бонус XP{_achXP > 0 ? <> — ты уже заработал <b>+{_achXP} XP</b>.</> : <> — открой первую.</>}
         </div>
       </SysCard>
 
-      {/* Earned */}
-      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>Открыто</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {earned.map((a, i) => (
-          <SysCard key={i} className="tap" onClick={() => navigate("community")} style={{ padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-            <span style={{ width: 46, height: 46, borderRadius: 14, background: a.accent + "26", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{a.i}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{a.t}</div>
-              <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 2 }}>{a.d}</div>
-              <div className="bos-sys-text-2" style={{ fontSize: 12, marginTop: 5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <I.Sparkles size={11} color={a.accent}/> {a.xp ? "+" + a.xp + " XP" : "открыл: " + a.opens}
+      {/* Category ladders — tap a badge for its detail */}
+      {CATS.map((cat) => {
+        const items = cat.ids.map((id) => byId[id]).filter(Boolean);
+        if (!items.length) return null;
+        const got = items.filter((a) => a.earned).length;
+        return (
+          <React.Fragment key={cat.t}>
+            <div className="section-label" style={{ marginTop: 22, padding: "0 4px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span>{cat.t}</span>
+              <span className="bos-sys-text-3" style={{ fontWeight: 600, fontSize: 12 }}>{got}/{items.length}</span>
+            </div>
+            <SysCard style={{ padding: "16px 14px", marginTop: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+                {items.map(tile)}
               </div>
-            </div>
-            <span className="bos-sys-text-3" style={{ fontSize: 11, flexShrink: 0 }}>{a.date}</span>
-          </SysCard>
-        ))}
-      </div>
-
-      {/* Locked — shows the path: how to earn + the XP it pays */}
-      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>В пути</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {locked.map((a, i) => (
-          <SysCard key={i} className="tap" onClick={() => navigate("community")} style={{ padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-            <span style={{ width: 46, height: 46, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0, filter: "grayscale(1)", opacity: 0.45 }}>{a.i}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", display: "inline-flex", alignItems: "center", gap: 6 }}>{a.t} <span style={{ fontSize: 11 }}>🔒</span></div>
-              <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 2 }}>Как открыть: {a.how || a.req}</div>
-              <div className="bos-sys-text-2" style={{ fontSize: 12, marginTop: 5, fontWeight: 500 }}>{a.xp ? "+" + a.xp + " XP" : "→ откроет: " + a.opens}</div>
-            </div>
-            <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }}/>
-          </SysCard>
-        ))}
-      </div>
+            </SysCard>
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }

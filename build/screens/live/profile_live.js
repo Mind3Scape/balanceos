@@ -61,6 +61,77 @@ function ProfileLive() {
   var _achEarnedN = _liveAch.length;
   var _achEmojis = _liveAch.slice(0, 3).map(a => a.i);
   var _achCircles = livePeople.length;
+  // Grouped iOS-style menu (v280): plain render-fn so re-renders never remount the rows.
+  var chip = icon => /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(icon, {
+    size: 16
+  }));
+  var navRow = (icon, label, id, last) => /*#__PURE__*/React.createElement("button", {
+    key: id,
+    onClick: () => navigate(id, {
+      from: "profile"
+    }),
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      borderBottom: last ? "none" : "0.5px solid var(--line)",
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "13px 14px"
+    }
+  }, chip(icon), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, label), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    className: "bos-sys-text-2"
+  }));
+  var heroRef = React.useRef(null);
+  // A4 — the cosmos recedes into opacity as you scroll into the menu (David: «уводить в opacity»).
+  // Pure opacity/transform on a ref (no reflow → no jank); the top rubber-band is native to
+  // .bos-page. Safe no-op if the scroll parent isn't found.
+  React.useEffect(() => {
+    var el = heroRef.current;
+    if (!el) return;
+    var sc = el.closest(".bos-page");
+    if (!sc) return;
+    var raf = 0;
+    var onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        var k = Math.min(1, Math.max(0, sc.scrollTop) / 240);
+        el.style.opacity = String(1 - 0.85 * k);
+        el.style.transform = "translateY(" + (-28 * k).toFixed(1) + "px) scale(" + (1 - 0.06 * k).toFixed(3) + ")";
+      });
+    };
+    sc.addEventListener("scroll", onScroll, {
+      passive: true
+    });
+    onScroll();
+    return () => {
+      sc.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -70,9 +141,12 @@ function ProfileLive() {
     onBack: () => navigate("home"),
     title: ""
   }), /*#__PURE__*/React.createElement("div", {
+    ref: heroRef,
     style: {
       textAlign: "center",
-      marginTop: 4
+      marginTop: 4,
+      transformOrigin: "50% 0",
+      willChange: "opacity, transform"
     }
   }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
@@ -207,65 +281,79 @@ function ProfileLive() {
   }, e))), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
     className: "bos-sys-text-2"
-  })), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement(SysCard, {
+    className: "tap",
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(FriendsSheetLive, {
+      dark: app?.themeOverride === "dark"
+    })),
     style: {
+      marginTop: 12,
+      padding: 14,
       display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 12
+      alignItems: "center",
+      gap: 13,
+      cursor: "pointer"
     }
-  }, [{
-    id: "settings",
-    icon: I.Settings,
-    label: "Настройки"
-  }, {
-    id: "notifications",
-    icon: I.Bell,
-    label: "Уведомления"
-  }, {
-    id: "history",
-    icon: I.Clock,
-    label: "История"
-  }, {
-    id: "ai",
-    icon: I.Sparkles,
-    label: "ИИ-инсайты"
-  }, {
-    id: "support",
-    icon: I.Help,
-    label: "Поддержка и помощь"
-  }].map(r => /*#__PURE__*/React.createElement(SysBtn, {
-    key: r.id,
-    onClick: () => navigate(r.id, {
-      from: "profile"
-    })
   }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
     style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      background: "rgba(95,168,255,0.16)",
       display: "grid",
       placeItems: "center",
+      fontSize: 22,
       flexShrink: 0
     }
-  }, React.createElement(r.icon, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("span", {
+  }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       fontSize: 16,
       fontWeight: 600,
       color: "var(--text)"
     }
-  }, r.label), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\u0414\u0440\u0443\u0437\u044C\u044F"), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 2
+    }
+  }, livePeople.length > 0 ? livePeople.length + (livePeople.length === 1 ? " человек на орбите" : " на твоей орбите") : "Позови первого — он появится на орбите")), livePeople.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      marginRight: 4
+    }
+  }, livePeople.slice(0, 4).map((p, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      marginLeft: i ? -8 : 0
+    }
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: p.avatar,
+    size: 26,
+    style: {
+      border: "1.5px solid var(--card)"
+    }
+  })))), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
     className: "bos-sys-text-2"
-  }))), /*#__PURE__*/React.createElement(SysBtn, {
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-card",
+    style: {
+      marginTop: 12,
+      padding: 0,
+      overflow: "hidden"
+    }
+  }, navRow(I.Clock, "История", "history"), navRow(I.Sparkles, "ИИ-инсайты", "ai"), navRow(I.Bell, "Уведомления", "notifications"), navRow(I.Settings, "Настройки", "settings"), navRow(I.Help, "Поддержка и помощь", "support", true)), /*#__PURE__*/React.createElement(SysBtn, {
     onClick: () => navigate("onboarding", {
       from: "profile"
     }),
     style: {
+      marginTop: 12,
       color: "var(--accent-red)"
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -286,7 +374,7 @@ function ProfileLive() {
       fontSize: 16,
       fontWeight: 600
     }
-  }, "\u0412\u044B\u0439\u0442\u0438"))));
+  }, "\u0412\u044B\u0439\u0442\u0438")));
 }
 function AILive() {
   var {
