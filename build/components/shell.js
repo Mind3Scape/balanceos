@@ -2120,6 +2120,12 @@ function AppProvider({
   // ledger so the LIVE economy can lift your level by it. 0 for demo/fresh.
   var [teamGoalXP, setTeamGoalXP] = useState(0);
   var saveTimer = useRef(null);
+  // Dedupe cloud writes: only mirror to the cloud when the content ACTUALLY changed (David: «каждая
+  // отметка зря переписывает облако — пиши только при реальном изменении»). A habit check-in changes
+  // `habits` (synced as ROWS) but NOT the blob/profile, so without this guard every tap pointlessly
+  // re-upserted user_state + profiles → wasted writes + table bloat. localStorage still saves every time.
+  var lastCloudBlobRef = useRef(null);
+  var lastCloudProfRef = useRef(null);
   // True while a live login is hydrating from the cloud — blocks the autosave below so
   // empty/just-defaulted local state can't race ahead and overwrite real cloud data.
   var hydratingRef = useRef(false);
@@ -2158,19 +2164,35 @@ function AppProvider({
       });
       try {
         if (window.bosCloud && window.bosCloud.enabled()) {
-          window.bosCloud.saveProfile({
-            username: userName,
-            avatar: avatar
-          });
-          // D2 — mirror the blob across devices. Habits/goals are NO LONGER here: they sync
-          // as rows (habits/habit_logs/goals) so the blob can't balloon with date-keyed logs.
-          window.bosCloud.saveSnapshot({
+          // Profile (name/avatar) — write only when it changed (it almost never does per tap).
+          var _prof = (userName || "") + " " + (avatar || "");
+          if (_prof !== lastCloudProfRef.current) {
+            window.bosCloud.saveProfile({
+              username: userName,
+              avatar: avatar
+            });
+            lastCloudProfRef.current = _prof;
+          }
+          // D2 — mirror the blob across devices. Habits/goals are NO LONGER here: they sync as rows
+          // (habits/habit_logs/goals) so the blob can't balloon with date-keyed logs. Write only when
+          // the blob's content actually changed → a habit check-in no longer re-upserts user_state.
+          var _blobStr = JSON.stringify({
             teams,
             dayMoods,
             dayNotes,
             widgets,
             wheelSpheres
           });
+          if (_blobStr !== lastCloudBlobRef.current) {
+            window.bosCloud.saveSnapshot({
+              teams,
+              dayMoods,
+              dayNotes,
+              widgets,
+              wheelSpheres
+            });
+            lastCloudBlobRef.current = _blobStr;
+          }
         }
       } catch (e) {}
     }, 400);
@@ -2201,13 +2223,23 @@ function AppProvider({
           wheelSpheres: s.wheelSpheres
         });
         if (window.bosCloud && window.bosCloud.enabled()) {
-          window.bosCloud.saveSnapshot({
+          var _blobStr = JSON.stringify({
             teams: s.teams,
             dayMoods: s.dayMoods,
             dayNotes: s.dayNotes,
             widgets: s.widgets,
             wheelSpheres: s.wheelSpheres
           });
+          if (_blobStr !== lastCloudBlobRef.current) {
+            window.bosCloud.saveSnapshot({
+              teams: s.teams,
+              dayMoods: s.dayMoods,
+              dayNotes: s.dayNotes,
+              widgets: s.widgets,
+              wheelSpheres: s.wheelSpheres
+            });
+            lastCloudBlobRef.current = _blobStr;
+          }
         }
       } catch (e) {}
     };
