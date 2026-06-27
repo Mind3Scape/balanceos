@@ -93,67 +93,76 @@ function HabitsLive() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const addBtnRef = React.useRef(null);
 
+  // «Быстрое добавление» is now a FREE, draggable block inside the Привычки list — David moved the
+  // universal «+» onto the triad row, so this block no longer has to be pinned at the top. qaPos =
+  // where it sits among the habit cards; persisted (default top), so it stays where you drop it.
+  const [qaPos, setQaPosState] = React.useState(() => { try { const v = parseInt(localStorage.getItem("bos:qaIdx"), 10); return Number.isFinite(v) ? v : 0; } catch (e) { return 0; } });
+  const setQaPos = (n) => { setQaPosState(n); try { localStorage.setItem("bos:qaIdx", String(n)); } catch (e) {} };
+  const quickAddBlock = (
+    <div style={{ background: TH.cardBg, borderRadius: 20, boxShadow: cardShadow, padding: "12px 13px" }}>
+      <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600, marginBottom: 9, padding: "0 2px" }}>Быстрое добавление</div>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "3px 2px" }}>
+        {EMOJI_CHIPS.map((c, i) => (
+          <button key={i} className="tap" data-no-haptic onClick={() => navigate("habit-settings", { mode: "create", preset: c })} style={{
+            background: TH.chipBg, borderRadius: 999, padding: "8px 12px", fontSize: 13, color: TH.chipText, border: TH.chipBd,
+            display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>{c.t} <I.Plus size={12} color={TH.plusIcon}/>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   const TRIAD = [{ id: "habits", t: "Привычки" }, { id: "goals", t: "Цели" }, { id: "teams", t: "Команды" }];
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
 
-      {/* 1 — «Быстрое добавление»: chips + the universal black «+», unified into ONE white
-          block. The chips scroll sideways and tuck UNDER the «+» (a radial mask fades them
-          inside the button's radius). The «+» opens CreateMenuLive — create anything. */}
-      <div data-tour="presets" style={{ background: TH.cardBg, borderRadius: 20, boxShadow: cardShadow, padding: "12px 13px", marginBottom: 12 }}>
-        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600, marginBottom: 9, padding: "0 2px" }}>Быстрое добавление</div>
-        <div style={{ position: "relative" }}>
-          <div style={{
-            display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x",
-            padding: "3px 50px 3px 2px",
-            WebkitMaskImage: "radial-gradient(circle at calc(100% - 21px) 50%, transparent 29px, #000 48px)",
-            maskImage: "radial-gradient(circle at calc(100% - 21px) 50%, transparent 29px, #000 48px)",
-          }}>
-            {EMOJI_CHIPS.map((c, i) => (
-              <button key={i} className="tap" data-no-haptic onClick={() => navigate("habit-settings", { mode: "create", preset: c })} style={{
-                background: TH.chipBg, borderRadius: 999, padding: "8px 12px", fontSize: 13,
-                color: TH.chipText, border: TH.chipBd,
-                display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
-              }}>
-                <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>
-                {c.t} <I.Plus size={12} color={TH.plusIcon}/>
-              </button>
-            ))}
-          </div>
-          <button ref={addBtnRef} data-tour="add" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
-            title="Создать" aria-haspopup="menu" aria-expanded={createOpen}
-            style={{ position: "absolute", top: "50%", right: 0, transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 999, background: TH.addBtnBg, color: TH.addBtnFg, border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 3px 10px rgba(0,0,0,0.12)" }}>
-            <I.Plus size={18} strokeWidth={2.2} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }}/>
-          </button>
+      {/* TRIAD switcher + the universal «+» on ONE row (David). The «+» opens CreateMenuLive
+          (Привычку / Цель / Команду), so it no longer lives on «Быстрое добавление» — that block
+          is now a free, draggable card inside the Привычки list. The triad keeps the iOS segmented
+          look (defined grey track #E6E6EA + white floating pill); sharing the row with the «+» it
+          still fits all three labels on the narrowest phones. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <div className="tab-pill" style={{ flex: 1, marginBottom: 0, background: isDark ? "rgba(255,255,255,0.07)" : "#E6E6EA" }}>
+          {TRIAD.map((s) => (
+            <button key={s.id} className={"tap " + (tab === s.id ? "active" : "")} onClick={() => setTab(s.id)}
+              style={{ fontSize: 14, fontWeight: tab === s.id ? 600 : 500, letterSpacing: "-0.2px", padding: "11px 4px", boxShadow: tab === s.id ? (isDark ? "0 1px 4px rgba(0,0,0,0.45)" : "0 1px 3px rgba(0,0,0,0.14)") : "none" }}>{s.t}</button>
+          ))}
         </div>
-      </div>
-
-      {/* 2 — TRIAD switcher, directly under the quick-add block (David). Standard iOS
-          segmented control = a DEFINED grey track + a white floating pill. The default
-          .tab-pill track (--surface-3 #efefef) is only ~2 levels off the page (#f1f1f1) so
-          it vanished; we override to a clearly-darker cool grey so the control reads as a
-          block, and give the active pill a crisper float. Active label a touch heavier. */}
-      <div className="tab-pill" style={{ marginBottom: 14, background: isDark ? "rgba(255,255,255,0.07)" : "#E6E6EA" }}>
-        {TRIAD.map((s) => (
-          <button key={s.id} className={"tap " + (tab === s.id ? "active" : "")} onClick={() => setTab(s.id)}
-            style={{ fontSize: 14, fontWeight: tab === s.id ? 600 : 500, letterSpacing: "-0.2px", padding: "11px 8px", boxShadow: tab === s.id ? (isDark ? "0 1px 4px rgba(0,0,0,0.45)" : "0 1px 3px rgba(0,0,0,0.14)") : "none" }}>{s.t}</button>
-        ))}
+        <button ref={addBtnRef} data-tour="add" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
+          title="Создать" aria-haspopup="menu" aria-expanded={createOpen}
+          style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, background: TH.addBtnBg, color: TH.addBtnFg, border: 0, display: "grid", placeItems: "center", boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 3px 10px rgba(0,0,0,0.12)" }}>
+          <I.Plus size={20} strokeWidth={2.2} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }}/>
+        </button>
       </div>
 
       {/* 3 — the active list. No section labels: the triad above names the context. */}
       {tab === "habits" && (
         habits.length === 0 ? (
-          <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
-            <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки</div>
-            <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Начни с одной маленькой. Её можно делать одному или вместе с друзьями.</div>
-            <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать привычку</span>
-          </button>
-        ) : (
-          <BosReorderList ids={habits.map((h) => h.id)} onReorder={(o) => { if (app && app.reorderHabits) app.reorderHabits(o); }}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {quickAddBlock}
+            <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+              <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
+              <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки</div>
+              <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Выбери шаблон выше, нажми «+» или создай свою — одному или вместе с друзьями.</div>
+            </button>
+          </div>
+        ) : (() => {
+          // The «Быстрое добавление» block rides in the SAME reorder list as the habit cards (id
+          // «__qa__»), spliced at its remembered position — so it jiggles and drags like any block.
+          const ids = habits.map((h) => h.id);
+          ids.splice(Math.min(qaPos, ids.length), 0, "__qa__");
+          return (
+          <BosReorderList ids={ids} onReorder={(o) => {
+              const np = o.indexOf("__qa__"); if (np >= 0) setQaPos(np);
+              const ho = o.filter((x) => x !== "__qa__");
+              if (app && app.reorderHabits) app.reorderHabits(ho);
+            }}
             renderItem={(id, ctx) => {
+              if (id === "__qa__") return ctx.mode ? <div style={{ pointerEvents: "none" }}>{quickAddBlock}</div> : quickAddBlock;
               const h = habits.find((x) => x.id === id); if (!h) return null;
               const inner = (
                 <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
@@ -195,7 +204,8 @@ function HabitsLive() {
                 </div>
               );
             }} />
-        )
+          );
+        })()
       )}
 
       {tab === "goals" && (

@@ -123,35 +123,30 @@ function HabitsLive() {
   // The black «+» is the ONE universal create entry — it opens a small menu (Привычку / Цель / Команду).
   var [createOpen, setCreateOpen] = React.useState(false);
   var addBtnRef = React.useRef(null);
-  var TRIAD = [{
-    id: "habits",
-    t: "Привычки"
-  }, {
-    id: "goals",
-    t: "Цели"
-  }, {
-    id: "teams",
-    t: "Команды"
-  }];
-  return /*#__PURE__*/React.createElement("div", {
-    ref: wrapRef,
-    className: "page-in",
-    style: {
-      padding: "0 12px 24px"
+
+  // «Быстрое добавление» is now a FREE, draggable block inside the Привычки list — David moved the
+  // universal «+» onto the triad row, so this block no longer has to be pinned at the top. qaPos =
+  // where it sits among the habit cards; persisted (default top), so it stays where you drop it.
+  var [qaPos, setQaPosState] = React.useState(() => {
+    try {
+      var v = parseInt(localStorage.getItem("bos:qaIdx"), 10);
+      return Number.isFinite(v) ? v : 0;
+    } catch (e) {
+      return 0;
     }
-  }, /*#__PURE__*/React.createElement(CreateMenuLive, {
-    open: createOpen,
-    onClose: () => setCreateOpen(false),
-    anchorRef: addBtnRef,
-    navigate: navigate
-  }), /*#__PURE__*/React.createElement("div", {
-    "data-tour": "presets",
+  });
+  var setQaPos = n => {
+    setQaPosState(n);
+    try {
+      localStorage.setItem("bos:qaIdx", String(n));
+    } catch (e) {}
+  };
+  var quickAddBlock = /*#__PURE__*/React.createElement("div", {
     style: {
       background: TH.cardBg,
       borderRadius: 20,
       boxShadow: cardShadow,
-      padding: "12px 13px",
-      marginBottom: 12
+      padding: "12px 13px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -165,19 +160,13 @@ function HabitsLive() {
     }
   }, "\u0411\u044B\u0441\u0442\u0440\u043E\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
       display: "flex",
       gap: 8,
       overflowX: "auto",
       scrollbarWidth: "none",
       WebkitOverflowScrolling: "touch",
       touchAction: "pan-x",
-      padding: "3px 50px 3px 2px",
-      WebkitMaskImage: "radial-gradient(circle at calc(100% - 21px) 50%, transparent 29px, #000 48px)",
-      maskImage: "radial-gradient(circle at calc(100% - 21px) 50%, transparent 29px, #000 48px)"
+      padding: "3px 2px"
     }
   }, EMOJI_CHIPS.map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
@@ -208,7 +197,54 @@ function HabitsLive() {
   }, c.i), c.t, " ", /*#__PURE__*/React.createElement(I.Plus, {
     size: 12,
     color: TH.plusIcon
-  })))), /*#__PURE__*/React.createElement("button", {
+  })))));
+  var TRIAD = [{
+    id: "habits",
+    t: "Привычки"
+  }, {
+    id: "goals",
+    t: "Цели"
+  }, {
+    id: "teams",
+    t: "Команды"
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    ref: wrapRef,
+    className: "page-in",
+    style: {
+      padding: "0 12px 24px"
+    }
+  }, /*#__PURE__*/React.createElement(CreateMenuLive, {
+    open: createOpen,
+    onClose: () => setCreateOpen(false),
+    anchorRef: addBtnRef,
+    navigate: navigate
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "tab-pill",
+    style: {
+      flex: 1,
+      marginBottom: 0,
+      background: isDark ? "rgba(255,255,255,0.07)" : "#E6E6EA"
+    }
+  }, TRIAD.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s.id,
+    className: "tap " + (tab === s.id ? "active" : ""),
+    onClick: () => setTab(s.id),
+    style: {
+      fontSize: 14,
+      fontWeight: tab === s.id ? 600 : 500,
+      letterSpacing: "-0.2px",
+      padding: "11px 4px",
+      boxShadow: tab === s.id ? isDark ? "0 1px 4px rgba(0,0,0,0.45)" : "0 1px 3px rgba(0,0,0,0.14)" : "none"
+    }
+  }, s.t))), /*#__PURE__*/React.createElement("button", {
     ref: addBtnRef,
     "data-tour": "add",
     onClick: () => {
@@ -224,10 +260,7 @@ function HabitsLive() {
     "aria-haspopup": "menu",
     "aria-expanded": createOpen,
     style: {
-      position: "absolute",
-      top: "50%",
-      right: 0,
-      transform: "translateY(-50%)",
+      flexShrink: 0,
       width: 44,
       height: 44,
       borderRadius: 999,
@@ -239,30 +272,19 @@ function HabitsLive() {
       boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 3px 10px rgba(0,0,0,0.12)"
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 18,
+    size: 20,
     strokeWidth: 2.2,
     style: {
       transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)",
       transform: createOpen ? "rotate(45deg)" : "none"
     }
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "tab-pill",
+  }))), tab === "habits" && (habits.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 14,
-      background: isDark ? "rgba(255,255,255,0.07)" : "#E6E6EA"
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
     }
-  }, TRIAD.map(s => /*#__PURE__*/React.createElement("button", {
-    key: s.id,
-    className: "tap " + (tab === s.id ? "active" : ""),
-    onClick: () => setTab(s.id),
-    style: {
-      fontSize: 14,
-      fontWeight: tab === s.id ? 600 : 500,
-      letterSpacing: "-0.2px",
-      padding: "11px 8px",
-      boxShadow: tab === s.id ? isDark ? "0 1px 4px rgba(0,0,0,0.45)" : "0 1px 3px rgba(0,0,0,0.14)" : "none"
-    }
-  }, s.t))), tab === "habits" && (habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  }, quickAddBlock, /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("habit-settings", {
       mode: "create"
@@ -272,7 +294,7 @@ function HabitsLive() {
       background: TH.cardBg,
       border: 0,
       borderRadius: 22,
-      padding: "34px 20px",
+      padding: "30px 20px",
       boxShadow: cardShadow,
       color: "var(--text)",
       display: "flex",
@@ -303,158 +325,156 @@ function HabitsLive() {
       lineHeight: 1.45,
       maxWidth: 250
     }
-  }, "\u041D\u0430\u0447\u043D\u0438 \u0441 \u043E\u0434\u043D\u043E\u0439 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u043E\u0439. \u0415\u0451 \u043C\u043E\u0436\u043D\u043E \u0434\u0435\u043B\u0430\u0442\u044C \u043E\u0434\u043D\u043E\u043C\u0443 \u0438\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438."), /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginTop: 6,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      background: TH.addBtnBg,
-      color: TH.addBtnFg,
-      borderRadius: 999,
-      padding: "10px 18px",
-      fontSize: 14.5,
-      fontWeight: 600
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 16,
-    strokeWidth: 2.5
-  }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement(BosReorderList, {
-    ids: habits.map(h => h.id),
-    onReorder: o => {
-      if (app && app.reorderHabits) app.reorderHabits(o);
-    },
-    renderItem: (id, ctx) => {
-      var h = habits.find(x => x.id === id);
-      if (!h) return null;
-      var inner = /*#__PURE__*/React.createElement("div", {
-        className: ctx.mode ? "" : "tap",
-        onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
-          habit: h,
-          from: "habits"
-        }),
-        style: {
-          padding: "14px 16px",
-          pointerEvents: ctx.mode ? "none" : "auto"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 14
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 40,
-          height: 40,
-          borderRadius: 14,
-          background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
-          boxShadow: bosTileGlass(isDark),
-          display: "grid",
-          placeItems: "center",
-          fontSize: 20,
-          flexShrink: 0
-        }
-      }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1,
-          minWidth: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 16,
-          fontWeight: 600,
-          color: "var(--text)",
-          letterSpacing: "-0.2px"
-        }
-      }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          marginTop: 3,
-          fontSize: 11,
-          color: "var(--text-4)"
-        }
-      }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 3
-        }
-      }, /*#__PURE__*/React.createElement(I.Clock, {
-        size: 11
-      }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
-        habit: h,
-        dark: isDark,
-        onComplete: () => {
-          if (!h.done) toggle(h.id);
-        }
-      }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
-        habit: h,
-        app: app,
-        xp: 10
-      }) : /*#__PURE__*/React.createElement(HabitCheck, {
-        done: h.done,
-        onToggle: () => toggle(h.id),
-        xp: 10,
-        float: true
-      })), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          marginTop: 12
-        }
-      }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
-        habit: h
-      }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
-        habit: h,
-        size: 22,
-        max: 5
-      })));
-      if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
-        style: {
-          borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow,
-          background: rowBg
-        }
-      }, inner);
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow
-        }
-      }, /*#__PURE__*/React.createElement(SwipeRow, {
-        rowBg: rowBg,
-        dark: isDark,
-        actions: [{
-          key: "share",
-          tone: "share",
-          label: "Поделиться",
-          icon: I.Share,
-          onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0448\u0430\u0431\u043B\u043E\u043D \u0432\u044B\u0448\u0435, \u043D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0438\u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u0439 \u0441\u0432\u043E\u044E \u2014 \u043E\u0434\u043D\u043E\u043C\u0443 \u0438\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438."))) : (() => {
+    // The «Быстрое добавление» block rides in the SAME reorder list as the habit cards (id
+    // «__qa__»), spliced at its remembered position — so it jiggles and drags like any block.
+    var ids = habits.map(h => h.id);
+    ids.splice(Math.min(qaPos, ids.length), 0, "__qa__");
+    return /*#__PURE__*/React.createElement(BosReorderList, {
+      ids: ids,
+      onReorder: o => {
+        var np = o.indexOf("__qa__");
+        if (np >= 0) setQaPos(np);
+        var ho = o.filter(x => x !== "__qa__");
+        if (app && app.reorderHabits) app.reorderHabits(ho);
+      },
+      renderItem: (id, ctx) => {
+        if (id === "__qa__") return ctx.mode ? /*#__PURE__*/React.createElement("div", {
+          style: {
+            pointerEvents: "none"
+          }
+        }, quickAddBlock) : quickAddBlock;
+        var h = habits.find(x => x.id === id);
+        if (!h) return null;
+        var inner = /*#__PURE__*/React.createElement("div", {
+          className: ctx.mode ? "" : "tap",
+          onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
             habit: h,
-            dark: isDark
-          }))
-        }, {
-          key: "del",
-          tone: "delete",
-          label: "Удалить",
-          icon: I.X,
-          onAction: () => bosConfirmDelete(openSheet, {
-            title: "Удалить привычку?",
-            message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
-            confirmLabel: "Удалить",
-            onConfirm: () => remove(h.id)
-          })
-        }]
-      }, inner));
-    }
-  })), tab === "goals" && (goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+            from: "habits"
+          }),
+          style: {
+            padding: "14px 16px",
+            pointerEvents: ctx.mode ? "none" : "auto"
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 14
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            width: 40,
+            height: 40,
+            borderRadius: 14,
+            background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
+            boxShadow: bosTileGlass(isDark),
+            display: "grid",
+            placeItems: "center",
+            fontSize: 20,
+            flexShrink: 0
+          }
+        }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
+          style: {
+            flex: 1,
+            minWidth: 0
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 16,
+            fontWeight: 600,
+            color: "var(--text)",
+            letterSpacing: "-0.2px"
+          }
+        }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 3,
+            fontSize: 11,
+            color: "var(--text-4)"
+          }
+        }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 3
+          }
+        }, /*#__PURE__*/React.createElement(I.Clock, {
+          size: 11
+        }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+          habit: h,
+          dark: isDark,
+          onComplete: () => {
+            if (!h.done) toggle(h.id);
+          }
+        }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+          habit: h,
+          app: app,
+          xp: 10
+        }) : /*#__PURE__*/React.createElement(HabitCheck, {
+          done: h.done,
+          onToggle: () => toggle(h.id),
+          xp: 10,
+          float: true
+        })), /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            marginTop: 12
+          }
+        }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
+          habit: h
+        }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+          habit: h,
+          size: 22,
+          max: 5
+        })));
+        if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
+          style: {
+            borderRadius: 22,
+            overflow: "hidden",
+            boxShadow: cardShadow,
+            background: rowBg
+          }
+        }, inner);
+        return /*#__PURE__*/React.createElement("div", {
+          style: {
+            borderRadius: 22,
+            overflow: "hidden",
+            boxShadow: cardShadow
+          }
+        }, /*#__PURE__*/React.createElement(SwipeRow, {
+          rowBg: rowBg,
+          dark: isDark,
+          actions: [{
+            key: "share",
+            tone: "share",
+            label: "Поделиться",
+            icon: I.Share,
+            onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+              habit: h,
+              dark: isDark
+            }))
+          }, {
+            key: "del",
+            tone: "delete",
+            label: "Удалить",
+            icon: I.X,
+            onAction: () => bosConfirmDelete(openSheet, {
+              title: "Удалить привычку?",
+              message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
+              confirmLabel: "Удалить",
+              onConfirm: () => remove(h.id)
+            })
+          }]
+        }, inner));
+      }
+    });
+  })()), tab === "goals" && (goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"

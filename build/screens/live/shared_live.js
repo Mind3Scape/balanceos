@@ -509,7 +509,7 @@ function PeopleMonthCalendarLive({
   }, label) : /*#__PURE__*/React.createElement("span", null), /*#__PURE__*/React.createElement("button", {
     onClick: () => setCompact(c => !c),
     className: "tap",
-    "aria-label": compact ? "Подробно" : "Красиво",
+    "aria-label": compact ? "Подробно" : "Компактно",
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -527,7 +527,7 @@ function PeopleMonthCalendarLive({
   }, /*#__PURE__*/React.createElement(I.Eye, {
     size: 14,
     color: "var(--text-3)"
-  }), compact ? "Подробно" : "Красиво")), !solo && /*#__PURE__*/React.createElement("div", {
+  }), compact ? "Подробно" : "Компактно")), !solo && /*#__PURE__*/React.createElement("div", {
     className: "screen-scroll",
     style: {
       display: "flex",

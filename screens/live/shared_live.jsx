@@ -252,12 +252,12 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
     <>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: label ? 12 : 0 }}>
         {/* Title + eye toggle live INSIDE the card now (David: «надписи вписаны в блок, не вынесены —
-            чтобы блоки читались бум-бум-бум»). «Красиво» = pretty cells ↔ «Подробно» = dates+labels. */}
+            чтобы блоки читались бум-бум-бум»). «Компактно» = pretty cells ↔ «Подробно» = dates+labels. */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           {label ? <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)" }}>{label}</div> : <span />}
-          <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Красиво"}
+          <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, background: chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-            <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Красиво"}
+            <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Компактно"}
           </button>
         </div>
         {!solo && (
