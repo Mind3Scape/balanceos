@@ -339,14 +339,91 @@ function SettingsLive() {
   };
   var isDark = app?.themeOverride === "dark";
   var setDark = on => app?.setThemeOverride(on ? "dark" : "light");
-  var wheel = app?.wheelSpheres || window.DEFAULT_SPHERES || [];
-  var setWheel = arr => app?.setWheelSpheres && app.setWheelSpheres(arr);
   // «Обучение» cards on the Habits screen — ON shows them, OFF hides (restore after «Скрыть»).
   var [learnOn, setLearnOn] = React.useState(() => !(typeof bosLearnHidden === "function" && bosLearnHidden()));
   var setLearnPersist = on => {
     setLearnOn(on);
     if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(!on);
   };
+  // Grouped iOS-style sections (v279 reno): ONE card per group, hairline-divided rows inside.
+  // Helpers are plain render-fns (not components) so toggling never remounts the list.
+  var PRIVACY_BODY = "Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта.";
+  var chip = icon => /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(icon, {
+    size: 16
+  }));
+  var row = (icon, label, onClick, last) => /*#__PURE__*/React.createElement("button", {
+    key: label,
+    onClick: onClick,
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      borderBottom: last ? "none" : "0.5px solid var(--line)",
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "13px 14px"
+    }
+  }, icon ? chip(icon) : null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, label), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-2"
+  }));
+  var toggleRow = (icon, label, val, set, last) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "12px 14px",
+      borderBottom: last ? "none" : "0.5px solid var(--line)"
+    }
+  }, chip(icon), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, label), /*#__PURE__*/React.createElement(Switch, {
+    on: val,
+    onChange: set,
+    dark: isDark
+  }));
+  var group = (title, rows) => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: title
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, title), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-card",
+    style: {
+      marginTop: 8,
+      padding: 0,
+      overflow: "hidden"
+    }
+  }, rows));
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -355,343 +432,38 @@ function SettingsLive() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     onBack: () => navigate("profile")
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label"
-  }, "\u0410\u043A\u043A\u0430\u0443\u043D\u0442"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 8
-    }
-  }, [{
-    label: "Редактировать профиль",
-    icon: I.Pencil,
-    on: () => openSheet(/*#__PURE__*/React.createElement(EditProfileSheet, {
-      dark: routeDark
-    }))
-  }, {
-    label: "Вход через Telegram",
-    icon: I.Globe,
-    on: () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
-      title: "\u0412\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 Telegram",
-      body: "\u0422\u044B \u0432\u0445\u043E\u0434\u0438\u0448\u044C \u0447\u0435\u0440\u0435\u0437 \u0441\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 Telegram \u2014 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C \u043D\u0435 \u043D\u0443\u0436\u0435\u043D. \u0422\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u044B \u043A \u043D\u0435\u043C\u0443 \u0438 \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u044F\u0442\u0441\u044F \u043C\u0435\u0436\u0434\u0443 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C\u0438.",
-      cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
-      dark: routeDark
-    }))
-  }].map((r, i) => /*#__PURE__*/React.createElement(SysBtn, {
-    key: i,
-    onClick: r.on
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, React.createElement(r.icon, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, r.label), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    className: "bos-sys-text-2"
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041B\u0438\u0447\u043D\u043E\u0435"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 8
-    }
-  }, [{
-    label: "История состояния",
-    icon: I.Smile,
-    on: () => openSheet(/*#__PURE__*/React.createElement(StateHistorySheetLive, {
-      app: app,
-      dark: routeDark
-    }))
-  }, {
-    label: "Друзья",
-    icon: I.Users,
-    on: () => openSheet(/*#__PURE__*/React.createElement(FriendsSheetLive, {
-      dark: routeDark
-    }))
-  }].map((r, i) => /*#__PURE__*/React.createElement(SysBtn, {
-    key: i,
-    onClick: r.on
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, React.createElement(r.icon, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, r.label), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    className: "bos-sys-text-2"
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041F\u0440\u0435\u0434\u043F\u043E\u0447\u0442\u0435\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 8
-    }
-  }, [
-  // Push is real & persisted (gates Telegram push). "Звук" had no consumer and
-  // was demo-only — dropped so a real user never meets a toggle that does nothing.
-  {
-    label: "Push-уведомления",
-    icon: I.Bell,
-    val: push,
-    set: setPushPersist
-  }, {
-    label: "Тёмная тема",
-    icon: I.Eye,
-    val: isDark,
-    set: setDark
-  }, {
-    label: "Карточки обучения",
-    icon: I.Book,
-    val: learnOn,
-    set: setLearnPersist
-  }].map((r, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    className: "bos-sys-card",
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: 14
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, React.createElement(r.icon, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, r.label), /*#__PURE__*/React.createElement(Switch, {
-    on: r.val,
-    onChange: r.set,
-    dark: isDark
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0413\u043B\u0430\u0432\u043D\u044B\u0439 \u044D\u043A\u0440\u0430\u043D"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8
-    }
-  }, /*#__PURE__*/React.createElement(SysBtn, {
-    onClick: () => navigate("home-customize")
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.Home, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, "\u0412\u0438\u0434\u0436\u0435\u0442\u044B \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u043C"), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    className: "bos-sys-text-2"
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041A\u043E\u043B\u0435\u0441\u043E \u0431\u0430\u043B\u0430\u043D\u0441\u0430"), /*#__PURE__*/React.createElement(SysCard, {
-    style: {
-      padding: 14,
-      marginTop: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-2",
-    style: {
-      fontSize: 12.5,
-      lineHeight: 1.45,
-      marginBottom: 12
-    }
-  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0441\u0444\u0435\u0440\u044B, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0445\u043E\u0447\u0435\u0448\u044C \u0432\u0438\u0434\u0435\u0442\u044C \u0432 \u043A\u043E\u043B\u0435\u0441\u0435 \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 8
-    }
-  }, (window.ALL_SPHERES || []).map(s => {
-    var sel = wheel.includes(s.id);
-    var toggle = () => {
-      if (sel) {
-        if (wheel.length > 3) setWheel(wheel.filter(x => x !== s.id));
-      } else setWheel([...wheel, s.id]);
-    };
-    return /*#__PURE__*/React.createElement("button", {
-      key: s.id,
-      onClick: toggle,
-      className: "tap",
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 7,
-        padding: "8px 13px",
-        borderRadius: 999,
-        fontSize: 13.5,
-        cursor: "pointer",
-        background: sel ? "#FEDE34" : "var(--surface-3)",
-        color: sel ? "#0a0a0a" : "var(--text-2)",
-        border: 0,
-        fontWeight: sel ? 600 : 500
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 15
-      }
-    }, s.e), s.l);
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 8
-    }
-  }, /*#__PURE__*/React.createElement(SysBtn, {
-    onClick: () => navigate("guide", {
-      from: "settings"
-    })
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.Compass, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, "\u041E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438"), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    className: "bos-sys-text-2"
-  })), /*#__PURE__*/React.createElement(SysBtn, {
-    onClick: () => navigate("manifest", {
-      from: "settings"
-    })
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 16
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, "\u041C\u0430\u043D\u0438\u0444\u0435\u0441\u0442"), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    className: "bos-sys-text-2"
-  })), ["Политика конфиденциальности", "Условия использования", "Версия " + APP_VERSION].map((l, i, a) => i < a.length - 1 ? /*#__PURE__*/React.createElement(SysBtn, {
-    key: i,
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
-      title: l,
-      body: "Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта.",
-      cta: "\u0413\u043E\u0442\u043E\u0432\u043E",
-      dark: routeDark
-    }))
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, l), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    className: "bos-sys-text-2"
-  })) : /*#__PURE__*/React.createElement("div", {
-    key: i,
+  }), group("Профиль", [row(I.Pencil, "Редактировать профиль", () => openSheet(/*#__PURE__*/React.createElement(EditProfileSheet, {
+    dark: routeDark
+  }))), row(I.Globe, "Вход через Telegram", () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
+    title: "\u0412\u0445\u043E\u0434 \u0447\u0435\u0440\u0435\u0437 Telegram",
+    body: "\u0422\u044B \u0432\u0445\u043E\u0434\u0438\u0448\u044C \u0447\u0435\u0440\u0435\u0437 \u0441\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 Telegram \u2014 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C \u043D\u0435 \u043D\u0443\u0436\u0435\u043D. \u0422\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u044B \u043A \u043D\u0435\u043C\u0443 \u0438 \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u044F\u0442\u0441\u044F \u043C\u0435\u0436\u0434\u0443 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C\u0438.",
+    cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
+    dark: routeDark
+  })), true)]), group("Предпочтения", [toggleRow(I.Eye, "Тёмная тема", isDark, setDark), toggleRow(I.Bell, "Push-уведомления", push, setPushPersist), toggleRow(I.Book, "Карточки-подсказки", learnOn, setLearnPersist, true)]), group("Главный экран", [row(I.Home, "Виджеты на главном", () => navigate("home-customize"), true)]), group("Личное", [row(I.Smile, "История состояния", () => openSheet(/*#__PURE__*/React.createElement(StateHistorySheetLive, {
+    app: app,
+    dark: routeDark
+  }))), row(I.Users, "Друзья", () => openSheet(/*#__PURE__*/React.createElement(FriendsSheetLive, {
+    dark: routeDark
+  })), true)]), group("О приложении", [row(I.Sparkles, "Манифест", () => navigate("manifest", {
+    from: "settings"
+  })), row(null, "Политика конфиденциальности", () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
+    title: "\u041F\u043E\u043B\u0438\u0442\u0438\u043A\u0430 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438",
+    body: PRIVACY_BODY,
+    cta: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    dark: routeDark
+  }))), row(null, "Условия использования", () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
+    title: "\u0423\u0441\u043B\u043E\u0432\u0438\u044F \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F",
+    body: PRIVACY_BODY,
+    cta: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    dark: routeDark
+  })), true)]), /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
     style: {
       textAlign: "center",
-      padding: "14px 14px 2px",
+      padding: "16px 14px 2px",
       fontSize: 13
     }
-  }, l))));
+  }, "\u0412\u0435\u0440\u0441\u0438\u044F ", APP_VERSION));
 }
 function NotificationsLive() {
   var {

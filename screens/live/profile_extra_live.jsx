@@ -142,119 +142,63 @@ function SettingsLive() {
   };
   const isDark = app?.themeOverride === "dark";
   const setDark = (on) => app?.setThemeOverride(on ? "dark" : "light");
-  const wheel = app?.wheelSpheres || (window.DEFAULT_SPHERES || []);
-  const setWheel = (arr) => app?.setWheelSpheres && app.setWheelSpheres(arr);
   // «Обучение» cards on the Habits screen — ON shows them, OFF hides (restore after «Скрыть»).
   const [learnOn, setLearnOn] = React.useState(() => !(typeof bosLearnHidden === "function" && bosLearnHidden()));
   const setLearnPersist = (on) => { setLearnOn(on); if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(!on); };
+  // Grouped iOS-style sections (v279 reno): ONE card per group, hairline-divided rows inside.
+  // Helpers are plain render-fns (not components) so toggling never remounts the list.
+  const PRIVACY_BODY = "Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта.";
+  const chip = (icon) => <span className="bos-sys-chip-bg" style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(icon, { size: 16 })}</span>;
+  const row = (icon, label, onClick, last) => (
+    <button key={label} onClick={onClick} className="tap" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", background: "transparent", border: 0, borderBottom: last ? "none" : "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+      {icon ? chip(icon) : null}
+      <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{label}</span>
+      <I.ChevronRight size={16} className="bos-sys-text-2" />
+    </button>
+  );
+  const toggleRow = (icon, label, val, set, last) => (
+    <div key={label} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderBottom: last ? "none" : "0.5px solid var(--line)" }}>
+      {chip(icon)}
+      <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{label}</span>
+      <Switch on={val} onChange={set} dark={isDark} />
+    </div>
+  );
+  const group = (title, rows) => (
+    <React.Fragment key={title}>
+      <div className="section-label" style={{ marginTop: 22 }}>{title}</div>
+      <div className="bos-sys-card" style={{ marginTop: 8, padding: 0, overflow: "hidden" }}>{rows}</div>
+    </React.Fragment>
+  );
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Настройки" onBack={() => navigate("profile")} />
 
-      <div className="section-label">Аккаунт</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {/* Real Telegram users have no password and no separately-linked Google/Apple —
-            one honest row explains how the sign-in actually works. */}
-        {[
-          { label: "Редактировать профиль", icon: I.Pencil, on: () => openSheet(<EditProfileSheet dark={routeDark}/>) },
-          { label: "Вход через Telegram", icon: I.Globe, on: () => openSheet(<InfoSheet title="Вход через Telegram" body="Ты входишь через свой аккаунт Telegram — отдельный пароль не нужен. Твои данные привязаны к нему и переносятся между устройствами." cta="Понятно" dark={routeDark}/>) },
-        ].map((r, i) => (
-          <SysBtn key={i} onClick={r.on}>
-            <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
-            <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{r.label}</span>
-            <I.ChevronRight size={16} className="bos-sys-text-2" />
-          </SysBtn>
-        ))}
-      </div>
+      {group("Профиль", [
+        row(I.Pencil, "Редактировать профиль", () => openSheet(<EditProfileSheet dark={routeDark}/>)),
+        row(I.Globe, "Вход через Telegram", () => openSheet(<InfoSheet title="Вход через Telegram" body="Ты входишь через свой аккаунт Telegram — отдельный пароль не нужен. Твои данные привязаны к нему и переносятся между устройствами." cta="Понятно" dark={routeDark}/>), true),
+      ])}
 
-      <div className="section-label" style={{ marginTop: 22 }}>Личное</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {[
-          { label: "История состояния", icon: I.Smile, on: () => openSheet(<StateHistorySheetLive app={app} dark={routeDark} />) },
-          { label: "Друзья", icon: I.Users, on: () => openSheet(<FriendsSheetLive dark={routeDark} />) },
-        ].map((r, i) => (
-          <SysBtn key={i} onClick={r.on}>
-            <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
-            <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{r.label}</span>
-            <I.ChevronRight size={16} className="bos-sys-text-2" />
-          </SysBtn>
-        ))}
-      </div>
+      {group("Предпочтения", [
+        toggleRow(I.Eye, "Тёмная тема", isDark, setDark),
+        toggleRow(I.Bell, "Push-уведомления", push, setPushPersist),
+        toggleRow(I.Book, "Карточки-подсказки", learnOn, setLearnPersist, true),
+      ])}
 
-      <div className="section-label" style={{ marginTop: 22 }}>Предпочтения</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        {[
-          // Push is real & persisted (gates Telegram push). "Звук" had no consumer and
-          // was demo-only — dropped so a real user never meets a toggle that does nothing.
-          { label: "Push-уведомления", icon: I.Bell, val: push, set: setPushPersist },
-          { label: "Тёмная тема", icon: I.Eye, val: isDark, set: setDark },
-          { label: "Карточки обучения", icon: I.Book, val: learnOn, set: setLearnPersist },
-        ].map((r, i) => (
-          <div key={i} className="bos-sys-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 14 }}>
-            <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 16 })}</span>
-            <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{r.label}</span>
-            <Switch on={r.val} onChange={r.set} dark={isDark} />
-          </div>
-        ))}
-      </div>
+      {group("Главный экран", [
+        row(I.Home, "Виджеты на главном", () => navigate("home-customize"), true),
+      ])}
 
-      <div className="section-label" style={{ marginTop: 22 }}>Главный экран</div>
-      <div style={{ marginTop: 8 }}>
-        <SysBtn onClick={() => navigate("home-customize")}>
-          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Home size={16} /></span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Виджеты на главном</span>
-          <I.ChevronRight size={16} className="bos-sys-text-2" />
-        </SysBtn>
-      </div>
+      {group("Личное", [
+        row(I.Smile, "История состояния", () => openSheet(<StateHistorySheetLive app={app} dark={routeDark} />)),
+        row(I.Users, "Друзья", () => openSheet(<FriendsSheetLive dark={routeDark} />), true),
+      ])}
 
-      <div className="section-label" style={{ marginTop: 22 }}>Колесо баланса</div>
-      <SysCard style={{ padding: 14, marginTop: 8 }}>
-        <div className="bos-sys-text-2" style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 12 }}>Выбери сферы, которые хочешь видеть в колесе на главной.</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {(window.ALL_SPHERES || []).map((s) => {
-            const sel = wheel.includes(s.id);
-            const toggle = () => {
-              if (sel) { if (wheel.length > 3) setWheel(wheel.filter(x => x !== s.id)); }
-              else setWheel([...wheel, s.id]);
-            };
-            return (
-              <button key={s.id} onClick={toggle} className="tap" style={{
-                display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 13px", borderRadius: 999,
-                fontSize: 13.5, cursor: "pointer",
-                background: sel ? "#FEDE34" : "var(--surface-3)",
-                color: sel ? "#0a0a0a" : "var(--text-2)",
-                border: 0, fontWeight: sel ? 600 : 500,
-              }}>
-                <span style={{ fontSize: 15 }}>{s.e}</span>{s.l}
-              </button>
-            );
-          })}
-        </div>
-      </SysCard>
-
-      <div className="section-label" style={{ marginTop: 22 }}>О приложении</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        <SysBtn onClick={() => navigate("guide", { from: "settings" })}>
-          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Compass size={16} /></span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>О приложении</span>
-          <I.ChevronRight size={16} className="bos-sys-text-2" />
-        </SysBtn>
-        <SysBtn onClick={() => navigate("manifest", { from: "settings" })}>
-          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Sparkles size={16} /></span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Манифест</span>
-          <I.ChevronRight size={16} className="bos-sys-text-2" />
-        </SysBtn>
-        {["Политика конфиденциальности", "Условия использования", "Версия " + APP_VERSION].map((l, i, a) => (
-          i < a.length - 1 ? (
-            <SysBtn key={i} onClick={() => openSheet(<InfoSheet title={l} body={"Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта."} cta="Готово" dark={routeDark}/>)}>
-              <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{l}</span>
-              <I.ChevronRight size={16} className="bos-sys-text-2" />
-            </SysBtn>
-          ) : (
-            <div key={i} className="bos-sys-text-3" style={{ textAlign: "center", padding: "14px 14px 2px", fontSize: 13 }}>{l}</div>
-          )
-        ))}
-      </div>
+      {group("О приложении", [
+        row(I.Sparkles, "Манифест", () => navigate("manifest", { from: "settings" })),
+        row(null, "Политика конфиденциальности", () => openSheet(<InfoSheet title="Политика конфиденциальности" body={PRIVACY_BODY} cta="Готово" dark={routeDark}/>)),
+        row(null, "Условия использования", () => openSheet(<InfoSheet title="Условия использования" body={PRIVACY_BODY} cta="Готово" dark={routeDark}/>), true),
+      ])}
+      <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "16px 14px 2px", fontSize: 13 }}>Версия {APP_VERSION}</div>
     </div>
   );
 }
