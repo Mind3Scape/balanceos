@@ -497,7 +497,12 @@ function BuddyFaceLive({ avatar, name, size }) {
     boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.07)" };
   if (/^m\d+$/.test(a)) return <div style={Object.assign({}, disc, { background: "url(./assets/people/" + a + ".png) center/cover no-repeat, linear-gradient(150deg,#eef1f6,#dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
   if (a.indexOf("emoji:") === 0) return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", fontSize: Math.round(size * 0.54), lineHeight: 1 })}>{a.slice(6)}</div>;
-  return <div style={disc} />;
+  // No custom avatar → the person's first initial on the SAME grey disc, so it's never a blank
+  // circle (David: «густой серый кружочек неприкольно — пиши первый инициал ника»). A real avatar
+  // always wins above; this is only the fallback. Muted slate ink, one letter — NOT colourful.
+  var initial = ("" + (name || "")).trim().charAt(0).toUpperCase();
+  if (!initial) return <div style={disc} />;
+  return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", color: "#5b6473", fontWeight: 600, fontSize: Math.round(size * 0.44), letterSpacing: "-0.2px", lineHeight: 1, fontFamily: "-apple-system, system-ui, sans-serif" })}>{initial}</div>;
 }
 
 function HabitInviteBannerLive({ amount = 75, habit }) {
@@ -562,7 +567,7 @@ function JoinWelcomeLive({ info, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 340, background: "var(--card, #fff)", borderRadius: 28, padding: "26px 22px 22px", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,0.28)", transform: shown ? "scale(1) translateY(0)" : "scale(0.9) translateY(12px)", opacity: shown ? 1 : 0, transition: "transform 0.34s cubic-bezier(0.22,1.2,0.36,1), opacity 0.25s ease" }}>
         {!isTeam && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <BuddyFaceLive avatar={info.inviterAvatar || "default"} size={54} />
+            <BuddyFaceLive avatar={info.inviterAvatar || "default"} name={inviter} size={54} />
             <div style={{ fontSize: 13.5, color: "var(--text-3)", fontWeight: 600 }}>{inviter ? inviter + " зовёт тебя" : "Тебя позвали вести вместе"}</div>
           </div>
         )}

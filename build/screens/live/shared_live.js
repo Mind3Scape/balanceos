@@ -1255,9 +1255,25 @@ function BuddyFaceLive({
       lineHeight: 1
     })
   }, a.slice(6));
-  return /*#__PURE__*/React.createElement("div", {
+  // No custom avatar → the person's first initial on the SAME grey disc, so it's never a blank
+  // circle (David: «густой серый кружочек неприкольно — пиши первый инициал ника»). A real avatar
+  // always wins above; this is only the fallback. Muted slate ink, one letter — NOT colourful.
+  var initial = ("" + (name || "")).trim().charAt(0).toUpperCase();
+  if (!initial) return /*#__PURE__*/React.createElement("div", {
     style: disc
   });
+  return /*#__PURE__*/React.createElement("div", {
+    style: Object.assign({}, disc, {
+      display: "grid",
+      placeItems: "center",
+      color: "#5b6473",
+      fontWeight: 600,
+      fontSize: Math.round(size * 0.44),
+      letterSpacing: "-0.2px",
+      lineHeight: 1,
+      fontFamily: "-apple-system, system-ui, sans-serif"
+    })
+  }, initial);
 }
 function HabitInviteBannerLive({
   amount = 75,
@@ -1476,6 +1492,7 @@ function JoinWelcomeLive({
     }
   }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
     avatar: info.inviterAvatar || "default",
+    name: inviter,
     size: 54
   }), /*#__PURE__*/React.createElement("div", {
     style: {
