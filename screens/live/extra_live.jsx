@@ -28,8 +28,30 @@
    buildAiContextLive, PeopleMonthCalendarLive) + framework (bos* helpers,
    StateOrb/StaticOrb, CountUp, MOOD_OPTIONS, PageHeader, the icon object I, hooks).
    The ONLY new top-level
-   declarations in this file are exactly: HabitDetailLive, GoalDetailLive, MoodLive,
-   JournalLive, AIChatLive. */
+   declarations in this file are exactly: StatTrioLive, HabitDetailLive, GoalDetailLive,
+   MoodLive, JournalLive, AIChatLive. */
+
+/* One native stat row — three figures sharing a single card under hairline dividers, with
+   thin line icons (not emoji) and SF numerals. Replaces the three "boxy" emoji cards that
+   read as vibe-coded (David: «три блока серия/лучшая/всего выглядят как вайп-кодинг»). Used by
+   BOTH habit + goal detail so the whole app keeps one rhythm. `items`: {icon, l, v, suf?, text?}. */
+function StatTrioLive({ items, card, isDark }) {
+  const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
+  const div = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  return (
+    <div style={{ ...card, borderRadius: 22, padding: "16px 0", display: "flex", alignItems: "stretch" }}>
+      {items.map((s, i) => (
+        <div key={i} style={{ flex: 1, textAlign: "center", padding: "0 6px", minWidth: 0, borderLeft: i > 0 ? ("0.5px solid " + div) : "none" }}>
+          <div style={{ display: "grid", placeItems: "center", height: 19 }}>{s.icon}</div>
+          <div style={{ fontSize: s.text ? 14 : 22, fontWeight: 700, marginTop: 7, letterSpacing: "-0.6px", color: "var(--text)" }}>
+            {s.text ? s.text : <span><Count value={s.v} />{s.suf || ""}</span>}
+          </div>
+          <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 4 }}>{s.l}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /* HABIT DETAIL — LIVE. Real per-habit statistics from the check-in log (h.log =
    {dateKey:true}). Opened by tapping a habit on Home/Habits. Numbers derive from the
@@ -96,20 +118,12 @@ function HabitDetailLive() {
         </div>
       </div>
 
-      {/* Stat cards — count up on open */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-        {[
-          { l: "Серия", v: streak, suf: "д", i: "🔥" },
-          { l: "Лучшая", v: best, suf: "д", i: "🏆" },
-          { l: "Всего", v: total, suf: "", i: "📊" },
-        ].map((s, i) => (
-          <div key={i} style={{ ...card, borderRadius: 22, padding: "14px 8px", textAlign: "center" }}>
-            <div style={{ fontSize: 17 }}>{s.i}</div>
-            <div style={{ fontSize: 21, fontWeight: 700, marginTop: 5, letterSpacing: "-0.5px" }}><Count value={s.v} />{s.suf}</div>
-            <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 3 }}>{s.l}</div>
-          </div>
-        ))}
-      </div>
+      {/* Stat row — native: thin line icons, one card, hairline dividers (StatTrioLive) */}
+      <StatTrioLive isDark={isDark} card={card} items={[
+        { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={17} color="var(--text-4)" /> },
+        { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={17} color="var(--text-4)" /> },
+        { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} color="var(--text-4)" /> },
+      ]} />
 
       {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
          so the whole app reads one way. Live = your own real days. */}
@@ -195,20 +209,12 @@ function GoalDetailLive() {
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-        {[
-          { l: "Осталось", v: remaining, i: "🎯" },
-          { l: "Сделано", v: g.current || 0, i: "✅" },
-          { l: "Срок", text: g.deadline, i: "📅" },
-        ].map((s, i) => (
-          <div key={i} style={{ ...card, borderRadius: 22, padding: "14px 6px", textAlign: "center" }}>
-            <div style={{ fontSize: 16 }}>{s.i}</div>
-            <div style={{ fontSize: s.text ? 13.5 : 21, fontWeight: 700, marginTop: 6, letterSpacing: "-0.4px" }}>{s.text ? s.text : <Count value={s.v} />}</div>
-            <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginTop: 3 }}>{s.l}</div>
-          </div>
-        ))}
-      </div>
+      {/* Stat row — shared native row (StatTrioLive), same rhythm as the habit page */}
+      <StatTrioLive isDark={isDark} card={card} items={[
+        { l: "Осталось", v: remaining, icon: <I.Target size={17} color="var(--text-4)" /> },
+        { l: "Сделано", v: g.current || 0, icon: <I.Check size={18} color="var(--text-4)" /> },
+        { l: "Срок", text: g.deadline, icon: <I.Calendar size={16} color="var(--text-4)" /> },
+      ]} />
 
       {/* Built from these habits — tap drills into the habit's own stats */}
       {linked.length > 0 && (

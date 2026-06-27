@@ -28,8 +28,66 @@
    buildAiContextLive, PeopleMonthCalendarLive) + framework (bos* helpers,
    StateOrb/StaticOrb, CountUp, MOOD_OPTIONS, PageHeader, the icon object I, hooks).
    The ONLY new top-level
-   declarations in this file are exactly: HabitDetailLive, GoalDetailLive, MoodLive,
-   JournalLive, AIChatLive. */
+   declarations in this file are exactly: StatTrioLive, HabitDetailLive, GoalDetailLive,
+   MoodLive, JournalLive, AIChatLive. */
+
+/* One native stat row — three figures sharing a single card under hairline dividers, with
+   thin line icons (not emoji) and SF numerals. Replaces the three "boxy" emoji cards that
+   read as vibe-coded (David: «три блока серия/лучшая/всего выглядят как вайп-кодинг»). Used by
+   BOTH habit + goal detail so the whole app keeps one rhythm. `items`: {icon, l, v, suf?, text?}. */
+function StatTrioLive({
+  items,
+  card,
+  isDark
+}) {
+  var Count = typeof CountUp !== "undefined" ? CountUp : ({
+    value
+  }) => value;
+  var div = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card,
+      borderRadius: 22,
+      padding: "16px 0",
+      display: "flex",
+      alignItems: "stretch"
+    }
+  }, items.map((s, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      flex: 1,
+      textAlign: "center",
+      padding: "0 6px",
+      minWidth: 0,
+      borderLeft: i > 0 ? "0.5px solid " + div : "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      placeItems: "center",
+      height: 19
+    }
+  }, s.icon), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: s.text ? 14 : 22,
+      fontWeight: 700,
+      marginTop: 7,
+      letterSpacing: "-0.6px",
+      color: "var(--text)"
+    }
+  }, s.text ? s.text : /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement(Count, {
+    value: s.v
+  }), s.suf || "")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600,
+      marginTop: 4
+    }
+  }, s.l))));
+}
 
 /* HABIT DETAIL — LIVE. Real per-habit statistics from the check-in log (h.log =
    {dateKey:true}). Opened by tapping a habit on Home/Habits. Numbers derive from the
@@ -163,58 +221,35 @@ function HabitDetailLive() {
       color: "var(--text-4)",
       marginTop: 3
     }
-  }, "\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E", h.duration ? ` · ${h.duration} мин` : "", h.done ? " · выполнено сегодня" : "")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 8
-    }
-  }, [{
-    l: "Серия",
-    v: streak,
-    suf: "д",
-    i: "🔥"
-  }, {
-    l: "Лучшая",
-    v: best,
-    suf: "д",
-    i: "🏆"
-  }, {
-    l: "Всего",
-    v: total,
-    suf: "",
-    i: "📊"
-  }].map((s, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      ...card,
-      borderRadius: 22,
-      padding: "14px 8px",
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 17
-    }
-  }, s.i), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 21,
-      fontWeight: 700,
-      marginTop: 5,
-      letterSpacing: "-0.5px"
-    }
-  }, /*#__PURE__*/React.createElement(Count, {
-    value: s.v
-  }), s.suf), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600,
-      marginTop: 3
-    }
-  }, s.l)))), /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
+  }, "\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E", h.duration ? ` · ${h.duration} мин` : "", h.done ? " · выполнено сегодня" : "")), /*#__PURE__*/React.createElement(StatTrioLive, {
+    isDark: isDark,
+    card: card,
+    items: [{
+      l: "Серия",
+      v: streak,
+      suf: "д",
+      icon: /*#__PURE__*/React.createElement(I.Flame, {
+        size: 17,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Лучшая",
+      v: best,
+      suf: "д",
+      icon: /*#__PURE__*/React.createElement(I.Trophy, {
+        size: 17,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Всего",
+      v: total,
+      suf: "",
+      icon: /*#__PURE__*/React.createElement(I.ChartBar, {
+        size: 16,
+        color: "var(--text-4)"
+      })
+    }]
+  }), /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
     people: calPeople,
     dayFrac: habitFrac,
     label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"
@@ -415,55 +450,32 @@ function GoalDetailLive() {
     }
   }, /*#__PURE__*/React.createElement(Count, {
     value: g.current || 0
-  }), " \u0438\u0437 ", g.target, " ", g.unit, " \xB7 \u0434\u043E ", g.deadline)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 8
-    }
-  }, [{
-    l: "Осталось",
-    v: remaining,
-    i: "🎯"
-  }, {
-    l: "Сделано",
-    v: g.current || 0,
-    i: "✅"
-  }, {
-    l: "Срок",
-    text: g.deadline,
-    i: "📅"
-  }].map((s, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      ...card,
-      borderRadius: 22,
-      padding: "14px 6px",
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16
-    }
-  }, s.i), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: s.text ? 13.5 : 21,
-      fontWeight: 700,
-      marginTop: 6,
-      letterSpacing: "-0.4px"
-    }
-  }, s.text ? s.text : /*#__PURE__*/React.createElement(Count, {
-    value: s.v
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600,
-      marginTop: 3
-    }
-  }, s.l)))), linked.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }), " \u0438\u0437 ", g.target, " ", g.unit, " \xB7 \u0434\u043E ", g.deadline)), /*#__PURE__*/React.createElement(StatTrioLive, {
+    isDark: isDark,
+    card: card,
+    items: [{
+      l: "Осталось",
+      v: remaining,
+      icon: /*#__PURE__*/React.createElement(I.Target, {
+        size: 17,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Сделано",
+      v: g.current || 0,
+      icon: /*#__PURE__*/React.createElement(I.Check, {
+        size: 18,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Срок",
+      text: g.deadline,
+      icon: /*#__PURE__*/React.createElement(I.Calendar, {
+        size: 16,
+        color: "var(--text-4)"
+      })
+    }]
+  }), linked.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22

@@ -13,6 +13,7 @@ const Icon = ({ children, size = 24, color = "currentColor", strokeWidth = 1.6, 
 const I = {
   Home: ({filled, ...p}) => <Icon {...p}><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2v-9z" fill={filled ? p.color || "currentColor" : "none"} /></Icon>,
   Bolt: ({filled, ...p}) => <Icon {...p}><path d="M13 3L4 14h7l-1 7 9-11h-7l1-7z" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
+  Flame: ({filled, ...p}) => <Icon {...p}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
   Group: ({filled, ...p}) => filled
     ? <Icon {...p}>
         <circle cx="16.5" cy="8" r="2.5" fill="currentColor" stroke="none"/>
