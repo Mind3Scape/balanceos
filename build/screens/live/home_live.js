@@ -315,7 +315,7 @@ function HomeLive() {
       key: "hide",
       tone: "delete",
       label: "Убрать",
-      icon: I.Trash,
+      icon: I.X,
       onAction: () => app.setWidgets({
         ...widgets,
         level: false
@@ -505,7 +505,7 @@ function HomeLive() {
       key: "hide",
       tone: "delete",
       label: "Убрать",
-      icon: I.Trash,
+      icon: I.X,
       onAction: () => app.setWidgets({
         ...widgets,
         mood: false
@@ -645,8 +645,13 @@ function HomeLive() {
       key: "del",
       tone: "delete",
       label: "Удалить",
-      icon: I.Trash,
-      onAction: () => remove(h.id)
+      icon: I.X,
+      onAction: () => bosConfirmDelete(openSheet, {
+        title: "Удалить привычку?",
+        message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
+        confirmLabel: "Удалить",
+        onConfirm: () => remove(h.id)
+      })
     }]
   }, /*#__PURE__*/React.createElement("div", {
     className: "tap",
@@ -818,8 +823,13 @@ function HomeLive() {
         key: "del",
         tone: "delete",
         label: "Удалить",
-        icon: I.Trash,
-        onAction: () => removeGoal(g.id)
+        icon: I.X,
+        onAction: () => bosConfirmDelete(openSheet, {
+          title: "Удалить цель?",
+          message: "«" + g.name + "» удалится навсегда.",
+          confirmLabel: "Удалить",
+          onConfirm: () => removeGoal(g.id)
+        })
       }]
     }, /*#__PURE__*/React.createElement("div", {
       className: "tap",
@@ -895,7 +905,7 @@ function HomeLive() {
       key: "hide",
       tone: "delete",
       label: "Убрать",
-      icon: I.Trash,
+      icon: I.X,
       onAction: () => app.setWidgets({
         ...widgets,
         invite: false

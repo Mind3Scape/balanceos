@@ -177,7 +177,7 @@ function HomeLive() {
           {/* rowBg carries the gradient (not a solid) so the peeling edge has ONE surface —
               a solid backing under the gradient showed a thin lighter seam at the rounded clip. */}
           <SwipeRow rowBg="linear-gradient(135deg,#FEDE34,#EF9F14)" dark={isDark} actions={[
-            { key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, level: false }) },
+            { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => app.setWidgets({ ...widgets, level: false }) },
           ]}>
         <button onClick={() => navigate("levels")} className="tap" style={{
           width: "100%", border: 0, padding: "15px 17px",
@@ -241,7 +241,7 @@ function HomeLive() {
       {widgets.mood !== false && (() => {
         const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
         const _loggedToday = !!(app?.dayMoods && app.dayMoods[_tk] != null);
-        const _hideAction = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, mood: false }) }];
+        const _hideAction = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => app.setWidgets({ ...widgets, mood: false }) }];
         if (!_loggedToday) {
           return (
             <div style={{ marginTop: 16, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
@@ -275,7 +275,7 @@ function HomeLive() {
             <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                 { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />) },
-                { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => remove(h.id) },
+                { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) }) },
               ]}>
                 <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
                   <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
@@ -318,7 +318,7 @@ function HomeLive() {
             <div key={g.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
               <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                 { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) },
-                { key: "del", tone: "delete", label: "Удалить", icon: I.Trash, onAction: () => removeGoal(g.id) },
+                { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) }) },
               ]}>
                 <div className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, padding: 14, color: "var(--text)", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
@@ -343,7 +343,7 @@ function HomeLive() {
       {widgets.invite !== false && (
       <div style={{ marginTop: 12, borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(20,40,80,0.28)" }}>
         <SwipeRow rowBg="linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)" dark={isDark} actions={[
-          { key: "hide", tone: "delete", label: "Убрать", icon: I.Trash, onAction: () => app.setWidgets({ ...widgets, invite: false }) },
+          { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => app.setWidgets({ ...widgets, invite: false }) },
         ]}>
       {/* No overflow:hidden here: the SwipeRow row + outer wrapper already clip to the rounded
           shape. A second clip layer on this button left a thin seam at the peeling rounded edge

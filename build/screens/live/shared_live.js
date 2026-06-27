@@ -2147,7 +2147,11 @@ function SharedBuddiesLive({
     // Each person sits on a SUBTLE chip (David: «капельку выделять людей»), distinct from the
     // grey week-squares; the OWNER can swipe a buddy (never yourself) → a SMALLER «Убрать»
     // circle with breathing room, and the slid corner matches the chip radius (16).
-    var chipBg = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)";
+    // OPAQUE chip — so it composites IDENTICALLY for everyone. A translucent chip
+    // looked lighter on the white card («Ты») but darker inside the owner's SwipeRow
+    // (its reveal-track is grey #f1f1f1) → David: «я светло-серый, другой почему-то
+    // серее; пусть все одним цветом». One solid grey fixes the mismatch.
+    var chipBg = isDark ? "#202022" : "#F4F4F6";
     var rowInner = /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
@@ -2211,7 +2215,12 @@ function SharedBuddiesLive({
         tone: "delete",
         label: "Убрать",
         icon: I.X,
-        onAction: () => removeMember(m)
+        onAction: () => bosConfirmDelete(openSheet, {
+          title: "Убрать " + (m.name || "человека") + "?",
+          message: "Вы перестанете вести эту привычку вместе — историю друг друга больше не увидите.",
+          confirmLabel: "Убрать",
+          onConfirm: () => removeMember(m)
+        })
       }]
     }, rowInner)) : /*#__PURE__*/React.createElement("div", {
       key: m.id,
@@ -2442,6 +2451,33 @@ function StatePromptLive({
    everything with a light dim behind. Rendered purely off `open` (+ a measured anchor
    position) so it opens AND closes reliably — no internal timers to get wedged; the
    entrance springs via the bosMenuPop keyframe, and tapping the dim or an item closes it. */
+// ONE delete-confirm for the whole live app (David: «везде спрашивай „это безвозвратно?", и
+// иконка удаления — единый крестик»). Wraps the core iOS ConfirmActionSheet (red ⚠️ circle +
+// destructive button + Отмена) — the same sheet teams already use for leave/delete. Call it
+// from any SwipeRow «Удалить» onAction with the item's openSheet.
+function bosConfirmDelete(openSheet, opts) {
+  opts = opts || {};
+  if (typeof openSheet !== "function") {
+    if (opts.onConfirm) try {
+      opts.onConfirm();
+    } catch (e) {}
+    return;
+  }
+  try {
+    openSheet(/*#__PURE__*/React.createElement(ConfirmActionSheet, {
+      emoji: opts.emoji || "⚠️",
+      title: opts.title || "Удалить?",
+      message: opts.message || "Это действие нельзя отменить.",
+      confirmLabel: opts.confirmLabel || "Удалить",
+      confirmIcon: I.X,
+      onConfirm: opts.onConfirm || (() => {})
+    }));
+  } catch (e) {
+    if (opts.onConfirm) try {
+      opts.onConfirm();
+    } catch (e2) {}
+  }
+}
 function CreateMenuLive({
   open,
   onClose,
