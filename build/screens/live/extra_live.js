@@ -189,6 +189,47 @@ function HabitDetailLive() {
     background: "#fff",
     boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
   };
+
+  // Tap-to-mark from the calendar's TODAY cell — the ONE completion control now (David removed the
+  // bottom button: «некуда тыкнуть, тапаешь день — бумс»). Quantitative habits (goalPerDay>1) fill
+  // tap-by-tap; the FULL count flips done + grants XP (same rule as HabitCountCheck). Haptics:
+  // light per step, success at completion.
+  var _isQuant = (h.goalPerDay || 1) > 1;
+  var _qGoal = Math.max(1, h.goalPerDay || 1);
+  var _todayK = typeof bosTodayKey === "function" ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+  var _qCount = h.done ? _qGoal : h.counts && h.counts[_todayK] || 0;
+  var _markToday = () => {
+    if (!app) return;
+    if (_isQuant) {
+      var cur = h.done ? _qGoal : h.counts && h.counts[_todayK] || 0;
+      var next = h.done ? 0 : Math.min(_qGoal, cur + 1);
+      if (next === cur) return;
+      var willDone = next >= _qGoal;
+      var counts = Object.assign({}, h.counts || {});
+      counts[_todayK] = next;
+      if (app.updateHabit) app.updateHabit(h.id, {
+        counts
+      });
+      if (willDone !== !!h.done && app.toggleHabit) app.toggleHabit(h.id);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic(willDone ? "success" : "light");
+        } catch (_) {}
+      }
+    } else {
+      if (app.toggleHabit) app.toggleHabit(h.id);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic(h.done ? "light" : "success");
+        } catch (_) {}
+      }
+    }
+  };
+  var _todayTap = {
+    pct: h.done ? 1 : _isQuant ? Math.max(0, Math.min(1, _qCount / _qGoal)) : 0,
+    hint: h.done ? null : _isQuant ? _qCount > 0 ? String(_qCount) : "+" : "+",
+    onTap: _markToday
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -269,7 +310,8 @@ function HabitDetailLive() {
   }), /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
     people: calPeople,
     dayFrac: habitFrac,
-    label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"
+    label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438",
+    todayTap: _todayTap
   }), /*#__PURE__*/React.createElement(SharedBuddiesLive, {
     habit: h,
     isDark: isDark,
@@ -304,23 +346,7 @@ function HabitDetailLive() {
       color: "var(--text-2)",
       lineHeight: 1.5
     }
-  }, streak >= 7 ? `Серия уже ${streak} дней — это работает на автопилоте. Не разрывай цепочку сегодня.` : `Ещё ${Math.max(1, 7 - streak)} дн. — и привычка станет автоматической. Сейчас самый важный момент.`)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => app?.toggleHabit && app.toggleHabit(h.id),
-    className: "bos-btn",
-    style: {
-      marginTop: 12,
-      ...(h.done ? {
-        background: "transparent",
-        color: "var(--text)",
-        border: isDark ? "1.5px solid rgba(255,255,255,0.22)" : "1.5px solid rgba(0,0,0,0.16)",
-        boxShadow: "none"
-      } : {})
-    }
-  }, h.done ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: h.color || "var(--text)"
-    }
-  }, "\u2713"), " \u0421\u0434\u0435\u043B\u0430\u043D\u043E \u0441\u0435\u0433\u043E\u0434\u043D\u044F") : "Отметить выполненной"));
+  }, streak >= 7 ? `Серия уже ${streak} дней — это работает на автопилоте. Не разрывай цепочку сегодня.` : `Ещё ${Math.max(1, 7 - streak)} дн. — и привычка станет автоматической. Сейчас самый важный момент.`)));
 }
 
 /* GOAL DETAIL — LIVE. Progress ring, the habits it's built from (cross-linked into

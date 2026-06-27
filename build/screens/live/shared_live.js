@@ -1,3 +1,4 @@
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 /* screens/live/shared_live.jsx — CLEAN live-only forks of the mode-aware bricks the
    live screens used to borrow from the demo files. Each is the LIVE path only, renamed
    with a *Live suffix, so editing live can never reach into the demo originals (which
@@ -377,7 +378,8 @@ function PeopleMonthCalendarLive({
   label = "Календарь",
   granular = false,
   selPerson: selProp,
-  onSelPerson
+  onSelPerson,
+  todayTap
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
   var isDark = app?.themeOverride === "dark";
@@ -445,6 +447,43 @@ function PeopleMonthCalendarLive({
   var selActive = future(selDay) ? null : people.filter((_, i) => (pf(i, selDay) ?? 0) >= 0.5).length;
   var selAvg = future(selDay) ? null : Math.round((allFrac(selDay) || 0) * 100);
   var selName = selPerson != null && people[selPerson] ? people[selPerson].name : null;
+
+  // Ripple — a wave that radiates from the tapped TODAY cell across the whole grid (David: «как в
+  // Ripples — волны расходятся по квадратикам от того, на который тапнул»). Web-Animations API,
+  // staggered by grid distance; auto-cleans, no React state churn.
+  var gridRef = React.useRef(null);
+  var todayIdx = startWeekday + today - 1; // flat index of «today» within `cells`
+  var triggerRipple = originIdx => {
+    var grid = gridRef.current;
+    if (!grid) return;
+    var cols = 7,
+      kids = grid.children;
+    var or = Math.floor(originIdx / cols),
+      oc = originIdx % cols;
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (!el || el.getAttribute("aria-hidden")) continue;
+      var dist = Math.hypot(Math.floor(i / cols) - or, i % cols - oc);
+      try {
+        el.animate([{
+          transform: "scale(1)"
+        }, {
+          transform: "scale(1.18)"
+        }, {
+          transform: "scale(1)"
+        }], {
+          duration: 430,
+          delay: dist * 42,
+          easing: "cubic-bezier(0.22,0.9,0.3,1.2)"
+        });
+      } catch (_) {}
+    }
+  };
+  var fireToday = () => {
+    setSelDay(today);
+    triggerRipple(todayIdx);
+    if (todayTap && todayTap.onTap) todayTap.onTap();
+  };
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
@@ -583,6 +622,7 @@ function PeopleMonthCalendarLive({
       color: "var(--text-4)"
     }
   }, w))), /*#__PURE__*/React.createElement("div", {
+    ref: gridRef,
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
@@ -599,19 +639,31 @@ function PeopleMonthCalendarLive({
         aspectRatio: "1/1"
       }
     });
-    var pct = dayPct(c.d);
-    var fut = pct == null;
     var isToday = isCurMonth && c.d === today;
+    // TODAY is the single tap-to-mark control now (David removed the bottom button — «тапаешь
+    // день, бумс»). Interactive only in YOUR view (solo / «Все» / your own chip) — never on a
+    // buddy's filter — and it always shows YOUR state, since the tap marks your check-in.
+    var itx = !!(todayTap && isToday && (solo || selPerson == null || people[selPerson] && people[selPerson].you));
+    var pct = itx ? todayTap.pct : dayPct(c.d);
+    var fut = pct == null;
     var isSel = selDay === c.d;
     var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#FEDE34";
+    var done = !fut && pct >= 1;
     var filled = !fut && pct > 0;
-    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? track : bosCellFill(hx, pct);
-    var ink = fut ? "var(--text-4)" : pct <= 0 ? "var(--text)" : bosCellInk(hx, pct, isDark);
-    var ring = !compact && isSel ? selRing : isToday ? isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)" : null;
-    var shadow = [filled ? bosCellGlass(isDark) : "", ring ? "0 0 0 1.6px " + ring : ""].filter(Boolean).join(", ") || "none";
-    return /*#__PURE__*/React.createElement("button", {
-      key: c.key,
-      onClick: compact ? undefined : () => setSelDay(c.d),
+    // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
+    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : track : bosCellFill(hx, pct);
+    var ink = fut ? "var(--text-4)" : pct <= 0 ? itx ? hx : "var(--text)" : bosCellInk(hx, pct, isDark);
+    var todayRing = itx ? hx : isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)";
+    var ring = !compact && isSel ? selRing : isToday ? todayRing : null;
+    var ringW = itx && isToday ? 2 : 1.6;
+    var shadow = [filled ? bosCellGlass(isDark) : "", ring ? "0 0 0 " + ringW + "px " + ring : ""].filter(Boolean).join(", ") || "none";
+    var onClick = itx ? fireToday : compact ? undefined : () => setSelDay(c.d);
+    return /*#__PURE__*/React.createElement("button", _extends({
+      key: c.key
+    }, itx ? {
+      "data-no-haptic": ""
+    } : {}, {
+      onClick: onClick,
       className: "tap",
       style: {
         aspectRatio: "1/1",
@@ -622,12 +674,25 @@ function PeopleMonthCalendarLive({
         placeItems: "center",
         fontSize: 11,
         fontWeight: isToday ? 700 : 500,
-        cursor: compact ? "default" : "pointer",
+        cursor: itx || !compact ? "pointer" : "default",
         background: bg,
         boxShadow: shadow,
-        color: ink
+        color: ink,
+        position: "relative"
       }
-    }, !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
+    }), itx ? done ? /*#__PURE__*/React.createElement(I.Check, {
+      size: 15,
+      strokeWidth: 3,
+      color: ink
+    }) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: todayTap.hint && todayTap.hint.length > 1 ? 12 : 15,
+        fontWeight: 800,
+        lineHeight: 1,
+        color: ink,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, todayTap.hint) : !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
   })), !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,

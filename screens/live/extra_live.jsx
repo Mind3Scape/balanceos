@@ -109,6 +109,37 @@ function HabitDetailLive() {
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
     : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
 
+  // Tap-to-mark from the calendar's TODAY cell — the ONE completion control now (David removed the
+  // bottom button: «некуда тыкнуть, тапаешь день — бумс»). Quantitative habits (goalPerDay>1) fill
+  // tap-by-tap; the FULL count flips done + grants XP (same rule as HabitCountCheck). Haptics:
+  // light per step, success at completion.
+  const _isQuant = (h.goalPerDay || 1) > 1;
+  const _qGoal = Math.max(1, h.goalPerDay || 1);
+  const _todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+  const _qCount = h.done ? _qGoal : ((h.counts && h.counts[_todayK]) || 0);
+  const _markToday = () => {
+    if (!app) return;
+    if (_isQuant) {
+      const cur = h.done ? _qGoal : ((h.counts && h.counts[_todayK]) || 0);
+      const next = h.done ? 0 : Math.min(_qGoal, cur + 1);
+      if (next === cur) return;
+      const willDone = next >= _qGoal;
+      const counts = Object.assign({}, h.counts || {});
+      counts[_todayK] = next;
+      if (app.updateHabit) app.updateHabit(h.id, { counts });
+      if (willDone !== !!h.done && app.toggleHabit) app.toggleHabit(h.id);
+      if (window.tgHaptic) { try { window.tgHaptic(willDone ? "success" : "light"); } catch (_) {} }
+    } else {
+      if (app.toggleHabit) app.toggleHabit(h.id);
+      if (window.tgHaptic) { try { window.tgHaptic(h.done ? "light" : "success"); } catch (_) {} }
+    }
+  };
+  const _todayTap = {
+    pct: h.done ? 1 : (_isQuant ? Math.max(0, Math.min(1, _qCount / _qGoal)) : 0),
+    hint: h.done ? null : (_isQuant ? (_qCount > 0 ? String(_qCount) : "+") : "+"),
+    onTap: _markToday,
+  };
+
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
@@ -135,7 +166,7 @@ function HabitDetailLive() {
 
       {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
          so the whole app reads one way. Live = your own real days. */}
-      <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" />
+      <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" todayTap={_todayTap} />
 
       {/* «Вместе» block — ALWAYS shown: with buddies it lists them; alone it's the TAPPABLE invite
           (the only invite affordance now — the separate bottom button is gone). Label lives inside. */}
@@ -154,12 +185,8 @@ function HabitDetailLive() {
         </div>
       </div>
 
-      {/* ONE action button. Done state is a clear OUTLINED «✓ Сделано сегодня» (David: серая
-          сливалась) — legible for any habit colour; the check carries the habit's colour. */}
-      <button onClick={() => app?.toggleHabit && app.toggleHabit(h.id)} className="bos-btn" style={{ marginTop: 12,
-        ...(h.done ? { background: "transparent", color: "var(--text)", border: isDark ? "1.5px solid rgba(255,255,255,0.22)" : "1.5px solid rgba(0,0,0,0.16)", boxShadow: "none" } : {}) }}>
-        {h.done ? <span><span style={{ color: h.color || "var(--text)" }}>✓</span> Сделано сегодня</span> : "Отметить выполненной"}
-      </button>
+      {/* No bottom action button — completion now happens by tapping TODAY in the calendar above
+          (David: «убрать нижнюю кнопку, тапаешь день недели — и она отмечается»). */}
     </div>
   );
 }

@@ -192,7 +192,7 @@ function bosCellInk(hx, p, isDark) {
 }
 
 /* PeopleMonthCalendar → live-only: always the REAL calendar (demo's frozen showcase date gone). */
-function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson }) {
+function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
@@ -227,6 +227,26 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const selActive = future(selDay) ? null : people.filter((_, i) => (pf(i, selDay) ?? 0) >= 0.5).length;
   const selAvg = future(selDay) ? null : Math.round((allFrac(selDay) || 0) * 100);
   const selName = (selPerson != null && people[selPerson]) ? people[selPerson].name : null;
+
+  // Ripple — a wave that radiates from the tapped TODAY cell across the whole grid (David: «как в
+  // Ripples — волны расходятся по квадратикам от того, на который тапнул»). Web-Animations API,
+  // staggered by grid distance; auto-cleans, no React state churn.
+  const gridRef = React.useRef(null);
+  const todayIdx = startWeekday + today - 1; // flat index of «today» within `cells`
+  const triggerRipple = (originIdx) => {
+    const grid = gridRef.current; if (!grid) return;
+    const cols = 7, kids = grid.children;
+    const or = Math.floor(originIdx / cols), oc = originIdx % cols;
+    for (let i = 0; i < kids.length; i++) {
+      const el = kids[i]; if (!el || el.getAttribute("aria-hidden")) continue;
+      const dist = Math.hypot(Math.floor(i / cols) - or, (i % cols) - oc);
+      try {
+        el.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }],
+          { duration: 430, delay: dist * 42, easing: "cubic-bezier(0.22,0.9,0.3,1.2)" });
+      } catch (_) {}
+    }
+  };
+  const fireToday = () => { setSelDay(today); triggerRipple(todayIdx); if (todayTap && todayTap.onTap) todayTap.onTap(); };
 
   return (
     <>
@@ -270,25 +290,39 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         )}
         {/* Day cells — SQUIRCLES (time = rounded squares; people = circles, the chips above), filled as
             a heat-cell by completion. «Красиво» hides numbers/labels/nav for a glanceable grid. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 300, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
+        <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 300, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
           {cells.map((c) => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }} />;
-            const pct = dayPct(c.d);
-            const fut = pct == null;
             const isToday = isCurMonth && c.d === today;
+            // TODAY is the single tap-to-mark control now (David removed the bottom button — «тапаешь
+            // день, бумс»). Interactive only in YOUR view (solo / «Все» / your own chip) — never on a
+            // buddy's filter — and it always shows YOUR state, since the tap marks your check-in.
+            const itx = !!(todayTap && isToday && (solo || selPerson == null || (people[selPerson] && people[selPerson].you)));
+            const pct = itx ? todayTap.pct : dayPct(c.d);
+            const fut = pct == null;
             const isSel = selDay === c.d;
             const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#FEDE34";
+            const done = !fut && pct >= 1;
             const filled = !fut && pct > 0;
-            const bg = fut ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)") : (pct <= 0 ? track : bosCellFill(hx, pct));
-            const ink = fut ? "var(--text-4)" : (pct <= 0 ? "var(--text)" : bosCellInk(hx, pct, isDark));
-            const ring = (!compact && isSel) ? selRing : (isToday ? (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)") : null);
-            const shadow = [filled ? bosCellGlass(isDark) : "", ring ? ("0 0 0 1.6px " + ring) : ""].filter(Boolean).join(", ") || "none";
+            // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
+            const bg = fut ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)")
+              : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : track) : bosCellFill(hx, pct));
+            const ink = fut ? "var(--text-4)" : (pct <= 0 ? (itx ? hx : "var(--text)") : bosCellInk(hx, pct, isDark));
+            const todayRing = itx ? hx : (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)");
+            const ring = (!compact && isSel) ? selRing : (isToday ? todayRing : null);
+            const ringW = (itx && isToday) ? 2 : 1.6;
+            const shadow = [filled ? bosCellGlass(isDark) : "", ring ? ("0 0 0 " + ringW + "px " + ring) : ""].filter(Boolean).join(", ") || "none";
+            const onClick = itx ? fireToday : (compact ? undefined : () => setSelDay(c.d));
             return (
-              <button key={c.key} onClick={compact ? undefined : () => setSelDay(c.d)} className="tap" style={{
+              <button key={c.key} {...(itx ? { "data-no-haptic": "" } : {})} onClick={onClick} className="tap" style={{
                 aspectRatio: "1/1", border: 0, borderRadius: "30%", padding: 0, display: "grid", placeItems: "center",
-                fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: compact ? "default" : "pointer",
-                background: bg, boxShadow: shadow, color: ink }}>
-                {!compact && !fut && <span>{c.d}</span>}
+                fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: (itx || !compact) ? "pointer" : "default",
+                background: bg, boxShadow: shadow, color: ink, position: "relative" }}>
+                {itx
+                  ? (done
+                      ? <I.Check size={15} strokeWidth={3} color={ink} />
+                      : <span style={{ fontSize: (todayTap.hint && todayTap.hint.length > 1) ? 12 : 15, fontWeight: 800, lineHeight: 1, color: ink, fontVariantNumeric: "tabular-nums" }}>{todayTap.hint}</span>)
+                  : (!compact && !fut && <span>{c.d}</span>)}
               </button>
             );
           })}
