@@ -2726,7 +2726,19 @@ function HomeHeroSwipeLive({
       inset: 0,
       transform: "rotate(-90deg)"
     }
-  }, /*#__PURE__*/React.createElement("circle", {
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "bosGoldRingS",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#FEDE34"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#EF9F14"
+  }))), /*#__PURE__*/React.createElement("circle", {
     cx: "27",
     cy: "27",
     r: "23",
@@ -2737,7 +2749,7 @@ function HomeHeroSwipeLive({
     cx: "27",
     cy: "27",
     r: "23",
-    stroke: "#FEDE34",
+    stroke: "url(#bosGoldRingS)",
     strokeWidth: "3",
     fill: "none",
     strokeLinecap: "round",
@@ -2862,7 +2874,19 @@ function HomeHeroSwipeLive({
       inset: 0,
       transform: "rotate(-90deg)"
     }
-  }, /*#__PURE__*/React.createElement("circle", {
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "bosGoldRingL",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#FEDE34"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#EF9F14"
+  }))), /*#__PURE__*/React.createElement("circle", {
     cx: "36",
     cy: "36",
     r: "32",
@@ -2873,7 +2897,7 @@ function HomeHeroSwipeLive({
     cx: "36",
     cy: "36",
     r: "32",
-    stroke: "#FEDE34",
+    stroke: "url(#bosGoldRingL)",
     strokeWidth: "3.5",
     fill: "none",
     strokeLinecap: "round",
@@ -3682,9 +3706,9 @@ function HabitCountCheck({
     apply(isDone ? 0 : count + 1);
   };
   var SIZE = 30,
-    R = 11,
+    R = 13,
     CX = SIZE / 2,
-    C = 2 * Math.PI * R; // == standard .check-btn (30px) so the DONE tick matches every other card (David: «один размер»)
+    C = 2 * Math.PI * R; // R=13 → ring ~29px outer, MATCHING the 30px .check-btn circle (David: «счётчик не совпадает по размеру с галочкой»)
   var track = "rgba(10,10,10,0.10)";
   var body;
   if (isDone) {
@@ -3742,8 +3766,9 @@ function HabitCountCheck({
       }
     }, segs), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12,
+        fontSize: 12.5,
         fontWeight: 700,
+        lineHeight: 1,
         color: count > 0 ? accent : "var(--text-4)",
         fontVariantNumeric: "tabular-nums"
       }
@@ -3785,8 +3810,9 @@ function HabitCountCheck({
       transform: "rotate(-90 " + CX + " " + CX + ")"
     })), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12,
+        fontSize: 12.5,
         fontWeight: 700,
+        lineHeight: 1,
         color: count > 0 ? accent : "var(--text-4)",
         fontVariantNumeric: "tabular-nums"
       }

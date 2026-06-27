@@ -1103,8 +1103,9 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 54, height: 54, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
           <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+            <defs><linearGradient id="bosGoldRingS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34"/><stop offset="1" stopColor="#EF9F14"/></linearGradient></defs>
             <circle cx="27" cy="27" r="23" stroke={ringBg} strokeWidth="3" fill="none"/>
-            <circle cx="27" cy="27" r="23" stroke="#FEDE34" strokeWidth="3" fill="none" strokeLinecap="round"
+            <circle cx="27" cy="27" r="23" stroke="url(#bosGoldRingS)" strokeWidth="3" fill="none" strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - ringShown)}
               style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
           </svg>
@@ -1140,8 +1141,9 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 72, height: 72, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
           <svg width="72" height="72" viewBox="0 0 72 72" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+            <defs><linearGradient id="bosGoldRingL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34"/><stop offset="1" stopColor="#EF9F14"/></linearGradient></defs>
             <circle cx="36" cy="36" r="32" stroke={ringBg} strokeWidth="3.5" fill="none"/>
-            <circle cx="36" cy="36" r="32" stroke="#FEDE34" strokeWidth="3.5" fill="none"
+            <circle cx="36" cy="36" r="32" stroke="url(#bosGoldRingL)" strokeWidth="3.5" fill="none"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 32}
               strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
@@ -1468,7 +1470,7 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   const endLP = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } };
   const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } apply(isDone ? 0 : count + 1); };
 
-  const SIZE = 30, R = 11, CX = SIZE / 2, C = 2 * Math.PI * R;   // == standard .check-btn (30px) so the DONE tick matches every other card (David: «один размер»)
+  const SIZE = 30, R = 13, CX = SIZE / 2, C = 2 * Math.PI * R;   // R=13 → ring ~29px outer, MATCHING the 30px .check-btn circle (David: «счётчик не совпадает по размеру с галочкой»)
   const track = "rgba(10,10,10,0.10)";
   let body;
   if (isDone) {
@@ -1489,7 +1491,7 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
     body = (
       <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
         <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0 }}>{segs}</svg>
-        <span style={{ fontSize: 12, fontWeight: 700, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
       </span>
     );
   } else {
@@ -1499,7 +1501,7 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
           <circle cx={CX} cy={CX} r={R} fill="none" stroke={track} strokeWidth="3" />
           <circle cx={CX} cy={CX} r={R} fill="none" stroke={accent} strokeWidth="3" strokeLinecap="round" strokeDasharray={C.toFixed(2)} strokeDashoffset={(C * (1 - count / goal)).toFixed(2)} transform={"rotate(-90 " + CX + " " + CX + ")"} />
         </svg>
-        <span style={{ fontSize: 12, fontWeight: 700, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
       </span>
     );
   }
