@@ -138,26 +138,10 @@ function ProfileLive() {
     dark: app?.themeOverride === "dark"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      marginTop: 2,
-      background: "#0a0a0a",
-      color: "#FEDE34",
-      fontSize: 12,
-      fontWeight: 700,
-      letterSpacing: 0.3,
-      padding: "4px 12px",
-      borderRadius: 999
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 11
-  }), " \u0423\u0440\u043E\u0432\u0435\u043D\u044C ", lvlNum), /*#__PURE__*/React.createElement("div", {
-    style: {
       fontFamily: "var(--bos-title-font)",
       fontWeight: 700,
       fontSize: 28,
-      marginTop: 14,
+      marginTop: 6,
       color: "var(--text)"
     }
   }, app?.userName || "Ты"), /*#__PURE__*/React.createElement("div", {
