@@ -486,16 +486,14 @@ function useBuddyMembersLive(code) {
   return members;
 }
 
-/* A buddy/member face that's ALWAYS visible: a custom emoji/memoji avatar via BosAvatar, else
-   a coloured initial disc (David: базовый аватар был белый на белом → его не было видно). */
+/* A buddy/member face = the person's REAL avatar, pulled from the ONE source (BosAvatar) so it's
+   IDENTICAL everywhere (David: «аватарки должны совпадать с настоящими, из единого места»): their
+   custom emoji/memoji, or the standard default FACE (sphere.png) — never a stand-in initial.
+   (`name` kept for call-site compatibility; the real avatar already carries the identity.) */
 function BuddyFaceLive({ avatar, name, size }) {
   size = size || 24;
-  var a = "" + (avatar || "");
-  var isCustom = a.indexOf("emoji:") === 0 || /^m\d+$/.test(a);
-  if (isCustom && typeof BosAvatar !== "undefined") return <BosAvatar avatar={avatar} size={size} />;
-  var color = (typeof bosUserColor === "function") ? bosUserColor(name || a || "?") : "#9AA3AE";
-  var initial = ((name || "?").trim().charAt(0) || "?").toUpperCase();
-  return <div style={{ width: size, height: size, borderRadius: "50%", background: color, color: "#fff", display: "grid", placeItems: "center", fontSize: Math.round(size * 0.46), fontWeight: 700, flexShrink: 0, lineHeight: 1 }}>{initial}</div>;
+  if (typeof BosAvatar !== "undefined") return <BosAvatar avatar={avatar} size={size} />;
+  return <div style={{ width: size, height: size, borderRadius: "50%", background: "url(./assets/sphere.png) center/cover no-repeat", flexShrink: 0 }} />;
 }
 
 function HabitInviteBannerLive({ amount = 75, habit }) {
@@ -584,10 +582,9 @@ function JoinWelcomeLive({ info, onClose }) {
 function HabitBuddyAvatarsLive({ habit, size = 22, max = 4 }) {
   const code = habit && habit.shareCode;
   const members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
-  if (!code) {
-    return (habit && habit.friends && habit.friends.length > 0 && typeof AvatarStack !== "undefined")
-      ? <AvatarStack people={habit.friends} size={size} max={max} label={false} /> : null;
-  }
+  // ONLY real shared-habit buddies (real avatars). No legacy h.friends letter-avatars — those
+  // were fake seed personas (David: «разноцветные кружочки с инициалами — не хочу, нужны настоящие»).
+  if (!code) return null;
   const others = (members || []).filter((m) => !m.me);
   if (!others.length) return null;
   const shown = others.slice(0, max), extra = others.length - shown.length;
@@ -767,78 +764,41 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
 // moods (same StateOrb + tintFromMood as the onboarding dial), the face + word change with a
 // haptic notch per mood; «Отметить» logs the day. Logs the real MOOD_OPTIONS index, so the
 // week-trail / calendar / MoodWidget keep reading it unchanged.
+// Compact, TAP-based state check-in (David: свайп-орб конфликтовал со свайпом карточки и был
+// «слишком объёмный», кнопка-гигант). One tidy row of mood faces — TAP yours and it logs
+// instantly (+5 XP, success-haptic). No horizontal scrub → lives happily inside the card's
+// SwipeRow (swipe still reveals «Убрать», a tap just logs). Logs the real MOOD_OPTIONS index,
+// so the week-trail / calendar / MoodWidget keep reading it unchanged.
 function StatePromptLive({ app, isDark }) {
   const moods = (typeof MOOD_OPTIONS !== "undefined") ? MOOD_OPTIONS : [];
-  const N = Math.max(1, moods.length);
-  const [idx, setIdx] = React.useState(Math.min(1, N - 1)); // start on «Радость»
-  const trackRef = React.useRef(null);
-  const dragOn = React.useRef(false);
-  const lastIdx = React.useRef(Math.min(1, N - 1));
-
-  const setFromX = (clientX) => {
-    const el = trackRef.current; if (!el) return;
-    const r = el.getBoundingClientRect();
-    let f = (clientX - r.left) / Math.max(1, r.width);
-    f = f < 0 ? 0 : (f > 0.9999 ? 0.9999 : f);
-    const i = Math.floor(f * N);
-    if (i !== lastIdx.current) {
-      lastIdx.current = i; setIdx(i);
-      if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-    }
-  };
-  const onDown = (e) => { dragOn.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setFromX(e.clientX); };
-  const onMove = (e) => { if (dragOn.current) setFromX(e.clientX); };
-  const onUp = () => { dragOn.current = false; };
-  const jump = (i) => { lastIdx.current = i; setIdx(i); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
-
-  const log = () => {
+  const pick = (i) => {
     if (!app) return;
     const dayKey = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
-    app.setMood && app.setMood(moods[idx]);
-    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [dayKey]: idx });
+    app.setMood && app.setMood(moods[i]);
+    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [dayKey]: i });
     if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
   };
-
-  const m = moods[idx] || { i: "🙂", t: "", c: "#5BC57E" };
-  const tint = (typeof tintFromMood === "function") ? tintFromMood(m.c) : null;
-  // readable button ink: dark on the light moods (e.g. yellow «Энергия»), white on the rest.
-  const ink = (function (hex) { try { var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); return (0.299 * r + 0.587 * g + 0.114 * b) > 168 ? "#0a0a0a" : "#fff"; } catch (e) { return "#fff"; } })(m.c);
   const bg = isDark ? "linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)" : "#ffffff";
   const titleColor = isDark ? "#fff" : "var(--text)";
-  const labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)";
-  const subMuted = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
-  const dotTrack = isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.13)";
+  const subMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)";
 
   return (
-    <div style={{ width: "100%", background: bg, padding: 18, position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ fontSize: 11, color: labelMuted, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Отметь состояние</div>
-        <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#9fd5a8" : "#3f7a46", background: "rgba(90,168,90,0.16)", borderRadius: 999, padding: "2px 8px" }}>+5 XP</span>
+    <div style={{ width: "100%", background: bg, padding: "15px 16px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 18, fontWeight: 600, letterSpacing: "-0.4px", color: titleColor }}>Как ты сейчас?</div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#9fd5a8" : "#3f7a46", background: "rgba(90,168,90,0.16)", borderRadius: 999, padding: "2px 8px", flexShrink: 0 }}>+5 XP</span>
       </div>
-      <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 23, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.5px", marginTop: 5, color: titleColor }}>Как ты сейчас?</div>
-      <div style={{ fontSize: 12.5, color: subMuted, marginTop: 4 }}>Проведи по орбу — он подстроится под тебя.</div>
-
-      <div ref={trackRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onPointerCancel={onUp}
-        style={{ marginTop: 12, display: "flex", flexDirection: "column", alignItems: "center", cursor: "grab", touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none" }}>
-        <div style={{ position: "relative", width: 92, height: 92 }}>
-          {(typeof StateOrb !== "undefined")
-            ? <StateOrb size={92} tint={tint} intensity={1.18} />
-            : <div style={{ width: 92, height: 92, borderRadius: "50%", background: m.c }} />}
-          <span aria-hidden style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 38, lineHeight: 1, filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))", pointerEvents: "none" }}>{m.i}</span>
-        </div>
-        <div style={{ marginTop: 10, fontSize: 16, fontWeight: 700, letterSpacing: "-0.2px", color: titleColor }}>{m.t}</div>
-        <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
-          {moods.map((mm, i) => (
-            <button key={i} className="tap" data-no-haptic aria-label={mm.t} onClick={() => jump(i)}
-              style={{ width: i === idx ? 18 : 7, height: 7, borderRadius: 999, border: 0, padding: 0, cursor: "pointer", background: i === idx ? m.c : dotTrack, transition: "width 0.2s, background 0.2s" }} />
-          ))}
-        </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 6, marginTop: 12 }}>
+        {moods.map((mm, i) => (
+          <button key={i} className="tap" aria-label={mm.t} onClick={() => pick(i)}
+            style={{ width: 46, height: 46, flexShrink: 0, border: 0, borderRadius: "50%", padding: 0, cursor: "pointer",
+              background: "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55), rgba(255,255,255,0) 60%), " + (mm.c || "#5BC57E"),
+              boxShadow: "0 3px 8px " + (mm.c || "#5BC57E") + "44", display: "grid", placeItems: "center", fontSize: 23, lineHeight: 1 }}>
+            <span style={{ filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.2))" }}>{mm.i}</span>
+          </button>
+        ))}
       </div>
-
-      <button onClick={log} className="tap" data-no-haptic
-        style={{ width: "100%", marginTop: 16, border: 0, borderRadius: 999, padding: 14, background: m.c, color: ink, fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px", boxShadow: "0 6px 18px " + m.c + "55", transition: "background 0.2s, box-shadow 0.2s, color 0.2s" }}>
-        Отметить
-      </button>
+      <div style={{ fontSize: 11.5, color: subMuted, marginTop: 10, textAlign: "center" }}>Нажми на своё настроение</div>
     </div>
   );
 }

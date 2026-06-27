@@ -683,7 +683,7 @@ function HomeLive() {
       color: "var(--text)",
       letterSpacing: "-0.2px"
     }
-  }, h.name), (h.shareCode || h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+  }, h.name), (h.shareCode || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",

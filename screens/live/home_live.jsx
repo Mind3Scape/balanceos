@@ -281,7 +281,7 @@ function HomeLive() {
                   <span style={{ width: 40, height: 40, borderRadius: 14, background: h.color ? h.color + "26" : iconBg, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
-                    {(h.shareCode || h.friends?.length > 0 || h.duration > 0) && (
+                    {(h.shareCode || h.duration > 0) && (
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
                         {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
                         <HabitBuddyAvatarsLive habit={h} size={16} max={3} />
