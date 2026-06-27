@@ -1181,11 +1181,21 @@ function AppProvider({ children }) {
               window.bosCloud.loadHabits().then(function (rows) {
                 if (rows === null) return;
                 if (rows.length) { setHabits(rows.map(function (h) { return bosRollHabit(Object.assign({ id: _nid() }, h)); })); return; }
-                if (_seedHabits.length) {
-                  var wi = _seedHabits.map(function (h) { return Object.assign({ id: _nid() }, h, { cloudId: h.cloudId || _uuid() }); });
-                  setHabits(wi.map(bosRollHabit));
-                  wi.forEach(function (h) { try { window.bosCloud.upsertHabit(h); var lg = h.log || {}; Object.keys(lg).forEach(function (day) { if (lg[day]) window.bosCloud.toggleHabitLog(h.cloudId, day, true); }); } catch (e) {} });
-                }
+                if (!_seedHabits.length) return;
+                // CONFIRM truly-empty before migrating local habits → rows. A transient false-empty
+                // read (auth/RLS race just after sign-in) once re-ran this migration on an account that
+                // ALREADY had rows → DUPLICATE habits (David spotted dupes in a test account). Re-read
+                // after a beat; seed ONLY if STILL empty (and the re-read didn't error). A real account
+                // returns its rows here and we just hydrate them — no second copy.
+                return new Promise(function (res) { setTimeout(res, 800); })
+                  .then(function () { return window.bosCloud.loadHabits(); })
+                  .then(function (rows2) {
+                    if (rows2 === null) return;
+                    if (rows2.length) { setHabits(rows2.map(function (h) { return bosRollHabit(Object.assign({ id: _nid() }, h)); })); return; }
+                    var wi = _seedHabits.map(function (h) { return Object.assign({ id: _nid() }, h, { cloudId: h.cloudId || _uuid() }); });
+                    setHabits(wi.map(bosRollHabit));
+                    wi.forEach(function (h) { try { window.bosCloud.upsertHabit(h); var lg = h.log || {}; Object.keys(lg).forEach(function (day) { if (lg[day]) window.bosCloud.toggleHabitLog(h.cloudId, day, true); }); } catch (e) {} });
+                  });
               }).then(function () {
                 // hb_<code> link → join the SAME shared habit (a buddy, NOT a team): append it
                 // to your habits (so it appears) AFTER hydration so the load can't clobber it;
@@ -1207,11 +1217,18 @@ function AppProvider({ children }) {
               window.bosCloud.loadGoals().then(function (rows) {
                 if (rows === null) return;
                 if (rows.length) { setGoals(rows.map(function (g) { return Object.assign({ id: _nid() }, g); })); return; }
-                if (_seedGoals.length) {
-                  var wg = _seedGoals.map(function (g) { return Object.assign({ id: _nid() }, g, { cloudId: g.cloudId || _uuid() }); });
-                  setGoals(wg);
-                  wg.forEach(function (g) { try { window.bosCloud.upsertGoal(g); } catch (e) {} });
-                }
+                if (!_seedGoals.length) return;
+                // Same dup-guard as habits: confirm truly-empty (re-read after a beat) before migrating
+                // local goals → rows, so a transient false-empty read can't create a second copy.
+                return new Promise(function (res) { setTimeout(res, 800); })
+                  .then(function () { return window.bosCloud.loadGoals(); })
+                  .then(function (rows2) {
+                    if (rows2 === null) return;
+                    if (rows2.length) { setGoals(rows2.map(function (g) { return Object.assign({ id: _nid() }, g); })); return; }
+                    var wg = _seedGoals.map(function (g) { return Object.assign({ id: _nid() }, g, { cloudId: g.cloudId || _uuid() }); });
+                    setGoals(wg);
+                    wg.forEach(function (g) { try { window.bosCloud.upsertGoal(g); } catch (e) {} });
+                  });
               });
             } catch (e) {}
             // ?team= invite link → join that team instantly («по ссылке — сразу»),
