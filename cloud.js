@@ -400,13 +400,25 @@
       if (mem.error) return null;
       var logs = await c.from("shared_habit_logs").select("user_id,day").eq("code", code);
       var rows = (logs && logs.data) || [];
+      // Owner — so the client knows whether I may REMOVE members (only the owner can; swipe-remove
+      // is shown only to them so it never offers an action RLS would refuse).
+      var sh = await c.from("shared_habits").select("owner_id").eq("code", code).maybeSingle();
+      var ownerId = (sh && sh.data && sh.data.owner_id) || null;
       var members = (mem.data || []).map(function (m) {
         var days = {}; rows.forEach(function (r) { if (r.user_id === m.user_id) days["" + r.day] = true; });
-        return { id: m.user_id, me: m.user_id === me, name: (m.profiles && m.profiles.username) || "Друг", avatar: (m.profiles && m.profiles.avatar) || "default", days: days };
+        return { id: m.user_id, me: m.user_id === me, isOwner: ownerId != null && m.user_id === ownerId, name: (m.profiles && m.profiles.username) || "Друг", avatar: (m.profiles && m.profiles.avatar) || "default", days: days };
       });
       members.sort(function (a, b) { return (b.me ? 1 : 0) - (a.me ? 1 : 0); }); // self first
-      return { members: members };
+      return { members: members, ownerId: ownerId };
     } catch (e) { return null; }
+  }
+  // Owner removes a member from a shared habit (David: «свайп влево на человеке → убрать из
+  // привычки»). RLS lets the OWNER delete anyone (or a member delete themselves). `.select()` so we
+  // KNOW a row was actually deleted — an RLS-blocked delete matches 0 rows and returns NO error, so
+  // length>0 is the real success signal (before patch_remove_shared_member.sql runs → 0 → false).
+  async function removeSharedHabitMember(code, userId) {
+    var c = client(); var me = await uid(); if (!c || !me || !code || !userId) return false;
+    try { var r = await c.from("shared_habit_members").delete().eq("code", code).eq("user_id", userId).select(); return !r.error && !!(r.data && r.data.length); } catch (e) { return false; }
   }
 
   // Team-habit per-person day-map (WHO did WHICH day). The data is already per-user in
@@ -536,7 +548,7 @@
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
-    createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, sharedHabitProgress: sharedHabitProgress,
+    createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,

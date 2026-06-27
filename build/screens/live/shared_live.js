@@ -2059,7 +2059,51 @@ function SharedBuddiesLive({
     background: "#fff",
     boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
   };
-  var hasBuddies = members.length >= 2;
+  // Owner-only swipe-remove (David: «свайп влево → убрать человека из привычки»). Optimistic: hide
+  // at once + prune the shared cache; if the server (RLS) refuses — you're not the owner, or the SQL
+  // patch isn't applied yet — removeSharedHabitMember returns false (0 rows) and we restore the row.
+  var iAmOwner = members.some(function (m) {
+    return m.me && m.isOwner;
+  });
+  var [removed, setRemoved] = React.useState({});
+  var removeMember = m => {
+    if (!code || !m || m.me || removed[m.id]) return;
+    setRemoved(function (r) {
+      var n = Object.assign({}, r);
+      n[m.id] = true;
+      return n;
+    });
+    try {
+      if (_bosBuddyCache[code]) _bosBuddyCache[code] = _bosBuddyCache[code].filter(function (x) {
+        return x.id !== m.id;
+      });
+    } catch (e) {}
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("warning");
+      } catch (e) {}
+    }
+    var cl = window.bosCloud;
+    if (cl && cl.removeSharedHabitMember) {
+      cl.removeSharedHabitMember(code, m.id).then(function (ok) {
+        if (!ok) setRemoved(function (r) {
+          var n = Object.assign({}, r);
+          delete n[m.id];
+          return n;
+        });
+      }).catch(function () {
+        setRemoved(function (r) {
+          var n = Object.assign({}, r);
+          delete n[m.id];
+          return n;
+        });
+      });
+    }
+  };
+  var visible = members.filter(function (m) {
+    return !removed[m.id];
+  });
+  var hasBuddies = visible.length >= 2;
   var invite = () => {
     try {
       openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
@@ -2083,16 +2127,15 @@ function SharedBuddiesLive({
       color: "var(--text-2)",
       marginBottom: 12
     }
-  }, "\u0412\u043C\u0435\u0441\u0442\u0435 \xB7 ", members.length), /*#__PURE__*/React.createElement("div", {
+  }, "\u0412\u043C\u0435\u0441\u0442\u0435 \xB7 ", visible.length), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 14
     }
-  }, members.map(m => {
+  }, visible.map(m => {
     var doneToday = !!m.days[today];
-    return /*#__PURE__*/React.createElement("div", {
-      key: m.id,
+    var rowInner = /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
@@ -2138,6 +2181,27 @@ function SharedBuddiesLive({
         boxShadow: m.days[k] ? bosCellGlass(isDark) : "none"
       }
     })))));
+    // Owner can swipe a buddy away (never yourself); everyone else sees a plain row.
+    return iAmOwner && !m.me ? /*#__PURE__*/React.createElement("div", {
+      key: m.id,
+      style: {
+        borderRadius: 12,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement(SwipeRow, {
+      rowBg: isDark ? "#1c1c1f" : "#fff",
+      dark: isDark,
+      actionWidth: 56,
+      actions: [{
+        key: "rm",
+        tone: "delete",
+        label: "Убрать",
+        icon: I.X,
+        onAction: () => removeMember(m)
+      }]
+    }, rowInner)) : /*#__PURE__*/React.createElement("div", {
+      key: m.id
+    }, rowInner);
   })), /*#__PURE__*/React.createElement("button", {
     onClick: invite,
     className: "tap",

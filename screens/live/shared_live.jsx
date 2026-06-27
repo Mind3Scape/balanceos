@@ -838,18 +838,36 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
   const members = membersProp || fetched || [];
   const emptyCell = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   const card = isDark ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" } : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
-  const hasBuddies = members.length >= 2;
+  // Owner-only swipe-remove (David: «свайп влево → убрать человека из привычки»). Optimistic: hide
+  // at once + prune the shared cache; if the server (RLS) refuses — you're not the owner, or the SQL
+  // patch isn't applied yet — removeSharedHabitMember returns false (0 rows) and we restore the row.
+  const iAmOwner = members.some(function (m) { return m.me && m.isOwner; });
+  const [removed, setRemoved] = React.useState({});
+  const removeMember = (m) => {
+    if (!code || !m || m.me || removed[m.id]) return;
+    setRemoved(function (r) { var n = Object.assign({}, r); n[m.id] = true; return n; });
+    try { if (_bosBuddyCache[code]) _bosBuddyCache[code] = _bosBuddyCache[code].filter(function (x) { return x.id !== m.id; }); } catch (e) {}
+    if (window.tgHaptic) { try { window.tgHaptic("warning"); } catch (e) {} }
+    var cl = window.bosCloud;
+    if (cl && cl.removeSharedHabitMember) {
+      cl.removeSharedHabitMember(code, m.id).then(function (ok) {
+        if (!ok) setRemoved(function (r) { var n = Object.assign({}, r); delete n[m.id]; return n; });
+      }).catch(function () { setRemoved(function (r) { var n = Object.assign({}, r); delete n[m.id]; return n; }); });
+    }
+  };
+  const visible = members.filter(function (m) { return !removed[m.id]; });
+  const hasBuddies = visible.length >= 2;
   const invite = () => { try { openSheet(<ShareHabitSheetLive habit={habit} dark={isDark} />); } catch (e) {} };
   return (
     <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 12 }}>
       {hasBuddies ? (
         <>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)", marginBottom: 12 }}>Вместе · {members.length}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)", marginBottom: 12 }}>Вместе · {visible.length}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {members.map((m) => {
+            {visible.map((m) => {
               const doneToday = !!m.days[today];
-              return (
-                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              const rowInner = (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <BuddyFaceLive avatar={m.avatar} name={m.name} size={40} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>
@@ -864,6 +882,17 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
                   </div>
                 </div>
               );
+              // Owner can swipe a buddy away (never yourself); everyone else sees a plain row.
+              return (iAmOwner && !m.me)
+                ? (
+                  <div key={m.id} style={{ borderRadius: 12, overflow: "hidden" }}>
+                    <SwipeRow rowBg={isDark ? "#1c1c1f" : "#fff"} dark={isDark} actionWidth={56}
+                      actions={[{ key: "rm", tone: "delete", label: "Убрать", icon: I.X, onAction: () => removeMember(m) }]}>
+                      {rowInner}
+                    </SwipeRow>
+                  </div>
+                )
+                : <div key={m.id}>{rowInner}</div>;
             })}
           </div>
           {/* Always offer to invite MORE — even with buddies (David: «хочу звать ещё, даже если уже поделился»). */}
