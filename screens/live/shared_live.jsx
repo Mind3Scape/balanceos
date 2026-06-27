@@ -938,16 +938,16 @@ function StatePromptLive({ app, isDark }) {
 // the earlier free-scrub orb did, which is exactly why it was pulled. Release = log (+5 XP), mapping
 // the 0..1 valence → real MOOD_OPTIONS index, so calendar / week-trail / MoodWidget read it unchanged.
 function StateSliderLive({ app, isDark }) {
-  const [val, setVal] = React.useState(0.5);           // always start in the middle = neutral
+  const [val, setVal] = React.useState(0.78);          // start at «Хорошо» (David), not neutral middle
   const trackRef = React.useRef(null);
   const dragRef = React.useRef(false);
-  const lastBkt = React.useRef((typeof moodBucket === "function") ? moodBucket(0.5) : 3);
-  const idx = (typeof moodBucket === "function") ? moodBucket(val) : 3;
-  const face = (typeof MOOD_FACES !== "undefined" && MOOD_FACES[idx]) || "😐";
-  const word = (typeof MOOD_WORDS !== "undefined" && MOOD_WORDS[idx]) || "Нормально";
+  const lastBkt = React.useRef((typeof moodBucket === "function") ? moodBucket(0.78) : 5);
+  const idx = (typeof moodBucket === "function") ? moodBucket(val) : 5;
+  const face = (typeof MOOD_FACES !== "undefined" && MOOD_FACES[idx]) || "🙂";
+  const word = (typeof MOOD_WORDS !== "undefined" && MOOD_WORDS[idx]) || "Хорошо";
   const tint = (typeof tintFromMood === "function" && typeof moodSpectrum === "function")
     ? tintFromMood(moodSpectrum(val)) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
-  const PAD = 20;                                       // keep the 32px thumb inside the groove
+  const PAD = 16;                                       // keep the 24px thumb inside the groove
 
   const setFromX = (clientX) => {
     const el = trackRef.current; if (!el) return;
@@ -977,12 +977,12 @@ function StateSliderLive({ app, isDark }) {
   const endLabel = isDark ? "rgba(255,255,255,0.42)" : "#a8a8ae";
 
   return (
-    <div style={{ width: "100%", background: bg, padding: "15px 16px 16px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ position: "relative", width: 64, height: 64, flexShrink: 0, display: "grid", placeItems: "center" }}>
-          <StateOrb size={62} tint={tint} intensity={isDark ? 1.25 : 1.08} />
+    <div style={{ width: "100%", background: bg, padding: "10px 14px 12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+        <div style={{ position: "relative", width: 46, height: 46, flexShrink: 0, display: "grid", placeItems: "center" }}>
+          <StateOrb size={44} tint={tint} intensity={isDark ? 1.25 : 1.08} />
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-            <span key={idx} style={{ fontSize: 28, lineHeight: 1, filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
+            <span key={idx} style={{ fontSize: 21, lineHeight: 1, filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
           </div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -990,19 +990,19 @@ function StateSliderLive({ app, isDark }) {
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.4, color: labelMuted, fontWeight: 600 }}>Как ты сейчас?</div>
             <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#9fd5a8" : "#3f7a46", background: "rgba(90,168,90,0.16)", borderRadius: 999, padding: "2px 8px", flexShrink: 0 }}>+5 XP</span>
           </div>
-          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 25, fontWeight: 600, letterSpacing: "-0.5px", color: titleColor, lineHeight: 1.15, marginTop: 3 }}>{word}</div>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 19, fontWeight: 600, letterSpacing: "-0.4px", color: titleColor, lineHeight: 1.15, marginTop: 2 }}>{word}</div>
         </div>
       </div>
-      <div style={{ marginTop: 14 }}>
+      <div style={{ marginTop: 10 }}>
         <div ref={trackRef}
           onPointerDown={(e) => { e.stopPropagation(); dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setFromX(e.clientX); }}
           onPointerMove={(e) => { if (!dragRef.current) return; e.stopPropagation(); setFromX(e.clientX); }}
           onPointerUp={(e) => { e.stopPropagation(); if (dragRef.current) { dragRef.current = false; commit(); } }}
           onPointerCancel={() => { dragRef.current = false; }}
-          style={{ position: "relative", height: 40, borderRadius: 999, background: trackBg, boxShadow: trackGlass, touchAction: "none", cursor: "pointer" }}>
-          <div style={{ position: "absolute", top: "50%", left: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", width: 32, height: 32, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)", boxShadow: "0 2px 7px rgba(0,0,0,0.22), inset 0 0 0 0.7px rgba(0,0,0,0.05)", transform: "translate(-50%,-50%)", transition: dragRef.current ? "none" : "left 0.12s ease" }} />
+          style={{ position: "relative", height: 28, borderRadius: 999, background: trackBg, boxShadow: trackGlass, touchAction: "none", cursor: "pointer" }}>
+          <div style={{ position: "absolute", top: "50%", left: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", width: 24, height: 24, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)", boxShadow: "0 2px 6px rgba(0,0,0,0.22), inset 0 0 0 0.7px rgba(0,0,0,0.05)", transform: "translate(-50%,-50%)", transition: dragRef.current ? "none" : "left 0.12s ease" }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, padding: "0 2px", fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", color: endLabel, fontWeight: 600 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, padding: "0 2px", fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", color: endLabel, fontWeight: 600 }}>
           <span>неприятно</span><span>приятно</span>
         </div>
       </div>

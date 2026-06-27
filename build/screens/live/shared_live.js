@@ -2223,15 +2223,15 @@ function StateSliderLive({
   app,
   isDark
 }) {
-  var [val, setVal] = React.useState(0.5); // always start in the middle = neutral
+  var [val, setVal] = React.useState(0.78); // start at «Хорошо» (David), not neutral middle
   var trackRef = React.useRef(null);
   var dragRef = React.useRef(false);
-  var lastBkt = React.useRef(typeof moodBucket === "function" ? moodBucket(0.5) : 3);
-  var idx = typeof moodBucket === "function" ? moodBucket(val) : 3;
-  var face = typeof MOOD_FACES !== "undefined" && MOOD_FACES[idx] || "😐";
-  var word = typeof MOOD_WORDS !== "undefined" && MOOD_WORDS[idx] || "Нормально";
+  var lastBkt = React.useRef(typeof moodBucket === "function" ? moodBucket(0.78) : 5);
+  var idx = typeof moodBucket === "function" ? moodBucket(val) : 5;
+  var face = typeof MOOD_FACES !== "undefined" && MOOD_FACES[idx] || "🙂";
+  var word = typeof MOOD_WORDS !== "undefined" && MOOD_WORDS[idx] || "Хорошо";
   var tint = typeof tintFromMood === "function" && typeof moodSpectrum === "function" ? tintFromMood(moodSpectrum(val)) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
-  var PAD = 20; // keep the 32px thumb inside the groove
+  var PAD = 16; // keep the 24px thumb inside the groove
 
   var setFromX = clientX => {
     var el = trackRef.current;
@@ -2275,25 +2275,25 @@ function StateSliderLive({
     style: {
       width: "100%",
       background: bg,
-      padding: "15px 16px 16px"
+      padding: "10px 14px 12px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 14
+      gap: 11
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      width: 64,
-      height: 64,
+      width: 46,
+      height: 46,
       flexShrink: 0,
       display: "grid",
       placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement(StateOrb, {
-    size: 62,
+    size: 44,
     tint: tint,
     intensity: isDark ? 1.25 : 1.08
   }), /*#__PURE__*/React.createElement("div", {
@@ -2307,7 +2307,7 @@ function StateSliderLive({
   }, /*#__PURE__*/React.createElement("span", {
     key: idx,
     style: {
-      fontSize: 28,
+      fontSize: 21,
       lineHeight: 1,
       filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))",
       animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both"
@@ -2345,16 +2345,16 @@ function StateSliderLive({
   }, "+5 XP")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",
-      fontSize: 25,
+      fontSize: 19,
       fontWeight: 600,
-      letterSpacing: "-0.5px",
+      letterSpacing: "-0.4px",
       color: titleColor,
       lineHeight: 1.15,
-      marginTop: 3
+      marginTop: 2
     }
   }, word))), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 14
+      marginTop: 10
     }
   }, /*#__PURE__*/React.createElement("div", {
     ref: trackRef,
@@ -2383,7 +2383,7 @@ function StateSliderLive({
     },
     style: {
       position: "relative",
-      height: 40,
+      height: 28,
       borderRadius: 999,
       background: trackBg,
       boxShadow: trackGlass,
@@ -2395,11 +2395,11 @@ function StateSliderLive({
       position: "absolute",
       top: "50%",
       left: "calc(" + PAD + "px + " + val + " * (100% - " + 2 * PAD + "px))",
-      width: 32,
-      height: 32,
+      width: 24,
+      height: 24,
       borderRadius: "50%",
       background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)",
-      boxShadow: "0 2px 7px rgba(0,0,0,0.22), inset 0 0 0 0.7px rgba(0,0,0,0.05)",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.22), inset 0 0 0 0.7px rgba(0,0,0,0.05)",
       transform: "translate(-50%,-50%)",
       transition: dragRef.current ? "none" : "left 0.12s ease"
     }
@@ -2407,7 +2407,7 @@ function StateSliderLive({
     style: {
       display: "flex",
       justifyContent: "space-between",
-      marginTop: 8,
+      marginTop: 6,
       padding: "0 2px",
       fontSize: 10.5,
       letterSpacing: 0.4,
