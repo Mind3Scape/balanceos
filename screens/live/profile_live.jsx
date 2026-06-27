@@ -56,7 +56,7 @@ function ProfileLive() {
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
     : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
   // Grouped iOS-style menu (v280): plain render-fn so re-renders never remount the rows.
-  const chip = (icon) => <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(icon, { size: 16 })}</span>;
+  const chip = (icon) => <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(icon, { size: 16, color: "var(--text)" })}</span>;
   const navRow = (icon, label, id, last) => (
     <button key={id} onClick={() => navigate(id, { from: "profile" })} className="tap" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", background: "transparent", border: 0, borderBottom: last ? "none" : "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
       {chip(icon)}
@@ -70,7 +70,7 @@ function ProfileLive() {
 
       <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
-        <OrbitField avatar={app?.avatar} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} onTap={openAvatar} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} />
+        <OrbitField avatar={app?.avatar} name={app?.userName} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} onTap={openAvatar} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 2, background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999 }}>
           <I.Sparkles size={11} /> Уровень {lvlNum}
         </div>

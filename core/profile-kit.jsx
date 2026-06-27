@@ -94,7 +94,7 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
-function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false }) {
+function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false }) {
   const t = useOrbClock();
   const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -162,12 +162,24 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
     badge: "#ffffff", avShadow: "0 8px 24px rgba(0,0,0,0.18)", shadow: true,
   };
 
+  // Centre avatar = the SAME standardized grey disc as everyone else (BuddyFaceLive look),
+  // inlined so this shared core widget pulls in no live-only deps.
+  const avStr = "" + (avatar || "");
+  const avIsMemoji = /^m\d+$/.test(avStr);
+  const avIsEmoji = avStr.indexOf("emoji:") === 0;
+  const centreInitial = ("" + (name || "")).trim().charAt(0).toUpperCase();
   return (
     <div style={{ position: "relative", width: "100%", height: 300, margin: "0 auto", overflow: "visible" }}>
       <svg viewBox="-160 -160 320 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none", overflow: "visible" }}>
         <defs>
           <clipPath id="orbAvClip"><circle cx="0" cy="0" r="16" /></clipPath>
           <filter id="orbShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="2.2" floodColor="#000" floodOpacity="0.16" /></filter>
+          {/* glass sheen for the orbiting discs (David: «эффект стекла на кружочки в орбитах») */}
+          <radialGradient id="orbGlass" cx="0.34" cy="0.26" r="0.85">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.6" />
+            <stop offset="0.45" stopColor="#ffffff" stopOpacity="0.14" />
+            <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+          </radialGradient>
         </defs>
 
         {/* concentric orbits */}
@@ -217,6 +229,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
             return (
               <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
                 <circle cx="0" cy="0" r="16" fill={PAL.pdisc} />
+                <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
                 <circle cx="0" cy="0" r="16" fill="none" stroke={PAL.pstroke} strokeWidth="1.2" />
                 <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="600" style={{ fill: dark ? "#cfe0ff" : "#5b6473" }}>+{n.count}</text>
               </g>
@@ -227,6 +240,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
               <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
                 {dark && <circle cx="0" cy="0" r="19" fill={glow} opacity="0.18" style={{ filter: "blur(5px)" }} />}
                 <circle cx="0" cy="0" r="16" fill={PAL.disc} />
+                <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
                 <circle cx="0" cy="0" r="16" fill="none" stroke={PAL.discStroke} strokeWidth="0.9" />
                 <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{n.emoji}</text>
               </g>
@@ -241,6 +255,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
               {isEmoji
                 ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
                 : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
+              <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
               <circle cx="0" cy="0" r="16.6" fill="none" stroke={PAL.pstroke} strokeWidth="1.4" />
             </g>
           );
@@ -250,10 +265,13 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
       {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
           with your avatar nested inside it. tap to change avatar */}
       <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: "0 5px 14px rgba(0,0,0,0.18)" + (dark ? ", 0 0 14px " + glow + "55" : "") }}>
-          <BosOrbFace avatar={avatar} size={60} tint={tint} style={{ width: "100%", height: "100%" }} />
+        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
+          background: (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg,#eef1f6,#dadfe7)",
+          boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.14)",
+          display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, color: "#5b6473", fontWeight: 600 }}>
+          {avIsEmoji ? avStr.slice(6) : (!avIsMemoji ? (centreInitial || null) : null)}
         </div>
-        <span style={{ position: "absolute", right: -1, bottom: -1, width: 20, height: 20, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", border: "2px solid " + PAL.badge, boxShadow: "0 2px 6px rgba(0,0,0,0.25)", zIndex: 2 }}>
+        <span style={{ position: "absolute", right: -1, bottom: -1, width: 20, height: 20, borderRadius: "50%", color: dark ? "#fff" : "var(--text)", background: "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%), " + (dark ? "rgba(255,255,255,0.12)" : "var(--surface-3)"), boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.18)", display: "grid", placeItems: "center", zIndex: 2 }}>
           <I.Pencil size={10} />
         </span>
       </button>

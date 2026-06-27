@@ -321,6 +321,7 @@ function AvatarPickerSheet({
 }
 function OrbitField({
   avatar,
+  name,
   habits = [],
   people = [],
   levelPct = 2,
@@ -454,6 +455,13 @@ function OrbitField({
     avShadow: "0 8px 24px rgba(0,0,0,0.18)",
     shadow: true
   };
+
+  // Centre avatar = the SAME standardized grey disc as everyone else (BuddyFaceLive look),
+  // inlined so this shared core widget pulls in no live-only deps.
+  var avStr = "" + (avatar || "");
+  var avIsMemoji = /^m\d+$/.test(avStr);
+  var avIsEmoji = avStr.indexOf("emoji:") === 0;
+  var centreInitial = ("" + (name || "")).trim().charAt(0).toUpperCase();
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -492,6 +500,23 @@ function OrbitField({
     stdDeviation: "2.2",
     floodColor: "#000",
     floodOpacity: "0.16"
+  })), /*#__PURE__*/React.createElement("radialGradient", {
+    id: "orbGlass",
+    cx: "0.34",
+    cy: "0.26",
+    r: "0.85"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#ffffff",
+    stopOpacity: "0.6"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.45",
+    stopColor: "#ffffff",
+    stopOpacity: "0.14"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#ffffff",
+    stopOpacity: "0"
   }))), drawRings.map(r => {
     var R = radius(r),
       op = ((dark ? 0.20 : 0.17) - r * 0.035) * eo * fadeAt(R);
@@ -582,6 +607,11 @@ function OrbitField({
         cx: "0",
         cy: "0",
         r: "16",
+        fill: "url(#orbGlass)"
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "0",
+        cy: "0",
+        r: "16",
         fill: "none",
         stroke: PAL.pstroke,
         strokeWidth: "1.2"
@@ -617,6 +647,11 @@ function OrbitField({
         cy: "0",
         r: "16",
         fill: PAL.disc
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "0",
+        cy: "0",
+        r: "16",
+        fill: "url(#orbGlass)"
       }), /*#__PURE__*/React.createElement("circle", {
         cx: "0",
         cy: "0",
@@ -675,6 +710,11 @@ function OrbitField({
     }), /*#__PURE__*/React.createElement("circle", {
       cx: "0",
       cy: "0",
+      r: "16",
+      fill: "url(#orbGlass)"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
       r: "16.6",
       fill: "none",
       stroke: PAL.pstroke,
@@ -704,17 +744,16 @@ function OrbitField({
       position: "absolute",
       inset: 0,
       borderRadius: "50%",
-      boxShadow: "0 5px 14px rgba(0,0,0,0.18)" + (dark ? ", 0 0 14px " + glow + "55" : "")
+      background: (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : !avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "") + "linear-gradient(150deg,#eef1f6,#dadfe7)",
+      boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.14)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 27,
+      lineHeight: 1,
+      color: "#5b6473",
+      fontWeight: 600
     }
-  }, /*#__PURE__*/React.createElement(BosOrbFace, {
-    avatar: avatar,
-    size: 60,
-    tint: tint,
-    style: {
-      width: "100%",
-      height: "100%"
-    }
-  })), /*#__PURE__*/React.createElement("span", {
+  }, avIsEmoji ? avStr.slice(6) : !avIsMemoji ? centreInitial || null : null), /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
       right: -1,
@@ -722,12 +761,11 @@ function OrbitField({
       width: 20,
       height: 20,
       borderRadius: "50%",
-      background: "#0a0a0a",
-      color: "#fff",
+      color: dark ? "#fff" : "var(--text)",
+      background: "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%), " + (dark ? "rgba(255,255,255,0.12)" : "var(--surface-3)"),
+      boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.18)",
       display: "grid",
       placeItems: "center",
-      border: "2px solid " + PAL.badge,
-      boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
       zIndex: 2
     }
   }, /*#__PURE__*/React.createElement(I.Pencil, {

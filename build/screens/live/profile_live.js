@@ -82,7 +82,8 @@ function ProfileLive() {
       flexShrink: 0
     }
   }, React.createElement(icon, {
-    size: 16
+    size: 16,
+    color: "var(--text)"
   }));
   var navRow = (icon, label, id, last) => /*#__PURE__*/React.createElement("button", {
     key: id,
@@ -128,6 +129,7 @@ function ProfileLive() {
     }
   }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
+    name: app?.userName,
     habits: app?.habits || [],
     people: orbitPeople,
     levelPct: lvlPct,

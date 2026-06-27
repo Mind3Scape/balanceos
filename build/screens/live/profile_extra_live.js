@@ -359,7 +359,8 @@ function SettingsLive() {
       flexShrink: 0
     }
   }, React.createElement(icon, {
-    size: 16
+    size: 16,
+    color: "var(--text)"
   }));
   var row = (icon, label, onClick, last) => /*#__PURE__*/React.createElement("button", {
     key: label,
