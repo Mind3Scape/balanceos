@@ -879,14 +879,21 @@ var MOOD_OPTIONS = [{
 // Map the onboarding state-slider (0..1 valence, set in intro.jsx) → one of the
 // app's mood options, so the state the user picked at signup shows in the home
 // widget right away. Returns null when nothing was picked (→ caller's default).
+// 0..1 valence (the onboarding dial AND the Home state slider) → index into MOOD_OPTIONS. ONE
+// source of truth so every state UI maps identically; the slider stores this index, so the
+// calendar / week-trail / MoodWidget keep reading dayMoods unchanged.
+function bosMoodIdxFromValence(v) {
+  v = typeof v === "number" && isFinite(v) ? v : 0.5;
+  return v >= 0.80 ? 0 // Энергия
+  : v >= 0.60 ? 1 // Радость
+  : v >= 0.40 ? 2 // Спокойствие
+  : v >= 0.22 ? 5 // Усталость
+  : 4; // Упадок
+}
 var _onbMood = () => {
   var v = window.__bosOnbMood;
   if (typeof v !== "number") return null;
-  return v >= 0.80 ? MOOD_OPTIONS[0] // Энергия
-  : v >= 0.60 ? MOOD_OPTIONS[1] // Радость
-  : v >= 0.40 ? MOOD_OPTIONS[2] // Спокойствие
-  : v >= 0.22 ? MOOD_OPTIONS[5] // Усталость
-  : MOOD_OPTIONS[4]; // Упадок
+  return MOOD_OPTIONS[bosMoodIdxFromValence(v)];
 };
 
 /* ── App-wide ephemeral state ───────────────────────────────────────

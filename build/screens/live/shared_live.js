@@ -1559,82 +1559,78 @@ function JoinWelcomeLive({
   info,
   onClose
 }) {
-  var [shown, setShown] = React.useState(false);
+  var [open, setOpen] = React.useState(false);
+  var closingRef = React.useRef(false);
   React.useEffect(() => {
-    var r = requestAnimationFrame(() => setShown(true));
-    return () => cancelAnimationFrame(r);
+    var t = window.setTimeout(() => setOpen(true), 10);
+    return () => window.clearTimeout(t);
   }, []);
   if (!info) return null;
+  var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   var isTeam = info.kind === "team";
-  var accent = typeof info.color === "string" && info.color[0] === "#" ? info.color : "#84A4B8";
   var inviter = (info.inviterName || "").trim();
   var close = () => {
-    setShown(false);
-    setTimeout(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setOpen(false);
+    window.setTimeout(() => {
       try {
         onClose && onClose();
       } catch (e) {}
-    }, 220);
+    }, 340);
   };
-  return /*#__PURE__*/React.createElement("div", {
-    onClick: close,
+  // Standardized GREY glass tile — never the habit's random colour (David: «серенькая, с эффектом
+  // стекла, никакой отсебятины»). The inviter's STANDARD avatar (real photo or initial) rides the
+  // corner — one «вы вдвоём на привычке» scene, not an avatar-stacked-over-a-square.
+  var tileInk = isDark ? "#e8e8ea" : "#3a3a3e";
+  var tileBg = isDark ? "linear-gradient(165deg,#3a3a3e,#2a2a2e)" : "linear-gradient(165deg,#f1f1f4,#e1e1e6)";
+  var glyph = typeof bosIcon === "function" ? bosIcon(info.emoji || (isTeam ? "✨" : "🌿"), 38, tileInk) : info.emoji || "✨";
+  return /*#__PURE__*/React.createElement(BottomSheet, {
+    open: open,
+    onClose: close,
+    dark: isDark
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 4000,
-      background: "rgba(10,10,12,0.42)",
-      WebkitBackdropFilter: "blur(6px)",
-      backdropFilter: "blur(6px)",
-      display: "grid",
-      placeItems: "center",
-      padding: 24,
-      opacity: shown ? 1 : 0,
-      transition: "opacity 0.25s ease"
+      padding: "2px 22px 26px",
+      textAlign: "center",
+      color: "var(--text)"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    onClick: e => e.stopPropagation(),
-    style: {
-      width: "100%",
-      maxWidth: 340,
-      background: "var(--card, #fff)",
-      borderRadius: 28,
-      padding: "26px 22px 22px",
-      textAlign: "center",
-      boxShadow: "0 24px 60px rgba(0,0,0,0.28)",
-      transform: shown ? "scale(1) translateY(0)" : "scale(0.9) translateY(12px)",
-      opacity: shown ? 1 : 0,
-      transition: "transform 0.34s cubic-bezier(0.22,1.2,0.36,1), opacity 0.25s ease"
-    }
-  }, !isTeam && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 8
+      justifyContent: "center",
+      marginBottom: 2
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: 76,
+      height: 76
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 76,
+      height: 76,
+      borderRadius: 21,
+      background: BOS_TILE_SHEEN + ", " + tileBg,
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "0 6px 16px rgba(0,0,0,0.10)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 37
+    }
+  }, glyph), !isTeam && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      right: -8,
+      bottom: -6,
+      borderRadius: "50%",
+      boxShadow: "0 0 0 3px var(--card, #fff)"
     }
   }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
     avatar: info.inviterAvatar || "default",
     name: inviter,
-    size: 54
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: "var(--text-3)",
-      fontWeight: 600
-    }
-  }, inviter ? inviter + " зовёт тебя" : "Тебя позвали вести вместе")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: isTeam ? "4px auto 0" : "16px auto 0",
-      width: 76,
-      height: 76,
-      borderRadius: 22,
-      background: accent,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 38,
-      boxShadow: "0 8px 22px " + accent + "55"
-    }
-  }, typeof bosIcon === "function" ? bosIcon(info.emoji || "✨", 40, "#fff") : info.emoji || "✨"), /*#__PURE__*/React.createElement("div", {
+    size: 34
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-4)",
@@ -1645,9 +1641,9 @@ function JoinWelcomeLive({
     }
   }, isTeam ? "Команда" : "Совместная привычка"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 21,
+      fontSize: 23,
       fontWeight: 800,
-      letterSpacing: "-0.4px",
+      letterSpacing: "-0.5px",
       color: "var(--text)",
       marginTop: 3
     }
@@ -1656,9 +1652,55 @@ function JoinWelcomeLive({
       fontSize: 13.5,
       color: "var(--text-3)",
       marginTop: 8,
-      lineHeight: 1.45
+      lineHeight: 1.5,
+      padding: "0 6px",
+      textWrap: "balance"
     }
-  }, isTeam ? "Ты в команде — ведите цели вместе, и всем виден прогресс каждого." : "Ведите привычку вместе: вы видите календарь друг друга, и каждая отметка приносит +15 XP."), /*#__PURE__*/React.createElement("button", {
+  }, isTeam ? (inviter ? inviter + " зовёт в команду" : "Тебя позвали в команду") + " — ведите цели вместе, виден прогресс каждого." : (inviter ? inviter + " зовёт вести вместе" : "Тебя позвали вести вместе") + " — будете видеть отметки друг друга и держать ритм."), !isTeam && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      background: isDark ? "rgba(255,255,255,0.06)" : "#f4f4f6",
+      borderRadius: 17,
+      padding: "13px 15px",
+      marginTop: 18,
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 42,
+      height: 42,
+      borderRadius: 13,
+      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      boxShadow: "0 5px 13px rgba(239,159,20,0.34), inset 0 1px 0.5px rgba(255,255,255,0.6)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Bolt, {
+    size: 22,
+    color: "#fff",
+    filled: true
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: "var(--text)",
+      letterSpacing: "-0.2px"
+    }
+  }, "+15 XP \u0437\u0430 \u043A\u0430\u0436\u0434\u0443\u044E \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u0443\u044E \u043E\u0442\u043C\u0435\u0442\u043A\u0443"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2
+    }
+  }, "\u0432\u043C\u0435\u0441\u0442\u043E +10, \u043A\u043E\u0433\u0434\u0430 \u0432\u0435\u0434\u0451\u0448\u044C \u043E\u0434\u0438\u043D"))), /*#__PURE__*/React.createElement("button", {
     onClick: close,
     className: "bos-btn",
     style: {
@@ -2443,6 +2485,211 @@ function StatePromptLive({
       textAlign: "center"
     }
   }, "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0441\u0432\u043E\u0451 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u0435"));
+}
+
+// Daily state CHECK-IN v2 — the onboarding «крутилка» reborn as a CONTAINED iOS slider (David:
+// «тонкий блок, бегунок ездит ВНУТРИ желобка, лицо-человечек внутри орба меняется; старт ВСЕГДА по
+// центру = нейтрально, слева негатив → справа позитив»). The capsule track captures its OWN pointer
+// (stopPropagation + setPointerCapture) so the horizontal drag never fights the card's SwipeRow —
+// the earlier free-scrub orb did, which is exactly why it was pulled. Release = log (+5 XP), mapping
+// the 0..1 valence → real MOOD_OPTIONS index, so calendar / week-trail / MoodWidget read it unchanged.
+function StateSliderLive({
+  app,
+  isDark
+}) {
+  var [val, setVal] = React.useState(0.5); // always start in the middle = neutral
+  var trackRef = React.useRef(null);
+  var dragRef = React.useRef(false);
+  var lastBkt = React.useRef(typeof moodBucket === "function" ? moodBucket(0.5) : 3);
+  var idx = typeof moodBucket === "function" ? moodBucket(val) : 3;
+  var face = typeof MOOD_FACES !== "undefined" && MOOD_FACES[idx] || "😐";
+  var word = typeof MOOD_WORDS !== "undefined" && MOOD_WORDS[idx] || "Нормально";
+  var tint = typeof tintFromMood === "function" && typeof moodSpectrum === "function" ? tintFromMood(moodSpectrum(val)) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
+  var PAD = 20; // keep the 32px thumb inside the groove
+
+  var setFromX = clientX => {
+    var el = trackRef.current;
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    var v = (clientX - r.left - PAD) / Math.max(1, r.width - 2 * PAD);
+    v = Math.max(0, Math.min(1, v));
+    var b = typeof moodBucket === "function" ? moodBucket(v) : 3;
+    if (b !== lastBkt.current) {
+      lastBkt.current = b;
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+    }
+    setVal(v);
+  };
+  var commit = () => {
+    if (!app) return;
+    var dayKey = typeof bosTodayKey === "function" ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+    var mi = typeof bosMoodIdxFromValence === "function" ? bosMoodIdxFromValence(val) : 1;
+    app.setMood && app.setMood(MOOD_OPTIONS[mi]);
+    app.setDayMoods && app.setDayMoods({
+      ...(app.dayMoods || {}),
+      [dayKey]: mi
+    });
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+  };
+  var bg = isDark ? "linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)" : "#ffffff";
+  var titleColor = isDark ? "#fff" : "var(--text)";
+  var labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
+  var trackBg = isDark ? "rgba(255,255,255,0.10)" : "#e7e7ea";
+  var trackGlass = isDark ? "inset 0 1px 2px rgba(0,0,0,0.45)" : "inset 0 1.5px 3px rgba(0,0,0,0.09), inset 0 -1px 0 rgba(255,255,255,0.65)";
+  var endLabel = isDark ? "rgba(255,255,255,0.42)" : "#a8a8ae";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "100%",
+      background: bg,
+      padding: "15px 16px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: 64,
+      height: 64,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(StateOrb, {
+    size: 62,
+    tint: tint,
+    intensity: isDark ? 1.25 : 1.08
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeItems: "center",
+      pointerEvents: "none"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    key: idx,
+    style: {
+      fontSize: 28,
+      lineHeight: 1,
+      filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))",
+      animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both"
+    }
+  }, face))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 1.4,
+      color: labelMuted,
+      fontWeight: 600
+    }
+  }, "\u041A\u0430\u043A \u0442\u044B \u0441\u0435\u0439\u0447\u0430\u0441?"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: isDark ? "#9fd5a8" : "#3f7a46",
+      background: "rgba(90,168,90,0.16)",
+      borderRadius: 999,
+      padding: "2px 8px",
+      flexShrink: 0
+    }
+  }, "+5 XP")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--bos-title-font)",
+      fontSize: 25,
+      fontWeight: 600,
+      letterSpacing: "-0.5px",
+      color: titleColor,
+      lineHeight: 1.15,
+      marginTop: 3
+    }
+  }, word))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: trackRef,
+    onPointerDown: e => {
+      e.stopPropagation();
+      dragRef.current = true;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      setFromX(e.clientX);
+    },
+    onPointerMove: e => {
+      if (!dragRef.current) return;
+      e.stopPropagation();
+      setFromX(e.clientX);
+    },
+    onPointerUp: e => {
+      e.stopPropagation();
+      if (dragRef.current) {
+        dragRef.current = false;
+        commit();
+      }
+    },
+    onPointerCancel: () => {
+      dragRef.current = false;
+    },
+    style: {
+      position: "relative",
+      height: 40,
+      borderRadius: 999,
+      background: trackBg,
+      boxShadow: trackGlass,
+      touchAction: "none",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "50%",
+      left: "calc(" + PAD + "px + " + val + " * (100% - " + 2 * PAD + "px))",
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)",
+      boxShadow: "0 2px 7px rgba(0,0,0,0.22), inset 0 0 0 0.7px rgba(0,0,0,0.05)",
+      transform: "translate(-50%,-50%)",
+      transition: dragRef.current ? "none" : "left 0.12s ease"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: 8,
+      padding: "0 2px",
+      fontSize: 10.5,
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      color: endLabel,
+      fontWeight: 600
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "\u043D\u0435\u043F\u0440\u0438\u044F\u0442\u043D\u043E"), /*#__PURE__*/React.createElement("span", null, "\u043F\u0440\u0438\u044F\u0442\u043D\u043E"))));
 }
 
 /* Universal create menu (B1) — a small iOS-style glass popover that springs out of the

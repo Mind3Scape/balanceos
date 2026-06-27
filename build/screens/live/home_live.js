@@ -523,7 +523,7 @@ function HomeLive() {
         rowBg: rowBg,
         dark: isDark,
         actions: _hideAction
-      }, /*#__PURE__*/React.createElement(StatePromptLive, {
+      }, /*#__PURE__*/React.createElement(StateSliderLive, {
         app: app,
         isDark: isDark
       })));

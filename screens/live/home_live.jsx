@@ -245,7 +245,7 @@ function HomeLive() {
         if (!_loggedToday) {
           return (
             <div style={{ marginTop: 16, borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
-              <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}><StatePromptLive app={app} isDark={isDark} /></SwipeRow>
+              <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}><StateSliderLive app={app} isDark={isDark} /></SwipeRow>
             </div>
           );
         }
