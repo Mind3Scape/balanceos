@@ -2774,7 +2774,8 @@ function HomeHeroSwipeLive({
     style: {
       position: "absolute",
       inset: 0,
-      transform: "rotate(-90deg)"
+      transform: "rotate(-90deg)",
+      zIndex: 2
     }
   }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
     id: "bosGoldRingS",
@@ -2922,7 +2923,8 @@ function HomeHeroSwipeLive({
     style: {
       position: "absolute",
       inset: 0,
-      transform: "rotate(-90deg)"
+      transform: "rotate(-90deg)",
+      zIndex: 2
     }
   }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
     id: "bosGoldRingL",
@@ -2968,6 +2970,7 @@ function HomeHeroSwipeLive({
       right: -4,
       background: "#0a0a0a",
       color: "#FEDE34",
+      zIndex: 3,
       fontSize: 9,
       fontWeight: 700,
       padding: "2px 6px",

@@ -1117,7 +1117,8 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 54, height: 54, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
-          <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+          {/* zIndex: gold paints ABOVE the orb so its mood-glow can't bleed onto the ring colour (David: «орб накладывает glow на золотое кольцо — цвет не похож»). */}
+          <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
             <defs><linearGradient id="bosGoldRingS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34"/><stop offset="1" stopColor="#EF9F14"/></linearGradient></defs>
             <circle cx="27" cy="27" r="23" stroke={ringBg} strokeWidth="3" fill="none"/>
             <circle cx="27" cy="27" r="23" stroke="url(#bosGoldRingS)" strokeWidth="3" fill="none" strokeLinecap="round"
@@ -1155,7 +1156,8 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 72, height: 72, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
-          <svg width="72" height="72" viewBox="0 0 72 72" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+          {/* zIndex: gold paints ABOVE the orb so its mood-glow can't bleed onto the ring colour (David: «орб накладывает glow на золотое кольцо — цвет не похож»). */}
+          <svg width="72" height="72" viewBox="0 0 72 72" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
             <defs><linearGradient id="bosGoldRingL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34"/><stop offset="1" stopColor="#EF9F14"/></linearGradient></defs>
             <circle cx="36" cy="36" r="32" stroke={ringBg} strokeWidth="3.5" fill="none"/>
             <circle cx="36" cy="36" r="32" stroke="url(#bosGoldRingL)" strokeWidth="3.5" fill="none"
@@ -1166,7 +1168,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
           </svg>
           <HeroOrbFace avatar={heroApp?.avatar} inset={6} size={60} moodTint={moodTint} />
           <div style={{
-            position: "absolute", bottom: -2, right: -4, background: "#0a0a0a", color: "#FEDE34",
+            position: "absolute", bottom: -2, right: -4, background: "#0a0a0a", color: "#FEDE34", zIndex: 3,
             fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 999, border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
           }}>{doneCount}/{totalCount}</div>
         </button>
