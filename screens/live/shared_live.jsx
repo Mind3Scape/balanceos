@@ -1007,6 +1007,124 @@ function bosConfirmDelete(openSheet, opts) {
   } catch (e) { if (opts.onConfirm) try { opts.onConfirm(); } catch (e2) {} }
 }
 
+/* Long-press → jiggle → drag-to-reorder list (iOS-26). David: «зажал блок — он задрожал —
+   могу передвинуть; порядок запоминается в моём аккаунте». NORMAL mode: items render via
+   renderItem(id, {mode:false, dragging:false}) — your SwipeRow card, tap navigates. A ~420ms
+   long-press held STILL (a sideways flick stays a SwipeRow swipe, a vertical drag stays a page
+   scroll — both cancel the press) flips to REORDER mode: every card jiggles, SwipeRow/tap are
+   dropped (renderItem gets {mode:true}); dragging a card live-reorders the others. Each drop
+   commits via onReorder(orderedIds) and «Готово» leaves the mode. Per-drag rect snapshot →
+   variable-height cards reorder correctly. Window-level pointer listeners survive the
+   normal→reorder re-render so a single press flows straight into a drag. */
+function BosReorderList({ ids, onReorder, renderItem, gap = 8 }) {
+  const [mode, setMode] = React.useState(false);
+  const [order, setOrder] = React.useState(ids);
+  const [drag, setDrag] = React.useState({ id: null, from: -1, to: -1, dy: 0, slot: 0 });
+  const refs = React.useRef({});
+  const g = React.useRef(null); // live gesture (avoids stale closures)
+  const idsKey = (ids || []).join("|");
+  // Resync to the store order whenever it changes AND we're not mid-gesture (add / delete / load).
+  React.useEffect(() => { if (!g.current) setOrder(ids || []); }, [idsKey]);
+
+  const onDown = (id) => (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (g.current) return; // one finger at a time
+    const startY = e.clientY, startX = e.clientX;
+    const curOrder = order.slice();
+    const from = curOrder.indexOf(id);
+    const gc = { id, from, to: from, startY, startX, fired: false, order: curOrder };
+    const cleanup = () => {
+      if (gc.longTimer) { clearTimeout(gc.longTimer); gc.longTimer = null; }
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (g.current === gc) g.current = null;
+    };
+    const begin = () => {
+      gc.fired = true;
+      if (!mode) setMode(true);
+      const snap = {};
+      curOrder.forEach((iid) => { const el = refs.current[iid]; if (el) { const r = el.getBoundingClientRect(); snap[iid] = { top: r.top, h: r.height }; } });
+      gc.snap = snap;
+      const slot = (snap[id] ? snap[id].h : 72) + gap;
+      gc.slot = slot;
+      setDrag({ id, from, to: from, dy: 0, slot });
+      if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e2) {} }
+    };
+    const onMove = (e2) => {
+      const y = e2.clientY, x = e2.clientX;
+      if (!gc.fired) { if (Math.abs(y - startY) > 10 || Math.abs(x - startX) > 10) cleanup(); return; }
+      if (e2.cancelable) e2.preventDefault();
+      const dy = y - startY;
+      const me = gc.snap[id]; if (!me) return;
+      const center = me.top + dy + me.h / 2;
+      let to = from;
+      if (dy > 0) { for (let i = from + 1; i < curOrder.length; i++) { const s = gc.snap[curOrder[i]]; if (s && center > s.top + s.h / 2) to = i; else break; } }
+      else if (dy < 0) { for (let i = from - 1; i >= 0; i--) { const s = gc.snap[curOrder[i]]; if (s && center < s.top + s.h / 2) to = i; else break; } }
+      gc.to = to;
+      setDrag({ id, from, to, dy, slot: gc.slot });
+    };
+    const onUp = () => {
+      const fired = gc.fired, gto = gc.to;
+      cleanup();
+      if (fired) {
+        if (gto !== from && gto >= 0) {
+          const next = curOrder.slice(); const [x] = next.splice(from, 1); next.splice(gto, 0, x);
+          setOrder(next);
+          try { onReorder && onReorder(next); } catch (e2) {}
+          if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e2) {} }
+        }
+        setDrag({ id: null, from: -1, to: -1, dy: 0, slot: 0 });
+      }
+    };
+    g.current = gc;
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    if (mode) begin(); else gc.longTimer = setTimeout(begin, 420);
+  };
+
+  const done = () => { setMode(false); setDrag({ id: null, from: -1, to: -1, dy: 0, slot: 0 }); };
+
+  const shiftOf = (idx) => {
+    const { from, to, slot } = drag;
+    if (from < 0 || to < 0) return 0;
+    if (from < to && idx > from && idx <= to) return -slot;
+    if (to < from && idx >= to && idx < from) return slot;
+    return 0;
+  };
+
+  return (
+    <>
+      {mode && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 2px 10px", animation: "dimIn 0.2s ease both" }}>
+          <span style={{ fontSize: 12.5, color: "var(--text-4)", fontWeight: 500 }}>
+            Перетащи карточки, чтобы изменить порядок
+          </span>
+          <button onClick={done} className="tap" data-haptic="selection" style={{ border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "7px 16px", fontSize: 13.5, fontWeight: 600 }}>Готово</button>
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap, color: "var(--text)" }}>
+        {order.map((id, idx) => {
+          const isDrag = drag.id === id;
+          return (
+            <div key={id} ref={(el) => { refs.current[id] = el; }}
+              onPointerDown={onDown(id)}
+              style={{ position: "relative", touchAction: mode ? "none" : "auto",
+                transform: isDrag ? "translateY(" + drag.dy + "px) scale(1.03)" : "translateY(" + shiftOf(idx) + "px)",
+                transition: isDrag ? "none" : "transform 0.22s cubic-bezier(0.2,0,0,1)",
+                zIndex: isDrag ? 40 : 1, willChange: mode ? "transform" : "auto" }}>
+              <div className={mode && !isDrag ? "bos-jiggle" : ""} style={{ animationDelay: (-(idx % 5) * 0.045) + "s", borderRadius: 22, boxShadow: isDrag ? "0 16px 34px rgba(20,30,60,0.22)" : "none" }}>
+                {renderItem(id, { mode, dragging: isDrag })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   const [pos, setPos] = React.useState(null);
   React.useEffect(() => {

@@ -121,6 +121,16 @@ button { font: inherit; cursor: pointer; }
 .tab-pill-sm button { padding: 8px 14px; font-size: 13.5px; }
 .theme-dark .tab-pill-sm button.active { box-shadow: inset 0 2px 4px rgba(0,0,0,0.22); }
 
+/* iOS-26 «jiggle» — cards wobble while a list is in drag-to-reorder mode. The rotate lives on
+   an INNER wrapper so the outer wrapper's translateY (the live reorder shift) isn't overwritten. */
+@keyframes bosJiggle {
+  0%   { transform: rotate(-0.65deg); }
+  50%  { transform: rotate(0.65deg); }
+  100% { transform: rotate(-0.65deg); }
+}
+.bos-jiggle { animation: bosJiggle 0.26s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .bos-jiggle { animation: none; } }
+
 .divider {
   height: 1px;
   background: var(--line);

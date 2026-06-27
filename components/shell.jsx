@@ -892,6 +892,17 @@ function AppProvider({ children }) {
     try { if (h && h.cloudId && _liveCloud()) window.bosCloud.deleteHabit(h.cloudId); } catch (e) {}
     return hs.filter(x => x.id !== id);
   });
+  // Drag-to-reorder: apply the new id order, renumber `sort`, and mirror the moved rows to the
+  // cloud (loadHabits orders by sort, so the order persists across sessions — David's account).
+  const reorderHabits = (orderedIds) => setHabits(hs => {
+    const by = {}; hs.forEach(h => { by[h.id] = h; });
+    const next = [];
+    (orderedIds || []).forEach(id => { if (by[id]) { next.push(by[id]); delete by[id]; } });
+    hs.forEach(h => { if (by[h.id]) next.push(h); }); // keep any not in the list, in place
+    const out = next.map((h, i) => (h.sort === i ? h : { ...h, sort: i }));
+    try { if (_liveCloud()) out.forEach((h, i) => { const old = hs.find(x => x.id === h.id); if (h.cloudId && (!old || old.sort !== i)) window.bosCloud.upsertHabit(h); }); } catch (e) {}
+    return out;
+  });
 
   // Live profiles: when the app (re)gains focus, re-derive today's checkmarks from each
   // habit's log — a habit checked yesterday shows unchecked today, while streak/XP persist.
@@ -926,11 +937,28 @@ function AppProvider({ children }) {
     try { if (g && g.cloudId && _liveCloud()) window.bosCloud.deleteGoal(g.cloudId); } catch (e) {}
     return gs.filter(x => x.id !== id);
   });
+  const reorderGoals = (orderedIds) => setGoals(gs => {
+    const by = {}; gs.forEach(g => { by[g.id] = g; });
+    const next = [];
+    (orderedIds || []).forEach(id => { if (by[id]) { next.push(by[id]); delete by[id]; } });
+    gs.forEach(g => { if (by[g.id]) next.push(g); });
+    const out = next.map((g, i) => (g.sort === i ? g : { ...g, sort: i }));
+    try { if (_liveCloud()) out.forEach((g, i) => { const old = gs.find(x => x.id === g.id); if (g.cloudId && (!old || old.sort !== i)) window.bosCloud.upsertGoal(g); }); } catch (e) {}
+    return out;
+  });
 
   const [teams, setTeams] = useState(SEED_TEAMS);
   // New teams go to the TOP so the just-created one is immediately visible.
   const addTeam = (t) => { const nt = { progress: 0, members: [], habits: [], ...t, _id: _nid() }; setTeams(ts => [nt, ...ts]); return nt; };
   const removeTeam = (id) => setTeams(ts => ts.filter(t => t._id !== id));
+  // Teams persist in the snapshot blob (no per-row sort), so reorder is just the array order.
+  const reorderTeams = (orderedIds) => setTeams(ts => {
+    const by = {}; ts.forEach(t => { by[t._id] = t; });
+    const next = [];
+    (orderedIds || []).forEach(id => { if (by[id]) { next.push(by[id]); delete by[id]; } });
+    ts.forEach(t => { if (by[t._id]) next.push(t); });
+    return next;
+  });
   const updateTeam = (id, patch) => setTeams(ts => ts.map(t => t._id === id ? { ...t, ...patch } : t));
   const addTeamHabit = (teamId, h) => setTeams(ts => ts.map(t => {
     if (t._id !== teamId) return t;
@@ -1338,9 +1366,9 @@ function AppProvider({ children }) {
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,
     tourScreen, startScreenTour, guideDone, finishGuide,
     habits, goals,
-    toggleHabit, addHabit, updateHabit, removeHabit,
-    addGoal, updateGoal, removeGoal,
-    teams, addTeam, removeTeam, updateTeam, addTeamHabit, removeTeamHabit,
+    toggleHabit, addHabit, updateHabit, removeHabit, reorderHabits,
+    addGoal, updateGoal, removeGoal, reorderGoals,
+    teams, addTeam, removeTeam, updateTeam, reorderTeams, addTeamHabit, removeTeamHabit,
     communityView, setCommunityView,
   }}>{children}</AppStateCtx.Provider>;
 }

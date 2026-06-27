@@ -152,44 +152,49 @@ function HabitsLive() {
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать привычку</span>
           </button>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
-            {habits.map((h) => (
-              <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
-                <SwipeRow rowBg={rowBg} dark={isDark} actions={[
-                  { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />) },
-                  { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) }) },
-                ]}>
-                  <div className="tap"
-                    onClick={() => navigate("habit-detail", { habit: h, from: "habits" })}
-                    style={{ padding: "14px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
-                        {(h.friends?.length > 0 || h.duration > 0) && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 11, color: "var(--text-4)" }}>
-                            {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
-                            {h.duration > 0 && h.friends?.length > 0 && <span>·</span>}
-                            {h.friends?.length > 0 && <span>вместе</span>}
-                          </div>
-                        )}
-                      </div>
-                      {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
-                        <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
+          <BosReorderList ids={habits.map((h) => h.id)} onReorder={(o) => { if (app && app.reorderHabits) app.reorderHabits(o); }}
+            renderItem={(id, ctx) => {
+              const h = habits.find((x) => x.id === id); if (!h) return null;
+              const inner = (
+                <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
+                  style={{ padding: "14px 16px", pointerEvents: ctx.mode ? "none" : "auto" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                      {(h.friends?.length > 0 || h.duration > 0) && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 11, color: "var(--text-4)" }}>
+                          {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
+                          {h.duration > 0 && h.friends?.length > 0 && <span>·</span>}
+                          {h.friends?.length > 0 && <span>вместе</span>}
+                        </div>
                       )}
-                      {h.goalPerDay > 1
-                        ? <HabitCountCheck habit={h} app={app} xp={10} />
-                        : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12 }}>
-                      <HabitWeekStrip habit={h} />
-                      <HabitBuddyAvatarsLive habit={h} size={22} max={5} />
-                    </div>
+                    {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
+                      <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
+                    )}
+                    {h.goalPerDay > 1
+                      ? <HabitCountCheck habit={h} app={app} xp={10} />
+                      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
                   </div>
-                </SwipeRow>
-              </div>
-            ))}
-          </div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12 }}>
+                    <HabitWeekStrip habit={h} />
+                    <HabitBuddyAvatarsLive habit={h} size={22} max={5} />
+                  </div>
+                </div>
+              );
+              if (ctx.mode) return <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: rowBg }}>{inner}</div>;
+              return (
+                <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+                  <SwipeRow rowBg={rowBg} dark={isDark} actions={[
+                    { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />) },
+                    { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) }) },
+                  ]}>
+                    {inner}
+                  </SwipeRow>
+                </div>
+              );
+            }} />
         )
       )}
 
@@ -202,36 +207,40 @@ function HabitsLive() {
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Поставить цель</span>
           </button>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
-            {goals.map((g) => {
+          <BosReorderList ids={goals.map((g) => g.id)} onReorder={(o) => { if (app && app.reorderGoals) app.reorderGoals(o); }}
+            renderItem={(id, ctx) => {
+              const g = goals.find((x) => x.id === id); if (!g) return null;
               const pct = g.target > 0 ? g.current / g.target : 0;
+              const inner = (
+                <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" })}
+                  style={{ padding: "14px 16px", textAlign: "left", color: "var(--text)", pointerEvents: ctx.mode ? "none" : "auto" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji, 20, g.color)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15.5, color: "var(--text)", letterSpacing: "-0.2px", fontWeight: 600 }}>{g.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3, display: "flex", gap: 10 }}>
+                        <span>{g.current} / {g.target} {g.unit}</span>
+                        <span>·</span>
+                        <span>до {g.deadline}</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>
+                  </div>
+                  <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (Math.min(1, pct) * 100) + "%", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }}/></div>
+                </div>
+              );
+              if (ctx.mode) return <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>{inner}</div>;
               return (
-                <div key={g.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>
+                <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>
                   <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                     { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) },
                     { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) }) },
                   ]}>
-                  <button className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "habits" })}
-                    style={{ width: "100%", background: "transparent", border: 0, padding: "14px 16px", textAlign: "left", color: "var(--text)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji, 20, g.color)}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15.5, color: "var(--text)", letterSpacing: "-0.2px", fontWeight: 600 }}>{g.name}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3, display: "flex", gap: 10 }}>
-                          <span>{g.current} / {g.target} {g.unit}</span>
-                          <span>·</span>
-                          <span>до {g.deadline}</span>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>
-                    </div>
-                    <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (Math.min(1, pct) * 100) + "%", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }}/></div>
-                  </button>
+                    {inner}
                   </SwipeRow>
                 </div>
               );
-            })}
-          </div>
+            }} />
         )
       )}
 
@@ -247,9 +256,13 @@ function HabitsLive() {
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать команду</span>
           </button>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, color: "var(--text)" }}>
-            {teams.map((t, i) => <LiveTeamCard key={t._id || i} t={t} navigate={navigate} />)}
-            <button onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+          <>
+            <BosReorderList ids={teams.map((t) => t._id)} gap={12} onReorder={(o) => { if (app && app.reorderTeams) app.reorderTeams(o); }}
+              renderItem={(id, ctx) => {
+                const t = teams.find((x) => x._id === id); if (!t) return null;
+                return <div style={{ pointerEvents: ctx.mode ? "none" : "auto" }}><LiveTeamCard t={t} navigate={navigate} /></div>;
+              }} />
+            <button onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ marginTop: 12, width: "100%", color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
               <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,222,52,0.15)", display: "grid", placeItems: "center" }}>
                 <I.Plus size={22} color="#FEDE34"/>
               </span>
@@ -259,7 +272,7 @@ function HabitsLive() {
               </div>
               <I.ChevronRight size={18}/>
             </button>
-          </div>
+          </>
         )
       )}
 

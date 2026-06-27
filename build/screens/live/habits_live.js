@@ -319,130 +319,142 @@ function HabitsLive() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 16,
     strokeWidth: 2.5
-  }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      color: "var(--text)"
-    }
-  }, habits.map(h => /*#__PURE__*/React.createElement("div", {
-    key: h.id,
-    style: {
-      borderRadius: 22,
-      overflow: "hidden",
-      boxShadow: cardShadow
-    }
-  }, /*#__PURE__*/React.createElement(SwipeRow, {
-    rowBg: rowBg,
-    dark: isDark,
-    actions: [{
-      key: "share",
-      tone: "share",
-      label: "Поделиться",
-      icon: I.Share,
-      onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+  }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement(BosReorderList, {
+    ids: habits.map(h => h.id),
+    onReorder: o => {
+      if (app && app.reorderHabits) app.reorderHabits(o);
+    },
+    renderItem: (id, ctx) => {
+      var h = habits.find(x => x.id === id);
+      if (!h) return null;
+      var inner = /*#__PURE__*/React.createElement("div", {
+        className: ctx.mode ? "" : "tap",
+        onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
+          habit: h,
+          from: "habits"
+        }),
+        style: {
+          padding: "14px 16px",
+          pointerEvents: ctx.mode ? "none" : "auto"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 14
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
+          boxShadow: bosTileGlass(isDark),
+          display: "grid",
+          placeItems: "center",
+          fontSize: 20,
+          flexShrink: 0
+        }
+      }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 16,
+          fontWeight: 600,
+          color: "var(--text)",
+          letterSpacing: "-0.2px"
+        }
+      }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 3,
+          fontSize: 11,
+          color: "var(--text-4)"
+        }
+      }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3
+        }
+      }, /*#__PURE__*/React.createElement(I.Clock, {
+        size: 11
+      }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
         habit: h,
-        dark: isDark
-      }))
-    }, {
-      key: "del",
-      tone: "delete",
-      label: "Удалить",
-      icon: I.X,
-      onAction: () => bosConfirmDelete(openSheet, {
-        title: "Удалить привычку?",
-        message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
-        confirmLabel: "Удалить",
-        onConfirm: () => remove(h.id)
-      })
-    }]
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "tap",
-    onClick: () => navigate("habit-detail", {
-      habit: h,
-      from: "habits"
-    }),
-    style: {
-      padding: "14px 16px"
+        dark: isDark,
+        onComplete: () => {
+          if (!h.done) toggle(h.id);
+        }
+      }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+        habit: h,
+        app: app,
+        xp: 10
+      }) : /*#__PURE__*/React.createElement(HabitCheck, {
+        done: h.done,
+        onToggle: () => toggle(h.id),
+        xp: 10,
+        float: true
+      })), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          marginTop: 12
+        }
+      }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
+        habit: h
+      }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+        habit: h,
+        size: 22,
+        max: 5
+      })));
+      if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow,
+          background: rowBg
+        }
+      }, inner);
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: rowBg,
+        dark: isDark,
+        actions: [{
+          key: "share",
+          tone: "share",
+          label: "Поделиться",
+          icon: I.Share,
+          onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+            habit: h,
+            dark: isDark
+          }))
+        }, {
+          key: "del",
+          tone: "delete",
+          label: "Удалить",
+          icon: I.X,
+          onAction: () => bosConfirmDelete(openSheet, {
+            title: "Удалить привычку?",
+            message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
+            confirmLabel: "Удалить",
+            onConfirm: () => remove(h.id)
+          })
+        }]
+      }, inner));
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 14
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 14,
-      background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
-      boxShadow: bosTileGlass(isDark),
-      display: "grid",
-      placeItems: "center",
-      fontSize: 20,
-      flexShrink: 0
-    }
-  }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 600,
-      color: "var(--text)",
-      letterSpacing: "-0.2px"
-    }
-  }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      marginTop: 3,
-      fontSize: 11,
-      color: "var(--text-4)"
-    }
-  }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 3
-    }
-  }, /*#__PURE__*/React.createElement(I.Clock, {
-    size: 11
-  }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
-    habit: h,
-    dark: isDark,
-    onComplete: () => {
-      if (!h.done) toggle(h.id);
-    }
-  }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
-    habit: h,
-    app: app,
-    xp: 10
-  }) : /*#__PURE__*/React.createElement(HabitCheck, {
-    done: h.done,
-    onToggle: () => toggle(h.id),
-    xp: 10,
-    float: true
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 10,
-      marginTop: 12
-    }
-  }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
-    habit: h
-  }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
-    habit: h,
-    size: 22,
-    max: 5
-  })))))))), tab === "goals" && (goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  })), tab === "goals" && (goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"
@@ -499,118 +511,125 @@ function HabitsLive() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 16,
     strokeWidth: 2.5
-  }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      color: "var(--text)"
-    }
-  }, goals.map(g => {
-    var pct = g.target > 0 ? g.current / g.target : 0;
-    return /*#__PURE__*/React.createElement("div", {
-      key: g.id,
-      style: {
-        borderRadius: 22,
-        overflow: "hidden",
-        boxShadow: cardShadow,
-        background: TH.cardBg
-      }
-    }, /*#__PURE__*/React.createElement(SwipeRow, {
-      rowBg: rowBg,
-      dark: isDark,
-      actions: [{
-        key: "share",
-        tone: "share",
-        label: "Поделиться",
-        icon: I.Share,
-        onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+  }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement(BosReorderList, {
+    ids: goals.map(g => g.id),
+    onReorder: o => {
+      if (app && app.reorderGoals) app.reorderGoals(o);
+    },
+    renderItem: (id, ctx) => {
+      var g = goals.find(x => x.id === id);
+      if (!g) return null;
+      var pct = g.target > 0 ? g.current / g.target : 0;
+      var inner = /*#__PURE__*/React.createElement("div", {
+        className: ctx.mode ? "" : "tap",
+        onClick: ctx.mode ? undefined : () => navigate("goal-detail", {
           goal: g,
-          dark: isDark
-        }))
-      }, {
-        key: "del",
-        tone: "delete",
-        label: "Удалить",
-        icon: I.X,
-        onAction: () => bosConfirmDelete(openSheet, {
-          title: "Удалить цель?",
-          message: "«" + g.name + "» удалится навсегда.",
-          confirmLabel: "Удалить",
-          onConfirm: () => removeGoal(g.id)
-        })
-      }]
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "tap",
-      onClick: () => navigate("goal-detail", {
-        goal: g,
-        from: "habits"
-      }),
-      style: {
-        width: "100%",
-        background: "transparent",
-        border: 0,
-        padding: "14px 16px",
-        textAlign: "left",
-        color: "var(--text)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 14
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 40,
-        height: 40,
-        borderRadius: 14,
-        background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg),
-        boxShadow: bosTileGlass(isDark),
-        display: "grid",
-        placeItems: "center",
-        fontSize: 20,
-        flexShrink: 0
-      }
-    }, bosIcon(g.emoji, 20, g.color)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15.5,
-        color: "var(--text)",
-        letterSpacing: "-0.2px",
-        fontWeight: 600
-      }
-    }, g.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "var(--text-4)",
-        marginTop: 3,
-        display: "flex",
-        gap: 10
-      }
-    }, /*#__PURE__*/React.createElement("span", null, g.current, " / ", g.target, " ", g.unit), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, "\u0434\u043E ", g.deadline))), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: "var(--text-2)",
-        flexShrink: 0
-      }
-    }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {
-      className: "bos-progress",
-      style: {
-        marginTop: 10
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: Math.min(1, pct) * 100 + "%",
-        background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
-      }
-    })))));
-  }))), tab === "teams" && (teams.length === 0 ? /*#__PURE__*/React.createElement("button", {
+          from: "habits"
+        }),
+        style: {
+          padding: "14px 16px",
+          textAlign: "left",
+          color: "var(--text)",
+          pointerEvents: ctx.mode ? "none" : "auto"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 14
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg),
+          boxShadow: bosTileGlass(isDark),
+          display: "grid",
+          placeItems: "center",
+          fontSize: 20,
+          flexShrink: 0
+        }
+      }, bosIcon(g.emoji, 20, g.color)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 15.5,
+          color: "var(--text)",
+          letterSpacing: "-0.2px",
+          fontWeight: 600
+        }
+      }, g.name), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "var(--text-4)",
+          marginTop: 3,
+          display: "flex",
+          gap: 10
+        }
+      }, /*#__PURE__*/React.createElement("span", null, g.current, " / ", g.target, " ", g.unit), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, "\u0434\u043E ", g.deadline))), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 14,
+          fontWeight: 700,
+          color: "var(--text-2)",
+          flexShrink: 0
+        }
+      }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {
+        className: "bos-progress",
+        style: {
+          marginTop: 10
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: Math.min(1, pct) * 100 + "%",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
+        }
+      })));
+      if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow,
+          background: TH.cardBg
+        }
+      }, inner);
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow,
+          background: TH.cardBg
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: rowBg,
+        dark: isDark,
+        actions: [{
+          key: "share",
+          tone: "share",
+          label: "Поделиться",
+          icon: I.Share,
+          onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+            goal: g,
+            dark: isDark
+          }))
+        }, {
+          key: "del",
+          tone: "delete",
+          label: "Удалить",
+          icon: I.X,
+          onAction: () => bosConfirmDelete(openSheet, {
+            title: "Удалить цель?",
+            message: "«" + g.name + "» удалится навсегда.",
+            confirmLabel: "Удалить",
+            onConfirm: () => removeGoal(g.id)
+          })
+        }]
+      }, inner));
+    }
+  })), tab === "teams" && (teams.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("team-create"),
     style: {
@@ -665,21 +684,30 @@ function HabitsLive() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 16,
     strokeWidth: 2.5
-  }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443")) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12,
-      color: "var(--text)"
+  }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(BosReorderList, {
+    ids: teams.map(t => t._id),
+    gap: 12,
+    onReorder: o => {
+      if (app && app.reorderTeams) app.reorderTeams(o);
+    },
+    renderItem: (id, ctx) => {
+      var t = teams.find(x => x._id === id);
+      if (!t) return null;
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          pointerEvents: ctx.mode ? "none" : "auto"
+        }
+      }, /*#__PURE__*/React.createElement(LiveTeamCard, {
+        t: t,
+        navigate: navigate
+      }));
     }
-  }, teams.map((t, i) => /*#__PURE__*/React.createElement(LiveTeamCard, {
-    key: t._id || i,
-    t: t,
-    navigate: navigate
-  })), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("team-create"),
     className: "tap team-new-cta",
     style: {
+      marginTop: 12,
+      width: "100%",
       color: "#fff",
       border: 0,
       borderRadius: 22,
