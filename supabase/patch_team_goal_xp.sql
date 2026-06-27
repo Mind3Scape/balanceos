@@ -42,6 +42,11 @@ create policy tgs_award on public.team_goal_settlements for insert to authentica
   user_id = auth.uid()
 );
 
+-- Доступ роли + ПЕРЕЗАГРУЗКА кэша схемы PostgREST (иначе REST отдаёт PGRST205 «таблицы нет»
+-- даже когда она есть — классическая ловушка после DDL). Делает re-run надёжным.
+grant select, insert on public.team_goal_settlements to authenticated;
+notify pgrst, 'reload schema';
+
 -- Готово. Клиент: teamGoalProgress отдаёт stake/bank/done; settleTeamGoal вставляет твою
 -- строку при current >= target (co-op: +ставка; гонка: лидер +банк), идемпотентно;
 -- myTeamGoalXP суммирует твои выплаты в показываемый уровень.

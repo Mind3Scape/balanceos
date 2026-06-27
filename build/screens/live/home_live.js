@@ -704,7 +704,7 @@ function HomeLive() {
   }), " ", h.duration, " \u043C\u0438\u043D"), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
     habit: h,
     size: 16,
-    max: 3
+    max: 5
   }))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
     habit: h,
     dark: isDark,

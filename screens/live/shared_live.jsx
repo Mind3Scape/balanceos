@@ -579,7 +579,10 @@ function JoinWelcomeLive({ info, onClose }) {
 /* Real shared-habit buddies (cloud) for the habit CARDS — fills the side slot with the ACTUAL
    people you share the habit with (their real avatars), replacing the legacy empty h.friends.
    Falls back to h.friends only for a local (no-shareCode) habit. LIVE only. */
-function HabitBuddyAvatarsLive({ habit, size = 22, max = 4 }) {
+// Overlapping stack of REAL buddy faces with a graceful overflow: show up to `max` people, then a
+// matching «+N» disc for everyone who didn't fit (David: «не 23 кружка — до пяти, потом +N»). 5
+// reads cleanly on the compact cards; 10+ crowds them.
+function HabitBuddyAvatarsLive({ habit, size = 22, max = 5 }) {
   const code = habit && habit.shareCode;
   const members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
   // ONLY real shared-habit buddies (real avatars). No legacy h.friends letter-avatars — those
@@ -588,14 +591,15 @@ function HabitBuddyAvatarsLive({ habit, size = 22, max = 4 }) {
   const others = (members || []).filter((m) => !m.me);
   if (!others.length) return null;
   const shown = others.slice(0, max), extra = others.length - shown.length;
+  const ov = Math.round(size * 0.32); // overlap proportional to size
   return (
     <div style={{ display: "flex", alignItems: "center" }} aria-hidden>
       {shown.map((m, i) => (
-        <span key={m.id} style={{ marginLeft: i ? -7 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)", display: "block" }}>
+        <span key={m.id} style={{ marginLeft: i ? -ov : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)", display: "block" }}>
           <BuddyFaceLive avatar={m.avatar} name={m.name} size={size} />
         </span>
       ))}
-      {extra > 0 && <span style={{ marginLeft: -7, width: size, height: size, borderRadius: "50%", background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: Math.round(size * 0.42), fontWeight: 700, display: "grid", placeItems: "center", boxShadow: "0 0 0 2px var(--card, #fff)" }}>+{extra}</span>}
+      {extra > 0 && <span style={{ marginLeft: -ov, width: size, height: size, borderRadius: "50%", background: "rgba(0,0,0,0.58)", color: "#fff", fontSize: Math.round(size * 0.4), fontWeight: 700, letterSpacing: "-0.5px", display: "grid", placeItems: "center", boxShadow: "0 0 0 2px var(--card, #fff)" }}>+{extra}</span>}
     </div>
   );
 }

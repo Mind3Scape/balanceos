@@ -375,7 +375,7 @@ function HabitsLive() {
   }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
     habit: h,
     size: 22,
-    max: 4
+    max: 5
   }))))))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {

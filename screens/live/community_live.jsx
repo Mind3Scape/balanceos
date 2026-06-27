@@ -580,9 +580,11 @@ function TeamDetailLive() {
               ))}
             </div>
           );
+          const FCAP = 10; // full-width team card fits ~10 faces, then a «+N» disc for the rest
+          const fShown = faces.slice(0, FCAP), fExtra = faces.length - fShown.length;
           return (
             <div style={{ display: "flex", gap: 7, marginTop: 12, flexWrap: "wrap" }}>
-              {faces.map((m) => {
+              {fShown.map((m) => {
                 const did = !!doneSet[m.id] || (m.id === meId && main.doneByMe);
                 return (
                   <span key={m.id} style={{ position: "relative", display: "block", opacity: did ? 1 : 0.4 }}>
@@ -591,6 +593,7 @@ function TeamDetailLive() {
                   </span>
                 );
               })}
+              {fExtra > 0 && <span style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.16)", color: "#0a0a0a", fontSize: 11, fontWeight: 800, letterSpacing: "-0.5px", display: "grid", placeItems: "center" }}>+{fExtra}</span>}
             </div>
           );
         })()}

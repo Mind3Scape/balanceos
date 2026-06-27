@@ -1528,10 +1528,13 @@ function JoinWelcomeLive({
 /* Real shared-habit buddies (cloud) for the habit CARDS — fills the side slot with the ACTUAL
    people you share the habit with (their real avatars), replacing the legacy empty h.friends.
    Falls back to h.friends only for a local (no-shareCode) habit. LIVE only. */
+// Overlapping stack of REAL buddy faces with a graceful overflow: show up to `max` people, then a
+// matching «+N» disc for everyone who didn't fit (David: «не 23 кружка — до пяти, потом +N»). 5
+// reads cleanly on the compact cards; 10+ crowds them.
 function HabitBuddyAvatarsLive({
   habit,
   size = 22,
-  max = 4
+  max = 5
 }) {
   var code = habit && habit.shareCode;
   var members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
@@ -1542,6 +1545,7 @@ function HabitBuddyAvatarsLive({
   if (!others.length) return null;
   var shown = others.slice(0, max),
     extra = others.length - shown.length;
+  var ov = Math.round(size * 0.32); // overlap proportional to size
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -1551,7 +1555,7 @@ function HabitBuddyAvatarsLive({
   }, shown.map((m, i) => /*#__PURE__*/React.createElement("span", {
     key: m.id,
     style: {
-      marginLeft: i ? -7 : 0,
+      marginLeft: i ? -ov : 0,
       borderRadius: "50%",
       boxShadow: "0 0 0 2px var(--card, #fff)",
       display: "block"
@@ -1562,14 +1566,15 @@ function HabitBuddyAvatarsLive({
     size: size
   }))), extra > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
-      marginLeft: -7,
+      marginLeft: -ov,
       width: size,
       height: size,
       borderRadius: "50%",
-      background: "rgba(0,0,0,0.55)",
+      background: "rgba(0,0,0,0.58)",
       color: "#fff",
-      fontSize: Math.round(size * 0.42),
+      fontSize: Math.round(size * 0.4),
       fontWeight: 700,
+      letterSpacing: "-0.5px",
       display: "grid",
       placeItems: "center",
       boxShadow: "0 0 0 2px var(--card, #fff)"

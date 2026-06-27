@@ -156,7 +156,7 @@ function HabitsLive() {
                       richer bottom row lives only on the Привычки page (David). */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12 }}>
                     <HabitWeekStrip habit={h} />
-                    <HabitBuddyAvatarsLive habit={h} size={22} max={4} />
+                    <HabitBuddyAvatarsLive habit={h} size={22} max={5} />
                   </div>
                 </div>
               </SwipeRow>

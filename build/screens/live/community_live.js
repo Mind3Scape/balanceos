@@ -1438,6 +1438,9 @@ function TeamDetailLive() {
         fontWeight: 700
       }
     }, i < main.doneToday ? "✓" : "")));
+    var FCAP = 10; // full-width team card fits ~10 faces, then a «+N» disc for the rest
+    var fShown = faces.slice(0, FCAP),
+      fExtra = faces.length - fShown.length;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
@@ -1445,7 +1448,7 @@ function TeamDetailLive() {
         marginTop: 12,
         flexWrap: "wrap"
       }
-    }, faces.map(m => {
+    }, fShown.map(m => {
       var did = !!doneSet[m.id] || m.id === meId && main.doneByMe;
       return /*#__PURE__*/React.createElement("span", {
         key: m.id,
@@ -1475,7 +1478,20 @@ function TeamDetailLive() {
           boxShadow: "0 0 0 1.5px #FEDE34"
         }
       }, "\u2713"));
-    }));
+    }), fExtra > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 28,
+        height: 28,
+        borderRadius: "50%",
+        background: "rgba(0,0,0,0.16)",
+        color: "#0a0a0a",
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: "-0.5px",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, "+", fExtra));
   })(), _rosterLive && /*#__PURE__*/React.createElement("button", {
     onClick: () => toggleMyTeamHabit(main),
     className: "tap",

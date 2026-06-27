@@ -284,7 +284,7 @@ function HomeLive() {
                     {(h.shareCode || h.duration > 0) && (
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
                         {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
-                        <HabitBuddyAvatarsLive habit={h} size={16} max={3} />
+                        <HabitBuddyAvatarsLive habit={h} size={16} max={5} />
                       </div>
                     )}
                   </div>
