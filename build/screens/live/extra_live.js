@@ -181,7 +181,17 @@ function HabitDetailLive() {
     color: h.color || "#FEDE34",
     you: true
   }];
-  var habitFrac = _shared ? (pi, d, mi) => buddies[pi] && buddies[pi].days[_calKey(d, mi)] ? 1 : 0 : (pi, d, mi) => _log[_calKey(d, mi)] ? 1 : 0;
+  // For a SHARED habit, YOUR row reads the PERSONAL log (h.log) — the complete source of truth for
+  // your own check-ins — while buddies read the cloud shared log. Without this YOUR calendar showed
+  // only today (David: «серия 4, а на календаре только сегодня»): check-ins aren't mirrored into
+  // shared_habit_logs, so buddies[me].days was empty for your past days even though the streak (from
+  // h.log) was right. (Mirroring check-ins so BUDDIES see your days is a separate, deeper fix.)
+  var habitFrac = _shared ? (pi, d, mi) => {
+    var m = buddies[pi];
+    if (!m) return 0;
+    var k = _calKey(d, mi);
+    return (m.me ? _log[k] || m.days[k] : m.days[k]) ? 1 : 0;
+  } : (pi, d, mi) => _log[_calKey(d, mi)] ? 1 : 0;
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
