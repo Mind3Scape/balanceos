@@ -1552,45 +1552,7 @@ function AchievementsLive() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u044F",
     onBack: () => navigate(back)
-  }), /*#__PURE__*/React.createElement(SysCard, {
-    style: {
-      padding: 18,
-      borderRadius: 22
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      letterSpacing: 1.2,
-      fontWeight: 700
-    }
-  }, "\u0422\u0432\u043E\u0438 \u043D\u0430\u0433\u0440\u0430\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "baseline",
-      gap: 8,
-      marginTop: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 30,
-      fontWeight: 800,
-      letterSpacing: "-0.6px"
-    }
-  }, earnedN), /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-text-2",
-    style: {
-      fontSize: 14
-    }
-  }, "\u0438\u0437 ", LIST.length, " \u043E\u0442\u043A\u0440\u044B\u0442\u043E")), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-2",
-    style: {
-      fontSize: 13,
-      lineHeight: 1.5,
-      marginTop: 6
-    }
-  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0434\u0430\u0451\u0442 \u0431\u043E\u043D\u0443\u0441 XP", _achXP > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 \u0442\u044B \u0443\u0436\u0435 \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043B ", /*#__PURE__*/React.createElement("b", null, "+", _achXP, " XP"), ".") : /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 \u043E\u0442\u043A\u0440\u043E\u0439 \u043F\u0435\u0440\u0432\u0443\u044E."))), CATS.map(cat => {
+  }), CATS.map(cat => {
     var items = cat.ids.map(id => byId[id]).filter(Boolean);
     if (!items.length) return null;
     var got = items.filter(a => a.earned).length;

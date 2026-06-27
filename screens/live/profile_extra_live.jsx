@@ -685,19 +685,7 @@ function AchievementsLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Достижения" onBack={() => navigate(back)} />
 
-      {/* Hero — real earned count + XP from the ladder */}
-      <SysCard style={{ padding: 18, borderRadius: 22 }}>
-        <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700 }}>Твои награды</div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
-          <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.6px" }}>{earnedN}</span>
-          <span className="bos-sys-text-2" style={{ fontSize: 14 }}>из {LIST.length} открыто</span>
-        </div>
-        <div className="bos-sys-text-2" style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
-          Каждая награда даёт бонус XP{_achXP > 0 ? <> — ты уже заработал <b>+{_achXP} XP</b>.</> : <> — открой первую.</>}
-        </div>
-      </SysCard>
-
-      {/* Category ladders — tap a badge for its detail */}
+      {/* Category ladders — straight to the badges (David: no «Твои награды» banner) */}
       {CATS.map((cat) => {
         const items = cat.ids.map((id) => byId[id]).filter(Boolean);
         if (!items.length) return null;

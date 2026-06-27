@@ -37,7 +37,7 @@ function ProfileLive() {
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
         window.bosCloud.invitedPeople().then((list) => {
-          if (on && Array.isArray(list)) setLivePeople(list.map((p) => ({ avatar: (p && p.avatar) || "default" })));
+          if (on && Array.isArray(list)) setLivePeople(list.map((p) => ({ avatar: (p && p.avatar) || "default", name: (p && (p.username || p.name)) || "" })));
         }).catch(() => {});
       }
     } catch (e) {}
@@ -85,8 +85,8 @@ function ProfileLive() {
         </div>
       </div>
 
-      <SysCard className="tap" onClick={() => navigate("achievements", { from: "profile" })} style={{ marginTop: 22, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-        <span style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(254,222,52,0.16)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
+      <SysCard className="tap" onClick={() => navigate("achievements", { from: "profile" })} style={{ marginTop: 12, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
+        <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Достижения</div>
           <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>
@@ -101,7 +101,7 @@ function ProfileLive() {
 
       {/* Друзья — твои приглашённые на орбите (поднято из Настроек к орбу) */}
       <SysCard className="tap" onClick={() => openSheet(<FriendsSheetLive dark={app?.themeOverride === "dark"} />)} style={{ marginTop: 12, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-        <span style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(95,168,255,0.16)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🪐</span>
+        <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🪐</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Друзья</div>
           <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>
@@ -109,8 +109,8 @@ function ProfileLive() {
           </div>
         </div>
         {livePeople.length > 0 && (
-          <div style={{ display: "flex", marginRight: 4 }}>
-            {livePeople.slice(0, 4).map((p, i) => <span key={i} style={{ marginLeft: i ? -8 : 0 }}><BosAvatar avatar={p.avatar} size={26} style={{ border: "1.5px solid var(--card)" }} /></span>)}
+          <div style={{ marginRight: 4, flexShrink: 0 }}>
+            <PeopleStackLive people={livePeople} size={26} max={4} />
           </div>
         )}
         <I.ChevronRight size={18} className="bos-sys-text-2"/>

@@ -44,7 +44,8 @@ function ProfileLive() {
       if (window.bosCloud && window.bosCloud.enabled()) {
         window.bosCloud.invitedPeople().then(list => {
           if (on && Array.isArray(list)) setLivePeople(list.map(p => ({
-            avatar: p && p.avatar || "default"
+            avatar: p && p.avatar || "default",
+            name: p && (p.username || p.name) || ""
           })));
         }).catch(() => {});
       }
@@ -193,7 +194,7 @@ function ProfileLive() {
       from: "profile"
     }),
     style: {
-      marginTop: 22,
+      marginTop: 12,
       padding: 14,
       display: "flex",
       alignItems: "center",
@@ -201,11 +202,11 @@ function ProfileLive() {
       cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
     style: {
       width: 42,
       height: 42,
       borderRadius: 14,
-      background: "rgba(254,222,52,0.16)",
       display: "grid",
       placeItems: "center",
       fontSize: 22,
@@ -263,11 +264,11 @@ function ProfileLive() {
       cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
     style: {
       width: 42,
       height: 42,
       borderRadius: 14,
-      background: "rgba(95,168,255,0.16)",
       display: "grid",
       placeItems: "center",
       fontSize: 22,
@@ -292,21 +293,14 @@ function ProfileLive() {
     }
   }, livePeople.length > 0 ? livePeople.length + (livePeople.length === 1 ? " человек на орбите" : " на твоей орбите") : "Позови первого — он появится на орбите")), livePeople.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      marginRight: 4
+      marginRight: 4,
+      flexShrink: 0
     }
-  }, livePeople.slice(0, 4).map((p, i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      marginLeft: i ? -8 : 0
-    }
-  }, /*#__PURE__*/React.createElement(BosAvatar, {
-    avatar: p.avatar,
+  }, /*#__PURE__*/React.createElement(PeopleStackLive, {
+    people: livePeople,
     size: 26,
-    style: {
-      border: "1.5px solid var(--card)"
-    }
-  })))), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    max: 4
+  })), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
     className: "bos-sys-text-2"
   })), /*#__PURE__*/React.createElement("div", {
