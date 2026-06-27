@@ -104,7 +104,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
   // Ring STRUCTURE (sort by streak, build nodes, assign even angular spread, ring set)
   // depends ONLY on [habits, people] — memo it so it isn't rebuilt on every animation frame;
   // only the per-frame positions (cos/sin of t, below) recompute each tick.
-  const MAXR = 3; // belts you can see; the rest fold into a "+N" whisper at the edge
+  const MAXR = 2; // 3 belts, like the onboarding cosmos; the rest fold into a "+N" whisper
   const { nodes, drawRings, maxStreak } = React.useMemo(() => {
     // Strongest habit first → inner belt + bigger; people by invite order (1st = closest).
     const hb = (habits || []).slice().sort((a, b) => (b.streak || 0) - (a.streak || 0));
@@ -112,7 +112,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
     const maxStreak = hb.reduce((m, h) => Math.max(m, h.streak || 0), 1);
     // A2 — BELTS: one ring holds MANY (4,8,12,16…), so 10 habits + 50 friends stay calm
     // instead of becoming 60 rings. Habits fill inner belts, people the belts just outside.
-    const cap = (r) => 4 + r * 4;
+    const cap = (r) => 6 + r * 6; // a belt holds many (6,12,18) — scales to dozens
     const nodes = [];
     let ring = 0, slot = 0, overflow = 0;
     const place = (mk) => {
@@ -132,12 +132,14 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
     return { nodes, drawRings, maxStreak };
   }, [habits, people]);
 
-  const RBASE = 82, RSTEP = 26;
+  // Proportions mirror the onboarding cosmos: rings 72/104/136, spacing 32 (icons ≤15 → never
+  // overlap across belts), all in-frame so nothing clips at the edge.
+  const RBASE = 72, RSTEP = 32;
   const radius = (ring) => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
   const spin = (ring) => ((ring % 2) ? -1 : 1) * 0.06 / (1 + ring * 0.18);
-  // A3 — softer fade: outer belts whisper toward the edge but never fully vanish (floor ~0.34),
-  // so a power user with many belts still senses the whole cosmos instead of losing it to black.
-  const fadeAt = (R) => clamp(1 - (R - 150) / 150, 0.34, 1);
+  // Like onboarding: the faces/planets stay FULL opacity; only the thin ring lines + dust
+  // whisper a little outward. fadeAt is mild and used ONLY for those, never the icons.
+  const fadeAt = (R) => clamp(1 - (R - 140) / 240, 0.6, 1);
 
   const tint = (typeof tintFromMood === "function") ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
   const glow = tint[1];
@@ -162,7 +164,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
 
   return (
     <div style={{ position: "relative", width: "100%", height: 300, margin: "0 auto", overflow: "visible" }}>
-      <svg viewBox="-178 -178 356 356" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none" }}>
+      <svg viewBox="-160 -160 320 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none", overflow: "visible" }}>
         <defs>
           <clipPath id="orbAvClip"><circle cx="0" cy="0" r="16" /></clipPath>
           <filter id="orbShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="2.2" floodColor="#000" floodOpacity="0.16" /></filter>
@@ -170,7 +172,7 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
 
         {/* concentric orbits */}
         {drawRings.map((r) => {
-          const R = radius(r), op = (dark ? 0.22 : 0.26 - r * 0.03) * eo * fadeAt(R);
+          const R = radius(r), op = ((dark ? 0.20 : 0.17) - r * 0.035) * eo * fadeAt(R);
           return op <= 0.004 ? null :
             <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(" + PAL.ring + "," + op.toFixed(3) + ")"} strokeWidth="1" />;
         })}
@@ -204,12 +206,11 @@ function OrbitField({ avatar, habits = [], people = [], levelPct = 2, onTap, moo
         {nodes.map((n) => {
           const R = radius(n.ring), ang = n.baseAng + t * spin(n.ring);
           const x = Math.cos(ang) * R, y = Math.sin(ang) * R;
-          const op = clamp(eo * fadeAt(R), 0, 1); if (op <= 0.02) return null;
-          // A1 — meaning in size: a habit grows with its streak (the more you keep it, the
-          // bigger/closer it reads); a person grows with closeness; the "+N" whisper is fixed.
-          const sz = n.kind === "h" ? lerp(11, 18, clamp((n.streak || 0) / maxStreak, 0, 1))
-            : n.kind === "more" ? 15
-            : lerp(16, 10, clamp(n.ring / MAXR, 0, 1));
+          const op = clamp(eo, 0, 1); if (op <= 0.02) return null; // faces stay crisp (onboarding-style)
+          // Size by belt (inner = bigger). Capped ≤15 with 32px belt spacing → adjacent belts
+          // never overlap (the thing David disliked on onboarding). Meaning survives: strongest
+          // habits sit on the inner belt, so they read biggest.
+          const sz = n.kind === "more" ? 13 : lerp(15, 11, clamp(n.ring / 2, 0, 1));
           const pop = smooth((t - n.ring * 0.08) / 0.5);      // inner rings settle first
           const gs = ((sz / 16) * pop).toFixed(3);            // canonical r=16, scaled per ring
           if (n.kind === "more") {

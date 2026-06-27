@@ -60,32 +60,11 @@ function ProfileLive() {
       <I.ChevronRight size={18} className="bos-sys-text-2" />
     </button>
   );
-  const heroRef = React.useRef(null);
-  // A4 — the cosmos recedes into opacity as you scroll into the menu (David: «уводить в opacity»).
-  // Pure opacity/transform on a ref (no reflow → no jank); the top rubber-band is native to
-  // .bos-page. Safe no-op if the scroll parent isn't found.
-  React.useEffect(() => {
-    const el = heroRef.current; if (!el) return;
-    const sc = el.closest(".bos-page"); if (!sc) return;
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const k = Math.min(1, Math.max(0, sc.scrollTop) / 240);
-        el.style.opacity = String(1 - 0.85 * k);
-        el.style.transform = "translateY(" + (-28 * k).toFixed(1) + "px) scale(" + (1 - 0.06 * k).toFixed(3) + ")";
-      });
-    };
-    sc.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => { sc.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
-  }, []);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader onBack={() => navigate("home")} title="" />
 
-      <div ref={heroRef} style={{ textAlign: "center", marginTop: 4, transformOrigin: "50% 0", willChange: "opacity, transform" }}>
+      <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
         <OrbitField avatar={app?.avatar} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} onTap={openAvatar} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 2, background: "#0a0a0a", color: "#FEDE34", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, padding: "4px 12px", borderRadius: 999 }}>

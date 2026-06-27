@@ -340,7 +340,7 @@ function OrbitField({
   // Ring STRUCTURE (sort by streak, build nodes, assign even angular spread, ring set)
   // depends ONLY on [habits, people] — memo it so it isn't rebuilt on every animation frame;
   // only the per-frame positions (cos/sin of t, below) recompute each tick.
-  var MAXR = 3; // belts you can see; the rest fold into a "+N" whisper at the edge
+  var MAXR = 2; // 3 belts, like the onboarding cosmos; the rest fold into a "+N" whisper
   var {
     nodes,
     drawRings,
@@ -352,7 +352,7 @@ function OrbitField({
     var maxStreak = hb.reduce((m, h) => Math.max(m, h.streak || 0), 1);
     // A2 — BELTS: one ring holds MANY (4,8,12,16…), so 10 habits + 50 friends stay calm
     // instead of becoming 60 rings. Habits fill inner belts, people the belts just outside.
-    var cap = r => 4 + r * 4;
+    var cap = r => 6 + r * 6; // a belt holds many (6,12,18) — scales to dozens
     var nodes = [];
     var ring = 0,
       slot = 0,
@@ -411,13 +411,16 @@ function OrbitField({
       maxStreak
     };
   }, [habits, people]);
-  var RBASE = 82,
-    RSTEP = 26;
+
+  // Proportions mirror the onboarding cosmos: rings 72/104/136, spacing 32 (icons ≤15 → never
+  // overlap across belts), all in-frame so nothing clips at the edge.
+  var RBASE = 72,
+    RSTEP = 32;
   var radius = ring => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
   var spin = ring => (ring % 2 ? -1 : 1) * 0.06 / (1 + ring * 0.18);
-  // A3 — softer fade: outer belts whisper toward the edge but never fully vanish (floor ~0.34),
-  // so a power user with many belts still senses the whole cosmos instead of losing it to black.
-  var fadeAt = R => clamp(1 - (R - 150) / 150, 0.34, 1);
+  // Like onboarding: the faces/planets stay FULL opacity; only the thin ring lines + dust
+  // whisper a little outward. fadeAt is mild and used ONLY for those, never the icons.
+  var fadeAt = R => clamp(1 - (R - 140) / 240, 0.6, 1);
   var tint = typeof tintFromMood === "function" ? tintFromMood(moodC) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
   var glow = tint[1];
   // The centre orb's glossy shell already paints the default sphere face. Only nest a
@@ -460,7 +463,7 @@ function OrbitField({
       overflow: "visible"
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    viewBox: "-178 -178 356 356",
+    viewBox: "-160 -160 320 320",
     width: "100%",
     height: "100%",
     preserveAspectRatio: "xMidYMid meet",
@@ -468,7 +471,8 @@ function OrbitField({
       position: "absolute",
       inset: 0,
       display: "block",
-      pointerEvents: "none"
+      pointerEvents: "none",
+      overflow: "visible"
     }
   }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
     id: "orbAvClip"
@@ -490,7 +494,7 @@ function OrbitField({
     floodOpacity: "0.16"
   }))), drawRings.map(r => {
     var R = radius(r),
-      op = (dark ? 0.22 : 0.26 - r * 0.03) * eo * fadeAt(R);
+      op = ((dark ? 0.20 : 0.17) - r * 0.035) * eo * fadeAt(R);
     return op <= 0.004 ? null : /*#__PURE__*/React.createElement("circle", {
       key: "ring" + r,
       cx: "0",
@@ -555,11 +559,12 @@ function OrbitField({
       ang = n.baseAng + t * spin(n.ring);
     var x = Math.cos(ang) * R,
       y = Math.sin(ang) * R;
-    var op = clamp(eo * fadeAt(R), 0, 1);
-    if (op <= 0.02) return null;
-    // A1 — meaning in size: a habit grows with its streak (the more you keep it, the
-    // bigger/closer it reads); a person grows with closeness; the "+N" whisper is fixed.
-    var sz = n.kind === "h" ? lerp(11, 18, clamp((n.streak || 0) / maxStreak, 0, 1)) : n.kind === "more" ? 15 : lerp(16, 10, clamp(n.ring / MAXR, 0, 1));
+    var op = clamp(eo, 0, 1);
+    if (op <= 0.02) return null; // faces stay crisp (onboarding-style)
+    // Size by belt (inner = bigger). Capped ≤15 with 32px belt spacing → adjacent belts
+    // never overlap (the thing David disliked on onboarding). Meaning survives: strongest
+    // habits sit on the inner belt, so they read biggest.
+    var sz = n.kind === "more" ? 13 : lerp(15, 11, clamp(n.ring / 2, 0, 1));
     var pop = smooth((t - n.ring * 0.08) / 0.5); // inner rings settle first
     var gs = (sz / 16 * pop).toFixed(3); // canonical r=16, scaled per ring
     if (n.kind === "more") {

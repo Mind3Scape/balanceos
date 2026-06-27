@@ -104,34 +104,6 @@ function ProfileLive() {
     size: 18,
     className: "bos-sys-text-2"
   }));
-  var heroRef = React.useRef(null);
-  // A4 — the cosmos recedes into opacity as you scroll into the menu (David: «уводить в opacity»).
-  // Pure opacity/transform on a ref (no reflow → no jank); the top rubber-band is native to
-  // .bos-page. Safe no-op if the scroll parent isn't found.
-  React.useEffect(() => {
-    var el = heroRef.current;
-    if (!el) return;
-    var sc = el.closest(".bos-page");
-    if (!sc) return;
-    var raf = 0;
-    var onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        var k = Math.min(1, Math.max(0, sc.scrollTop) / 240);
-        el.style.opacity = String(1 - 0.85 * k);
-        el.style.transform = "translateY(" + (-28 * k).toFixed(1) + "px) scale(" + (1 - 0.06 * k).toFixed(3) + ")";
-      });
-    };
-    sc.addEventListener("scroll", onScroll, {
-      passive: true
-    });
-    onScroll();
-    return () => {
-      sc.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -141,12 +113,9 @@ function ProfileLive() {
     onBack: () => navigate("home"),
     title: ""
   }), /*#__PURE__*/React.createElement("div", {
-    ref: heroRef,
     style: {
       textAlign: "center",
-      marginTop: 4,
-      transformOrigin: "50% 0",
-      willChange: "opacity, transform"
+      marginTop: 4
     }
   }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
