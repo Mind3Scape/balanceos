@@ -337,18 +337,24 @@ function DeadlineCalendarLive({
    saturation → soft, never neon; black lands as a soft graphite, not pure black. */
 function bosCellFill(hx, p) {
   if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
-  var bot = 0.24 + 0.52 * Math.max(0, Math.min(1, p)); // bottom alpha — caps ~0.76, never solid
-  var top = bot * 0.55; // lighter top → the sheen
+  var bot = 0.30 + 0.55 * Math.max(0, Math.min(1, p)); // bottom alpha — PRESENT, caps ~0.85 (never full)
+  var top = bot * 0.6; // lighter top → directional sheen
   var hex = function (a) {
     return Math.round(a * 255).toString(16).padStart(2, "0");
   };
-  return "linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 52%), " + "linear-gradient(180deg, " + hx + hex(top) + ", " + hx + hex(bot) + ")";
+  return "linear-gradient(180deg, " + hx + hex(top) + ", " + hx + hex(bot) + ")";
 }
-// Number ink for a filled day in «подробно» — contrast over the soft fill (white on dark hues,
-// ink on light hues). Favours dark text when borderline (the sheen lightens the centre).
+// Glass edge for a filled tile — a soft top highlight + a faint contour, so each cell reads like the
+// habit's ICON tile (David: «как у иконки — осветление сверху, переход, виден контур; не сливается,
+// и не плоский серый»). Light catches the top; the contour keeps it off the background.
+function bosCellGlass(isDark) {
+  return isDark ? "inset 0 1px 0.5px rgba(255,255,255,0.16), inset 0 0 0 0.6px rgba(255,255,255,0.06)" : "inset 0 1px 0.5px rgba(255,255,255,0.5), inset 0 0 0 0.6px rgba(0,0,0,0.06)";
+}
+// Number ink for a filled day in «подробно» — contrast over the fill (white on dark hues, ink on
+// light hues). Favours dark text when borderline (the top sheen lightens the centre).
 function bosCellInk(hx, p, isDark) {
   if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
-  var a = (0.24 + 0.52 * Math.max(0, Math.min(1, p))) * 0.8;
+  var a = (0.30 + 0.55 * Math.max(0, Math.min(1, p))) * 0.82;
   var ch = isDark ? 30 : 255;
   var r = parseInt(hx.slice(1, 3), 16),
     g = parseInt(hx.slice(3, 5), 16),
@@ -589,9 +595,11 @@ function PeopleMonthCalendarLive({
     var isToday = isCurMonth && c.d === today;
     var isSel = selDay === c.d;
     var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#FEDE34";
+    var filled = !fut && pct > 0;
     var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? track : bosCellFill(hx, pct);
     var ink = fut ? "var(--text-4)" : pct <= 0 ? "var(--text)" : bosCellInk(hx, pct, isDark);
     var ring = !compact && isSel ? selRing : isToday ? isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)" : null;
+    var shadow = [filled ? bosCellGlass(isDark) : "", ring ? "0 0 0 1.6px " + ring : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("button", {
       key: c.key,
       onClick: compact ? undefined : () => setSelDay(c.d),
@@ -607,7 +615,7 @@ function PeopleMonthCalendarLive({
         fontWeight: isToday ? 700 : 500,
         cursor: compact ? "default" : "pointer",
         background: bg,
-        boxShadow: ring ? "0 0 0 1.6px " + ring : "none",
+        boxShadow: shadow,
         color: ink
       }
     }, !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
@@ -1582,20 +1590,18 @@ function JoinWelcomeLive({
 // Overlapping stack of REAL buddy faces with a graceful overflow: show up to `max` people, then a
 // matching «+N» disc for everyone who didn't fit (David: «не 23 кружка — до пяти, потом +N»). 5
 // reads cleanly on the compact cards; 10+ crowds them.
-function HabitBuddyAvatarsLive({
-  habit,
-  size = 22,
+/* Generic overlapping people stack — faces (BuddyFaceLive) + a matching «+N» overflow disc, driven
+   by a people array. ONE circle-of-people logic shared by multiplayer habits AND teams (David:
+   «кружочки людей как в мультиплеере — то же самое в командах, по единой логике»). */
+function PeopleStackLive({
+  people = [],
+  size = 24,
   max = 5
 }) {
-  var code = habit && habit.shareCode;
-  var members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
-  // ONLY real shared-habit buddies (real avatars). No legacy h.friends letter-avatars — those
-  // were fake seed personas (David: «разноцветные кружочки с инициалами — не хочу, нужны настоящие»).
-  if (!code) return null;
-  var others = (members || []).filter(m => !m.me);
-  if (!others.length) return null;
-  var shown = others.slice(0, max),
-    extra = others.length - shown.length;
+  var list = (people || []).filter(Boolean);
+  if (!list.length) return null;
+  var shown = list.slice(0, max),
+    extra = list.length - shown.length;
   var ov = Math.round(size * 0.32); // overlap proportional to size
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1604,7 +1610,7 @@ function HabitBuddyAvatarsLive({
     },
     "aria-hidden": true
   }, shown.map((m, i) => /*#__PURE__*/React.createElement("span", {
-    key: m.id,
+    key: m.id != null ? m.id : i,
     style: {
       marginLeft: i ? -ov : 0,
       borderRadius: "50%",
@@ -1631,6 +1637,25 @@ function HabitBuddyAvatarsLive({
       boxShadow: "0 0 0 2px var(--card, #fff)"
     }
   }, "+", extra));
+}
+
+// Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,
+// those were fake seed personas). Delegates to PeopleStackLive so cards + teams share one logic.
+function HabitBuddyAvatarsLive({
+  habit,
+  size = 22,
+  max = 5
+}) {
+  var code = habit && habit.shareCode;
+  var members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
+  if (!code) return null;
+  var others = (members || []).filter(m => !m.me);
+  if (!others.length) return null;
+  return /*#__PURE__*/React.createElement(PeopleStackLive, {
+    people: others,
+    size: size,
+    max: max
+  });
 }
 function ShareHabitSheetLive({
   habit,
@@ -3092,6 +3117,8 @@ function HabitWeekStrip({
       gap: 6
     }
   }, keys.map(function (k, i) {
+    var fl = !!log[k];
+    var sh = [fl ? bosCellGlass(isDark) : "", k === todayK ? "0 0 0 1.5px " + ringC : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("span", {
       key: i,
       style: {
@@ -3099,8 +3126,8 @@ function HabitWeekStrip({
         height: 20,
         borderRadius: "30%",
         flexShrink: 0,
-        background: log[k] ? doneFill : empty,
-        boxShadow: k === todayK ? "0 0 0 1.5px " + ringC : "none"
+        background: fl ? doneFill : empty,
+        boxShadow: sh
       }
     });
   }));

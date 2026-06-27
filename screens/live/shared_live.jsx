@@ -158,17 +158,24 @@ function DeadlineCalendarLive({ onPick }) {
    saturation → soft, never neon; black lands as a soft graphite, not pure black. */
 function bosCellFill(hx, p) {
   if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
-  var bot = 0.24 + 0.52 * Math.max(0, Math.min(1, p));  // bottom alpha — caps ~0.76, never solid
-  var top = bot * 0.55;                                   // lighter top → the sheen
+  var bot = 0.30 + 0.55 * Math.max(0, Math.min(1, p));  // bottom alpha — PRESENT, caps ~0.85 (never full)
+  var top = bot * 0.6;                                    // lighter top → directional sheen
   var hex = function (a) { return Math.round(a * 255).toString(16).padStart(2, "0"); };
-  return "linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 52%), "
-       + "linear-gradient(180deg, " + hx + hex(top) + ", " + hx + hex(bot) + ")";
+  return "linear-gradient(180deg, " + hx + hex(top) + ", " + hx + hex(bot) + ")";
 }
-// Number ink for a filled day in «подробно» — contrast over the soft fill (white on dark hues,
-// ink on light hues). Favours dark text when borderline (the sheen lightens the centre).
+// Glass edge for a filled tile — a soft top highlight + a faint contour, so each cell reads like the
+// habit's ICON tile (David: «как у иконки — осветление сверху, переход, виден контур; не сливается,
+// и не плоский серый»). Light catches the top; the contour keeps it off the background.
+function bosCellGlass(isDark) {
+  return isDark
+    ? "inset 0 1px 0.5px rgba(255,255,255,0.16), inset 0 0 0 0.6px rgba(255,255,255,0.06)"
+    : "inset 0 1px 0.5px rgba(255,255,255,0.5), inset 0 0 0 0.6px rgba(0,0,0,0.06)";
+}
+// Number ink for a filled day in «подробно» — contrast over the fill (white on dark hues, ink on
+// light hues). Favours dark text when borderline (the top sheen lightens the centre).
 function bosCellInk(hx, p, isDark) {
   if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
-  var a = (0.24 + 0.52 * Math.max(0, Math.min(1, p))) * 0.8;
+  var a = (0.30 + 0.55 * Math.max(0, Math.min(1, p))) * 0.82;
   var ch = isDark ? 30 : 255;
   var r = parseInt(hx.slice(1, 3), 16), g = parseInt(hx.slice(3, 5), 16), b = parseInt(hx.slice(5, 7), 16);
   var lum = 0.299 * (r * a + ch * (1 - a)) + 0.587 * (g * a + ch * (1 - a)) + 0.114 * (b * a + ch * (1 - a));
@@ -262,14 +269,16 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             const isToday = isCurMonth && c.d === today;
             const isSel = selDay === c.d;
             const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#FEDE34";
+            const filled = !fut && pct > 0;
             const bg = fut ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)") : (pct <= 0 ? track : bosCellFill(hx, pct));
             const ink = fut ? "var(--text-4)" : (pct <= 0 ? "var(--text)" : bosCellInk(hx, pct, isDark));
             const ring = (!compact && isSel) ? selRing : (isToday ? (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)") : null);
+            const shadow = [filled ? bosCellGlass(isDark) : "", ring ? ("0 0 0 1.6px " + ring) : ""].filter(Boolean).join(", ") || "none";
             return (
               <button key={c.key} onClick={compact ? undefined : () => setSelDay(c.d)} className="tap" style={{
                 aspectRatio: "1/1", border: 0, borderRadius: "30%", padding: 0, display: "grid", placeItems: "center",
                 fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: compact ? "default" : "pointer",
-                background: bg, boxShadow: ring ? ("0 0 0 1.6px " + ring) : "none", color: ink }}>
+                background: bg, boxShadow: shadow, color: ink }}>
                 {!compact && !fut && <span>{c.d}</span>}
               </button>
             );
@@ -638,26 +647,35 @@ function JoinWelcomeLive({ info, onClose }) {
 // Overlapping stack of REAL buddy faces with a graceful overflow: show up to `max` people, then a
 // matching «+N» disc for everyone who didn't fit (David: «не 23 кружка — до пяти, потом +N»). 5
 // reads cleanly on the compact cards; 10+ crowds them.
-function HabitBuddyAvatarsLive({ habit, size = 22, max = 5 }) {
-  const code = habit && habit.shareCode;
-  const members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
-  // ONLY real shared-habit buddies (real avatars). No legacy h.friends letter-avatars — those
-  // were fake seed personas (David: «разноцветные кружочки с инициалами — не хочу, нужны настоящие»).
-  if (!code) return null;
-  const others = (members || []).filter((m) => !m.me);
-  if (!others.length) return null;
-  const shown = others.slice(0, max), extra = others.length - shown.length;
+/* Generic overlapping people stack — faces (BuddyFaceLive) + a matching «+N» overflow disc, driven
+   by a people array. ONE circle-of-people logic shared by multiplayer habits AND teams (David:
+   «кружочки людей как в мультиплеере — то же самое в командах, по единой логике»). */
+function PeopleStackLive({ people = [], size = 24, max = 5 }) {
+  const list = (people || []).filter(Boolean);
+  if (!list.length) return null;
+  const shown = list.slice(0, max), extra = list.length - shown.length;
   const ov = Math.round(size * 0.32); // overlap proportional to size
   return (
     <div style={{ display: "flex", alignItems: "center" }} aria-hidden>
       {shown.map((m, i) => (
-        <span key={m.id} style={{ marginLeft: i ? -ov : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)", display: "block" }}>
+        <span key={m.id != null ? m.id : i} style={{ marginLeft: i ? -ov : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)", display: "block" }}>
           <BuddyFaceLive avatar={m.avatar} name={m.name} size={size} />
         </span>
       ))}
       {extra > 0 && <span style={{ marginLeft: -ov, width: size, height: size, borderRadius: "50%", background: "rgba(0,0,0,0.58)", color: "#fff", fontSize: Math.round(size * 0.4), fontWeight: 700, letterSpacing: "-0.5px", display: "grid", placeItems: "center", boxShadow: "0 0 0 2px var(--card, #fff)" }}>+{extra}</span>}
     </div>
   );
+}
+
+// Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,
+// those were fake seed personas). Delegates to PeopleStackLive so cards + teams share one logic.
+function HabitBuddyAvatarsLive({ habit, size = 22, max = 5 }) {
+  const code = habit && habit.shareCode;
+  const members = useBuddyMembersLive(code); // cache-backed → instant, no flash on re-entry
+  if (!code) return null;
+  const others = (members || []).filter((m) => !m.me);
+  if (!others.length) return null;
+  return <PeopleStackLive people={others} size={size} max={max} />;
 }
 
 function ShareHabitSheetLive({ habit, dark = false }) {
@@ -1267,7 +1285,9 @@ function HabitWeekStrip({ habit }) {
   return (
     <div aria-hidden style={{ display: "flex", gap: 6 }}>
       {keys.map(function (k, i) {
-        return <span key={i} style={{ width: 20, height: 20, borderRadius: "30%", flexShrink: 0, background: log[k] ? doneFill : empty, boxShadow: (k === todayK) ? ("0 0 0 1.5px " + ringC) : "none" }} />;
+        var fl = !!log[k];
+        var sh = [fl ? bosCellGlass(isDark) : "", (k === todayK) ? ("0 0 0 1.5px " + ringC) : ""].filter(Boolean).join(", ") || "none";
+        return <span key={i} style={{ width: 20, height: 20, borderRadius: "30%", flexShrink: 0, background: fl ? doneFill : empty, boxShadow: sh }} />;
       })}
     </div>
   );

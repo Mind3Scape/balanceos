@@ -70,7 +70,7 @@ function LiveTeamCard({ t, navigate }) {
         <div style={{ display: "flex", alignItems: "center", marginTop: 14, gap: 8 }}>
           {_loading
             ? <div style={{ display: "flex" }}>{[0, 1, 2].map((i) => (<span key={i} className="bos-skel" style={{ width: 28, height: 28, borderRadius: "50%", marginLeft: i ? -10 : 0, border: "2px solid var(--card)" }} />))}</div>
-            : count > 0 ? <AvatarStack people={members} size={28} max={5} label={false}/> : <span style={{ fontSize: 12, color: "var(--text-4)" }}>Пока ты один — позови друзей</span>}
+            : count > 0 ? <PeopleStackLive people={members} size={28} max={5} /> : <span style={{ fontSize: 12, color: "var(--text-4)" }}>Пока ты один — позови друзей</span>}
           <button onClick={() => navigate("team-detail", { team: t })} className="tap team-card__cta" style={{ marginLeft: "auto", border: 0, borderRadius: 999, padding: "11px 18px", fontSize: 13.5, fontWeight: 600 }}>
             Открыть команду
           </button>
@@ -653,9 +653,7 @@ function TeamDetailLive() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
           {pending.map((p, pi) => (
             <div key={p.id} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: BOS_TEAM_PALETTE[pi % BOS_TEAM_PALETTE.length], display: "grid", placeItems: "center", color: "rgba(0,0,0,0.6)", fontWeight: 700, flexShrink: 0, overflow: "hidden" }}>
-                {p.avatar && typeof BosAvatar === "function" ? <BosAvatar avatar={p.avatar} size={40} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} /> : (p.name || "?").slice(0, 1)}
-              </span>
+              <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{p.name || "Гость"}</div>
                 <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>хочет вступить</div>
@@ -683,9 +681,7 @@ function TeamDetailLive() {
           return (
           <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
             <div style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
-              <span style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "rgba(0,0,0,0.6)", fontWeight: 700, flexShrink: 0 }}>
-                {m.avatar && typeof BosAvatar === "function" ? <BosAvatar avatar={m.avatar} size={40} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} /> : m.initials}
-              </span>
+              <BuddyFaceLive avatar={m.avatar} name={m.name} size={40} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{m.name}</div>
                 <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{m.role === "owner" ? "Создатель команды" : "Участник"}</div>

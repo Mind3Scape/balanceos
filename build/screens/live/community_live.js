@@ -184,11 +184,10 @@ function LiveTeamCard({
       marginLeft: i ? -10 : 0,
       border: "2px solid var(--card)"
     }
-  }))) : count > 0 ? /*#__PURE__*/React.createElement(AvatarStack, {
+  }))) : count > 0 ? /*#__PURE__*/React.createElement(PeopleStackLive, {
     people: members,
     size: 28,
-    max: 5,
-    label: false
+    max: 5
   }) : /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 12,
@@ -1667,29 +1666,11 @@ function TeamDetailLive() {
       alignItems: "center",
       gap: 12
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "relative",
-      width: 40,
-      height: 40,
-      borderRadius: "50%",
-      background: BOS_TEAM_PALETTE[pi % BOS_TEAM_PALETTE.length],
-      display: "grid",
-      placeItems: "center",
-      color: "rgba(0,0,0,0.6)",
-      fontWeight: 700,
-      flexShrink: 0,
-      overflow: "hidden"
-    }
-  }, p.avatar && typeof BosAvatar === "function" ? /*#__PURE__*/React.createElement(BosAvatar, {
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
     avatar: p.avatar,
-    size: 40,
-    style: {
-      position: "absolute",
-      inset: 0,
-      borderRadius: "50%"
-    }
-  }) : (p.name || "?").slice(0, 1)), /*#__PURE__*/React.createElement("div", {
+    name: p.name,
+    size: 40
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -1807,28 +1788,11 @@ function TeamDetailLive() {
         textAlign: "left",
         color: "var(--text)"
       }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        position: "relative",
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        background: m.color,
-        display: "grid",
-        placeItems: "center",
-        color: "rgba(0,0,0,0.6)",
-        fontWeight: 700,
-        flexShrink: 0
-      }
-    }, m.avatar && typeof BosAvatar === "function" ? /*#__PURE__*/React.createElement(BosAvatar, {
+    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
       avatar: m.avatar,
-      size: 40,
-      style: {
-        position: "absolute",
-        inset: 0,
-        borderRadius: "50%"
-      }
-    }) : m.initials), /*#__PURE__*/React.createElement("div", {
+      name: m.name,
+      size: 40
+    }), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
