@@ -1314,6 +1314,23 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
   );
 }
 
+/* Home-hero avatar — David: «орб-состояние из-под аватарки убрать, поставить наш стандартный
+   кружок со стеклом». A STATIC grey glass disc (the SAME material as the people discs and the
+   pencil button), holding the user's REAL avatar (photo / memoji / emoji / default face via
+   BosAvatar). The tile sheen + a bright top rim sit ON TOP so it reads as glass — no mood tint,
+   no animated orb. Drop-in for HeroOrbFace (same avatar / inset / size props). */
+function HeroAvatarGlassLive({ avatar, inset = 6, size = 60 }) {
+  return (
+    <div style={{ position: "absolute", inset, borderRadius: "50%", overflow: "hidden",
+      background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "0 2px 7px rgba(0,0,0,0.12)" }}>
+      <BosAvatar avatar={avatar} size={size} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} />
+      <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", pointerEvents: "none",
+        background: BOS_TILE_SHEEN,
+        boxShadow: "inset 0 1px 1.5px rgba(255,255,255,0.9), inset 0 -3px 6px rgba(0,0,0,0.07), inset 0 0 0 0.5px rgba(0,0,0,0.06)" }} />
+    </div>
+  );
+}
+
 /* HomeHeroSwipe → live-only: the real new user's hero — page 1 ONLY (the demo's balance
    wheel / orbit 2nd page was removed). newbie (no habits) → "С чего начать" hints; else →
    AI-brief summary + action pills. Avatar ring follows the mood orb. No swipe deck. */
@@ -1361,15 +1378,22 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 54, height: 54, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
-          {/* zIndex: gold paints ABOVE the orb so its mood-glow can't bleed onto the ring colour (David: «орб накладывает glow на золотое кольцо — цвет не похож»). */}
+          {/* Gold progress ring — gradient lighter→darker + a glass sheen overlay arc; the avatar
+              below is now our standard grey glass disc (no mood orb). David: «кольцо от светлого к тёмному + стекло». */}
           <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
-            <defs><linearGradient id="bosGoldRingS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34"/><stop offset="1" stopColor="#EF9F14"/></linearGradient></defs>
+            <defs>
+              <linearGradient id="bosGoldRingS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777"/><stop offset="0.5" stopColor="#F4B72A"/><stop offset="1" stopColor="#E08A00"/></linearGradient>
+              <linearGradient id="bosGoldSheenS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="rgba(255,255,255,0.82)"/><stop offset="0.45" stopColor="rgba(255,255,255,0)"/></linearGradient>
+            </defs>
             <circle cx="27" cy="27" r="23" stroke={ringBg} strokeWidth="3" fill="none"/>
             <circle cx="27" cy="27" r="23" stroke="url(#bosGoldRingS)" strokeWidth="3" fill="none" strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - ringShown)}
               style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
+            <circle cx="27" cy="27" r="23" stroke="url(#bosGoldSheenS)" strokeWidth="3" fill="none" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - ringShown)}
+              style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)", mixBlendMode: "screen" }}/>
           </svg>
-          <HeroOrbFace avatar={heroApp?.avatar} inset={5} size={44} moodTint={moodTint} />
+          <HeroAvatarGlassLive avatar={heroApp?.avatar} inset={5} size={44} />
         </button>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -1381,9 +1405,9 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         ].map((c, i) => (
           <button key={i} onClick={c.go} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
-            background: chipBg, border: chipBd,
+            background: chipBg, border: chipBd, minWidth: 0, maxWidth: "calc(50% - 3px)",
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
-          }}><span>{c.i}</span>{c.t}</button>
+          }}><span style={{ flexShrink: 0 }}>{c.i}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.t}</span></button>
         ))}
       </div>
     </div>
@@ -1400,17 +1424,22 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         </div>
         <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
           style={{ flexShrink: 0, position: "relative", width: 72, height: 72, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
-          {/* zIndex: gold paints ABOVE the orb so its mood-glow can't bleed onto the ring colour (David: «орб накладывает glow на золотое кольцо — цвет не похож»). */}
+          {/* Gold progress ring — gradient lighter→darker + a glass sheen overlay arc; the avatar
+              below is now our standard grey glass disc (no mood orb). David: «кольцо от светлого к тёмному + стекло». */}
           <svg width="72" height="72" viewBox="0 0 72 72" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
-            <defs><linearGradient id="bosGoldRingL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34"/><stop offset="1" stopColor="#EF9F14"/></linearGradient></defs>
+            <defs>
+              <linearGradient id="bosGoldRingL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777"/><stop offset="0.5" stopColor="#F4B72A"/><stop offset="1" stopColor="#E08A00"/></linearGradient>
+              <linearGradient id="bosGoldSheenL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="rgba(255,255,255,0.82)"/><stop offset="0.45" stopColor="rgba(255,255,255,0)"/></linearGradient>
+            </defs>
             <circle cx="36" cy="36" r="32" stroke={ringBg} strokeWidth="3.5" fill="none"/>
-            <circle cx="36" cy="36" r="32" stroke="url(#bosGoldRingL)" strokeWidth="3.5" fill="none"
-              strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 32}
-              strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
+            <circle cx="36" cy="36" r="32" stroke="url(#bosGoldRingL)" strokeWidth="3.5" fill="none" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 32} strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
               style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
+            <circle cx="36" cy="36" r="32" stroke="url(#bosGoldSheenL)" strokeWidth="3.5" fill="none" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 32} strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
+              style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)", mixBlendMode: "screen" }}/>
           </svg>
-          <HeroOrbFace avatar={heroApp?.avatar} inset={6} size={60} moodTint={moodTint} />
+          <HeroAvatarGlassLive avatar={heroApp?.avatar} inset={6} size={60} />
           <div style={{
             position: "absolute", bottom: -2, right: -4, background: "#0a0a0a", color: "#FEDE34", zIndex: 3,
             fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 999, border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
@@ -1426,10 +1455,10 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         ]).map((c, i) => (
           <button key={i} onClick={() => bosRoutePill(navigate, c)} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
-            background: chipBg, border: chipBd,
+            background: chipBg, border: chipBd, minWidth: 0, maxWidth: "calc(50% - 3px)",
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
             animation: _livePills ? ("briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.06) + "s") : undefined,
-          }}><span>{bosPillIcon(c)}</span>{bosPillLabel(c)}</button>
+          }}><span style={{ flexShrink: 0 }}>{bosPillIcon(c)}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bosPillLabel(c)}</span></button>
         ))}
       </div>
     </div>

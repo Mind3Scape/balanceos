@@ -3064,6 +3064,46 @@ function MoodWidgetLive({
   }, logged, "/7 \u043E\u0442\u043C\u0435\u0447\u0435\u043D\u043E")));
 }
 
+/* Home-hero avatar — David: «орб-состояние из-под аватарки убрать, поставить наш стандартный
+   кружок со стеклом». A STATIC grey glass disc (the SAME material as the people discs and the
+   pencil button), holding the user's REAL avatar (photo / memoji / emoji / default face via
+   BosAvatar). The tile sheen + a bright top rim sit ON TOP so it reads as glass — no mood tint,
+   no animated orb. Drop-in for HeroOrbFace (same avatar / inset / size props). */
+function HeroAvatarGlassLive({
+  avatar,
+  inset = 6,
+  size = 60
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset,
+      borderRadius: "50%",
+      overflow: "hidden",
+      background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
+      boxShadow: "0 2px 7px rgba(0,0,0,0.12)"
+    }
+  }, /*#__PURE__*/React.createElement(BosAvatar, {
+    avatar: avatar,
+    size: size,
+    style: {
+      position: "absolute",
+      inset: 0,
+      borderRadius: "50%"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: 0,
+      borderRadius: "50%",
+      pointerEvents: "none",
+      background: BOS_TILE_SHEEN,
+      boxShadow: "inset 0 1px 1.5px rgba(255,255,255,0.9), inset 0 -3px 6px rgba(0,0,0,0.07), inset 0 0 0 0.5px rgba(0,0,0,0.06)"
+    }
+  }));
+}
+
 /* HomeHeroSwipe → live-only: the real new user's hero — page 1 ONLY (the demo's balance
    wheel / orbit 2nd page was removed). newbie (no habits) → "С чего начать" hints; else →
    AI-brief summary + action pills. Avatar ring follows the mood orb. No swipe deck. */
@@ -3182,10 +3222,25 @@ function HomeHeroSwipeLive({
     y2: "1"
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0",
-    stopColor: "#FEDE34"
+    stopColor: "#FFE777"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.5",
+    stopColor: "#F4B72A"
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "1",
-    stopColor: "#EF9F14"
+    stopColor: "#E08A00"
+  })), /*#__PURE__*/React.createElement("linearGradient", {
+    id: "bosGoldSheenS",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "rgba(255,255,255,0.82)"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.45",
+    stopColor: "rgba(255,255,255,0)"
   }))), /*#__PURE__*/React.createElement("circle", {
     cx: "27",
     cy: "27",
@@ -3206,11 +3261,24 @@ function HomeHeroSwipeLive({
     style: {
       transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
     }
-  })), /*#__PURE__*/React.createElement(HeroOrbFace, {
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "27",
+    cy: "27",
+    r: "23",
+    stroke: "url(#bosGoldSheenS)",
+    strokeWidth: "3",
+    fill: "none",
+    strokeLinecap: "round",
+    strokeDasharray: 2 * Math.PI * 23,
+    strokeDashoffset: 2 * Math.PI * 23 * (1 - ringShown),
+    style: {
+      transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)",
+      mixBlendMode: "screen"
+    }
+  })), /*#__PURE__*/React.createElement(HeroAvatarGlassLive, {
     avatar: heroApp?.avatar,
     inset: 5,
-    size: 44,
-    moodTint: moodTint
+    size: 44
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -3247,12 +3315,24 @@ function HomeHeroSwipeLive({
       color: "var(--text-2)",
       background: chipBg,
       border: chipBd,
+      minWidth: 0,
+      maxWidth: "calc(50% - 3px)",
       borderRadius: 999,
       display: "inline-flex",
       alignItems: "center",
       gap: 6
     }
-  }, /*#__PURE__*/React.createElement("span", null, c.i), c.t)))) : /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0
+    }
+  }, c.i), /*#__PURE__*/React.createElement("span", {
+    style: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, c.t))))) : /*#__PURE__*/React.createElement("div", {
     key: "quote",
     style: {
       position: "relative",
@@ -3331,10 +3411,25 @@ function HomeHeroSwipeLive({
     y2: "1"
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0",
-    stopColor: "#FEDE34"
+    stopColor: "#FFE777"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.5",
+    stopColor: "#F4B72A"
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "1",
-    stopColor: "#EF9F14"
+    stopColor: "#E08A00"
+  })), /*#__PURE__*/React.createElement("linearGradient", {
+    id: "bosGoldSheenL",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "rgba(255,255,255,0.82)"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.45",
+    stopColor: "rgba(255,255,255,0)"
   }))), /*#__PURE__*/React.createElement("circle", {
     cx: "36",
     cy: "36",
@@ -3355,11 +3450,24 @@ function HomeHeroSwipeLive({
     style: {
       transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
     }
-  })), /*#__PURE__*/React.createElement(HeroOrbFace, {
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "36",
+    cy: "36",
+    r: "32",
+    stroke: "url(#bosGoldSheenL)",
+    strokeWidth: "3.5",
+    fill: "none",
+    strokeLinecap: "round",
+    strokeDasharray: 2 * Math.PI * 32,
+    strokeDashoffset: 2 * Math.PI * 32 * (1 - ringShown),
+    style: {
+      transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)",
+      mixBlendMode: "screen"
+    }
+  })), /*#__PURE__*/React.createElement(HeroAvatarGlassLive, {
     avatar: heroApp?.avatar,
     inset: 6,
-    size: 60,
-    moodTint: moodTint
+    size: 60
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
@@ -3406,13 +3514,25 @@ function HomeHeroSwipeLive({
       color: "var(--text-2)",
       background: chipBg,
       border: chipBd,
+      minWidth: 0,
+      maxWidth: "calc(50% - 3px)",
       borderRadius: 999,
       display: "inline-flex",
       alignItems: "center",
       gap: 6,
       animation: _livePills ? "briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + i * 0.06 + "s" : undefined
     }
-  }, /*#__PURE__*/React.createElement("span", null, bosPillIcon(c)), bosPillLabel(c)))));
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0
+    }
+  }, bosPillIcon(c)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, bosPillLabel(c))))));
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: cardBg,
