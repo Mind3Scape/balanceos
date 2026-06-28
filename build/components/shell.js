@@ -427,7 +427,11 @@ function SwipeRow({
       borderTopRightRadius: offset < 0 ? 16 : 0,
       borderBottomRightRadius: offset < 0 ? 16 : 0,
       transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.25s ease" : "none",
-      willChange: "transform"
+      /* Promote to a compositing layer ONLY during the gesture. A permanent willChange:transform
+         layer escapes the parent's border-radius+overflow clip in WebKit → the dark reveal-track
+         leaks at the rounded corners (and flickers as the layer is created/destroyed). At rest we
+         drop the layer so the parent clips the row cleanly. */
+      willChange: open || !releasing ? "transform" : "auto"
     }
   }, children));
 }

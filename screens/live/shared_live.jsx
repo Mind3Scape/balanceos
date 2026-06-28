@@ -1416,9 +1416,33 @@ function HeroAvatarGlassLive({ avatar, inset = 6, size = 60 }) {
   );
 }
 
+/* Account avatar for the «Сводка от ИИ» hero — the glass disc + a MINIMALIST XP-to-next-level
+   ring (gold light→dark + glass sheen). David: «верни аватар в блок сводки — это главный блок с
+   фишкой ИИ; колечко минималистичное = XP до уровня». Tap → profile (orbits + settings). */
+function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark }) {
+  const r = size / 2 - 2;              // ring radius (strokeWidth 2.5, ~1.25 margin each side)
+  const C = 2 * Math.PI * r;
+  const off = C * (1 - (pct || 0) / 100);
+  return (
+    <button onClick={() => navigate("profile")} className="tap" title="Профиль" aria-label="Профиль, орбиты и настройки"
+      style={{ flexShrink: 0, position: "relative", width: size, height: size, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
+      <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
+        <defs>
+          <linearGradient id="bosXpRingH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777"/><stop offset="0.5" stopColor="#F4B72A"/><stop offset="1" stopColor="#E08A00"/></linearGradient>
+          <linearGradient id="bosXpSheenH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="rgba(255,255,255,0.82)"/><stop offset="0.45" stopColor="rgba(255,255,255,0)"/></linearGradient>
+        </defs>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} strokeWidth="2.5" fill="none"/>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="url(#bosXpRingH)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="url(#bosXpSheenH)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} style={{ mixBlendMode: "screen" }}/>
+      </svg>
+      <HeroAvatarGlassLive avatar={avatar} inset={4} size={size - 8} />
+    </button>
+  );
+}
+
 /* HomeHeroSwipe → live-only: the real new user's hero — page 1 ONLY (the demo's balance
    wheel / orbit 2nd page was removed). newbie (no habits) → "С чего начать" hints; else →
-   AI-brief summary + action pills. Avatar ring follows the mood orb. No swipe deck. */
+   AI-brief summary + action pills. The account avatar (XP ring) lives here — the main AI block. */
 function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const [ringShown, setRingShown] = React.useState(0);
   React.useEffect(() => { const t = setTimeout(() => setRingShown(ringPct), 80); return () => clearTimeout(t); }, [ringPct]);
@@ -1451,14 +1475,21 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
   const _livePills = (_liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length)
     ? _liveBrief.pills.slice(0, 4) : null;
   const _pillsKey = _livePills ? _livePills.map(bosPillLabel).join("|") : "live";
+  // XP-to-next-level percent for the minimalist avatar ring (today's progress lives in the
+  // «Привычки» card + «Эта неделя», so the ring is freed for level progress — David's call).
+  const _heroXp = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(heroApp) : 0;
+  const _heroPct = (((typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(_heroXp) : null) || {}).pct || 0;
 
   const page1 = newbie ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div>
-        <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0}/> С чего начать
+      <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0}/> С чего начать
+          </div>
+          <div key={_homeSummary} style={{ fontSize: 15, fontWeight: 500, color: "var(--text)", marginTop: 6, lineHeight: 1.42, letterSpacing: "-0.2px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
-        <div key={_homeSummary} style={{ fontSize: 15, fontWeight: 500, color: "var(--text)", marginTop: 6, lineHeight: 1.42, letterSpacing: "-0.2px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
+        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={52} isDark={isDark} />
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
@@ -1477,13 +1508,16 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     </div>
   ) : (
     <div key="quote" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
-      <div>
-        <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0}/> Сводка на сегодня
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0}/> Сводка на сегодня
+          </div>
+          <div key={_homeSummary} style={{ fontSize: 15.5, fontWeight: 500, color: "var(--text)", marginTop: 6, lineHeight: 1.42, letterSpacing: "-0.2px", animation: "briefFade 0.5s ease both" }}>
+            {_homeSummary}
+          </div>
         </div>
-        <div key={_homeSummary} style={{ fontSize: 15.5, fontWeight: 500, color: "var(--text)", marginTop: 6, lineHeight: 1.42, letterSpacing: "-0.2px", animation: "briefFade 0.5s ease both" }}>
-          {_homeSummary}
-        </div>
+        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={60} isDark={isDark} />
       </div>
       <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
         {(_livePills || [

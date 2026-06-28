@@ -3348,9 +3348,114 @@ function HeroAvatarGlassLive({
   }));
 }
 
+/* Account avatar for the «Сводка от ИИ» hero — the glass disc + a MINIMALIST XP-to-next-level
+   ring (gold light→dark + glass sheen). David: «верни аватар в блок сводки — это главный блок с
+   фишкой ИИ; колечко минималистичное = XP до уровня». Tap → profile (orbits + settings). */
+function HeroAccountAvatarLive({
+  navigate,
+  avatar,
+  pct = 0,
+  size = 60,
+  isDark
+}) {
+  var r = size / 2 - 2; // ring radius (strokeWidth 2.5, ~1.25 margin each side)
+  var C = 2 * Math.PI * r;
+  var off = C * (1 - (pct || 0) / 100);
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("profile"),
+    className: "tap",
+    title: "\u041F\u0440\u043E\u0444\u0438\u043B\u044C",
+    "aria-label": "\u041F\u0440\u043E\u0444\u0438\u043B\u044C, \u043E\u0440\u0431\u0438\u0442\u044B \u0438 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    style: {
+      flexShrink: 0,
+      position: "relative",
+      width: size,
+      height: size,
+      background: "transparent",
+      border: 0,
+      padding: 0,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 " + size + " " + size,
+    style: {
+      position: "absolute",
+      inset: 0,
+      transform: "rotate(-90deg)",
+      zIndex: 2
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "bosXpRingH",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#FFE777"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.5",
+    stopColor: "#F4B72A"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#E08A00"
+  })), /*#__PURE__*/React.createElement("linearGradient", {
+    id: "bosXpSheenH",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "rgba(255,255,255,0.82)"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.45",
+    stopColor: "rgba(255,255,255,0)"
+  }))), /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: r,
+    stroke: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+    strokeWidth: "2.5",
+    fill: "none"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: r,
+    stroke: "url(#bosXpRingH)",
+    strokeWidth: "2.5",
+    fill: "none",
+    strokeLinecap: "round",
+    strokeDasharray: C,
+    strokeDashoffset: off,
+    style: {
+      transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
+    }
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: r,
+    stroke: "url(#bosXpSheenH)",
+    strokeWidth: "2.5",
+    fill: "none",
+    strokeLinecap: "round",
+    strokeDasharray: C,
+    strokeDashoffset: off,
+    style: {
+      mixBlendMode: "screen"
+    }
+  })), /*#__PURE__*/React.createElement(HeroAvatarGlassLive, {
+    avatar: avatar,
+    inset: 4,
+    size: size - 8
+  }));
+}
+
 /* HomeHeroSwipe → live-only: the real new user's hero — page 1 ONLY (the demo's balance
    wheel / orbit 2nd page was removed). newbie (no habits) → "С чего начать" hints; else →
-   AI-brief summary + action pills. Avatar ring follows the mood orb. No swipe deck. */
+   AI-brief summary + action pills. The account avatar (XP ring) lives here — the main AI block. */
 function HomeHeroSwipeLive({
   navigate,
   doneCount,
@@ -3387,6 +3492,10 @@ function HomeHeroSwipeLive({
   var _homeSummary = _liveBrief && _liveBrief.summary || aiBrief;
   var _livePills = _liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length ? _liveBrief.pills.slice(0, 4) : null;
   var _pillsKey = _livePills ? _livePills.map(bosPillLabel).join("|") : "live";
+  // XP-to-next-level percent for the minimalist avatar ring (today's progress lives in the
+  // «Привычки» card + «Эта неделя», so the ring is freed for level progress — David's call).
+  var _heroXp = typeof bosLiveXPLive === "function" ? bosLiveXPLive(heroApp) : 0;
+  var _heroPct = ((typeof bosLevelInfoLive === "function" ? bosLevelInfoLive(_heroXp) : null) || {}).pct || 0;
   var page1 = newbie ? /*#__PURE__*/React.createElement("div", {
     key: "hints",
     style: {
@@ -3397,7 +3506,18 @@ function HomeHeroSwipeLive({
       flexDirection: "column",
       gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 13,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       fontWeight: 500,
@@ -3422,7 +3542,13 @@ function HomeHeroSwipeLive({
       letterSpacing: "-0.2px",
       animation: _liveBrief ? "briefFade 0.5s ease both" : undefined
     }
-  }, _liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать.")), /*#__PURE__*/React.createElement("div", {
+  }, _liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать.")), /*#__PURE__*/React.createElement(HeroAccountAvatarLive, {
+    navigate: navigate,
+    avatar: heroApp?.avatar,
+    pct: _heroPct,
+    size: 52,
+    isDark: isDark
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexWrap: "wrap",
@@ -3484,7 +3610,18 @@ function HomeHeroSwipeLive({
       display: "flex",
       flexDirection: "column"
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       fontWeight: 500,
@@ -3509,7 +3646,13 @@ function HomeHeroSwipeLive({
       letterSpacing: "-0.2px",
       animation: "briefFade 0.5s ease both"
     }
-  }, _homeSummary)), /*#__PURE__*/React.createElement("div", {
+  }, _homeSummary)), /*#__PURE__*/React.createElement(HeroAccountAvatarLive, {
+    navigate: navigate,
+    avatar: heroApp?.avatar,
+    pct: _heroPct,
+    size: 60,
+    isDark: isDark
+  })), /*#__PURE__*/React.createElement("div", {
     key: _pillsKey,
     style: {
       display: "flex",
