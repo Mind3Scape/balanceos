@@ -892,13 +892,16 @@ function TeamDetailLive() {
   var teamHabits = _rosterLive ? liveTeamHabits || [] : Array.isArray(t.habits) ? t.habits : [];
   var main = teamHabits.find(h => h.isMain);
   var others = teamHabits.filter(h => !h.isMain);
-  // ADOPT — «приходит как личная» (David): командная привычка одним тапом становится твоей ЛИЧНОЙ
-  // (своё время/значок), отмечаешь её на странице «Привычки», а отметка зеркалится в командный счёт
-  // (toggleHabit → toggleTeamHabitToday). Линк = поле teamHabitId на личной привычке.
+  // ADOPT — «приходит как личная» (David): командная привычка становится твоей ЛИЧНОЙ (своё
+  // время/значок), отмечаешь её на «Привычки», отметка зеркалится в командный счёт (toggleHabit →
+  // toggleTeamHabitToday). Линк = поле teamHabitId. ЭТАП 2: дедуп — если уже ведёшь такую, предложить
+  // ПРИВЯЗАТЬ существующую (без дубля, серия/время сохранятся). ЕДИНАЯ отметка: адаптированная
+  // привычка отмечается через её личную копию (один источник) — никакого прямого team-write.
   var myHabits = app?.habits || [];
+  var _todayK = new Date().toISOString().slice(0, 10);
   var adoptedFor = h => h && myHabits.find(x => x.teamHabitId === h.id);
-  var adoptTeamHabit = h => {
-    if (!h || !h.id || adoptedFor(h)) return;
+  var _dupeFor = h => h && myHabits.find(x => !x.teamHabitId && (x.name || "").trim().toLowerCase() === (h.name || "").trim().toLowerCase());
+  var _createLinkedHabit = h => {
     app?.addHabit({
       name: h.name,
       emoji: h.emoji,
@@ -918,6 +921,40 @@ function TeamDetailLive() {
         window.tgHaptic("success");
       } catch (e) {}
     }
+  };
+  var adoptTeamHabit = h => {
+    if (!h || !h.id || adoptedFor(h)) return;
+    var dupe = _dupeFor(h);
+    if (dupe) {
+      openSheet(/*#__PURE__*/React.createElement(TeamAdoptChoiceLive, {
+        dupeName: (dupe.name || "").trim(),
+        onLink: () => {
+          app?.updateHabit(dupe.id, {
+            teamId: t.cloudId,
+            teamHabitId: h.id
+          });
+        },
+        onCreate: () => _createLinkedHabit(h)
+      }));
+    } else {
+      _createLinkedHabit(h);
+    }
+  };
+  // Mark an ADOPTED team habit = toggle its personal copy (single source → mirrors to team_habit_logs).
+  var markAdopted = h => {
+    var a = adoptedFor(h);
+    if (!a) return;
+    app?.toggleHabit(a.id);
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    setHabitsTick(n => n + 1);
+  };
+  var myDone = h => {
+    var a = adoptedFor(h);
+    return a ? !!(a.log && a.log[_todayK]) : !!(h && h.doneByMe);
   };
   // Per-person "who did which day" for the team ANCHOR habit → feeds the SAME month calendar
   // the personal/shared habits use (data already per-user in team_habit_logs). Light poll.
@@ -1563,45 +1600,31 @@ function TeamDetailLive() {
         placeItems: "center"
       }
     }, "+", fExtra));
-  })(), _rosterLive && /*#__PURE__*/React.createElement("button", {
-    onClick: () => toggleMyTeamHabit(main),
+  })(), _rosterLive && (adoptedFor(main) ? /*#__PURE__*/React.createElement("button", {
+    onClick: () => markAdopted(main),
     className: "tap",
     style: {
       width: "100%",
       marginTop: 14,
-      border: main.doneByMe ? "1.5px solid var(--line)" : 0,
+      border: myDone(main) ? "1.5px solid var(--line)" : 0,
       borderRadius: 999,
       padding: "11px 14px",
       fontSize: 14,
       fontWeight: 600,
-      background: main.doneByMe ? "transparent" : "#0a0a0a",
-      color: main.doneByMe ? "var(--text-2)" : "#fff"
+      background: myDone(main) ? "transparent" : "#0a0a0a",
+      color: myDone(main) ? "var(--text-2)" : "#fff"
     }
-  }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"), _rosterLive && (adoptedFor(main) ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      fontSize: 12.5,
-      color: "var(--text-4)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement(I.Check, {
-    size: 14,
-    color: "var(--text-3)",
-    strokeWidth: 2.5
-  }), " \u0412\u0435\u0434\u0451\u0448\u044C \u0443 \u0441\u0435\u0431\u044F \u2014 \u043E\u0442\u043C\u0435\u0447\u0430\u0439 \u043D\u0430 \xAB\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438\xBB") : /*#__PURE__*/React.createElement("button", {
+  }, myDone(main) ? "✓ Сделано сегодня" : "Отметить сегодня") : /*#__PURE__*/React.createElement("button", {
     onClick: () => adoptTeamHabit(main),
     className: "tap",
     style: {
-      marginTop: 10,
       width: "100%",
+      marginTop: 14,
       background: "transparent",
       border: "1px dashed rgba(0,0,0,0.18)",
-      borderRadius: 14,
-      padding: "10px 14px",
-      fontSize: 13.5,
+      borderRadius: 999,
+      padding: "11px 14px",
+      fontSize: 14,
       fontWeight: 600,
       color: "var(--text-2)",
       display: "inline-flex",
@@ -1721,9 +1744,9 @@ function TeamDetailLive() {
       textTransform: "uppercase",
       letterSpacing: 1
     }
-  }, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F")), _rosterLive && /*#__PURE__*/React.createElement("button", {
-    onClick: () => toggleMyTeamHabit(h),
-    className: "check-btn tap " + (h.doneByMe ? "" : "unchecked"),
+  }, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F")), _rosterLive && (adoptedFor(h) ? /*#__PURE__*/React.createElement("button", {
+    onClick: () => markAdopted(h),
+    className: "check-btn tap " + (myDone(h) ? "" : "unchecked"),
     "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C",
     style: {
       flexShrink: 0,
@@ -1731,11 +1754,32 @@ function TeamDetailLive() {
       height: 34,
       "--check-color": "#0a0a0a"
     }
-  }, h.doneByMe && /*#__PURE__*/React.createElement(I.Check, {
+  }, myDone(h) && /*#__PURE__*/React.createElement(I.Check, {
     size: 16,
     color: "#fff",
     strokeWidth: 3
-  })))), /*#__PURE__*/React.createElement("button", {
+  })) : /*#__PURE__*/React.createElement("button", {
+    onClick: () => adoptTeamHabit(h),
+    className: "tap",
+    "aria-label": "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F",
+    title: "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F",
+    style: {
+      flexShrink: 0,
+      height: 34,
+      padding: "0 12px",
+      borderRadius: 999,
+      border: "1px dashed rgba(0,0,0,0.18)",
+      background: "transparent",
+      color: "var(--text-2)",
+      fontSize: 12.5,
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 13
+  }), " \u0423 \u0441\u0435\u0431\u044F")))), /*#__PURE__*/React.createElement("button", {
     onClick: openAddHabit,
     className: "tap",
     style: {

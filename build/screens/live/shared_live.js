@@ -1723,6 +1723,70 @@ function AchievementSheetLive({
   }, "\u041A\u043B\u0430\u0441\u0441!"))));
 }
 
+/* Stage-2 dedup (David): нажал «Вести у себя», а такая привычка уже есть → спросить — ПРИВЯЗАТЬ
+   существующую (без дубля, серия/время сохранятся) или завести отдельную для команды. LIVE. */
+function TeamAdoptChoiceLive({
+  dupeName,
+  onLink,
+  onCreate
+}) {
+  var {
+    close
+  } = useSheet();
+  var go = fn => {
+    try {
+      fn && fn();
+    } catch (e) {}
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (_) {}
+    }
+    close();
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 22px 14px",
+      color: "var(--text)",
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 800,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0423 \u0442\u0435\u0431\u044F \u0443\u0436\u0435 \u0435\u0441\u0442\u044C \u0442\u0430\u043A\u0430\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-3)",
+      marginTop: 7,
+      lineHeight: 1.5,
+      textWrap: "balance"
+    }
+  }, "\xAB", dupeName, "\xBB \u0443\u0436\u0435 \u0432 \u0442\u0432\u043E\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430\u0445. \u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0435\u0451 \u043A \u043A\u043E\u043C\u0430\u043D\u0434\u0435 \u2014 \u0441\u0435\u0440\u0438\u044F \u0438 \u0442\u0432\u043E\u0451 \u0432\u0440\u0435\u043C\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0442\u0441\u044F. \u0418\u043B\u0438 \u0437\u0430\u0432\u0435\u0441\u0442\u0438 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u0434\u043B\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u044B."), /*#__PURE__*/React.createElement("button", {
+    className: "bos-btn",
+    style: {
+      marginTop: 18
+    },
+    onClick: () => go(onLink)
+  }, "\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \xAB", dupeName, "\xBB"), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: () => go(onCreate),
+    style: {
+      width: "100%",
+      marginTop: 6,
+      background: "transparent",
+      border: 0,
+      color: "var(--text-3)",
+      padding: 13,
+      fontSize: 14.5,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043D\u043E\u0432\u0443\u044E \u0434\u043B\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u044B"));
+}
+
 /* Real shared-habit buddies (cloud) for the habit CARDS — fills the side slot with the ACTUAL
    people you share the habit with (their real avatars), replacing the legacy empty h.friends.
    Falls back to h.friends only for a local (no-shareCode) habit. LIVE only. */

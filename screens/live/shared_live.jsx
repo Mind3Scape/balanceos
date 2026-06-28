@@ -731,6 +731,21 @@ function AchievementSheetLive({ ach, onClose }) {
   );
 }
 
+/* Stage-2 dedup (David): нажал «Вести у себя», а такая привычка уже есть → спросить — ПРИВЯЗАТЬ
+   существующую (без дубля, серия/время сохранятся) или завести отдельную для команды. LIVE. */
+function TeamAdoptChoiceLive({ dupeName, onLink, onCreate }) {
+  const { close } = useSheet();
+  const go = (fn) => { try { fn && fn(); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (_) {} } close(); };
+  return (
+    <div style={{ padding: "2px 22px 14px", color: "var(--text)", textAlign: "center" }}>
+      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px" }}>У тебя уже есть такая</div>
+      <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 7, lineHeight: 1.5, textWrap: "balance" }}>«{dupeName}» уже в твоих привычках. Привязать её к команде — серия и твоё время сохранятся. Или завести отдельную для команды.</div>
+      <button className="bos-btn" style={{ marginTop: 18 }} onClick={() => go(onLink)}>Привязать «{dupeName}»</button>
+      <button className="tap" onClick={() => go(onCreate)} style={{ width: "100%", marginTop: 6, background: "transparent", border: 0, color: "var(--text-3)", padding: 13, fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Создать новую для команды</button>
+    </div>
+  );
+}
+
 /* Real shared-habit buddies (cloud) for the habit CARDS — fills the side slot with the ACTUAL
    people you share the habit with (their real avatars), replacing the legacy empty h.friends.
    Falls back to h.friends only for a local (no-shareCode) habit. LIVE only. */
