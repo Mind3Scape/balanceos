@@ -421,31 +421,31 @@ function HomeLive() {
           <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
         </div>
         <button onClick={() => navigate("notifications", { from: "home" })} className="tap"
-          style={{ width: 42, height: 42, borderRadius: 14, background: iconBg, border: 0, display: "grid", placeItems: "center", position: "relative" }}>
-          <I.Bell size={18} color={bellIcon}/>
+          style={{ width: 44, height: 44, borderRadius: "50%", background: iconBg, border: 0, display: "grid", placeItems: "center", position: "relative", flexShrink: 0 }}>
+          <I.Bell size={19} color={bellIcon}/>
           {showBellDot && (
-          <span style={{ position: "absolute", top: 8, right: 8, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
+          <span style={{ position: "absolute", top: 7, right: 7, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
           )}
         </button>
-        {/* Account avatar — the standard iOS top-right entry to profile (orbits + settings). A
-            minimalist XP-to-next-level ring (gold light→dark + glass sheen) wraps the glass disc.
-            Today's habit progress now lives in the «Привычки» card + «Эта неделя», not here. */}
+        {/* Account avatar — the standard iOS top-right entry to profile (orbits + settings). Sized
+            so the FACE matches the bell and the pair reads as two balanced circles; a minimalist
+            XP-to-next-level ring (gold light→dark + glass sheen) wraps the glass disc. */}
         <button onClick={() => navigate("profile")} className="tap" title="Профиль" aria-label="Профиль, орбиты и настройки"
-          style={{ position: "relative", width: 46, height: 46, background: "transparent", border: 0, padding: 0, flexShrink: 0, cursor: "pointer" }}>
-          <svg width="46" height="46" viewBox="0 0 46 46" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
+          style={{ position: "relative", width: 50, height: 50, background: "transparent", border: 0, padding: 0, flexShrink: 0, cursor: "pointer" }}>
+          <svg width="50" height="50" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
             <defs>
               <linearGradient id="bosXpRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777"/><stop offset="0.5" stopColor="#F4B72A"/><stop offset="1" stopColor="#E08A00"/></linearGradient>
               <linearGradient id="bosXpSheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="rgba(255,255,255,0.82)"/><stop offset="0.45" stopColor="rgba(255,255,255,0)"/></linearGradient>
             </defs>
-            <circle cx="23" cy="23" r="21" stroke={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} strokeWidth="2.5" fill="none"/>
-            <circle cx="23" cy="23" r="21" stroke="url(#bosXpRing)" strokeWidth="2.5" fill="none" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 21} strokeDashoffset={2 * Math.PI * 21 * (1 - (_lvl.pct || 0) / 100)}
+            <circle cx="25" cy="25" r="23.5" stroke={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} strokeWidth="2.5" fill="none"/>
+            <circle cx="25" cy="25" r="23.5" stroke="url(#bosXpRing)" strokeWidth="2.5" fill="none" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 23.5} strokeDashoffset={2 * Math.PI * 23.5 * (1 - (_lvl.pct || 0) / 100)}
               style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
-            <circle cx="23" cy="23" r="21" stroke="url(#bosXpSheen)" strokeWidth="2.5" fill="none" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 21} strokeDashoffset={2 * Math.PI * 21 * (1 - (_lvl.pct || 0) / 100)}
+            <circle cx="25" cy="25" r="23.5" stroke="url(#bosXpSheen)" strokeWidth="2.5" fill="none" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 23.5} strokeDashoffset={2 * Math.PI * 23.5 * (1 - (_lvl.pct || 0) / 100)}
               style={{ mixBlendMode: "screen" }}/>
           </svg>
-          <HeroAvatarGlassLive avatar={app?.avatar} inset={4} size={38} />
+          <HeroAvatarGlassLive avatar={app?.avatar} inset={3} size={44} />
         </button>
       </div>
 

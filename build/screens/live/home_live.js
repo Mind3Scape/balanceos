@@ -1091,23 +1091,24 @@ function HomeLive() {
     }),
     className: "tap",
     style: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
+      width: 44,
+      height: 44,
+      borderRadius: "50%",
       background: iconBg,
       border: 0,
       display: "grid",
       placeItems: "center",
-      position: "relative"
+      position: "relative",
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement(I.Bell, {
-    size: 18,
+    size: 19,
     color: bellIcon
   }), showBellDot && /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
-      top: 8,
-      right: 8,
+      top: 7,
+      right: 7,
       width: 8,
       height: 8,
       borderRadius: "50%",
@@ -1121,8 +1122,8 @@ function HomeLive() {
     "aria-label": "\u041F\u0440\u043E\u0444\u0438\u043B\u044C, \u043E\u0440\u0431\u0438\u0442\u044B \u0438 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     style: {
       position: "relative",
-      width: 46,
-      height: 46,
+      width: 50,
+      height: 50,
       background: "transparent",
       border: 0,
       padding: 0,
@@ -1130,9 +1131,9 @@ function HomeLive() {
       cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "46",
-    height: "46",
-    viewBox: "0 0 46 46",
+    width: "50",
+    height: "50",
+    viewBox: "0 0 50 50",
     style: {
       position: "absolute",
       inset: 0,
@@ -1167,42 +1168,42 @@ function HomeLive() {
     offset: "0.45",
     stopColor: "rgba(255,255,255,0)"
   }))), /*#__PURE__*/React.createElement("circle", {
-    cx: "23",
-    cy: "23",
-    r: "21",
+    cx: "25",
+    cy: "25",
+    r: "23.5",
     stroke: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
     strokeWidth: "2.5",
     fill: "none"
   }), /*#__PURE__*/React.createElement("circle", {
-    cx: "23",
-    cy: "23",
-    r: "21",
+    cx: "25",
+    cy: "25",
+    r: "23.5",
     stroke: "url(#bosXpRing)",
     strokeWidth: "2.5",
     fill: "none",
     strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * 21,
-    strokeDashoffset: 2 * Math.PI * 21 * (1 - (_lvl.pct || 0) / 100),
+    strokeDasharray: 2 * Math.PI * 23.5,
+    strokeDashoffset: 2 * Math.PI * 23.5 * (1 - (_lvl.pct || 0) / 100),
     style: {
       transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
     }
   }), /*#__PURE__*/React.createElement("circle", {
-    cx: "23",
-    cy: "23",
-    r: "21",
+    cx: "25",
+    cy: "25",
+    r: "23.5",
     stroke: "url(#bosXpSheen)",
     strokeWidth: "2.5",
     fill: "none",
     strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * 21,
-    strokeDashoffset: 2 * Math.PI * 21 * (1 - (_lvl.pct || 0) / 100),
+    strokeDasharray: 2 * Math.PI * 23.5,
+    strokeDashoffset: 2 * Math.PI * 23.5 * (1 - (_lvl.pct || 0) / 100),
     style: {
       mixBlendMode: "screen"
     }
   })), /*#__PURE__*/React.createElement(HeroAvatarGlassLive, {
     avatar: app?.avatar,
-    inset: 4,
-    size: 38
+    inset: 3,
+    size: 44
   }))), visibleIds.length > 0 ? /*#__PURE__*/React.createElement(BosReorderList, {
     ids: visibleIds,
     gap: 12,
