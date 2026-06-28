@@ -1137,13 +1137,18 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
 
   return (
     <>
-      {mode && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 2px 10px", animation: "dimIn 0.2s ease both" }}>
-          <span style={{ fontSize: 12.5, color: "var(--text-4)", fontWeight: 500 }}>
-            Перетащи карточки, чтобы изменить порядок
-          </span>
-          <button onClick={done} className="tap" data-haptic="selection" style={{ border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "7px 16px", fontSize: 13.5, fontWeight: 600 }}>Готово</button>
-        </div>
+      {/* «Готово» FLOATS (iOS edit-mode style, David): portal'd into the app viewport box (.page-stack,
+          position:absolute inset:0) so it pins to the top-right corner over everything and never pushes
+          the list down — it stays glued there through scroll until tapped to leave jiggle. (In-flow
+          header + the «перетащи…» hint are gone — the jiggle itself signals the mode, like iOS home.) */}
+      {mode && ReactDOM.createPortal(
+        <button onClick={done} className="tap" data-haptic="selection" aria-label="Готово — выйти из режима перестановки" style={{
+          position: "absolute", top: "max(calc(var(--bos-safe-top, 0px) + 12px), 56px)", right: 14, zIndex: 7000,
+          border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "9px 20px",
+          fontSize: 14, fontWeight: 600, boxShadow: "0 8px 22px rgba(0,0,0,0.32)", cursor: "pointer",
+          animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
+        }}>Готово</button>,
+        (typeof document !== "undefined" && document.querySelector(".page-stack")) || document.body
       )}
       <div style={{ display: "flex", flexDirection: "column", gap, color: "var(--text)" }}>
         {order.map((id, idx) => {

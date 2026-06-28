@@ -81,23 +81,23 @@ var GOAL_CHIPS = [{
   deadline: "Месяц"
 }];
 var TEAM_CHIPS = [
-// семья
+// вклад в окружение (David: фокус на вклад, не «семейные дела»)
 {
-  i: "👨‍👩‍👧",
-  t: "Семейные дела",
+  i: "🤝",
+  t: "Вклад в окружение",
   accent: "#E59B9B",
   goalType: "collective",
-  goalTitle: "Дела по дому",
+  goalTitle: "Добрые дела",
   target: 50,
   unit: "дел"
 }, {
-  i: "🍳",
-  t: "Готовим вместе",
+  i: "🫶",
+  t: "Забота о близких",
   accent: "#F0A24E",
   goalType: "collective",
-  goalTitle: "Ужины вместе",
+  goalTitle: "Тёплые дела",
   target: 30,
-  unit: "ужинов"
+  unit: "дел"
 },
 // челленджи для друзей
 {

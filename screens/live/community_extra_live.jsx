@@ -85,7 +85,6 @@ function TeamCreateLive() {
   const linkedCount = Object.values(linkedHabits).filter(Boolean).length;
   const toggleHabit = (e) => setLinkedHabits(h => ({ ...h, [e]: !h[e] }));
 
-  const accentSwatches = ["#fef3c7", "#dbe9ff", "#d6f3df", "#e9dffd", "#fde2e2", "#ffe1c8", "#d4f0eb", "#e3e3e3"];
   const emblemChoices = TEAM_EMBLEMS;
 
   return (
@@ -115,14 +114,18 @@ function TeamCreateLive() {
           <span style={{ width: 40, height: 40, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 24, accent)}</span>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, position: "relative", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 2px" }}>
-          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 30, height: 30, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof accent === "string" && accent[0] === "#" && !BOS_APPLE_COLORS.includes(accent)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
+        {/* Colour picker — IDENTICAL to habits/goals (wheel + black default + Apple palette, 32px),
+            so the choice reads the same across привычки/цели/команды (David: «выбор цветов отличается»). */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, position: "relative", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
+          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof accent === "string" && accent[0] === "#" && accent !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(accent)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
             <input type="color" value={(typeof accent === "string" && accent[0] === "#") ? accent : "#84A4B8"} onChange={(e) => setAccent(e.target.value)} aria-label="Свой цвет" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
           </label>
-          <span style={{ width: 1, height: 24, background: "rgba(0,0,0,0.12)", flexShrink: 0 }} />
+          <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
+          <button key="black" type="button" className="tap" data-haptic="selection" onClick={() => setAccent("#0a0a0a")} aria-label="Чёрный (стандарт)"
+            style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(180deg, #46464a, #0a0a0a)", border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none", transition: "box-shadow 0.15s" }} />
           {BOS_APPLE_COLORS.map((c) => (
             <button key={c} type="button" className="tap" data-haptic="selection" onClick={() => setAccent(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
-              style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
+              style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
           ))}
         </div>
       </div>
@@ -324,7 +327,7 @@ function TeamSettingsLive() {
   const team = params?.team || {};
   const [name, setName] = useCS(team.name || "");
   const [emblem, setEmblem] = useCS(team.emblem || "✨");
-  const [accent, setAccent] = useCS(team.accent || "#fef3c7");
+  const [accent, setAccent] = useCS(team.accent || "#84A4B8");
   const [goal, setGoal] = useCS(team.goal || "");
   const [priv, setPriv] = useCS(team.vis !== "public");
   const [notify, setNotify] = useCS(team.notify !== false);
@@ -343,7 +346,6 @@ function TeamSettingsLive() {
     return () => { on = false; };
   }, [team.cloudId]);
   const emblems = TEAM_EMBLEMS;
-  const accents = ["#fef3c7","#dbe9ff","#d6f3df","#e9dffd","#fde2e2","#ffe1c8","#d4f0eb","#e3e3e3"];
   const removeMember = (i) => setMembers(ms => ms.filter((_, j) => j !== i));
   const save = () => {
     if (saving) return;
@@ -373,14 +375,17 @@ function TeamSettingsLive() {
       </button>
 
       <div className="section-label" style={{ marginTop: 22 }}>Цвет</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 2px" }}>
-        <label className="tap" data-haptic="selection" style={{ position: "relative", width: 36, height: 36, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof accent === "string" && accent[0] === "#" && !BOS_APPLE_COLORS.includes(accent)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
+      {/* Colour picker — IDENTICAL to habits/goals + team-create (32px, black default + Apple palette). */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
+        <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof accent === "string" && accent[0] === "#" && accent !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(accent)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
           <input type="color" value={(typeof accent === "string" && accent[0] === "#") ? accent : "#84A4B8"} onChange={(e) => setAccent(e.target.value)} aria-label="Свой цвет" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
         </label>
-        <span style={{ width: 1, height: 28, background: "var(--line)", flexShrink: 0 }} />
+        <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
+        <button key="black" className="tap" data-haptic="selection" onClick={() => setAccent("#0a0a0a")} aria-label="Чёрный (стандарт)"
+          style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(180deg, #46464a, #0a0a0a)", border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none", transition: "box-shadow 0.15s" }} />
         {BOS_APPLE_COLORS.map((c) => (
           <button key={c} className="tap" data-haptic="selection" onClick={() => setAccent(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
-            style={{ width: 36, height: 36, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
+            style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
         ))}
       </div>
 

@@ -2640,34 +2640,28 @@ function BosReorderList({
     if (to < from && idx >= to && idx < from) return slot;
     return 0;
   };
-  return /*#__PURE__*/React.createElement(React.Fragment, null, mode && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      margin: "0 2px 10px",
-      animation: "dimIn 0.2s ease both"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-4)",
-      fontWeight: 500
-    }
-  }, "\u041F\u0435\u0440\u0435\u0442\u0430\u0449\u0438 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438, \u0447\u0442\u043E\u0431\u044B \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u043E\u0440\u044F\u0434\u043E\u043A"), /*#__PURE__*/React.createElement("button", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, mode && ReactDOM.createPortal(/*#__PURE__*/React.createElement("button", {
     onClick: done,
     className: "tap",
     "data-haptic": "selection",
+    "aria-label": "\u0413\u043E\u0442\u043E\u0432\u043E \u2014 \u0432\u044B\u0439\u0442\u0438 \u0438\u0437 \u0440\u0435\u0436\u0438\u043C\u0430 \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438",
     style: {
+      position: "absolute",
+      top: "max(calc(var(--bos-safe-top, 0px) + 12px), 56px)",
+      right: 14,
+      zIndex: 7000,
       border: 0,
       background: "#0a0a0a",
       color: "#fff",
       borderRadius: 999,
-      padding: "7px 16px",
-      fontSize: 13.5,
-      fontWeight: 600
+      padding: "9px 20px",
+      fontSize: 14,
+      fontWeight: 600,
+      boxShadow: "0 8px 22px rgba(0,0,0,0.32)",
+      cursor: "pointer",
+      animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both"
     }
-  }, "\u0413\u043E\u0442\u043E\u0432\u043E")), /*#__PURE__*/React.createElement("div", {
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E"), typeof document !== "undefined" && document.querySelector(".page-stack") || document.body), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

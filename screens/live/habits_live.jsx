@@ -36,9 +36,9 @@ const GOAL_CHIPS = [
   { i: "🚭", t: "Бросить курить", target: 90, unit: "дней", deadline: "Месяц" },
 ];
 const TEAM_CHIPS = [
-  // семья
-  { i: "👨‍👩‍👧", t: "Семейные дела", accent: "#E59B9B", goalType: "collective", goalTitle: "Дела по дому", target: 50, unit: "дел" },
-  { i: "🍳", t: "Готовим вместе", accent: "#F0A24E", goalType: "collective", goalTitle: "Ужины вместе", target: 30, unit: "ужинов" },
+  // вклад в окружение (David: фокус на вклад, не «семейные дела»)
+  { i: "🤝", t: "Вклад в окружение", accent: "#E59B9B", goalType: "collective", goalTitle: "Добрые дела", target: 50, unit: "дел" },
+  { i: "🫶", t: "Забота о близких", accent: "#F0A24E", goalType: "collective", goalTitle: "Тёплые дела", target: 30, unit: "дел" },
   // челленджи для друзей
   { i: "🔥", t: "30 дней спорта", accent: "#F0564C", goalType: "streak", goalTitle: "Спорт каждый день", target: 30, unit: "дней" },
   { i: "🏁", t: "Беговой вызов", accent: "#19B89B", goalType: "race", goalTitle: "100 км бега", target: 100, unit: "км" },
