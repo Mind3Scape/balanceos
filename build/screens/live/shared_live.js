@@ -4016,25 +4016,25 @@ function HomeWeekStripLive({
       key: i,
       style: {
         flex: 1,
-        aspectRatio: "0.82",
-        borderRadius: 11,
+        aspectRatio: "1/1",
+        borderRadius: "30%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 2,
+        gap: 1,
         background: on ? fill : empty,
         boxShadow: sh
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 600,
         color: on ? "rgba(255,255,255,0.72)" : "var(--text-4)"
       }
     }, WD[i]), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 700,
         color: on ? "#fff" : "var(--text)",
         fontVariantNumeric: "tabular-nums"

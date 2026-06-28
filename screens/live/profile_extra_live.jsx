@@ -362,25 +362,15 @@ function HistoryLive() {
 
   const [selDay, setSelDay] = useP(today);
 
-  const cellStyle = (pct) => {
-    if (pct == null) return { background: TH.cellEmpty, border: "1px solid " + TH.cellBorder, color: TH.cellMuted };
-    if (pct === 0)   return { background: TH.cellIdle, color: TH.cellMuted };
-    if (pct < 1) {
-      const h = Math.round(pct * 100);
-      // Fill rises from the bottom (amber → yellow) with a crisp level line on
-      // top — reads instantly as "how full the day is", no diagonal.
-      return {
-        background: `linear-gradient(to top, #EF9F14 0%, #FEDE34 ${h}%, ${TH.cellIdle} ${h}%)`,
-        color: TH.cellText,
-      };
-    }
-    return { background: "linear-gradient(to top, #EF9F14, #FEDE34)", color: "#0a0a0a" };
-  };
-
   const blanks = Array.from({ length: startWeekday }, (_, i) => ({ blank: true, key: "b" + i }));
   const days = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, key: "d" + (i + 1) }));
   const cells = [...blanks, ...days];
   const weekday = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+  // Heat-cell tokens for the squircle calendar — graphite fill by completion, grey glass rings,
+  // no gold (David: золото на дне не подходит → серое стекло; единый язык с деталью привычки).
+  const cellFut    = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)";
+  const todayRingC = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)";
+  const selRingC   = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
 
   // The live user's REAL habits + whether each was logged on the selected date.
   const liveDayHabits = (d) => liveHabits.map((h) => ({ e: h.emoji || "✨", n: h.name || "Привычка", on: !!(h && h.log && h.log[iso(d)]) }));
@@ -402,7 +392,7 @@ function HistoryLive() {
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="История" onBack={() => navigate("home")} />
+      <PageHeader title="Календарь" onBack={() => navigate("home")} />
 
       {showEmpty ? (
         /* No history yet — honest empty state, never a fake calendar. */
@@ -412,22 +402,16 @@ function HistoryLive() {
           Отмечай привычки, и тут появится твой ритм.
         </div>
       ) : (<>
-      {/* Stat strip */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-        {[
-          { l: "Лучшая серия", v: bestStreak + "д" },
-          { l: "Идеальных дней", v: perfectDays },
-          { l: "Всего привычек", v: Math.round(totalDone) },
-        ].map((s, i) => (
-          <SysCard key={i} style={{ padding: "12px 14px" }}>
-            <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{s.l}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2, letterSpacing: "-0.4px" }}>{s.v}</div>
-          </SysCard>
-        ))}
-      </div>
+      {/* Stat band — the SAME unified plaque as Habits/Goals detail (StatTrioLive): one card,
+          thin line icons in line with SF numbers, hairline dividers. Continuity over the old trio. */}
+      <StatTrioLive isDark={isDark} card={{ background: "var(--card)", boxShadow: "var(--card-shadow)", transform: "translateZ(0)" }} items={[
+        { l: "Лучшая", v: bestStreak, suf: "д", icon: <I.Flame size={14} color="var(--text-4)" /> },
+        { l: "Идеальных", v: perfectDays, suf: "", icon: <I.Trophy size={14} color="var(--text-4)" /> },
+        { l: "Отметок", v: Math.round(totalDone), suf: "", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
+      ]} />
 
       {/* Month calendar */}
-      <SysCard style={{ padding: 16, marginTop: 12, borderRadius: 22 }}>
+      <SysCard style={{ padding: 16, marginTop: 12, borderRadius: 22, transform: "translateZ(0)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={() => setMIdx(m => Math.max(0, m - 1))} disabled={mIdx === 0} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
             <I.ChevronLeft size={16}/>
@@ -444,48 +428,41 @@ function HistoryLive() {
           ))}
         </div>
 
-        {/* Shared gradient for every day-ring */}
-        <svg width="0" height="0" aria-hidden style={{ position: "absolute" }}>
-          <defs>
-            <linearGradient id="calRing" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginTop: 6 }}>
+        {/* Day cells — SQUIRCLE heat-tiles (our calendar language: day = rounded square), filled in
+            graphite by that day's completion share. Grey glass ring on today, grey ring on the picked
+            day — no gold. Mood pip in the corner. The SAME bosCellFill/Glass as the habit calendar. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginTop: 6 }}>
           {cells.map(c => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }}/>;
             const pct = completion(c.d);
-            const future = pct == null;
+            const fut = pct == null;
             const isSelected = selDay === c.d;
             const isToday = isCurMonth && c.d === today;
+            const filled = !fut && pct > 0;
+            const bg = fut ? cellFut : (pct <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", pct));
+            const ink = fut ? TH.cellMuted : (pct <= 0 ? TH.cellText : bosCellInk("#0a0a0a", pct, isDark));
+            const ring = isToday ? todayRingC : (isSelected ? selRingC : null);
+            const sh = [filled ? bosCellGlass(isDark) : "", ring ? ("0 0 0 1.6px " + ring) : ""].filter(Boolean).join(", ") || "none";
             return (
               <button key={c.key} onClick={() => setSelDay(c.d)} className="tap"
                 style={{
-                  aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0,
+                  aspectRatio: "1/1", border: 0, borderRadius: "30%", padding: 0,
                   display: "grid", placeItems: "center", position: "relative",
-                  fontSize: 13, fontWeight: isToday ? 700 : 500, cursor: "pointer",
-                  background: "transparent",
-                  color: future ? TH.cellMuted : (isToday ? TH.todayFg : TH.cellText),
+                  fontSize: 12.5, fontWeight: isToday ? 700 : 500, cursor: "pointer",
+                  background: bg, boxShadow: sh, color: ink,
                 }}>
-                {isToday && <span aria-hidden style={{ position: "absolute", width: "62%", aspectRatio: "1/1", borderRadius: "50%", background: TH.todayBg }}/>}
-                {isSelected && !isToday && <span aria-hidden style={{ position: "absolute", width: "66%", aspectRatio: "1/1", borderRadius: "50%", border: "1.5px solid " + (isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)") }}/>}
-                {future
-                  ? <span aria-hidden style={{ position: "absolute", inset: "17%", borderRadius: "50%", border: "1px solid " + TH.cellBorder }}/>
-                  : <DayRing pct={pct} track={TH.ringTrack} glow={pct === 1} />}
                 <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>
                 {(() => {
-                  // Live moods are written by ISO date key (bosTodayKey, e.g. "2026-06-24");
-                  // iso() above produces the same local ISO key.
-                  if (!isCurMonth || pct == null) return null;
+                  // Live moods are keyed by ISO date (bosTodayKey, e.g. "2026-06-24"); iso() matches.
+                  if (!isCurMonth || fut) return null;
                   const mkey = iso(c.d);
                   const mi = app?.dayMoods?.[mkey];
                   if (mi == null) return null;
                   const dm = MOOD_OPTIONS[mi];
                   if (!dm) return null;
                   return (
-                    <span aria-hidden style={{ position: "absolute", top: 0, right: 0, lineHeight: 0 }}>
-                      <MiniOrb size={10} tint={tintFromMood(dm.c)} />
+                    <span aria-hidden style={{ position: "absolute", top: 1, right: 1, lineHeight: 0 }}>
+                      <MiniOrb size={9} tint={tintFromMood(dm.c)} />
                     </span>
                   );
                 })()}
@@ -494,13 +471,11 @@ function HistoryLive() {
           })}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
           <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Меньше</span>
-          <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
             {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
-              <span key={i} style={{ position: "relative", width: 16, height: 16, display: "inline-block" }}>
-                <DayRing pct={p} track={TH.ringTrack} sw={3.4} glow={p === 1} />
-              </span>
+              <span key={i} style={{ width: 15, height: 15, borderRadius: "30%", background: p <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", p), boxShadow: p > 0 ? bosCellGlass(isDark) : "none" }} />
             ))}
           </div>
           <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Больше</span>
@@ -511,7 +486,7 @@ function HistoryLive() {
       <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>
         {monthName} {selDay} · {selPct == null ? "Будущее" : selPct === 1 ? "Идеальный день ✨" : selPct === 0 ? "Пропущен" : `${Math.round(selPct * 100)}%`}
       </div>
-      <SysCard style={{ marginTop: 8, borderRadius: 22, overflow: "hidden", padding: 0 }}>
+      <SysCard style={{ marginTop: 8, borderRadius: 22, overflow: "hidden", padding: 0, transform: "translateZ(0)" }}>
         {selPct == null ? (
           <div className="bos-sys-text-3" style={{ padding: 24, textAlign: "center", fontSize: 14 }}>Этот день ещё не наступил.</div>
         ) : (
@@ -520,7 +495,7 @@ function HistoryLive() {
               <div style={{ flex: 1 }}>
                 <div className="bos-sys-text-2" style={{ fontSize: 13 }}>{Math.round(selPct * dayHabits.length)} из {dayHabits.length} привычек</div>
                 <div style={{ marginTop: 6, height: 8, background: TH.progressBg, borderRadius: 999, overflow: "hidden" }}>
-                  <span style={{ display: "block", height: "100%", width: (selPct * 100) + "%", background: TH.yellowFill, borderRadius: 999 }}/>
+                  <span style={{ display: "block", height: "100%", width: (selPct * 100) + "%", background: bosCellFill("#0a0a0a", 1), borderRadius: 999 }}/>
                 </div>
               </div>
               <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>{Math.round(selPct * 100)}%</span>
@@ -553,7 +528,7 @@ function HistoryLive() {
                   {dn.tags && dn.tags.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                       {dn.tags.map((tg, k) => (
-                        <span key={k} style={{ fontSize: 12.5, padding: "5px 10px", borderRadius: 999, background: TH.iconBg }}>#{tg}</span>
+                        <span key={k} style={{ fontSize: 12.5, padding: "5px 10px", borderRadius: 999, ...bosChipGlass(isDark) }}>#{tg}</span>
                       ))}
                     </div>
                   )}
@@ -569,7 +544,7 @@ function HistoryLive() {
               return (
                 <div key={i}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
-                    <span style={{ width: 36, height: 36, borderRadius: 14, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{bosIcon(h.e, 18, null)}</span>
+                    <span style={{ width: 36, height: 36, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{bosIcon(h.e, 18, null)}</span>
                     <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.n}</span>
                     <span style={{
                       width: 26, height: 26, borderRadius: "50%",

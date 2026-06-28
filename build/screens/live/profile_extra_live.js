@@ -749,30 +749,6 @@ function HistoryLive() {
     return done / liveHabits.length;
   };
   var [selDay, setSelDay] = useP(today);
-  var cellStyle = pct => {
-    if (pct == null) return {
-      background: TH.cellEmpty,
-      border: "1px solid " + TH.cellBorder,
-      color: TH.cellMuted
-    };
-    if (pct === 0) return {
-      background: TH.cellIdle,
-      color: TH.cellMuted
-    };
-    if (pct < 1) {
-      var h = Math.round(pct * 100);
-      // Fill rises from the bottom (amber → yellow) with a crisp level line on
-      // top — reads instantly as "how full the day is", no diagonal.
-      return {
-        background: `linear-gradient(to top, #EF9F14 0%, #FEDE34 ${h}%, ${TH.cellIdle} ${h}%)`,
-        color: TH.cellText
-      };
-    }
-    return {
-      background: "linear-gradient(to top, #EF9F14, #FEDE34)",
-      color: "#0a0a0a"
-    };
-  };
   var blanks = Array.from({
     length: startWeekday
   }, (_, i) => ({
@@ -787,6 +763,11 @@ function HistoryLive() {
   }));
   var cells = [...blanks, ...days];
   var weekday = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  // Heat-cell tokens for the squircle calendar — graphite fill by completion, grey glass rings,
+  // no gold (David: золото на дне не подходит → серое стекло; единый язык с деталью привычки).
+  var cellFut = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)";
+  var todayRingC = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)";
+  var selRingC = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
 
   // The live user's REAL habits + whether each was logged on the selected date.
   var liveDayHabits = d => liveHabits.map(h => ({
@@ -820,7 +801,7 @@ function HistoryLive() {
       padding: "0 16px 24px"
     }
   }, /*#__PURE__*/React.createElement(PageHeader, {
-    title: "\u0418\u0441\u0442\u043E\u0440\u0438\u044F",
+    title: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C",
     onBack: () => navigate("home")
   }), showEmpty ?
   /*#__PURE__*/
@@ -845,46 +826,44 @@ function HistoryLive() {
       color: "var(--text)",
       marginBottom: 6
     }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0438\u0441\u0442\u043E\u0440\u0438\u0438"), "\u041E\u0442\u043C\u0435\u0447\u0430\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u0438 \u0442\u0443\u0442 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0442\u0432\u043E\u0439 \u0440\u0438\u0442\u043C.") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 8
-    }
-  }, [{
-    l: "Лучшая серия",
-    v: bestStreak + "д"
-  }, {
-    l: "Идеальных дней",
-    v: perfectDays
-  }, {
-    l: "Всего привычек",
-    v: Math.round(totalDone)
-  }].map((s, i) => /*#__PURE__*/React.createElement(SysCard, {
-    key: i,
-    style: {
-      padding: "12px 14px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, s.l), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 20,
-      fontWeight: 700,
-      marginTop: 2,
-      letterSpacing: "-0.4px"
-    }
-  }, s.v)))), /*#__PURE__*/React.createElement(SysCard, {
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0438\u0441\u0442\u043E\u0440\u0438\u0438"), "\u041E\u0442\u043C\u0435\u0447\u0430\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u0438 \u0442\u0443\u0442 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0442\u0432\u043E\u0439 \u0440\u0438\u0442\u043C.") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(StatTrioLive, {
+    isDark: isDark,
+    card: {
+      background: "var(--card)",
+      boxShadow: "var(--card-shadow)",
+      transform: "translateZ(0)"
+    },
+    items: [{
+      l: "Лучшая",
+      v: bestStreak,
+      suf: "д",
+      icon: /*#__PURE__*/React.createElement(I.Flame, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Идеальных",
+      v: perfectDays,
+      suf: "",
+      icon: /*#__PURE__*/React.createElement(I.Trophy, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Отметок",
+      v: Math.round(totalDone),
+      suf: "",
+      icon: /*#__PURE__*/React.createElement(I.ChartBar, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }]
+  }), /*#__PURE__*/React.createElement(SysCard, {
     style: {
       padding: 16,
       marginTop: 12,
-      borderRadius: 22
+      borderRadius: 22,
+      transform: "translateZ(0)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -950,30 +929,11 @@ function HistoryLive() {
       fontWeight: 600,
       letterSpacing: 0.6
     }
-  }, w))), /*#__PURE__*/React.createElement("svg", {
-    width: "0",
-    height: "0",
-    "aria-hidden": true,
-    style: {
-      position: "absolute"
-    }
-  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
-    id: "calRing",
-    x1: "0",
-    y1: "0",
-    x2: "1",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "#FEDE34"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "1",
-    stopColor: "#EF9F14"
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, w))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7, 1fr)",
-      gap: 4,
+      gap: 6,
       marginTop: 6
     }
   }, cells.map(c => {
@@ -985,9 +945,14 @@ function HistoryLive() {
       }
     });
     var pct = completion(c.d);
-    var future = pct == null;
+    var fut = pct == null;
     var isSelected = selDay === c.d;
     var isToday = isCurMonth && c.d === today;
+    var filled = !fut && pct > 0;
+    var bg = fut ? cellFut : pct <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", pct);
+    var ink = fut ? TH.cellMuted : pct <= 0 ? TH.cellText : bosCellInk("#0a0a0a", pct, isDark);
+    var ring = isToday ? todayRingC : isSelected ? selRingC : null;
+    var sh = [filled ? bosCellGlass(isDark) : "", ring ? "0 0 0 1.6px " + ring : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("button", {
       key: c.key,
       onClick: () => setSelDay(c.d),
@@ -995,56 +960,26 @@ function HistoryLive() {
       style: {
         aspectRatio: "1/1",
         border: 0,
-        borderRadius: "50%",
+        borderRadius: "30%",
         padding: 0,
         display: "grid",
         placeItems: "center",
         position: "relative",
-        fontSize: 13,
+        fontSize: 12.5,
         fontWeight: isToday ? 700 : 500,
         cursor: "pointer",
-        background: "transparent",
-        color: future ? TH.cellMuted : isToday ? TH.todayFg : TH.cellText
+        background: bg,
+        boxShadow: sh,
+        color: ink
       }
-    }, isToday && /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        width: "62%",
-        aspectRatio: "1/1",
-        borderRadius: "50%",
-        background: TH.todayBg
-      }
-    }), isSelected && !isToday && /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        width: "66%",
-        aspectRatio: "1/1",
-        borderRadius: "50%",
-        border: "1.5px solid " + (isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)")
-      }
-    }), future ? /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        inset: "17%",
-        borderRadius: "50%",
-        border: "1px solid " + TH.cellBorder
-      }
-    }) : /*#__PURE__*/React.createElement(DayRing, {
-      pct: pct,
-      track: TH.ringTrack,
-      glow: pct === 1
-    }), /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
         position: "relative",
         zIndex: 1
       }
     }, c.d), (() => {
-      // Live moods are written by ISO date key (bosTodayKey, e.g. "2026-06-24");
-      // iso() above produces the same local ISO key.
-      if (!isCurMonth || pct == null) return null;
+      // Live moods are keyed by ISO date (bosTodayKey, e.g. "2026-06-24"); iso() matches.
+      if (!isCurMonth || fut) return null;
       var mkey = iso(c.d);
       var mi = app?.dayMoods?.[mkey];
       if (mi == null) return null;
@@ -1054,12 +989,12 @@ function HistoryLive() {
         "aria-hidden": true,
         style: {
           position: "absolute",
-          top: 0,
-          right: 0,
+          top: 1,
+          right: 1,
           lineHeight: 0
         }
       }, /*#__PURE__*/React.createElement(MiniOrb, {
-        size: 10,
+        size: 9,
         tint: tintFromMood(dm.c)
       }));
     })());
@@ -1068,7 +1003,7 @@ function HistoryLive() {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginTop: 14
+      marginTop: 16
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-text-3",
@@ -1078,23 +1013,19 @@ function HistoryLive() {
   }, "\u041C\u0435\u043D\u044C\u0448\u0435"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 7,
+      gap: 5,
       alignItems: "center"
     }
   }, [0, 0.25, 0.5, 0.75, 1].map((p, i) => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
-      position: "relative",
-      width: 16,
-      height: 16,
-      display: "inline-block"
+      width: 15,
+      height: 15,
+      borderRadius: "30%",
+      background: p <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", p),
+      boxShadow: p > 0 ? bosCellGlass(isDark) : "none"
     }
-  }, /*#__PURE__*/React.createElement(DayRing, {
-    pct: p,
-    track: TH.ringTrack,
-    sw: 3.4,
-    glow: p === 1
-  })))), /*#__PURE__*/React.createElement("span", {
+  }))), /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-text-3",
     style: {
       fontSize: 11
@@ -1110,7 +1041,8 @@ function HistoryLive() {
       marginTop: 8,
       borderRadius: 22,
       overflow: "hidden",
-      padding: 0
+      padding: 0,
+      transform: "translateZ(0)"
     }
   }, selPct == null ? /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
@@ -1149,7 +1081,7 @@ function HistoryLive() {
       display: "block",
       height: "100%",
       width: selPct * 100 + "%",
-      background: TH.yellowFill,
+      background: bosCellFill("#0a0a0a", 1),
       borderRadius: 999
     }
   }))), /*#__PURE__*/React.createElement("span", {
@@ -1233,7 +1165,7 @@ function HistoryLive() {
         fontSize: 12.5,
         padding: "5px 10px",
         borderRadius: 999,
-        background: TH.iconBg
+        ...bosChipGlass(isDark)
       }
     }, "#", tg))), dn.note && /*#__PURE__*/React.createElement("div", {
       className: "bos-sys-text-2",
@@ -1259,8 +1191,9 @@ function HistoryLive() {
       style: {
         width: 36,
         height: 36,
-        borderRadius: 14,
-        background: TH.iconBg,
+        borderRadius: 13,
+        background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
+        boxShadow: bosTileGlass(isDark),
         display: "grid",
         placeItems: "center",
         fontSize: 18,
