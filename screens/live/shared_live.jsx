@@ -180,6 +180,17 @@ function bosTileGlass(isDark) {
     : "inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05)";
 }
 const BOS_TILE_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
+// Grey GLASS pill — the «Быстрое добавление» chip look (grey base) + a soft glass sheen + bright
+// top edge. ONE source so the home hero pills and the Habits quick-add chips stay identical
+// (David: стекло на пилюли + континьюити). Spread into a chip's inline style; pair with border:0.
+function bosChipGlass(isDark) {
+  return {
+    background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.08)" : "#F1F1F5"),
+    boxShadow: isDark
+      ? "inset 0 0.5px 0.5px rgba(255,255,255,0.12), inset 0 0 0 0.5px rgba(255,255,255,0.05)"
+      : "inset 0 1px 0.5px rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(0,0,0,0.05)",
+  };
+}
 // Number ink for a filled day in «подробно» — contrast over the fill (white on dark hues, ink on
 // light hues). Favours dark text when borderline (the top sheen lightens the centre).
 function bosCellInk(hx, p, isDark) {
@@ -1451,10 +1462,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
   const moodTint = (mood && typeof tintFromMood === "function") ? tintFromMood(mood.c) : null;
   // Live newbie = a real Telegram user who just signed in and has no habits yet.
   const newbie = (heroApp?.habits?.length || 0) === 0;
-  // Pills match the «Быстрое добавление» chips on the Habits page (greyer, borderless) for
-  // continuity — David: «на странице привычек они серее и смотрятся лучше».
-  const chipBg   = isDark ? "rgba(255,255,255,0.08)" : "#F1F1F5";
-  const chipBd   = "0";
+  // Pills use bosChipGlass(isDark) — grey glass, identical to the Habits «Быстрое добавление» chips.
   const cardBg   = isDark
     ? "linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)"
     : "linear-gradient(160deg, #ffffff 0%, #f5f5f5 100%)";
@@ -1499,7 +1507,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         ].map((c, i) => (
           <button key={i} onClick={c.go} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
-            background: chipBg, border: chipBd, minWidth: 0, maxWidth: "calc(50% - 3px)",
+            ...bosChipGlass(isDark), border: 0, minWidth: 0, maxWidth: "calc(50% - 3px)",
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
           }}><span style={{ flexShrink: 0 }}>{c.i}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.t}</span></button>
         ))}
@@ -1524,7 +1532,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         ]).map((c, i) => (
           <button key={i} onClick={() => bosRoutePill(navigate, c)} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
-            background: chipBg, border: chipBd, minWidth: 0, maxWidth: "calc(50% - 3px)",
+            ...bosChipGlass(isDark), border: 0, minWidth: 0, maxWidth: "calc(50% - 3px)",
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
             animation: _livePills ? ("briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.06) + "s") : undefined,
           }}><span style={{ flexShrink: 0 }}>{bosPillIcon(c)}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bosPillLabel(c)}</span></button>
@@ -1696,7 +1704,10 @@ function HomeWeekStripLive({ habits = [], isDark }) {
         const on = habits.length > 0 && habits.some((h) => h.log && h.log[k]);
         const isToday = k === todayK;
         const dayNum = parseInt(("" + k).slice(-2), 10) || "";
-        const sh = [on && typeof bosCellGlass === "function" ? bosCellGlass(isDark) : "", isToday ? "0 0 0 2px #EF9F14, 0 0 0 4px rgba(239,159,20,0.16)" : ""].filter(Boolean).join(", ") || "none";
+        // Today = a GREY glass outline (David: золотой не подходит) — matches the grey today-ring on
+        // the habit-detail week strip; the inset highlight gives it the glassy edge.
+        const todayRing = isDark ? "0 0 0 1.5px rgba(255,255,255,0.5), inset 0 1px 1px rgba(255,255,255,0.12)" : "0 0 0 1.5px rgba(0,0,0,0.32), inset 0 1px 1.5px rgba(255,255,255,0.85)";
+        const sh = [on && typeof bosCellGlass === "function" ? bosCellGlass(isDark) : "", isToday ? todayRing : ""].filter(Boolean).join(", ") || "none";
         return (
           <div key={i} style={{ flex: 1, aspectRatio: "0.82", borderRadius: 11, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, background: on ? fill : empty, boxShadow: sh }}>
             <span style={{ fontSize: 10, fontWeight: 600, color: on ? "rgba(255,255,255,0.72)" : "var(--text-4)" }}>{WD[i]}</span>

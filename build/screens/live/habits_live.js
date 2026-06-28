@@ -177,12 +177,14 @@ function HabitsLive() {
       preset: c
     }),
     style: {
-      background: TH.chipBg,
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+        background: TH.chipBg
+      }),
       borderRadius: 999,
       padding: "8px 12px",
       fontSize: 13,
       color: TH.chipText,
-      border: TH.chipBd,
+      border: 0,
       display: "inline-flex",
       alignItems: "center",
       gap: 6,

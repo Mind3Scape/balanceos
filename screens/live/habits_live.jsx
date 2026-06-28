@@ -104,7 +104,7 @@ function HabitsLive() {
       <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "3px 2px" }}>
         {EMOJI_CHIPS.map((c, i) => (
           <button key={i} className="tap" data-no-haptic onClick={() => navigate("habit-settings", { mode: "create", preset: c })} style={{
-            background: TH.chipBg, borderRadius: 999, padding: "8px 12px", fontSize: 13, color: TH.chipText, border: TH.chipBd,
+            ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), borderRadius: 999, padding: "8px 12px", fontSize: 13, color: TH.chipText, border: 0,
             display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
           }}>
             <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>{c.t} <I.Plus size={12} color={TH.plusIcon}/>
