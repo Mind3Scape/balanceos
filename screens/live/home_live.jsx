@@ -363,29 +363,30 @@ function HomeLive() {
     }
 
     if (id === "invite") {
-      // Invite / share the app — a focused dark CTA that ties sharing to the reward loop.
+      // Invite / share — GOLD banner (David: «как баннер уровня»): same reward-gold language as the
+      // level banner, dark ink on gold. The «+150 XP» badge flips to a dark pill for contrast on gold.
       return (
-        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(20,40,80,0.28)" }}>
-          <SwipeRow rowBg="linear-gradient(135deg, #34508c 0%, #1d2c4d 100%)" dark={isDark} actions={[
+        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
+          <SwipeRow rowBg="linear-gradient(135deg,#FEDE34,#EF9F14)" dark={isDark} actions={[
             { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideWidget("invite") },
           ]}>
             <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)}
-              style={{ width: "100%", padding: "16px 18px", border: 0, position: "relative",
+              style={{ width: "100%", padding: "15px 17px", border: 0, position: "relative",
                 background: "transparent",
-                color: "#fff", display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
-              <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 10%, rgba(255,255,255,0.16) 0%, transparent 52%)", pointerEvents: "none" }} />
-              <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.14)", display: "grid", placeItems: "center", flexShrink: 0, color: "#fff", position: "relative" }}>
+                color: "#0a0a0a", display: "flex", alignItems: "center", gap: 13, textAlign: "left" }}>
+              <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)", pointerEvents: "none" }} />
+              <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, color: "#0a0a0a", position: "relative" }}>
                 <I.Share size={20} />
               </span>
               <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <div style={{ fontSize: 15.5, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>Позови своих</div>
-                  <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg, #FEDE34, #EF9F14)", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
+                  <div style={{ fontSize: 15.5, fontWeight: 700, color: "#0a0a0a", letterSpacing: "-0.2px" }}>Позови своих</div>
+                  <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#FEDE34", background: "#0a0a0a", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
                 </div>
-                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", marginTop: 3, lineHeight: 1.35, fontWeight: 500 }}>{_inviteFomo}</div>
+                <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.62)", marginTop: 3, lineHeight: 1.35, fontWeight: 500 }}>{_inviteFomo}</div>
               </div>
               <div style={{ display: "flex", flexShrink: 0, position: "relative" }}>
-                <span style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.16)", border: "2px solid rgba(255,255,255,0.3)", display: "grid", placeItems: "center", color: "#fff" }}><I.Plus size={16} strokeWidth={2.5} /></span>
+                <span style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.55)", border: "2px solid rgba(255,255,255,0.6)", display: "grid", placeItems: "center", color: "#0a0a0a" }}><I.Plus size={16} strokeWidth={2.5} /></span>
               </div>
             </button>
           </SwipeRow>
