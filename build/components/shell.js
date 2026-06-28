@@ -354,86 +354,93 @@ function SwipeRow({
     } // tap a revealed row → close, don't navigate
   };
   var offset = releasing ? open ? -W : 0 : dx;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      overflow: "hidden",
-      touchAction: "pan-y",
-      background: track
-    },
-    onPointerDown: onDown,
-    onPointerMove: onMove,
-    onPointerUp: onUp,
-    onPointerCancel: onUp,
-    onClickCapture: onClickCapture
-  }, (open || dx < 0) && /*#__PURE__*/React.createElement("div", {
-    "data-swipe-actions": "",
-    style: {
-      position: "absolute",
-      top: 0,
-      right: 0,
-      bottom: 0,
-      display: "flex",
-      alignItems: "center",
-      background: track,
-      isolation: "isolate",
-      zIndex: 0
-    }
-  }, actions.map((a, i) => {
-    var ts = swipeTone(a.tone, dark);
-    return /*#__PURE__*/React.createElement("button", {
-      key: a.key || i,
-      className: "tap",
-      "aria-label": a.label,
-      title: a.label,
-      onClick: e => {
-        e.stopPropagation();
-        close();
-        a.onAction && a.onAction();
-      },
+  return (
+    /*#__PURE__*/
+    // Root stays TRANSPARENT — the reveal-track is painted by the actions layer below (which only
+    // mounts during a swipe). A permanent `background: track` (#0a0a0a in dark) leaked at the
+    // rounded corners on first load: useThemeFlag flips light→dark after mount and the `.page-in`
+    // entrance transform briefly breaks the parent's border-radius clip → black flash. No bg → nothing to leak.
+    React.createElement("div", {
       style: {
-        width: actionWidth,
-        border: 0,
-        background: "transparent",
+        position: "relative",
+        overflow: "hidden",
+        touchAction: "pan-y",
+        background: "transparent"
+      },
+      onPointerDown: onDown,
+      onPointerMove: onMove,
+      onPointerUp: onUp,
+      onPointerCancel: onUp,
+      onClickCapture: onClickCapture
+    }, (open || dx < 0) && /*#__PURE__*/React.createElement("div", {
+      "data-swipe-actions": "",
+      style: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        bottom: 0,
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        padding: 0
+        background: track,
+        isolation: "isolate",
+        zIndex: 0
       }
-    }, /*#__PURE__*/React.createElement("span", {
+    }, actions.map((a, i) => {
+      var ts = swipeTone(a.tone, dark);
+      return /*#__PURE__*/React.createElement("button", {
+        key: a.key || i,
+        className: "tap",
+        "aria-label": a.label,
+        title: a.label,
+        onClick: e => {
+          e.stopPropagation();
+          close();
+          a.onAction && a.onAction();
+        },
+        style: {
+          width: actionWidth,
+          border: 0,
+          background: "transparent",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: actionSize,
+          height: actionSize,
+          borderRadius: "50%",
+          background: ts.bg,
+          display: "grid",
+          placeItems: "center",
+          boxShadow: dark ? "none" : "0 1px 3px rgba(0,0,0,0.10)"
+        }
+      }, React.createElement(a.icon, {
+        size: Math.max(14, Math.round(actionSize * 0.46)),
+        color: ts.fg,
+        strokeWidth: a.tone === "done" ? 2.6 : 2,
+        style: {
+          display: "block"
+        }
+      })));
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
-        width: actionSize,
-        height: actionSize,
-        borderRadius: "50%",
-        background: ts.bg,
-        display: "grid",
-        placeItems: "center",
-        boxShadow: dark ? "none" : "0 1px 3px rgba(0,0,0,0.10)"
+        position: "relative",
+        background: rowBg,
+        overflow: "hidden",
+        transform: "translateX(" + offset + "px)",
+        borderTopRightRadius: offset < 0 ? 16 : 0,
+        borderBottomRightRadius: offset < 0 ? 16 : 0,
+        transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.25s ease" : "none",
+        /* Promote to a compositing layer ONLY during the gesture. A permanent willChange:transform
+           layer escapes the parent's border-radius+overflow clip in WebKit → the dark reveal-track
+           leaks at the rounded corners (and flickers as the layer is created/destroyed). At rest we
+           drop the layer so the parent clips the row cleanly. */
+        willChange: open || !releasing ? "transform" : "auto"
       }
-    }, React.createElement(a.icon, {
-      size: Math.max(14, Math.round(actionSize * 0.46)),
-      color: ts.fg,
-      strokeWidth: a.tone === "done" ? 2.6 : 2,
-      style: {
-        display: "block"
-      }
-    })));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      background: rowBg,
-      overflow: "hidden",
-      transform: "translateX(" + offset + "px)",
-      borderTopRightRadius: offset < 0 ? 16 : 0,
-      borderBottomRightRadius: offset < 0 ? 16 : 0,
-      transition: releasing ? "transform 0.3s cubic-bezier(0.32,0.72,0,1), border-radius 0.25s ease" : "none",
-      /* Promote to a compositing layer ONLY during the gesture. A permanent willChange:transform
-         layer escapes the parent's border-radius+overflow clip in WebKit → the dark reveal-track
-         leaks at the rounded corners (and flickers as the layer is created/destroyed). At rest we
-         drop the layer so the parent clips the row cleanly. */
-      willChange: open || !releasing ? "transform" : "auto"
-    }
-  }, children));
+    }, children))
+  );
 }
 
 /* ── Bottom sheet (iOS-style) ───────────────────────────────────────────────

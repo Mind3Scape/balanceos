@@ -173,7 +173,11 @@ function SwipeRow({ children, actions = [], rowBg = "#fff", actionWidth = 64, ac
 
   const offset = releasing ? (open ? -W : 0) : dx;
   return (
-    <div style={{ position: "relative", overflow: "hidden", touchAction: "pan-y", background: track }}
+    // Root stays TRANSPARENT — the reveal-track is painted by the actions layer below (which only
+    // mounts during a swipe). A permanent `background: track` (#0a0a0a in dark) leaked at the
+    // rounded corners on first load: useThemeFlag flips light→dark after mount and the `.page-in`
+    // entrance transform briefly breaks the parent's border-radius clip → black flash. No bg → nothing to leak.
+    <div style={{ position: "relative", overflow: "hidden", touchAction: "pan-y", background: "transparent" }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
       onClickCapture={onClickCapture}>
       {/* Render the action buttons only while open or actively swiping — never
