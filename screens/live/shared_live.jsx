@@ -1177,14 +1177,15 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
   return (
     <>
       {/* «Готово» FLOATS (iOS edit-mode style, David): portal'd into the app viewport box (.page-stack,
-          position:absolute inset:0) so it pins to the top-right corner over everything and never pushes
-          the list down — it stays glued there through scroll until tapped to leave jiggle. (In-flow
-          header + the «перетащи…» hint are gone — the jiggle itself signals the mode, like iOS home.) */}
+          position:absolute inset:0) so it floats over everything and never pushes the list down — it
+          stays glued there through scroll until tapped to leave jiggle. Pinned BOTTOM-CENTER above the
+          tab bar: в Telegram top-right прятался ПОД нативными кнопками TG («нужно ниже») — снизу у TG
+          нативных кнопок нет, а --bos-safe-bottom учитывает и TG-инсет → не перекроется. */}
       {mode && ReactDOM.createPortal(
         <button onClick={done} className="tap" data-haptic="selection" aria-label="Готово — выйти из режима перестановки" style={{
-          position: "absolute", top: "max(calc(var(--bos-safe-top, 0px) + 12px), 56px)", right: 14, zIndex: 7000,
-          border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "9px 20px",
-          fontSize: 14, fontWeight: 600, boxShadow: "0 8px 22px rgba(0,0,0,0.32)", cursor: "pointer",
+          position: "absolute", bottom: "calc(var(--bos-safe-bottom, 0px) + 94px)", left: 0, right: 0, margin: "0 auto", width: "fit-content", zIndex: 7000,
+          border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "10px 22px",
+          fontSize: 14, fontWeight: 600, boxShadow: "0 10px 26px rgba(0,0,0,0.36)", cursor: "pointer",
           animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
         }}>Готово</button>,
         (typeof document !== "undefined" && document.querySelector(".page-stack")) || document.body
