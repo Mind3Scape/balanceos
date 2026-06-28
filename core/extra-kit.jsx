@@ -89,7 +89,7 @@ function MiniBars({ data, color = "#0a0a0a", height = 60, textMuted = "rgba(0,0,
 
 // ⚙️ ЕДИНАЯ МОДЕЛЬ ИИ — меняется ОДНОЙ этой строкой, потом обычный git push (НЕ Supabase).
 // Живёт в коде приложения; прокси просто передаёт её дальше, ключ остаётся секретом на сервере.
-// Любой id с https://openrouter.ai/models (например "deepseek/deepseek-v4-flash").
+// Любой РЕАЛЬНЫЙ id с https://openrouter.ai/models (например "deepseek/deepseek-chat-v3-0324:free").
 const AI_LIVE_FALLBACK = "Связь с ИИ сейчас нестабильна — попробуй ещё раз через минуту 🙏";
 // fetch with an abort timeout so a slow/stuck model never hangs the chat or brief.
 function bosParseAction(raw) {
@@ -113,7 +113,11 @@ function bosAid() { _bosAidN += 1; return "a" + Date.now() + "_" + _bosAidN; }
 
 
 /* ── v197: neutral deps the live forks need (moved from screens/extra.jsx) ── */
-const BOS_AI_MODEL = "deepseek/deepseek-v4-flash";
+// ВАЖНО: РЕАЛЬНЫЙ id с openrouter.ai/models. Диагностика «Связь с ИИ» (live-тест прокси, июнь-26):
+// (1) ключ OpenRouter ИСЧЕРПАН — хватает ~168 токенов; (2) бесплатные :free-модели этому аккаунту
+// закрыты («This model is unavailable for free»). То есть это НЕ баг кода — нужен баланс на ключе.
+// Поставил ДЕШЁВУЮ платную DeepSeek V3 (центы за сотни сообщений; прокси пробует ещё и запасные).
+const BOS_AI_MODEL = "deepseek/deepseek-chat-v3-0324";
 
 const AI_SYSTEM = [
   "Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.",

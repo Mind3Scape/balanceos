@@ -1451,8 +1451,10 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
   const moodTint = (mood && typeof tintFromMood === "function") ? tintFromMood(mood.c) : null;
   // Live newbie = a real Telegram user who just signed in and has no habits yet.
   const newbie = (heroApp?.habits?.length || 0) === 0;
-  const chipBg   = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.85)";
-  const chipBd   = isDark ? "0" : "1px solid rgba(0,0,0,0.05)";
+  // Pills match the «Быстрое добавление» chips on the Habits page (greyer, borderless) for
+  // continuity — David: «на странице привычек они серее и смотрятся лучше».
+  const chipBg   = isDark ? "rgba(255,255,255,0.08)" : "#F1F1F5";
+  const chipBd   = "0";
   const cardBg   = isDark
     ? "linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)"
     : "linear-gradient(160deg, #ffffff 0%, #f5f5f5 100%)";

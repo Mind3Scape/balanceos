@@ -20,7 +20,16 @@ const CORS = {
 };
 
 // Used only if an old client doesn't send a model. The app normally always sends one.
-const DEFAULT_MODEL = "deepseek/deepseek-v4-flash";
+const DEFAULT_MODEL = "deepseek/deepseek-chat-v3-0324";
+// Tried IN ORDER after the requested model (deduped) — so one model being down / rate-limited /
+// renamed never takes the whole chat offline; we fall through to the next. Cheap, cross-provider,
+// so a small top-up lasts a very long time. (NB: free :free models are currently disabled for this
+// account — needs OpenRouter credit either way.)
+const FALLBACK_MODELS = [
+  "openai/gpt-4o-mini",
+  "google/gemini-2.0-flash-001",
+  "meta-llama/llama-3.3-70b-instruct",
+];
 
 // One call to OpenRouter. Returns the text + (if it failed) the REAL upstream reason, so
 // we never again hide an error behind a silent empty reply.
@@ -51,22 +60,23 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const messages = Array.isArray(body?.messages) ? body.messages : [];
     // Model comes from the app (client). Fall back only if it's missing/garbage.
-    const model = (typeof body?.model === "string" && body.model.trim()) ? body.model.trim() : DEFAULT_MODEL;
+    const reqModel = (typeof body?.model === "string" && body.model.trim()) ? body.model.trim() : DEFAULT_MODEL;
     const key = Deno.env.get("OPENROUTER_KEY");
     if (!key) return json({ reply: "", error: "OPENROUTER_KEY secret is not set" });
 
-    // First try. If the model hiccups and returns an empty body, retry ONCE on the SAME
-    // model — a transient empty shouldn't surface to the user as "AI unavailable".
-    let res = await askOpenRouter(key, model, messages);
-    if (!res.reply) {
-      await new Promise((s) => setTimeout(s, 500));
-      res = await askOpenRouter(key, model, messages);
+    // Reliability: try the requested model, then the fallback chain (deduped). The FIRST model to
+    // return a non-empty reply wins. One free model being down / rate-limited / invalid no longer
+    // takes the whole chat down — we just fall through to the next.
+    const tryModels = [reqModel, ...FALLBACK_MODELS].filter((m, i, a) => !!m && a.indexOf(m) === i);
+    let res: { status: number; reply: string; upstreamErr: any } = { status: 0, reply: "", upstreamErr: null };
+    for (const m of tryModels) {
+      res = await askOpenRouter(key, m, messages);
+      if (res.reply) return json({ reply: res.reply, model: m });
+      await new Promise((s) => setTimeout(s, 300));
     }
-    if (res.reply) return json({ reply: res.reply });
 
-    // Still nothing — surface the real reason (function logs + response body) instead of
-    // pretending it's fine. The client keeps showing its graceful fallback line.
-    console.error("ai-chat empty reply", model, res.status, res.upstreamErr);
+    // Everything failed — surface the real upstream reason (logs + body); client shows its fallback.
+    console.error("ai-chat all models failed", tryModels.join(","), res.status, res.upstreamErr);
     return json({ reply: "", error: res.upstreamErr || ("no content (status " + res.status + ")"), status: res.status });
   } catch (e) {
     console.error("ai-chat exception", String(e));
