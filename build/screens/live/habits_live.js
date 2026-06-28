@@ -386,12 +386,13 @@ function HabitsLive() {
       width: 44,
       height: 44,
       borderRadius: 999,
-      background: TH.addBtnBg,
-      color: TH.addBtnFg,
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+        background: TH.chipBg
+      }),
+      color: isDark ? "#fff" : "var(--text)",
       border: 0,
       display: "grid",
-      placeItems: "center",
-      boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.5)" : "0 3px 10px rgba(0,0,0,0.12)"
+      placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 20,
