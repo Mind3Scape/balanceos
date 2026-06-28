@@ -265,6 +265,7 @@ function HomeLive() {
         style: {
           borderRadius: 22,
           overflow: "hidden",
+          transform: "translateZ(0)",
           boxShadow: "0 10px 26px rgba(239,159,20,0.30)"
         }
       }, /*#__PURE__*/React.createElement(SwipeRow, {
@@ -496,7 +497,8 @@ function HomeLive() {
           style: {
             borderRadius: 22,
             overflow: "hidden",
-            boxShadow: cardShadow
+            boxShadow: cardShadow,
+            transform: "translateZ(0)"
           }
         }, /*#__PURE__*/React.createElement(SwipeRow, {
           rowBg: rowBg,
@@ -512,7 +514,8 @@ function HomeLive() {
           style: {
             borderRadius: 22,
             overflow: "hidden",
-            boxShadow: cardShadow
+            boxShadow: cardShadow,
+            transform: "translateZ(0)"
           }
         }, /*#__PURE__*/React.createElement(SwipeRow, {
           rowBg: rowBg,
@@ -539,7 +542,8 @@ function HomeLive() {
           borderRadius: 22,
           boxShadow: cardShadow,
           overflow: "hidden",
-          color: "var(--text)"
+          color: "var(--text)",
+          transform: "translateZ(0)"
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
@@ -733,7 +737,8 @@ function HomeLive() {
           borderRadius: 22,
           boxShadow: cardShadow,
           overflow: "hidden",
-          color: "var(--text)"
+          color: "var(--text)",
+          transform: "translateZ(0)"
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
@@ -912,6 +917,7 @@ function HomeLive() {
         style: {
           borderRadius: 22,
           overflow: "hidden",
+          transform: "translateZ(0)",
           boxShadow: "0 10px 26px rgba(239,159,20,0.30)"
         }
       }, /*#__PURE__*/React.createElement(SwipeRow, {

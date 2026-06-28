@@ -3700,6 +3700,7 @@ function HomeHeroSwipeLive({
       borderRadius: 22,
       position: "relative",
       overflow: "hidden",
+      transform: "translateZ(0)",
       boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
     }
   }, /*#__PURE__*/React.createElement("div", {

@@ -173,7 +173,7 @@ function HomeLive() {
     if (id === "level") {
       // Gold LEVEL banner — turns the bare stat into a hook ("every habit is XP — learn how to grow").
       return (
-        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
+        <div style={{ borderRadius: 22, overflow: "hidden", transform: "translateZ(0)", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
           {/* rowBg carries the gradient (not a solid) so the peeling edge has ONE surface. */}
           <SwipeRow rowBg="linear-gradient(135deg,#FEDE34,#EF9F14)" dark={isDark} actions={[
             { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideWidget("level") },
@@ -249,14 +249,14 @@ function HomeLive() {
       const _hideAction = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideWidget("mood") }];
       if (!_loggedToday) {
         return (
-          <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+          <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
             <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}><StateSliderLive app={app} isDark={isDark} /></SwipeRow>
           </div>
         );
       }
       if (mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) {
         return (
-          <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+          <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
             <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}><MoodWidgetLive mood={mood} app={app} isDark={isDark} navigate={navigate} flush={true} /></SwipeRow>
           </div>
         );
@@ -269,7 +269,7 @@ function HomeLive() {
       // habit rows stacked below it (hairline dividers, per-row swipe kept). HOME ONLY — the
       // Habits tab keeps its fuller separate-card view untouched.
       return (
-        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, overflow: "hidden", color: "var(--text)" }}>
+        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, overflow: "hidden", color: "var(--text)", transform: "translateZ(0)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 15px 11px" }}>
             <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Привычки</span>
             {habits.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{doneCount} из {totalCount}</span>}
@@ -319,7 +319,7 @@ function HomeLive() {
     if (id === "goals") {
       // Grouped «Цели» card — title INSIDE, goal rows below (hairline dividers). HOME ONLY.
       return (
-        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, overflow: "hidden", color: "var(--text)" }}>
+        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, overflow: "hidden", color: "var(--text)", transform: "translateZ(0)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 15px 11px" }}>
             <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Цели</span>
             {goals.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{goals.length}</span>}
@@ -366,7 +366,7 @@ function HomeLive() {
       // Invite / share — GOLD banner (David: «как баннер уровня»): same reward-gold language as the
       // level banner, dark ink on gold. The «+150 XP» badge flips to a dark pill for contrast on gold.
       return (
-        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
+        <div style={{ borderRadius: 22, overflow: "hidden", transform: "translateZ(0)", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
           <SwipeRow rowBg="linear-gradient(135deg,#FEDE34,#EF9F14)" dark={isDark} actions={[
             { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideWidget("invite") },
           ]}>
