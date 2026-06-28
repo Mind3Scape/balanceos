@@ -696,6 +696,7 @@ function TeamDetailLive() {
   // Read the LIVE team from the store so a just-added habit appears immediately.
   var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   var accent = t.accent || "#fef3c7";
+  var isDark = app?.themeOverride === "dark";
   // LIVE = real user: honest data or empty, NEVER fake standings/activity/calendar —
   // even for a team without a cloud link yet.
 
@@ -986,12 +987,14 @@ function TeamDetailLive() {
     }))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
+      background: `linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%), linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
       color: "var(--text)",
       borderRadius: 22,
       padding: 20,
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)",
+      transform: "translateZ(0)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
@@ -1197,59 +1200,40 @@ function TeamDetailLive() {
         }
       }, "+", pay, isRace ? " 👑" : ""));
     })));
-  })(), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
-      display: "grid",
-      gridTemplateColumns: "repeat(3,1fr)",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: "var(--text-3)",
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      fontWeight: 600
-    }
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 18,
-      fontWeight: 700,
-      marginTop: 2,
-      color: "var(--text)"
-    }
-  }, teamHabits.length)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: "var(--text-3)",
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      fontWeight: 600
-    }
-  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 18,
-      fontWeight: 700,
-      marginTop: 2,
-      color: "var(--text)"
-    }
-  }, _rosterLoading ? "·" : members.length)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: "var(--text-3)",
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      fontWeight: 600
-    }
-  }, "\u0421\u0435\u0440\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 18,
-      fontWeight: 700,
-      marginTop: 2,
-      color: "var(--text)"
-    }
-  }, "\u2014"))))), /*#__PURE__*/React.createElement("button", {
+  })())), /*#__PURE__*/React.createElement(StatTrioLive, {
+    isDark: isDark,
+    card: {
+      background: "var(--card)",
+      boxShadow: "var(--card-shadow)",
+      marginTop: 12,
+      transform: "translateZ(0)"
+    },
+    items: [{
+      l: "Привычки",
+      v: teamHabits.length,
+      suf: "",
+      icon: /*#__PURE__*/React.createElement(I.ChartBar, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Участники",
+      v: _rosterLoading ? 0 : members.length,
+      suf: "",
+      icon: /*#__PURE__*/React.createElement(I.Users, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }, {
+      l: "Серия",
+      v: 0,
+      text: "—",
+      icon: /*#__PURE__*/React.createElement(I.Flame, {
+        size: 14,
+        color: "var(--text-4)"
+      })
+    }]
+  }), /*#__PURE__*/React.createElement("button", {
     "data-tour": "team-chat",
     onClick: () => {
       markChatRead();
@@ -1277,7 +1261,8 @@ function TeamDetailLive() {
       width: 44,
       height: 44,
       borderRadius: 14,
-      background: "var(--surface-3)",
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(isDark),
       display: "grid",
       placeItems: "center",
       fontSize: 22,
@@ -1336,13 +1321,15 @@ function TeamDetailLive() {
     }
   }), " \u0413\u043B\u0430\u0432\u043D\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+      background: BOS_TILE_SHEEN + ", var(--card)",
       borderRadius: 22,
       padding: 18,
       marginTop: 8,
-      color: "#0a0a0a",
+      color: "var(--text)",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)",
+      transform: "translateZ(0)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1352,11 +1339,20 @@ function TeamDetailLive() {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 38
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      background: BOS_TILE_SHEEN + ", " + (main.color ? main.color + "26" : "var(--surface-3)"),
+      boxShadow: bosTileGlass(isDark),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 26,
+      flexShrink: 0
     }
-  }, bosIcon(main.emoji, 34, main.color)), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(main.emoji, 26, main.color)), /*#__PURE__*/React.createElement("div", {
     style: {
-      flex: 1
+      flex: 1,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1364,14 +1360,25 @@ function TeamDetailLive() {
       fontWeight: 700,
       textTransform: "uppercase",
       letterSpacing: 1.4,
-      opacity: 0.6
+      color: "var(--text-4)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
     }
-  }, "\u042F\u043A\u043E\u0440\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 19,
+      width: 6,
+      height: 6,
+      borderRadius: "50%",
+      background: "#EF9F14"
+    }
+  }), "\u042F\u043A\u043E\u0440\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
       fontWeight: 700,
       letterSpacing: "-0.4px",
-      marginTop: 2
+      marginTop: 3,
+      color: "var(--text)"
     }
   }, main.name))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1383,18 +1390,20 @@ function TeamDetailLive() {
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13,
-      fontWeight: 600
+      fontWeight: 600,
+      color: "var(--text-2)"
     }
   }, "\u0421\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 13
+      fontSize: 13,
+      color: "var(--text-3)"
     }
   }, main.doneToday, " \u0438\u0437 ", main.total, " \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u043E\u0432 \u2713")), (() => {
     var denom = main.total || 1;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         height: 8,
-        background: "rgba(0,0,0,0.12)",
+        background: "var(--surface-3)",
         borderRadius: 999,
         overflow: "hidden",
         marginTop: 6
@@ -1404,7 +1413,8 @@ function TeamDetailLive() {
         display: "block",
         height: "100%",
         width: Math.min(100, main.doneToday / denom * 100) + "%",
-        background: "#0a0a0a"
+        background: bosCellFill("#0a0a0a", 1),
+        borderRadius: 999
       }
     }));
   })(), (() => {
@@ -1417,7 +1427,7 @@ function TeamDetailLive() {
     if (!faces) return /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 4,
+        gap: 5,
         marginTop: 12,
         flexWrap: "wrap"
       }
@@ -1429,15 +1439,15 @@ function TeamDetailLive() {
         width: 22,
         height: 22,
         borderRadius: "50%",
-        background: i < main.doneToday ? "#0a0a0a" : "rgba(0,0,0,0.15)",
+        background: i < main.doneToday ? "#0a0a0a" : "var(--surface-3)",
         display: "grid",
         placeItems: "center",
-        color: "#FEDE34",
+        color: "#fff",
         fontSize: 11,
         fontWeight: 700
       }
     }, i < main.doneToday ? "✓" : "")));
-    var FCAP = 10; // full-width team card fits ~10 faces, then a «+N» disc for the rest
+    var FCAP = 10; // full-width card fits ~10 faces, then a «+N» disc for the rest
     var fShown = faces.slice(0, FCAP),
       fExtra = faces.length - fShown.length;
     return /*#__PURE__*/React.createElement("div", {
@@ -1469,12 +1479,12 @@ function TeamDetailLive() {
           height: 13,
           borderRadius: "50%",
           background: "#0a0a0a",
-          color: "#FEDE34",
+          color: "#fff",
           fontSize: 8,
           fontWeight: 800,
           display: "grid",
           placeItems: "center",
-          boxShadow: "0 0 0 1.5px #FEDE34"
+          boxShadow: "0 0 0 1.5px var(--card)"
         }
       }, "\u2713"));
     }), fExtra > 0 && /*#__PURE__*/React.createElement("span", {
@@ -1483,7 +1493,7 @@ function TeamDetailLive() {
         height: 28,
         borderRadius: "50%",
         background: "rgba(0,0,0,0.16)",
-        color: "#0a0a0a",
+        color: "var(--text)",
         fontSize: 11,
         fontWeight: 800,
         letterSpacing: "-0.5px",
@@ -1497,13 +1507,13 @@ function TeamDetailLive() {
     style: {
       width: "100%",
       marginTop: 14,
-      border: 0,
+      border: main.doneByMe ? "1.5px solid var(--line)" : 0,
       borderRadius: 999,
       padding: "11px 14px",
       fontSize: 14,
-      fontWeight: 700,
-      background: main.doneByMe ? "rgba(0,0,0,0.12)" : "#0a0a0a",
-      color: main.doneByMe ? "#0a0a0a" : "#FEDE34"
+      fontWeight: 600,
+      background: main.doneByMe ? "transparent" : "#0a0a0a",
+      color: main.doneByMe ? "var(--text-2)" : "#fff"
     }
   }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"))), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
     people: mainProg.map(m => ({
@@ -1550,7 +1560,8 @@ function TeamDetailLive() {
       width: 40,
       height: 40,
       borderRadius: 14,
-      background: "var(--surface-3)",
+      background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"),
+      boxShadow: bosTileGlass(isDark),
       display: "grid",
       placeItems: "center",
       fontSize: 22,

@@ -270,6 +270,7 @@ function TeamDetailLive() {
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   const accent = t.accent || "#fef3c7";
+  const isDark = app?.themeOverride === "dark";
   // LIVE = real user: honest data or empty, NEVER fake standings/activity/calendar —
   // even for a team without a cloud link yet.
 
@@ -439,7 +440,7 @@ function TeamDetailLive() {
           {_isOwner && <EditGlassButtonLive onClick={() => navigate("team-settings", { team: t })} />}
         </div>
       }/>
-      <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden" }}>
+      <div style={{ background: `linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%), linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)", transform: "translateZ(0)" }}>
         <div aria-hidden style={{ position: "absolute", top: -14, right: -10, fontSize: 150, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{bosIcon(t.emblem || "✨", 116, t.accent)}</div>
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{t.name}</div>
@@ -520,19 +521,21 @@ function TeamDetailLive() {
               </div>
             );
           })()}
-          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-            <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Привычки</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{teamHabits.length}</div></div>
-            <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Участники</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{_rosterLoading ? "·" : members.length}</div></div>
-            {/* Team streak is fabricated standing — no honest cross-member streak yet, so live shows «—». */}
-            <div><div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Серия</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>—</div></div>
-          </div>
         </div>
       </div>
+
+      {/* Stat band — the SAME unified plaque as Habits/Goals detail (StatTrioLive). Team streak stays
+          «—» (no honest cross-member streak yet). */}
+      <StatTrioLive isDark={isDark} card={{ background: "var(--card)", boxShadow: "var(--card-shadow)", marginTop: 12, transform: "translateZ(0)" }} items={[
+        { l: "Привычки", v: teamHabits.length, suf: "", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
+        { l: "Участники", v: _rosterLoading ? 0 : members.length, suf: "", icon: <I.Users size={14} color="var(--text-4)" /> },
+        { l: "Серия", v: 0, text: "—", icon: <I.Flame size={14} color="var(--text-4)" /> },
+      ]} />
 
       {/* Team chat — one shared space for the whole team. Live preview comes from the
           cloud; before sync it shows the neutral empty hint. */}
       <button data-tour="team-chat" onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
-        <span style={{ width: 44, height: 44, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Чат команды</div>
           <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{_chatLive ? (chatPeek ? (chatPeek.last || "Пока пусто — напишите первыми") : "…") : "Пока пусто — напишите первыми"}</div>
@@ -548,39 +551,38 @@ function TeamDetailLive() {
       <div className="section-label" style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 6 }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FEDE34" }}/> Главная привычка
       </div>
-      <div style={{ background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 22, padding: 18, marginTop: 8, color: "#0a0a0a", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: BOS_TILE_SHEEN + ", var(--card)", borderRadius: 22, padding: 18, marginTop: 8, color: "var(--text)", position: "relative", overflow: "hidden", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", transform: "translateZ(0)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ fontSize: 38 }}>{bosIcon(main.emoji, 34, main.color)}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.4, opacity: 0.6 }}>Якорь команды</div>
-            <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.4px", marginTop: 2 }}>{main.name}</div>
+          <span style={{ width: 48, height: 48, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (main.color ? main.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0 }}>{bosIcon(main.emoji, 26, main.color)}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.4, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF9F14" }}/>Якорь команды</div>
+            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.4px", marginTop: 3, color: "var(--text)" }}>{main.name}</div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 14 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Сегодня</span>
-          <span style={{ fontSize: 13 }}>{main.doneToday} из {main.total} участников ✓</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>Сегодня</span>
+          <span style={{ fontSize: 13, color: "var(--text-3)" }}>{main.doneToday} из {main.total} участников ✓</span>
         </div>
-        {/* Guard against a desynced doneByMe / total: never let the bar exceed 100% or
-            divide by zero, and never render a negative number of member dots. */}
+        {/* Guard against a desynced doneByMe / total: clamp the bar to [0,100%]. */}
         {(() => { const denom = main.total || 1; return (
-        <div style={{ height: 8, background: "rgba(0,0,0,0.12)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
-          <span style={{ display: "block", height: "100%", width: Math.min(100, (main.doneToday/denom*100))+"%", background: "#0a0a0a" }} />
+        <div style={{ height: 8, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
+          <span style={{ display: "block", height: "100%", width: Math.min(100, (main.doneToday/denom*100))+"%", background: bosCellFill("#0a0a0a", 1), borderRadius: 999 }} />
         </div>
         ); })()}
-        {/* Member faces — REAL avatars (David: «реальные аватарки в командах»), dimmed until they
-            check in today. Falls back to lightweight anonymous dots only while the roster loads. */}
+        {/* Member faces — REAL avatars (BuddyFaceLive), dimmed until they check in today. Anonymous
+            dots only while the roster loads. */}
         {(() => {
           const todayK = new Date().toISOString().slice(0, 10);
           const doneSet = {}; (mainProg || []).forEach((m) => { if (m.days && m.days[todayK]) doneSet[m.id] = true; });
           const faces = (Array.isArray(members) && members.length) ? members : null;
           if (!faces) return (
-            <div style={{ display: "flex", gap: 4, marginTop: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 5, marginTop: 12, flexWrap: "wrap" }}>
               {Array.from({ length: Math.max(0, main.total) }).map((_, i) => (
-                <span key={i} style={{ width: 22, height: 22, borderRadius: "50%", background: i < main.doneToday ? "#0a0a0a" : "rgba(0,0,0,0.15)", display: "grid", placeItems: "center", color: "#FEDE34", fontSize: 11, fontWeight: 700 }}>{i < main.doneToday ? "✓" : ""}</span>
+                <span key={i} style={{ width: 22, height: 22, borderRadius: "50%", background: i < main.doneToday ? "#0a0a0a" : "var(--surface-3)", display: "grid", placeItems: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{i < main.doneToday ? "✓" : ""}</span>
               ))}
             </div>
           );
-          const FCAP = 10; // full-width team card fits ~10 faces, then a «+N» disc for the rest
+          const FCAP = 10; // full-width card fits ~10 faces, then a «+N» disc for the rest
           const fShown = faces.slice(0, FCAP), fExtra = faces.length - fShown.length;
           return (
             <div style={{ display: "flex", gap: 7, marginTop: 12, flexWrap: "wrap" }}>
@@ -589,16 +591,16 @@ function TeamDetailLive() {
                 return (
                   <span key={m.id} style={{ position: "relative", display: "block", opacity: did ? 1 : 0.4 }}>
                     <BuddyFaceLive avatar={m.avatar} name={m.name} size={28} />
-                    {did && <span style={{ position: "absolute", right: -1, bottom: -1, width: 13, height: 13, borderRadius: "50%", background: "#0a0a0a", color: "#FEDE34", fontSize: 8, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 0 0 1.5px #FEDE34" }}>✓</span>}
+                    {did && <span style={{ position: "absolute", right: -1, bottom: -1, width: 13, height: 13, borderRadius: "50%", background: "#0a0a0a", color: "#fff", fontSize: 8, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 0 0 1.5px var(--card)" }}>✓</span>}
                   </span>
                 );
               })}
-              {fExtra > 0 && <span style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.16)", color: "#0a0a0a", fontSize: 11, fontWeight: 800, letterSpacing: "-0.5px", display: "grid", placeItems: "center" }}>+{fExtra}</span>}
+              {fExtra > 0 && <span style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.16)", color: "var(--text)", fontSize: 11, fontWeight: 800, letterSpacing: "-0.5px", display: "grid", placeItems: "center" }}>+{fExtra}</span>}
             </div>
           );
         })()}
         {_rosterLive && (
-          <button onClick={() => toggleMyTeamHabit(main)} className="tap" style={{ width: "100%", marginTop: 14, border: 0, borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 700, background: main.doneByMe ? "rgba(0,0,0,0.12)" : "#0a0a0a", color: main.doneByMe ? "#0a0a0a" : "#FEDE34" }}>
+          <button onClick={() => toggleMyTeamHabit(main)} className="tap" style={{ width: "100%", marginTop: 14, border: main.doneByMe ? "1.5px solid var(--line)" : 0, borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 600, background: main.doneByMe ? "transparent" : "#0a0a0a", color: main.doneByMe ? "var(--text-2)" : "#fff" }}>
             {main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"}
           </button>
         )}
@@ -623,7 +625,7 @@ function TeamDetailLive() {
         )}
         {others.map((h, i) => (
           <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-            <span style={{ width: 40, height: 40, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
+            <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{h.name}</div>
               {/* Aggregate weekly consistency — the day-by-day view lives in the calendar above */}
