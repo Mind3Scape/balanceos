@@ -650,7 +650,7 @@ function TeamDetailLive() {
               <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1 }}>сегодня</div>
             </div>
             {_rosterLive && (
-              <button onClick={() => toggleMyTeamHabit(h)} className="tap" aria-label="Отметить" style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", border: h.doneByMe ? "0" : "2px solid var(--surface-3)", background: h.doneByMe ? "#0a0a0a" : "transparent", color: "#fff", display: "grid", placeItems: "center", fontSize: 15, padding: 0 }}>{h.doneByMe ? "✓" : ""}</button>
+              <button onClick={() => toggleMyTeamHabit(h)} className={"check-btn tap " + (h.doneByMe ? "" : "unchecked")} aria-label="Отметить" style={{ flexShrink: 0, width: 34, height: 34, "--check-color": "#0a0a0a" }}>{h.doneByMe && <I.Check size={16} color="#fff" strokeWidth={3} />}</button>
             )}
           </div>
         ))}

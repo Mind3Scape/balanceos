@@ -1662,22 +1662,19 @@ function TeamDetailLive() {
     }
   }, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F")), _rosterLive && /*#__PURE__*/React.createElement("button", {
     onClick: () => toggleMyTeamHabit(h),
-    className: "tap",
+    className: "check-btn tap " + (h.doneByMe ? "" : "unchecked"),
     "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C",
     style: {
       flexShrink: 0,
       width: 34,
       height: 34,
-      borderRadius: "50%",
-      border: h.doneByMe ? "0" : "2px solid var(--surface-3)",
-      background: h.doneByMe ? "#0a0a0a" : "transparent",
-      color: "#fff",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 15,
-      padding: 0
+      "--check-color": "#0a0a0a"
     }
-  }, h.doneByMe ? "✓" : ""))), /*#__PURE__*/React.createElement("button", {
+  }, h.doneByMe && /*#__PURE__*/React.createElement(I.Check, {
+    size: 16,
+    color: "#fff",
+    strokeWidth: 3
+  })))), /*#__PURE__*/React.createElement("button", {
     onClick: openAddHabit,
     className: "tap",
     style: {

@@ -1229,14 +1229,10 @@ function HistoryLive() {
         letterSpacing: "-0.2px"
       }
     }, h.n), /*#__PURE__*/React.createElement("span", {
+      className: "check-btn " + (done ? "" : "unchecked"),
       style: {
         width: 26,
-        height: 26,
-        borderRadius: "50%",
-        background: done ? "var(--check-color, var(--accent))" : "transparent",
-        border: done ? 0 : "2px solid " + (isDark ? "rgba(255,255,255,0.35)" : "var(--text-5)"),
-        display: "grid",
-        placeItems: "center"
+        height: 26
       }
     }, done && /*#__PURE__*/React.createElement(I.Check, {
       size: 14,

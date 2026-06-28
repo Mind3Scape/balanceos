@@ -555,12 +555,7 @@ function HistoryLive() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
                     <span style={{ width: 36, height: 36, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{bosIcon(h.e, 18, null)}</span>
                     <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.n}</span>
-                    <span style={{
-                      width: 26, height: 26, borderRadius: "50%",
-                      background: done ? "var(--check-color, var(--accent))" : "transparent",
-                      border: done ? 0 : "2px solid " + (isDark ? "rgba(255,255,255,0.35)" : "var(--text-5)"),
-                      display: "grid", placeItems: "center",
-                    }}>
+                    <span className={"check-btn " + (done ? "" : "unchecked")} style={{ width: 26, height: 26 }}>
                       {done && <I.Check size={14} strokeWidth={2.5} color="#fff"/>}
                     </span>
                   </div>
