@@ -266,10 +266,13 @@ button { font: inherit; cursor: pointer; }
   color: #fff;
   transition: all 0.18s;
 }
+/* Unchecked = a minimalist GLASS disc (David: убрать толстое серое кольцо, под стекло): soft grey
+   fill, a bright top highlight + a 0.7px hairline edge instead of the old 2px ring. */
 .check-btn.unchecked {
-  background: var(--surface-2);
+  background: linear-gradient(180deg, #f5f6f9, #e8eaf0);
   color: transparent;
-  border: 2px solid var(--text-3);
+  border: 0;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.85), inset 0 -2px 3px rgba(0,0,0,0.05), inset 0 0 0 0.7px rgba(0,0,0,0.08);
 }
 
 /* labels */
@@ -402,8 +405,9 @@ button { font: inherit; cursor: pointer; }
 }
 .theme-dark .bos-progress { background: rgba(255,255,255,0.08); }
 .theme-dark .check-btn.unchecked {
-  background: transparent;
-  border-color: rgba(255,255,255,0.3);
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+  border: 0;
+  box-shadow: inset 0 1px 0.5px rgba(255,255,255,0.14), inset 0 0 0 0.7px rgba(255,255,255,0.10);
 }
 
 /* Page-level scrollable region inside the phone frame.
@@ -565,5 +569,10 @@ button { font: inherit; cursor: pointer; }
 .bos-accent { color: var(--accent); }
 .bos-accent-bg { background: var(--accent); }
 button[class~="tap"][style*="FEDE34"] { background: var(--accent) !important; }
-.check-btn { background: var(--check-color, var(--accent)); }
+/* Checked = a GLASS disc of the accent/habit colour: a bright top sheen + soft inner depth + a
+   faint lift, so the «done» tap reads glassy too (David). */
+.check-btn {
+  background: linear-gradient(180deg, rgba(255,255,255,0.40), rgba(255,255,255,0) 55%), var(--check-color, var(--accent));
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.55), inset 0 -2px 3px rgba(0,0,0,0.14), 0 1px 2px rgba(0,0,0,0.10);
+}
 
