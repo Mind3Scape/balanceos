@@ -421,12 +421,17 @@ function HomeLive() {
           <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{_todayLabel}</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
         </div>
-        <button onClick={() => navigate("notifications", { from: "home" })} className="tap"
-          style={{ width: 42, height: 42, borderRadius: 14, background: iconBg, border: 0, display: "grid", placeItems: "center", position: "relative" }}>
-          <I.Bell size={18} color={bellIcon}/>
-          {showBellDot && (
-          <span style={{ position: "absolute", top: 8, right: 8, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
-          )}
+        {/* Notifications — a BARE iOS-nav glyph (no grey tile: David «квадратик ему не подходит»),
+            a touch bolder for presence, optically centred with the greeting; the red dot rides the
+            bell's top-right. hit44 keeps the tap target ≥44px. */}
+        <button onClick={() => navigate("notifications", { from: "home" })} className="tap hit44" aria-label="Уведомления"
+          style={{ width: 40, height: 40, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+          <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
+            <I.Bell size={23} strokeWidth={2.2} color={bellIcon}/>
+            {showBellDot && (
+            <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
+            )}
+          </span>
         </button>
       </div>
 

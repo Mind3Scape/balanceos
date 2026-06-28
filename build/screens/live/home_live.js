@@ -1096,32 +1096,41 @@ function HomeLive() {
     onClick: () => navigate("notifications", {
       from: "home"
     }),
-    className: "tap",
+    className: "tap hit44",
+    "aria-label": "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F",
     style: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
-      background: iconBg,
+      width: 40,
+      height: 40,
+      background: "transparent",
       border: 0,
+      padding: 0,
       display: "grid",
       placeItems: "center",
-      position: "relative"
+      flexShrink: 0,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "relative",
+      display: "grid",
+      placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement(I.Bell, {
-    size: 18,
+    size: 23,
+    strokeWidth: 2.2,
     color: bellIcon
   }), showBellDot && /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
-      top: 8,
-      right: 8,
+      top: -2,
+      right: -2,
       width: 8,
       height: 8,
       borderRadius: "50%",
       background: "var(--accent-red)",
       border: "2px solid " + (isDark ? "#0a0a0a" : "#fff")
     }
-  }))), visibleIds.length > 0 ? /*#__PURE__*/React.createElement(BosReorderList, {
+  })))), visibleIds.length > 0 ? /*#__PURE__*/React.createElement(BosReorderList, {
     ids: visibleIds,
     gap: 12,
     onReorder: onReorderWidgets,

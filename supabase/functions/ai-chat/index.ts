@@ -20,7 +20,8 @@ const CORS = {
 };
 
 // Used only if an old client doesn't send a model. The app normally always sends one.
-const DEFAULT_MODEL = "deepseek/deepseek-chat-v3-0324";
+// owl-alpha = free OpenRouter stealth model (works without account credit; verified live).
+const DEFAULT_MODEL = "openrouter/owl-alpha";
 // Tried IN ORDER after the requested model (deduped) — so one model being down / rate-limited /
 // renamed never takes the whole chat offline; we fall through to the next. Cheap, cross-provider,
 // so a small top-up lasts a very long time. (NB: free :free models are currently disabled for this

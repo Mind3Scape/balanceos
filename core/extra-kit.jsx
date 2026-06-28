@@ -113,11 +113,11 @@ function bosAid() { _bosAidN += 1; return "a" + Date.now() + "_" + _bosAidN; }
 
 
 /* ── v197: neutral deps the live forks need (moved from screens/extra.jsx) ── */
-// ВАЖНО: РЕАЛЬНЫЙ id с openrouter.ai/models. Диагностика «Связь с ИИ» (live-тест прокси, июнь-26):
-// (1) ключ OpenRouter ИСЧЕРПАН — хватает ~168 токенов; (2) бесплатные :free-модели этому аккаунту
-// закрыты («This model is unavailable for free»). То есть это НЕ баг кода — нужен баланс на ключе.
-// Поставил ДЕШЁВУЮ платную DeepSeek V3 (центы за сотни сообщений; прокси пробует ещё и запасные).
-const BOS_AI_MODEL = "deepseek/deepseek-chat-v3-0324";
+// РЕАЛЬНЫЙ id с openrouter.ai/models. owl-alpha — бесплатная stealth-модель OpenRouter; РАБОТАЕТ
+// на этом аккаунте даже без баланса (проверено live-тестом прокси — вернула ответ; платные и :free
+// падали на «нет кредитов»/«unavailable for free»). NB: stealth-модели временные — если исчезнет,
+// пополни ключ OpenRouter и поставь платную (deepseek/deepseek-chat-v3-0324 и др. в FALLBACK_MODELS).
+const BOS_AI_MODEL = "openrouter/owl-alpha";
 
 const AI_SYSTEM = [
   "Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.",
