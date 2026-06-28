@@ -42,7 +42,7 @@ function TeamCreateLive() {
   const preset = params?.preset || null;
   const [name, setName] = useCS(preset?.t || "");
   const [emblem, setEmblem] = useCS(preset?.i || "✨");
-  const [accent, setAccent] = useCS(preset?.accent || "#84A4B8");   // Journal «Грифельный» — calm neutral default (a team needs a visible cover, so not pure black like habits)
+  const [accent, setAccent] = useCS(preset?.accent || BOS_GREY);   // neutral GREY default (David: «дефолтный цвет серый»); a chip preset overrides it
   const [duration, setDuration] = useCS("month");
   const [vis, setVis] = useCS("private");
   const [saving, setSaving] = useCS(false);
@@ -114,20 +114,8 @@ function TeamCreateLive() {
           <span style={{ width: 40, height: 40, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 24, accent)}</span>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
         </button>
-        {/* Colour picker — IDENTICAL to habits/goals (wheel + black default + Apple palette, 32px),
-            so the choice reads the same across привычки/цели/команды (David: «выбор цветов отличается»). */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, position: "relative", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
-          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof accent === "string" && accent[0] === "#" && accent !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(accent)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
-            <input type="color" value={(typeof accent === "string" && accent[0] === "#") ? accent : "#84A4B8"} onChange={(e) => setAccent(e.target.value)} aria-label="Свой цвет" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
-          </label>
-          <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
-          <button key="black" type="button" className="tap" data-haptic="selection" onClick={() => setAccent("#0a0a0a")} aria-label="Чёрный (стандарт)"
-            style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(180deg, #46464a, #0a0a0a)", border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none", transition: "box-shadow 0.15s" }} />
-          {BOS_APPLE_COLORS.map((c) => (
-            <button key={c} type="button" className="tap" data-haptic="selection" onClick={() => setAccent(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
-              style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
-          ))}
-        </div>
+        {/* ONE shared colour picker — same as habits/goals (glassy circles, grey+black+Apple). */}
+        <BosColorPickerLive value={accent} onChange={setAccent} />
       </div>
 
       {/* SHARED GOAL */}
@@ -327,7 +315,7 @@ function TeamSettingsLive() {
   const team = params?.team || {};
   const [name, setName] = useCS(team.name || "");
   const [emblem, setEmblem] = useCS(team.emblem || "✨");
-  const [accent, setAccent] = useCS(team.accent || "#84A4B8");
+  const [accent, setAccent] = useCS(team.accent || BOS_GREY);
   const [goal, setGoal] = useCS(team.goal || "");
   const [priv, setPriv] = useCS(team.vis !== "public");
   const [notify, setNotify] = useCS(team.notify !== false);
@@ -375,19 +363,8 @@ function TeamSettingsLive() {
       </button>
 
       <div className="section-label" style={{ marginTop: 22 }}>Цвет</div>
-      {/* Colour picker — IDENTICAL to habits/goals + team-create (32px, black default + Apple palette). */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
-        <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof accent === "string" && accent[0] === "#" && accent !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(accent)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
-          <input type="color" value={(typeof accent === "string" && accent[0] === "#") ? accent : "#84A4B8"} onChange={(e) => setAccent(e.target.value)} aria-label="Свой цвет" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
-        </label>
-        <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
-        <button key="black" className="tap" data-haptic="selection" onClick={() => setAccent("#0a0a0a")} aria-label="Чёрный (стандарт)"
-          style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(180deg, #46464a, #0a0a0a)", border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none", transition: "box-shadow 0.15s" }} />
-        {BOS_APPLE_COLORS.map((c) => (
-          <button key={c} className="tap" data-haptic="selection" onClick={() => setAccent(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
-            style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer", boxShadow: accent === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
-        ))}
-      </div>
+      {/* ONE shared colour picker — same as habits/goals (glassy circles, grey+black+Apple). */}
+      <BosColorPickerLive value={accent} onChange={setAccent} />
 
       <div className="section-label" style={{ marginTop: 22 }}>Цель команды</div>
       <input className="bos-input" value={goal} onChange={e => setGoal(e.target.value)} placeholder="напр. 50 добрых дел" style={{ marginTop: 8 }} />

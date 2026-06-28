@@ -197,87 +197,10 @@ function HabitSettingsLive() {
       letterSpacing: "-0.2px",
       padding: "6px 0"
     }
+  })), /*#__PURE__*/React.createElement(BosColorPickerLive, {
+    value: color,
+    onChange: setColor
   })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      marginTop: 12,
-      overflowX: "auto",
-      scrollbarWidth: "none",
-      WebkitOverflowScrolling: "touch",
-      padding: "6px 6px"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "tap",
-    "data-haptic": "selection",
-    style: {
-      position: "relative",
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      flexShrink: 0,
-      cursor: "pointer",
-      boxShadow: typeof color === "string" && color[0] === "#" && color !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(color) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none",
-      background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "color",
-    value: typeof color === "string" && color[0] === "#" ? color : "#0a0a0a",
-    onChange: e => setColor(e.target.value),
-    "aria-label": "\u0421\u0432\u043E\u0439 \u0446\u0432\u0435\u0442",
-    style: {
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      opacity: 0,
-      border: 0,
-      padding: 0,
-      cursor: "pointer"
-    }
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 1,
-      height: 26,
-      background: "var(--line)",
-      flexShrink: 0
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    key: "black",
-    className: "tap",
-    "data-haptic": "selection",
-    onClick: () => setColor("#0a0a0a"),
-    "aria-label": "\u0427\u0451\u0440\u043D\u044B\u0439 (\u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442)",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      background: "linear-gradient(180deg, #46464a, #0a0a0a)",
-      border: 0,
-      flexShrink: 0,
-      cursor: "pointer",
-      boxShadow: color === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none",
-      transition: "box-shadow 0.15s"
-    }
-  }), BOS_APPLE_COLORS.map(c => /*#__PURE__*/React.createElement("button", {
-    key: c,
-    className: "tap",
-    "data-haptic": "selection",
-    onClick: () => setColor(c),
-    "aria-label": BOS_APPLE_COLOR_NAMES[c] || "Цвет",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      background: c,
-      border: 0,
-      flexShrink: 0,
-      cursor: "pointer",
-      boxShadow: color === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none",
-      transition: "box-shadow 0.15s"
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -783,87 +706,10 @@ function GoalSettingsLive() {
       letterSpacing: "-0.2px",
       padding: "6px 0"
     }
+  })), /*#__PURE__*/React.createElement(BosColorPickerLive, {
+    value: color,
+    onChange: setColor
   })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      marginTop: 12,
-      overflowX: "auto",
-      scrollbarWidth: "none",
-      WebkitOverflowScrolling: "touch",
-      padding: "6px 6px"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "tap",
-    "data-haptic": "selection",
-    style: {
-      position: "relative",
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      flexShrink: 0,
-      cursor: "pointer",
-      boxShadow: typeof color === "string" && color[0] === "#" && color !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(color) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none",
-      background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "color",
-    value: typeof color === "string" && color[0] === "#" ? color : "#0a0a0a",
-    onChange: e => setColor(e.target.value),
-    "aria-label": "\u0421\u0432\u043E\u0439 \u0446\u0432\u0435\u0442",
-    style: {
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      opacity: 0,
-      border: 0,
-      padding: 0,
-      cursor: "pointer"
-    }
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 1,
-      height: 26,
-      background: "var(--line)",
-      flexShrink: 0
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    key: "black",
-    className: "tap",
-    "data-haptic": "selection",
-    onClick: () => setColor("#0a0a0a"),
-    "aria-label": "\u0427\u0451\u0440\u043D\u044B\u0439 (\u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442)",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      background: "linear-gradient(180deg, #46464a, #0a0a0a)",
-      border: 0,
-      flexShrink: 0,
-      cursor: "pointer",
-      boxShadow: color === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none",
-      transition: "box-shadow 0.15s"
-    }
-  }), BOS_APPLE_COLORS.map(c => /*#__PURE__*/React.createElement("button", {
-    key: c,
-    className: "tap",
-    "data-haptic": "selection",
-    onClick: () => setColor(c),
-    "aria-label": BOS_APPLE_COLOR_NAMES[c] || "Цвет",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      background: c,
-      border: 0,
-      flexShrink: 0,
-      cursor: "pointer",
-      boxShadow: color === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none",
-      transition: "box-shadow 0.15s"
-    }
-  })))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22

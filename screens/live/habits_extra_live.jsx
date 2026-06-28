@@ -122,22 +122,7 @@ function HabitSettingsLive() {
         {/* Apple system palette + custom wheel. The selected swatch has a 4px outset ring —
             the row needs padding so an overflow-x scroller doesn't clip it (David: «колечко
             выпирает и обрезается»). 6px all round > the 4px ring. */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
-          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof color === "string" && color[0] === "#" && color !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(color)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
-            <input type="color" value={(typeof color === "string" && color[0] === "#") ? color : "#0a0a0a"} onChange={(e) => setColor(e.target.value)} aria-label="Свой цвет"
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
-          </label>
-          <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
-          {/* Чёрный — СТАНДАРТ (чёрно-белая тема): графитовый градиент, выбран по умолчанию. */}
-          <button key="black" className="tap" data-haptic="selection" onClick={() => setColor("#0a0a0a")} aria-label="Чёрный (стандарт)"
-            style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(180deg, #46464a, #0a0a0a)", border: 0, flexShrink: 0, cursor: "pointer",
-              boxShadow: color === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none", transition: "box-shadow 0.15s" }} />
-          {BOS_APPLE_COLORS.map((c) => (
-            <button key={c} className="tap" data-haptic="selection" onClick={() => setColor(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
-              style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer",
-                boxShadow: color === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
-          ))}
-        </div>
+        <BosColorPickerLive value={color} onChange={setColor} />
       </div>
 
       {/* Goal */}
@@ -329,23 +314,8 @@ function GoalSettingsLive() {
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели" aria-label="Название цели"
             style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
-        {/* Same colour picker as habits — black default + Apple palette + custom wheel.
-            The chosen colour fills the goal's progress bar & detail ring. */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
-          <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer", boxShadow: (typeof color === "string" && color[0] === "#" && color !== "#0a0a0a" && !BOS_APPLE_COLORS.includes(color)) ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3)" : "none", background: "conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)" }}>
-            <input type="color" value={(typeof color === "string" && color[0] === "#") ? color : "#0a0a0a"} onChange={(e) => setColor(e.target.value)} aria-label="Свой цвет"
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
-          </label>
-          <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
-          <button key="black" className="tap" data-haptic="selection" onClick={() => setColor("#0a0a0a")} aria-label="Чёрный (стандарт)"
-            style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(180deg, #46464a, #0a0a0a)", border: 0, flexShrink: 0, cursor: "pointer",
-              boxShadow: color === "#0a0a0a" ? "0 0 0 2px #fff, 0 0 0 4px #0a0a0a" : "none", transition: "box-shadow 0.15s" }} />
-          {BOS_APPLE_COLORS.map((c) => (
-            <button key={c} className="tap" data-haptic="selection" onClick={() => setColor(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
-              style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: 0, flexShrink: 0, cursor: "pointer",
-                boxShadow: color === c ? "0 0 0 2px #fff, 0 0 0 4px " + c : "none", transition: "box-shadow 0.15s" }} />
-          ))}
-        </div>
+        {/* ONE shared colour picker — same as habits/teams (glassy circles, grey+black+Apple). */}
+        <BosColorPickerLive value={color} onChange={setColor} />
       </div>
 
       <div className="section-label" style={{ marginTop: 22 }}>Цель (значение)</div>

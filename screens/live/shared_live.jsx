@@ -1733,6 +1733,51 @@ const BOS_APPLE_COLOR_NAMES = { "#A06A86": "Сливовый", "#F0564C": "Ко�
   /* legacy system hues — kept so habits made before the Journal palette still read a name */
   "#34C759": "Зелёный", "#007AFF": "Синий", "#0A84FF": "Синий", "#FF9500": "Оранжевый", "#AF52DE": "Фиолетовый", "#FF2D55": "Розовый", "#30B0C7": "Бирюзовый", "#5856D6": "Индиго", "#FF3B30": "Красный", "#FFCC00": "Жёлтый" };
 
+// Neutral DEFAULT colour — a soft grey (David: «дефолтный цвет серый», в духе наших серых стеклянных
+// кружков). Lives at the head of the palette next to «Чёрный».
+const BOS_GREY = "#8E8E93";
+// A glassy colour swatch — a glossy sphere: bright top-left specular + soft bottom inner shadow over
+// the colour, so every picker circle reads «в стекле» (David's example). Returns {background,boxShadow};
+// `selected` adds the white-gap halo ring in the swatch's own colour. ONE source → identical everywhere.
+function bosColorSwatch(hx, selected) {
+  const col = (typeof hx === "string" && hx[0] === "#") ? hx : BOS_GREY;
+  const sheen = "radial-gradient(125% 125% at 30% 24%, rgba(255,255,255,0.62), rgba(255,255,255,0.10) 44%, rgba(255,255,255,0) 62%)";
+  const glass = "inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -3px 5px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.12)";
+  return {
+    background: sheen + ", " + col,
+    boxShadow: (selected ? "0 0 0 2px #fff, 0 0 0 4px " + col + ", " : "") + glass,
+  };
+}
+/* THE colour picker — ONE component for привычки / цели / команды so the choice is pixel-identical
+   everywhere (David: «определись с палитрой основной»). Custom wheel + Серый + Чёрный + the Apple
+   palette (BOS_APPLE_COLORS — the habit colours David likes), every circle glassy (bosColorSwatch). */
+function BosColorPickerLive({ value, onChange }) {
+  const isHex = typeof value === "string" && value[0] === "#";
+  const custom = isHex && value !== "#0a0a0a" && value !== BOS_GREY && !BOS_APPLE_COLORS.includes(value);
+  const sheen = "radial-gradient(125% 125% at 30% 24%, rgba(255,255,255,0.62), rgba(255,255,255,0.10) 44%, rgba(255,255,255,0) 62%)";
+  const glass = "inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -3px 5px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.12)";
+  const base = { width: 32, height: 32, borderRadius: "50%", border: 0, flexShrink: 0, cursor: "pointer", transition: "box-shadow 0.15s" };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
+      <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer",
+        background: sheen + ", conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)",
+        boxShadow: (custom ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3), " : "") + glass }}>
+        <input type="color" value={isHex ? value : BOS_GREY} onChange={(e) => onChange(e.target.value)} aria-label="Свой цвет"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
+      </label>
+      <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
+      {[{ c: BOS_GREY, l: "Серый (стандарт)" }, { c: "#0a0a0a", l: "Чёрный" }].map((n) => (
+        <button key={n.c} type="button" className="tap" data-haptic="selection" onClick={() => onChange(n.c)} aria-label={n.l}
+          style={{ ...base, ...bosColorSwatch(n.c, value === n.c) }} />
+      ))}
+      {BOS_APPLE_COLORS.map((c) => (
+        <button key={c} type="button" className="tap" data-haptic="selection" onClick={() => onChange(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
+          style={{ ...base, ...bosColorSwatch(c, value === c) }} />
+      ))}
+    </div>
+  );
+}
+
 // Pull the LAST emoji grapheme a user typed, so the icon picker can BE the system emoji
 // keyboard (David: «открывается клавиатура с эмодзи», not a fixed grid). Intl.Segmenter
 // keeps multi-codepoint emoji (🧘‍♀️) whole; Extended_Pictographic filters out letters.
