@@ -35,24 +35,28 @@
 
 function TeamCreateLive() {
   var {
-    navigate
+    navigate,
+    params
   } = useNav();
   var app = useApp();
   var {
     open: openSheet
   } = useSheet();
-  var [name, setName] = useCS("");
-  var [emblem, setEmblem] = useCS("✨");
-  var [accent, setAccent] = useCS("#84A4B8"); // Journal «Грифельный» — calm neutral default (a team needs a visible cover, so not pure black like habits)
+  // Quick-add team preset (from the Команды tab chip) → {i,t,accent,goalType,goalTitle,target,unit}.
+  // Seeds name/emblem/accent + the goal config, so a chip like «30 дней спорта» opens pre-filled.
+  var preset = params?.preset || null;
+  var [name, setName] = useCS(preset?.t || "");
+  var [emblem, setEmblem] = useCS(preset?.i || "✨");
+  var [accent, setAccent] = useCS(preset?.accent || "#84A4B8"); // Journal «Грифельный» — calm neutral default (a team needs a visible cover, so not pure black like habits)
   var [duration, setDuration] = useCS("month");
   var [vis, setVis] = useCS("private");
   var [saving, setSaving] = useCS(false);
 
   // Goal config
-  var [goalType, setGoalType] = useCS("collective"); // collective | streak | race
-  var [goalTitle, setGoalTitle] = useCS("50 добрых дел");
-  var [target, setTarget] = useCS(50);
-  var [unit, setUnit] = useCS("дел");
+  var [goalType, setGoalType] = useCS(preset?.goalType || "collective"); // collective | streak | race
+  var [goalTitle, setGoalTitle] = useCS(preset?.goalTitle || "50 добрых дел");
+  var [target, setTarget] = useCS(preset?.target || 50);
+  var [unit, setUnit] = useCS(preset?.unit || "дел");
   var [linkedHabits, setLinkedHabits] = useCS({
     "🙏": true,
     "🧘🏼‍♀️": false,

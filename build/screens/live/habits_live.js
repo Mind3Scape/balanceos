@@ -31,6 +31,118 @@ function _bosSetHabitsTab(t) {
     localStorage.setItem("bos:habitsTab", t);
   } catch (e) {}
 }
+
+// Quick-add presets per triad tab (David: «при переключении на Цели/Команды всплывают подходящие
+// пилюли»). Habits reuse the shared EMOJI_CHIPS; goals & teams get their own context presets.
+//   GOAL preset → {i,t,target,unit,deadline} seeds goal-settings.
+//   TEAM preset → {i,t,accent,goalType,goalTitle,target,unit} seeds team-create. Three themes:
+//   семья · челленджи для друзей · личностный рост.
+var GOAL_CHIPS = [{
+  i: "🏃",
+  t: "Пробежать марафон",
+  target: 42,
+  unit: "км",
+  deadline: "1 год"
+}, {
+  i: "📚",
+  t: "Прочитать 12 книг",
+  target: 12,
+  unit: "книг",
+  deadline: "1 год"
+}, {
+  i: "💪",
+  t: "Прийти в форму",
+  target: 12,
+  unit: "недель",
+  deadline: "Месяц"
+}, {
+  i: "🧘",
+  t: "100 дней практики",
+  target: 100,
+  unit: "дней",
+  deadline: "Месяц"
+}, {
+  i: "🗣️",
+  t: "Выучить язык",
+  target: 6,
+  unit: "месяцев",
+  deadline: "1 год"
+}, {
+  i: "💰",
+  t: "Накопить подушку",
+  target: 6,
+  unit: "месяцев",
+  deadline: "1 год"
+}, {
+  i: "🚭",
+  t: "Бросить курить",
+  target: 90,
+  unit: "дней",
+  deadline: "Месяц"
+}];
+var TEAM_CHIPS = [
+// семья
+{
+  i: "👨‍👩‍👧",
+  t: "Семейные дела",
+  accent: "#E59B9B",
+  goalType: "collective",
+  goalTitle: "Дела по дому",
+  target: 50,
+  unit: "дел"
+}, {
+  i: "🍳",
+  t: "Готовим вместе",
+  accent: "#F0A24E",
+  goalType: "collective",
+  goalTitle: "Ужины вместе",
+  target: 30,
+  unit: "ужинов"
+},
+// челленджи для друзей
+{
+  i: "🔥",
+  t: "30 дней спорта",
+  accent: "#F0564C",
+  goalType: "streak",
+  goalTitle: "Спорт каждый день",
+  target: 30,
+  unit: "дней"
+}, {
+  i: "🏁",
+  t: "Беговой вызов",
+  accent: "#19B89B",
+  goalType: "race",
+  goalTitle: "100 км бега",
+  target: 100,
+  unit: "км"
+}, {
+  i: "💧",
+  t: "Без сахара вместе",
+  accent: "#54C3E4",
+  goalType: "streak",
+  goalTitle: "Дни без сахара",
+  target: 21,
+  unit: "дней"
+},
+// личностный рост
+{
+  i: "🧘",
+  t: "Осознанность",
+  accent: "#7F9AF2",
+  goalType: "collective",
+  goalTitle: "Минуты медитации",
+  target: 1000,
+  unit: "мин"
+}, {
+  i: "📖",
+  t: "Книжный клуб",
+  accent: "#8676E6",
+  goalType: "collective",
+  goalTitle: "Прочитано глав",
+  target: 100,
+  unit: "глав"
+}];
 function HabitsLive() {
   var {
     navigate
@@ -124,22 +236,27 @@ function HabitsLive() {
   var [createOpen, setCreateOpen] = React.useState(false);
   var addBtnRef = React.useRef(null);
 
-  // «Быстрое добавление» is now a FREE, draggable block inside the Привычки list — David moved the
-  // universal «+» onto the triad row, so this block no longer has to be pinned at the top. qaPos =
-  // where it sits among the habit cards; persisted (default top), so it stays where you drop it.
-  var [qaPos, setQaPosState] = React.useState(() => {
-    try {
-      var v = parseInt(localStorage.getItem("bos:qaIdx"), 10);
-      return Number.isFinite(v) ? v : 0;
-    } catch (e) {
-      return 0;
-    }
-  });
-  var setQaPos = n => {
-    setQaPosState(n);
-    try {
-      localStorage.setItem("bos:qaIdx", String(n));
-    } catch (e) {}
+  // «Быстрое добавление» now sits ABOVE the triad (David) and its chips FOLLOW the active tab:
+  // Привычки → habit presets, Цели → goal presets, Команды → team presets. The chips re-mount on
+  // tab change (key={tab}) so they pop in (briefPop). Each chip routes to the matching create screen
+  // with its preset (habit-settings / goal-settings / team-create).
+  var QA = tab === "goals" ? {
+    chips: GOAL_CHIPS,
+    go: c => navigate("goal-settings", {
+      mode: "create",
+      preset: c
+    })
+  } : tab === "teams" ? {
+    chips: TEAM_CHIPS,
+    go: c => navigate("team-create", {
+      preset: c
+    })
+  } : {
+    chips: EMOJI_CHIPS,
+    go: c => navigate("habit-settings", {
+      mode: "create",
+      preset: c
+    })
   };
   var quickAddBlock = /*#__PURE__*/React.createElement("div", {
     style: {
@@ -159,6 +276,7 @@ function HabitsLive() {
       padding: "0 2px"
     }
   }, "\u0411\u044B\u0441\u0442\u0440\u043E\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
+    key: tab,
     style: {
       display: "flex",
       gap: 8,
@@ -168,14 +286,11 @@ function HabitsLive() {
       touchAction: "pan-x",
       padding: "3px 2px"
     }
-  }, EMOJI_CHIPS.map((c, i) => /*#__PURE__*/React.createElement("button", {
+  }, QA.chips.map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     className: "tap",
     "data-no-haptic": true,
-    onClick: () => navigate("habit-settings", {
-      mode: "create",
-      preset: c
-    }),
+    onClick: () => QA.go(c),
     style: {
       ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
         background: TH.chipBg
@@ -189,7 +304,8 @@ function HabitsLive() {
       alignItems: "center",
       gap: 6,
       whiteSpace: "nowrap",
-      flexShrink: 0
+      flexShrink: 0,
+      animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + i * 0.035 + "s"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -222,6 +338,10 @@ function HabitsLive() {
     anchorRef: addBtnRef,
     navigate: navigate
   }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, quickAddBlock), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -280,13 +400,7 @@ function HabitsLive() {
       transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)",
       transform: createOpen ? "rotate(45deg)" : "none"
     }
-  }))), tab === "habits" && (habits.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
-    }
-  }, quickAddBlock, /*#__PURE__*/React.createElement("button", {
+  }))), tab === "habits" && (habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("habit-settings", {
       mode: "create"
@@ -327,156 +441,142 @@ function HabitsLive() {
       lineHeight: 1.45,
       maxWidth: 250
     }
-  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0448\u0430\u0431\u043B\u043E\u043D \u0432\u044B\u0448\u0435, \u043D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0438\u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u0439 \u0441\u0432\u043E\u044E \u2014 \u043E\u0434\u043D\u043E\u043C\u0443 \u0438\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438."))) : (() => {
-    // The «Быстрое добавление» block rides in the SAME reorder list as the habit cards (id
-    // «__qa__»), spliced at its remembered position — so it jiggles and drags like any block.
-    var ids = habits.map(h => h.id);
-    ids.splice(Math.min(qaPos, ids.length), 0, "__qa__");
-    return /*#__PURE__*/React.createElement(BosReorderList, {
-      ids: ids,
-      onReorder: o => {
-        var np = o.indexOf("__qa__");
-        if (np >= 0) setQaPos(np);
-        var ho = o.filter(x => x !== "__qa__");
-        if (app && app.reorderHabits) app.reorderHabits(ho);
-      },
-      renderItem: (id, ctx) => {
-        if (id === "__qa__") return ctx.mode ? /*#__PURE__*/React.createElement("div", {
-          style: {
-            pointerEvents: "none"
-          }
-        }, quickAddBlock) : quickAddBlock;
-        var h = habits.find(x => x.id === id);
-        if (!h) return null;
-        var inner = /*#__PURE__*/React.createElement("div", {
-          className: ctx.mode ? "" : "tap",
-          onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
+  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0448\u0430\u0431\u043B\u043E\u043D \u0432\u044B\u0448\u0435, \u043D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0438\u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u0439 \u0441\u0432\u043E\u044E \u2014 \u043E\u0434\u043D\u043E\u043C\u0443 \u0438\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438.")) : /*#__PURE__*/React.createElement(BosReorderList, {
+    ids: habits.map(h => h.id),
+    onReorder: o => {
+      if (app && app.reorderHabits) app.reorderHabits(o);
+    },
+    renderItem: (id, ctx) => {
+      var h = habits.find(x => x.id === id);
+      if (!h) return null;
+      var inner = /*#__PURE__*/React.createElement("div", {
+        className: ctx.mode ? "" : "tap",
+        onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
+          habit: h,
+          from: "habits"
+        }),
+        style: {
+          padding: "14px 16px",
+          pointerEvents: ctx.mode ? "none" : "auto"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 14
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
+          boxShadow: bosTileGlass(isDark),
+          display: "grid",
+          placeItems: "center",
+          fontSize: 20,
+          flexShrink: 0
+        }
+      }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 16,
+          fontWeight: 600,
+          color: "var(--text)",
+          letterSpacing: "-0.2px"
+        }
+      }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 3,
+          fontSize: 11,
+          color: "var(--text-4)"
+        }
+      }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3
+        }
+      }, /*#__PURE__*/React.createElement(I.Clock, {
+        size: 11
+      }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+        habit: h,
+        dark: isDark,
+        onComplete: () => {
+          if (!h.done) toggle(h.id);
+        }
+      }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+        habit: h,
+        app: app,
+        xp: 10
+      }) : /*#__PURE__*/React.createElement(HabitCheck, {
+        done: h.done,
+        onToggle: () => toggle(h.id),
+        xp: 10,
+        float: true
+      })), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          marginTop: 12
+        }
+      }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
+        habit: h
+      }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+        habit: h,
+        size: 22,
+        max: 5
+      })));
+      if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow,
+          background: rowBg
+        }
+      }, inner);
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: rowBg,
+        dark: isDark,
+        actions: [{
+          key: "share",
+          tone: "share",
+          label: "Поделиться",
+          icon: I.Share,
+          onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
             habit: h,
-            from: "habits"
-          }),
-          style: {
-            padding: "14px 16px",
-            pointerEvents: ctx.mode ? "none" : "auto"
-          }
-        }, /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: "flex",
-            alignItems: "center",
-            gap: 14
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            width: 40,
-            height: 40,
-            borderRadius: 14,
-            background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
-            boxShadow: bosTileGlass(isDark),
-            display: "grid",
-            placeItems: "center",
-            fontSize: 20,
-            flexShrink: 0
-          }
-        }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
-          style: {
-            flex: 1,
-            minWidth: 0
-          }
-        }, /*#__PURE__*/React.createElement("div", {
-          style: {
-            fontSize: 16,
-            fontWeight: 600,
-            color: "var(--text)",
-            letterSpacing: "-0.2px"
-          }
-        }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginTop: 3,
-            fontSize: 11,
-            color: "var(--text-4)"
-          }
-        }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
-          style: {
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 3
-          }
-        }, /*#__PURE__*/React.createElement(I.Clock, {
-          size: 11
-        }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
-          habit: h,
-          dark: isDark,
-          onComplete: () => {
-            if (!h.done) toggle(h.id);
-          }
-        }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
-          habit: h,
-          app: app,
-          xp: 10
-        }) : /*#__PURE__*/React.createElement(HabitCheck, {
-          done: h.done,
-          onToggle: () => toggle(h.id),
-          xp: 10,
-          float: true
-        })), /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-            marginTop: 12
-          }
-        }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
-          habit: h
-        }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
-          habit: h,
-          size: 22,
-          max: 5
-        })));
-        if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
-          style: {
-            borderRadius: 22,
-            overflow: "hidden",
-            boxShadow: cardShadow,
-            background: rowBg
-          }
-        }, inner);
-        return /*#__PURE__*/React.createElement("div", {
-          style: {
-            borderRadius: 22,
-            overflow: "hidden",
-            boxShadow: cardShadow
-          }
-        }, /*#__PURE__*/React.createElement(SwipeRow, {
-          rowBg: rowBg,
-          dark: isDark,
-          actions: [{
-            key: "share",
-            tone: "share",
-            label: "Поделиться",
-            icon: I.Share,
-            onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
-              habit: h,
-              dark: isDark
-            }))
-          }, {
-            key: "del",
-            tone: "delete",
-            label: "Удалить",
-            icon: I.X,
-            onAction: () => bosConfirmDelete(openSheet, {
-              title: "Удалить привычку?",
-              message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
-              confirmLabel: "Удалить",
-              onConfirm: () => remove(h.id)
-            })
-          }]
-        }, inner));
-      }
-    });
-  })()), tab === "goals" && (goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+            dark: isDark
+          }))
+        }, {
+          key: "del",
+          tone: "delete",
+          label: "Удалить",
+          icon: I.X,
+          onAction: () => bosConfirmDelete(openSheet, {
+            title: "Удалить привычку?",
+            message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
+            confirmLabel: "Удалить",
+            onConfirm: () => remove(h.id)
+          })
+        }]
+      }, inner));
+    }
+  })), tab === "goals" && (goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"

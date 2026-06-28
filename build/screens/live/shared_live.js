@@ -3528,10 +3528,10 @@ function HomeHeroSwipeLive({
   }, /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
-      fontSize: 15,
-      fontWeight: 500,
+      fontSize: 14.5,
+      fontWeight: 400,
       color: "var(--text)",
-      lineHeight: 1.42,
+      lineHeight: 1.5,
       letterSpacing: "-0.2px",
       animation: _liveBrief ? "briefFade 0.5s ease both" : undefined
     }
@@ -3542,7 +3542,7 @@ function HomeHeroSwipeLive({
       marginRight: 6
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 15,
+    size: 14,
     color: "#EF9F14",
     filled: true,
     strokeWidth: 0
@@ -3628,10 +3628,10 @@ function HomeHeroSwipeLive({
   }, /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
-      fontSize: 15.5,
-      fontWeight: 500,
+      fontSize: 14.5,
+      fontWeight: 400,
       color: "var(--text)",
-      lineHeight: 1.42,
+      lineHeight: 1.5,
       letterSpacing: "-0.2px",
       animation: "briefFade 0.5s ease both"
     }
@@ -3642,7 +3642,7 @@ function HomeHeroSwipeLive({
       marginRight: 6
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 15,
+    size: 14,
     color: "#EF9F14",
     filled: true,
     strokeWidth: 0

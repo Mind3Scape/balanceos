@@ -21,6 +21,33 @@
 var _bosHabitsTab = (function () { try { return localStorage.getItem("bos:habitsTab") || "habits"; } catch (e) { return "habits"; } })();
 function _bosSetHabitsTab(t) { _bosHabitsTab = t; try { localStorage.setItem("bos:habitsTab", t); } catch (e) {} }
 
+// Quick-add presets per triad tab (David: «при переключении на Цели/Команды всплывают подходящие
+// пилюли»). Habits reuse the shared EMOJI_CHIPS; goals & teams get their own context presets.
+//   GOAL preset → {i,t,target,unit,deadline} seeds goal-settings.
+//   TEAM preset → {i,t,accent,goalType,goalTitle,target,unit} seeds team-create. Three themes:
+//   семья · челленджи для друзей · личностный рост.
+const GOAL_CHIPS = [
+  { i: "🏃", t: "Пробежать марафон", target: 42, unit: "км", deadline: "1 год" },
+  { i: "📚", t: "Прочитать 12 книг", target: 12, unit: "книг", deadline: "1 год" },
+  { i: "💪", t: "Прийти в форму", target: 12, unit: "недель", deadline: "Месяц" },
+  { i: "🧘", t: "100 дней практики", target: 100, unit: "дней", deadline: "Месяц" },
+  { i: "🗣️", t: "Выучить язык", target: 6, unit: "месяцев", deadline: "1 год" },
+  { i: "💰", t: "Накопить подушку", target: 6, unit: "месяцев", deadline: "1 год" },
+  { i: "🚭", t: "Бросить курить", target: 90, unit: "дней", deadline: "Месяц" },
+];
+const TEAM_CHIPS = [
+  // семья
+  { i: "👨‍👩‍👧", t: "Семейные дела", accent: "#E59B9B", goalType: "collective", goalTitle: "Дела по дому", target: 50, unit: "дел" },
+  { i: "🍳", t: "Готовим вместе", accent: "#F0A24E", goalType: "collective", goalTitle: "Ужины вместе", target: 30, unit: "ужинов" },
+  // челленджи для друзей
+  { i: "🔥", t: "30 дней спорта", accent: "#F0564C", goalType: "streak", goalTitle: "Спорт каждый день", target: 30, unit: "дней" },
+  { i: "🏁", t: "Беговой вызов", accent: "#19B89B", goalType: "race", goalTitle: "100 км бега", target: 100, unit: "км" },
+  { i: "💧", t: "Без сахара вместе", accent: "#54C3E4", goalType: "streak", goalTitle: "Дни без сахара", target: 21, unit: "дней" },
+  // личностный рост
+  { i: "🧘", t: "Осознанность", accent: "#7F9AF2", goalType: "collective", goalTitle: "Минуты медитации", target: 1000, unit: "мин" },
+  { i: "📖", t: "Книжный клуб", accent: "#8676E6", goalType: "collective", goalTitle: "Прочитано глав", target: 100, unit: "глав" },
+];
+
 function HabitsLive() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
@@ -93,19 +120,24 @@ function HabitsLive() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const addBtnRef = React.useRef(null);
 
-  // «Быстрое добавление» is now a FREE, draggable block inside the Привычки list — David moved the
-  // universal «+» onto the triad row, so this block no longer has to be pinned at the top. qaPos =
-  // where it sits among the habit cards; persisted (default top), so it stays where you drop it.
-  const [qaPos, setQaPosState] = React.useState(() => { try { const v = parseInt(localStorage.getItem("bos:qaIdx"), 10); return Number.isFinite(v) ? v : 0; } catch (e) { return 0; } });
-  const setQaPos = (n) => { setQaPosState(n); try { localStorage.setItem("bos:qaIdx", String(n)); } catch (e) {} };
+  // «Быстрое добавление» now sits ABOVE the triad (David) and its chips FOLLOW the active tab:
+  // Привычки → habit presets, Цели → goal presets, Команды → team presets. The chips re-mount on
+  // tab change (key={tab}) so they pop in (briefPop). Each chip routes to the matching create screen
+  // with its preset (habit-settings / goal-settings / team-create).
+  const QA = tab === "goals"
+    ? { chips: GOAL_CHIPS, go: (c) => navigate("goal-settings", { mode: "create", preset: c }) }
+    : tab === "teams"
+      ? { chips: TEAM_CHIPS, go: (c) => navigate("team-create", { preset: c }) }
+      : { chips: EMOJI_CHIPS, go: (c) => navigate("habit-settings", { mode: "create", preset: c }) };
   const quickAddBlock = (
     <div style={{ background: TH.cardBg, borderRadius: 20, boxShadow: cardShadow, padding: "12px 13px" }}>
       <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600, marginBottom: 9, padding: "0 2px" }}>Быстрое добавление</div>
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "3px 2px" }}>
-        {EMOJI_CHIPS.map((c, i) => (
-          <button key={i} className="tap" data-no-haptic onClick={() => navigate("habit-settings", { mode: "create", preset: c })} style={{
+      <div key={tab} style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "3px 2px" }}>
+        {QA.chips.map((c, i) => (
+          <button key={i} className="tap" data-no-haptic onClick={() => QA.go(c)} style={{
             ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), borderRadius: 999, padding: "8px 12px", fontSize: 13, color: TH.chipText, border: 0,
             display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
+            animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.035) + "s",
           }}>
             <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>{c.t} <I.Plus size={12} color={TH.plusIcon}/>
           </button>
@@ -119,6 +151,9 @@ function HabitsLive() {
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
+
+      {/* «Быстрое добавление» ABOVE the triad (David) — its chips follow the active tab. */}
+      <div style={{ marginBottom: 12 }}>{quickAddBlock}</div>
 
       {/* TRIAD switcher + the universal «+» on ONE row (David). The «+» opens CreateMenuLive
           (Привычку / Цель / Команду), so it no longer lives on «Быстрое добавление» — that block
@@ -142,27 +177,14 @@ function HabitsLive() {
       {/* 3 — the active list. No section labels: the triad above names the context. */}
       {tab === "habits" && (
         habits.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {quickAddBlock}
-            <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-              <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
-              <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки</div>
-              <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Выбери шаблон выше, нажми «+» или создай свою — одному или вместе с друзьями.</div>
-            </button>
-          </div>
-        ) : (() => {
-          // The «Быстрое добавление» block rides in the SAME reorder list as the habit cards (id
-          // «__qa__»), spliced at its remembered position — so it jiggles and drags like any block.
-          const ids = habits.map((h) => h.id);
-          ids.splice(Math.min(qaPos, ids.length), 0, "__qa__");
-          return (
-          <BosReorderList ids={ids} onReorder={(o) => {
-              const np = o.indexOf("__qa__"); if (np >= 0) setQaPos(np);
-              const ho = o.filter((x) => x !== "__qa__");
-              if (app && app.reorderHabits) app.reorderHabits(ho);
-            }}
+          <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
+            <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки</div>
+            <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Выбери шаблон выше, нажми «+» или создай свою — одному или вместе с друзьями.</div>
+          </button>
+        ) : (
+          <BosReorderList ids={habits.map((h) => h.id)} onReorder={(o) => { if (app && app.reorderHabits) app.reorderHabits(o); }}
             renderItem={(id, ctx) => {
-              if (id === "__qa__") return ctx.mode ? <div style={{ pointerEvents: "none" }}>{quickAddBlock}</div> : quickAddBlock;
               const h = habits.find((x) => x.id === id); if (!h) return null;
               const inner = (
                 <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
@@ -204,8 +226,7 @@ function HabitsLive() {
                 </div>
               );
             }} />
-          );
-        })()
+        )
       )}
 
       {tab === "goals" && (

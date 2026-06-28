@@ -697,14 +697,17 @@ function GoalSettingsLive() {
   } = useSheet();
   var editing = params?.mode === "edit";
   var g0 = editing ? params.goal : null;
-  var [name, setName] = useHS(g0?.name || "Пробежать марафон");
-  var [iconPick, setIconPick] = useHS(g0?.emoji || "🎯");
+  // Quick-add goal preset (from the Цели tab chip) → {i,t,target,unit,deadline}. Seeds the form so
+  // tapping «Пробежать марафон» lands you on a pre-filled goal, same as habit quick-add presets.
+  var preset = !editing && params?.preset ? params.preset : null;
+  var [name, setName] = useHS(g0?.name || preset?.t || "Пробежать марафон");
+  var [iconPick, setIconPick] = useHS(g0?.emoji || preset?.i || "🎯");
   // Goals carry a colour exactly like habits — default BLACK (the app's b&w base); the
   // chosen colour fills the goal's progress bar + detail ring (David: «всё один в один»).
-  var [color, setColor] = useHS(g0?.color ?? "#0a0a0a");
-  var [target, setTarget] = useHS(g0?.target || 22);
-  var [unit, setUnit] = useHS(g0?.unit || "недель");
-  var [deadline, setDeadline] = useHS(g0?.deadline || "Месяц");
+  var [color, setColor] = useHS(g0?.color ?? preset?.color ?? "#0a0a0a");
+  var [target, setTarget] = useHS(g0?.target || preset?.target || 22);
+  var [unit, setUnit] = useHS(g0?.unit || preset?.unit || "недель");
+  var [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
   var [showCal, setShowCal] = useHS(false);
   var [linkHabit, setLinkHabit] = useHS(true);
   // REAL — the user's own habits, none pre-selected.
