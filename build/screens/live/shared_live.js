@@ -4904,6 +4904,7 @@ function HabitCountCheck({
   var isDone = !!habit.done;
   var count = isDone ? goal : habit.counts && habit.counts[today] || 0;
   var accent = bosHabitColor(habit);
+  var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   var [tick, setTick] = React.useState(0);
   var btnRef = React.useRef(null);
   var lpTimer = React.useRef(null);
@@ -4954,28 +4955,19 @@ function HabitCountCheck({
     }
     apply(isDone ? 0 : count + 1);
   };
-  var SIZE = 30,
-    R = 13,
+
+  // The ring/sections wrap the disc with a GAP (David: «с отступом от серого кружочка должно
+  // появляться кольцо/секции, а не вместо»). SIZE 44 = disc 30 + ~3px gap + 3px ring band.
+  var SIZE = 44,
     CX = SIZE / 2,
-    C = 2 * Math.PI * R; // R=13 → ring ~29px outer, MATCHING the 30px .check-btn circle (David: «счётчик не совпадает по размеру с галочкой»)
-  var track = "rgba(10,10,10,0.10)";
-  var body;
-  if (isDone) {
-    body = /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: SIZE,
-        height: SIZE,
-        borderRadius: "50%",
-        background: accent,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement(I.Check, {
-      size: 18,
-      strokeWidth: 2.6,
-      color: "#fff"
-    }));
-  } else if (goal <= 7) {
+    R = 19.5,
+    sw = 3,
+    C = 2 * Math.PI * R;
+  var track = isDark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)";
+
+  // Ring AROUND the disc — discrete sections while goal ≤ 7, else one continuous arc.
+  var ringEls;
+  if (goal <= 7) {
     var pitch = 360 / goal,
       gap = Math.min(22, pitch * 0.34);
     var pt = deg => {
@@ -4993,80 +4985,87 @@ function HabitCountCheck({
         d: "M " + p0[0] + " " + p0[1] + " A " + R + " " + R + " 0 0 1 " + p1[0] + " " + p1[1],
         fill: "none",
         stroke: i < count ? accent : track,
-        strokeWidth: "3",
-        strokeLinecap: "round"
+        strokeWidth: sw,
+        strokeLinecap: "round",
+        style: {
+          transition: "stroke 0.25s ease"
+        }
       }));
     }
-    body = /*#__PURE__*/React.createElement("span", {
-      style: {
-        position: "relative",
-        width: SIZE,
-        height: SIZE,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: SIZE,
-      height: SIZE,
-      viewBox: "0 0 " + SIZE + " " + SIZE,
-      style: {
-        position: "absolute",
-        inset: 0
-      }
-    }, segs), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 700,
-        lineHeight: 1,
-        color: count > 0 ? accent : "var(--text-4)",
-        fontVariantNumeric: "tabular-nums"
-      }
-    }, count));
+    ringEls = segs;
   } else {
-    body = /*#__PURE__*/React.createElement("span", {
-      style: {
-        position: "relative",
-        width: SIZE,
-        height: SIZE,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: SIZE,
-      height: SIZE,
-      viewBox: "0 0 " + SIZE + " " + SIZE,
-      style: {
-        position: "absolute",
-        inset: 0
-      }
-    }, /*#__PURE__*/React.createElement("circle", {
+    ringEls = [/*#__PURE__*/React.createElement("circle", {
+      key: "t",
       cx: CX,
       cy: CX,
       r: R,
       fill: "none",
       stroke: track,
-      strokeWidth: "3"
+      strokeWidth: sw
     }), /*#__PURE__*/React.createElement("circle", {
+      key: "p",
       cx: CX,
       cy: CX,
       r: R,
       fill: "none",
       stroke: accent,
-      strokeWidth: "3",
+      strokeWidth: sw,
       strokeLinecap: "round",
       strokeDasharray: C.toFixed(2),
       strokeDashoffset: (C * (1 - count / goal)).toFixed(2),
-      transform: "rotate(-90 " + CX + " " + CX + ")"
-    })), /*#__PURE__*/React.createElement("span", {
+      transform: "rotate(-90 " + CX + " " + CX + ")",
       style: {
-        fontSize: 12.5,
-        fontWeight: 700,
-        lineHeight: 1,
-        color: count > 0 ? accent : "var(--text-4)",
-        fontVariantNumeric: "tabular-nums"
+        transition: "stroke-dashoffset 0.4s ease"
       }
-    }, count));
+    })];
   }
+
+  // Center = the SAME glass disc as the plain check (.check-btn): a grey glass kружочек with the
+  // running count, that LIGHTS UP into the checked glass + ✓ once the ring is full (David).
+  var disc = isDone ? /*#__PURE__*/React.createElement("span", {
+    className: "check-btn",
+    style: {
+      width: 30,
+      height: 30,
+      "--check-color": accent
+    }
+  }, /*#__PURE__*/React.createElement(I.Check, {
+    size: 16,
+    strokeWidth: 2.8,
+    color: "#fff"
+  })) : /*#__PURE__*/React.createElement("span", {
+    className: "check-btn unchecked",
+    style: {
+      width: 30,
+      height: 30
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: count > 0 ? accent : "var(--text-4)",
+      fontSize: 12.5,
+      fontWeight: 700,
+      lineHeight: 1,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, count));
+  var body = /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "relative",
+      width: SIZE,
+      height: SIZE,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: SIZE,
+    height: SIZE,
+    viewBox: "0 0 " + SIZE + " " + SIZE,
+    style: {
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none"
+    }
+  }, ringEls), disc);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",

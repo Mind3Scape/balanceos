@@ -2016,6 +2016,7 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   const isDone = !!habit.done;
   const count = isDone ? goal : ((habit.counts && habit.counts[today]) || 0);
   const accent = bosHabitColor(habit);
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   const [tick, setTick] = React.useState(0);
   const btnRef = React.useRef(null);
   const lpTimer = React.useRef(null);
@@ -2036,41 +2037,42 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   const endLP = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } };
   const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } apply(isDone ? 0 : count + 1); };
 
-  const SIZE = 30, R = 13, CX = SIZE / 2, C = 2 * Math.PI * R;   // R=13 → ring ~29px outer, MATCHING the 30px .check-btn circle (David: «счётчик не совпадает по размеру с галочкой»)
-  const track = "rgba(10,10,10,0.10)";
-  let body;
-  if (isDone) {
-    body = (
-      <span style={{ width: SIZE, height: SIZE, borderRadius: "50%", background: accent, display: "grid", placeItems: "center" }}>
-        <I.Check size={18} strokeWidth={2.6} color="#fff" />
-      </span>
-    );
-  } else if (goal <= 7) {
+  // The ring/sections wrap the disc with a GAP (David: «с отступом от серого кружочка должно
+  // появляться кольцо/секции, а не вместо»). SIZE 44 = disc 30 + ~3px gap + 3px ring band.
+  const SIZE = 44, CX = SIZE / 2, R = 19.5, sw = 3, C = 2 * Math.PI * R;
+  const track = isDark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)";
+
+  // Ring AROUND the disc — discrete sections while goal ≤ 7, else one continuous arc.
+  let ringEls;
+  if (goal <= 7) {
     const pitch = 360 / goal, gap = Math.min(22, pitch * 0.34);
     const pt = (deg) => { const a = deg * Math.PI / 180; return [(CX + R * Math.cos(a)).toFixed(2), (CX + R * Math.sin(a)).toFixed(2)]; };
     const segs = [];
     for (let i = 0; i < goal; i++) {
       const a0 = -90 + i * pitch + gap / 2, a1 = -90 + (i + 1) * pitch - gap / 2;
       const p0 = pt(a0), p1 = pt(a1);
-      segs.push(<path key={i} d={"M " + p0[0] + " " + p0[1] + " A " + R + " " + R + " 0 0 1 " + p1[0] + " " + p1[1]} fill="none" stroke={i < count ? accent : track} strokeWidth="3" strokeLinecap="round" />);
+      segs.push(<path key={i} d={"M " + p0[0] + " " + p0[1] + " A " + R + " " + R + " 0 0 1 " + p1[0] + " " + p1[1]} fill="none" stroke={i < count ? accent : track} strokeWidth={sw} strokeLinecap="round" style={{ transition: "stroke 0.25s ease" }} />);
     }
-    body = (
-      <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
-        <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0 }}>{segs}</svg>
-        <span style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
-      </span>
-    );
+    ringEls = segs;
   } else {
-    body = (
-      <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
-        <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0 }}>
-          <circle cx={CX} cy={CX} r={R} fill="none" stroke={track} strokeWidth="3" />
-          <circle cx={CX} cy={CX} r={R} fill="none" stroke={accent} strokeWidth="3" strokeLinecap="round" strokeDasharray={C.toFixed(2)} strokeDashoffset={(C * (1 - count / goal)).toFixed(2)} transform={"rotate(-90 " + CX + " " + CX + ")"} />
-        </svg>
-        <span style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1, color: count > 0 ? accent : "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
-      </span>
-    );
+    ringEls = [
+      <circle key="t" cx={CX} cy={CX} r={R} fill="none" stroke={track} strokeWidth={sw} />,
+      <circle key="p" cx={CX} cy={CX} r={R} fill="none" stroke={accent} strokeWidth={sw} strokeLinecap="round" strokeDasharray={C.toFixed(2)} strokeDashoffset={(C * (1 - count / goal)).toFixed(2)} transform={"rotate(-90 " + CX + " " + CX + ")"} style={{ transition: "stroke-dashoffset 0.4s ease" }} />,
+    ];
   }
+
+  // Center = the SAME glass disc as the plain check (.check-btn): a grey glass kружочек with the
+  // running count, that LIGHTS UP into the checked glass + ✓ once the ring is full (David).
+  const disc = isDone
+    ? <span className="check-btn" style={{ width: 30, height: 30, "--check-color": accent }}><I.Check size={16} strokeWidth={2.8} color="#fff" /></span>
+    : <span className="check-btn unchecked" style={{ width: 30, height: 30 }}><span style={{ color: count > 0 ? accent : "var(--text-4)", fontSize: 12.5, fontWeight: 700, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{count}</span></span>;
+
+  const body = (
+    <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
+      <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>{ringEls}</svg>
+      {disc}
+    </span>
+  );
   return (
     <div style={{ position: "relative", flexShrink: 0, display: "grid", placeItems: "center" }}>
       <XpFloat tick={tick} xp={xp} anchorRef={btnRef} />
