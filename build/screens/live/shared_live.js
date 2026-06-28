@@ -3518,31 +3518,27 @@ function HomeHeroSwipeLive({
       minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 500,
-      color: "var(--text-4)",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 13,
-    color: "#EF9F14",
-    filled: true,
-    strokeWidth: 0
-  }), " \u0421 \u0447\u0435\u0433\u043E \u043D\u0430\u0447\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
       fontSize: 15,
       fontWeight: 500,
       color: "var(--text)",
-      marginTop: 6,
       lineHeight: 1.42,
       letterSpacing: "-0.2px",
       animation: _liveBrief ? "briefFade 0.5s ease both" : undefined
     }
-  }, _liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать.")), /*#__PURE__*/React.createElement(HeroAccountAvatarLive, {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      verticalAlign: "-2px",
+      marginRight: 6
+    }
+  }, /*#__PURE__*/React.createElement(I.Sparkles, {
+    size: 15,
+    color: "#EF9F14",
+    filled: true,
+    strokeWidth: 0
+  })), _liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать.")), /*#__PURE__*/React.createElement(HeroAccountAvatarLive, {
     navigate: navigate,
     avatar: heroApp?.avatar,
     pct: _heroPct,
@@ -3614,7 +3610,7 @@ function HomeHeroSwipeLive({
     style: {
       display: "flex",
       gap: 14,
-      alignItems: "flex-start"
+      alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3622,31 +3618,27 @@ function HomeHeroSwipeLive({
       minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 500,
-      color: "var(--text-4)",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 13,
-    color: "#EF9F14",
-    filled: true,
-    strokeWidth: 0
-  }), " \u0421\u0432\u043E\u0434\u043A\u0430 \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
       fontSize: 15.5,
       fontWeight: 500,
       color: "var(--text)",
-      marginTop: 6,
       lineHeight: 1.42,
       letterSpacing: "-0.2px",
       animation: "briefFade 0.5s ease both"
     }
-  }, _homeSummary)), /*#__PURE__*/React.createElement(HeroAccountAvatarLive, {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      verticalAlign: "-2px",
+      marginRight: 6
+    }
+  }, /*#__PURE__*/React.createElement(I.Sparkles, {
+    size: 15,
+    color: "#EF9F14",
+    filled: true,
+    strokeWidth: 0
+  })), _homeSummary)), /*#__PURE__*/React.createElement(HeroAccountAvatarLive, {
     navigate: navigate,
     avatar: heroApp?.avatar,
     pct: _heroPct,

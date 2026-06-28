@@ -1484,10 +1484,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0}/> С чего начать
-          </div>
-          <div key={_homeSummary} style={{ fontSize: 15, fontWeight: 500, color: "var(--text)", marginTop: 6, lineHeight: 1.42, letterSpacing: "-0.2px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
+          <div key={_homeSummary} style={{ fontSize: 15, fontWeight: 500, color: "var(--text)", lineHeight: 1.42, letterSpacing: "-0.2px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}><span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={15} color="#EF9F14" filled strokeWidth={0} /></span>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
         <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={52} isDark={isDark} />
       </div>
@@ -1508,13 +1505,10 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     </div>
   ) : (
     <div key="quote" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0}/> Сводка на сегодня
-          </div>
-          <div key={_homeSummary} style={{ fontSize: 15.5, fontWeight: 500, color: "var(--text)", marginTop: 6, lineHeight: 1.42, letterSpacing: "-0.2px", animation: "briefFade 0.5s ease both" }}>
-            {_homeSummary}
+          <div key={_homeSummary} style={{ fontSize: 15.5, fontWeight: 500, color: "var(--text)", lineHeight: 1.42, letterSpacing: "-0.2px", animation: "briefFade 0.5s ease both" }}>
+            <span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={15} color="#EF9F14" filled strokeWidth={0} /></span>{_homeSummary}
           </div>
         </div>
         <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={60} isDark={isDark} />
