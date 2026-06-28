@@ -664,19 +664,11 @@ function TeamCreateLive() {
       fontWeight: 500,
       opacity: p.you ? 0.85 : 1
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 22,
-      height: 22,
-      borderRadius: "50%",
-      background: p.color,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 11,
-      fontWeight: 700,
-      color: "rgba(0,0,0,0.55)"
-    }
-  }, p.initials), p.name, p.on && /*#__PURE__*/React.createElement(I.Check, {
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    avatar: p.avatar,
+    name: p.name,
+    size: 22
+  }), p.name, p.on && /*#__PURE__*/React.createElement(I.Check, {
     size: 12,
     strokeWidth: 3
   }))), /*#__PURE__*/React.createElement("button", {
@@ -859,135 +851,191 @@ function TeamSettingsLive() {
     })
   }), /*#__PURE__*/React.createElement("div", {
     className: "section-label"
-  }, "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("input", {
-    className: "bos-input",
+  }, "\u0418\u0434\u0435\u043D\u0442\u0438\u0447\u043D\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
+      borderRadius: 22,
+      padding: 18,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)",
+      position: "relative",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: -10,
+      right: -6,
+      fontSize: 110,
+      lineHeight: 1,
+      opacity: 0.28,
+      pointerEvents: "none",
+      filter: "saturate(0.9)",
+      transform: "rotate(8deg)"
+    }
+  }, bosIcon(emblem, 92, accent)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      textTransform: "uppercase",
+      letterSpacing: 1.4,
+      fontWeight: 600
+    }
+  }, "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
+    placeholder: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u0441\u043E\u0437\u0434\u0430\u0442\u0435\u043B\u0435\u0439",
     style: {
-      marginTop: 8
+      width: "100%",
+      marginTop: 6,
+      fontSize: 22,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0,
+      letterSpacing: "-0.4px"
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0418\u043A\u043E\u043D\u043A\u0430"), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-haptic": "selection",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
       onPick: setEmblem,
       current: emblem,
       accent: accent
     })),
     className: "tap",
-    "data-haptic": "selection",
     style: {
-      marginTop: 8,
+      position: "relative",
+      marginTop: 14,
       display: "inline-flex",
       alignItems: "center",
-      gap: 12,
-      background: "#fff",
+      gap: 10,
+      background: "rgba(255,255,255,0.75)",
       border: 0,
-      borderRadius: 18,
-      padding: "10px 16px 10px 10px",
-      boxShadow: "var(--card-shadow)",
-      cursor: "pointer"
+      borderRadius: 14,
+      padding: "7px 14px 7px 7px",
+      cursor: "pointer",
+      WebkitBackdropFilter: "blur(8px)",
+      backdropFilter: "blur(8px)"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 52,
-      height: 52,
-      borderRadius: 14,
-      background: accent && accent[0] === "#" ? accent + "26" : "var(--surface-3)",
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      background: "#fff",
       display: "grid",
       placeItems: "center",
-      fontSize: 26
+      fontSize: 22,
+      boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
     }
-  }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("span", {
+  }, bosIcon(emblem, 24, accent)), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 14,
+      fontSize: 13.5,
       fontWeight: 600,
       color: "var(--text-2)"
     }
-  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0426\u0432\u0435\u0442"), /*#__PURE__*/React.createElement(BosColorPickerLive, {
+  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement(BosColorPickerLive, {
     value: accent,
     onChange: setAccent
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
     }
-  }, "\u0426\u0435\u043B\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("input", {
-    className: "bos-input",
+  }, "\u041E\u0431\u0449\u0430\u044F \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600
+    }
+  }, "\u0427\u0435\u0433\u043E \u0432\u044B \u0445\u043E\u0442\u0438\u0442\u0435"), /*#__PURE__*/React.createElement("input", {
     value: goal,
     onChange: e => setGoal(e.target.value),
-    placeholder: "\u043D\u0430\u043F\u0440. 50 \u0434\u043E\u0431\u0440\u044B\u0445 \u0434\u0435\u043B",
+    placeholder: "50 \u0434\u043E\u0431\u0440\u044B\u0445 \u0434\u0435\u043B",
+    style: {
+      width: "100%",
+      fontSize: 19,
+      fontWeight: 600,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      padding: "8px 0 0",
+      background: "transparent"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0412\u0438\u0434\u0438\u043C\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...card,
-      padding: "2px 16px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "13px 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, "\u041F\u0440\u0438\u0432\u0430\u0442\u043D\u0430\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u0430"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-4)",
-      marginTop: 1
-    }
-  }, "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u0438\u044E")), /*#__PURE__*/React.createElement(Switch, {
-    on: priv,
-    onChange: setPriv
+  }, /*#__PURE__*/React.createElement(Segmented, {
+    value: priv ? "private" : "public",
+    onChange: v => setPriv(v === "private"),
+    options: [{
+      value: "private",
+      label: "Приватная"
+    }, {
+      value: "public",
+      label: "Публичная"
+    }]
   })), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
     style: {
-      height: 1,
-      background: "var(--line)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "13px 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
+      marginTop: 22
     }
   }, "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text-2)",
+      fontWeight: 500
+    }
+  }, "\u041A\u043E\u0433\u0434\u0430 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 \u043E\u0442\u043C\u0435\u0447\u0430\u044E\u0442\u0441\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
       fontSize: 12,
       color: "var(--text-4)",
-      marginTop: 1
+      marginTop: 2,
+      lineHeight: 1.5
     }
-  }, "\u041A\u043E\u0433\u0434\u0430 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 \u043E\u0442\u043C\u0435\u0447\u0430\u044E\u0442\u0441\u044F")), /*#__PURE__*/React.createElement(Switch, {
+  }, "\u0422\u0438\u0445\u0438\u0439 \u043F\u0443\u0448, \u043A\u043E\u0433\u0434\u0430 \u043A\u0442\u043E-\u0442\u043E \u0437\u0430\u043A\u0440\u044B\u043B \u043A\u043E\u043C\u0430\u043D\u0434\u043D\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443.")), /*#__PURE__*/React.createElement(Switch, {
     on: notify,
     onChange: setNotify
   }))), /*#__PURE__*/React.createElement("div", {
@@ -1008,19 +1056,11 @@ function TeamSettingsLive() {
       gap: 12,
       padding: "8px 0"
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: "50%",
-      background: m.color,
-      display: "grid",
-      placeItems: "center",
-      color: "#fff",
-      fontWeight: 600,
-      fontSize: 13
-    }
-  }, m.initials), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    avatar: m.avatar,
+    name: m.name,
+    size: 36
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       fontSize: 15,

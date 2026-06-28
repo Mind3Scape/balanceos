@@ -261,7 +261,7 @@ function TeamCreateLive() {
               border: 0, fontSize: 12, fontWeight: 500,
               opacity: p.you ? 0.85 : 1,
             }}>
-              <span style={{ width: 22, height: 22, borderRadius: "50%", background: p.color, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.initials}</span>
+              <BuddyFaceLive avatar={p.avatar} name={p.name} size={22} />
               {p.name}
               {p.on && <I.Check size={12} strokeWidth={3}/>}
             </button>
@@ -350,38 +350,51 @@ function TeamSettingsLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Настройки команды" onBack={() => navigate("team-detail", { team })} />
 
-      <div className="section-label">Название</div>
-      <input className="bos-input" value={name} onChange={e => setName(e.target.value)} style={{ marginTop: 8 }} />
-
-      {/* Icon = emoji/symbol panel, colour = Journal palette + wheel — one picker across
-          habits, goals AND teams (David: «выбор эмоди и цветов как у привычек»). */}
-      <div className="section-label" style={{ marginTop: 22 }}>Иконка</div>
-      <button onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" data-haptic="selection"
-        style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 12, background: "#fff", border: 0, borderRadius: 18, padding: "10px 16px 10px 10px", boxShadow: "var(--card-shadow)", cursor: "pointer" }}>
-        <span style={{ width: 52, height: 52, borderRadius: 14, background: (accent && accent[0] === "#") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26 }}>{bosIcon(emblem, 28, accent)}</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
-      </button>
-
-      <div className="section-label" style={{ marginTop: 22 }}>Цвет</div>
-      {/* ONE shared colour picker — same as habits/goals (glassy circles, grey+black+Apple). */}
-      <BosColorPickerLive value={accent} onChange={setAccent} />
-
-      <div className="section-label" style={{ marginTop: 22 }}>Цель команды</div>
-      <input className="bos-input" value={goal} onChange={e => setGoal(e.target.value)} placeholder="напр. 50 добрых дел" style={{ marginTop: 8 }} />
-
-      <div style={{ ...card, padding: "2px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 0" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Приватная команда</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Только по приглашению</div>
-          </div>
-          <Switch on={priv} onChange={setPriv} />
+      {/* IDENTITY — the SAME gradient card as «Создать команду» (David: создание и редактирование =
+          одна логика/вид). Name + emblem + glassy colour picker in one card. */}
+      <div className="section-label">Идентичность</div>
+      <div style={{
+        background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
+        borderRadius: 22, padding: 18, marginTop: 8, boxShadow: "var(--card-shadow)",
+        position: "relative", overflow: "hidden",
+      }}>
+        <div aria-hidden style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{bosIcon(emblem, 92, accent)}</div>
+        <div style={{ position: "relative" }}>
+          <div style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Название команды</div>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Команда создателей"
+            style={{ width: "100%", marginTop: 6, fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
-        <div style={{ height: 1, background: "var(--line)" }}/>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 0" }}>
+        <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap"
+          style={{ position: "relative", marginTop: 14, display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.75)", border: 0, borderRadius: 14, padding: "7px 14px 7px 7px", cursor: "pointer", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}>
+          <span style={{ width: 40, height: 40, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 24, accent)}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
+        </button>
+        <BosColorPickerLive value={accent} onChange={setAccent} />
+      </div>
+
+      {/* GOAL — same card as Create's «Чего ты хочешь». */}
+      <div className="section-label" style={{ marginTop: 22 }}>Общая цель</div>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Чего вы хотите</div>
+        <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="50 добрых дел"
+          style={{ width: "100%", fontSize: 19, fontWeight: 600, color: "var(--text)", border: 0, outline: 0, padding: "8px 0 0", background: "transparent" }} />
+      </div>
+
+      {/* VISIBILITY — Segmented, same control as Create. */}
+      <div className="section-label" style={{ marginTop: 22 }}>Видимость</div>
+      <div style={{ marginTop: 8 }}>
+        <Segmented value={priv ? "private" : "public"} onChange={(v) => setPriv(v === "private")} options={[
+          { value: "private", label: "Приватная" }, { value: "public", label: "Публичная" }
+        ]} />
+      </div>
+
+      {/* NOTIFICATIONS — toggle card, same card style. */}
+      <div className="section-label" style={{ marginTop: 22 }}>Уведомления</div>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Уведомления</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Когда участники отмечаются</div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Когда участники отмечаются</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Тихий пуш, когда кто-то закрыл командную привычку.</div>
           </div>
           <Switch on={notify} onChange={setNotify} />
         </div>
@@ -391,7 +404,7 @@ function TeamSettingsLive() {
       <div style={{ ...card, padding: "8px 16px" }}>
         {members.map((m, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0" }}>
-            <span style={{ width: 36, height: 36, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "#fff", fontWeight: 600, fontSize: 13 }}>{m.initials}</span>
+            <BuddyFaceLive avatar={m.avatar} name={m.name} size={36} />
             <div style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{m.name}</div>
             <button onClick={() => removeMember(i)} className="tap" aria-label="Убрать" style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--surface-3)", border: 0, color: "var(--text-3)", fontSize: 17, lineHeight: 1 }}>×</button>
           </div>
