@@ -4613,13 +4613,16 @@ function bosIcon(val, size, color) {
 function EmojiPickerLive({
   onPick,
   accent = "#0a0a0a",
-  current
+  current,
+  embedded = false
 }) {
   var {
     close
   } = useSheet();
   var [mode, setMode] = React.useState(typeof current === "string" && current.slice(0, 3) === "sf:" ? "symbol" : "emoji");
   var [cat, setCat] = React.useState(0);
+  // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
+  // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
   var pick = e => {
     if (onPick) onPick(e);
     if (window.tgHaptic) {
@@ -4627,7 +4630,7 @@ function EmojiPickerLive({
         window.tgHaptic("light");
       } catch (_) {}
     }
-    close();
+    if (!embedded) close();
   };
   var symColor = typeof accent === "string" && accent[0] === "#" ? accent : "#0a0a0a";
   return /*#__PURE__*/React.createElement("div", {

@@ -1916,11 +1916,13 @@ function bosIcon(val, size, color) {
   return val || "";
 }
 
-function EmojiPickerLive({ onPick, accent = "#0a0a0a", current }) {
+function EmojiPickerLive({ onPick, accent = "#0a0a0a", current, embedded = false }) {
   const { close } = useSheet();
   const [mode, setMode] = React.useState((typeof current === "string" && current.slice(0, 3) === "sf:") ? "symbol" : "emoji");
   const [cat, setCat] = React.useState(0);
-  const pick = (e) => { if (onPick) onPick(e); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } close(); };
+  // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
+  // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
+  const pick = (e) => { if (onPick) onPick(e); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } if (!embedded) close(); };
   const symColor = (typeof accent === "string" && accent[0] === "#") ? accent : "#0a0a0a";
   return (
     <div style={{ padding: "2px 10px 6px", color: "#0a0a0a" }}>

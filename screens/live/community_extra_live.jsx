@@ -522,6 +522,82 @@ function TeamSettingsLive() {
   );
 }
 
+/* LIVE fork of the «add team habit» sheet — uses OUR standard icon picker (EmojiPickerLive:
+   эмодзи/символы/палитра), like creating a personal habit, instead of the core sheet's cramped
+   12-emoji row (David: «выбор эмодзи не по нашим стандартам — посмотри как делаем привычки»).
+   One-sheet host → picker is an in-place SECOND view (form ↔ picker), not a nested sheet.
+   Demo keeps the core TeamHabitSheet untouched. */
+function TeamHabitSheetLive({ team, members = [], onAdd }) {
+  const { close } = useSheet();
+  const [view, setView] = useCS("form");
+  const [emoji, setEmoji] = useCS("🙏");
+  const [name, setName] = useCS("");
+  const [movesGoal, setMovesGoal] = useCS(true);
+  const [isMain, setIsMain] = useCS(false);
+  const [picked, setPicked] = useCS(() => members.map((_, i) => i));
+  const toggleMember = (i) => setPicked(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
+  const participants = members.filter((_, i) => picked.includes(i)).map(m => ({ name: m.name, initials: m.initials, color: m.color, avatar: m.avatar }));
+  const save = () => {
+    onAdd && onAdd({ emoji, name: name.trim() || "Новая привычка", isMain, movesGoal, participants, total: Math.max(1, participants.length || members.length || 1) });
+    close();
+  };
+  if (view === "picker") {
+    return (
+      <div style={{ padding: "2px 8px 8px", color: "var(--text)" }}>
+        <EmojiPickerLive embedded current={emoji} onPick={(e) => { setEmoji(e); setView("form"); }} />
+        <button className="tap" onClick={() => setView("form")} style={{ width: "100%", marginTop: 4, background: "transparent", border: 0, color: "var(--text-3)", padding: 12, fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Назад</button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: "2px 20px 8px", color: "var(--text)" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Новая привычка команды</div>
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 3 }}>Общая для всех в «{team?.name || "команде"}»</div>
+      </div>
+      {/* Icon — наш стандартный пикер (эмодзи/символы/палитра), как при создании личной привычки. */}
+      <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap"
+        style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 10, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "7px 14px 7px 7px", cursor: "pointer" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 13, background: BOS_TILE_SHEEN + ", var(--card)", boxShadow: bosTileGlass(false), display: "grid", placeItems: "center", fontSize: 22 }}>{bosIcon(emoji, 24, null)}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
+      </button>
+      <input className="bos-input" value={name} onChange={e => setName(e.target.value)} placeholder="напр. Холодный душ" style={{ marginTop: 14 }} />
+      {members.length > 0 && (<>
+        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "18px 0 8px" }}>Участвуют</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {members.map((m, i) => {
+            const on = picked.includes(i);
+            return (
+              <button key={i} onClick={() => toggleMember(i)} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 5px", borderRadius: 999, background: on ? "#0a0a0a" : "var(--surface-3)", color: on ? "#fff" : "var(--text-3)", border: 0, fontSize: 12, fontWeight: 500 }}>
+                <BuddyFaceLive avatar={m.avatar} name={m.name} size={22} />
+                {m.name}{on && <I.Check size={12} strokeWidth={3} />}
+              </button>
+            );
+          })}
+        </div>
+      </>)}
+      <div style={{ background: "var(--surface-3)", borderRadius: 14, padding: "2px 14px", marginTop: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14.5 }}>Двигает цель команды</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Отметка участника = +1 к общей цели</div>
+          </div>
+          <Switch on={movesGoal} onChange={setMovesGoal} />
+        </div>
+        <div style={{ height: 1, background: "var(--line)" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14.5 }}>Сделать главной</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Станет «якорем» команды</div>
+          </div>
+          <Switch on={isMain} onChange={setIsMain} />
+        </div>
+      </div>
+      <button className="bos-btn" style={{ marginTop: 20, marginBottom: 2 }} onClick={save}>Добавить привычку</button>
+    </div>
+  );
+}
+
 /* LEVELS / CREDITS — gamification (theme-aware). LIVE: every number comes from the
    REAL date-keyed XP model + real referral circle + real earned achievements; the
    demo's curated 7 / 1240 / 980 / Павел-array are all gone. */

@@ -1451,6 +1451,245 @@ function TeamSettingsLive() {
   }), " \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"));
 }
 
+/* LIVE fork of the «add team habit» sheet — uses OUR standard icon picker (EmojiPickerLive:
+   эмодзи/символы/палитра), like creating a personal habit, instead of the core sheet's cramped
+   12-emoji row (David: «выбор эмодзи не по нашим стандартам — посмотри как делаем привычки»).
+   One-sheet host → picker is an in-place SECOND view (form ↔ picker), not a nested sheet.
+   Demo keeps the core TeamHabitSheet untouched. */
+function TeamHabitSheetLive({
+  team,
+  members = [],
+  onAdd
+}) {
+  var {
+    close
+  } = useSheet();
+  var [view, setView] = useCS("form");
+  var [emoji, setEmoji] = useCS("🙏");
+  var [name, setName] = useCS("");
+  var [movesGoal, setMovesGoal] = useCS(true);
+  var [isMain, setIsMain] = useCS(false);
+  var [picked, setPicked] = useCS(() => members.map((_, i) => i));
+  var toggleMember = i => setPicked(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
+  var participants = members.filter((_, i) => picked.includes(i)).map(m => ({
+    name: m.name,
+    initials: m.initials,
+    color: m.color,
+    avatar: m.avatar
+  }));
+  var save = () => {
+    onAdd && onAdd({
+      emoji,
+      name: name.trim() || "Новая привычка",
+      isMain,
+      movesGoal,
+      participants,
+      total: Math.max(1, participants.length || members.length || 1)
+    });
+    close();
+  };
+  if (view === "picker") {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "2px 8px 8px",
+        color: "var(--text)"
+      }
+    }, /*#__PURE__*/React.createElement(EmojiPickerLive, {
+      embedded: true,
+      current: emoji,
+      onPick: e => {
+        setEmoji(e);
+        setView("form");
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      className: "tap",
+      onClick: () => setView("form"),
+      style: {
+        width: "100%",
+        marginTop: 4,
+        background: "transparent",
+        border: 0,
+        color: "var(--text-3)",
+        padding: 12,
+        fontSize: 14.5,
+        fontWeight: 600,
+        cursor: "pointer"
+      }
+    }, "\u041D\u0430\u0437\u0430\u0434"));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 8px",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-3)",
+      marginTop: 3
+    }
+  }, "\u041E\u0431\u0449\u0430\u044F \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0432 \xAB", team?.name || "команде", "\xBB")), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-haptic": "selection",
+    onClick: () => setView("picker"),
+    className: "tap",
+    style: {
+      marginTop: 16,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 10,
+      background: "var(--surface-3)",
+      border: 0,
+      borderRadius: 14,
+      padding: "7px 14px 7px 7px",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 13,
+      background: BOS_TILE_SHEEN + ", var(--card)",
+      boxShadow: bosTileGlass(false),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22
+    }
+  }, bosIcon(emoji, 24, null)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement("input", {
+    className: "bos-input",
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "\u043D\u0430\u043F\u0440. \u0425\u043E\u043B\u043E\u0434\u043D\u044B\u0439 \u0434\u0443\u0448",
+    style: {
+      marginTop: 14
+    }
+  }), members.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600,
+      margin: "18px 0 8px"
+    }
+  }, "\u0423\u0447\u0430\u0441\u0442\u0432\u0443\u044E\u0442"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, members.map((m, i) => {
+    var on = picked.includes(i);
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      onClick: () => toggleMember(i),
+      className: "tap",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "5px 11px 5px 5px",
+        borderRadius: 999,
+        background: on ? "#0a0a0a" : "var(--surface-3)",
+        color: on ? "#fff" : "var(--text-3)",
+        border: 0,
+        fontSize: 12,
+        fontWeight: 500
+      }
+    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+      avatar: m.avatar,
+      name: m.name,
+      size: 22
+    }), m.name, on && /*#__PURE__*/React.createElement(I.Check, {
+      size: 12,
+      strokeWidth: 3
+    }));
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--surface-3)",
+      borderRadius: 14,
+      padding: "2px 14px",
+      marginTop: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "11px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5
+    }
+  }, "\u0414\u0432\u0438\u0433\u0430\u0435\u0442 \u0446\u0435\u043B\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0430 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0430 = +1 \u043A \u043E\u0431\u0449\u0435\u0439 \u0446\u0435\u043B\u0438")), /*#__PURE__*/React.createElement(Switch, {
+    on: movesGoal,
+    onChange: setMovesGoal
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: "var(--line)"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "11px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5
+    }
+  }, "\u0421\u0434\u0435\u043B\u0430\u0442\u044C \u0433\u043B\u0430\u0432\u043D\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, "\u0421\u0442\u0430\u043D\u0435\u0442 \xAB\u044F\u043A\u043E\u0440\u0435\u043C\xBB \u043A\u043E\u043C\u0430\u043D\u0434\u044B")), /*#__PURE__*/React.createElement(Switch, {
+    on: isMain,
+    onChange: setIsMain
+  }))), /*#__PURE__*/React.createElement("button", {
+    className: "bos-btn",
+    style: {
+      marginTop: 20,
+      marginBottom: 2
+    },
+    onClick: save
+  }, "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443"));
+}
+
 /* LEVELS / CREDITS — gamification (theme-aware). LIVE: every number comes from the
    REAL date-keyed XP model + real referral circle + real earned achievements; the
    demo's curated 7 / 1240 / 980 / Павел-array are all gone. */

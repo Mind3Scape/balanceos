@@ -192,7 +192,10 @@ function HabitsLive() {
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
+                        {h.teamHabitId && <span title="Командная привычка" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", padding: "2px 7px", borderRadius: 999 }}><I.Users size={10}/> Командная</span>}
+                      </div>
                       {(h.friends?.length > 0 || h.duration > 0) && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 11, color: "var(--text-4)" }}>
                           {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}

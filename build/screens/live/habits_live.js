@@ -485,12 +485,38 @@ function HabitsLive() {
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 7
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
           fontSize: 16,
           fontWeight: 600,
           color: "var(--text)",
-          letterSpacing: "-0.2px"
+          letterSpacing: "-0.2px",
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
         }
-      }, h.name), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+      }, h.name), h.teamHabitId && /*#__PURE__*/React.createElement("span", {
+        title: "\u041A\u043E\u043C\u0430\u043D\u0434\u043D\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430",
+        style: {
+          flexShrink: 0,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3,
+          fontSize: 10,
+          fontWeight: 700,
+          color: "var(--text-4)",
+          background: "var(--surface-3)",
+          padding: "2px 7px",
+          borderRadius: 999
+        }
+      }, /*#__PURE__*/React.createElement(I.Users, {
+        size: 10
+      }), " \u041A\u043E\u043C\u0430\u043D\u0434\u043D\u0430\u044F")), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",

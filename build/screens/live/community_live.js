@@ -1022,7 +1022,7 @@ function TeamDetailLive() {
       on = false;
     };
   }, [_rosterLive, t.cloudId, goalProg]);
-  var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheet, {
+  var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheetLive, {
     team: t,
     members: members,
     onAdd: h => {

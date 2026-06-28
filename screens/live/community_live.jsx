@@ -451,7 +451,7 @@ function TeamDetailLive() {
     }
     return () => { on = false; };
   }, [_rosterLive, t.cloudId, goalProg]);
-  const openAddHabit = () => openSheet(<TeamHabitSheet team={t} members={members} onAdd={(h) => { if (_rosterLive) addTeamHabitCloud(h); else app?.addTeamHabit(t._id, h); }} />);
+  const openAddHabit = () => openSheet(<TeamHabitSheetLive team={t} members={members} onAdd={(h) => { if (_rosterLive) addTeamHabitCloud(h); else app?.addTeamHabit(t._id, h); }} />);
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
