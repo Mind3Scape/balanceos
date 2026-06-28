@@ -2037,12 +2037,13 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   const endLP = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } };
   const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } apply(isDone ? 0 : count + 1); };
 
-  // The ring/sections wrap the disc with a GAP (David: «с отступом от серого кружочка должно
-  // появляться кольцо/секции, а не вместо»). SIZE 44 = disc 30 + ~3px gap + 3px ring band.
+  // Ring geometry is 44px, but the LAYOUT box stays 30px — the ring renders as an OVERFLOWING overlay
+  // so the disc lines up EXACTLY with the plain 30px checks in the column (David: «центрируй
+  // относительно других» — раньше 44px-бокс смещал кружок на 7px влево). On full completion the ring
+  // DISAPPEARS → only the standard graphite checkmark remains, identical to every other habit.
   const SIZE = 44, CX = SIZE / 2, R = 19.5, sw = 3, C = 2 * Math.PI * R;
   const track = isDark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)";
 
-  // Ring AROUND the disc — discrete sections while goal ≤ 7, else one continuous arc.
   let ringEls;
   if (goal <= 7) {
     const pitch = 360 / goal, gap = Math.min(22, pitch * 0.34);
@@ -2061,26 +2062,22 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
     ];
   }
 
-  // Center = the SAME glass disc as the plain check (.check-btn): a grey glass kружочек with the
-  // running count, that LIGHTS UP into the checked glass + ✓ once the ring is full (David).
+  // Center disc = the SAME 30px glass check as everywhere. DONE → standard checked glass + ✓ (no
+  // --check-color override → same graphite as the plain checks). In progress → grey glass + count.
   const disc = isDone
-    ? <span className="check-btn" style={{ width: 30, height: 30, "--check-color": accent }}><I.Check size={16} strokeWidth={2.8} color="#fff" /></span>
+    ? <span className="check-btn" style={{ width: 30, height: 30 }}><I.Check size={16} strokeWidth={2.8} color="#fff" /></span>
     : <span className="check-btn unchecked" style={{ width: 30, height: 30 }}><span style={{ color: count > 0 ? accent : "var(--text-4)", fontSize: 12.5, fontWeight: 700, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{count}</span></span>;
 
-  const body = (
-    <span style={{ position: "relative", width: SIZE, height: SIZE, display: "grid", placeItems: "center" }}>
-      <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>{ringEls}</svg>
-      {disc}
-    </span>
-  );
   return (
-    <div style={{ position: "relative", flexShrink: 0, display: "grid", placeItems: "center" }}>
+    <div style={{ position: "relative", flexShrink: 0, width: 30, height: 30, display: "grid", placeItems: "center" }}>
       <XpFloat tick={tick} xp={xp} anchorRef={btnRef} />
       <button ref={btnRef} className="tap hit44" data-no-haptic onClick={onClick}
         onPointerDown={startLP} onPointerUp={endLP} onPointerLeave={endLP} onPointerCancel={endLP}
         aria-label={"Прогресс " + count + " из " + goal + ", тап +1, удержание −1"}
-        style={{ border: 0, background: "transparent", padding: 0, display: "grid", placeItems: "center", cursor: "pointer" }}>
-        {body}
+        style={{ position: "relative", border: 0, background: "transparent", padding: 0, width: 30, height: 30, display: "grid", placeItems: "center", cursor: "pointer", overflow: "visible" }}>
+        {/* ring OVERFLOWS the 30px box (centered on the disc) so it never shifts the disc off the column */}
+        {!isDone && <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none", overflow: "visible" }}>{ringEls}</svg>}
+        {disc}
       </button>
     </div>
   );

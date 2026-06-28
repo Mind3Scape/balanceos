@@ -4956,16 +4956,16 @@ function HabitCountCheck({
     apply(isDone ? 0 : count + 1);
   };
 
-  // The ring/sections wrap the disc with a GAP (David: «с отступом от серого кружочка должно
-  // появляться кольцо/секции, а не вместо»). SIZE 44 = disc 30 + ~3px gap + 3px ring band.
+  // Ring geometry is 44px, but the LAYOUT box stays 30px — the ring renders as an OVERFLOWING overlay
+  // so the disc lines up EXACTLY with the plain 30px checks in the column (David: «центрируй
+  // относительно других» — раньше 44px-бокс смещал кружок на 7px влево). On full completion the ring
+  // DISAPPEARS → only the standard graphite checkmark remains, identical to every other habit.
   var SIZE = 44,
     CX = SIZE / 2,
     R = 19.5,
     sw = 3,
     C = 2 * Math.PI * R;
   var track = isDark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)";
-
-  // Ring AROUND the disc — discrete sections while goal ≤ 7, else one continuous arc.
   var ringEls;
   if (goal <= 7) {
     var pitch = 360 / goal,
@@ -5020,14 +5020,13 @@ function HabitCountCheck({
     })];
   }
 
-  // Center = the SAME glass disc as the plain check (.check-btn): a grey glass kружочек with the
-  // running count, that LIGHTS UP into the checked glass + ✓ once the ring is full (David).
+  // Center disc = the SAME 30px glass check as everywhere. DONE → standard checked glass + ✓ (no
+  // --check-color override → same graphite as the plain checks). In progress → grey glass + count.
   var disc = isDone ? /*#__PURE__*/React.createElement("span", {
     className: "check-btn",
     style: {
       width: 30,
-      height: 30,
-      "--check-color": accent
+      height: 30
     }
   }, /*#__PURE__*/React.createElement(I.Check, {
     size: 16,
@@ -5048,28 +5047,12 @@ function HabitCountCheck({
       fontVariantNumeric: "tabular-nums"
     }
   }, count));
-  var body = /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "relative",
-      width: SIZE,
-      height: SIZE,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: SIZE,
-    height: SIZE,
-    viewBox: "0 0 " + SIZE + " " + SIZE,
-    style: {
-      position: "absolute",
-      inset: 0,
-      pointerEvents: "none"
-    }
-  }, ringEls), disc);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       flexShrink: 0,
+      width: 30,
+      height: 30,
       display: "grid",
       placeItems: "center"
     }
@@ -5088,14 +5071,30 @@ function HabitCountCheck({
     onPointerCancel: endLP,
     "aria-label": "Прогресс " + count + " из " + goal + ", тап +1, удержание −1",
     style: {
+      position: "relative",
       border: 0,
       background: "transparent",
       padding: 0,
+      width: 30,
+      height: 30,
       display: "grid",
       placeItems: "center",
-      cursor: "pointer"
+      cursor: "pointer",
+      overflow: "visible"
     }
-  }, body));
+  }, !isDone && /*#__PURE__*/React.createElement("svg", {
+    width: SIZE,
+    height: SIZE,
+    viewBox: "0 0 " + SIZE + " " + SIZE,
+    style: {
+      position: "absolute",
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%, -50%)",
+      pointerEvents: "none",
+      overflow: "visible"
+    }
+  }, ringEls), disc));
 }
 
 /* Edit affordance — a ROUND glass pencil icon (NOT a text pill), the iOS way (David: «зачем
