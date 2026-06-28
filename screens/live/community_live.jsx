@@ -393,6 +393,16 @@ function TeamDetailLive() {
   const teamHabits = _rosterLive ? (liveTeamHabits || []) : (Array.isArray(t.habits) ? t.habits : []);
   const main = teamHabits.find(h => h.isMain);
   const others = teamHabits.filter(h => !h.isMain);
+  // ADOPT — «приходит как личная» (David): командная привычка одним тапом становится твоей ЛИЧНОЙ
+  // (своё время/значок), отмечаешь её на странице «Привычки», а отметка зеркалится в командный счёт
+  // (toggleHabit → toggleTeamHabitToday). Линк = поле teamHabitId на личной привычке.
+  const myHabits = app?.habits || [];
+  const adoptedFor = (h) => h && myHabits.find((x) => x.teamHabitId === h.id);
+  const adoptTeamHabit = (h) => {
+    if (!h || !h.id || adoptedFor(h)) return;
+    app?.addHabit({ name: h.name, emoji: h.emoji, color: h.color || null, teamId: t.cloudId, teamHabitId: h.id, log: {}, days: [1, 1, 1, 1, 1, 1, 1], goalPerDay: 1, reminder: { on: false, time: "09:00" } });
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+  };
   // Per-person "who did which day" for the team ANCHOR habit → feeds the SAME month calendar
   // the personal/shared habits use (data already per-user in team_habit_logs). Light poll.
   const _tCalKey = (d, mi) => { const y = new Date().getFullYear(); return y + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); };
@@ -612,6 +622,11 @@ function TeamDetailLive() {
           <button onClick={() => toggleMyTeamHabit(main)} className="tap" style={{ width: "100%", marginTop: 14, border: main.doneByMe ? "1.5px solid var(--line)" : 0, borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 600, background: main.doneByMe ? "transparent" : "#0a0a0a", color: main.doneByMe ? "var(--text-2)" : "#fff" }}>
             {main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"}
           </button>
+        )}
+        {/* «Вести у себя» — приземлить командную привычку на свою страницу (одним тапом). */}
+        {_rosterLive && (adoptedFor(main)
+          ? <div style={{ marginTop: 10, fontSize: 12.5, color: "var(--text-4)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><I.Check size={14} color="var(--text-3)" strokeWidth={2.5} /> Ведёшь у себя — отмечай на «Привычки»</div>
+          : <button onClick={() => adoptTeamHabit(main)} className="tap" style={{ marginTop: 10, width: "100%", background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 14, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, color: "var(--text-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Plus size={15} /> Вести у себя</button>
         )}
       </div>
       </>)}

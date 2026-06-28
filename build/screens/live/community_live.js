@@ -892,6 +892,33 @@ function TeamDetailLive() {
   var teamHabits = _rosterLive ? liveTeamHabits || [] : Array.isArray(t.habits) ? t.habits : [];
   var main = teamHabits.find(h => h.isMain);
   var others = teamHabits.filter(h => !h.isMain);
+  // ADOPT — «приходит как личная» (David): командная привычка одним тапом становится твоей ЛИЧНОЙ
+  // (своё время/значок), отмечаешь её на странице «Привычки», а отметка зеркалится в командный счёт
+  // (toggleHabit → toggleTeamHabitToday). Линк = поле teamHabitId на личной привычке.
+  var myHabits = app?.habits || [];
+  var adoptedFor = h => h && myHabits.find(x => x.teamHabitId === h.id);
+  var adoptTeamHabit = h => {
+    if (!h || !h.id || adoptedFor(h)) return;
+    app?.addHabit({
+      name: h.name,
+      emoji: h.emoji,
+      color: h.color || null,
+      teamId: t.cloudId,
+      teamHabitId: h.id,
+      log: {},
+      days: [1, 1, 1, 1, 1, 1, 1],
+      goalPerDay: 1,
+      reminder: {
+        on: false,
+        time: "09:00"
+      }
+    });
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+  };
   // Per-person "who did which day" for the team ANCHOR habit → feeds the SAME month calendar
   // the personal/shared habits use (data already per-user in team_habit_logs). Light poll.
   var _tCalKey = (d, mi) => {
@@ -1550,7 +1577,41 @@ function TeamDetailLive() {
       background: main.doneByMe ? "transparent" : "#0a0a0a",
       color: main.doneByMe ? "var(--text-2)" : "#fff"
     }
-  }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"))), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
+  }, main.doneByMe ? "✓ Сделано сегодня" : "Отметить сегодня"), _rosterLive && (adoptedFor(main) ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement(I.Check, {
+    size: 14,
+    color: "var(--text-3)",
+    strokeWidth: 2.5
+  }), " \u0412\u0435\u0434\u0451\u0448\u044C \u0443 \u0441\u0435\u0431\u044F \u2014 \u043E\u0442\u043C\u0435\u0447\u0430\u0439 \u043D\u0430 \xAB\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438\xBB") : /*#__PURE__*/React.createElement("button", {
+    onClick: () => adoptTeamHabit(main),
+    className: "tap",
+    style: {
+      marginTop: 10,
+      width: "100%",
+      background: "transparent",
+      border: "1px dashed rgba(0,0,0,0.18)",
+      borderRadius: 14,
+      padding: "10px 14px",
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 15
+  }), " \u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F")))), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
     people: mainProg.map(m => ({
       name: m.me ? "Ты" : m.name,
       initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
