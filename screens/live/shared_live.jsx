@@ -1174,6 +1174,7 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
     return 0;
   };
 
+  const dark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   return (
     <>
       {/* «Готово» FLOATS (iOS edit-mode style, David): portal'd into the app viewport box (.page-stack,
@@ -1182,12 +1183,26 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
           tab bar: в Telegram top-right прятался ПОД нативными кнопками TG («нужно ниже») — снизу у TG
           нативных кнопок нет, а --bos-safe-bottom учитывает и TG-инсет → не перекроется. */}
       {mode && ReactDOM.createPortal(
-        <button onClick={done} className="tap" data-haptic="selection" aria-label="Готово — выйти из режима перестановки" style={{
-          position: "absolute", bottom: "calc(var(--bos-safe-bottom, 0px) + 94px)", left: 0, right: 0, margin: "0 auto", width: "fit-content", zIndex: 7000,
-          border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "10px 22px",
-          fontSize: 14, fontWeight: 600, boxShadow: "0 10px 26px rgba(0,0,0,0.36)", cursor: "pointer",
-          animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
-        }}>Готово</button>,
+        <div style={{
+          position: "absolute", bottom: "calc(var(--bos-safe-bottom, 0px) + 94px)", left: 0, right: 0,
+          display: "flex", justifyContent: "center", alignItems: "center", gap: 10, zIndex: 7000, pointerEvents: "none",
+        }}>
+          {/* «+» — opens the widget on/off sheet straight from edit mode (David: добавлять виджеты
+             было «аж в настройках» → теперь стеклянный плюсик рядом с «Готово»). Home board only (onAdd). */}
+          {onAdd && (
+            <button onClick={onAdd} className="tap" data-haptic="selection" aria-label={addLabel || "Добавить виджет"} style={{
+              pointerEvents: "auto", width: 44, height: 44, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+              color: dark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+              boxShadow: "0 10px 26px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)",
+              animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
+            }}><I.Plus size={20} strokeWidth={2.6} /></button>
+          )}
+          <button onClick={done} className="tap" data-haptic="selection" aria-label="Готово — выйти из режима перестановки" style={{
+            pointerEvents: "auto", border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "11px 22px",
+            fontSize: 14, fontWeight: 600, boxShadow: "0 10px 26px rgba(0,0,0,0.36)", cursor: "pointer",
+            animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
+          }}>Готово</button>
+        </div>,
         (typeof document !== "undefined" && document.querySelector(".page-stack")) || document.body
       )}
       <div style={{ display: "flex", flexDirection: "column", gap, color: "var(--text)" }}>
@@ -1207,20 +1222,8 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
           );
         })}
       </div>
-      {/* «+ Добавить» tile — only in edit mode, only when the caller wires onAdd (home widget board).
-         Not a draggable item; opens the «available widgets» sheet. */}
-      {mode && onAdd && (
-        <button onClick={onAdd} className="tap" data-haptic="selection" style={{
-          marginTop: gap, width: "100%", borderRadius: 22, padding: "15px 16px",
-          border: "1.5px dashed var(--line)", background: "transparent", color: "var(--text-3)",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
-          fontSize: 14, fontWeight: 600, cursor: "pointer", animation: "dimIn 0.2s ease both",
-        }}>
-          <span style={{ width: 26, height: 26, borderRadius: "50%", display: "grid", placeItems: "center",
-            background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(false), color: "var(--text)" }}><I.Plus size={15} strokeWidth={2.5} /></span>
-          {addLabel || "Добавить"}
-        </button>
-      )}
+      {/* (The in-list «+ Добавить» tile moved to the floating glass «+» next to «Готово» above —
+         David: «плюсик в кружочке рядом с Готово» открывает шторку вкл/выкл виджетов.) */}
     </>
   );
 }
@@ -1258,40 +1261,40 @@ function WidgetMinusLive({ onRemove }) {
   );
 }
 
-/* Bottom sheet listing the home widgets that are currently OFF — tap one to put it back on the
-   home. Reads app.widgets live, so the list shrinks as you add (multi-add without reopening).
-   `defs` = the full board widget catalogue [{ id, t, d, emoji }]; LIVE only. */
+/* Bottom sheet to turn home widgets ON/OFF — one glassy place to manage the board (David: «шторка
+   с виджетами, которые можно включить или выключить, со стеклом»). Reads app.widgets live, so the
+   board behind updates as you flip switches. `defs` = the full catalogue [{ id, t, d, emoji }]; LIVE. */
 function AddWidgetSheetLive({ defs = [], dark = false }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const widgets = app?.widgets || {};
-  const hidden = defs.filter((d) => widgets[d.id] === false);
-  const add = (id) => { app?.setWidgets({ ...(app.widgets || {}), [id]: true }); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } };
+  const isOn = (id) => widgets[id] !== false; // default ON unless explicitly hidden
+  const toggle = (id) => { app?.setWidgets({ ...(app.widgets || {}), [id]: !isOn(id) }); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } };
   return (
     <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
       <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px" }}>Добавить виджет</div>
-        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 5 }}>Что вернуть на главную</div>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px" }}>Виджеты главной</div>
+        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 5 }}>Что показывать на главной</div>
       </div>
-      {hidden.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "22px 10px 30px", color: "var(--text-4)", fontSize: 13.5 }}>Все виджеты уже на главной 🎉</div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {hidden.map((o) => (
-            <button key={o.id} className="tap" data-haptic="selection" onClick={() => add(o.id)} style={{
-              display: "flex", alignItems: "center", gap: 13, width: "100%", textAlign: "left",
-              padding: 12, borderRadius: 18, border: 0, cursor: "pointer",
-              background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {defs.map((o) => {
+          const on = isOn(o.id);
+          return (
+            <div key={o.id} style={{
+              display: "flex", alignItems: "center", gap: 13, width: "100%",
+              padding: 12, borderRadius: 18,
+              background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
+              boxShadow: bosTileGlass(dark) }}>
               <span style={{ width: 40, height: 40, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0,
-                background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"), boxShadow: bosTileGlass(dark) }}>{o.emoji}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
+                background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"), boxShadow: bosTileGlass(dark), opacity: on ? 1 : 0.5, transition: "opacity 0.2s" }}>{o.emoji}</span>
+              <div style={{ flex: 1, minWidth: 0, opacity: on ? 1 : 0.55, transition: "opacity 0.2s" }}>
                 <div style={{ fontSize: 15.5, fontWeight: 600 }}>{o.t}</div>
                 {o.d && <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>{o.d}</div>}
               </div>
-              <span style={{ width: 28, height: 28, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "#0a0a0a", color: "#fff" }}><I.Plus size={15} strokeWidth={2.5} /></span>
-            </button>
-          ))}
-        </div>
-      )}
+              <Switch on={on} onChange={() => toggle(o.id)} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

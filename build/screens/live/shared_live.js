@@ -2773,31 +2773,61 @@ function BosReorderList({
     if (to < from && idx >= to && idx < from) return slot;
     return 0;
   };
-  return /*#__PURE__*/React.createElement(React.Fragment, null, mode && ReactDOM.createPortal(/*#__PURE__*/React.createElement("button", {
-    onClick: done,
-    className: "tap",
-    "data-haptic": "selection",
-    "aria-label": "\u0413\u043E\u0442\u043E\u0432\u043E \u2014 \u0432\u044B\u0439\u0442\u0438 \u0438\u0437 \u0440\u0435\u0436\u0438\u043C\u0430 \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438",
+  var dark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  return /*#__PURE__*/React.createElement(React.Fragment, null, mode && ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       bottom: "calc(var(--bos-safe-bottom, 0px) + 94px)",
       left: 0,
       right: 0,
-      margin: "0 auto",
-      width: "fit-content",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 10,
       zIndex: 7000,
+      pointerEvents: "none"
+    }
+  }, onAdd && /*#__PURE__*/React.createElement("button", {
+    onClick: onAdd,
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": addLabel || "Добавить виджет",
+    style: {
+      pointerEvents: "auto",
+      width: 44,
+      height: 44,
+      borderRadius: "50%",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      color: dark ? "#fff" : "var(--text)",
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+      boxShadow: "0 10px 26px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)",
+      animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both"
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 20,
+    strokeWidth: 2.6
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: done,
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": "\u0413\u043E\u0442\u043E\u0432\u043E \u2014 \u0432\u044B\u0439\u0442\u0438 \u0438\u0437 \u0440\u0435\u0436\u0438\u043C\u0430 \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438",
+    style: {
+      pointerEvents: "auto",
       border: 0,
       background: "#0a0a0a",
       color: "#fff",
       borderRadius: 999,
-      padding: "10px 22px",
+      padding: "11px 22px",
       fontSize: 14,
       fontWeight: 600,
       boxShadow: "0 10px 26px rgba(0,0,0,0.36)",
       cursor: "pointer",
       animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both"
     }
-  }, "\u0413\u043E\u0442\u043E\u0432\u043E"), typeof document !== "undefined" && document.querySelector(".page-stack") || document.body), /*#__PURE__*/React.createElement("div", {
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E")), typeof document !== "undefined" && document.querySelector(".page-stack") || document.body), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -2831,42 +2861,7 @@ function BosReorderList({
       mode,
       dragging: isDrag
     })));
-  })), mode && onAdd && /*#__PURE__*/React.createElement("button", {
-    onClick: onAdd,
-    className: "tap",
-    "data-haptic": "selection",
-    style: {
-      marginTop: gap,
-      width: "100%",
-      borderRadius: 22,
-      padding: "15px 16px",
-      border: "1.5px dashed var(--line)",
-      background: "transparent",
-      color: "var(--text-3)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 9,
-      fontSize: 14,
-      fontWeight: 600,
-      cursor: "pointer",
-      animation: "dimIn 0.2s ease both"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 26,
-      height: 26,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      background: BOS_TILE_SHEEN + ", var(--surface-3)",
-      boxShadow: bosTileGlass(false),
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 15,
-    strokeWidth: 2.5
-  })), addLabel || "Добавить"));
+  })));
 }
 
 /* The home widget CATALOGUE — one source of truth shared by the board (home_live), the add
@@ -2957,20 +2952,20 @@ function WidgetMinusLive({
   }));
 }
 
-/* Bottom sheet listing the home widgets that are currently OFF — tap one to put it back on the
-   home. Reads app.widgets live, so the list shrinks as you add (multi-add without reopening).
-   `defs` = the full board widget catalogue [{ id, t, d, emoji }]; LIVE only. */
+/* Bottom sheet to turn home widgets ON/OFF — one glassy place to manage the board (David: «шторка
+   с виджетами, которые можно включить или выключить, со стеклом»). Reads app.widgets live, so the
+   board behind updates as you flip switches. `defs` = the full catalogue [{ id, t, d, emoji }]; LIVE. */
 function AddWidgetSheetLive({
   defs = [],
   dark = false
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
   var widgets = app?.widgets || {};
-  var hidden = defs.filter(d => widgets[d.id] === false);
-  var add = id => {
+  var isOn = id => widgets[id] !== false; // default ON unless explicitly hidden
+  var toggle = id => {
     app?.setWidgets({
       ...(app.widgets || {}),
-      [id]: true
+      [id]: !isOn(id)
     });
     if (window.tgHaptic) {
       try {
@@ -2994,86 +2989,69 @@ function AddWidgetSheetLive({
       fontWeight: 800,
       letterSpacing: "-0.3px"
     }
-  }, "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432\u0438\u0434\u0436\u0435\u0442"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0412\u0438\u0434\u0436\u0435\u0442\u044B \u0433\u043B\u0430\u0432\u043D\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       color: "var(--text-3)",
       marginTop: 5
     }
-  }, "\u0427\u0442\u043E \u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E")), hidden.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: "22px 10px 30px",
-      color: "var(--text-4)",
-      fontSize: 13.5
-    }
-  }, "\u0412\u0441\u0435 \u0432\u0438\u0434\u0436\u0435\u0442\u044B \u0443\u0436\u0435 \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439 \uD83C\uDF89") : /*#__PURE__*/React.createElement("div", {
+  }, "\u0427\u0442\u043E \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 8
     }
-  }, hidden.map(o => /*#__PURE__*/React.createElement("button", {
-    key: o.id,
-    className: "tap",
-    "data-haptic": "selection",
-    onClick: () => add(o.id),
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      width: "100%",
-      textAlign: "left",
-      padding: 12,
-      borderRadius: 18,
-      border: 0,
-      cursor: "pointer",
-      background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)",
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 13,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 20,
-      flexShrink: 0,
-      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"),
-      boxShadow: bosTileGlass(dark)
-    }
-  }, o.emoji), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 600
-    }
-  }, o.t), o.d && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-4)",
-      marginTop: 1
-    }
-  }, o.d)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0,
-      background: "#0a0a0a",
-      color: "#fff"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 15,
-    strokeWidth: 2.5
-  }))))));
+  }, defs.map(o => {
+    var on = isOn(o.id);
+    return /*#__PURE__*/React.createElement("div", {
+      key: o.id,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 13,
+        width: "100%",
+        padding: 12,
+        borderRadius: 18,
+        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
+        boxShadow: bosTileGlass(dark)
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: 13,
+        display: "grid",
+        placeItems: "center",
+        fontSize: 20,
+        flexShrink: 0,
+        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"),
+        boxShadow: bosTileGlass(dark),
+        opacity: on ? 1 : 0.5,
+        transition: "opacity 0.2s"
+      }
+    }, o.emoji), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        opacity: on ? 1 : 0.55,
+        transition: "opacity 0.2s"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15.5,
+        fontWeight: 600
+      }
+    }, o.t), o.d && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "var(--text-4)",
+        marginTop: 1
+      }
+    }, o.d)), /*#__PURE__*/React.createElement(Switch, {
+      on: on,
+      onChange: () => toggle(o.id)
+    }));
+  })));
 }
 function CreateMenuLive({
   open,
