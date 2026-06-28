@@ -3397,133 +3397,32 @@ function HomeHeroSwipeLive({
       flexDirection: "column",
       gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      gap: 13,
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
+      fontSize: 12.5,
+      fontWeight: 500,
       color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1.2,
       display: "inline-flex",
       alignItems: "center",
-      gap: 5
+      gap: 6
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 12,
-    color: "#E0A500",
+    size: 13,
+    color: "#EF9F14",
     filled: true,
     strokeWidth: 0
   }), " \u0421 \u0447\u0435\u0433\u043E \u043D\u0430\u0447\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
-      fontSize: 13.5,
-      color: "var(--text-2)",
-      marginTop: 3,
-      lineHeight: 1.4,
-      letterSpacing: "-0.1px",
+      fontSize: 15,
+      fontWeight: 500,
+      color: "var(--text)",
+      marginTop: 6,
+      lineHeight: 1.42,
+      letterSpacing: "-0.2px",
       animation: _liveBrief ? "briefFade 0.5s ease both" : undefined
     }
-  }, _liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать.")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("profile"),
-    className: "tap",
-    title: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C",
-    style: {
-      flexShrink: 0,
-      position: "relative",
-      width: 54,
-      height: 54,
-      background: "transparent",
-      border: 0,
-      padding: 0,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "54",
-    height: "54",
-    viewBox: "0 0 54 54",
-    style: {
-      position: "absolute",
-      inset: 0,
-      transform: "rotate(-90deg)",
-      zIndex: 2
-    }
-  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
-    id: "bosGoldRingS",
-    x1: "0",
-    y1: "0",
-    x2: "1",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "#FFE777"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "0.5",
-    stopColor: "#F4B72A"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "1",
-    stopColor: "#E08A00"
-  })), /*#__PURE__*/React.createElement("linearGradient", {
-    id: "bosGoldSheenS",
-    x1: "0",
-    y1: "0",
-    x2: "1",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "rgba(255,255,255,0.82)"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "0.45",
-    stopColor: "rgba(255,255,255,0)"
-  }))), /*#__PURE__*/React.createElement("circle", {
-    cx: "27",
-    cy: "27",
-    r: "23",
-    stroke: ringBg,
-    strokeWidth: "3",
-    fill: "none"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "27",
-    cy: "27",
-    r: "23",
-    stroke: "url(#bosGoldRingS)",
-    strokeWidth: "3",
-    fill: "none",
-    strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * 23,
-    strokeDashoffset: 2 * Math.PI * 23 * (1 - ringShown),
-    style: {
-      transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
-    }
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "27",
-    cy: "27",
-    r: "23",
-    stroke: "url(#bosGoldSheenS)",
-    strokeWidth: "3",
-    fill: "none",
-    strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * 23,
-    strokeDashoffset: 2 * Math.PI * 23 * (1 - ringShown),
-    style: {
-      transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)",
-      mixBlendMode: "screen"
-    }
-  })), /*#__PURE__*/React.createElement(HeroAvatarGlassLive, {
-    avatar: heroApp?.avatar,
-    inset: 5,
-    size: 44
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, _liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать.")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexWrap: "wrap",
@@ -3580,161 +3479,43 @@ function HomeHeroSwipeLive({
     key: "quote",
     style: {
       position: "relative",
-      height: "100%",
-      padding: 18,
+      padding: 16,
       boxSizing: "border-box",
       display: "flex",
       flexDirection: "column"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      gap: 14,
-      alignItems: "flex-start"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
+      fontSize: 12.5,
+      fontWeight: 500,
       color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1.2,
       display: "inline-flex",
       alignItems: "center",
-      gap: 5
+      gap: 6
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 12,
-    color: "#E0A500",
+    size: 13,
+    color: "#EF9F14",
     filled: true,
     strokeWidth: 0
-  }), " \u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u0434\u043B\u044F \u0442\u0435\u0431\u044F"), /*#__PURE__*/React.createElement("div", {
+  }), " \u0421\u0432\u043E\u0434\u043A\u0430 \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
-      fontSize: 14,
-      color: "var(--text-2)",
-      marginTop: 5,
+      fontSize: 15.5,
+      fontWeight: 500,
+      color: "var(--text)",
+      marginTop: 6,
       lineHeight: 1.42,
-      letterSpacing: "-0.1px",
+      letterSpacing: "-0.2px",
       animation: "briefFade 0.5s ease both"
     }
-  }, _homeSummary)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("profile"),
-    className: "tap",
-    title: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C",
-    style: {
-      flexShrink: 0,
-      position: "relative",
-      width: 72,
-      height: 72,
-      background: "transparent",
-      border: 0,
-      padding: 0,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "72",
-    height: "72",
-    viewBox: "0 0 72 72",
-    style: {
-      position: "absolute",
-      inset: 0,
-      transform: "rotate(-90deg)",
-      zIndex: 2
-    }
-  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
-    id: "bosGoldRingL",
-    x1: "0",
-    y1: "0",
-    x2: "1",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "#FFE777"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "0.5",
-    stopColor: "#F4B72A"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "1",
-    stopColor: "#E08A00"
-  })), /*#__PURE__*/React.createElement("linearGradient", {
-    id: "bosGoldSheenL",
-    x1: "0",
-    y1: "0",
-    x2: "1",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "rgba(255,255,255,0.82)"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "0.45",
-    stopColor: "rgba(255,255,255,0)"
-  }))), /*#__PURE__*/React.createElement("circle", {
-    cx: "36",
-    cy: "36",
-    r: "32",
-    stroke: ringBg,
-    strokeWidth: "3.5",
-    fill: "none"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "36",
-    cy: "36",
-    r: "32",
-    stroke: "url(#bosGoldRingL)",
-    strokeWidth: "3.5",
-    fill: "none",
-    strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * 32,
-    strokeDashoffset: 2 * Math.PI * 32 * (1 - ringShown),
-    style: {
-      transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)"
-    }
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "36",
-    cy: "36",
-    r: "32",
-    stroke: "url(#bosGoldSheenL)",
-    strokeWidth: "3.5",
-    fill: "none",
-    strokeLinecap: "round",
-    strokeDasharray: 2 * Math.PI * 32,
-    strokeDashoffset: 2 * Math.PI * 32 * (1 - ringShown),
-    style: {
-      transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)",
-      mixBlendMode: "screen"
-    }
-  })), /*#__PURE__*/React.createElement(HeroAvatarGlassLive, {
-    avatar: heroApp?.avatar,
-    inset: 6,
-    size: 60
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      bottom: -2,
-      right: -4,
-      background: "#0a0a0a",
-      color: "#FEDE34",
-      zIndex: 3,
-      fontSize: 9,
-      fontWeight: 700,
-      padding: "2px 6px",
-      borderRadius: 999,
-      border: "2px solid " + (isDark ? "#0a0a0a" : "#fff")
-    }
-  }, doneCount, "/", totalCount))), /*#__PURE__*/React.createElement("div", {
+  }, _homeSummary)), /*#__PURE__*/React.createElement("div", {
     key: _pillsKey,
     style: {
       display: "flex",
       flexWrap: "wrap",
       gap: 6,
-      marginTop: "auto",
-      paddingTop: 12,
-      paddingBottom: 14
+      marginTop: 14
     }
   }, (_livePills || [{
     i: "✨",
@@ -3789,8 +3570,7 @@ function HomeHeroSwipeLive({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      width: "100%",
-      minHeight: 196
+      width: "100%"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {

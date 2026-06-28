@@ -1454,32 +1454,11 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
 
   const page1 = newbie ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <I.Sparkles size={12} color="#E0A500" filled strokeWidth={0}/> С чего начать
-          </div>
-          <div key={_homeSummary} style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, letterSpacing: "-0.1px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
+      <div>
+        <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0}/> С чего начать
         </div>
-        <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
-          style={{ flexShrink: 0, position: "relative", width: 54, height: 54, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
-          {/* Gold progress ring — gradient lighter→darker + a glass sheen overlay arc; the avatar
-              below is now our standard grey glass disc (no mood orb). David: «кольцо от светлого к тёмному + стекло». */}
-          <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
-            <defs>
-              <linearGradient id="bosGoldRingS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777"/><stop offset="0.5" stopColor="#F4B72A"/><stop offset="1" stopColor="#E08A00"/></linearGradient>
-              <linearGradient id="bosGoldSheenS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="rgba(255,255,255,0.82)"/><stop offset="0.45" stopColor="rgba(255,255,255,0)"/></linearGradient>
-            </defs>
-            <circle cx="27" cy="27" r="23" stroke={ringBg} strokeWidth="3" fill="none"/>
-            <circle cx="27" cy="27" r="23" stroke="url(#bosGoldRingS)" strokeWidth="3" fill="none" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - ringShown)}
-              style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
-            <circle cx="27" cy="27" r="23" stroke="url(#bosGoldSheenS)" strokeWidth="3" fill="none" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - ringShown)}
-              style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)", mixBlendMode: "screen" }}/>
-          </svg>
-          <HeroAvatarGlassLive avatar={heroApp?.avatar} inset={5} size={44} />
-        </button>
+        <div key={_homeSummary} style={{ fontSize: 15, fontWeight: 500, color: "var(--text)", marginTop: 6, lineHeight: 1.42, letterSpacing: "-0.2px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
@@ -1497,41 +1476,16 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
       </div>
     </div>
   ) : (
-    <div key="quote" style={{ position: "relative", height: "100%", padding: 18, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <I.Sparkles size={12} color="#E0A500" filled strokeWidth={0}/> Подсказки для тебя
-          </div>
-          <div key={_homeSummary} style={{ fontSize: 14, color: "var(--text-2)", marginTop: 5, lineHeight: 1.42, letterSpacing: "-0.1px", animation: "briefFade 0.5s ease both" }}>
-            {_homeSummary}
-          </div>
+    <div key="quote" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+      <div>
+        <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0}/> Сводка на сегодня
         </div>
-        <button onClick={() => navigate("profile")} className="tap" title="Открыть профиль"
-          style={{ flexShrink: 0, position: "relative", width: 72, height: 72, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
-          {/* Gold progress ring — gradient lighter→darker + a glass sheen overlay arc; the avatar
-              below is now our standard grey glass disc (no mood orb). David: «кольцо от светлого к тёмному + стекло». */}
-          <svg width="72" height="72" viewBox="0 0 72 72" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
-            <defs>
-              <linearGradient id="bosGoldRingL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777"/><stop offset="0.5" stopColor="#F4B72A"/><stop offset="1" stopColor="#E08A00"/></linearGradient>
-              <linearGradient id="bosGoldSheenL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="rgba(255,255,255,0.82)"/><stop offset="0.45" stopColor="rgba(255,255,255,0)"/></linearGradient>
-            </defs>
-            <circle cx="36" cy="36" r="32" stroke={ringBg} strokeWidth="3.5" fill="none"/>
-            <circle cx="36" cy="36" r="32" stroke="url(#bosGoldRingL)" strokeWidth="3.5" fill="none" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 32} strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
-              style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
-            <circle cx="36" cy="36" r="32" stroke="url(#bosGoldSheenL)" strokeWidth="3.5" fill="none" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 32} strokeDashoffset={2 * Math.PI * 32 * (1 - ringShown)}
-              style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)", mixBlendMode: "screen" }}/>
-          </svg>
-          <HeroAvatarGlassLive avatar={heroApp?.avatar} inset={6} size={60} />
-          <div style={{
-            position: "absolute", bottom: -2, right: -4, background: "#0a0a0a", color: "#FEDE34", zIndex: 3,
-            fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 999, border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
-          }}>{doneCount}/{totalCount}</div>
-        </button>
+        <div key={_homeSummary} style={{ fontSize: 15.5, fontWeight: 500, color: "var(--text)", marginTop: 6, lineHeight: 1.42, letterSpacing: "-0.2px", animation: "briefFade 0.5s ease both" }}>
+          {_homeSummary}
+        </div>
       </div>
-      <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "auto", paddingTop: 12, paddingBottom: 14 }}>
+      <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
         {(_livePills || [
           { i: "✨", t: "ИИ: спланируй день" },
           { i: "🔮", t: "Познай себя" },
@@ -1556,7 +1510,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
       borderRadius: 22, position: "relative", overflow: "hidden",
       boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
     }}>
-      <div style={{ display: "flex", width: "100%", minHeight: 196 }}>
+      <div style={{ display: "flex", width: "100%" }}>
         <div style={{ width: "100%", flexShrink: 0 }}>{page1}</div>
       </div>
     </div>
