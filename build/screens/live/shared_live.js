@@ -1590,6 +1590,139 @@ function JoinWelcomeLive({
   }, isTeam ? "Отлично!" : "Веду вместе!")));
 }
 
+/* Achievement celebration — the gold «достижение открыто» moment as our STANDARD iOS sheet
+   (David: «достижения делаешь не в нашем стиле который поп-ап — лучше в iOS-шторку»). Was a
+   centered popup (demo AchievementUnlock); now slides up over a dimmed backdrop with a grabber,
+   swipe-down to dismiss — the SAME BottomSheet idiom as JoinWelcomeLive. Rendered at app root
+   from app.pendingAch. LIVE. */
+function AchievementSheetLive({
+  ach,
+  onClose
+}) {
+  var [open, setOpen] = React.useState(false);
+  var closingRef = React.useRef(false);
+  React.useEffect(() => {
+    var t = window.setTimeout(() => setOpen(true), 10);
+    return () => window.clearTimeout(t);
+  }, []);
+  if (!ach) return null;
+  var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  var accent = "#FEDE34";
+  var close = () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setOpen(false);
+    window.setTimeout(() => {
+      try {
+        onClose && onClose();
+      } catch (e) {}
+    }, 340);
+  };
+  return /*#__PURE__*/React.createElement(BottomSheet, {
+    open: open,
+    onClose: close,
+    dark: isDark
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 22px 26px",
+      textAlign: "center",
+      color: "var(--text)",
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      top: -6,
+      left: 0,
+      right: 0,
+      height: 150,
+      background: "radial-gradient(circle at 50% 0%, " + accent + "30, transparent 70%)",
+      pointerEvents: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 92,
+      height: 92,
+      position: "relative",
+      animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.08s both"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: -12,
+      borderRadius: "50%",
+      background: "radial-gradient(circle, " + accent + "55, transparent 70%)"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: "100%",
+      height: "100%",
+      borderRadius: 24,
+      background: "linear-gradient(180deg,#fffdf5,#fff3d3)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 44,
+      boxShadow: "inset 0 0 0 1.5px " + accent + "66, 0 10px 26px " + accent + "3d"
+    }
+  }, ach.i))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#E0A500",
+      textTransform: "uppercase",
+      letterSpacing: 1.4,
+      fontWeight: 800,
+      marginTop: 14
+    }
+  }, "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u043E"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 23,
+      fontWeight: 800,
+      letterSpacing: "-0.5px",
+      color: "var(--text)",
+      marginTop: 3
+    }
+  }, ach.t), ach.d && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-3)",
+      marginTop: 8,
+      lineHeight: 1.5,
+      padding: "0 6px",
+      textWrap: "balance"
+    }
+  }, ach.d), ach.xp ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-block",
+      marginTop: 16,
+      background: "linear-gradient(180deg,#FEDE34,#EF9F14)",
+      color: "#4a3800",
+      fontWeight: 700,
+      fontSize: 14,
+      borderRadius: 999,
+      padding: "7px 16px",
+      boxShadow: "0 4px 12px " + accent + "4d"
+    }
+  }, "+", ach.xp, " XP") : null, /*#__PURE__*/React.createElement("button", {
+    onClick: close,
+    className: "bos-btn",
+    style: {
+      marginTop: 20
+    }
+  }, "\u041A\u043B\u0430\u0441\u0441!"))));
+}
+
 /* Real shared-habit buddies (cloud) for the habit CARDS — fills the side slot with the ACTUAL
    people you share the habit with (their real avatars), replacing the legacy empty h.friends.
    Falls back to h.friends only for a local (no-shareCode) habit. LIVE only. */

@@ -166,7 +166,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v323";
+const APP_VERSION = "v324";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -968,7 +968,7 @@ function PhoneApp() {
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
         <FreshOnboarding app={app} dark={topDark} />
         <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} openSheet={sheetApi.open} tourScreen={app.tourScreen} dark={topDark} onAdvance={advanceGuide} onDismiss={dismissGuide} lastScreen={app.tourScreen === "ai"} />
-        {app.pendingAch && typeof AchievementUnlock === "function" && <AchievementUnlock ach={app.pendingAch} onClose={app.clearPendingAch} />}
+        {app.pendingAch && typeof AchievementSheetLive === "function" && <AchievementSheetLive ach={app.pendingAch} onClose={app.clearPendingAch} />}
         {app.pendingJoinWelcome && typeof JoinWelcomeLive === "function" && <JoinWelcomeLive info={app.pendingJoinWelcome} onClose={app.clearPendingJoinWelcome} />}
       </div>
     </div>
