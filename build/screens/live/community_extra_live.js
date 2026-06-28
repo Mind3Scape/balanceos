@@ -716,6 +716,8 @@ function TeamCreateLive() {
         vis,
         // private / public — preserved from the toggle above
         goal: goalTitle || target + " " + unit,
+        type: goalType,
+        // collective | streak | race — store the MODE locally too (was cloud-only → detail couldn't show it)
         target: Number(target) || 0,
         current: 0,
         unit,
@@ -780,6 +782,12 @@ function TeamSettingsLive() {
   var [priv, setPriv] = useCS(team.vis !== "public");
   var [notify, setNotify] = useCS(team.notify !== false);
   var [members, setMembers] = useCS(team.members || []);
+  // GOAL CONFIG — now editable here too (was create-only → «не все режимы связаны»).
+  var [goalType, setGoalType] = useCS(team.type || "collective"); // collective | streak | race
+  var [target, setTarget] = useCS(team.target || 0);
+  var [unit, setUnit] = useCS(team.unit || "дел");
+  var [stakes, setStakes] = useCS((team.stake || 0) > 0);
+  var [stakeAmount, setStakeAmount] = useCS(team.stake || 100);
   var [saving, setSaving] = useCS(false);
   // A cloud team's members live in the cloud — load the REAL roster so the list never shows
   // the stale local cache (the phantom «йога-тест» members). Local teams keep their own.
@@ -811,17 +819,48 @@ function TeamSettingsLive() {
         window.tgHaptic("success");
       } catch (e) {}
     }
-    app?.updateTeam(team._id, {
+    var stakeVal = stakes ? Number(stakeAmount) || 0 : 0;
+    var tgt = Number(target) || 0;
+    var goalText = goal.trim() || team.goal;
+    var patch = {
       name: name.trim() || team.name,
       emblem,
       accent,
-      goal: goal.trim() || team.goal,
+      goal: goalText,
       vis: priv ? "private" : "public",
       notify,
-      members
-    });
+      members,
+      type: goalType,
+      target: tgt,
+      unit,
+      stake: stakeVal
+    };
+    app?.updateTeam(team._id, patch);
+    // Persist the goal CONFIG + meta to the cloud (new updateTeam) so the mode/target/ставка
+    // survive a reload and feed teamGoalProgress for everyone — was local-only («бутафорски»).
+    try {
+      if (team.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
+        window.bosCloud.updateTeam(team.cloudId, {
+          name: patch.name,
+          emblem,
+          vis: patch.vis,
+          goalKind: goalText,
+          goalTarget: tgt,
+          goal: {
+            type: goalType,
+            target: tgt,
+            unit,
+            title: goalText,
+            stake: stakeVal
+          }
+        });
+      }
+    } catch (e) {}
     setTimeout(() => navigate("team-detail", {
-      team
+      team: {
+        ...team,
+        ...patch
+      }
     }), 300);
   };
   // This screen is owner-only (gated by the gear), so deleting goes through the cloud
@@ -839,6 +878,22 @@ function TeamSettingsLive() {
     marginTop: 8,
     boxShadow: "var(--card-shadow)"
   };
+  var goalTypes = [{
+    id: "collective",
+    e: "🌊",
+    t: "Общий счёт",
+    d: "Отметки всех складываются в одно число."
+  }, {
+    id: "streak",
+    e: "🔥",
+    t: "Серия у каждого",
+    d: "Каждый держит серию — команда проходит, только если прошли все."
+  }, {
+    id: "race",
+    e: "🏁",
+    t: "Гонка",
+    d: "Бок о бок — первый до цели побеждает, остальные получают часть XP."
+  }];
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -952,10 +1007,80 @@ function TeamSettingsLive() {
     }
   }, "\u041E\u0431\u0449\u0430\u044F \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginTop: 8
+    }
+  }, goalTypes.map(gt => {
+    var active = goalType === gt.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: gt.id,
+      onClick: () => setGoalType(gt.id),
+      className: "tap",
+      style: {
+        background: "var(--card)",
+        border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)",
+        borderRadius: 22,
+        padding: 14,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        textAlign: "left",
+        boxShadow: "var(--card-shadow)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: "50%",
+        background: active ? "#0a0a0a" : "#e8e8e8",
+        color: active ? "#fff" : "var(--text)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 18,
+        flexShrink: 0
+      }
+    }, gt.e), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15,
+        fontWeight: 600,
+        color: "var(--text)"
+      }
+    }, gt.t), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-4)",
+        marginTop: 2,
+        lineHeight: 1.45
+      }
+    }, gt.d)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 18,
+        height: 18,
+        borderRadius: "50%",
+        background: active ? "#0a0a0a" : "transparent",
+        border: active ? "0" : "1.5px solid var(--text-5)",
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, active && /*#__PURE__*/React.createElement(I.Check, {
+      size: 11,
+      color: "#fff",
+      strokeWidth: 3
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 10,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -977,10 +1102,72 @@ function TeamSettingsLive() {
       color: "var(--text)",
       border: 0,
       outline: 0,
-      padding: "8px 0 0",
-      background: "transparent"
+      padding: "8px 0 12px",
+      background: "transparent",
+      borderBottom: goalType !== "streak" ? "1px solid var(--line)" : "0"
+    }
+  }), goalType !== "streak" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600
+    }
+  }, "\u0426\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    pattern: "[0-9]*",
+    value: target,
+    onChange: e => setTarget(parseInt(e.target.value.replace(/\D/g, "")) || 0),
+    style: {
+      width: "100%",
+      fontSize: 28,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0,
+      marginTop: 2
     }
   })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600
+    }
+  }, "\u0415\u0434\u0438\u043D\u0438\u0446\u0430"), /*#__PURE__*/React.createElement("input", {
+    value: unit,
+    onChange: e => setUnit(e.target.value),
+    placeholder: "\u0434\u0435\u043B",
+    style: {
+      width: "100%",
+      fontSize: 18,
+      color: "var(--text-3)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: "4px 0"
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -1043,6 +1230,103 @@ function TeamSettingsLive() {
     style: {
       marginTop: 22
     }
+  }, "\u0421\u0442\u0430\u0432\u043A\u0430 \u0432 \u0438\u0433\u0440\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text-2)",
+      fontWeight: 500
+    }
+  }, "\u0412\u0441\u0435 \u0441\u0442\u0430\u0432\u044F\u0442 XP"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.5
+    }
+  }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u0434\u043E \u0446\u0435\u043B\u0438 \u2014 \u0431\u0430\u043D\u043A \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u0432\u0434\u0432\u043E\u0435 \u0431\u043E\u043B\u044C\u0448\u0435. \u041D\u0435 \u0434\u043E\u0439\u0434\u0451\u0442\u0435 \u2014 \u0441\u0442\u0430\u0432\u043A\u0438 \u0441\u0433\u043E\u0440\u0430\u044E\u0442.")), /*#__PURE__*/React.createElement(Switch, {
+    on: stakes,
+    onChange: setStakes
+  })), stakes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      paddingTop: 14,
+      borderTop: "1px solid var(--line)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600
+    }
+  }, "\u0421\u0442\u0430\u0432\u043A\u0430 \u043D\u0430 \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8,
+      marginTop: 6,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    pattern: "[0-9]*",
+    value: stakeAmount,
+    onChange: e => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0),
+    style: {
+      flex: "0 0 80px",
+      fontSize: 22,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0,
+      minWidth: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, "XP \u043A\u0430\u0436\u0434\u044B\u0439")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 8,
+      fontSize: 12,
+      color: "var(--text-4)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, members.length, " ", members.length === 1 ? "участник" : "участников"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      color: "var(--text)"
+    }
+  }, "\u0431\u0430\u043D\u043A ", stakeAmount * Math.max(1, members.length), " XP")))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
   }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 (", members.length, ")"), /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
@@ -1087,11 +1371,28 @@ function TeamSettingsLive() {
       color: "var(--text-4)",
       padding: "6px 0"
     }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439 \u043D\u0438\u0436\u0435.")), team.cloudId && /*#__PURE__*/React.createElement("button", {
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439 \u043D\u0438\u0436\u0435.")), team.cloudId && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      lineHeight: 1.45,
+      marginBottom: 12
+    }
+  }, "\u041F\u0440\u0438\u0448\u043B\u0438 \u0441\u0441\u044B\u043B\u043A\u0443 \u2014 \u0434\u0440\u0443\u0433 \u043E\u0442\u043A\u0440\u043E\u0435\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u0443 \u0432 Telegram \u0438 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F \u043A \u043E\u0431\u0449\u0435\u0439 \u0446\u0435\u043B\u0438. \u0417\u0430 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 XP."), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      // Telegram team deep-link (t.me/<bot>?startapp=team_<cloudId>) — same link as
-      // TeamShareSheetLive; the launch path decodes it → joinViaLink. NOT the github.io
-      // /?team= web URL (can't open the Mini App from Telegram).
       var link = typeof bosTeamInviteLink === "function" ? bosTeamInviteLink(team.cloudId) : "https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId;
       var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
       if (window.bosShare) window.bosShare(link, text);else {
@@ -1107,21 +1408,20 @@ function TeamSettingsLive() {
     },
     className: "tap",
     style: {
-      marginTop: 10,
       display: "inline-flex",
       alignItems: "center",
       gap: 7,
-      padding: "9px 15px",
+      padding: "10px 16px",
       borderRadius: 999,
       background: "#0a0a0a",
       color: "#fff",
       border: 0,
-      fontSize: 13,
+      fontSize: 13.5,
       fontWeight: 600
     }
   }, /*#__PURE__*/React.createElement(I.Share, {
     size: 15
-  }), " \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435"), /*#__PURE__*/React.createElement("button", {
+  }), " \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435"))), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     disabled: saving,
     style: {

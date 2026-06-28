@@ -271,6 +271,9 @@ function TeamDetailLive() {
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   const accent = t.accent || "#fef3c7";
   const isDark = app?.themeOverride === "dark";
+  // The goal MODE — shown as a chip so the team's rule (общий счёт / серия / гонка) is ALWAYS
+  // visible, not hidden behind the async cloud progress (David: «не вижу их отражение»).
+  const teamModeMeta = ({ collective: { e: "🌊", t: "Общий счёт" }, streak: { e: "🔥", t: "Серия у каждого" }, race: { e: "🏁", t: "Гонка" } })[t.type || "collective"];
   // LIVE = real user: honest data or empty, NEVER fake standings/activity/calendar —
   // even for a team without a cloud link yet.
 
@@ -446,9 +449,14 @@ function TeamDetailLive() {
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{t.name}</div>
           <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
           <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date}</div>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 9, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 10px", borderRadius: 999 }}>
-            {t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"}
-          </span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 10px", borderRadius: 999 }}>
+              {t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"}
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 10px", borderRadius: 999 }}>
+              {teamModeMeta.e} {teamModeMeta.t}
+            </span>
+          </div>
           {/* The GOAL — the team's destination. Real progress toward the target
              (not the weekly habit aggregate), and it COMPLETES at target. */}
           {(() => {
@@ -461,12 +469,13 @@ function TeamDetailLive() {
             const cur = gpd ? gpd.current : (t.current != null ? t.current : Math.round((t.progress || 0) * tgt));
             const done = tgt > 0 && cur >= tgt;
             const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
-            const modeLabel = gpd ? ({ streak: "Серия у каждого", race: "Гонка — лидер", collective: "Общий счёт" }[gpd.type] || "До цели вместе") : "До цели вместе";
+            const gType = (gpd && gpd.type) || t.type || "collective";
+            const modeLabel = ({ streak: "Серия у каждого", race: "Гонка — лидер", collective: "Общий счёт" })[gType] || "Общий счёт";
             const contrib = (gpd && Array.isArray(gpd.members)) ? gpd.members : [];
             // Optional XP STAKE → bank. Unlock-only: reaching the goal OPENS the payout (co-op: each
             // gets stake; race: the leader takes the whole bank). Per-member payout = ledger truth if
             // settled, else the rule (contrib[0] is the race leader — sorted by value desc).
-            const isRace = !!(gpd && gpd.type === "race");
+            const isRace = gType === "race";
             const stake = (gpd && gpd.stake) || t.stake || 0;
             const bank = (gpd && gpd.bank) || (stake * Math.max(1, contrib.length || members.length));
             const payFor = (m, i) => {

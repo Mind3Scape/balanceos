@@ -697,6 +697,22 @@ function TeamDetailLive() {
   var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   var accent = t.accent || "#fef3c7";
   var isDark = app?.themeOverride === "dark";
+  // The goal MODE — shown as a chip so the team's rule (общий счёт / серия / гонка) is ALWAYS
+  // visible, not hidden behind the async cloud progress (David: «не вижу их отражение»).
+  var teamModeMeta = {
+    collective: {
+      e: "🌊",
+      t: "Общий счёт"
+    },
+    streak: {
+      e: "🔥",
+      t: "Серия у каждого"
+    },
+    race: {
+      e: "🏁",
+      t: "Гонка"
+    }
+  }[t.type || "collective"];
   // LIVE = real user: honest data or empty, NEVER fake standings/activity/calendar —
   // even for a team without a cloud link yet.
 
@@ -1033,12 +1049,18 @@ function TeamDetailLive() {
       color: "var(--text-3)",
       marginTop: 2
     }
-  }, t.date), /*#__PURE__*/React.createElement("span", {
+  }, t.date), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      marginTop: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",
       gap: 5,
-      marginTop: 9,
       fontSize: 11.5,
       fontWeight: 600,
       color: "var(--text-2)",
@@ -1046,7 +1068,19 @@ function TeamDetailLive() {
       padding: "4px 10px",
       borderRadius: 999
     }
-  }, t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"), (() => {
+  }, t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      background: "rgba(255,255,255,0.5)",
+      padding: "4px 10px",
+      borderRadius: 999
+    }
+  }, teamModeMeta.e, " ", teamModeMeta.t)), (() => {
     // Goal progress is COMPUTED FROM THE HABIT MARKS (David) via teamGoalProgress —
     // current + each member's contribution. Falls back to the local team fields until
     // it loads (or pre-SQL). Mode-aware label: общий счёт / серия у каждого / гонка.
@@ -1056,16 +1090,17 @@ function TeamDetailLive() {
     var cur = gpd ? gpd.current : t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
     var done = tgt > 0 && cur >= tgt;
     var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
-    var modeLabel = gpd ? {
+    var gType = gpd && gpd.type || t.type || "collective";
+    var modeLabel = {
       streak: "Серия у каждого",
       race: "Гонка — лидер",
       collective: "Общий счёт"
-    }[gpd.type] || "До цели вместе" : "До цели вместе";
+    }[gType] || "Общий счёт";
     var contrib = gpd && Array.isArray(gpd.members) ? gpd.members : [];
     // Optional XP STAKE → bank. Unlock-only: reaching the goal OPENS the payout (co-op: each
     // gets stake; race: the leader takes the whole bank). Per-member payout = ledger truth if
     // settled, else the rule (contrib[0] is the race leader — sorted by value desc).
-    var isRace = !!(gpd && gpd.type === "race");
+    var isRace = gType === "race";
     var stake = gpd && gpd.stake || t.stake || 0;
     var bank = gpd && gpd.bank || stake * Math.max(1, contrib.length || members.length);
     var payFor = (m, i) => {

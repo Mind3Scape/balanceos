@@ -284,6 +284,7 @@ function TeamCreateLive() {
           name: name.trim() || "Новая команда",
           emblem, accent, vis, // private / public — preserved from the toggle above
           goal: goalTitle || (target + " " + unit),
+          type: goalType, // collective | streak | race — store the MODE locally too (was cloud-only → detail couldn't show it)
           target: Number(target) || 0, current: 0, unit,
           stake: stakes ? (Number(stakeAmount) || 0) : 0, // optional XP wager per person
           date: dur,
@@ -320,6 +321,12 @@ function TeamSettingsLive() {
   const [priv, setPriv] = useCS(team.vis !== "public");
   const [notify, setNotify] = useCS(team.notify !== false);
   const [members, setMembers] = useCS(team.members || []);
+  // GOAL CONFIG — now editable here too (was create-only → «не все режимы связаны»).
+  const [goalType, setGoalType] = useCS(team.type || "collective"); // collective | streak | race
+  const [target, setTarget] = useCS(team.target || 0);
+  const [unit, setUnit] = useCS(team.unit || "дел");
+  const [stakes, setStakes] = useCS((team.stake || 0) > 0);
+  const [stakeAmount, setStakeAmount] = useCS(team.stake || 100);
   const [saving, setSaving] = useCS(false);
   // A cloud team's members live in the cloud — load the REAL roster so the list never shows
   // the stale local cache (the phantom «йога-тест» members). Local teams keep their own.
@@ -339,13 +346,29 @@ function TeamSettingsLive() {
     if (saving) return;
     setSaving(true);
     if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
-    app?.updateTeam(team._id, { name: name.trim() || team.name, emblem, accent, goal: goal.trim() || team.goal, vis: priv ? "private" : "public", notify, members });
-    setTimeout(() => navigate("team-detail", { team }), 300);
+    const stakeVal = stakes ? (Number(stakeAmount) || 0) : 0;
+    const tgt = Number(target) || 0;
+    const goalText = goal.trim() || team.goal;
+    const patch = { name: name.trim() || team.name, emblem, accent, goal: goalText, vis: priv ? "private" : "public", notify, members, type: goalType, target: tgt, unit, stake: stakeVal };
+    app?.updateTeam(team._id, patch);
+    // Persist the goal CONFIG + meta to the cloud (new updateTeam) so the mode/target/ставка
+    // survive a reload and feed teamGoalProgress for everyone — was local-only («бутафорски»).
+    try {
+      if (team.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
+        window.bosCloud.updateTeam(team.cloudId, { name: patch.name, emblem, vis: patch.vis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: stakeVal } });
+      }
+    } catch (e) {}
+    setTimeout(() => navigate("team-detail", { team: { ...team, ...patch } }), 300);
   };
   // This screen is owner-only (gated by the gear), so deleting goes through the cloud
   // deleteTeam + a confirm sheet (was a silent local-only removeTeam).
   const del = () => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet });
   const card = { background: "#fff", borderRadius: 22, marginTop: 8, boxShadow: "var(--card-shadow)" };
+  const goalTypes = [
+    { id: "collective", e: "🌊", t: "Общий счёт", d: "Отметки всех складываются в одно число." },
+    { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — команда проходит, только если прошли все." },
+    { id: "race",       e: "🏁", t: "Гонка", d: "Бок о бок — первый до цели побеждает, остальные получают часть XP." },
+  ];
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Настройки команды" onBack={() => navigate("team-detail", { team })} />
@@ -372,12 +395,45 @@ function TeamSettingsLive() {
         <BosColorPickerLive value={accent} onChange={setAccent} />
       </div>
 
-      {/* GOAL — same card as Create's «Чего ты хочешь». */}
+      {/* GOAL — режим + цель, ТА ЖЕ логика и вид, что в «Создать команду» (David: связать создание↔настройки). */}
       <div className="section-label" style={{ marginTop: 22 }}>Общая цель</div>
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {goalTypes.map(gt => {
+          const active = goalType === gt.id;
+          return (
+            <button key={gt.id} onClick={() => setGoalType(gt.id)} className="tap"
+              style={{ background: "var(--card)", border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{gt.e}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{gt.t}</div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{gt.d}</div>
+              </div>
+              <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? "#0a0a0a" : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>
+                {active && <I.Check size={11} color="#fff" strokeWidth={3}/>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Чего вы хотите</div>
         <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="50 добрых дел"
-          style={{ width: "100%", fontSize: 19, fontWeight: 600, color: "var(--text)", border: 0, outline: 0, padding: "8px 0 0", background: "transparent" }} />
+          style={{ width: "100%", fontSize: 19, fontWeight: 600, color: "var(--text)", border: 0, outline: 0, padding: "8px 0 12px", background: "transparent", borderBottom: goalType !== "streak" ? "1px solid var(--line)" : "0" }} />
+        {goalType !== "streak" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Цель</div>
+              <input type="text" inputMode="numeric" pattern="[0-9]*" value={target}
+                onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
+                style={{ width: "100%", fontSize: 28, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, marginTop: 2 }}/>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Единица</div>
+              <input value={unit} onChange={e => setUnit(e.target.value)} placeholder="дел"
+                style={{ width: "100%", fontSize: 18, color: "var(--text-3)", border: 0, outline: 0, background: "transparent", padding: "4px 0" }}/>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* VISIBILITY — Segmented, same control as Create. */}
@@ -400,6 +456,33 @@ function TeamSettingsLive() {
         </div>
       </div>
 
+      {/* STAKES — XP-ставка, тот же контрол, что в «Создать команду». */}
+      <div className="section-label" style={{ marginTop: 22 }}>Ставка в игре</div>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Дойдёте до цели — банк вернётся вдвое больше. Не дойдёте — ставки сгорают.</div>
+          </div>
+          <Switch on={stakes} onChange={setStakes}/>
+        </div>
+        {stakes && (
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+            <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Ставка на человека</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+              <input type="text" inputMode="numeric" pattern="[0-9]*" value={stakeAmount}
+                onChange={e => setStakeAmount(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
+                style={{ flex: "0 0 80px", fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }}/>
+              <span style={{ fontSize: 13, color: "var(--text-4)" }}>XP каждый</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, fontSize: 12, color: "var(--text-4)" }}>
+              <span>{members.length} {members.length === 1 ? "участник" : "участников"}</span>
+              <span style={{ fontWeight: 700, color: "var(--text)" }}>банк {stakeAmount * Math.max(1, members.length)} XP</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length})</div>
       <div style={{ ...card, padding: "8px 16px" }}>
         {members.map((m, i) => (
@@ -413,20 +496,23 @@ function TeamSettingsLive() {
       </div>
       {/* Demo's SUGGEST invite chips (gated `app?.mode !== "live"`) are gone — live invites
           everyone through the real referral link below. */}
-      {team.cloudId && (
-        <button onClick={() => {
-          // Telegram team deep-link (t.me/<bot>?startapp=team_<cloudId>) — same link as
-          // TeamShareSheetLive; the launch path decodes it → joinViaLink. NOT the github.io
-          // /?team= web URL (can't open the Mini App from Telegram).
-          var link = (typeof bosTeamInviteLink === "function") ? bosTeamInviteLink(team.cloudId) : ("https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId);
-          var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
-          if (window.bosShare) window.bosShare(link, text);
-          else { try { navigator.clipboard.writeText(link); } catch (e) {} }
-          if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-        }} className="tap" style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 15px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 600 }}>
-          <I.Share size={15}/> Пригласить по ссылке
-        </button>
-      )}
+      {/* SHARE — в блоке, как всё остальное (David: «кнопка поделиться выбивается»). Telegram team
+          deep-link (t.me/<bot>?startapp=team_<cloudId>) — тот же, что у TeamShareSheetLive. */}
+      {team.cloudId && (<>
+        <div className="section-label" style={{ marginTop: 22 }}>Поделиться</div>
+        <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginBottom: 12 }}>Пришли ссылку — друг откроет команду в Telegram и присоединится к общей цели. За совместные привычки больше XP.</div>
+          <button onClick={() => {
+            var link = (typeof bosTeamInviteLink === "function") ? bosTeamInviteLink(team.cloudId) : ("https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId);
+            var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
+            if (window.bosShare) window.bosShare(link, text);
+            else { try { navigator.clipboard.writeText(link); } catch (e) {} }
+            if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+          }} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13.5, fontWeight: 600 }}>
+            <I.Share size={15}/> Пригласить по ссылке
+          </button>
+        </div>
+      </>)}
 
       <button className="bos-btn" disabled={saving} style={{ marginTop: 20, opacity: saving ? 0.65 : 1 }} onClick={save}>{saving ? "Сохраняем…" : "Сохранить"}</button>
       <button onClick={del} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>

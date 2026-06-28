@@ -348,6 +348,20 @@
     try { var rpc = await c.rpc("delete_team", { t: teamId }); if (!rpc.error) return true; } catch (e) {}
     try { var r = await c.from("teams").delete().eq("id", teamId).eq("owner_id", id); return !r.error; } catch (e) { return false; }
   }
+  // E: owner edits the team — name/emblem/visibility AND the goal CONFIG ({type,target,unit,title,stake}).
+  // Was missing entirely, so settings edits never reached the cloud (looked «бутафорски»): the mode/target
+  // now SURVIVE a reload and drive teamGoalProgress for everyone. Owner-gated (RLS + owner_id filter).
+  async function updateTeam(teamId, patch) {
+    var c = client(); var id = await uid(); if (!c || !id || !teamId || !patch) return false;
+    var upd = {};
+    if (patch.name != null) upd.name = patch.name;
+    if (patch.emblem != null) upd.emblem = patch.emblem;
+    if (patch.vis != null) upd.vis = patch.vis;
+    if (patch.goalKind != null) upd.goal_kind = patch.goalKind;
+    if (patch.goalTarget != null) upd.goal_target = patch.goalTarget;
+    if (patch.goal != null) upd.goal = patch.goal; // jsonb config — same shape createTeam writes
+    try { var r = await c.from("teams").update(upd).eq("id", teamId).eq("owner_id", id); return !r.error; } catch (e) { return false; }
+  }
 
   // ── РЕАЛЬНЫЕ ОБЩИЕ ПРИВЫЧКИ КОМАНДЫ ─────────────────────────────────────────
   // Each team habit with REAL stats: doneToday (members who marked today), total
@@ -614,7 +628,7 @@
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,
-    createTeam: createTeam, discoverTeams: discoverTeams, joinTeam: joinTeam,
+    createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
