@@ -749,6 +749,9 @@ function HistoryLive() {
     return done / liveHabits.length;
   };
   var [selDay, setSelDay] = useP(today);
+  // «Компактно» (minimalist, default) ↔ «Подробно» — the SAME eye toggle as the habit-detail
+  // calendar (David: «минималистичный вид + переключение как в привычках»).
+  var [compact, setCompact] = useP(true);
   var blanks = Array.from({
     length: startWeekday
   }, (_, i) => ({
@@ -869,6 +872,40 @@ function HistoryLive() {
     style: {
       display: "flex",
       justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12
+    }
+  }, compact ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, monthName, " ", year) : /*#__PURE__*/React.createElement("span", null), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCompact(c => !c),
+    className: "tap",
+    "aria-label": compact ? "Подробно" : "Компактно",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      background: TH.chipBg,
+      border: 0,
+      borderRadius: 999,
+      padding: "5px 11px",
+      color: "var(--text-2)",
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Eye, {
+    size: 14,
+    color: "var(--text-3)"
+  }), compact ? "Подробно" : "Компактно")), !compact && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
       alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("button", {
@@ -891,7 +928,7 @@ function HistoryLive() {
     size: 16
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 17,
+      fontSize: 16,
       fontWeight: 700,
       letterSpacing: "-0.3px"
     }
@@ -913,12 +950,14 @@ function HistoryLive() {
     }
   }, /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 16
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7, 1fr)",
-      gap: 4,
-      marginTop: 14
+      gap: 6,
+      maxWidth: 300,
+      width: "100%",
+      margin: "14px auto 0"
     }
   }, weekday.map((w, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
@@ -934,7 +973,9 @@ function HistoryLive() {
       display: "grid",
       gridTemplateColumns: "repeat(7, 1fr)",
       gap: 6,
-      marginTop: 6
+      maxWidth: 300,
+      width: "100%",
+      margin: compact ? "0 auto" : "6px auto 0"
     }
   }, cells.map(c => {
     if (c.blank) return /*#__PURE__*/React.createElement("span", {
@@ -951,11 +992,11 @@ function HistoryLive() {
     var filled = !fut && pct > 0;
     var bg = fut ? cellFut : pct <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", pct);
     var ink = fut ? TH.cellMuted : pct <= 0 ? TH.cellText : bosCellInk("#0a0a0a", pct, isDark);
-    var ring = isToday ? todayRingC : isSelected ? selRingC : null;
+    var ring = isToday ? todayRingC : !compact && isSelected ? selRingC : null;
     var sh = [filled ? bosCellGlass(isDark) : "", ring ? "0 0 0 1.6px " + ring : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("button", {
       key: c.key,
-      onClick: () => setSelDay(c.d),
+      onClick: compact ? undefined : () => setSelDay(c.d),
       className: "tap",
       style: {
         aspectRatio: "1/1",
@@ -967,38 +1008,18 @@ function HistoryLive() {
         position: "relative",
         fontSize: 12.5,
         fontWeight: isToday ? 700 : 500,
-        cursor: "pointer",
+        cursor: compact ? "default" : "pointer",
         background: bg,
         boxShadow: sh,
         color: ink
       }
-    }, /*#__PURE__*/React.createElement("span", {
+    }, !compact && !fut && /*#__PURE__*/React.createElement("span", {
       style: {
         position: "relative",
         zIndex: 1
       }
-    }, c.d), (() => {
-      // Live moods are keyed by ISO date (bosTodayKey, e.g. "2026-06-24"); iso() matches.
-      if (!isCurMonth || fut) return null;
-      var mkey = iso(c.d);
-      var mi = app?.dayMoods?.[mkey];
-      if (mi == null) return null;
-      var dm = MOOD_OPTIONS[mi];
-      if (!dm) return null;
-      return /*#__PURE__*/React.createElement("span", {
-        "aria-hidden": true,
-        style: {
-          position: "absolute",
-          top: 1,
-          right: 1,
-          lineHeight: 0
-        }
-      }, /*#__PURE__*/React.createElement(MiniOrb, {
-        size: 9,
-        tint: tintFromMood(dm.c)
-      }));
-    })());
-  })), /*#__PURE__*/React.createElement("div", {
+    }, c.d));
+  })), !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -1030,7 +1051,7 @@ function HistoryLive() {
     style: {
       fontSize: 11
     }
-  }, "\u0411\u043E\u043B\u044C\u0448\u0435"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u0411\u043E\u043B\u044C\u0448\u0435"))), !compact && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22,
@@ -1224,7 +1245,7 @@ function HistoryLive() {
     }))), i < dayHabits.length - 1 && /*#__PURE__*/React.createElement("div", {
       className: "divider"
     }));
-  })))));
+  }))))));
 }
 function SupportLive() {
   var {

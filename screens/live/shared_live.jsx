@@ -1446,7 +1446,10 @@ function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark })
         <circle cx={size / 2} cy={size / 2} r={r} stroke="url(#bosXpRingH)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(0.22,0.61,0.36,1)" }}/>
         <circle cx={size / 2} cy={size / 2} r={r} stroke="url(#bosXpSheenH)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} style={{ mixBlendMode: "screen" }}/>
       </svg>
-      <HeroAvatarGlassLive avatar={avatar} inset={4} size={size - 8} />
+      {/* Disc pulled IN from the ring (inset 7 → ~4px card-colour gap) so the gold ring and the glass
+          circle read as two distinct elements — without the gap the disc sat flush under the ring and
+          the glass was invisible (David: «дать колечку чуть пространства от кружочка со стеклом»). */}
+      <HeroAvatarGlassLive avatar={avatar} inset={7} size={size - 14} />
     </button>
   );
 }
@@ -1496,7 +1499,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         <div style={{ flex: 1, minWidth: 0 }}>
           <div key={_homeSummary} style={{ fontSize: 15, fontWeight: 500, color: "var(--text)", lineHeight: 1.42, letterSpacing: "-0.2px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}><span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={15} color="#EF9F14" filled strokeWidth={0} /></span>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
-        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={52} isDark={isDark} />
+        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={56} isDark={isDark} />
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
@@ -1521,7 +1524,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
             <span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={15} color="#EF9F14" filled strokeWidth={0} /></span>{_homeSummary}
           </div>
         </div>
-        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={60} isDark={isDark} />
+        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={64} isDark={isDark} />
       </div>
       <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
         {(_livePills || [

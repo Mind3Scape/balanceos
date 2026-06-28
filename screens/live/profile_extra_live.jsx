@@ -361,6 +361,9 @@ function HistoryLive() {
   };
 
   const [selDay, setSelDay] = useP(today);
+  // «Компактно» (minimalist, default) ↔ «Подробно» — the SAME eye toggle as the habit-detail
+  // calendar (David: «минималистичный вид + переключение как в привычках»).
+  const [compact, setCompact] = useP(true);
 
   const blanks = Array.from({ length: startWeekday }, (_, i) => ({ blank: true, key: "b" + i }));
   const days = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, key: "d" + (i + 1) }));
@@ -410,28 +413,45 @@ function HistoryLive() {
         { l: "Отметок", v: Math.round(totalDone), suf: "", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
       ]} />
 
-      {/* Month calendar */}
+      {/* Month calendar — minimalist by default («Компактно»): just a glanceable squircle heat-grid,
+          no numbers / nav / legend. The eye toggle flips to «Подробно» (numbers + month nav + legend +
+          the day breakdown below) — the SAME toggle as the habit-detail calendar (David: «как в
+          привычках»). No mood pip on the dates anymore (David: «ор сверху на датах не нравится»). */}
       <SysCard style={{ padding: 16, marginTop: 12, borderRadius: 22, transform: "translateZ(0)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button onClick={() => setMIdx(m => Math.max(0, m - 1))} disabled={mIdx === 0} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
-            <I.ChevronLeft size={16}/>
-          </button>
-          <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
-          <button onClick={() => setMIdx(m => Math.min(11, m + 1))} disabled={mIdx === 11} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}>
-            <I.ChevronRight size={16}/>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          {compact
+            ? <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
+            : <span />}
+          <button onClick={() => setCompact(c => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: TH.chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+            <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Компактно"}
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginTop: 14 }}>
-          {weekday.map((w, i) => (
-            <div key={i} className="bos-sys-text-3" style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6 }}>{w}</div>
-          ))}
-        </div>
+        {!compact && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button onClick={() => setMIdx(m => Math.max(0, m - 1))} disabled={mIdx === 0} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}>
+              <I.ChevronLeft size={16}/>
+            </button>
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>{monthName} {year}</div>
+            <button onClick={() => setMIdx(m => Math.min(11, m + 1))} disabled={mIdx === 11} data-haptic="selection" className="tap hit44" style={{ background: TH.chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}>
+              <I.ChevronRight size={16}/>
+            </button>
+          </div>
+        )}
 
-        {/* Day cells — SQUIRCLE heat-tiles (our calendar language: day = rounded square), filled in
-            graphite by that day's completion share. Grey glass ring on today, grey ring on the picked
-            day — no gold. Mood pip in the corner. The SAME bosCellFill/Glass as the habit calendar. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginTop: 6 }}>
+        {!compact && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "14px auto 0" }}>
+            {weekday.map((w, i) => (
+              <div key={i} className="bos-sys-text-3" style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6 }}>{w}</div>
+            ))}
+          </div>
+        )}
+
+        {/* Day cells — SQUIRCLE heat-tiles filled in graphite by the day's completion share. Compact =
+            glanceable (no numbers, not tappable); detailed = numbered + tap to inspect below. Today
+            keeps a grey glass ring in both modes; the picked day gets a grey ring in detailed. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, maxWidth: 300, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
           {cells.map(c => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }}/>;
             const pct = completion(c.d);
@@ -441,48 +461,37 @@ function HistoryLive() {
             const filled = !fut && pct > 0;
             const bg = fut ? cellFut : (pct <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", pct));
             const ink = fut ? TH.cellMuted : (pct <= 0 ? TH.cellText : bosCellInk("#0a0a0a", pct, isDark));
-            const ring = isToday ? todayRingC : (isSelected ? selRingC : null);
+            const ring = isToday ? todayRingC : ((!compact && isSelected) ? selRingC : null);
             const sh = [filled ? bosCellGlass(isDark) : "", ring ? ("0 0 0 1.6px " + ring) : ""].filter(Boolean).join(", ") || "none";
             return (
-              <button key={c.key} onClick={() => setSelDay(c.d)} className="tap"
+              <button key={c.key} onClick={compact ? undefined : () => setSelDay(c.d)} className="tap"
                 style={{
                   aspectRatio: "1/1", border: 0, borderRadius: "30%", padding: 0,
                   display: "grid", placeItems: "center", position: "relative",
-                  fontSize: 12.5, fontWeight: isToday ? 700 : 500, cursor: "pointer",
+                  fontSize: 12.5, fontWeight: isToday ? 700 : 500, cursor: compact ? "default" : "pointer",
                   background: bg, boxShadow: sh, color: ink,
                 }}>
-                <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>
-                {(() => {
-                  // Live moods are keyed by ISO date (bosTodayKey, e.g. "2026-06-24"); iso() matches.
-                  if (!isCurMonth || fut) return null;
-                  const mkey = iso(c.d);
-                  const mi = app?.dayMoods?.[mkey];
-                  if (mi == null) return null;
-                  const dm = MOOD_OPTIONS[mi];
-                  if (!dm) return null;
-                  return (
-                    <span aria-hidden style={{ position: "absolute", top: 1, right: 1, lineHeight: 0 }}>
-                      <MiniOrb size={9} tint={tintFromMood(dm.c)} />
-                    </span>
-                  );
-                })()}
+                {!compact && !fut && <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>}
               </button>
             );
           })}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
-          <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Меньше</span>
-          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-            {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
-              <span key={i} style={{ width: 15, height: 15, borderRadius: "30%", background: p <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", p), boxShadow: p > 0 ? bosCellGlass(isDark) : "none" }} />
-            ))}
+        {!compact && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+            <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Меньше</span>
+            <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+              {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+                <span key={i} style={{ width: 15, height: 15, borderRadius: "30%", background: p <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", p), boxShadow: p > 0 ? bosCellGlass(isDark) : "none" }} />
+              ))}
+            </div>
+            <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Больше</span>
           </div>
-          <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Больше</span>
-        </div>
+        )}
       </SysCard>
 
-      {/* Day detail */}
+      {/* Day detail — only in «Подробно»; tap a day above to inspect it. */}
+      {!compact && (<>
       <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>
         {monthName} {selDay} · {selPct == null ? "Будущее" : selPct === 1 ? "Идеальный день ✨" : selPct === 0 ? "Пропущен" : `${Math.round(selPct * 100)}%`}
       </div>
@@ -562,6 +571,7 @@ function HistoryLive() {
           </>
         )}
       </SysCard>
+      </>)}
       </>)}
     </div>
   );

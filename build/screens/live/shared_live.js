@@ -3457,8 +3457,8 @@ function HeroAccountAvatarLive({
     }
   })), /*#__PURE__*/React.createElement(HeroAvatarGlassLive, {
     avatar: avatar,
-    inset: 4,
-    size: size - 8
+    inset: 7,
+    size: size - 14
   }));
 }
 
@@ -3550,7 +3550,7 @@ function HomeHeroSwipeLive({
     navigate: navigate,
     avatar: heroApp?.avatar,
     pct: _heroPct,
-    size: 52,
+    size: 56,
     isDark: isDark
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3650,7 +3650,7 @@ function HomeHeroSwipeLive({
     navigate: navigate,
     avatar: heroApp?.avatar,
     pct: _heroPct,
-    size: 60,
+    size: 64,
     isDark: isDark
   })), /*#__PURE__*/React.createElement("div", {
     key: _pillsKey,
