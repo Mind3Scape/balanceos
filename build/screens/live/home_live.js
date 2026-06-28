@@ -1116,8 +1116,8 @@ function HomeLive() {
       placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement(I.Bell, {
-    size: 23,
-    strokeWidth: 2.2,
+    size: 20,
+    strokeWidth: 2,
     color: bellIcon
   }), showBellDot && /*#__PURE__*/React.createElement("span", {
     style: {

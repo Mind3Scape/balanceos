@@ -175,7 +175,10 @@ async function aiRaw(messages) {
   const W = (typeof window !== "undefined") ? window : {};
   const sbUrl = (W.SUPABASE_URL || "").replace(/\/$/, "");
   const sbKey = W.SUPABASE_ANON_KEY || "";
-  if (sbUrl && sbKey) {
+  if (!sbUrl || !sbKey) return null;
+  // Two attempts: a free/stealth model can occasionally hiccup (slow or empty) — one quiet retry
+  // turns most transient «Связь с ИИ» into a real answer. The proxy ALSO retries server-side.
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = await aiFetch(sbUrl + "/functions/v1/ai-chat", {
         method: "POST",
@@ -183,7 +186,8 @@ async function aiRaw(messages) {
         body: JSON.stringify({ messages, model: BOS_AI_MODEL }),
       });
       if (res.ok) { const data = await res.json(); const t = data && data.reply; if (t && t.trim()) return t.trim(); }
-    } catch (e) { /* fall through */ }
+    } catch (e) { /* fall through to retry */ }
+    if (attempt === 0) await new Promise((s) => setTimeout(s, 600));
   }
   // No client-direct fallback. The old one (a) shipped the OpenRouter key to every browser
   // and (b) fired a SECOND OpenRouter request whenever the proxy returned an empty reply —

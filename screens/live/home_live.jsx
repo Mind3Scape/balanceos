@@ -427,7 +427,7 @@ function HomeLive() {
         <button onClick={() => navigate("notifications", { from: "home" })} className="tap hit44" aria-label="Уведомления"
           style={{ width: 40, height: 40, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
           <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
-            <I.Bell size={23} strokeWidth={2.2} color={bellIcon}/>
+            <I.Bell size={20} strokeWidth={2} color={bellIcon}/>
             {showBellDot && (
             <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
             )}
