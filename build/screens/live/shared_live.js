@@ -2744,10 +2744,15 @@ var BOS_HOME_WIDGETS = [{
   d: "Прогресс и опыт",
   emoji: "🏆"
 }, {
-  id: "summary",
-  t: "Сводка",
-  d: "Календарь и команды",
-  emoji: "🗂️"
+  id: "week",
+  t: "Эта неделя",
+  d: "Недельная активность",
+  emoji: "📅"
+}, {
+  id: "team",
+  t: "Команды",
+  d: "Твои команды",
+  emoji: "👥"
 }, {
   id: "mood",
   t: "Состояние",
@@ -4054,6 +4059,60 @@ function HabitWeekStrip({
         boxShadow: sh
       }
     });
+  }));
+}
+
+/* Aggregate «Эта неделя» strip for the HOME — 7 cells Пн→Вс. A cell is filled (the SAME soft
+   glass graphite as the per-habit strip) if ANY habit was closed that day; today carries a gold
+   ring. Each cell shows weekday + date number. Display-only; reads the real per-habit date-log.
+   The parent card taps → history. LIVE only. */
+function HomeWeekStripLive({
+  habits = [],
+  isDark
+}) {
+  var keys = typeof bosWeekKeys === "function" ? bosWeekKeys() : [];
+  var todayK = typeof bosTodayKey === "function" ? bosTodayKey() : null;
+  var WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  var empty = isDark ? "rgba(255,255,255,0.07)" : "#f1f2f5";
+  var fill = typeof bosCellFill === "function" ? bosCellFill("#0a0a0a", 1) : "#0a0a0a";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, keys.map((k, i) => {
+    var on = habits.length > 0 && habits.some(h => h.log && h.log[k]);
+    var isToday = k === todayK;
+    var dayNum = parseInt(("" + k).slice(-2), 10) || "";
+    var sh = [on && typeof bosCellGlass === "function" ? bosCellGlass(isDark) : "", isToday ? "0 0 0 2px #EF9F14, 0 0 0 4px rgba(239,159,20,0.16)" : ""].filter(Boolean).join(", ") || "none";
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        flex: 1,
+        aspectRatio: "0.82",
+        borderRadius: 11,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        background: on ? fill : empty,
+        boxShadow: sh
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 600,
+        color: on ? "rgba(255,255,255,0.72)" : "var(--text-4)"
+      }
+    }, WD[i]), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: on ? "#fff" : "var(--text)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, dayNum));
   }));
 }
 

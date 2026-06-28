@@ -1175,7 +1175,8 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
 var BOS_HOME_WIDGETS = [
   { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   emoji: "✨" },
   { id: "level",   t: "Уровень",      d: "Прогресс и опыт",          emoji: "🏆" },
-  { id: "summary", t: "Сводка",       d: "Календарь и команды",      emoji: "🗂️" },
+  { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅" },
+  { id: "team",    t: "Команды",      d: "Твои команды",             emoji: "👥" },
   { id: "mood",    t: "Состояние",    d: "Ежедневный чек-ин",        emoji: "💭" },
   { id: "habits",  t: "Привычки",     d: "Список привычек на день",  emoji: "🌱" },
   { id: "goals",   t: "Цели",         d: "Твои цели",                emoji: "🎯" },
@@ -1690,6 +1691,34 @@ function HabitWeekStrip({ habit }) {
         var fl = !!log[k];
         var sh = [fl ? bosCellGlass(isDark) : "", (k === todayK) ? ("0 0 0 1.5px " + ringC) : ""].filter(Boolean).join(", ") || "none";
         return <span key={i} style={{ width: 20, height: 20, borderRadius: "30%", flexShrink: 0, background: fl ? doneFill : empty, boxShadow: sh }} />;
+      })}
+    </div>
+  );
+}
+
+/* Aggregate «Эта неделя» strip for the HOME — 7 cells Пн→Вс. A cell is filled (the SAME soft
+   glass graphite as the per-habit strip) if ANY habit was closed that day; today carries a gold
+   ring. Each cell shows weekday + date number. Display-only; reads the real per-habit date-log.
+   The parent card taps → history. LIVE only. */
+function HomeWeekStripLive({ habits = [], isDark }) {
+  const keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
+  const todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+  const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const empty = isDark ? "rgba(255,255,255,0.07)" : "#f1f2f5";
+  const fill = (typeof bosCellFill === "function") ? bosCellFill("#0a0a0a", 1) : "#0a0a0a";
+  return (
+    <div style={{ display: "flex", gap: 6 }}>
+      {keys.map((k, i) => {
+        const on = habits.length > 0 && habits.some((h) => h.log && h.log[k]);
+        const isToday = k === todayK;
+        const dayNum = parseInt(("" + k).slice(-2), 10) || "";
+        const sh = [on && typeof bosCellGlass === "function" ? bosCellGlass(isDark) : "", isToday ? "0 0 0 2px #EF9F14, 0 0 0 4px rgba(239,159,20,0.16)" : ""].filter(Boolean).join(", ") || "none";
+        return (
+          <div key={i} style={{ flex: 1, aspectRatio: "0.82", borderRadius: 11, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, background: on ? fill : empty, boxShadow: sh }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: on ? "rgba(255,255,255,0.72)" : "var(--text-4)" }}>{WD[i]}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: on ? "#fff" : "var(--text)", fontVariantNumeric: "tabular-nums" }}>{dayNum}</span>
+          </div>
+        );
       })}
     </div>
   );

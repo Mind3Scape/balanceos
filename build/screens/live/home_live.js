@@ -354,110 +354,131 @@ function HomeLive() {
         color: "rgba(0,0,0,0.45)"
       }))));
     }
-    if (id === "summary") {
-      // Calendar + Community — kept as the compact 2-up pair (one widget).
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8
-        }
-      }, /*#__PURE__*/React.createElement("button", {
+    if (id === "week") {
+      // «Эта неделя» replaces the old date card (the date already shows in the greeting). A 7-day
+      // activity strip; tap → history. Title lives INSIDE the card («всё внутри блоков»).
+      var _wk = typeof bosWeekKeys === "function" ? bosWeekKeys() : [];
+      var _active = habits.length ? _wk.filter(k => habits.some(h => h.log && h.log[k])).length : 0;
+      return /*#__PURE__*/React.createElement("button", {
         className: "tap",
         onClick: () => navigate("history"),
         style: {
+          width: "100%",
           background: cardBg,
           border: cardBorder,
           borderRadius: 22,
-          padding: "14px 14px 12px",
+          padding: "14px 15px",
           textAlign: "left",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
           boxShadow: cardShadow,
           color: "var(--text)"
         }
-      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 11,
-          color: "var(--text-4)",
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          fontWeight: 600
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12
         }
-      }, "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 14,
-          color: "var(--text-2)",
-          marginTop: 4,
+          fontSize: 14.5,
+          fontWeight: 600,
+          letterSpacing: "-0.2px"
+        }
+      }, "\u042D\u0442\u0430 \u043D\u0435\u0434\u0435\u043B\u044F"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 12,
+          color: "var(--text-4)",
           fontWeight: 500
         }
-      }, _calLabel)), /*#__PURE__*/React.createElement(I.Calendar, {
-        size: 28,
-        color: isDark ? "rgba(255,255,255,0.7)" : "#787878",
-        strokeWidth: 1.5
-      })), /*#__PURE__*/React.createElement("button", {
+      }, _active, " \u0438\u0437 7 \u203A")), /*#__PURE__*/React.createElement(HomeWeekStripLive, {
+        habits: habits,
+        isDark: isDark
+      }));
+    }
+    if (id === "team") {
+      // «Команды» — its own full-width widget (David picked variant A: teams separate). Glass tile
+      // + standard grey glass discs for emblems; tap → community.
+      return /*#__PURE__*/React.createElement("button", {
         className: "tap",
         onClick: () => navigate("community"),
         style: {
+          width: "100%",
           background: cardBg,
           border: cardBorder,
           borderRadius: 22,
-          padding: "14px 14px 12px",
+          padding: "14px 15px",
           textAlign: "left",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
+          gap: 12,
           boxShadow: cardShadow,
           color: "var(--text)"
         }
-      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 11,
-          color: "var(--text-4)",
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          fontWeight: 600
+          width: 40,
+          height: 40,
+          borderRadius: 13,
+          background: BOS_TILE_SHEEN + ", " + iconBg,
+          boxShadow: bosTileGlass(isDark),
+          display: "grid",
+          placeItems: "center",
+          fontSize: 20,
+          flexShrink: 0
+        }
+      }, "\uD83D\uDC65"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 14.5,
+          fontWeight: 600,
+          color: "var(--text)",
+          letterSpacing: "-0.2px"
         }
       }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 14,
-          color: "var(--text-2)",
-          marginTop: 4,
-          fontWeight: 500
+          fontSize: 12,
+          color: "var(--text-4)",
+          marginTop: 1
         }
-      }, teams.length ? teams.length + " " + ruTeam(teams.length) : "Создай команду")), teams.length > 0 ? /*#__PURE__*/React.createElement("div", {
+      }, teams.length ? teams.length + " " + ruTeam(teams.length) + " · ведёте вместе" : "Создай свою первую")), teams.length > 0 ? /*#__PURE__*/React.createElement("div", {
         style: {
-          display: "flex"
+          display: "flex",
+          flexShrink: 0
         }
       }, teams.slice(0, 4).map((t, i) => /*#__PURE__*/React.createElement("span", {
         key: t._id || i,
         title: t.name,
         style: {
-          width: 28,
-          height: 28,
+          width: 32,
+          height: 32,
           borderRadius: "50%",
-          background: t.accent || "var(--surface-3)",
-          border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"),
-          marginLeft: i ? -10 : 0,
+          background: "linear-gradient(150deg,#eef1f6,#dadfe7)",
+          boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), 0 0 0 2px " + (isDark ? "#0a0a0a" : "#fff"),
+          marginLeft: i ? -9 : 0,
           display: "grid",
           placeItems: "center",
-          fontSize: 14,
+          fontSize: 15,
           lineHeight: 1
         }
-      }, bosIcon(t.emblem || "👥", 14, t.accent)))) : /*#__PURE__*/React.createElement("span", {
+      }, bosIcon(t.emblem || "👥", 15, t.accent)))) : /*#__PURE__*/React.createElement("span", {
         style: {
           width: 30,
           height: 30,
           borderRadius: "50%",
-          background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+          background: "#0a0a0a",
+          color: "#fff",
           display: "grid",
           placeItems: "center",
-          color: "var(--text-3)"
+          flexShrink: 0
         }
       }, /*#__PURE__*/React.createElement(I.Plus, {
         size: 16
-      }))));
+      })));
     }
     if (id === "mood") {
       // State check-in (not logged today) → the once-a-day slider; logged + ≥2 days → streak widget.
@@ -508,25 +529,47 @@ function HomeLive() {
       return null;
     }
     if (id === "habits") {
-      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-        className: "section-label",
+      // «Всё внутри блоков» (David): the «Привычки» title lives INSIDE one grouped card, with the
+      // habit rows stacked below it (hairline dividers, per-row swipe kept). HOME ONLY — the
+      // Habits tab keeps its fuller separate-card view untouched.
+      return /*#__PURE__*/React.createElement("div", {
         style: {
-          color: "var(--text-3)",
-          padding: "0 4px"
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: 22,
+          boxShadow: cardShadow,
+          overflow: "hidden",
+          color: "var(--text)"
         }
-      }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "13px 15px 11px"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 14.5,
+          fontWeight: 600,
+          letterSpacing: "-0.2px"
+        }
+      }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), habits.length > 0 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 12,
+          color: "var(--text-4)",
+          fontWeight: 500
+        }
+      }, doneCount, " \u0438\u0437 ", totalCount)), habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
         className: "tap",
         onClick: () => navigate("habit-settings", {
           mode: "create"
         }),
         style: {
-          marginTop: 10,
           width: "100%",
-          background: cardBg,
-          border: cardBorder,
-          borderRadius: 22,
-          padding: "30px 20px",
-          boxShadow: cardShadow,
+          background: "transparent",
+          border: 0,
+          padding: "6px 20px 26px",
           color: "var(--text)",
           display: "flex",
           flexDirection: "column",
@@ -546,12 +589,12 @@ function HomeLive() {
         }
       }, "\uD83C\uDF31"), /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: 600
         }
       }, "\u0417\u0434\u0435\u0441\u044C \u0431\u0443\u0434\u0443\u0442 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 13,
+          fontSize: 12.5,
           color: "var(--text-4)",
           lineHeight: 1.45,
           maxWidth: 235
@@ -574,18 +617,13 @@ function HomeLive() {
         strokeWidth: 2.5
       }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
         style: {
-          marginTop: 10,
           display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          color: "var(--text)"
+          flexDirection: "column"
         }
-      }, habits.map(h => /*#__PURE__*/React.createElement("div", {
+      }, habits.map((h, hi) => /*#__PURE__*/React.createElement("div", {
         key: h.id,
         style: {
-          borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow
+          borderTop: hi ? "1px solid " + dividerLn : "0"
         }
       }, /*#__PURE__*/React.createElement(SwipeRow, {
         rowBg: rowBg,
@@ -621,28 +659,28 @@ function HomeLive() {
           display: "flex",
           alignItems: "center",
           gap: 14,
-          padding: "14px 16px"
+          padding: "12px 15px"
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
-          width: 40,
-          height: 40,
-          borderRadius: 14,
+          width: 38,
+          height: 38,
+          borderRadius: 13,
           background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg),
           boxShadow: bosTileGlass(isDark),
           display: "grid",
           placeItems: "center",
-          fontSize: 20,
+          fontSize: 19,
           flexShrink: 0
         }
-      }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
+      }, bosIcon(h.emoji, 21, h.color)), /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
           minWidth: 0
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 16,
+          fontSize: 15.5,
           fontWeight: 600,
           color: "var(--text)",
           letterSpacing: "-0.2px"
@@ -687,25 +725,45 @@ function HomeLive() {
       })))))));
     }
     if (id === "goals") {
-      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-        className: "section-label",
+      // Grouped «Цели» card — title INSIDE, goal rows below (hairline dividers). HOME ONLY.
+      return /*#__PURE__*/React.createElement("div", {
         style: {
-          color: "var(--text-3)",
-          padding: "0 4px"
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: 22,
+          boxShadow: cardShadow,
+          overflow: "hidden",
+          color: "var(--text)"
         }
-      }, "\u0426\u0435\u043B\u0438"), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "13px 15px 11px"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 14.5,
+          fontWeight: 600,
+          letterSpacing: "-0.2px"
+        }
+      }, "\u0426\u0435\u043B\u0438"), goals.length > 0 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 12,
+          color: "var(--text-4)",
+          fontWeight: 500
+        }
+      }, goals.length)), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
         className: "tap",
         onClick: () => navigate("goal-settings", {
           mode: "create"
         }),
         style: {
-          marginTop: 10,
           width: "100%",
-          background: cardBg,
-          border: cardBorder,
-          borderRadius: 22,
-          padding: "30px 20px",
-          boxShadow: cardShadow,
+          background: "transparent",
+          border: 0,
+          padding: "6px 20px 26px",
           color: "var(--text)",
           display: "flex",
           flexDirection: "column",
@@ -725,12 +783,12 @@ function HomeLive() {
         }
       }, "\uD83C\uDFAF"), /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: 600
         }
       }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0446\u0435\u043B\u0435\u0439"), /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 13,
+          fontSize: 12.5,
           color: "var(--text-4)",
           lineHeight: 1.45,
           maxWidth: 235
@@ -753,19 +811,15 @@ function HomeLive() {
         strokeWidth: 2.5
       }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement("div", {
         style: {
-          marginTop: 10,
           display: "flex",
-          flexDirection: "column",
-          gap: 8
+          flexDirection: "column"
         }
-      }, goals.map(g => {
+      }, goals.map((g, gi) => {
         var pct = g.target ? g.current / g.target : 0;
         return /*#__PURE__*/React.createElement("div", {
           key: g.id,
           style: {
-            borderRadius: 22,
-            overflow: "hidden",
-            boxShadow: cardShadow
+            borderTop: gi ? "1px solid " + dividerLn : "0"
           }
         }, /*#__PURE__*/React.createElement(SwipeRow, {
           rowBg: rowBg,
@@ -798,9 +852,7 @@ function HomeLive() {
             from: "home"
           }),
           style: {
-            background: cardBg,
-            border: cardBorder,
-            padding: 14,
+            padding: "13px 15px",
             color: "var(--text)",
             cursor: "pointer"
           }
@@ -813,9 +865,9 @@ function HomeLive() {
           }
         }, /*#__PURE__*/React.createElement("span", {
           style: {
-            width: 38,
-            height: 38,
-            borderRadius: 14,
+            width: 36,
+            height: 36,
+            borderRadius: 13,
             background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg),
             boxShadow: bosTileGlass(isDark),
             display: "grid",

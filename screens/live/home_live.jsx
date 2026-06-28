@@ -201,35 +201,44 @@ function HomeLive() {
       );
     }
 
-    if (id === "summary") {
-      // Calendar + Community — kept as the compact 2-up pair (one widget).
+    if (id === "week") {
+      // «Эта неделя» replaces the old date card (the date already shows in the greeting). A 7-day
+      // activity strip; tap → history. Title lives INSIDE the card («всё внутри блоков»).
+      const _wk = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
+      const _active = habits.length ? _wk.filter((k) => habits.some((h) => h.log && h.log[k])).length : 0;
       return (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <button className="tap" onClick={() => navigate("history")}
-            style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Календарь</div>
-              <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{_calLabel}</div>
+        <button className="tap" onClick={() => navigate("history")}
+          style={{ width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 15px", textAlign: "left", boxShadow: cardShadow, color: "var(--text)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Эта неделя</span>
+            <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{_active} из 7 ›</span>
+          </div>
+          <HomeWeekStripLive habits={habits} isDark={isDark} />
+        </button>
+      );
+    }
+
+    if (id === "team") {
+      // «Команды» — its own full-width widget (David picked variant A: teams separate). Glass tile
+      // + standard grey glass discs for emblems; tap → community.
+      return (
+        <button className="tap" onClick={() => navigate("community")}
+          style={{ width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 15px", textAlign: "left", display: "flex", alignItems: "center", gap: 12, boxShadow: cardShadow, color: "var(--text)" }}>
+          <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>👥</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>Команды</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>{teams.length ? teams.length + " " + ruTeam(teams.length) + " · ведёте вместе" : "Создай свою первую"}</div>
+          </div>
+          {teams.length > 0 ? (
+            <div style={{ display: "flex", flexShrink: 0 }}>
+              {teams.slice(0, 4).map((t, i) => (
+                <span key={t._id || i} title={t.name} style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(150deg,#eef1f6,#dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), 0 0 0 2px " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: i ? -9 : 0, display: "grid", placeItems: "center", fontSize: 15, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 15, t.accent)}</span>
+              ))}
             </div>
-            <I.Calendar size={28} color={isDark ? "rgba(255,255,255,0.7)" : "#787878"} strokeWidth={1.5} />
-          </button>
-          <button className="tap" onClick={() => navigate("community")}
-            style={{ background: cardBg, border: cardBorder, borderRadius: 22, padding: "14px 14px 12px", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: cardShadow, color: "var(--text)" }}>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Команды</div>
-              <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 4, fontWeight: 500 }}>{teams.length ? teams.length + " " + ruTeam(teams.length) : "Создай команду"}</div>
-            </div>
-            {teams.length > 0 ? (
-              <div style={{ display: "flex" }}>
-                {teams.slice(0, 4).map((t, i) => (
-                  <span key={t._id || i} title={t.name} style={{ width: 28, height: 28, borderRadius: "50%", background: t.accent || "var(--surface-3)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff"), marginLeft: i ? -10 : 0, display: "grid", placeItems: "center", fontSize: 14, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 14, t.accent)}</span>
-                ))}
-              </div>
-            ) : (
-              <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", color: "var(--text-3)" }}><I.Plus size={16}/></span>
-            )}
-          </button>
-        </div>
+          ) : (
+            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Plus size={16}/></span>
+          )}
+        </button>
       );
     }
 
@@ -256,28 +265,34 @@ function HomeLive() {
     }
 
     if (id === "habits") {
+      // «Всё внутри блоков» (David): the «Привычки» title lives INSIDE one grouped card, with the
+      // habit rows stacked below it (hairline dividers, per-row swipe kept). HOME ONLY — the
+      // Habits tab keeps its fuller separate-card view untouched.
       return (
-        <div>
-          <div className="section-label" style={{ color: "var(--text-3)", padding: "0 4px" }}>Привычки</div>
+        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, overflow: "hidden", color: "var(--text)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 15px 11px" }}>
+            <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Привычки</span>
+            {habits.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{doneCount} из {totalCount}</span>}
+          </div>
           {habits.length === 0 ? (
-            <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ width: "100%", background: "transparent", border: 0, padding: "6px 20px 26px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
-              <div style={{ fontSize: 16, fontWeight: 600 }}>Здесь будут твои привычки</div>
-              <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Здесь будут твои привычки</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
               <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
             </button>
           ) : (
-            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, color: "var(--text)" }}>
-              {habits.map((h) => (
-                <div key={h.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {habits.map((h, hi) => (
+                <div key={h.id} style={{ borderTop: hi ? "1px solid " + dividerLn : "0" }}>
                   <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                     { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />) },
                     { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) }) },
                   ]}>
-                    <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
-                      <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
+                    <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 15px" }}>
+                      <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
+                        <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
                         {(h.shareCode || h.duration > 0) && (
                           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
                             {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
@@ -302,29 +317,33 @@ function HomeLive() {
     }
 
     if (id === "goals") {
+      // Grouped «Цели» card — title INSIDE, goal rows below (hairline dividers). HOME ONLY.
       return (
-        <div>
-          <div className="section-label" style={{ color: "var(--text-3)", padding: "0 4px" }}>Цели</div>
+        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, overflow: "hidden", color: "var(--text)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 15px 11px" }}>
+            <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Цели</span>
+            {goals.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{goals.length}</span>}
+          </div>
           {goals.length === 0 ? (
-            <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ marginTop: 10, width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ width: "100%", background: "transparent", border: 0, padding: "6px 20px 26px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
-              <div style={{ fontSize: 16, fontWeight: 600 }}>Пока нет целей</div>
-              <div style={{ fontSize: 13, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Пока нет целей</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
               <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Поставить цель</span>
             </button>
           ) : (
-            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-              {goals.map(g => {
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {goals.map((g, gi) => {
                 const pct = g.target ? g.current / g.target : 0;
                 return (
-                  <div key={g.id} style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
+                  <div key={g.id} style={{ borderTop: gi ? "1px solid " + dividerLn : "0" }}>
                     <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                       { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) },
                       { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) }) },
                     ]}>
-                      <div className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ background: cardBg, border: cardBorder, padding: 14, color: "var(--text)", cursor: "pointer" }}>
+                      <div className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ padding: "13px 15px", color: "var(--text)", cursor: "pointer" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                          <span style={{ width: 38, height: 38, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 18 }}>{bosIcon(g.emoji, 20, g.color)}</span>
+                          <span style={{ width: 36, height: 36, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 18 }}>{bosIcon(g.emoji, 20, g.color)}</span>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
                             <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
