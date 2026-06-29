@@ -1451,6 +1451,445 @@ function TeamSettingsLive() {
   }), " \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"));
 }
 
+/* ПРАВКА КРУГА НА МЕСТЕ — карандаш в комнате открывает ЭТУ шторку (не уводит на отдельный
+   экран). Те же поля и тот же save (app.updateTeam + cloud updateTeam), что в TeamSettingsLive —
+   комната под шторкой обновляется живьём, т.к. читает app.teams. Иконка = embedded EmojiPickerLive
+   через двухвью (one-sheet host). «Все настройки и участники» → полный экран (ничего не теряем). */
+function TeamQuickEditSheetLive({
+  team
+}) {
+  var app = useApp();
+  var {
+    close
+  } = useSheet();
+  var {
+    navigate
+  } = useNav();
+  var [view, setView] = useCS("form");
+  var [name, setName] = useCS(team.name || "");
+  var [emblem, setEmblem] = useCS(team.emblem || "✨");
+  var [accent, setAccent] = useCS(team.accent || BOS_GREY);
+  var [goal, setGoal] = useCS(team.goal || "");
+  var [goalType, setGoalType] = useCS(team.type || "collective");
+  var [target, setTarget] = useCS(team.target || 0);
+  var [unit, setUnit] = useCS(team.unit || "дел");
+  var [priv, setPriv] = useCS(team.vis !== "public");
+  var [stakes, setStakes] = useCS((team.stake || 0) > 0);
+  var [stakeAmount, setStakeAmount] = useCS(team.stake || 100);
+  var [saving, setSaving] = useCS(false);
+  var goalTypes = [{
+    id: "collective",
+    e: "🌊",
+    t: "Общий счёт",
+    d: "Отметки всех складываются в одно число."
+  }, {
+    id: "streak",
+    e: "🔥",
+    t: "Серия у каждого",
+    d: "Команда проходит, только если прошли все."
+  }, {
+    id: "race",
+    e: "🏁",
+    t: "Гонка",
+    d: "Первый до цели побеждает, остальные — часть XP."
+  }];
+  var save = () => {
+    if (saving) return;
+    setSaving(true);
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+    var stakeVal = stakes ? Number(stakeAmount) || 0 : 0;
+    var tgt = Number(target) || 0;
+    var goalText = goal.trim() || team.goal;
+    var patch = {
+      name: name.trim() || team.name,
+      emblem,
+      accent,
+      goal: goalText,
+      vis: priv ? "private" : "public",
+      type: goalType,
+      target: tgt,
+      unit,
+      stake: stakeVal
+    };
+    app?.updateTeam(team._id, patch);
+    try {
+      if (team.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
+        window.bosCloud.updateTeam(team.cloudId, {
+          name: patch.name,
+          emblem,
+          vis: patch.vis,
+          goalKind: goalText,
+          goalTarget: tgt,
+          goal: {
+            type: goalType,
+            target: tgt,
+            unit,
+            title: goalText,
+            stake: stakeVal
+          }
+        });
+      }
+    } catch (e) {}
+    close();
+  };
+  if (view === "picker") {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "2px 16px 18px"
+      }
+    }, /*#__PURE__*/React.createElement(EmojiPickerLive, {
+      embedded: true,
+      current: emblem,
+      accent: accent,
+      onPick: e => {
+        setEmblem(e);
+        setView("form");
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setView("form"),
+      className: "tap",
+      style: {
+        width: "100%",
+        marginTop: 12,
+        background: "var(--surface-3)",
+        border: 0,
+        borderRadius: 14,
+        padding: "12px",
+        fontSize: 14,
+        fontWeight: 600,
+        color: "var(--text-2)"
+      }
+    }, "\u041D\u0430\u0437\u0430\u0434"));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 18px 20px",
+      maxHeight: "80vh",
+      overflowY: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      fontSize: 18,
+      fontWeight: 700,
+      letterSpacing: "-0.3px",
+      marginBottom: 6
+    }
+  }, "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 6,
+      position: "relative",
+      overflow: "hidden",
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u0440\u0443\u0433\u0430",
+    style: {
+      width: "100%",
+      fontSize: 21,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0,
+      letterSpacing: "-0.4px"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-haptic": "selection",
+    onClick: () => setView("picker"),
+    className: "tap",
+    style: {
+      marginTop: 13,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 10,
+      background: "rgba(255,255,255,0.75)",
+      border: 0,
+      borderRadius: 14,
+      padding: "7px 14px 7px 7px",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      background: "#fff",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22,
+      boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+    }
+  }, bosIcon(emblem, 22, accent)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement(BosColorPickerLive, {
+    value: accent,
+    onChange: setAccent
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 20
+    }
+  }, "\u041E\u0431\u0449\u0430\u044F \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginTop: 8
+    }
+  }, goalTypes.map(gt => {
+    var active = goalType === gt.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: gt.id,
+      onClick: () => setGoalType(gt.id),
+      className: "tap",
+      style: {
+        background: "var(--card)",
+        border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)",
+        borderRadius: 18,
+        padding: 12,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        textAlign: "left",
+        boxShadow: "var(--card-shadow)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: active ? "#0a0a0a" : "#e8e8e8",
+        color: active ? "#fff" : "var(--text)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 16,
+        flexShrink: 0
+      }
+    }, gt.e), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14.5,
+        fontWeight: 600,
+        color: "var(--text)"
+      }
+    }, gt.t), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-4)",
+        marginTop: 2,
+        lineHeight: 1.4
+      }
+    }, gt.d)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 18,
+        height: 18,
+        borderRadius: "50%",
+        background: active ? "#0a0a0a" : "transparent",
+        border: active ? "0" : "1.5px solid var(--text-5)",
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, active && /*#__PURE__*/React.createElement(I.Check, {
+      size: 11,
+      color: "#fff",
+      strokeWidth: 3
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 18,
+      padding: 14,
+      marginTop: 10,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: goal,
+    onChange: e => setGoal(e.target.value),
+    placeholder: "50 \u0434\u043E\u0431\u0440\u044B\u0445 \u0434\u0435\u043B",
+    style: {
+      width: "100%",
+      fontSize: 18,
+      fontWeight: 600,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      padding: "4px 0 10px",
+      background: "transparent",
+      borderBottom: goalType !== "streak" ? "1px solid var(--line)" : "0"
+    }
+  }), goalType !== "streak" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    pattern: "[0-9]*",
+    value: target,
+    onChange: e => setTarget(parseInt(e.target.value.replace(/\D/g, "")) || 0),
+    style: {
+      flex: "0 0 80px",
+      fontSize: 24,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: unit,
+    onChange: e => setUnit(e.target.value),
+    placeholder: "\u0434\u0435\u043B",
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 16,
+      color: "var(--text-3)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: "4px 0"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 20
+    }
+  }, "\u0412\u0438\u0434\u0438\u043C\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement(Segmented, {
+    value: priv ? "private" : "public",
+    onChange: v => setPriv(v === "private"),
+    options: [{
+      value: "private",
+      label: "Приватная"
+    }, {
+      value: "public",
+      label: "Публичная"
+    }]
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 20
+    }
+  }, "\u0421\u0442\u0430\u0432\u043A\u0430 \u0432 \u0438\u0433\u0440\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 18,
+      padding: 14,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      fontSize: 14,
+      color: "var(--text-2)",
+      fontWeight: 500
+    }
+  }, "\u0412\u0441\u0435 \u0441\u0442\u0430\u0432\u044F\u0442 XP", /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.4,
+      fontWeight: 400
+    }
+  }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u2014 \u0431\u0430\u043D\u043A \u0440\u0430\u0441\u043A\u0440\u043E\u0435\u0442\u0441\u044F. \u041E\u043F\u0446\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
+    on: stakes,
+    onChange: setStakes
+  })), stakes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTop: "1px solid var(--line)",
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    pattern: "[0-9]*",
+    value: stakeAmount,
+    onChange: e => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0),
+    style: {
+      flex: "0 0 70px",
+      fontSize: 20,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, "XP \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E"))), /*#__PURE__*/React.createElement("button", {
+    className: "bos-btn",
+    disabled: saving,
+    style: {
+      marginTop: 18,
+      opacity: saving ? 0.65 : 1
+    },
+    onClick: save
+  }, saving ? "Сохраняем…" : "Сохранить"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      close();
+      navigate("team-settings", {
+        team
+      });
+    },
+    className: "tap",
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--text-3)",
+      padding: "12px",
+      marginTop: 4,
+      fontSize: 13.5,
+      fontWeight: 600
+    }
+  }, "\u0412\u0441\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0438 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 \u2192"));
+}
+
 /* LIVE fork of the «add team habit» sheet — uses OUR standard icon picker (EmojiPickerLive:
    эмодзи/символы/палитра), like creating a personal habit, instead of the core sheet's cramped
    12-emoji row (David: «выбор эмодзи не по нашим стандартам — посмотри как делаем привычки»).

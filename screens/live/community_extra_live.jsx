@@ -522,6 +522,129 @@ function TeamSettingsLive() {
   );
 }
 
+/* ПРАВКА КРУГА НА МЕСТЕ — карандаш в комнате открывает ЭТУ шторку (не уводит на отдельный
+   экран). Те же поля и тот же save (app.updateTeam + cloud updateTeam), что в TeamSettingsLive —
+   комната под шторкой обновляется живьём, т.к. читает app.teams. Иконка = embedded EmojiPickerLive
+   через двухвью (one-sheet host). «Все настройки и участники» → полный экран (ничего не теряем). */
+function TeamQuickEditSheetLive({ team }) {
+  const app = useApp();
+  const { close } = useSheet();
+  const { navigate } = useNav();
+  const [view, setView] = useCS("form");
+  const [name, setName] = useCS(team.name || "");
+  const [emblem, setEmblem] = useCS(team.emblem || "✨");
+  const [accent, setAccent] = useCS(team.accent || BOS_GREY);
+  const [goal, setGoal] = useCS(team.goal || "");
+  const [goalType, setGoalType] = useCS(team.type || "collective");
+  const [target, setTarget] = useCS(team.target || 0);
+  const [unit, setUnit] = useCS(team.unit || "дел");
+  const [priv, setPriv] = useCS(team.vis !== "public");
+  const [stakes, setStakes] = useCS((team.stake || 0) > 0);
+  const [stakeAmount, setStakeAmount] = useCS(team.stake || 100);
+  const [saving, setSaving] = useCS(false);
+  const goalTypes = [
+    { id: "collective", e: "🌊", t: "Общий счёт", d: "Отметки всех складываются в одно число." },
+    { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Команда проходит, только если прошли все." },
+    { id: "race",       e: "🏁", t: "Гонка", d: "Первый до цели побеждает, остальные — часть XP." },
+  ];
+  const save = () => {
+    if (saving) return; setSaving(true);
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    const stakeVal = stakes ? (Number(stakeAmount) || 0) : 0;
+    const tgt = Number(target) || 0;
+    const goalText = goal.trim() || team.goal;
+    const patch = { name: name.trim() || team.name, emblem, accent, goal: goalText, vis: priv ? "private" : "public", type: goalType, target: tgt, unit, stake: stakeVal };
+    app?.updateTeam(team._id, patch);
+    try {
+      if (team.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
+        window.bosCloud.updateTeam(team.cloudId, { name: patch.name, emblem, vis: patch.vis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: stakeVal } });
+      }
+    } catch (e) {}
+    close();
+  };
+  if (view === "picker") {
+    return (
+      <div style={{ padding: "2px 16px 18px" }}>
+        <EmojiPickerLive embedded current={emblem} accent={accent} onPick={(e) => { setEmblem(e); setView("form"); }} />
+        <button onClick={() => setView("form")} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Назад</button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: "2px 18px 20px", maxHeight: "80vh", overflowY: "auto" }}>
+      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 6 }}>Изменить круг</div>
+
+      {/* Идентичность — тот же градиентный вид, что в создании/настройках */}
+      <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, borderRadius: 22, padding: 16, marginTop: 6, position: "relative", overflow: "hidden", boxShadow: "var(--card-shadow)" }}>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Название круга"
+          style={{ width: "100%", fontSize: 21, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
+        <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap"
+          style={{ marginTop: 13, display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.75)", border: 0, borderRadius: 14, padding: "7px 14px 7px 7px", cursor: "pointer" }}>
+          <span style={{ width: 38, height: 38, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 22, accent)}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
+        </button>
+        <BosColorPickerLive value={accent} onChange={setAccent} />
+      </div>
+
+      {/* Режим общей цели */}
+      <div className="section-label" style={{ marginTop: 20 }}>Общая цель</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {goalTypes.map(gt => {
+          const active = goalType === gt.id;
+          return (
+            <button key={gt.id} onClick={() => setGoalType(gt.id)} className="tap"
+              style={{ background: "var(--card)", border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)", borderRadius: 18, padding: 12, display: "flex", alignItems: "center", gap: 12, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{gt.e}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{gt.t}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{gt.d}</div>
+              </div>
+              <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? "#0a0a0a" : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color="#fff" strokeWidth={3}/>}</div>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ background: "var(--card)", borderRadius: 18, padding: 14, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
+        <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="50 добрых дел"
+          style={{ width: "100%", fontSize: 18, fontWeight: 600, color: "var(--text)", border: 0, outline: 0, padding: "4px 0 10px", background: "transparent", borderBottom: goalType !== "streak" ? "1px solid var(--line)" : "0" }} />
+        {goalType !== "streak" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+            <input type="text" inputMode="numeric" pattern="[0-9]*" value={target} onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
+              style={{ flex: "0 0 80px", fontSize: 24, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0 }}/>
+            <input value={unit} onChange={e => setUnit(e.target.value)} placeholder="дел"
+              style={{ flex: 1, minWidth: 0, fontSize: 16, color: "var(--text-3)", border: 0, outline: 0, background: "transparent", padding: "4px 0" }}/>
+          </div>
+        )}
+      </div>
+
+      {/* Видимость */}
+      <div className="section-label" style={{ marginTop: 20 }}>Видимость</div>
+      <div style={{ marginTop: 8 }}>
+        <Segmented value={priv ? "private" : "public"} onChange={(v) => setPriv(v === "private")} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Публичная" }]} />
+      </div>
+
+      {/* Ставка */}
+      <div className="section-label" style={{ marginTop: 20 }}>Ставка в игре</div>
+      <div style={{ background: "var(--card)", borderRadius: 18, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP<div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4, fontWeight: 400 }}>Дойдёте — банк раскроется. Опционально.</div></div>
+          <Switch on={stakes} onChange={setStakes}/>
+        </div>
+        {stakes && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", alignItems: "baseline", gap: 8 }}>
+            <input type="text" inputMode="numeric" pattern="[0-9]*" value={stakeAmount} onChange={e => setStakeAmount(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
+              style={{ flex: "0 0 70px", fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0 }}/>
+            <span style={{ fontSize: 13, color: "var(--text-4)" }}>XP с каждого</span>
+          </div>
+        )}
+      </div>
+
+      <button className="bos-btn" disabled={saving} style={{ marginTop: 18, opacity: saving ? 0.65 : 1 }} onClick={save}>{saving ? "Сохраняем…" : "Сохранить"}</button>
+      <button onClick={() => { close(); navigate("team-settings", { team }); }} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 4, fontSize: 13.5, fontWeight: 600 }}>Все настройки и участники →</button>
+    </div>
+  );
+}
+
 /* LIVE fork of the «add team habit» sheet — uses OUR standard icon picker (EmojiPickerLive:
    эмодзи/символы/палитра), like creating a personal habit, instead of the core sheet's cramped
    12-emoji row (David: «выбор эмодзи не по нашим стандартам — посмотри как делаем привычки»).

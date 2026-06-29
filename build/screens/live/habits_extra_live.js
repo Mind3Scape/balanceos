@@ -626,6 +626,9 @@ function GoalSettingsLive() {
   var [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
   var [showCal, setShowCal] = useHS(false);
   var [linkHabit, setLinkHabit] = useHS(true);
+  // КРУГ — «цель + круг = команда»: включаешь круг → цель общая (можно позвать людей). Поле circle
+  // едет в data (addGoal/updateGoal спред). David: один тумблер вместо отдельного создания команды.
+  var [circleOn, setCircleOn] = useHS(g0?.circle === true);
   // REAL — the user's own habits, none pre-selected.
   var [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map(h => ({
     e: h.emoji || "✨",
@@ -942,7 +945,66 @@ function GoalSettingsLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 12
-  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("button", {
+  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0414\u0435\u043B\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 8,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      fontSize: 14,
+      color: "var(--text-2)",
+      lineHeight: 1.4
+    }
+  }, "\u0418\u0434\u0442\u0438 \u043A \u0446\u0435\u043B\u0438 \u043A\u0440\u0443\u0433\u043E\u043C", /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2
+    }
+  }, "\u0412\u043A\u043B\u044E\u0447\u0438 \u043A\u0440\u0443\u0433 \u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430 \u043A\u0440\u0443\u0433\u0430.")), /*#__PURE__*/React.createElement(Switch, {
+    on: circleOn,
+    onChange: setCircleOn
+  })), circleOn && /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+      goal: {
+        name: name.trim() || "Цель",
+        emoji: iconPick,
+        color
+      }
+    })),
+    className: "tap",
+    style: {
+      marginTop: 14,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 14px",
+      borderRadius: 999,
+      background: "transparent",
+      border: "1px dashed rgba(0,0,0,0.18)",
+      color: "var(--text-2)",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 13
+  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433")), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
       marginTop: 20
@@ -954,9 +1016,21 @@ function GoalSettingsLive() {
         name: name.trim() || "Новая цель",
         target: Math.max(1, target),
         unit,
-        deadline
+        deadline,
+        circle: circleOn
       };
       if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
+      if (circleOn) {
+        navigate("habits");
+        openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+          goal: {
+            name: data.name,
+            emoji: iconPick,
+            color
+          }
+        }));
+        return;
+      }
       navigate("habits");
     }
   }, editing ? "Сохранить" : "Создать цель"), editing && /*#__PURE__*/React.createElement("button", {

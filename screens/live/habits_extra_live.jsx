@@ -293,6 +293,9 @@ function GoalSettingsLive() {
   const [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
   const [showCal, setShowCal] = useHS(false);
   const [linkHabit, setLinkHabit] = useHS(true);
+  // КРУГ — «цель + круг = команда»: включаешь круг → цель общая (можно позвать людей). Поле circle
+  // едет в data (addGoal/updateGoal спред). David: один тумблер вместо отдельного создания команды.
+  const [circleOn, setCircleOn] = useHS(g0?.circle === true);
   // REAL — the user's own habits, none pre-selected.
   const [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map((h) => ({ e: h.emoji || "✨", n: h.name, on: false })));
   const toggleLinked = (i) => setLinkedHabits((hs) => hs.map((h, j) => (j === i ? { ...h, on: !h.on } : h)));
@@ -391,10 +394,27 @@ function GoalSettingsLive() {
         )}
       </div>
 
+      {/* КРУГ — «делать вместе»: цель с надетым кругом = «команда». Один тумблер (David). Тот же
+          смысл, что у привычки «Поделиться»; вкл → можно позвать людей, цель станет общей. */}
+      <div className="section-label" style={{ marginTop: 22 }}>Делать вместе</div>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
+            Идти к цели кругом
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Включи круг и позови людей — цель станет общей, у каждого появятся лица круга.</div>
+          </div>
+          <Switch on={circleOn} onChange={setCircleOn} />
+        </div>
+        {circleOn && (
+          <button onClick={() => openSheet(<ShareGoalSheetLive goal={{ name: name.trim() || "Цель", emoji: iconPick, color }} />)} className="tap" style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 999, background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-2)", fontSize: 13, fontWeight: 600 }}><I.Plus size={13}/> Позвать в круг</button>
+        )}
+      </div>
+
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
-        const data = { emoji: iconPick, color, name: name.trim() || "Новая цель", target: Math.max(1, target), unit, deadline };
+        const data = { emoji: iconPick, color, name: name.trim() || "Новая цель", target: Math.max(1, target), unit, deadline, circle: circleOn };
         if (editing) app?.updateGoal(g0.id, data);
         else app?.addGoal(data);
+        if (circleOn) { navigate("habits"); openSheet(<ShareGoalSheetLive goal={{ name: data.name, emoji: iconPick, color }} />); return; }
         navigate("habits");
       }}>
         {editing ? "Сохранить" : "Создать цель"}

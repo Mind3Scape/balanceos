@@ -1182,27 +1182,10 @@ function TeamDetailLive() {
         gap: 8,
         alignItems: "center"
       }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+    }, _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamQuickEditSheetLive, {
         team: t
-      })),
-      className: "tap",
-      title: "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u043E\u0439",
-      style: {
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        background: "var(--surface-3)",
-        border: 0,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement(I.Share, {
-      size: 18
-    })), _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
-      onClick: () => navigate("team-settings", {
-        team: t
-      })
+      }))
     }))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1468,93 +1451,12 @@ function TeamDetailLive() {
         color: "var(--text-4)"
       })
     }]
-  }), /*#__PURE__*/React.createElement("button", {
-    "data-tour": "team-chat",
-    onClick: () => {
-      markChatRead();
-      navigate("team-chat", {
-        team: t
-      });
-    },
-    className: "tap",
-    style: {
-      width: "100%",
-      marginTop: 12,
-      background: "var(--card)",
-      border: 0,
-      borderRadius: 22,
-      padding: 14,
-      boxShadow: "var(--card-shadow)",
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      textAlign: "left",
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      background: BOS_TILE_SHEEN + ", var(--surface-3)",
-      boxShadow: bosTileGlass(isDark),
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      flexShrink: 0
-    }
-  }, "\uD83D\uDCAC"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 600
-    }
-  }, "\u0427\u0430\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-4)",
-      marginTop: 2,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, _chatLive ? chatPeek ? chatPeek.last || "Пока пусто — напишите первыми" : "…" : "Пока пусто — напишите первыми")), _chatLive && chatPeek && chatPeek.unread > 0 ? /*#__PURE__*/React.createElement("span", {
-    style: {
-      background: "#FF3B30",
-      color: "#fff",
-      fontSize: 11,
-      fontWeight: 700,
-      borderRadius: 999,
-      minWidth: 20,
-      height: 20,
-      padding: "0 6px",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread) : null, /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 18,
-    color: "var(--text-4)"
-  })), main && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
-      marginTop: 22,
-      display: "flex",
-      alignItems: "center",
-      gap: 6
+      marginTop: 22
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 6,
-      height: 6,
-      borderRadius: "50%",
-      background: "#FEDE34"
-    }
-  }), " \u0413\u043B\u0430\u0432\u043D\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0432\u043C\u0435\u0441\u0442\u0435"), main && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: BOS_TILE_SHEEN + ", var(--card)",
       borderRadius: 22,
@@ -2094,7 +1996,80 @@ function TeamDetailLive() {
         marginTop: 2
       }
     }, m.role === "owner" ? "Создатель команды" : "Участник"))));
-  })), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 22
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      markChatRead();
+      navigate("team-chat", {
+        team: t
+      });
+    },
+    className: "tap",
+    style: {
+      flex: 1,
+      position: "relative",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(isDark),
+      border: 0,
+      borderRadius: 16,
+      padding: "12px 10px",
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16,
+      lineHeight: 1
+    }
+  }, "\uD83D\uDCAC"), " \u0427\u0430\u0442", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 7,
+      right: 12,
+      background: "#FF3B30",
+      color: "#fff",
+      fontSize: 10,
+      fontWeight: 700,
+      borderRadius: 999,
+      minWidth: 16,
+      height: 16,
+      padding: "0 4px",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+      team: t
+    })),
+    className: "tap",
+    style: {
+      flex: 1,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(isDark),
+      border: 0,
+      borderRadius: 16,
+      padding: "12px 10px",
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Share, {
+    size: 16
+  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C")), /*#__PURE__*/React.createElement("button", {
     onClick: () => bosConfirmExitTeam({
       app,
       team: t,

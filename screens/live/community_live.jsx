@@ -500,13 +500,10 @@ function TeamDetailLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" title="Поделиться командой" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center" }}>
-            <I.Share size={18}/>
-          </button>
-          {/* Edit = the same Liquid Glass «Изменить» as habit/goal, but ONLY the team's
-              CREATOR (David: «кнопка Изменить у создателя команды»). _isOwner reads the
-              real roster role, falling back to !t.joined. */}
-          {_isOwner && <EditGlassButtonLive onClick={() => navigate("team-settings", { team: t })} />}
+          {/* Правка НА МЕСТЕ — карандаш открывает шторку правки прямо над комнатой (не уводит
+              на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. «Поделиться»
+              ушло вниз в тихие чипы («Позвать»), чтобы шапка не выбивалась. */}
+          {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<TeamQuickEditSheetLive team={t} />)} />}
         </div>
       }/>
       <div style={{ background: `linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%), linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)", transform: "translateZ(0)" }}>
@@ -608,25 +605,12 @@ function TeamDetailLive() {
         { l: "Сегодня", v: _rosterLoading ? 0 : inFlowToday, suf: "", icon: <I.Flame size={14} color="var(--text-4)" /> },
       ]} />
 
-      {/* Team chat — one shared space for the whole team. Live preview comes from the
-          cloud; before sync it shows the neutral empty hint. */}
-      <button data-tour="team-chat" onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
-        <span style={{ width: 44, height: 44, borderRadius: 14, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 600 }}>Чат команды</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{_chatLive ? (chatPeek ? (chatPeek.last || "Пока пусто — напишите первыми") : "…") : "Пока пусто — напишите первыми"}</div>
-        </div>
-        {_chatLive && chatPeek && chatPeek.unread > 0
-          ? <span style={{ background: "#FF3B30", color: "#fff", fontSize: 11, fontWeight: 700, borderRadius: 999, minWidth: 20, height: 20, padding: "0 6px", display: "grid", placeItems: "center", flexShrink: 0 }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>
-          : null}
-        <I.ChevronRight size={18} color="var(--text-4)"/>
-      </button>
+      {/* Чат уехал вниз в тихие чипы (см. конец комнаты) — David: чат нужен в основном тренеру,
+          не должен доминировать; у семьи/друзей он просто тихий. */}
 
+      <div className="section-label" style={{ marginTop: 22 }}>Сегодня вместе</div>
       {main && (<>
-      {/* Main habit — featured card */}
-      <div className="section-label" style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FEDE34" }}/> Главная привычка
-      </div>
+      {/* Main habit — featured card (якорь команды) */}
       <div style={{ background: BOS_TILE_SHEEN + ", var(--card)", borderRadius: 22, padding: 18, marginTop: 8, color: "var(--text)", position: "relative", overflow: "hidden", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", transform: "translateZ(0)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ width: 48, height: 48, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (main.color ? main.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0 }}>{bosIcon(main.emoji, 26, main.color)}</span>
@@ -771,6 +755,18 @@ function TeamDetailLive() {
           </div>
           );
         })}
+      </div>
+
+      {/* Тихое — чат и приглашение спокойными стеклянными чипами внизу комнаты. Чат живёт здесь
+          (не доминирует сверху); счётчик непрочитанных остаётся. «Позвать» = бывшая шара из шапки. */}
+      <div style={{ display: "flex", gap: 8, marginTop: 22 }}>
+        <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ flex: 1, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 16, padding: "12px 10px", fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>
+          <span style={{ fontSize: 16, lineHeight: 1 }}>💬</span> Чат
+          {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: 7, right: 12, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 16, height: 16, padding: "0 4px", display: "grid", placeItems: "center" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
+        </button>
+        <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 16, padding: "12px 10px", fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>
+          <I.Share size={16}/> Позвать
+        </button>
       </div>
 
       {/* Leave / delete — always shown for the live user. The owner deletes the whole
