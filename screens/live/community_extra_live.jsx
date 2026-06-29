@@ -114,7 +114,7 @@ function TeamCreateLive() {
           <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
         </button>
         {/* ONE shared colour picker — same as habits/goals (glassy circles, grey+black+Apple). */}
-        <BosColorPickerLive value={accent} onChange={setAccent} />
+        {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
       </div>
 
       {/* SHARED GOAL — без подписи (карточки режима сами объясняют). */}
@@ -383,7 +383,7 @@ function TeamSettingsLive() {
           <span style={{ width: 40, height: 40, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 24, accent)}</span>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
         </button>
-        <BosColorPickerLive value={accent} onChange={setAccent} />
+        {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
       </div>
 
       {/* GOAL — режим + цель, ТА ЖЕ логика и вид, что в «Создать команду» (David: связать создание↔настройки). */}
@@ -569,7 +569,7 @@ function TeamQuickEditSheetLive({ team, navigate }) {
           <span style={{ width: 38, height: 38, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 22, accent)}</span>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
         </button>
-        <BosColorPickerLive value={accent} onChange={setAccent} />
+        {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
       </div>
 
       {/* Режим общей цели — без подписи. */}

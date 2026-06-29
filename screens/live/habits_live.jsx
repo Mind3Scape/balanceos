@@ -253,7 +253,7 @@ function HabitsLive() {
               // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
               // расширенную, старую плоскую удалить»). Грей-стекло по умолчанию (.team-card), эмблема-
               // водяной знак, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель); круги носят лица через LiveTeamCard.
-              const gAccent = (g.color && g.color !== "#0a0a0a") ? g.color : "#C7C7CC";
+              const gAccent = "#DADADF"; // ЦВЕТА ПОКА ВЫКЛ (David) — единое светло-серое стекло, как у кругов
               const inner = (
                 <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ padding: 18, textAlign: "left", color: "var(--text)", position: "relative", overflow: "hidden", pointerEvents: ctx.mode ? "none" : "auto" }}>

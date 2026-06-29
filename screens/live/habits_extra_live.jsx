@@ -314,8 +314,7 @@ function GoalSettingsLive() {
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели" aria-label="Название цели"
             style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
-        {/* ONE shared colour picker — same as habits/teams (glassy circles, grey+black+Apple). */}
-        <BosColorPickerLive value={color} onChange={setColor} />
+        {/* Цвет-пикер ЦЕЛИ временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
       </div>
 
       <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>

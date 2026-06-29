@@ -6,7 +6,7 @@
    - Heavy, rarely-changing files (vendor libs, images, icons): CACHE-FIRST for
      speed; refreshed in the background.
    Bump CACHE on each release so the new worker re-precaches cleanly. */
-const CACHE = "balanceos-v353";
+const CACHE = "balanceos-v354";
 const PRECACHE = [
   "./", "index.html", "styles.css", "mobile.css", "haptics.js", "telegram.js", "aikey.js", "store.js", "supabase.js", "cloud.js",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js",
@@ -15,29 +15,29 @@ const PRECACHE = [
   // FILES on every build — do not edit between the markers (a file move would otherwise
   // silently break the offline precache).
   /* BUILD_PRECACHE_START */
-  "build/components/icons.js?v=v353",
-  "build/components/shell.js?v=v353",
-  "build/core/aliases.js?v=v353",
-  "build/core/home-kit.js?v=v353",
-  "build/core/habits-kit.js?v=v353",
-  "build/core/profile-kit.js?v=v353",
-  "build/core/community-kit.js?v=v353",
-  "build/core/extra-kit.js?v=v353",
-  "build/screens/demo/profile.js?v=v353",
-  "build/screens/demo/extra.js?v=v353",
-  "build/screens/intro.js?v=v353",
-  "build/screens/live/economy_live.js?v=v353",
-  "build/screens/live/shared_live.js?v=v353",
-  "build/screens/live/home_live.js?v=v353",
-  "build/screens/live/habits_live.js?v=v353",
-  "build/screens/live/profile_live.js?v=v353",
-  "build/screens/live/community_live.js?v=v353",
-  "build/screens/live/home_extra_live.js?v=v353",
-  "build/screens/live/habits_extra_live.js?v=v353",
-  "build/screens/live/profile_extra_live.js?v=v353",
-  "build/screens/live/community_extra_live.js?v=v353",
-  "build/screens/live/extra_live.js?v=v353",
-  "build/app.js?v=v353",
+  "build/components/icons.js?v=v354",
+  "build/components/shell.js?v=v354",
+  "build/core/aliases.js?v=v354",
+  "build/core/home-kit.js?v=v354",
+  "build/core/habits-kit.js?v=v354",
+  "build/core/profile-kit.js?v=v354",
+  "build/core/community-kit.js?v=v354",
+  "build/core/extra-kit.js?v=v354",
+  "build/screens/demo/profile.js?v=v354",
+  "build/screens/demo/extra.js?v=v354",
+  "build/screens/intro.js?v=v354",
+  "build/screens/live/economy_live.js?v=v354",
+  "build/screens/live/shared_live.js?v=v354",
+  "build/screens/live/home_live.js?v=v354",
+  "build/screens/live/habits_live.js?v=v354",
+  "build/screens/live/profile_live.js?v=v354",
+  "build/screens/live/community_live.js?v=v354",
+  "build/screens/live/home_extra_live.js?v=v354",
+  "build/screens/live/habits_extra_live.js?v=v354",
+  "build/screens/live/profile_extra_live.js?v=v354",
+  "build/screens/live/community_extra_live.js?v=v354",
+  "build/screens/live/extra_live.js?v=v354",
+  "build/app.js?v=v354",
   /* BUILD_PRECACHE_END */
   "assets/sphere.png",
   "manifest.webmanifest",

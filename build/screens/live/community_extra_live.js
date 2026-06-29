@@ -224,10 +224,7 @@ function TeamCreateLive() {
       fontWeight: 600,
       color: "var(--text-2)"
     }
-  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement(BosColorPickerLive, {
-    value: accent,
-    onChange: setAccent
-  })), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443"))), /*#__PURE__*/React.createElement("div", {
     "data-tour": "team-modes",
     style: {
       display: "flex",
@@ -972,10 +969,7 @@ function TeamSettingsLive() {
       fontWeight: 600,
       color: "var(--text-2)"
     }
-  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement(BosColorPickerLive, {
-    value: accent,
-    onChange: setAccent
-  })), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1584,10 +1578,7 @@ function TeamQuickEditSheetLive({
       fontWeight: 600,
       color: "var(--text-2)"
     }
-  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement(BosColorPickerLive, {
-    value: accent,
-    onChange: setAccent
-  })), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

@@ -683,10 +683,7 @@ function GoalSettingsLive() {
       letterSpacing: "-0.2px",
       padding: "6px 0"
     }
-  })), /*#__PURE__*/React.createElement(BosColorPickerLive, {
-    value: color,
-    onChange: setColor
-  })), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,

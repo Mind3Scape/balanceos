@@ -34,9 +34,9 @@ function LiveTeamCard({
   t,
   navigate
 }) {
-  // Светло-серое СТЕКЛО по умолчанию (David): чёрный/непокрашенный/демо-жёлтый accent → светло-серый;
-  // реальный выбранный цвет показывается как есть.
-  var cardAccent = t.accent && t.accent !== "#0a0a0a" && t.accent !== "#fef3c7" ? t.accent : "#C7C7CC";
+  // ЦВЕТА ПОКА ВЫКЛ (David): единое светло-серое СТЕКЛО (его референс) для ВСЕХ кругов/целей;
+  // выбор цвета временно убран, включим позже.
+  var cardAccent = "#DADADF";
   var tgt = t.target || 0;
   var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
   var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
@@ -70,13 +70,17 @@ function LiveTeamCard({
     return m === 1 && h !== 11 ? "участник" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "участника" : "участников";
   };
   return /*#__PURE__*/React.createElement("div", {
-    className: "team-card",
+    className: "team-card tap",
+    onClick: () => navigate("team-detail", {
+      team: t
+    }),
     style: {
       ["--team-accent"]: cardAccent,
       borderRadius: 22,
       padding: 18,
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
@@ -90,7 +94,7 @@ function LiveTeamCard({
       pointerEvents: "none",
       transform: "rotate(8deg)"
     }
-  }, bosIcon(t.emblem, 88, t.accent)), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(t.emblem, 88, null)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative"
     }
@@ -196,20 +200,7 @@ function LiveTeamCard({
       fontSize: 12,
       color: "var(--text-4)"
     }
-  }, "\u041F\u043E\u043A\u0430 \u0442\u044B \u043E\u0434\u0438\u043D \u2014 \u043F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0437\u0435\u0439"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("team-detail", {
-      team: t
-    }),
-    className: "tap team-card__cta",
-    style: {
-      marginLeft: "auto",
-      border: 0,
-      borderRadius: 999,
-      padding: "11px 18px",
-      fontSize: 13.5,
-      fontWeight: 600
-    }
-  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u0440\u0443\u0433"))));
+  }, "\u041F\u043E\u043A\u0430 \u0442\u044B \u043E\u0434\u0438\u043D \u2014 \u043F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0437\u0435\u0439"))));
 }
 function CommunityLive() {
   var {
@@ -761,8 +752,8 @@ function TeamDetailLive() {
   };
   // Read the LIVE team from the store so a just-added habit appears immediately.
   var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
-  // Светло-серое СТЕКЛО по умолчанию (David): чёрный/демо-жёлтый/непокрашенный → светло-серый; реальный цвет показывается.
-  var accent = t.accent && t.accent !== "#0a0a0a" && t.accent !== "#fef3c7" ? t.accent : "#C7C7CC";
+  // ЦВЕТА ПОКА ВЫКЛ (David): единое светло-серое СТЕКЛО для комнаты круга; включим позже.
+  var accent = "#DADADF";
   var isDark = app?.themeOverride === "dark";
   // The goal MODE — shown as a chip so the team's rule (общий счёт / серия / гонка) is ALWAYS
   // visible, not hidden behind the async cloud progress (David: «не вижу их отражение»).

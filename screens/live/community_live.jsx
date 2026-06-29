@@ -31,9 +31,9 @@
 // already caps at 5 faces + a «+N» overflow chip (iOS-style) and uses each member's real
 // avatar. Local-only teams fall back to their own members; empty cloud team = honest «ты один».
 function LiveTeamCard({ t, navigate }) {
-  // Светло-серое СТЕКЛО по умолчанию (David): чёрный/непокрашенный/демо-жёлтый accent → светло-серый;
-  // реальный выбранный цвет показывается как есть.
-  const cardAccent = (t.accent && t.accent !== "#0a0a0a" && t.accent !== "#fef3c7") ? t.accent : "#C7C7CC";
+  // ЦВЕТА ПОКА ВЫКЛ (David): единое светло-серое СТЕКЛО (его референс) для ВСЕХ кругов/целей;
+  // выбор цвета временно убран, включим позже.
+  const cardAccent = "#DADADF";
   const tgt = t.target || 0;
   const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
   const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
@@ -54,8 +54,8 @@ function LiveTeamCard({ t, navigate }) {
   const count = members.length;
   const ruPart = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "участник" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "участника" : "участников"; };
   return (
-    <div className="team-card" style={{ ["--team-accent"]: cardAccent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden" }}>
-      <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, t.accent)}</div>
+    <div className="team-card tap" onClick={() => navigate("team-detail", { team: t })} style={{ ["--team-accent"]: cardAccent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", cursor: "pointer" }}>
+      <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, null)}</div>
       <div style={{ position: "relative" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
@@ -70,13 +70,11 @@ function LiveTeamCard({ t, navigate }) {
         <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
           <span className="team-card__fill" style={{ display: "block", height: "100%", width: (gp * 100) + "%", borderRadius: 999 }} />
         </div>
+        {/* Кнопка убрана — тап по всей карточке открывает круг (David). Лица (кружочки людей) СОХРАНЕНЫ. */}
         <div style={{ display: "flex", alignItems: "center", marginTop: 14, gap: 8 }}>
           {_loading
             ? <div style={{ display: "flex" }}>{[0, 1, 2].map((i) => (<span key={i} className="bos-skel" style={{ width: 28, height: 28, borderRadius: "50%", marginLeft: i ? -10 : 0, border: "2px solid var(--card)" }} />))}</div>
             : count > 0 ? <PeopleStackLive people={members} size={28} max={5} /> : <span style={{ fontSize: 12, color: "var(--text-4)" }}>Пока ты один — позови друзей</span>}
-          <button onClick={() => navigate("team-detail", { team: t })} className="tap team-card__cta" style={{ marginLeft: "auto", border: 0, borderRadius: 999, padding: "11px 18px", fontSize: 13.5, fontWeight: 600 }}>
-            Открыть круг
-          </button>
         </div>
       </div>
     </div>
@@ -299,8 +297,8 @@ function TeamDetailLive() {
   const passed = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0, members: [] };
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
-  // Светло-серое СТЕКЛО по умолчанию (David): чёрный/демо-жёлтый/непокрашенный → светло-серый; реальный цвет показывается.
-  const accent = (t.accent && t.accent !== "#0a0a0a" && t.accent !== "#fef3c7") ? t.accent : "#C7C7CC";
+  // ЦВЕТА ПОКА ВЫКЛ (David): единое светло-серое СТЕКЛО для комнаты круга; включим позже.
+  const accent = "#DADADF";
   const isDark = app?.themeOverride === "dark";
   // The goal MODE — shown as a chip so the team's rule (общий счёт / серия / гонка) is ALWAYS
   // visible, not hidden behind the async cloud progress (David: «не вижу их отражение»).
