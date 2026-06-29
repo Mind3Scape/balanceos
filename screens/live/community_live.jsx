@@ -267,7 +267,12 @@ function TeamOrbitLive({ emblem, accent, faces, isDark }) {
   if (extra > 0) planets.push({ plus: extra });
   var innerN = Math.min(3, planets.length);
   var inner = planets.slice(0, innerN), outer = planets.slice(innerN);
-  var ring = function (d) { return { position: "absolute", left: "50%", top: "50%", width: d, height: d, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "0.7px dashed rgba(0,0,0,0.14)" }; };
+  // Космос-стиль как в онбординге (David: «орбиты не такие как в онбординге»): СПЛОШНЫЕ мягкие
+  // кольца + пыль + свечение, не пунктир. Тон колец — как у онбординг-орбиты (приглушённый синий).
+  var ringCol = isDark ? "rgba(186,210,248,0.22)" : "rgba(74,120,176,0.16)";
+  var ring = function (d) { return { position: "absolute", left: "50%", top: "50%", width: d, height: d, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid " + ringCol }; };
+  var DUST = [{ r: rIn, a: 35 }, { r: rIn, a: 215 }, { r: rOut, a: 10 }, { r: rOut, a: 120 }, { r: rOut, a: 235 }, { r: rOut, a: 305 }];
+  var dust = DUST.map(function (d, i) { var ang = d.a * Math.PI / 180; return <span key={"du" + i} aria-hidden style={{ position: "absolute", left: cx + d.r * Math.cos(ang), top: cy + d.r * Math.sin(ang), transform: "translate(-50%,-50%)", width: 3, height: 3, borderRadius: "50%", background: ringCol }} />; });
   var place = function (arr, r, off) {
     return arr.map(function (p, i) {
       var ang = (-90 + off + i * (360 / Math.max(1, arr.length))) * Math.PI / 180;
@@ -284,8 +289,11 @@ function TeamOrbitLive({ emblem, accent, faces, isDark }) {
   };
   return (
     <div style={{ position: "relative", width: W, height: H, margin: "0 auto" }}>
+      {/* мягкое свечение-космос за центром (как в онбординге) */}
+      <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 160, height: 160, borderRadius: "50%", background: isDark ? "radial-gradient(circle, rgba(186,210,248,0.16), transparent 68%)" : "radial-gradient(circle, rgba(74,120,176,0.12), transparent 68%)", pointerEvents: "none" }} />
       <div style={ring(rOut * 2)} />
       <div style={ring(rIn * 2)} />
+      {dust}
       {/* Центр орбиты — ТОТ ЖЕ серый диск, что у людей-планет (BuddyFaceLive), чтобы цвет не отличался (David). */}
       <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 54, height: 54, borderRadius: "50%", background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center" }}>{bosIcon(emblem || "✨", 28, null)}</div>
       {place(inner, rIn, 0)}

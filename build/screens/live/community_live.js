@@ -634,6 +634,9 @@ function TeamOrbitLive({
   var innerN = Math.min(3, planets.length);
   var inner = planets.slice(0, innerN),
     outer = planets.slice(innerN);
+  // Космос-стиль как в онбординге (David: «орбиты не такие как в онбординге»): СПЛОШНЫЕ мягкие
+  // кольца + пыль + свечение, не пунктир. Тон колец — как у онбординг-орбиты (приглушённый синий).
+  var ringCol = isDark ? "rgba(186,210,248,0.22)" : "rgba(74,120,176,0.16)";
   var ring = function (d) {
     return {
       position: "absolute",
@@ -643,9 +646,45 @@ function TeamOrbitLive({
       height: d,
       transform: "translate(-50%,-50%)",
       borderRadius: "50%",
-      border: "0.7px dashed rgba(0,0,0,0.14)"
+      border: "1px solid " + ringCol
     };
   };
+  var DUST = [{
+    r: rIn,
+    a: 35
+  }, {
+    r: rIn,
+    a: 215
+  }, {
+    r: rOut,
+    a: 10
+  }, {
+    r: rOut,
+    a: 120
+  }, {
+    r: rOut,
+    a: 235
+  }, {
+    r: rOut,
+    a: 305
+  }];
+  var dust = DUST.map(function (d, i) {
+    var ang = d.a * Math.PI / 180;
+    return /*#__PURE__*/React.createElement("span", {
+      key: "du" + i,
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        left: cx + d.r * Math.cos(ang),
+        top: cy + d.r * Math.sin(ang),
+        transform: "translate(-50%,-50%)",
+        width: 3,
+        height: 3,
+        borderRadius: "50%",
+        background: ringCol
+      }
+    });
+  });
   var place = function (arr, r, off) {
     return arr.map(function (p, i) {
       var ang = (-90 + off + i * (360 / Math.max(1, arr.length))) * Math.PI / 180;
@@ -707,10 +746,23 @@ function TeamOrbitLive({
       margin: "0 auto"
     }
   }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%,-50%)",
+      width: 160,
+      height: 160,
+      borderRadius: "50%",
+      background: isDark ? "radial-gradient(circle, rgba(186,210,248,0.16), transparent 68%)" : "radial-gradient(circle, rgba(74,120,176,0.12), transparent 68%)",
+      pointerEvents: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: ring(rOut * 2)
   }), /*#__PURE__*/React.createElement("div", {
     style: ring(rIn * 2)
-  }), /*#__PURE__*/React.createElement("div", {
+  }), dust, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: "50%",
