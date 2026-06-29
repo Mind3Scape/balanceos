@@ -262,6 +262,44 @@ var _bosTeamCache = {};
 function _bosTeamGet(k) { return (k && _bosTeamCache[k] !== undefined) ? _bosTeamCache[k] : null; }
 function _bosTeamPut(k, v) { if (k) { _bosTeamCache[k] = v; } return v; }
 
+/* ОРБИТА КРУГА — герой комнаты команды. Общая звезда (эмблема) в центре, люди-планеты
+   вокруг на двух кольцах; планета ЗАГОРАЕТСЯ (полная + ✓), если человек сегодня в потоке,
+   иначе приглушена. Переиспользует BuddyFaceLive + стеклянные хелперы — один язык со всем
+   приложением, наш космос-стиль (но НЕ трогает экраны с орбитами на «Я»). */
+function TeamOrbitLive({ emblem, accent, faces, isDark }) {
+  var W = 260, H = 178, cx = W / 2, cy = H / 2, FS = 30, rIn = 50, rOut = 84;
+  var list = Array.isArray(faces) ? faces : [];
+  var cap = 7, shown = list.slice(0, cap), extra = list.length - shown.length;
+  var planets = shown.map(function (f) { return { face: f }; });
+  if (extra > 0) planets.push({ plus: extra });
+  var innerN = Math.min(3, planets.length);
+  var inner = planets.slice(0, innerN), outer = planets.slice(innerN);
+  var ring = function (d) { return { position: "absolute", left: "50%", top: "50%", width: d, height: d, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "0.7px dashed rgba(0,0,0,0.14)" }; };
+  var place = function (arr, r, off) {
+    return arr.map(function (p, i) {
+      var ang = (-90 + off + i * (360 / Math.max(1, arr.length))) * Math.PI / 180;
+      var st = { position: "absolute", left: cx + r * Math.cos(ang), top: cy + r * Math.sin(ang), transform: "translate(-50%,-50%)" };
+      if (p.plus) return <span key={"x" + r + i} style={Object.assign({}, st, { width: FS, height: FS, borderRadius: "50%", background: "rgba(0,0,0,0.18)", color: "var(--text)", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center" })}>+{p.plus}</span>;
+      var f = p.face;
+      return (
+        <span key={(f.id || i) + "-" + r} style={Object.assign({}, st, { display: "block", opacity: f.done ? 1 : 0.42 })}>
+          <BuddyFaceLive avatar={f.avatar} name={f.name} size={FS} />
+          {f.done && <span style={{ position: "absolute", right: -1, bottom: -1, width: 13, height: 13, borderRadius: "50%", background: "#0a0a0a", color: "#fff", fontSize: 8, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 0 0 1.5px var(--card)" }}>✓</span>}
+        </span>
+      );
+    });
+  };
+  return (
+    <div style={{ position: "relative", width: W, height: H, margin: "0 auto" }}>
+      <div style={ring(rOut * 2)} />
+      <div style={ring(rIn * 2)} />
+      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 54, height: 54, borderRadius: 16, background: BOS_TILE_SHEEN + ", rgba(255,255,255,0.55)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center" }}>{bosIcon(emblem || "✨", 28, accent)}</div>
+      {place(inner, rIn, 0)}
+      {place(outer, rOut, 28)}
+    </div>
+  );
+}
+
 function TeamDetailLive() {
   const { navigate, params } = useNav();
   const app = useApp();
@@ -452,6 +490,12 @@ function TeamDetailLive() {
     return () => { on = false; };
   }, [_rosterLive, t.cloudId, goalProg]);
   const openAddHabit = () => openSheet(<TeamHabitSheetLive team={t} members={members} onAdd={(h) => { if (_rosterLive) addTeamHabitCloud(h); else app?.addTeamHabit(t._id, h); }} />);
+  // КТО СЕГОДНЯ В ПОТОКЕ — отметившие якорь сегодня (per-member из mainProg) + я, если отметил.
+  // Кормит орбиту (планеты загораются) и честный стат «Сегодня».
+  const flowSet = {}; (mainProg || []).forEach((m) => { if (m.days && m.days[_todayK]) flowSet[m.id] = true; });
+  if (meId && main && main.doneByMe) flowSet[meId] = true;
+  const orbitFaces = (Array.isArray(members) ? members : []).map((m) => ({ id: m.id, avatar: m.avatar, name: m.name, done: !!flowSet[m.id] }));
+  const inFlowToday = (Array.isArray(members) ? members : []).filter((m) => flowSet[m.id]).length;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Команда" onBack={() => navigate("community")} right={
@@ -466,12 +510,13 @@ function TeamDetailLive() {
         </div>
       }/>
       <div style={{ background: `linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%), linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)", transform: "translateZ(0)" }}>
-        <div aria-hidden style={{ position: "absolute", top: -14, right: -10, fontSize: 150, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{bosIcon(t.emblem || "✨", 116, t.accent)}</div>
         <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{t.name}</div>
-          <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
-          <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{t.date}</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9 }}>
+          {/* Орбита круга — общая звезда в центре, люди-планеты загораются за сегодня */}
+          <TeamOrbitLive emblem={t.emblem} accent={t.accent} faces={orbitFaces} isDark={isDark} />
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", textAlign: "center", marginTop: 2 }}>{t.name}</div>
+          <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500, textAlign: "center" }}>🎯 {t.goal}</div>
+          <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2, textAlign: "center" }}>{t.date}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, justifyContent: "center" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 10px", borderRadius: 999 }}>
               {t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"}
             </span>
@@ -560,7 +605,7 @@ function TeamDetailLive() {
       <StatTrioLive isDark={isDark} card={{ background: "var(--card)", boxShadow: "var(--card-shadow)", marginTop: 12, transform: "translateZ(0)" }} items={[
         { l: "Привычки", v: teamHabits.length, suf: "", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
         { l: "Участники", v: _rosterLoading ? 0 : members.length, suf: "", icon: <I.Users size={14} color="var(--text-4)" /> },
-        { l: "Серия", v: 0, text: "—", icon: <I.Flame size={14} color="var(--text-4)" /> },
+        { l: "Сегодня", v: _rosterLoading ? 0 : inFlowToday, suf: "", icon: <I.Flame size={14} color="var(--text-4)" /> },
       ]} />
 
       {/* Team chat — one shared space for the whole team. Live preview comes from the
@@ -700,7 +745,7 @@ function TeamDetailLive() {
           ))}
         </div>
       </>)}
-      <div className="section-label" style={{ marginTop: 22 }}>Участники{_rosterLoading ? "" : " (" + members.length + ")"}</div>
+      <div className="section-label" style={{ marginTop: 22 }}>Наши{_rosterLoading ? "" : " · " + members.length}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {_rosterLoading && [0, 1].map((i) => (
           <div key={"sk" + i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)" }}>
