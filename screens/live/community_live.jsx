@@ -53,16 +53,19 @@ function LiveTeamCard({ t, navigate }) {
   const members = _cloud ? (roster || []) : (t.members || []);
   const count = members.length;
   const ruPart = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "участник" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "участника" : "участников"; };
+  // Инфо ЧИПАМИ, не строчками вразброс (David: «чипы для разной инфо вместо разброса»).
+  const chipS = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.6)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" };
   return (
     <div className="team-card tap" onClick={() => navigate("team-detail", { team: t })} style={{ ["--team-accent"]: cardAccent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", cursor: "pointer" }}>
       <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, null)}</div>
       <div style={{ position: "relative" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
-          <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", background: "var(--card-track)", padding: "2px 8px", borderRadius: 999 }}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
+        <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+          {t.goal && <span style={chipS}>🎯 {t.goal}</span>}
+          {t.date && <span style={chipS}>📅 {t.date}</span>}
+          {!_loading && count > 0 && <span style={chipS}>👥 {count}</span>}
+          <span style={chipS}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
         </div>
-        <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {t.goal}</div>
-        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2, minHeight: 16 }}>{t.date}{_loading ? "" : " · " + count + " " + ruPart(count)}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
           <span>{t.target ? "К цели" : "Прогресс команды"}</span>
           <span style={{ color: "var(--text)" }}>{t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : Math.round(gp * 100) + "%"}</span>

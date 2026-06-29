@@ -260,8 +260,11 @@ function HabitsLive() {
                   <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 96, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(g.emoji || "🎯", 84, gAccent)}</div>
                   <div style={{ position: "relative" }}>
                     <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{g.name}</div>
-                    <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {g.target} {g.unit}</div>
-                    <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>до {g.deadline}</div>
+                    {/* Инфо ЧИПАМИ (David), как у кругов */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.6)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>🎯 {g.target} {g.unit}</span>
+                      {g.deadline && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.6)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>📅 до {g.deadline}</span>}
+                    </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
                       <span>К цели</span>
                       <span style={{ color: "var(--text)" }}>{g.current} / {g.target} {g.unit || ""}</span>

@@ -704,18 +704,38 @@ function HabitsLive() {
         }
       }, g.name), /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 13,
-          color: "var(--text-2)",
-          marginTop: 6,
-          fontWeight: 500
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          marginTop: 8
         }
-      }, "\uD83C\uDFAF ", g.target, " ", g.unit), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 12,
-          color: "var(--text-3)",
-          marginTop: 2
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          fontSize: 11.5,
+          fontWeight: 600,
+          color: "var(--text-2)",
+          background: "rgba(255,255,255,0.6)",
+          padding: "4px 10px",
+          borderRadius: 999,
+          whiteSpace: "nowrap"
         }
-      }, "\u0434\u043E ", g.deadline), /*#__PURE__*/React.createElement("div", {
+      }, "\uD83C\uDFAF ", g.target, " ", g.unit), g.deadline && /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          fontSize: 11.5,
+          fontWeight: 600,
+          color: "var(--text-2)",
+          background: "rgba(255,255,255,0.6)",
+          padding: "4px 10px",
+          borderRadius: 999,
+          whiteSpace: "nowrap"
+        }
+      }, "\uD83D\uDCC5 \u0434\u043E ", g.deadline)), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           justifyContent: "space-between",

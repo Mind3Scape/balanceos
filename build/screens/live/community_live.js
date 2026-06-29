@@ -69,6 +69,19 @@ function LiveTeamCard({
       h = n % 100;
     return m === 1 && h !== 11 ? "участник" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "участника" : "участников";
   };
+  // Инфо ЧИПАМИ, не строчками вразброс (David: «чипы для разной инфо вместо разброса»).
+  var chipS = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 11.5,
+    fontWeight: 600,
+    color: "var(--text-2)",
+    background: "rgba(255,255,255,0.6)",
+    padding: "4px 10px",
+    borderRadius: 999,
+    whiteSpace: "nowrap"
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "team-card tap",
     onClick: () => navigate("team-detail", {
@@ -100,45 +113,27 @@ function LiveTeamCard({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
       fontWeight: 700,
       fontSize: 18,
       color: "var(--text)",
       letterSpacing: "-0.4px"
     }
-  }, t.name), /*#__PURE__*/React.createElement("span", {
+  }, t.name), /*#__PURE__*/React.createElement("div", {
     style: {
-      flexShrink: 0,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4,
-      fontSize: 10.5,
-      fontWeight: 600,
-      color: "var(--text-3)",
-      background: "var(--card-track)",
-      padding: "2px 8px",
-      borderRadius: 999
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      marginTop: 8
     }
+  }, t.goal && /*#__PURE__*/React.createElement("span", {
+    style: chipS
+  }, "\uD83C\uDFAF ", t.goal), t.date && /*#__PURE__*/React.createElement("span", {
+    style: chipS
+  }, "\uD83D\uDCC5 ", t.date), !_loading && count > 0 && /*#__PURE__*/React.createElement("span", {
+    style: chipS
+  }, "\uD83D\uDC65 ", count), /*#__PURE__*/React.createElement("span", {
+    style: chipS
   }, t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-2)",
-      marginTop: 6,
-      fontWeight: 500
-    }
-  }, "\uD83C\uDFAF ", t.goal), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-3)",
-      marginTop: 2,
-      minHeight: 16
-    }
-  }, t.date, _loading ? "" : " · " + count + " " + ruPart(count)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
