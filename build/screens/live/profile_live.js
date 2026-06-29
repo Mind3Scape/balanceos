@@ -123,9 +123,35 @@ function ProfileLive() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     onBack: () => navigate("home"),
     title: "",
-    right: typeof EditGlassButtonLive === "function" ? /*#__PURE__*/React.createElement(EditGlassButtonLive, {
+    right: /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setUniverseOpen(true),
+      className: "tap",
+      "aria-label": "\u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F",
+      title: "\u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F",
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        border: 0,
+        display: "grid",
+        placeItems: "center",
+        cursor: "pointer",
+        color: isDark ? "#fff" : "var(--text)",
+        background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
+        boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none"
+      }
+    }, /*#__PURE__*/React.createElement(I.Globe, {
+      size: 18,
+      strokeWidth: 2
+    })), typeof EditGlassButtonLive === "function" ? /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: openAvatar
-    }) : null
+    }) : null)
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
@@ -180,29 +206,7 @@ function ProfileLive() {
         color: "var(--text-4)"
       })
     }]
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      display: "flex",
-      justifyContent: "center"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setUniverseOpen(true),
-    className: "tap",
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 7,
-      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {}),
-      border: 0,
-      borderRadius: 999,
-      padding: "9px 16px",
-      fontSize: 13.5,
-      fontWeight: 600,
-      color: "var(--text-2)",
-      cursor: "pointer"
-    }
-  }, "\uD83C\uDF0C \u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F"))), universeOpen && typeof UniverseFieldLive === "function" && /*#__PURE__*/React.createElement(UniverseFieldLive, {
+  }))), universeOpen && typeof UniverseFieldLive === "function" && /*#__PURE__*/React.createElement(UniverseFieldLive, {
     app: app,
     people: orbitPeople,
     onClose: () => setUniverseOpen(false)

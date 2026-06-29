@@ -67,8 +67,17 @@ function ProfileLive() {
   );
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      {/* Карандаш-правки в правый верхний угол (как на стр. Привычки) — David. */}
-      <PageHeader onBack={() => navigate("home")} title="" right={typeof EditGlassButtonLive === "function" ? <EditGlassButtonLive onClick={openAvatar} /> : null} />
+      {/* Правый-верх: «Вселенная» (зум-аут к другим системам) + карандаш-правки (как на стр. Привычки).
+          David: кнопке вселенной «снизу по центру между блоками не место» → ушла в шапку. */}
+      <PageHeader onBack={() => navigate("home")} title="" right={
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => setUniverseOpen(true)} className="tap" aria-label="Вселенная" title="Вселенная"
+            style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none") }}>
+            <I.Globe size={18} strokeWidth={2} />
+          </button>
+          {typeof EditGlassButtonLive === "function" ? <EditGlassButtonLive onClick={openAvatar} /> : null}
+        </div>
+      } />
 
       <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
@@ -82,10 +91,6 @@ function ProfileLive() {
             { l: "До " + (lvlNum + 1) + " ур.", v: lvlPct, suf: "%", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
             { l: "Опыт", v: _xp, icon: <I.Sparkles size={14} color="var(--text-4)" /> },
           ]} />
-        </div>
-        {/* Зум-аут в космос других людей (анонимно, «суть») */}
-        <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
-          <button onClick={() => setUniverseOpen(true)} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 7, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {}), border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13.5, fontWeight: 600, color: "var(--text-2)", cursor: "pointer" }}>🌌 Вселенная</button>
         </div>
       </div>
 

@@ -2024,12 +2024,13 @@ function InviteFriendsCardLive({ isDark }) {
   );
 }
 
-/* ВСЕЛЕННАЯ — зум-аут от своей системы к РЕАЛЬНЫМ людям вокруг (David: «весь смысл чтобы всё было
-   НАСТОЯЩЕЕ, не бутафорская вселенная, и реально всех друзей отражало; и под наш дизайн»). Поэтому:
-   СВЕТЛЫЙ стеклянный космос (язык орбиты «Я», не тёмный sci-fi с радужными точками), а планеты =
-   ТВОИ РЕАЛЬНЫЕ люди (приглашённые + участники кругов, дедуп, настоящие аватары BuddyFaceLive).
-   Пусто → честный зов, без фейка. Чистый CSS (слой крутится, лица контр-вращаются = ровные),
-   портал в <body> (иначе position:fixed застрянет в transform страницы). */
+/* ВСЕЛЕННАЯ — отдаляемся от СВОЕЙ системы и видим МНОЖЕСТВО ДРУГИХ, у каждого СВОЯ солнечная
+   система (David: «вселенная это много отдельных систем; нелогично вешать всех вокруг одного;
+   круто и НОВОЕ, но вытекающее из старого; не бутафория»). Поэтому: каждый человек = НЕЗАВИСИМАЯ
+   мини-система (его аватар в центре + своё кольцо + своя луна-практика), рассыпаны по полю
+   (подсолнух), масштаб по глубине. Ты — одна из систем (в центре, откуда отдалился, чуть крупнее,
+   золотое кольцо). Реальные люди (приглашённые + участники кругов). Галактика медленно вращается,
+   лица контр-вращаются (ровные), луны крутятся локально. Светлое стекло (наш язык), портал в body. */
 var _bosUniverseCache = null;
 function UniverseFieldLive({ app, people, onClose }) {
   var isDark = app && app.themeOverride === "dark";
@@ -2049,50 +2050,51 @@ function UniverseFieldLive({ app, people, onClose }) {
     return function () { on = false; };
   }, []);
   var list = Array.isArray(friends) ? friends : [];
-  // Belts (vmin radius, capacity, face px) — наполняются по мере роста; всё по язык орбиты «Я».
-  var BELTS = [{ r: 23, cap: 6, sz: 50 }, { r: 35, cap: 10, sz: 44 }, { r: 47, cap: 18, sz: 38 }];
-  var perBelt = [[], [], []];
-  for (var i = 0, bi = 0; i < list.length && bi < 3; i++) { if (perBelt[bi].length >= BELTS[bi].cap) { bi++; if (bi >= 3) break; } perBelt[bi].push(list[i]); }
-  var nodes = [];
-  perBelt.forEach(function (arr, b) {
-    var rad = BELTS[b].r, sz = BELTS[b].sz, cnt = arr.length;
-    arr.forEach(function (f, idx) {
-      var ang = (idx / Math.max(1, cnt)) * 360 + b * 24 - 90;
-      nodes.push({ f: f, x: Math.cos(ang * Math.PI / 180) * rad, y: Math.sin(ang * Math.PI / 180) * rad, sz: sz, delay: (0.12 + b * 0.1 + idx * 0.03).toFixed(2), key: b + "-" + idx });
-    });
+  var GA = 2.399963;
+  // Каждый = своя система. Ты (i=0) в центре крупнее; остальные рассыпаны подсолнухом по глубине.
+  var systems = [{ avatar: app && app.avatar, name: (app && app.userName) || "", you: true }].concat(list);
+  var placed = systems.map(function (s, i) {
+    if (i === 0) return { s: s, you: true, x: 0, y: 0, av: 60, delay: "0.05", moon: 15 };
+    var t01 = (systems.length > 2) ? (i - 1) / (systems.length - 2) : 0;
+    var ang = i * GA, rad = 18 + t01 * 26;
+    return { s: s, x: Math.cos(ang) * rad, y: Math.sin(ang) * rad, av: Math.round(46 - t01 * 16), delay: (0.12 + i * 0.05).toFixed(2), moon: 9 + (i % 6) * 2 };
   });
-  var bg = isDark ? "radial-gradient(125% 95% at 50% 38%, #1b2336 0%, #0e1422 52%, #070b14 100%)" : "radial-gradient(125% 95% at 50% 36%, #ffffff 0%, #eef1f8 50%, #e4e9f2 100%)";
-  var ringCol = isDark ? "rgba(186,210,248,0.13)" : "rgba(92,120,165,0.12)";
+  var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #1b2336 0%, #0e1422 52%, #070b14 100%)" : "radial-gradient(125% 95% at 50% 40%, #ffffff 0%, #eef1f8 50%, #e4e9f2 100%)";
+  var ringCol = isDark ? "rgba(186,210,248,0.16)" : "rgba(92,120,165,0.16)";
+  var youRing = isDark ? "rgba(255,221,120,0.6)" : "rgba(230,160,30,0.55)";
+  var moonCol = isDark ? "rgba(205,220,255,0.85)" : "rgba(120,140,180,0.7)";
   var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
-  var plural = list.length === 1 ? "человек" : (list.length < 5 ? "человека" : "человек");
-  var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом") : "пока ты один — позови своих");
+  var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
+  var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
   var node = (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
-      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosUniSpin{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosUniFaceUp{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
-      {[BELTS[0].r, BELTS[1].r, BELTS[2].r].map(function (r, i) { return <span key={"ring" + i} aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: (r * 2) + "vmin", height: (r * 2) + "vmin", transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid " + ringCol }} />; })}
-      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, animation: nodes.length ? "bosUniSpin 160s linear infinite" : "none" }}>
-        {nodes.map(function (n) {
+      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosGalaxy{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosGalaxyR{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosMoon{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
+      {/* Галактика — рассыпанные НЕЗАВИСИМЫЕ системы; медленно вращается, лица контр-вращаются. */}
+      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, animation: "bosGalaxy 300s linear infinite" }}>
+        {placed.map(function (p, i) {
+          var av = p.av, ring = av * 1.7, rcol = p.you ? youRing : ringCol, msz = Math.max(4, Math.round(av * 0.13));
           return (
-            <div key={n.key} style={{ position: "absolute", left: n.x.toFixed(2) + "vmin", top: n.y.toFixed(2) + "vmin", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.6s ease " + n.delay + "s both" }}>
-              <div style={{ position: "relative", width: n.sz, height: n.sz, animation: "bosUniFaceUp 160s linear infinite" }}>
-                <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: n.sz * 1.5, height: n.sz * 1.5, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid " + ringCol }} />
-                {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={n.f && n.f.avatar} name={n.f && n.f.name} size={n.sz} /> : null}
+            <div key={i} style={{ position: "absolute", left: p.x.toFixed(2) + "vmin", top: p.y.toFixed(2) + "vmin", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.6s ease " + p.delay + "s both" }}>
+              <div style={{ position: "relative", width: av, height: av, animation: "bosGalaxyR 300s linear infinite" }}>
+                {/* кольцо системы (золотое — твоя) */}
+                <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: ring, height: ring, transform: "translate(-50%,-50%)", borderRadius: "50%", border: (p.you ? "1.5px" : "1px") + " solid " + rcol }} />
+                {/* луна-практика на своей орбите (локальный оборот) */}
+                <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: ring, height: ring, transform: "translate(-50%,-50%)", animation: "bosMoon " + p.moon + "s linear infinite" }}>
+                  <span style={{ position: "absolute", left: "50%", top: 0, transform: "translate(-50%,-50%)", width: msz, height: msz, borderRadius: "50%", background: moonCol }} />
+                </div>
+                {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={p.s && p.s.avatar} name={p.s && p.s.name} size={av} /> : null}
               </div>
             </div>
           );
         })}
-      </div>
-      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.55s ease 0.05s both" }}>
-        <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 122, height: 122, transform: "translate(-50%,-50%)", borderRadius: "50%", background: isDark ? "radial-gradient(circle, rgba(140,170,230,0.3), transparent 70%)" : "radial-gradient(circle, rgba(120,150,220,0.2), transparent 72%)", filter: "blur(6px)" }} />
-        <div style={{ position: "relative" }}>{(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={app && app.avatar} name={app && app.userName} size={68} /> : null}</div>
       </div>
       <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: titleC }}>Вселенная</div>
         {sub ? <div style={{ fontSize: 13, color: subC, marginTop: 3 }}>{sub}</div> : null}
       </div>
       {friends != null && list.length === 0 && (
-        <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 72px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none" }}>Позови первых — и здесь оживёт ваша вселенная из реальных людей.</div>
+        <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 86px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none" }}>Позови первых — и рядом с твоей появятся их солнечные системы.</div>
       )}
       <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "var(--text)", display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}><I.X size={18} /></button>
       <div style={{ position: "absolute", bottom: "calc(22px + var(--tg-bottom-inset, 0px))", left: 0, right: 0, textAlign: "center", fontSize: 12, color: subC, pointerEvents: "none" }}>коснись, чтобы вернуться</div>
