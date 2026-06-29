@@ -152,10 +152,22 @@ function applyTweaks(t) {
 const START_ROUTE = "intro"; // cinematic onboarding is the best "hand it to a friend" opener
 
 // Auto-resume a logged-in Telegram user straight to home (skip the intro) on reopen.
-// DORMANT by design: while demo + live share ONE link, a TG user seeing the intro each
-// launch is the accepted behaviour. Flip to true ONLY once the separate full-app Telegram
-// bot is wired up. (See memory: balanceos-two-bot-end-state.)
-const AUTO_RESUME_TG = false;
+// LIVE now: this bot is the REAL app (onboarding shown ONCE, then auto-login). The DEMO
+// lives on a SEPARATE bot whose Mini App URL carries ?demo=1 — there we never auto-resume,
+// so the showcase (intro + Павел) plays every time. (See memory: balanceos-two-bot-end-state.)
+const AUTO_RESUME_TG = true;
+
+// True when this launch is the DEMO bot: its Mini App URL is «…/?demo=1» (David sets it in
+// BotFather). Re-checked at call time (Telegram's start_param can arrive a beat after load).
+function bosIsDemoBot() {
+  try {
+    var q = new URLSearchParams(window.location.search);
+    var d = q.get("demo");
+    if (d === "1" || d === "true") return true;
+    var sp = (window.__TG && window.__TG.initDataUnsafe && window.__TG.initDataUnsafe.start_param) || "";
+    return /^demo\b/.test(sp);
+  } catch (e) { return false; }
+}
 
 // True when launched from the iOS home screen (installed PWA). There we let the
 // REAL system status bar show; in a browser tab we draw our own so the mockup
@@ -167,7 +179,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v372";
+const APP_VERSION = "v373";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -699,19 +711,24 @@ function PhoneApp() {
   useEffect(() => {
     applyTweaks(TWEAK_DEFAULTS);
     const reveal = () => document.body.classList.add("app-ready");
-    // DORMANT auto-resume (AUTO_RESUME_TG): inside Telegram a returning user would skip the
-    // intro and open straight to their live profile. Kept OFF until the separate full-app bot
-    // exists; in a normal browser this branch is a no-op. telegram.js is deferred, so
-    // window.__TG can arrive a beat after mount → poll briefly before deciding.
-    if (AUTO_RESUME_TG) {
+    // Real-app auto-login (this bot). Inside Telegram, a RETURNING user (we already hold a saved
+    // profile for their tg id) skips the intro and lands straight on home. A FIRST-TIME user
+    // falls through to the intro — so onboarding shows exactly ONCE, then auto-login forever after.
+    // The DEMO bot (?demo=1) and a plain browser (no Telegram → for our own testing) always get
+    // the normal intro flow. telegram.js is deferred, so window.__TG can arrive a beat after mount.
+    if (AUTO_RESUME_TG && !bosIsDemoBot()) {
       let tries = 0, raf = 0, settled = false;
       const decide = () => {
         if (settled) return;
         let tg = null; try { tg = window.__TG; } catch (e) {}
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+        if (user) {
           settled = true;
-          try { app.enterLive(); setFrames([{ route: "home", params: {}, id: idRef.current++ }]); } catch (e) {}
-          reveal(); return;
+          // Returning only: a stored snapshot for this tg id means onboarding already happened.
+          let returning = false;
+          try { returning = !!(window.bosStore && window.bosStore.has("tg:" + user.id)); } catch (e) {}
+          if (returning) { try { app.enterLive(); setFrames([{ route: "home", params: {}, id: idRef.current++ }]); } catch (e) {} }
+          reveal(); return; // first-timer → intro stays on screen (shown once)
         }
         if (tg === null || tries > 30) { settled = true; reveal(); return; }
         tries++; raf = requestAnimationFrame(decide);
