@@ -6176,6 +6176,9 @@ function TeamShareSheetLive({
   team
 }) {
   var [copied, setCopied] = React.useState(false);
+  var {
+    close
+  } = typeof useSheet === "function" ? useSheet() : {};
   var isPublic = team?.vis === "public";
   var link = team && team.cloudId && typeof bosTeamInviteLink === "function" ? bosTeamInviteLink(team.cloudId) : typeof bosInviteLink === "function" ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
   var shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team?.name || "") + "» в BalanceOS";
@@ -6219,22 +6222,23 @@ function TeamShareSheetLive({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 64,
-      height: 64,
-      borderRadius: 22,
+      width: 60,
+      height: 60,
+      borderRadius: 16,
       margin: "0 auto 12px",
-      background: team?.accent || "#fef3c7",
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(false),
       display: "grid",
       placeItems: "center",
-      fontSize: 34
+      fontSize: 32
     }
-  }, team?.emblem || "✨"), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(team?.emblem || "✨", 32, null)), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 20,
       fontWeight: 700,
       letterSpacing: "-0.3px"
     }
-  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u043A\u0440\u0443\u0433\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
       color: "var(--text-3)",
@@ -6256,7 +6260,7 @@ function TeamShareSheetLive({
       padding: "4px 11px",
       borderRadius: 999
     }
-  }, isPublic ? "🌐 Открытая · ссылка ведёт прямо в команду" : "🔒 Приватная · войдут только по этой ссылке")), /*#__PURE__*/React.createElement("div", {
+  }, isPublic ? "🌐 Открытый · ссылка ведёт прямо в круг" : "🔒 Приватный · войдут только по этой ссылке")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       display: "flex",
@@ -6290,49 +6294,40 @@ function TeamShareSheetLive({
       fontWeight: 600
     }
   }, copied ? "Готово" : "Копировать")), /*#__PURE__*/React.createElement("button", {
-    onClick: copyLink,
-    className: "tap",
-    style: {
-      width: "100%",
-      marginTop: 12,
-      border: 0,
-      borderRadius: 999,
-      padding: 14,
-      background: "#0a0a0a",
-      color: "#fff",
-      fontSize: 15,
-      fontWeight: 600,
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 17,
-      lineHeight: 1
-    }
-  }, "\uD83D\uDD17"), " ", copied ? "Ссылка скопирована" : "Скопировать ссылку"), /*#__PURE__*/React.createElement("button", {
     onClick: shareTelegram,
     className: "tap",
     style: {
       width: "100%",
-      marginTop: 8,
+      marginTop: 18,
       border: 0,
       borderRadius: 999,
-      padding: 14,
+      padding: 15,
       background: "#229ED9",
       color: "#fff",
-      fontSize: 15,
+      fontSize: 15.5,
       fontWeight: 600,
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: 8
+      gap: 9
     }
   }, /*#__PURE__*/React.createElement(I.Send, {
     size: 18
-  }), " \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0432 Telegram"), /*#__PURE__*/React.createElement("div", {
+  }), " \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0432 Telegram"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => close && close(),
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 12,
+      background: "#0a0a0a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 999,
+      padding: 15,
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E"), /*#__PURE__*/React.createElement("div", {
     style: {
       height: "max(8px, var(--tg-bottom-inset, 0px))"
     }
