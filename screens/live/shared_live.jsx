@@ -398,9 +398,9 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft }) {
       accent: "#9bd0ff",
     },
     {
-      i: "🤝", t: "Собери команду",
+      i: "🤝", t: "Собери круг",
       d: "Общие привычки с друзьями тоже идут в твой опыт — и так веселее.",
-      cta: "Создать команду", action: () => navigate("team-create"),
+      cta: "Создать круг", action: () => navigate("goal-settings", { mode: "create", circleOn: true }),
       meta: "Привычки вместе",
       accent: "#85e3a8",
     },
@@ -1398,7 +1398,7 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   const items = [
     { emoji: "🌱", label: "Привычку", go: () => navigate("habit-settings", { mode: "create" }) },
     { emoji: "🎯", label: "Цель",     go: () => navigate("goal-settings", { mode: "create" }) },
-    { emoji: "🤝", label: "Круг",  go: () => navigate("team-create", {}) },
+    // «Круг» отдельным пунктом убран — это та же «Цель» с тумблером «вести вместе» (David: один движок).
   ];
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
@@ -1938,7 +1938,7 @@ function StarterCirclesLive({ navigate }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {STARTER_CIRCLES.map(function (s) {
           return (
-            <button key={s.t} onClick={function () { navigate("team-create", { preset: s.preset }); }} className="tap"
+            <button key={s.t} onClick={function () { navigate("goal-settings", { mode: "create", preset: s.preset, circleOn: true }); }} className="tap"
               style={{ textAlign: "left", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, cursor: "pointer", display: "flex", flexDirection: "column", color: "var(--text)" }}>
               <span style={{ width: 42, height: 42, borderRadius: 13, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{bosIcon(s.i, 22, null)}</span>
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 10 }}>{s.t}</div>

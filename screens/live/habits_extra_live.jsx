@@ -293,7 +293,19 @@ function GoalSettingsLive() {
   // КРУГ — «цель + круг = команда»: включаешь круг → цель становится КОМАНДОЙ (один движок —
   // комната-орбита, режимы, вступление по ссылке team_<cloudId>). Тумблер только переключает путь
   // сохранения ниже: вкл → app.addTeam (а не addGoal). David: один механизм, без второго «лёгкого» круга.
-  const [circleOn, setCircleOn] = useHS(g0?.circle === true);
+  // КРУГ — тумблер «вести вместе». Можно предвключить через params.circleOn (входы «Собери круг» / чипы-круги).
+  const [circleOn, setCircleOn] = useHS(g0?.circle === true || params?.circleOn === true);
+  // Полные КРУГ-настройки (раскрываются при тумблере) — режим/видимость/XP-ставка. Раньше жили в
+  // отдельной форме «Создать команду»; теперь это одна форма (David: «круг = цель + тумблер»).
+  const [goalType, setGoalType] = useHS(g0?.type || preset?.goalType || "collective"); // collective | streak | race
+  const [circleVis, setCircleVis] = useHS(g0?.vis || "private");
+  const [stakeOn, setStakeOn] = useHS((g0?.stake || 0) > 0);
+  const [stakeAmount, setStakeAmount] = useHS(g0?.stake || 100);
+  const CIRCLE_MODES = [
+    { id: "collective", e: "🌊", t: "Общий счёт",     d: "Отметки всех складываются в одно число." },
+    { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — круг проходит, если прошли все." },
+    { id: "race",       e: "🏁", t: "Гонка",           d: "Первый до цели побеждает, остальные получают часть XP." },
+  ];
   // REAL — the user's own habits, none pre-selected.
   const [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map((h) => ({ e: h.emoji || "✨", n: h.name, on: false })));
   const toggleLinked = (i) => setLinkedHabits((hs) => hs.map((h, j) => (j === i ? { ...h, on: !h.on } : h)));
@@ -401,13 +413,54 @@ function GoalSettingsLive() {
           </div>
           <Switch on={circleOn} onChange={setCircleOn} />
         </div>
-        {circleOn && (
-          <div style={{ marginTop: 12, borderRadius: 14, padding: "11px 12px", background: "#eef4ff", display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🪐</span>
-            <div style={{ fontSize: 12.5, color: "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — откроется <b>комната круга</b>, и сразу позовёшь людей по ссылке.</div>
-          </div>
-        )}
       </div>
+
+      {/* КРУГ-настройки раскрываются В ОДНОЙ форме (не уводят на отдельную «команду»): режим, видимость,
+          XP-ставка. Сохранение ниже строит полноценный круг — как бывшая форма team-create. */}
+      {circleOn && (<>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+          {CIRCLE_MODES.map((m) => {
+            const active = goalType === m.id;
+            return (
+              <button key={m.id} type="button" onClick={() => setGoalType(m.id)} className="tap"
+                style={{ background: "#fff", border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
+                <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{m.e}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{m.t}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{m.d}</div>
+                </div>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? "#0a0a0a" : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color="#fff" strokeWidth={3} />}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <Segmented value={circleVis} onChange={setCircleVis} options={[{ value: "private", label: "Приватный" }, { value: "public", label: "Открытый" }]} />
+        </div>
+
+        <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Поставить XP на финиш</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Дойдёте до цели — банк вернётся каждому. Необязательно, но азартно.</div>
+            </div>
+            <Switch on={stakeOn} onChange={setStakeOn} />
+          </div>
+          {stakeOn && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)", display: "flex", alignItems: "baseline", gap: 8 }}>
+              <input type="text" inputMode="numeric" pattern="[0-9]*" value={stakeAmount} onChange={(e) => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0)}
+                style={{ flex: "0 0 80px", fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }} />
+              <span style={{ fontSize: 13, color: "var(--text-4)" }}>XP с каждого</span>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14, borderRadius: 14, padding: "11px 12px", background: "#eef4ff", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🪐</span>
+          <div style={{ fontSize: 12.5, color: "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — откроется <b>комната круга</b>, и сразу позовёшь людей по ссылке.</div>
+        </div>
+      </>)}
 
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
         const nm = name.trim() || "Новая цель";
@@ -418,18 +471,19 @@ function GoalSettingsLive() {
         // → cloud.createTeam (для cloudId) → комната-орбита + шторка приглашения.
         if (circleOn) {
           if (editing && g0) app?.removeGoal(g0.id); // конверсия цели в круг: не оставляем дубль-цель рядом
+          const _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
           const teamObj = {
-            name: nm, emblem: iconPick, accent: color, vis: "private",
+            name: nm, emblem: iconPick, accent: color, vis: circleVis,
             goal: tgt + " " + (unit || ""),          // строка-заголовок карточки (LiveTeamCard рендерит t.goal как текст)
-            type: "collective", target: tgt, current: 0, unit,
-            stake: 0, date: "Этот месяц", progress: 0, members: [],
+            type: goalType, target: tgt, current: 0, unit,
+            stake: _stake, date: "Этот месяц", progress: 0, members: [],
           };
           const nt = app?.addTeam(teamObj);
           navigate("team-detail", { team: nt });     // комната-орбита (читает живой круг из store по _id → cloudId долетит)
           let opened = false;
           try {
             if (nt && window.bosCloud && window.bosCloud.enabled()) {
-              window.bosCloud.createTeam({ name: nt.name, emblem: iconPick, vis: "private", goalKind: nt.goal, goalTarget: tgt, goal: { type: "collective", target: tgt, unit, title: nm } })
+              window.bosCloud.createTeam({ name: nt.name, emblem: iconPick, vis: circleVis, goalKind: nt.goal, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: nm, stake: _stake } })
                 .then((row) => { if (row && row.id && app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id }); openSheet(<TeamShareSheetLive team={{ ...nt, cloudId: row && row.id }} />); })
                 .catch(() => openSheet(<TeamShareSheetLive team={nt} />));
               opened = true;

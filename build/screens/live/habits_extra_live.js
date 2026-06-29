@@ -613,7 +613,30 @@ function GoalSettingsLive() {
   // КРУГ — «цель + круг = команда»: включаешь круг → цель становится КОМАНДОЙ (один движок —
   // комната-орбита, режимы, вступление по ссылке team_<cloudId>). Тумблер только переключает путь
   // сохранения ниже: вкл → app.addTeam (а не addGoal). David: один механизм, без второго «лёгкого» круга.
-  var [circleOn, setCircleOn] = useHS(g0?.circle === true);
+  // КРУГ — тумблер «вести вместе». Можно предвключить через params.circleOn (входы «Собери круг» / чипы-круги).
+  var [circleOn, setCircleOn] = useHS(g0?.circle === true || params?.circleOn === true);
+  // Полные КРУГ-настройки (раскрываются при тумблере) — режим/видимость/XP-ставка. Раньше жили в
+  // отдельной форме «Создать команду»; теперь это одна форма (David: «круг = цель + тумблер»).
+  var [goalType, setGoalType] = useHS(g0?.type || preset?.goalType || "collective"); // collective | streak | race
+  var [circleVis, setCircleVis] = useHS(g0?.vis || "private");
+  var [stakeOn, setStakeOn] = useHS((g0?.stake || 0) > 0);
+  var [stakeAmount, setStakeAmount] = useHS(g0?.stake || 100);
+  var CIRCLE_MODES = [{
+    id: "collective",
+    e: "🌊",
+    t: "Общий счёт",
+    d: "Отметки всех складываются в одно число."
+  }, {
+    id: "streak",
+    e: "🔥",
+    t: "Серия у каждого",
+    d: "Каждый держит серию — круг проходит, если прошли все."
+  }, {
+    id: "race",
+    e: "🏁",
+    t: "Гонка",
+    d: "Первый до цели побеждает, остальные получают часть XP."
+  }];
   // REAL — the user's own habits, none pre-selected.
   var [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map(h => ({
     e: h.emoji || "✨",
@@ -936,9 +959,159 @@ function GoalSettingsLive() {
   }, "\u0412\u043A\u043B\u044E\u0447\u0438 \u043A\u0440\u0443\u0433 \u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430 \u043A\u0440\u0443\u0433\u0430.")), /*#__PURE__*/React.createElement(Switch, {
     on: circleOn,
     onChange: setCircleOn
-  })), circleOn && /*#__PURE__*/React.createElement("div", {
+  }))), circleOn && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 12,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginTop: 14
+    }
+  }, CIRCLE_MODES.map(m => {
+    var active = goalType === m.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: m.id,
+      type: "button",
+      onClick: () => setGoalType(m.id),
+      className: "tap",
+      style: {
+        background: "#fff",
+        border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)",
+        borderRadius: 22,
+        padding: 14,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        textAlign: "left",
+        boxShadow: "var(--card-shadow)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: "50%",
+        background: active ? "#0a0a0a" : "#e8e8e8",
+        color: active ? "#fff" : "var(--text)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 18,
+        flexShrink: 0
+      }
+    }, m.e), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15,
+        fontWeight: 600,
+        color: "var(--text)"
+      }
+    }, m.t), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-4)",
+        marginTop: 2,
+        lineHeight: 1.45
+      }
+    }, m.d)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 18,
+        height: 18,
+        borderRadius: "50%",
+        background: active ? "#0a0a0a" : "transparent",
+        border: active ? "0" : "1.5px solid var(--text-5)",
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, active && /*#__PURE__*/React.createElement(I.Check, {
+      size: 11,
+      color: "#fff",
+      strokeWidth: 3
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement(Segmented, {
+    value: circleVis,
+    onChange: setCircleVis,
+    options: [{
+      value: "private",
+      label: "Приватный"
+    }, {
+      value: "public",
+      label: "Открытый"
+    }]
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 14,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text-2)",
+      fontWeight: 500
+    }
+  }, "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C XP \u043D\u0430 \u0444\u0438\u043D\u0438\u0448"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.5
+    }
+  }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u0434\u043E \u0446\u0435\u043B\u0438 \u2014 \u0431\u0430\u043D\u043A \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u043A\u0430\u0436\u0434\u043E\u043C\u0443. \u041D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E, \u043D\u043E \u0430\u0437\u0430\u0440\u0442\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
+    on: stakeOn,
+    onChange: setStakeOn
+  })), stakeOn && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      paddingTop: 14,
+      borderTop: "1px solid var(--line)",
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    pattern: "[0-9]*",
+    value: stakeAmount,
+    onChange: e => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0),
+    style: {
+      flex: "0 0 80px",
+      fontSize: 22,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0,
+      minWidth: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, "XP \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
       borderRadius: 14,
       padding: "11px 12px",
       background: "#eef4ff",
@@ -977,18 +1150,19 @@ function GoalSettingsLive() {
       // → cloud.createTeam (для cloudId) → комната-орбита + шторка приглашения.
       if (circleOn) {
         if (editing && g0) app?.removeGoal(g0.id); // конверсия цели в круг: не оставляем дубль-цель рядом
+        var _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
         var teamObj = {
           name: nm,
           emblem: iconPick,
           accent: color,
-          vis: "private",
+          vis: circleVis,
           goal: tgt + " " + (unit || ""),
           // строка-заголовок карточки (LiveTeamCard рендерит t.goal как текст)
-          type: "collective",
+          type: goalType,
           target: tgt,
           current: 0,
           unit,
-          stake: 0,
+          stake: _stake,
           date: "Этот месяц",
           progress: 0,
           members: []
@@ -1003,14 +1177,15 @@ function GoalSettingsLive() {
             window.bosCloud.createTeam({
               name: nt.name,
               emblem: iconPick,
-              vis: "private",
+              vis: circleVis,
               goalKind: nt.goal,
               goalTarget: tgt,
               goal: {
-                type: "collective",
+                type: goalType,
                 target: tgt,
                 unit,
-                title: nm
+                title: nm,
+                stake: _stake
               }
             }).then(row => {
               if (row && row.id && app.updateTeam) app.updateTeam(nt._id, {

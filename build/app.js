@@ -98,7 +98,8 @@ var LIVE_SCREENS = {
   "goal-settings": () => GoalSettingsLive,
   info: () => InfoLive,
   "home-customize": () => HomeCustomizeLive,
-  "team-create": () => TeamCreateLive,
+  // «team-create» retired — круг создаётся единой формой goal-settings (тумблер «вести вместе»).
+  // Компонент TeamCreateLive оставлен дремать в community_extra (на случай отката), но недостижим.
   "team-settings": () => TeamSettingsLive,
   "team-chat": () => TeamChatLive,
   levels: () => LevelsLive,
@@ -170,7 +171,7 @@ var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && windo
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-var APP_VERSION = "v368";
+var APP_VERSION = "v369";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -293,22 +294,6 @@ var TOUR_STOPS = [{
   eyebrow: "Команды",
   title: "Создавай свои команды",
   body: "Объедини семью, друзей или клиентов тренинга. У каждой — общая цель, чат и статистика. Заглянем, как собрать."
-}, {
-  kind: "spot",
-  tab: "team-create",
-  sel: '[data-tour="team-modes"]',
-  radius: 18,
-  eyebrow: "Режимы команды",
-  title: "Как двигать общую цель",
-  body: "Общий счёт, серия у каждого или гонка — выбираешь формат. А двигают цель привычки самих участников."
-}, {
-  kind: "spot",
-  tab: "team-create",
-  sel: '[data-tour="team-stakes"]',
-  radius: 18,
-  eyebrow: "Геймификация",
-  title: "Ставка на опыт",
-  body: "Все скидывают XP в общий банк. Дошли до цели — он возвращается ×2. Не дошли — сгорает. Вот это азарт."
 }, {
   kind: "spot",
   tab: "team-detail",

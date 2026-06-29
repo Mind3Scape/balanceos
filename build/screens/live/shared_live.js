@@ -822,10 +822,13 @@ function NetworkLockedLive({
     accent: "#9bd0ff"
   }, {
     i: "🤝",
-    t: "Собери команду",
+    t: "Собери круг",
     d: "Общие привычки с друзьями тоже идут в твой опыт — и так веселее.",
-    cta: "Создать команду",
-    action: () => navigate("team-create"),
+    cta: "Создать круг",
+    action: () => navigate("goal-settings", {
+      mode: "create",
+      circleOn: true
+    }),
     meta: "Привычки вместе",
     accent: "#85e3a8"
   }];
@@ -3298,11 +3301,9 @@ function CreateMenuLive({
     go: () => navigate("goal-settings", {
       mode: "create"
     })
-  }, {
-    emoji: "🤝",
-    label: "Круг",
-    go: () => navigate("team-create", {})
-  }];
+  }
+  // «Круг» отдельным пунктом убран — это та же «Цель» с тумблером «вести вместе» (David: один движок).
+  ];
   return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -4866,8 +4867,10 @@ function StarterCirclesLive({
     return /*#__PURE__*/React.createElement("button", {
       key: s.t,
       onClick: function () {
-        navigate("team-create", {
-          preset: s.preset
+        navigate("goal-settings", {
+          mode: "create",
+          preset: s.preset,
+          circleOn: true
         });
       },
       className: "tap",

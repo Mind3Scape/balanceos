@@ -128,7 +128,7 @@ function HabitsLive() {
   // goal-settings, чип-круг (есть goalType) → team-create. Чипы-круги помечены лицами (тихий намёк
   // «совместный»), чтобы слитый набор читался без отдельной вкладки «Команды».
   const QA = tab === "goals"
-    ? { chips: GOAL_CHIPS.concat(TEAM_CHIPS), go: (c) => (c && c.goalType) ? navigate("team-create", { preset: c }) : navigate("goal-settings", { mode: "create", preset: c }) }
+    ? { chips: GOAL_CHIPS.concat(TEAM_CHIPS), go: (c) => navigate("goal-settings", { mode: "create", preset: c, circleOn: !!(c && c.goalType) }) }
     : { chips: EMOJI_CHIPS, go: (c) => navigate("habit-settings", { mode: "create", preset: c }) };
   const quickAddBlock = (
     <div style={{ background: TH.cardBg, borderRadius: 20, boxShadow: cardShadow, padding: "12px 13px" }}>
@@ -286,7 +286,7 @@ function HabitsLive() {
               {teams.map((t) => <LiveTeamCard key={t._id} t={t} navigate={navigate} />)}
             </div>
           )}
-          <button onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ marginTop: 12, width: "100%", color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+          <button onClick={() => navigate("goal-settings", { mode: "create", circleOn: true })} className="tap team-new-cta" style={{ marginTop: 12, width: "100%", color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
             <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "grid", placeItems: "center" }}><I.Plus size={22} color="#fff"/></span>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600, fontSize: 16 }}>Создать круг</div>

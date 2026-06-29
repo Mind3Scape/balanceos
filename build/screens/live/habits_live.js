@@ -246,11 +246,10 @@ function HabitsLive() {
   // «совместный»), чтобы слитый набор читался без отдельной вкладки «Команды».
   var QA = tab === "goals" ? {
     chips: GOAL_CHIPS.concat(TEAM_CHIPS),
-    go: c => c && c.goalType ? navigate("team-create", {
-      preset: c
-    }) : navigate("goal-settings", {
+    go: c => navigate("goal-settings", {
       mode: "create",
-      preset: c
+      preset: c,
+      circleOn: !!(c && c.goalType)
     })
   } : {
     chips: EMOJI_CHIPS,
@@ -791,7 +790,10 @@ function HabitsLive() {
     t: t,
     navigate: navigate
   }))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("team-create"),
+    onClick: () => navigate("goal-settings", {
+      mode: "create",
+      circleOn: true
+    }),
     className: "tap team-new-cta",
     style: {
       marginTop: 12,
