@@ -513,7 +513,11 @@ function HabitSettingsLive() {
     }
   }, inviteNote)), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 14
+      background: "#fff",
+      borderRadius: 22,
+      padding: 14,
+      marginTop: 14,
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement(Segmented, {
     value: type,

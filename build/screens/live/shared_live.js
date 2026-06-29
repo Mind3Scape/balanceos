@@ -2515,7 +2515,7 @@ function StateSliderLive({
   var face = typeof MOOD_FACES !== "undefined" && MOOD_FACES[idx] || "🙂";
   var word = typeof MOOD_WORDS !== "undefined" && MOOD_WORDS[idx] || "Хорошо";
   var tint = typeof tintFromMood === "function" && typeof moodSpectrum === "function" ? tintFromMood(moodSpectrum(val)) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
-  var PAD = 16; // keep the 24px thumb inside the groove
+  var PAD = 12; // keep the 22px thumb inside the track ends
 
   var setFromX = clientX => {
     var el = trackRef.current;
@@ -2570,14 +2570,14 @@ function StateSliderLive({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      width: 46,
-      height: 46,
+      width: 58,
+      height: 58,
       flexShrink: 0,
       display: "grid",
       placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement(StateOrb, {
-    size: 44,
+    size: 58,
     tint: tint,
     intensity: isDark ? 1.25 : 1.08
   }), /*#__PURE__*/React.createElement("div", {
@@ -2591,7 +2591,7 @@ function StateSliderLive({
   }, /*#__PURE__*/React.createElement("span", {
     key: idx,
     style: {
-      fontSize: 21,
+      fontSize: 23,
       lineHeight: 1,
       filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))",
       animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both"
@@ -2638,7 +2638,7 @@ function StateSliderLive({
     }
   }, word))), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 10
+      marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
     ref: trackRef,
@@ -2667,23 +2667,44 @@ function StateSliderLive({
     },
     style: {
       position: "relative",
-      height: 28,
-      borderRadius: 999,
-      background: trackBg,
-      boxShadow: trackGlass,
+      height: 24,
       touchAction: "none",
       cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
+      left: 0,
+      right: 0,
+      top: "50%",
+      transform: "translateY(-50%)",
+      height: 7,
+      borderRadius: 999,
+      background: trackBg,
+      boxShadow: trackGlass
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: 0,
+      top: "50%",
+      transform: "translateY(-50%)",
+      width: "calc(" + PAD + "px + " + val + " * (100% - " + 2 * PAD + "px))",
+      height: 7,
+      borderRadius: 999,
+      background: "linear-gradient(90deg, " + tint[0] + ", " + tint[1] + ")",
+      opacity: 0.92
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
       top: "50%",
       left: "calc(" + PAD + "px + " + val + " * (100% - " + 2 * PAD + "px))",
-      width: 24,
-      height: 24,
+      width: 22,
+      height: 22,
       borderRadius: "50%",
       background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.22), inset 0 0 0 0.7px rgba(0,0,0,0.05)",
+      boxShadow: "0 2px 7px rgba(0,0,0,0.28), inset 0 0 0 0.7px rgba(0,0,0,0.06)",
       transform: "translate(-50%,-50%)",
       transition: dragRef.current ? "none" : "left 0.12s ease"
     }
@@ -2691,7 +2712,7 @@ function StateSliderLive({
     style: {
       display: "flex",
       justifyContent: "space-between",
-      marginTop: 6,
+      marginTop: 7,
       padding: "0 2px",
       fontSize: 10.5,
       letterSpacing: 0.4,
@@ -3730,30 +3751,32 @@ function HeroAccountAvatarLive({
     avatar: avatar,
     inset: 7,
     size: size - 14
-  }), level > 0 && /*#__PURE__*/React.createElement("span", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      left: "50%",
-      bottom: -2,
-      transform: "translateX(-50%)",
-      zIndex: 3,
-      minWidth: lvlSz,
-      height: lvlSz,
-      padding: "0 4px",
-      boxSizing: "border-box",
-      borderRadius: 999,
-      background: "linear-gradient(180deg,#FFE777,#F4B72A)",
-      color: "#4a3800",
-      fontSize: Math.round(lvlSz * 0.56),
-      fontWeight: 800,
-      lineHeight: lvlSz - 3 + "px",
-      textAlign: "center",
-      letterSpacing: "-0.3px",
-      border: "1.5px solid var(--card)",
-      boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)"
-    }
-  }, level));
+  }), level > 0 && (() => {
+    var bc = size / 2 + r * 0.7071; // точка на кольце под углом 45° (низ-право)
+    return /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        left: bc - lvlSz / 2,
+        top: bc - lvlSz / 2,
+        zIndex: 3,
+        minWidth: lvlSz,
+        height: lvlSz,
+        padding: "0 4px",
+        boxSizing: "border-box",
+        borderRadius: 999,
+        background: "linear-gradient(180deg,#FFE777,#F4B72A)",
+        color: "#4a3800",
+        fontSize: Math.round(lvlSz * 0.56),
+        fontWeight: 800,
+        lineHeight: lvlSz - 3 + "px",
+        textAlign: "center",
+        letterSpacing: "-0.3px",
+        border: "1.5px solid var(--card)",
+        boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)"
+      }
+    }, level);
+  })());
 }
 
 /* HomeHeroSwipe → live-only: the real new user's hero — page 1 ONLY (the demo's balance

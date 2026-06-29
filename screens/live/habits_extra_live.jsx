@@ -228,8 +228,9 @@ function HabitSettingsLive() {
         )}
       </div>
 
-      {/* Habit type — подпись убрана; «Развивать / Бросить» говорит само за себя. */}
-      <div style={{ marginTop: 14 }}>
+      {/* Habit type — В БЛОКЕ как остальные секции (David: «не всё в блоках»); подпись не нужна,
+          «Развивать / Бросить» говорит само за себя. */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <Segmented value={type} onChange={setType} options={[{ value: "build", label: "Развивать" }, { value: "quit", label: "Бросить" }]} />
       </div>
 

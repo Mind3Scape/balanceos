@@ -1062,7 +1062,7 @@ function StateSliderLive({ app, isDark }) {
   const word = (typeof MOOD_WORDS !== "undefined" && MOOD_WORDS[idx]) || "Хорошо";
   const tint = (typeof tintFromMood === "function" && typeof moodSpectrum === "function")
     ? tintFromMood(moodSpectrum(val)) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
-  const PAD = 16;                                       // keep the 24px thumb inside the groove
+  const PAD = 12;                                       // keep the 22px thumb inside the track ends
 
   const setFromX = (clientX) => {
     const el = trackRef.current; if (!el) return;
@@ -1094,10 +1094,10 @@ function StateSliderLive({ app, isDark }) {
   return (
     <div style={{ width: "100%", background: bg, padding: "10px 14px 12px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-        <div style={{ position: "relative", width: 46, height: 46, flexShrink: 0, display: "grid", placeItems: "center" }}>
-          <StateOrb size={44} tint={tint} intensity={isDark ? 1.25 : 1.08} />
+        <div style={{ position: "relative", width: 58, height: 58, flexShrink: 0, display: "grid", placeItems: "center" }}>
+          <StateOrb size={58} tint={tint} intensity={isDark ? 1.25 : 1.08} />
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-            <span key={idx} style={{ fontSize: 21, lineHeight: 1, filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
+            <span key={idx} style={{ fontSize: 23, lineHeight: 1, filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.28))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
           </div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1108,16 +1108,21 @@ function StateSliderLive({ app, isDark }) {
           <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 19, fontWeight: 600, letterSpacing: "-0.4px", color: titleColor, lineHeight: 1.15, marginTop: 2 }}>{word}</div>
         </div>
       </div>
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: 12 }}>
+        {/* iOS-слайдер: ТОНКАЯ дорожка (7px) + бегунок 22px НАД ней (David: «толстоват и высоковат» —
+            убрали толстый желобок-капсулу). Заливка слева в цвет настроения. Интерактивная зона
+            повыше дорожки для удобного тача. */}
         <div ref={trackRef}
           onPointerDown={(e) => { e.stopPropagation(); dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setFromX(e.clientX); }}
           onPointerMove={(e) => { if (!dragRef.current) return; e.stopPropagation(); setFromX(e.clientX); }}
           onPointerUp={(e) => { e.stopPropagation(); if (dragRef.current) { dragRef.current = false; commit(); } }}
           onPointerCancel={() => { dragRef.current = false; }}
-          style={{ position: "relative", height: 28, borderRadius: 999, background: trackBg, boxShadow: trackGlass, touchAction: "none", cursor: "pointer" }}>
-          <div style={{ position: "absolute", top: "50%", left: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", width: 24, height: 24, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)", boxShadow: "0 2px 6px rgba(0,0,0,0.22), inset 0 0 0 0.7px rgba(0,0,0,0.05)", transform: "translate(-50%,-50%)", transition: dragRef.current ? "none" : "left 0.12s ease" }} />
+          style={{ position: "relative", height: 24, touchAction: "none", cursor: "pointer" }}>
+          <div style={{ position: "absolute", left: 0, right: 0, top: "50%", transform: "translateY(-50%)", height: 7, borderRadius: 999, background: trackBg, boxShadow: trackGlass }} />
+          <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", height: 7, borderRadius: 999, background: "linear-gradient(90deg, " + tint[0] + ", " + tint[1] + ")", opacity: 0.92 }} />
+          <div style={{ position: "absolute", top: "50%", left: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", width: 22, height: 22, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)", boxShadow: "0 2px 7px rgba(0,0,0,0.28), inset 0 0 0 0.7px rgba(0,0,0,0.06)", transform: "translate(-50%,-50%)", transition: dragRef.current ? "none" : "left 0.12s ease" }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, padding: "0 2px", fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", color: endLabel, fontWeight: 600 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, padding: "0 2px", fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", color: endLabel, fontWeight: 600 }}>
           <span>неприятно</span><span>приятно</span>
         </div>
       </div>
@@ -1573,12 +1578,15 @@ function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark, l
           circle read as two distinct elements — without the gap the disc sat flush under the ring and
           the glass was invisible (David: «дать колечку чуть пространства от кружочка со стеклом»). */}
       <HeroAvatarGlassLive avatar={avatar} inset={7} size={size - 14} />
-      {/* Цифра текущего УРОВНЯ — маленький золотой бейдж на кольце снизу (David: «цифру уровня в
-          кружочек в золотом кольце»). Тот же золотой градиент, что кольцо; белый кант var(--card)
-          отделяет его от кольца. zIndex 3 — над кольцом и аватаром. */}
-      {level > 0 && (
-        <span aria-hidden style={{ position: "absolute", left: "50%", bottom: -2, transform: "translateX(-50%)", zIndex: 3, minWidth: lvlSz, height: lvlSz, padding: "0 4px", boxSizing: "border-box", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: Math.round(lvlSz * 0.56), fontWeight: 800, lineHeight: (lvlSz - 3) + "px", textAlign: "center", letterSpacing: "-0.3px", border: "1.5px solid var(--card)", boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)" }}>{level}</span>
-      )}
+      {/* Цифра текущего УРОВНЯ — золотой бейдж, ЦЕНТРИРОВАННЫЙ на самом кольце в нижне-ПРАВОЙ точке
+          (45°), а не у края аватара (David: «чуть правее снизу, по центру кольца — так не перекрывает
+          лицо»). bc = точка окружности кольца на 45°; бейдж ставим центром на неё. */}
+      {level > 0 && (() => {
+        const bc = size / 2 + r * 0.7071;   // точка на кольце под углом 45° (низ-право)
+        return (
+          <span aria-hidden style={{ position: "absolute", left: bc - lvlSz / 2, top: bc - lvlSz / 2, zIndex: 3, minWidth: lvlSz, height: lvlSz, padding: "0 4px", boxSizing: "border-box", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: Math.round(lvlSz * 0.56), fontWeight: 800, lineHeight: (lvlSz - 3) + "px", textAlign: "center", letterSpacing: "-0.3px", border: "1.5px solid var(--card)", boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)" }}>{level}</span>
+        );
+      })()}
     </button>
   );
 }
