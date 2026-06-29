@@ -882,8 +882,6 @@ function TeamSettingsLive() {
       team
     })
   }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label"
-  }, "\u0418\u0434\u0435\u043D\u0442\u0438\u0447\u043D\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
       borderRadius: 22,
@@ -978,16 +976,11 @@ function TeamSettingsLive() {
     value: accent,
     onChange: setAccent
   })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041E\u0431\u0449\u0430\u044F \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      marginTop: 8
+      marginTop: 22
     }
   }, goalTypes.map(gt => {
     var active = goalType === gt.id;
@@ -1145,13 +1138,8 @@ function TeamSettingsLive() {
       padding: "4px 0"
     }
   })))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
-      marginTop: 22
-    }
-  }, "\u0412\u0438\u0434\u0438\u043C\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8
+      marginTop: 14
     }
   }, /*#__PURE__*/React.createElement(Segmented, {
     value: priv ? "private" : "public",
@@ -1164,16 +1152,11 @@ function TeamSettingsLive() {
       label: "Публичная"
     }]
   })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1203,16 +1186,11 @@ function TeamSettingsLive() {
     on: notify,
     onChange: setNotify
   }))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0421\u0442\u0430\u0432\u043A\u0430 \u0432 \u0438\u0433\u0440\u0435"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1300,14 +1278,10 @@ function TeamSettingsLive() {
       color: "var(--text)"
     }
   }, "\u0431\u0430\u043D\u043A ", stakeAmount * Math.max(1, members.length), " XP")))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 (", members.length, ")"), /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
-      padding: "8px 16px"
+      padding: "8px 16px",
+      marginTop: 14
     }
   }, members.map((m, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
@@ -1349,16 +1323,11 @@ function TeamSettingsLive() {
       padding: "6px 0"
     }
   }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439 \u043D\u0438\u0436\u0435.")), team.cloudId && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1618,16 +1587,11 @@ function TeamQuickEditSheetLive({
     value: accent,
     onChange: setAccent
   })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 20
-    }
-  }, "\u041E\u0431\u0449\u0430\u044F \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      marginTop: 8
+      marginTop: 18
     }
   }, goalTypes.map(gt => {
     var active = goalType === gt.id;
@@ -1753,13 +1717,8 @@ function TeamQuickEditSheetLive({
       padding: "4px 0"
     }
   }))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
-      marginTop: 20
-    }
-  }, "\u0412\u0438\u0434\u0438\u043C\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8
+      marginTop: 14
     }
   }, /*#__PURE__*/React.createElement(Segmented, {
     value: priv ? "private" : "public",
@@ -1772,16 +1731,11 @@ function TeamQuickEditSheetLive({
       label: "Публичная"
     }]
   })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 20
-    }
-  }, "\u0421\u0442\u0430\u0432\u043A\u0430 \u0432 \u0438\u0433\u0440\u0435"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 18,
       padding: 14,
-      marginTop: 8,
+      marginTop: 18,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {

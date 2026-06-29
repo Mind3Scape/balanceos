@@ -366,8 +366,7 @@ function TeamSettingsLive() {
       <PageHeader title="Настройки команды" onBack={() => navigate("team-detail", { team })} />
 
       {/* IDENTITY — the SAME gradient card as «Создать команду» (David: создание и редактирование =
-          одна логика/вид). Name + emblem + glassy colour picker in one card. */}
-      <div className="section-label">Идентичность</div>
+          одна логика/вид). Name + emblem + glassy colour picker in one card (без подписи блока). */}
       <div style={{
         background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
         borderRadius: 22, padding: 18, marginTop: 8, boxShadow: "var(--card-shadow)",
@@ -388,8 +387,7 @@ function TeamSettingsLive() {
       </div>
 
       {/* GOAL — режим + цель, ТА ЖЕ логика и вид, что в «Создать команду» (David: связать создание↔настройки). */}
-      <div className="section-label" style={{ marginTop: 22 }}>Общая цель</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 22 }}>
         {goalTypes.map(gt => {
           const active = goalType === gt.id;
           return (
@@ -428,17 +426,15 @@ function TeamSettingsLive() {
         )}
       </div>
 
-      {/* VISIBILITY — Segmented, same control as Create. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Видимость</div>
-      <div style={{ marginTop: 8 }}>
+      {/* VISIBILITY — Segmented, без подписи. */}
+      <div style={{ marginTop: 14 }}>
         <Segmented value={priv ? "private" : "public"} onChange={(v) => setPriv(v === "private")} options={[
           { value: "private", label: "Приватная" }, { value: "public", label: "Публичная" }
         ]} />
       </div>
 
-      {/* NOTIFICATIONS — toggle card, same card style. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Уведомления</div>
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      {/* NOTIFICATIONS — без подписи (внутри «Когда участники отмечаются»). */}
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Когда участники отмечаются</div>
@@ -448,9 +444,8 @@ function TeamSettingsLive() {
         </div>
       </div>
 
-      {/* STAKES — XP-ставка, тот же контрол, что в «Создать команду». */}
-      <div className="section-label" style={{ marginTop: 22 }}>Ставка в игре</div>
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      {/* STAKES — без подписи (внутри «Все ставят XP»). */}
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP</div>
@@ -475,8 +470,7 @@ function TeamSettingsLive() {
         )}
       </div>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Участники ({members.length})</div>
-      <div style={{ ...card, padding: "8px 16px" }}>
+      <div style={{ ...card, padding: "8px 16px", marginTop: 14 }}>
         {members.map((m, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0" }}>
             <BuddyFaceLive avatar={m.avatar} name={m.name} size={36} />
@@ -491,8 +485,7 @@ function TeamSettingsLive() {
       {/* SHARE — в блоке, как всё остальное (David: «кнопка поделиться выбивается»). Telegram team
           deep-link (t.me/<bot>?startapp=team_<cloudId>) — тот же, что у TeamShareSheetLive. */}
       {team.cloudId && (<>
-        <div className="section-label" style={{ marginTop: 22 }}>Поделиться</div>
-        <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
           <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginBottom: 12 }}>Пришли ссылку — друг откроет команду в Telegram и присоединится к общей цели. За совместные привычки больше XP.</div>
           <button onClick={() => {
             var link = (typeof bosTeamInviteLink === "function") ? bosTeamInviteLink(team.cloudId) : ("https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId);
@@ -578,9 +571,8 @@ function TeamQuickEditSheetLive({ team }) {
         <BosColorPickerLive value={accent} onChange={setAccent} />
       </div>
 
-      {/* Режим общей цели */}
-      <div className="section-label" style={{ marginTop: 20 }}>Общая цель</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      {/* Режим общей цели — без подписи. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 18 }}>
         {goalTypes.map(gt => {
           const active = goalType === gt.id;
           return (
@@ -609,15 +601,13 @@ function TeamQuickEditSheetLive({ team }) {
         )}
       </div>
 
-      {/* Видимость */}
-      <div className="section-label" style={{ marginTop: 20 }}>Видимость</div>
-      <div style={{ marginTop: 8 }}>
+      {/* Видимость — без подписи. */}
+      <div style={{ marginTop: 14 }}>
         <Segmented value={priv ? "private" : "public"} onChange={(v) => setPriv(v === "private")} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Публичная" }]} />
       </div>
 
-      {/* Ставка */}
-      <div className="section-label" style={{ marginTop: 20 }}>Ставка в игре</div>
-      <div style={{ background: "var(--card)", borderRadius: 18, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      {/* Ставка — без подписи. */}
+      <div style={{ background: "var(--card)", borderRadius: 18, padding: 14, marginTop: 18, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP<div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4, fontWeight: 400 }}>Дойдёте — банк раскроется. Опционально.</div></div>
           <Switch on={stakes} onChange={setStakes}/>
