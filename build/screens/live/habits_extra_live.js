@@ -125,6 +125,7 @@ function HabitSettingsLive() {
           var nm = p && p.username ? p.username : "Друг";
           return {
             name: nm,
+            avatar: p && p.avatar || null,
             i: nm.charAt(0).toUpperCase(),
             c: _FCOLORS[idx % _FCOLORS.length],
             on: false
@@ -493,19 +494,11 @@ function HabitSettingsLive() {
       fontSize: 12,
       fontWeight: 500
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 22,
-      height: 22,
-      borderRadius: "50%",
-      background: p.c,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 11,
-      fontWeight: 700,
-      color: "rgba(0,0,0,0.55)"
-    }
-  }, p.i), p.name, p.on && /*#__PURE__*/React.createElement(I.Check, {
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    avatar: p.avatar,
+    name: p.name,
+    size: 22
+  }), p.name, p.on && /*#__PURE__*/React.createElement(I.Check, {
     size: 12,
     strokeWidth: 3
   }))), /*#__PURE__*/React.createElement("button", {

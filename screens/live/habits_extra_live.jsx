@@ -94,7 +94,7 @@ function HabitSettingsLive() {
         if (!on || !Array.isArray(list)) return;
         setShareFriends(list.map((p, idx) => {
           const nm = (p && p.username) ? p.username : "Друг";
-          return { name: nm, i: nm.charAt(0).toUpperCase(), c: _FCOLORS[idx % _FCOLORS.length], on: false };
+          return { name: nm, avatar: (p && p.avatar) || null, i: nm.charAt(0).toUpperCase(), c: _FCOLORS[idx % _FCOLORS.length], on: false };
         }));
       }).catch(() => {});
     } catch (e) {}
@@ -212,7 +212,7 @@ function HabitSettingsLive() {
               color: p.on ? "#fff" : "var(--text-3)",
               border: 0, fontSize: 12, fontWeight: 500,
             }}>
-              <span style={{ width: 22, height: 22, borderRadius: "50%", background: p.c, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.55)" }}>{p.i}</span>
+              <BuddyFaceLive avatar={p.avatar} name={p.name} size={22} />
               {p.name}
               {p.on && <I.Check size={12} strokeWidth={3}/>}
             </button>
