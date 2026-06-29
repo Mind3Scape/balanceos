@@ -687,16 +687,11 @@ function GoalSettingsLive() {
     value: color,
     onChange: setColor
   })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0426\u0435\u043B\u044C (\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435)"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -742,16 +737,11 @@ function GoalSettingsLive() {
       marginTop: 6
     }
   }, "\u041E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u0447\u0438\u0442\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0421\u0440\u043E\u043A"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
       padding: "14px 16px",
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)",
       display: "flex",
       alignItems: "center",
@@ -825,16 +815,11 @@ function GoalSettingsLive() {
       setShowCal(false);
     }
   }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -927,16 +912,11 @@ function GoalSettingsLive() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 12
   }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0414\u0435\u043B\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {

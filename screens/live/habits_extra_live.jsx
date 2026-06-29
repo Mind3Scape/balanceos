@@ -318,8 +318,7 @@ function GoalSettingsLive() {
         <BosColorPickerLive value={color} onChange={setColor} />
       </div>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Цель (значение)</div>
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <input type="text" inputMode="numeric" pattern="[0-9]*" value={target}
             onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
@@ -331,8 +330,7 @@ function GoalSettingsLive() {
         <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 6 }}>От этого числа будет считаться прогресс цели.</div>
       </div>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Срок</div>
-      <div style={{ background: "#fff", borderRadius: 22, padding: "14px 16px", marginTop: 8, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: "14px 16px", marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
         <I.Calendar size={18} color="var(--text-3)"/>
         <input value={deadline} onChange={e => setDeadline(e.target.value)} placeholder="напр. 14 окт"
           style={{ flex: 1, fontSize: 16, border: 0, outline: 0, background: "transparent" }}/>
@@ -354,8 +352,7 @@ function GoalSettingsLive() {
       </div>
       {showCal && <DeadlineCalendarLive onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
 
-      <div className="section-label" style={{ marginTop: 22 }}>Привязать привычку</div>
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>Подкрепи эту цель ежедневной привычкой</div>
@@ -393,8 +390,7 @@ function GoalSettingsLive() {
 
       {/* КРУГ — «делать вместе»: цель с надетым кругом = «команда». Один тумблер (David). Тот же
           смысл, что у привычки «Поделиться»; вкл → можно позвать людей, цель станет общей. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Делать вместе</div>
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Идти к цели кругом

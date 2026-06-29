@@ -91,8 +91,7 @@ function TeamCreateLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Создать команду" onBack={() => navigate("community")} />
 
-      {/* IDENTITY — team name + emblem + accent */}
-      <div className="section-label">Идентичность</div>
+      {/* IDENTITY — team name + emblem + accent (без подписи блока). */}
       <div style={{
         background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
         borderRadius: 22, padding: 18, marginTop: 8, boxShadow: "var(--card-shadow)",
@@ -118,11 +117,8 @@ function TeamCreateLive() {
         <BosColorPickerLive value={accent} onChange={setAccent} />
       </div>
 
-      {/* SHARED GOAL */}
-      <div className="section-label" style={{ marginTop: 22 }}>Общая цель</div>
-
-      {/* Goal type picker — 3 cards */}
-      <div data-tour="team-modes" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      {/* SHARED GOAL — без подписи (карточки режима сами объясняют). */}
+      <div data-tour="team-modes" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 22 }}>
         {goalTypes.map(gt => {
           const active = goalType === gt.id;
           return (
@@ -208,20 +204,17 @@ function TeamCreateLive() {
         </div>
       </div>
 
-      {/* DURATION & VISIBILITY */}
-      <div className="section-label" style={{ marginTop: 22 }}>Длительность</div>
-      <DurationPicker value={duration} onChange={setDuration}/>
+      {/* DURATION & VISIBILITY — без подписей блоков. */}
+      <div style={{ marginTop: 22 }}><DurationPicker value={duration} onChange={setDuration}/></div>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Видимость</div>
-      <div style={{ marginTop: 8 }}>
+      <div style={{ marginTop: 14 }}>
         <Segmented value={vis} onChange={setVis} options={[
           {value:"private",label:"Приватная"},{value:"public",label:"Публичная"}
         ]} />
       </div>
 
-      {/* STAKES — optional XP wager */}
-      <div className="section-label" style={{ marginTop: 22 }}>Ставка в игре</div>
-      <div data-tour="team-stakes" style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      {/* STAKES — optional XP wager, без подписи (внутри «Все ставят XP»). */}
+      <div data-tour="team-stakes" style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 22, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP</div>
@@ -246,9 +239,8 @@ function TeamCreateLive() {
         )}
       </div>
 
-      {/* INVITE MEMBERS */}
-      <div className="section-label" style={{ marginTop: 22 }}>Пригласить участников</div>
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      {/* INVITE MEMBERS — без подписи блока. */}
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 22, boxShadow: "var(--card-shadow)" }}>
         <div style={{ fontSize: 12, color: "var(--text-4)", marginBottom: 12, lineHeight: 1.45 }}>Участники видят отметки, итоги и распределение. Они могут поддержать или подтолкнуть.</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {members.map((p, i) => (

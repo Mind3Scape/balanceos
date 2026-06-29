@@ -134,8 +134,6 @@ function TeamCreateLive() {
     title: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443",
     onBack: () => navigate("community")
   }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label"
-  }, "\u0418\u0434\u0435\u043D\u0442\u0438\u0447\u043D\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
       borderRadius: 22,
@@ -230,17 +228,12 @@ function TeamCreateLive() {
     value: accent,
     onChange: setAccent
   })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041E\u0431\u0449\u0430\u044F \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     "data-tour": "team-modes",
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      marginTop: 8
+      marginTop: 22
     }
   }, goalTypes.map(gt => {
     var active = goalType === gt.id;
@@ -496,21 +489,15 @@ function TeamCreateLive() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 12
   }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
       marginTop: 22
     }
-  }, "\u0414\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement(DurationPicker, {
+  }, /*#__PURE__*/React.createElement(DurationPicker, {
     value: duration,
     onChange: setDuration
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 22
-    }
-  }, "\u0412\u0438\u0434\u0438\u043C\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8
+      marginTop: 14
     }
   }, /*#__PURE__*/React.createElement(Segmented, {
     value: vis,
@@ -523,17 +510,12 @@ function TeamCreateLive() {
       label: "Публичная"
     }]
   })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0421\u0442\u0430\u0432\u043A\u0430 \u0432 \u0438\u0433\u0440\u0435"), /*#__PURE__*/React.createElement("div", {
     "data-tour": "team-stakes",
     style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 22,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -621,16 +603,11 @@ function TeamCreateLive() {
       color: "var(--text)"
     }
   }, "\u0431\u0430\u043D\u043A ", stakeAmount * activeMembers.length, " XP")))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 22,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
