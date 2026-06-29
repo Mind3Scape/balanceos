@@ -1795,13 +1795,17 @@ function CloudTeamsDiscoverLive({ app }) {
    показывает CloudTeamsDiscoverLive ниже. seedId на круге = защита от дубля. LIVE only. */
 // Курируемая витрина «Найти» — разные сферы и разные метрики (не только км; David: «метрики у
 // каждого свои»), у каждого крючок-почему. Цвета ВЫКЛ — эмблемы на сером стекле как везде.
+// reward = ПРИЗ XP за финиш челленджа (David: «хочу награду за финиш»). Реализован через
+// ПРОВЕРЕННУЮ механику командной XP-ставки: круг создаётся со stake=reward (unlock-only, без
+// списания) → дошёл до цели → settleTeamGoal начисляет приз, уровень растёт (тот же путь, что
+// David тестировал живьём на командных целях). Никакой новой XP-проводки.
 const SEED_CIRCLES = [
-  { id: "seed-morning",  name: "Утро чемпионов", emblem: "🌅", goalText: "21 день",  target: 21, unit: "дней", type: "streak",     hook: "Вставай раньше — задаёшь тон дню",   practice: { name: "Ранний подъём", emoji: "⏰" } },
-  { id: "seed-meditate", name: "Тихий час",      emblem: "🧘", goalText: "30 дней",  target: 30, unit: "дней", type: "streak",     hook: "5 минут тишины каждый день",         practice: { name: "Медитация",     emoji: "🧘" } },
-  { id: "seed-steps",    name: "10 000 шагов",   emblem: "👟", goalText: "30 дней",  target: 30, unit: "дней", type: "collective", hook: "Двигайтесь каждый день — счёт общий", practice: { name: "Прогулка",      emoji: "👟" } },
-  { id: "seed-read",     name: "Книжный клуб",   emblem: "📚", goalText: "12 книг",  target: 12, unit: "книг", type: "collective", hook: "По главе в день — вместе веселее",    practice: { name: "Чтение",        emoji: "📖" } },
-  { id: "seed-water",    name: "Восемь стаканов", emblem: "💧", goalText: "30 дней", target: 30, unit: "дней", type: "collective", hook: "Пей воду — держитесь кругом",         practice: { name: "Вода",          emoji: "💧" } },
-  { id: "seed-grateful", name: "Благодарность",  emblem: "🙏", goalText: "30 дней",  target: 30, unit: "дней", type: "collective", hook: "Три строки благодарности в день",     practice: { name: "Благодарность", emoji: "📓" } },
+  { id: "seed-morning",  name: "Утро чемпионов", emblem: "🌅", goalText: "21 день",  target: 21, unit: "дней", type: "streak",     reward: 250, hook: "Вставай раньше — задаёшь тон дню",   practice: { name: "Ранний подъём", emoji: "⏰" } },
+  { id: "seed-meditate", name: "Тихий час",      emblem: "🧘", goalText: "30 дней",  target: 30, unit: "дней", type: "streak",     reward: 300, hook: "5 минут тишины каждый день",         practice: { name: "Медитация",     emoji: "🧘" } },
+  { id: "seed-steps",    name: "10 000 шагов",   emblem: "👟", goalText: "30 дней",  target: 30, unit: "дней", type: "collective", reward: 300, hook: "Двигайтесь каждый день — счёт общий", practice: { name: "Прогулка",      emoji: "👟" } },
+  { id: "seed-read",     name: "Книжный клуб",   emblem: "📚", goalText: "12 книг",  target: 12, unit: "книг", type: "collective", reward: 250, hook: "По главе в день — вместе веселее",    practice: { name: "Чтение",        emoji: "📖" } },
+  { id: "seed-water",    name: "Восемь стаканов", emblem: "💧", goalText: "30 дней", target: 30, unit: "дней", type: "collective", reward: 250, hook: "Пей воду — держитесь кругом",         practice: { name: "Вода",          emoji: "💧" } },
+  { id: "seed-grateful", name: "Благодарность",  emblem: "🙏", goalText: "30 дней",  target: 30, unit: "дней", type: "collective", reward: 250, hook: "Три строки благодарности в день",     practice: { name: "Благодарность", emoji: "📓" } },
 ];
 function SeedCirclesShowcaseLive({ app, navigate }) {
   const start = (s) => {
@@ -1811,14 +1815,14 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
     const teamObj = {
       name: s.name, emblem: s.emblem, accent: s.accent, vis: "private", seedId: s.id,
       goal: s.goalText, type: s.type, target: s.target || 0, current: 0, unit: s.unit || "",
-      stake: 0, date: "", progress: 0, members: [],
+      stake: s.reward || 0, date: "", progress: 0, members: [],   // ПРИЗ за финиш = ставка (unlock-only, без списания)
     };
     const nt = app?.addTeam(teamObj);                    // круг → сразу в «Целях» (офлайн-ок)
     const practiceHabit = { name: s.practice.name, emoji: s.practice.emoji, color: null, days: [1, 1, 1, 1, 1, 1, 1], goalPerDay: 1, reminder: { on: false, time: "09:00" }, log: {} };
     let opened = false;
     try {
       if (nt && window.bosCloud && window.bosCloud.enabled()) {
-        window.bosCloud.createTeam({ name: s.name, emblem: s.emblem, vis: "private", goalKind: s.goalText, goalTarget: s.target || 0, goal: { type: s.type, target: s.target || 0, unit: s.unit || "", title: s.name } })
+        window.bosCloud.createTeam({ name: s.name, emblem: s.emblem, vis: "private", goalKind: s.goalText, goalTarget: s.target || 0, goal: { type: s.type, target: s.target || 0, unit: s.unit || "", title: s.name, stake: s.reward || 0 } })
           .then(async (row) => {
             if (row && row.id) {
               if (app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id });
@@ -1853,11 +1857,63 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
               <div style={{ flex: 1, minHeight: 10 }} />
-              <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 3, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 800, fontSize: 10.5, borderRadius: 999, padding: "4px 9px", boxShadow: "0 2px 6px rgba(239,159,20,0.3)" }}>⚡ +10 XP / день</span>
+              <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 3, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 800, fontSize: 10.5, borderRadius: 999, padding: "4px 9px", boxShadow: "0 2px 6px rgba(239,159,20,0.3)" }}>🏆 +{s.reward} XP за финиш</span>
               <span style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, color: joined ? "var(--text-4)" : "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>{joined ? "Открыть" : "Начать"} <I.ChevronRight size={14}/></span>
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* «Твои люди» — РЕАЛЬНАЯ жизнь в «Найти» (David: «сама жизнь должна быть по-настоящему»): живые
+   аватары людей из ТВОИХ кругов (cloud teamMembers, дедуп, без себя). НЕ выдумка: если кругов/людей
+   нет — секция СКРЫТА. Кэш в модульной переменной → мгновенно при повторном входе. Тап → в общий круг. */
+var _bosFriendsAggCache = null;
+function CircleFriendsStripLive({ app, navigate }) {
+  var [friends, setFriends] = React.useState(_bosFriendsAggCache);
+  var teamSig = (app && app.teams ? app.teams.filter(function (t) { return t.cloudId; }).map(function (t) { return t.cloudId; }).join(",") : "");
+  React.useEffect(function () {
+    var on = true;
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers)) { setFriends([]); return; }
+    var teams = (app && app.teams || []).filter(function (t) { return t.cloudId; });
+    if (!teams.length) { setFriends([]); return; }
+    (async function () {
+      var myId = null; try { myId = await window.bosCloud.uid(); } catch (e) {}
+      var seen = {}, out = [];
+      for (var i = 0; i < teams.length; i++) {
+        try {
+          var mem = await window.bosCloud.teamMembers(teams[i].cloudId);
+          (mem || []).forEach(function (m) {
+            if (!m || !m.id || m.id === myId || seen[m.id]) return;
+            seen[m.id] = 1; out.push({ id: m.id, name: m.name || "Друг", avatar: m.avatar, team: teams[i] });
+          });
+        } catch (e) {}
+      }
+      if (on) { _bosFriendsAggCache = out; setFriends(out); }
+    })();
+    return function () { on = false; };
+  }, [teamSig]);
+  if (!friends || !friends.length) return null;
+  var shown = friends.slice(0, 8), extra = friends.length - shown.length;
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>👥 Твои люди</div>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)" }}>
+        <div className="bos-hscroll" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 2 }}>
+          {shown.map(function (f) {
+            return (
+              <button key={f.id} className="tap" onClick={function () { navigate("team-detail", { team: f.team }); }}
+                style={{ flex: "0 0 auto", width: 60, background: "transparent", border: 0, padding: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <BuddyFaceLive avatar={f.avatar} name={f.name} size={48} />
+                <span style={{ fontSize: 11.5, color: "var(--text-2)", fontWeight: 500, maxWidth: 60, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(f.name || "").split(" ")[0]}</span>
+              </button>
+            );
+          })}
+          {extra > 0 && <div style={{ flex: "0 0 auto", alignSelf: "flex-start", width: 48, height: 48, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>+{extra}</div>}
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 11, lineHeight: 1.4 }}>Вы уже ведёте вместе — загляни в общий круг.</div>
       </div>
     </div>
   );

@@ -4319,6 +4319,10 @@ function CloudTeamsDiscoverLive({
    показывает CloudTeamsDiscoverLive ниже. seedId на круге = защита от дубля. LIVE only. */
 // Курируемая витрина «Найти» — разные сферы и разные метрики (не только км; David: «метрики у
 // каждого свои»), у каждого крючок-почему. Цвета ВЫКЛ — эмблемы на сером стекле как везде.
+// reward = ПРИЗ XP за финиш челленджа (David: «хочу награду за финиш»). Реализован через
+// ПРОВЕРЕННУЮ механику командной XP-ставки: круг создаётся со stake=reward (unlock-only, без
+// списания) → дошёл до цели → settleTeamGoal начисляет приз, уровень растёт (тот же путь, что
+// David тестировал живьём на командных целях). Никакой новой XP-проводки.
 var SEED_CIRCLES = [{
   id: "seed-morning",
   name: "Утро чемпионов",
@@ -4327,6 +4331,7 @@ var SEED_CIRCLES = [{
   target: 21,
   unit: "дней",
   type: "streak",
+  reward: 250,
   hook: "Вставай раньше — задаёшь тон дню",
   practice: {
     name: "Ранний подъём",
@@ -4340,6 +4345,7 @@ var SEED_CIRCLES = [{
   target: 30,
   unit: "дней",
   type: "streak",
+  reward: 300,
   hook: "5 минут тишины каждый день",
   practice: {
     name: "Медитация",
@@ -4353,6 +4359,7 @@ var SEED_CIRCLES = [{
   target: 30,
   unit: "дней",
   type: "collective",
+  reward: 300,
   hook: "Двигайтесь каждый день — счёт общий",
   practice: {
     name: "Прогулка",
@@ -4366,6 +4373,7 @@ var SEED_CIRCLES = [{
   target: 12,
   unit: "книг",
   type: "collective",
+  reward: 250,
   hook: "По главе в день — вместе веселее",
   practice: {
     name: "Чтение",
@@ -4379,6 +4387,7 @@ var SEED_CIRCLES = [{
   target: 30,
   unit: "дней",
   type: "collective",
+  reward: 250,
   hook: "Пей воду — держитесь кругом",
   practice: {
     name: "Вода",
@@ -4392,6 +4401,7 @@ var SEED_CIRCLES = [{
   target: 30,
   unit: "дней",
   type: "collective",
+  reward: 250,
   hook: "Три строки благодарности в день",
   practice: {
     name: "Благодарность",
@@ -4426,10 +4436,10 @@ function SeedCirclesShowcaseLive({
       target: s.target || 0,
       current: 0,
       unit: s.unit || "",
-      stake: 0,
+      stake: s.reward || 0,
       date: "",
       progress: 0,
-      members: []
+      members: [] // ПРИЗ за финиш = ставка (unlock-only, без списания)
     };
     var nt = app?.addTeam(teamObj); // круг → сразу в «Целях» (офлайн-ок)
     var practiceHabit = {
@@ -4457,7 +4467,8 @@ function SeedCirclesShowcaseLive({
             type: s.type,
             target: s.target || 0,
             unit: s.unit || "",
-            title: s.name
+            title: s.name,
+            stake: s.reward || 0
           }
         }).then(async row => {
           if (row && row.id) {
@@ -4605,7 +4616,7 @@ function SeedCirclesShowcaseLive({
         padding: "4px 9px",
         boxShadow: "0 2px 6px rgba(239,159,20,0.3)"
       }
-    }, "\u26A1 +10 XP / \u0434\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("span", {
+    }, "\uD83C\uDFC6 +", s.reward, " XP \u0437\u0430 \u0444\u0438\u043D\u0438\u0448"), /*#__PURE__*/React.createElement("span", {
       style: {
         marginTop: 9,
         fontSize: 12.5,
@@ -4619,6 +4630,151 @@ function SeedCirclesShowcaseLive({
       size: 14
     })));
   })));
+}
+
+/* «Твои люди» — РЕАЛЬНАЯ жизнь в «Найти» (David: «сама жизнь должна быть по-настоящему»): живые
+   аватары людей из ТВОИХ кругов (cloud teamMembers, дедуп, без себя). НЕ выдумка: если кругов/людей
+   нет — секция СКРЫТА. Кэш в модульной переменной → мгновенно при повторном входе. Тап → в общий круг. */
+var _bosFriendsAggCache = null;
+function CircleFriendsStripLive({
+  app,
+  navigate
+}) {
+  var [friends, setFriends] = React.useState(_bosFriendsAggCache);
+  var teamSig = app && app.teams ? app.teams.filter(function (t) {
+    return t.cloudId;
+  }).map(function (t) {
+    return t.cloudId;
+  }).join(",") : "";
+  React.useEffect(function () {
+    var on = true;
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers)) {
+      setFriends([]);
+      return;
+    }
+    var teams = (app && app.teams || []).filter(function (t) {
+      return t.cloudId;
+    });
+    if (!teams.length) {
+      setFriends([]);
+      return;
+    }
+    (async function () {
+      var myId = null;
+      try {
+        myId = await window.bosCloud.uid();
+      } catch (e) {}
+      var seen = {},
+        out = [];
+      for (var i = 0; i < teams.length; i++) {
+        try {
+          var mem = await window.bosCloud.teamMembers(teams[i].cloudId);
+          (mem || []).forEach(function (m) {
+            if (!m || !m.id || m.id === myId || seen[m.id]) return;
+            seen[m.id] = 1;
+            out.push({
+              id: m.id,
+              name: m.name || "Друг",
+              avatar: m.avatar,
+              team: teams[i]
+            });
+          });
+        } catch (e) {}
+      }
+      if (on) {
+        _bosFriendsAggCache = out;
+        setFriends(out);
+      }
+    })();
+    return function () {
+      on = false;
+    };
+  }, [teamSig]);
+  if (!friends || !friends.length) return null;
+  var shown = friends.slice(0, 8),
+    extra = friends.length - shown.length;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "4px 4px 8px"
+    }
+  }, "\uD83D\uDC65 \u0422\u0432\u043E\u0438 \u043B\u044E\u0434\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 14,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
+    style: {
+      display: "flex",
+      gap: 12,
+      overflowX: "auto",
+      paddingBottom: 2
+    }
+  }, shown.map(function (f) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: f.id,
+      className: "tap",
+      onClick: function () {
+        navigate("team-detail", {
+          team: f.team
+        });
+      },
+      style: {
+        flex: "0 0 auto",
+        width: 60,
+        background: "transparent",
+        border: 0,
+        padding: 0,
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+      avatar: f.avatar,
+      name: f.name,
+      size: 48
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-2)",
+        fontWeight: 500,
+        maxWidth: 60,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, (f.name || "").split(" ")[0]));
+  }), extra > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "0 0 auto",
+      alignSelf: "flex-start",
+      width: 48,
+      height: 48,
+      borderRadius: "50%",
+      background: "var(--surface-3)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "+", extra)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 11,
+      lineHeight: 1.4
+    }
+  }, "\u0412\u044B \u0443\u0436\u0435 \u0432\u0435\u0434\u0451\u0442\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 \u0437\u0430\u0433\u043B\u044F\u043D\u0438 \u0432 \u043E\u0431\u0449\u0438\u0439 \u043A\u0440\u0443\u0433.")));
 }
 
 /* ── Привычки-страница: нижняя полоска недели + Apple-палитра (live-only, v235). The

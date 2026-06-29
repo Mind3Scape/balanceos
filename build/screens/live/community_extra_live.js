@@ -158,33 +158,12 @@ function TeamCreateLive() {
     }
   }, bosIcon(emblem, 92, accent)), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "relative"
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      textTransform: "uppercase",
-      letterSpacing: 1.4,
-      fontWeight: 600
-    }
-  }, "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("input", {
-    value: name,
-    onChange: e => setName(e.target.value),
-    placeholder: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u0441\u043E\u0437\u0434\u0430\u0442\u0435\u043B\u0435\u0439",
-    style: {
-      width: "100%",
-      marginTop: 6,
-      fontSize: 22,
-      fontWeight: 700,
-      color: "var(--text)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: 0,
-      letterSpacing: "-0.4px"
-    }
-  })), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("button", {
     type: "button",
     "data-haptic": "selection",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
@@ -193,38 +172,39 @@ function TeamCreateLive() {
       accent: accent
     })),
     className: "tap",
+    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443",
     style: {
-      position: "relative",
-      marginTop: 14,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 10,
-      background: "rgba(255,255,255,0.75)",
+      width: 52,
+      height: 52,
+      borderRadius: 15,
+      background: "rgba(255,255,255,0.8)",
       border: 0,
-      borderRadius: 14,
-      padding: "7px 14px 7px 7px",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 26,
+      flexShrink: 0,
       cursor: "pointer",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
       WebkitBackdropFilter: "blur(8px)",
       backdropFilter: "blur(8px)"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B",
     style: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      background: "#fff",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+      flex: 1,
+      minWidth: 0,
+      fontSize: 20,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0,
+      letterSpacing: "-0.4px"
     }
-  }, bosIcon(emblem, 24, accent)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 600,
-      color: "var(--text-2)"
-    }
-  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443"))), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     "data-tour": "team-modes",
     style: {
       display: "flex",
@@ -897,33 +877,12 @@ function TeamSettingsLive() {
     }
   }, bosIcon(emblem, 92, accent)), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "relative"
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      textTransform: "uppercase",
-      letterSpacing: 1.4,
-      fontWeight: 600
-    }
-  }, "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("input", {
-    value: name,
-    onChange: e => setName(e.target.value),
-    placeholder: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u0441\u043E\u0437\u0434\u0430\u0442\u0435\u043B\u0435\u0439",
-    style: {
-      width: "100%",
-      marginTop: 6,
-      fontSize: 22,
-      fontWeight: 700,
-      color: "var(--text)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: 0,
-      letterSpacing: "-0.4px"
-    }
-  })), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("button", {
     type: "button",
     "data-haptic": "selection",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(EmojiPickerLive, {
@@ -932,38 +891,39 @@ function TeamSettingsLive() {
       accent: accent
     })),
     className: "tap",
+    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443",
     style: {
-      position: "relative",
-      marginTop: 14,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 10,
-      background: "rgba(255,255,255,0.75)",
+      width: 52,
+      height: 52,
+      borderRadius: 15,
+      background: "rgba(255,255,255,0.8)",
       border: 0,
-      borderRadius: 14,
-      padding: "7px 14px 7px 7px",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 26,
+      flexShrink: 0,
       cursor: "pointer",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
       WebkitBackdropFilter: "blur(8px)",
       backdropFilter: "blur(8px)"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B",
     style: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      background: "#fff",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+      flex: 1,
+      minWidth: 0,
+      fontSize: 20,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0,
+      letterSpacing: "-0.4px"
     }
-  }, bosIcon(emblem, 24, accent)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 600,
-      color: "var(--text-2)"
-    }
-  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443"))), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1518,13 +1478,39 @@ function TeamQuickEditSheetLive({
       overflow: "hidden",
       boxShadow: "var(--card-shadow)"
     }
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-haptic": "selection",
+    onClick: () => setView("picker"),
+    className: "tap",
+    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443",
+    style: {
+      width: 50,
+      height: 50,
+      borderRadius: 15,
+      background: "rgba(255,255,255,0.8)",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 24,
+      flexShrink: 0,
+      cursor: "pointer",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+    }
+  }, bosIcon(emblem, 26, accent)), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
     placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u0440\u0443\u0433\u0430",
     style: {
-      width: "100%",
-      fontSize: 21,
+      flex: 1,
+      minWidth: 0,
+      fontSize: 20,
       fontWeight: 700,
       color: "var(--text)",
       border: 0,
@@ -1533,40 +1519,7 @@ function TeamQuickEditSheetLive({
       padding: 0,
       letterSpacing: "-0.4px"
     }
-  }), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    "data-haptic": "selection",
-    onClick: () => setView("picker"),
-    className: "tap",
-    style: {
-      marginTop: 13,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 10,
-      background: "rgba(255,255,255,0.75)",
-      border: 0,
-      borderRadius: 14,
-      padding: "7px 14px 7px 7px",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      background: "#fff",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
-    }
-  }, bosIcon(emblem, 22, accent)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 600,
-      color: "var(--text-2)"
-    }
-  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443"))), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

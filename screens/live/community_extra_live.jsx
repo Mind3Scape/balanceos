@@ -102,17 +102,14 @@ function TeamCreateLive() {
           opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)",
           transform: "rotate(8deg)",
         }}>{bosIcon(emblem, 92, accent)}</div>
-        <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Название команды</div>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Команда создателей"
-            style={{ width: "100%", marginTop: 6, fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
+        {/* Иконка + название в ОДНОМ блоке-идентичности (David: «иконка и название в одном красивом
+            блоке, не отдельно»). Тап по иконке → выбор эмодзи. Тот же паттерн, что в форме привычки. */}
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
+            style={{ width: 52, height: 52, borderRadius: 15, background: "rgba(255,255,255,0.8)", border: 0, display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}>{bosIcon(emblem, 28, accent)}</button>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название команды"
+            style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
-        {/* Emoji/symbol panel + Journal colours — same picker as habits & goals (David). */}
-        <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap"
-          style={{ position: "relative", marginTop: 14, display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.75)", border: 0, borderRadius: 14, padding: "7px 14px 7px 7px", cursor: "pointer", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}>
-          <span style={{ width: 40, height: 40, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 24, accent)}</span>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
-        </button>
         {/* ONE shared colour picker — same as habits/goals (glassy circles, grey+black+Apple). */}
         {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
       </div>
@@ -372,16 +369,13 @@ function TeamSettingsLive() {
         position: "relative", overflow: "hidden",
       }}>
         <div aria-hidden style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{bosIcon(emblem, 92, accent)}</div>
-        <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 600 }}>Название команды</div>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Команда создателей"
-            style={{ width: "100%", marginTop: 6, fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
+        {/* Иконка + название в ОДНОМ блоке-идентичности (David). Тап по иконке → выбор эмодзи. */}
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
+          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
+            style={{ width: 52, height: 52, borderRadius: 15, background: "rgba(255,255,255,0.8)", border: 0, display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}>{bosIcon(emblem, 28, accent)}</button>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название команды"
+            style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
-        <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap"
-          style={{ position: "relative", marginTop: 14, display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.75)", border: 0, borderRadius: 14, padding: "7px 14px 7px 7px", cursor: "pointer", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}>
-          <span style={{ width: 40, height: 40, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 24, accent)}</span>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
-        </button>
         {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
       </div>
 
@@ -560,13 +554,13 @@ function TeamQuickEditSheetLive({ team, navigate }) {
 
       {/* Идентичность — тот же градиентный вид, что в создании/настройках */}
       <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, borderRadius: 22, padding: 16, marginTop: 6, position: "relative", overflow: "hidden", boxShadow: "var(--card-shadow)" }}>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Название круга"
-          style={{ width: "100%", fontSize: 21, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
-        <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap"
-          style={{ marginTop: 13, display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.75)", border: 0, borderRadius: 14, padding: "7px 14px 7px 7px", cursor: "pointer" }}>
-          <span style={{ width: 38, height: 38, borderRadius: 12, background: "#fff", display: "grid", placeItems: "center", fontSize: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>{bosIcon(emblem, 22, accent)}</span>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
-        </button>
+        {/* Иконка + название в ОДНОМ блоке-идентичности (David). Тап по иконке → выбор эмодзи. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap" aria-label="Сменить иконку"
+            style={{ width: 50, height: 50, borderRadius: 15, background: "rgba(255,255,255,0.8)", border: 0, display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>{bosIcon(emblem, 26, accent)}</button>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название круга"
+            style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
+        </div>
         {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
       </div>
 

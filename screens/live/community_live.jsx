@@ -165,6 +165,8 @@ function CommunityLive() {
           </div>
           {/* Курируемая ВИТРИНА челленджей — засев до запуска (без неё «Найти» пустует). */}
           {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
+          {/* РЕАЛЬНАЯ жизнь — живые лица из твоих кругов (скрыто, если людей нет; David: «по-настоящему»). */}
+          {typeof CircleFriendsStripLive === "function" && <CircleFriendsStripLive app={app} navigate={navigate} />}
           {/* Открытые круги из облака, в которые можно вступить. */}
           <CloudTeamsDiscoverLive app={app} />
         </div>
