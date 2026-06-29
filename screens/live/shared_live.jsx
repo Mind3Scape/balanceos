@@ -1919,6 +1919,64 @@ function CircleFriendsStripLive({ app, navigate }) {
   );
 }
 
+/* «Собери свой круг» — РЕЛЯЦИОННЫЕ заготовки (Семья/Друзья/Команда/Пара), отдельно от челленджей
+   (David: «нужны примеры кругов, не только челленджи»). Челлендж = срочный приз; круг = про ЛЮДЕЙ.
+   Тап → форма создания круга ПРЕД-ЗАПОЛНЕНА (navigate team-create preset) → правишь и зовёшь своих. */
+const STARTER_CIRCLES = [
+  { i: "🏡", t: "Семья",        hook: "Общие дела и забота друг о друге", preset: { i: "🏡", t: "Наша семья",   accent: "#EAEAEF", goalType: "collective", goalTitle: "Общие дела вместе", target: 30, unit: "дел" } },
+  { i: "🤝", t: "Близкий круг",  hook: "Друзья, что держат ритм вместе",    preset: { i: "🤝", t: "Близкий круг", accent: "#EAEAEF", goalType: "streak",     goalTitle: "Держим ритм",      target: 30, unit: "дней" } },
+  { i: "💼", t: "Команда",       hook: "Рабочий фокус и поддержка",          preset: { i: "💼", t: "Наша команда", accent: "#EAEAEF", goalType: "collective", goalTitle: "Рабочий фокус",    target: 50, unit: "раз" } },
+  { i: "❤️", t: "Пара",          hook: "Растём вдвоём каждый день",          preset: { i: "❤️", t: "Мы вдвоём",   accent: "#EAEAEF", goalType: "streak",     goalTitle: "Вместе каждый день", target: 30, unit: "дней" } },
+];
+function StarterCirclesLive({ navigate }) {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🌐 Собери свой круг</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>и позови близких</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {STARTER_CIRCLES.map(function (s) {
+          return (
+            <button key={s.t} onClick={function () { navigate("team-create", { preset: s.preset }); }} className="tap"
+              style={{ textAlign: "left", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, cursor: "pointer", display: "flex", flexDirection: "column", color: "var(--text)" }}>
+              <span style={{ width: 42, height: 42, borderRadius: 13, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{bosIcon(s.i, 22, null)}</span>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 10 }}>{s.t}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
+              <span style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>Создать <I.ChevronRight size={14} /></span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* «Позови своих» — ЭЛЕГАНТНАЯ интеграция контактов для Telegram-приложения (David: «красиво
+   интегрировать контакты, гениальное решение по смыслу»): НЕ скрейпим список контактов (приватность),
+   а открываем РОДНОЙ выбор чата Telegram (ShareAppSheetLive → t.me/share/url). Друг переходит по
+   реф-ссылке, вступает — и появляется в «Твои люди». Тот же реферальный движок, что на Главной. */
+function InviteFriendsCardLive({ isDark }) {
+  var sheet = (typeof useSheet === "function") ? useSheet() : null;
+  var openInvite = function () { try { if (sheet && sheet.open && typeof ShareAppSheetLive === "function") sheet.open(<ShareAppSheetLive dark={isDark} />); } catch (e) {} };
+  return (
+    <div>
+      <button onClick={openInvite} className="tap" style={{ width: "100%", position: "relative", overflow: "hidden", border: 0, borderRadius: 22, padding: 16, background: "linear-gradient(135deg, #FEDE34, #EF9F14)", boxShadow: "0 8px 22px rgba(239,159,20,0.3)", color: "#0a0a0a", display: "flex", alignItems: "center", gap: 13, textAlign: "left", cursor: "pointer" }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)", pointerEvents: "none" }} />
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, color: "#0a0a0a", position: "relative" }}><I.Share size={20} /></span>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15.5, fontWeight: 700, color: "#0a0a0a", letterSpacing: "-0.2px" }}>Позови своих</span>
+            <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#FEDE34", background: "#0a0a0a", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: "rgba(0,0,0,0.62)", marginTop: 3, lineHeight: 1.35, fontWeight: 500 }}>Пригласи друзей прямо из Telegram — и они появятся в «Твои люди».</div>
+        </div>
+        <span style={{ position: "relative", color: "#0a0a0a", opacity: 0.55, flexShrink: 0 }}><I.ChevronRight size={18} /></span>
+      </button>
+    </div>
+  );
+}
+
 /* ── Привычки-страница: нижняя полоска недели + Apple-палитра (live-only, v235). The
    HOME card stays the compact row — only the Привычки-page card grows this strip.
    Colours = the Apple JOURNAL palette (David found it: «такие же цвета, как в Журнале») —

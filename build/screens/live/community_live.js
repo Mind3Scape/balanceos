@@ -358,9 +358,13 @@ function CommunityLive() {
   }, "\u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438 \u0438 \u0436\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438 \u2014 \u0432\u0441\u0442\u0443\u043F\u0430\u0435\u0448\u044C \u0437\u0430 \u0441\u0435\u043A\u0443\u043D\u0434\u0443, \u0438 \u043A\u0440\u0443\u0433 \u043F\u043E\u044F\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0443 \u0442\u0435\u0431\u044F \u0432 \xAB\u0426\u0435\u043B\u044F\u0445\xBB.")), typeof SeedCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(SeedCirclesShowcaseLive, {
     app: app,
     navigate: navigate
+  }), typeof StarterCirclesLive === "function" && /*#__PURE__*/React.createElement(StarterCirclesLive, {
+    navigate: navigate
   }), typeof CircleFriendsStripLive === "function" && /*#__PURE__*/React.createElement(CircleFriendsStripLive, {
     app: app,
     navigate: navigate
+  }), typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
+    isDark: app?.themeOverride === "dark"
   }), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
     app: app
   })), section === "community" && commTabEff === "network" &&
@@ -625,32 +629,39 @@ function TeamOrbitLive({
   faces,
   isDark
 }) {
-  var W = 260,
-    H = 178,
+  // КОЛЬЦА РАСТУТ с числом людей (David: «орбиты увеличиваются, если не помещается?») — 1 кольцо
+  // для пары человек, 2 для среднего круга, 3 для большого; дальше «+N». Так комната одинаково
+  // красиво держит и круг из 3, и из 18. (30-50 → будущий full-page вид, см. заметку David.)
+  var W = 262,
+    H = 190,
     cx = W / 2,
     cy = H / 2,
-    FS = 30,
-    rIn = 50,
-    rOut = 84;
+    FS = 26;
+  var rings = [44, 68, 90],
+    caps = [3, 6, 9],
+    maxTotal = 18;
   var list = Array.isArray(faces) ? faces : [];
-  var cap = 7,
-    shown = list.slice(0, cap),
-    extra = list.length - shown.length;
-  var planets = shown.map(function (f) {
+  var items = list.slice(0, maxTotal).map(function (f) {
     return {
       face: f
     };
   });
-  if (extra > 0) planets.push({
+  var extra = list.length - items.length;
+  if (extra > 0) items.push({
     plus: extra
   });
-  var innerN = Math.min(3, planets.length);
-  var inner = planets.slice(0, innerN),
-    outer = planets.slice(innerN);
-  // Космос-стиль как в онбординге (David: «орбиты не такие как в онбординге»): СПЛОШНЫЕ мягкие
-  // кольца + пыль + свечение, не пунктир. Тон колец — как у онбординг-орбиты (приглушённый синий).
+  var ringItems = [[], [], []],
+    idx = 0;
+  for (var r = 0; r < 3 && idx < items.length; r++) {
+    for (var k = 0; k < caps[r] && idx < items.length; k++) {
+      ringItems[r].push(items[idx++]);
+    }
+  }
+  // Минимум 2 кольца для космос-вида даже у соло-круга (не пусто); 3-е кольцо появляется с ростом.
+  var ringsUsed = ringItems[2].length ? 3 : 2;
+  // Космос-стиль как в онбординге: СПЛОШНЫЕ мягкие кольца + пыль + свечение (приглушённый синий).
   var ringCol = isDark ? "rgba(186,210,248,0.22)" : "rgba(74,120,176,0.16)";
-  var ring = function (d) {
+  var ringStyle = function (d) {
     return {
       position: "absolute",
       left: "50%",
@@ -662,42 +673,27 @@ function TeamOrbitLive({
       border: "1px solid " + ringCol
     };
   };
-  var DUST = [{
-    r: rIn,
-    a: 35
-  }, {
-    r: rIn,
-    a: 215
-  }, {
-    r: rOut,
-    a: 10
-  }, {
-    r: rOut,
-    a: 120
-  }, {
-    r: rOut,
-    a: 235
-  }, {
-    r: rOut,
-    a: 305
-  }];
-  var dust = DUST.map(function (d, i) {
-    var ang = d.a * Math.PI / 180;
-    return /*#__PURE__*/React.createElement("span", {
-      key: "du" + i,
-      "aria-hidden": true,
-      style: {
-        position: "absolute",
-        left: cx + d.r * Math.cos(ang),
-        top: cy + d.r * Math.sin(ang),
-        transform: "translate(-50%,-50%)",
-        width: 3,
-        height: 3,
-        borderRadius: "50%",
-        background: ringCol
-      }
+  var dust = [];
+  for (var rr = 0; rr < ringsUsed; rr++) {
+    [30 + rr * 47, 165 + rr * 41, 283 + rr * 29].forEach(function (a, i2) {
+      var ang = a * Math.PI / 180,
+        rad = rings[rr];
+      dust.push(/*#__PURE__*/React.createElement("span", {
+        key: "du" + rr + i2,
+        "aria-hidden": true,
+        style: {
+          position: "absolute",
+          left: cx + rad * Math.cos(ang),
+          top: cy + rad * Math.sin(ang),
+          transform: "translate(-50%,-50%)",
+          width: 3,
+          height: 3,
+          borderRadius: "50%",
+          background: ringCol
+        }
+      }));
     });
-  });
+  }
   var place = function (arr, r, off) {
     return arr.map(function (p, i) {
       var ang = (-90 + off + i * (360 / Math.max(1, arr.length))) * Math.PI / 180;
@@ -715,7 +711,7 @@ function TeamOrbitLive({
           borderRadius: "50%",
           background: "rgba(0,0,0,0.18)",
           color: "var(--text)",
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: 800,
           display: "grid",
           placeItems: "center"
@@ -737,8 +733,8 @@ function TeamOrbitLive({
           position: "absolute",
           right: -1,
           bottom: -1,
-          width: 13,
-          height: 13,
+          width: 12,
+          height: 12,
           borderRadius: "50%",
           background: "#0a0a0a",
           color: "#fff",
@@ -756,7 +752,8 @@ function TeamOrbitLive({
       position: "relative",
       width: W,
       height: H,
-      margin: "0 auto"
+      margin: "0 auto",
+      overflow: "visible"
     }
   }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
@@ -765,31 +762,34 @@ function TeamOrbitLive({
       left: "50%",
       top: "50%",
       transform: "translate(-50%,-50%)",
-      width: 160,
-      height: 160,
+      width: 148,
+      height: 148,
       borderRadius: "50%",
       background: isDark ? "radial-gradient(circle, rgba(186,210,248,0.16), transparent 68%)" : "radial-gradient(circle, rgba(74,120,176,0.12), transparent 68%)",
       pointerEvents: "none"
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: ring(rOut * 2)
-  }), /*#__PURE__*/React.createElement("div", {
-    style: ring(rIn * 2)
+  }), Array.from({
+    length: ringsUsed
+  }).map(function (_, ri) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: "r" + ri,
+      style: ringStyle(rings[ri] * 2)
+    });
   }), dust, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: "50%",
       top: "50%",
       transform: "translate(-50%,-50%)",
-      width: 54,
-      height: 54,
+      width: 52,
+      height: 52,
       borderRadius: "50%",
       background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
       boxShadow: bosTileGlass(isDark),
       display: "grid",
       placeItems: "center"
     }
-  }, bosIcon(emblem || "✨", 28, null)), place(inner, rIn, 0), place(outer, rOut, 28));
+  }, bosIcon(emblem || "✨", 27, null)), place(ringItems[0], rings[0], 0), place(ringItems[1], rings[1], 24), place(ringItems[2], rings[2], 12));
 }
 function TeamDetailLive() {
   var {
