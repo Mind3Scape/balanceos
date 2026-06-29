@@ -813,13 +813,13 @@ function HabitsLive() {
       width: 48,
       height: 48,
       borderRadius: "50%",
-      background: "rgba(255,222,52,0.15)",
+      background: "rgba(255,255,255,0.15)",
       display: "grid",
       placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 22,
-    color: "#FEDE34"
+    color: "#fff"
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1

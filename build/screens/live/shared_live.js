@@ -337,7 +337,7 @@ function DeadlineCalendarLive({
    a directional tint of the habit's colour `hx`, intensity by p (0..1). Capped well below full
    saturation → soft, never neon; black lands as a soft graphite, not pure black. */
 function bosCellFill(hx, p) {
-  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#0a0a0a";
   var bot = 0.30 + 0.55 * Math.max(0, Math.min(1, p)); // bottom alpha — PRESENT, caps ~0.85 (never full)
   var top = bot * 0.6; // lighter top → directional sheen
   var hex = function (a) {
@@ -370,7 +370,7 @@ function bosChipGlass(isDark) {
 // Number ink for a filled day in «подробно» — contrast over the fill (white on dark hues, ink on
 // light hues). Favours dark text when borderline (the top sheen lightens the centre).
 function bosCellInk(hx, p, isDark) {
-  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#0a0a0a";
   var a = (0.30 + 0.55 * Math.max(0, Math.min(1, p))) * 0.82;
   var ch = isDark ? 30 : 255;
   var r = parseInt(hx.slice(1, 3), 16),
@@ -421,7 +421,7 @@ function PeopleMonthCalendarLive({
   var track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
   // «Все» (aggregate) tints in the habit's OWN colour, not a hardcoded yellow (David: «база чёрная
   // — и агрегат должен быть чёрным: полная заливка если все отметились, частичная если не все»).
-  var aggColor = people[0] && people[0].color || "#FEDE34";
+  var aggColor = people[0] && people[0].color || "#0a0a0a";
   var selColor = selPerson == null ? aggColor : people[selPerson]?.color || aggColor;
   var todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)";
   var selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
@@ -656,7 +656,7 @@ function PeopleMonthCalendarLive({
     var pct = itx ? todayTap.pct : dayPct(c.d);
     var fut = pct == null;
     var isSel = selDay === c.d;
-    var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#FEDE34";
+    var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#0a0a0a";
     var done = !fut && pct >= 1;
     var filled = !fut && pct > 0;
     // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
@@ -1660,23 +1660,23 @@ function AchievementSheetLive({
     "aria-hidden": true,
     style: {
       position: "absolute",
-      inset: -12,
+      inset: -14,
       borderRadius: "50%",
-      background: "radial-gradient(circle, " + accent + "55, transparent 70%)"
+      background: "radial-gradient(circle, " + accent + "40, transparent 70%)"
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       width: "100%",
       height: "100%",
-      borderRadius: 24,
-      background: "linear-gradient(180deg,#fffdf5,#fff3d3)",
+      borderRadius: 26,
+      background: BOS_TILE_SHEEN + ", linear-gradient(180deg,#fffdf6,#fff7e0)",
       display: "grid",
       placeItems: "center",
       fontSize: 44,
-      boxShadow: "inset 0 0 0 1.5px " + accent + "66, 0 10px 26px " + accent + "3d"
+      boxShadow: bosTileGlass(isDark) + ", 0 10px 26px " + accent + "33"
     }
-  }, ach.i))), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(ach.i, 44, null)))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#E0A500",

@@ -2673,8 +2673,8 @@ function LevelsLive() {
     },
     className: "tap",
     style: {
-      background: "#FEDE34",
-      color: "#0a0a0a",
+      background: "#0a0a0a",
+      color: "#fff",
       border: 0,
       borderRadius: 999,
       padding: "10px 16px",
@@ -3659,7 +3659,7 @@ function TeamChatLive() {
       width: 38,
       height: 38,
       borderRadius: "50%",
-      background: text.trim() ? "#FEDE34" : isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.18)",
+      background: text.trim() ? "#0a0a0a" : isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.18)",
       border: 0,
       display: "grid",
       placeItems: "center",
@@ -3672,7 +3672,7 @@ function TeamChatLive() {
     height: "18",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: text.trim() ? "#0a0a0a" : "var(--text-4)",
+    stroke: text.trim() ? "#fff" : "var(--text-4)",
     strokeWidth: "2.6",
     strokeLinecap: "round",
     strokeLinejoin: "round"

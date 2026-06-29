@@ -288,7 +288,7 @@ function HabitsLive() {
             </div>
           )}
           <button onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ marginTop: 12, width: "100%", color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
-            <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,222,52,0.15)", display: "grid", placeItems: "center" }}><I.Plus size={22} color="#FEDE34"/></span>
+            <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "grid", placeItems: "center" }}><I.Plus size={22} color="#fff"/></span>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600, fontSize: 16 }}>Создать круг</div>
               <div style={{ fontSize: 12, opacity: 0.65, marginTop: 2 }}>Общая цель с друзьями — позови людей, и у цели появятся лица круга.</div>

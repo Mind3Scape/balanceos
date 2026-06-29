@@ -157,7 +157,7 @@ function DeadlineCalendarLive({ onPick }) {
    a directional tint of the habit's colour `hx`, intensity by p (0..1). Capped well below full
    saturation → soft, never neon; black lands as a soft graphite, not pure black. */
 function bosCellFill(hx, p) {
-  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#0a0a0a";
   var bot = 0.30 + 0.55 * Math.max(0, Math.min(1, p));  // bottom alpha — PRESENT, caps ~0.85 (never full)
   var top = bot * 0.6;                                    // lighter top → directional sheen
   var hex = function (a) { return Math.round(a * 255).toString(16).padStart(2, "0"); };
@@ -194,7 +194,7 @@ function bosChipGlass(isDark) {
 // Number ink for a filled day in «подробно» — contrast over the fill (white on dark hues, ink on
 // light hues). Favours dark text when borderline (the top sheen lightens the centre).
 function bosCellInk(hx, p, isDark) {
-  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#FEDE34";
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#0a0a0a";
   var a = (0.30 + 0.55 * Math.max(0, Math.min(1, p))) * 0.82;
   var ch = isDark ? 30 : 255;
   var r = parseInt(hx.slice(1, 3), 16), g = parseInt(hx.slice(3, 5), 16), b = parseInt(hx.slice(5, 7), 16);
@@ -227,7 +227,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const track = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.09)";
   // «Все» (aggregate) tints in the habit's OWN colour, not a hardcoded yellow (David: «база чёрная
   // — и агрегат должен быть чёрным: полная заливка если все отметились, частичная если не все»).
-  const aggColor = (people[0] && people[0].color) || "#FEDE34";
+  const aggColor = (people[0] && people[0].color) || "#0a0a0a";
   const selColor = selPerson == null ? aggColor : (people[selPerson]?.color || aggColor);
   const todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)";
   const selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
@@ -312,7 +312,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             const pct = itx ? todayTap.pct : dayPct(c.d);
             const fut = pct == null;
             const isSel = selDay === c.d;
-            const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#FEDE34";
+            const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#0a0a0a";
             const done = !fut && pct >= 1;
             const filled = !fut && pct > 0;
             // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
@@ -716,8 +716,10 @@ function AchievementSheetLive({ ach, onClose }) {
         <div style={{ position: "relative" }}>
           <div style={{ display: "flex", justifyContent: "center" }}>
             <div style={{ width: 92, height: 92, position: "relative", animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.08s both" }}>
-              <div aria-hidden style={{ position: "absolute", inset: -12, borderRadius: "50%", background: "radial-gradient(circle, " + accent + "55, transparent 70%)" }} />
-              <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 24, background: "linear-gradient(180deg,#fffdf5,#fff3d3)", display: "grid", placeItems: "center", fontSize: 44, boxShadow: "inset 0 0 0 1.5px " + accent + "66, 0 10px 26px " + accent + "3d" }}>{ach.i}</div>
+              <div aria-hidden style={{ position: "absolute", inset: -14, borderRadius: "50%", background: "radial-gradient(circle, " + accent + "40, transparent 70%)" }} />
+              {/* Эмблема в нашем СТЕКЛЯННОМ тайле (как иконки привычек), без жёсткой золотой ОБВОДКИ —
+                  тёплое золото остаётся мягким свечением + золотой кикер + XP-пилюля. David: «непонятная золотая обводка». */}
+              <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 26, background: BOS_TILE_SHEEN + ", linear-gradient(180deg,#fffdf6,#fff7e0)", display: "grid", placeItems: "center", fontSize: 44, boxShadow: bosTileGlass(isDark) + ", 0 10px 26px " + accent + "33" }}>{bosIcon(ach.i, 44, null)}</div>
             </div>
           </div>
           <div style={{ fontSize: 11, color: "#E0A500", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 800, marginTop: 14 }}>Достижение открыто</div>
