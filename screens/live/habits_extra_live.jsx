@@ -329,27 +329,31 @@ function GoalSettingsLive() {
         <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 6 }}>От этого числа будет считаться прогресс цели.</div>
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 22, padding: "14px 16px", marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
-        <I.Calendar size={18} color="var(--text-3)"/>
-        <input value={deadline} onChange={e => setDeadline(e.target.value)} placeholder="напр. 14 окт"
-          style={{ flex: 1, fontSize: 16, border: 0, outline: 0, background: "transparent" }}/>
+      {/* Срок — ВСЁ в ОДНОМ блоке (David: «не всё в блоках»): поле + кнопки сроков + календарь;
+          кнопки на сером стекле, не обводкой (David: «блоки не обводочкой»). */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 2px 0" }}>
+          <I.Calendar size={18} color="var(--text-3)"/>
+          <input value={deadline} onChange={e => setDeadline(e.target.value)} placeholder="напр. 14 окт"
+            style={{ flex: 1, fontSize: 16, border: 0, outline: 0, background: "transparent" }}/>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
+          <button onClick={() => setShowCal(v => !v)} className="tap" data-no-haptic
+            style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 999, padding: "9px 4px", fontSize: 12.5, whiteSpace: "nowrap", border: 0,
+              background: svoyActive ? "#0a0a0a" : "var(--surface-3)", color: svoyActive ? "#fff" : "var(--text-2)" }}>
+            <I.Calendar size={12}/> Свой срок
+          </button>
+          {QUICK_TERMS.map((q) => {
+            const active = !showCal && deadline === q;
+            return (
+              <button key={q} onClick={() => { setDeadline(q); setShowCal(false); }} className="tap" data-no-haptic
+                style={{ flex: 1, borderRadius: 999, padding: "9px 4px", fontSize: 12.5, whiteSpace: "nowrap", textAlign: "center", border: 0,
+                  background: active ? "#0a0a0a" : "var(--surface-3)", color: active ? "#fff" : "var(--text-2)" }}>{q}</button>
+            );
+          })}
+        </div>
+        {showCal && <DeadlineCalendarLive onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
       </div>
-      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-        <button onClick={() => setShowCal(v => !v)} className="tap" data-no-haptic
-          style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 999, padding: "8px 4px", fontSize: 12.5, whiteSpace: "nowrap",
-            background: svoyActive ? "#0a0a0a" : "#fff", color: svoyActive ? "#fff" : "var(--text-3)", border: svoyActive ? "0" : "1px solid rgba(0,0,0,0.06)" }}>
-          <I.Calendar size={12}/> Свой срок
-        </button>
-        {QUICK_TERMS.map((q) => {
-          const active = !showCal && deadline === q;
-          return (
-            <button key={q} onClick={() => { setDeadline(q); setShowCal(false); }} className="tap" data-no-haptic
-              style={{ flex: 1, borderRadius: 999, padding: "8px 4px", fontSize: 12.5, whiteSpace: "nowrap", textAlign: "center",
-                background: active ? "#0a0a0a" : "#fff", color: active ? "#fff" : "var(--text-3)", border: active ? "0" : "1px solid rgba(0,0,0,0.06)" }}>{q}</button>
-          );
-        })}
-      </div>
-      {showCal && <DeadlineCalendarLive onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
 
       <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

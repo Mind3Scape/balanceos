@@ -737,12 +737,16 @@ function GoalSettingsLive() {
     style: {
       background: "#fff",
       borderRadius: 22,
-      padding: "14px 16px",
+      padding: 14,
       marginTop: 14,
-      boxShadow: "var(--card-shadow)",
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
       alignItems: "center",
-      gap: 12
+      gap: 12,
+      padding: "2px 2px 0"
     }
   }, /*#__PURE__*/React.createElement(I.Calendar, {
     size: 18,
@@ -762,7 +766,7 @@ function GoalSettingsLive() {
     style: {
       display: "flex",
       gap: 6,
-      marginTop: 8
+      marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowCal(v => !v),
@@ -775,12 +779,12 @@ function GoalSettingsLive() {
       justifyContent: "center",
       gap: 4,
       borderRadius: 999,
-      padding: "8px 4px",
+      padding: "9px 4px",
       fontSize: 12.5,
       whiteSpace: "nowrap",
-      background: svoyActive ? "#0a0a0a" : "#fff",
-      color: svoyActive ? "#fff" : "var(--text-3)",
-      border: svoyActive ? "0" : "1px solid rgba(0,0,0,0.06)"
+      border: 0,
+      background: svoyActive ? "#0a0a0a" : "var(--surface-3)",
+      color: svoyActive ? "#fff" : "var(--text-2)"
     }
   }, /*#__PURE__*/React.createElement(I.Calendar, {
     size: 12
@@ -797,13 +801,13 @@ function GoalSettingsLive() {
       style: {
         flex: 1,
         borderRadius: 999,
-        padding: "8px 4px",
+        padding: "9px 4px",
         fontSize: 12.5,
         whiteSpace: "nowrap",
         textAlign: "center",
-        background: active ? "#0a0a0a" : "#fff",
-        color: active ? "#fff" : "var(--text-3)",
-        border: active ? "0" : "1px solid rgba(0,0,0,0.06)"
+        border: 0,
+        background: active ? "#0a0a0a" : "var(--surface-3)",
+        color: active ? "#fff" : "var(--text-2)"
       }
     }, q);
   })), showCal && /*#__PURE__*/React.createElement(DeadlineCalendarLive, {
@@ -811,7 +815,7 @@ function GoalSettingsLive() {
       setDeadline(s);
       setShowCal(false);
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
