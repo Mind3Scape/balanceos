@@ -595,6 +595,18 @@ function bosJoinSharedHabitId() {
   try { var q = new URLSearchParams(window.location.search).get("habit"); if (q) return q; } catch (e) {}
   return null;
 }
+// Open Telegram's NATIVE share/forward picker with an invite link — the privacy-safe way to
+// reach contacts in a Mini App (the user picks chats; we never read the contact list). Returns
+// true if handled; callers (ShareAppSheetLive, ShareHabitSheetLive, habits-kit) fall back to
+// copy-to-clipboard when false. Team share already calls openTelegramLink directly; this gives
+// the app-referral + habit-share buttons the same native picker instead of a silent copy.
+function bosShare(url, text) {
+  var tg = null;
+  try { tg = window.__TG || (window.Telegram && window.Telegram.WebApp) || null; } catch (e) {}
+  try { if (tg && tg.openTelegramLink) { tg.openTelegramLink("https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text || "")); return true; } } catch (e) {}
+  try { if (navigator.share) { navigator.share({ url: url, text: text || "" }); return true; } } catch (e) {}
+  return false;
+}
 // A short, link-safe code for a shared habit (7 chars a–z0–9). Math.random is fine in the
 // browser; collisions are astronomically unlikely for one user's handful of shared habits.
 function bosGenShareCode() {
