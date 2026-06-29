@@ -1552,10 +1552,11 @@ function HeroAvatarGlassLive({ avatar, inset = 6, size = 60 }) {
 /* Account avatar for the «Сводка от ИИ» hero — the glass disc + a MINIMALIST XP-to-next-level
    ring (gold light→dark + glass sheen). David: «верни аватар в блок сводки — это главный блок с
    фишкой ИИ; колечко минималистичное = XP до уровня». Tap → profile (orbits + settings). */
-function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark }) {
+function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark, level = 0 }) {
   const r = size / 2 - 2;              // ring radius (strokeWidth 2.5, ~1.25 margin each side)
   const C = 2 * Math.PI * r;
   const off = C * (1 - (pct || 0) / 100);
+  const lvlSz = Math.round(size * 0.34); // level badge ≈ a third of the avatar
   return (
     <button onClick={() => navigate("profile")} className="tap" title="Профиль" aria-label="Профиль, орбиты и настройки"
       style={{ flexShrink: 0, position: "relative", width: size, height: size, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
@@ -1572,6 +1573,12 @@ function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark })
           circle read as two distinct elements — without the gap the disc sat flush under the ring and
           the glass was invisible (David: «дать колечку чуть пространства от кружочка со стеклом»). */}
       <HeroAvatarGlassLive avatar={avatar} inset={7} size={size - 14} />
+      {/* Цифра текущего УРОВНЯ — маленький золотой бейдж на кольце снизу (David: «цифру уровня в
+          кружочек в золотом кольце»). Тот же золотой градиент, что кольцо; белый кант var(--card)
+          отделяет его от кольца. zIndex 3 — над кольцом и аватаром. */}
+      {level > 0 && (
+        <span aria-hidden style={{ position: "absolute", left: "50%", bottom: -2, transform: "translateX(-50%)", zIndex: 3, minWidth: lvlSz, height: lvlSz, padding: "0 4px", boxSizing: "border-box", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: Math.round(lvlSz * 0.56), fontWeight: 800, lineHeight: (lvlSz - 3) + "px", textAlign: "center", letterSpacing: "-0.3px", border: "1.5px solid var(--card)", boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)" }}>{level}</span>
+      )}
     </button>
   );
 }
@@ -1613,7 +1620,9 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
   // XP-to-next-level percent for the minimalist avatar ring (today's progress lives in the
   // «Привычки» card + «Эта неделя», so the ring is freed for level progress — David's call).
   const _heroXp = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(heroApp) : 0;
-  const _heroPct = (((typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(_heroXp) : null) || {}).pct || 0;
+  const _heroLI = ((typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(_heroXp) : null) || {};
+  const _heroPct = _heroLI.pct || 0;
+  const _heroLevel = _heroLI.level || 0;
 
   const page1 = newbie ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1621,7 +1630,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         <div style={{ flex: 1, minWidth: 0 }}>
           <div key={_homeSummary} style={{ fontSize: 14.5, fontWeight: 400, color: "var(--text)", lineHeight: 1.5, letterSpacing: "-0.2px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}><span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={14} color="#EF9F14" filled strokeWidth={0} /></span>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
-        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={56} isDark={isDark} />
+        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={56} isDark={isDark} />
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
@@ -1646,7 +1655,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
             <span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={14} color="#EF9F14" filled strokeWidth={0} /></span>{_homeSummary}
           </div>
         </div>
-        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} size={64} isDark={isDark} />
+        <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={64} isDark={isDark} />
       </div>
       <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
         {(_livePills || [
