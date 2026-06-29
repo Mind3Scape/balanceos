@@ -125,9 +125,8 @@ function HabitSettingsLive() {
         <BosColorPickerLive value={color} onChange={setColor} />
       </div>
 
-      {/* Goal */}
-      <div className="section-label" style={{ marginTop: 22 }}>Цель</div>
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      {/* Goal — без внешней подписи (David: подписи блоков не несут нагрузки, суть ясна изнутри). */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 600 }}>{goal} {goal === 1 ? "раз" : "раз(а)"}</div>
@@ -163,9 +162,8 @@ function HabitSettingsLive() {
         </div>
       </div>
 
-      {/* Reminders */}
-      <div className="section-label" style={{ marginTop: 22 }}>Напоминания</div>
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      {/* Reminders — подпись убрана, внутри блока «Напоминать каждый день». */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Напоминать каждый день
@@ -187,8 +185,7 @@ function HabitSettingsLive() {
 
       {/* Share with friend — the most natural referral moment: invite anyone into
           your habit. They join → you earn XP and they're in the app. */}
-      <div className="section-label" style={{ marginTop: 8 }}>Поделиться с другом</div>
-      <div data-tour="invite-friend" style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div data-tour="invite-friend" style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Делать это вместе
@@ -231,9 +228,8 @@ function HabitSettingsLive() {
         )}
       </div>
 
-      {/* Habit type */}
-      <div className="section-label" style={{ marginTop: 22 }}>Тип привычки</div>
-      <div style={{ marginTop: 8 }}>
+      {/* Habit type — подпись убрана; «Развивать / Бросить» говорит само за себя. */}
+      <div style={{ marginTop: 14 }}>
         <Segmented value={type} onChange={setType} options={[{ value: "build", label: "Развивать" }, { value: "quit", label: "Бросить" }]} />
       </div>
 

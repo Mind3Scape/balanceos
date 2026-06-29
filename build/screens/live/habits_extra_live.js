@@ -202,16 +202,11 @@ function HabitSettingsLive() {
     value: color,
     onChange: setColor
   })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0426\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -324,16 +319,11 @@ function HabitSettingsLive() {
       }
     }, w);
   })))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -399,17 +389,12 @@ function HabitSettingsLive() {
       textAlign: "center"
     }
   }))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 8
-    }
-  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0441 \u0434\u0440\u0443\u0433\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
     "data-tour": "invite-friend",
     style: {
       background: "#fff",
       borderRadius: 22,
       padding: 16,
-      marginTop: 8,
+      marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -527,13 +512,8 @@ function HabitSettingsLive() {
       padding: "0 2px"
     }
   }, inviteNote)), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
-      marginTop: 22
-    }
-  }, "\u0422\u0438\u043F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8
+      marginTop: 14
     }
   }, /*#__PURE__*/React.createElement(Segmented, {
     value: type,
