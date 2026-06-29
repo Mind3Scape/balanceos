@@ -1326,7 +1326,7 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   const items = [
     { emoji: "🌱", label: "Привычку", go: () => navigate("habit-settings", { mode: "create" }) },
     { emoji: "🎯", label: "Цель",     go: () => navigate("goal-settings", { mode: "create" }) },
-    { emoji: "🤝", label: "Команду",  go: () => navigate("team-create", {}) },
+    { emoji: "🤝", label: "Круг",  go: () => navigate("team-create", {}) },
   ];
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>

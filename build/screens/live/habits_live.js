@@ -240,15 +240,15 @@ function HabitsLive() {
   // Привычки → habit presets, Цели → goal presets, Команды → team presets. The chips re-mount on
   // tab change (key={tab}) so they pop in (briefPop). Each chip routes to the matching create screen
   // with its preset (habit-settings / goal-settings / team-create).
+  // Цели = личные цели + круги (бывшие команды) ВМЕСТЕ. Пресеты слиты в один набор: чип-цель →
+  // goal-settings, чип-круг (есть goalType) → team-create. Чипы-круги помечены лицами (тихий намёк
+  // «совместный»), чтобы слитый набор читался без отдельной вкладки «Команды».
   var QA = tab === "goals" ? {
-    chips: GOAL_CHIPS,
-    go: c => navigate("goal-settings", {
-      mode: "create",
+    chips: GOAL_CHIPS.concat(TEAM_CHIPS),
+    go: c => c && c.goalType ? navigate("team-create", {
       preset: c
-    })
-  } : tab === "teams" ? {
-    chips: TEAM_CHIPS,
-    go: c => navigate("team-create", {
+    }) : navigate("goal-settings", {
+      mode: "create",
       preset: c
     })
   } : {
@@ -312,19 +312,22 @@ function HabitsLive() {
       fontSize: 15,
       lineHeight: 1
     }
-  }, c.i), c.t, " ", /*#__PURE__*/React.createElement(I.Plus, {
+  }, c.i), c.t, " ", c.goalType ? /*#__PURE__*/React.createElement(I.Users, {
+    size: 11,
+    color: TH.plusIcon
+  }) : /*#__PURE__*/React.createElement(I.Plus, {
     size: 12,
     color: TH.plusIcon
   })))));
+
+  // ДИАДА (David): «Команды» исчезли как отдельная вкладка. Круги (бывшие команды) = совместные
+  // цели, живут среди «Целей» с лицами. Остаётся Привычки / Цели.
   var TRIAD = [{
     id: "habits",
     t: "Привычки"
   }, {
     id: "goals",
     t: "Цели"
-  }, {
-    id: "teams",
-    t: "Команды"
   }];
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
@@ -603,7 +606,7 @@ function HabitsLive() {
         }]
       }, inner));
     }
-  })), tab === "goals" && (goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  })), tab === "goals" && (goals.length === 0 && teams.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => navigate("goal-settings", {
       mode: "create"
@@ -660,7 +663,7 @@ function HabitsLive() {
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 16,
     strokeWidth: 2.5
-  }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement(BosReorderList, {
+  }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement(React.Fragment, null, goals.length > 0 && /*#__PURE__*/React.createElement(BosReorderList, {
     ids: goals.map(g => g.id),
     onReorder: o => {
       if (app && app.reorderGoals) app.reorderGoals(o);
@@ -786,80 +789,18 @@ function HabitsLive() {
         }]
       }, inner));
     }
-  })), tab === "teams" && (teams.length === 0 ? /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: () => navigate("team-create"),
+  }), teams.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      width: "100%",
-      background: TH.cardBg,
-      border: 0,
-      borderRadius: 22,
-      padding: "34px 20px",
-      boxShadow: cardShadow,
-      color: "var(--text)",
+      marginTop: goals.length ? 12 : 0,
       display: "flex",
       flexDirection: "column",
-      alignItems: "center",
-      textAlign: "center",
-      gap: 10
+      gap: 12
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 54,
-      height: 54,
-      borderRadius: 16,
-      background: TH.iconBg,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 27
-    }
-  }, "\uD83E\uDD1D"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 17,
-      fontWeight: 600
-    }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043A\u043E\u043C\u0430\u043D\u0434"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: "var(--text-4)",
-      lineHeight: 1.45,
-      maxWidth: 250
-    }
-  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u2014 \u044D\u0442\u043E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438: \u043E\u0431\u0449\u0438\u0439 \u044F\u043A\u043E\u0440\u044C, \u043E\u0431\u0449\u0430\u044F \u0441\u0435\u0440\u0438\u044F \u0438 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430."), /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginTop: 6,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      background: TH.addBtnBg,
-      color: TH.addBtnFg,
-      borderRadius: 999,
-      padding: "10px 18px",
-      fontSize: 14.5,
-      fontWeight: 600
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 16,
-    strokeWidth: 2.5
-  }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(BosReorderList, {
-    ids: teams.map(t => t._id),
-    gap: 12,
-    onReorder: o => {
-      if (app && app.reorderTeams) app.reorderTeams(o);
-    },
-    renderItem: (id, ctx) => {
-      var t = teams.find(x => x._id === id);
-      if (!t) return null;
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          pointerEvents: ctx.mode ? "none" : "auto"
-        }
-      }, /*#__PURE__*/React.createElement(LiveTeamCard, {
-        t: t,
-        navigate: navigate
-      }));
-    }
-  }), /*#__PURE__*/React.createElement("button", {
+  }, teams.map(t => /*#__PURE__*/React.createElement(LiveTeamCard, {
+    key: t._id,
+    t: t,
+    navigate: navigate
+  }))), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("team-create"),
     className: "tap team-new-cta",
     style: {
@@ -895,13 +836,13 @@ function HabitsLive() {
       fontWeight: 600,
       fontSize: 16
     }
-  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       opacity: 0.65,
       marginTop: 2
     }
-  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439, \u043F\u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043E\u0431\u0449\u0443\u044E \u0446\u0435\u043B\u044C, \u0432\u044B\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0439\u0442\u0435 \u0441\u0435\u0440\u0438\u0438 \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\u041E\u0431\u0449\u0430\u044F \u0446\u0435\u043B\u044C \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438 \u2014 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439, \u0438 \u0443 \u0446\u0435\u043B\u0438 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430 \u043A\u0440\u0443\u0433\u0430.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18
   })))), /*#__PURE__*/React.createElement("div", {
     style: {

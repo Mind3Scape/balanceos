@@ -129,14 +129,12 @@ function CommunityLive() {
       {/* Top bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 4px 12px" }}>
         <div style={{ flex: 1, fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Сообщество</div>
-        <button onClick={() => navigate("team-create")} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 14px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, boxShadow: "0 4px 14px rgba(0,0,0,0.18)" }}>
-          <I.Plus size={16}/> Новая команда
-        </button>
+        {/* «Новая команда» убрана: круги создаются на вкладке Привычки → «+». Сообщество = только найти/расти. */}
       </div>
 
       {/* Primary section — pill */}
       <div className="tab-pill" style={{ background: "var(--card-2)" }}>
-        <button className={"tap " + (section === "discover" ? "active" : "")} onClick={() => setSection("discover")}>Команды</button>
+        <button className={"tap " + (section === "discover" ? "active" : "")} onClick={() => setSection("discover")}>Найти</button>
         <button className={"tap " + (section === "community" ? "active" : "")} onClick={() => setSection("community")}>Сообщество</button>
       </div>
 
@@ -154,24 +152,13 @@ function CommunityLive() {
 
       {section === "discover" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
-          {teams.map((t, i) => <LiveTeamCard key={t._id || i} t={t} navigate={navigate} />)}
-          {teams.length === 0 && (
-            <div style={{ textAlign: "center", padding: "8px 18px 2px", color: "var(--text-4)", fontSize: 13.5, lineHeight: 1.5 }}>
-              Команды — это привычки вместе с друзьями. Создай первую или дождись приглашения.
-            </div>
-          )}
-          <button data-tour="make-team" onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
-            <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,222,52,0.15)", display: "grid", placeItems: "center" }}>
-              <I.Plus size={22} color="#FEDE34"/>
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 16 }}>Создать команду</div>
-              <div style={{ fontSize: 12, opacity: 0.65, marginTop: 2 }}>Пригласи друзей, поставь общую цель, выстраивайте серии вместе.</div>
-            </div>
-            <I.ChevronRight size={18}/>
-          </button>
-          {/* D3 — open teams from the cloud you can join (live user, always shown when
-              the cloud surfaces joinable teams). */}
+          {/* НАЙТИ — только ЧУЖИЕ круги/цели, в которые можно вступить (дискавери). «Твои круги»
+              отсюда УБРАНЫ — они живут на вкладке Привычки → Цели (с лицами). Дубля больше нет.
+              Создание круга — на Привычки → «+». */}
+          <div style={{ textAlign: "center", padding: "6px 18px 2px", color: "var(--text-4)", fontSize: 13.5, lineHeight: 1.5 }}>
+            Найди круг или челлендж, к которому хочешь примкнуть — вступишь, и он появится у тебя в «Целях».
+          </div>
+          {/* Открытые круги из облака, в которые можно вступить. */}
           <CloudTeamsDiscoverLive app={app} />
         </div>
       )}

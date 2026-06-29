@@ -312,25 +312,7 @@ function CommunityLive() {
       letterSpacing: "-0.5px",
       color: "var(--text)"
     }
-  }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("team-create"),
-    className: "tap",
-    style: {
-      background: "#0a0a0a",
-      color: "#fff",
-      border: 0,
-      borderRadius: 999,
-      padding: "10px 14px",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      fontSize: 13,
-      fontWeight: 500,
-      boxShadow: "0 4px 14px rgba(0,0,0,0.18)"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 16
-  }), " \u041D\u043E\u0432\u0430\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u0430")), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), /*#__PURE__*/React.createElement("div", {
     className: "tab-pill",
     style: {
       background: "var(--card-2)"
@@ -338,7 +320,7 @@ function CommunityLive() {
   }, /*#__PURE__*/React.createElement("button", {
     className: "tap " + (section === "discover" ? "active" : ""),
     onClick: () => setSection("discover")
-  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("button", {
+  }, "\u041D\u0430\u0439\u0442\u0438"), /*#__PURE__*/React.createElement("button", {
     className: "tap " + (section === "community" ? "active" : ""),
     onClick: () => setSection("community")
   }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), section === "community" && /*#__PURE__*/React.createElement("div", {
@@ -366,62 +348,15 @@ function CommunityLive() {
       gap: 12,
       marginTop: 14
     }
-  }, teams.map((t, i) => /*#__PURE__*/React.createElement(LiveTeamCard, {
-    key: t._id || i,
-    t: t,
-    navigate: navigate
-  })), teams.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      padding: "8px 18px 2px",
+      padding: "6px 18px 2px",
       color: "var(--text-4)",
       fontSize: 13.5,
       lineHeight: 1.5
     }
-  }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B \u2014 \u044D\u0442\u043E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438. \u0421\u043E\u0437\u0434\u0430\u0439 \u043F\u0435\u0440\u0432\u0443\u044E \u0438\u043B\u0438 \u0434\u043E\u0436\u0434\u0438\u0441\u044C \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u0438\u044F."), /*#__PURE__*/React.createElement("button", {
-    "data-tour": "make-team",
-    onClick: () => navigate("team-create"),
-    className: "tap team-new-cta",
-    style: {
-      color: "#fff",
-      border: 0,
-      borderRadius: 22,
-      padding: 18,
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      textAlign: "left"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 48,
-      height: 48,
-      borderRadius: "50%",
-      background: "rgba(255,222,52,0.15)",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 22,
-    color: "#FEDE34"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 600,
-      fontSize: 16
-    }
-  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      opacity: 0.65,
-      marginTop: 2
-    }
-  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0437\u0435\u0439, \u043F\u043E\u0441\u0442\u0430\u0432\u044C \u043E\u0431\u0449\u0443\u044E \u0446\u0435\u043B\u044C, \u0432\u044B\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0439\u0442\u0435 \u0441\u0435\u0440\u0438\u0438 \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 18
-  })), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
+  }, "\u041D\u0430\u0439\u0434\u0438 \u043A\u0440\u0443\u0433 \u0438\u043B\u0438 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436, \u043A \u043A\u043E\u0442\u043E\u0440\u043E\u043C\u0443 \u0445\u043E\u0447\u0435\u0448\u044C \u043F\u0440\u0438\u043C\u043A\u043D\u0443\u0442\u044C \u2014 \u0432\u0441\u0442\u0443\u043F\u0438\u0448\u044C, \u0438 \u043E\u043D \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0443 \u0442\u0435\u0431\u044F \u0432 \xAB\u0426\u0435\u043B\u044F\u0445\xBB."), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
     app: app
   })), section === "community" && commTabEff === "network" &&
   /*#__PURE__*/

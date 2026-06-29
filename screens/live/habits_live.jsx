@@ -124,11 +124,12 @@ function HabitsLive() {
   // Привычки → habit presets, Цели → goal presets, Команды → team presets. The chips re-mount on
   // tab change (key={tab}) so they pop in (briefPop). Each chip routes to the matching create screen
   // with its preset (habit-settings / goal-settings / team-create).
+  // Цели = личные цели + круги (бывшие команды) ВМЕСТЕ. Пресеты слиты в один набор: чип-цель →
+  // goal-settings, чип-круг (есть goalType) → team-create. Чипы-круги помечены лицами (тихий намёк
+  // «совместный»), чтобы слитый набор читался без отдельной вкладки «Команды».
   const QA = tab === "goals"
-    ? { chips: GOAL_CHIPS, go: (c) => navigate("goal-settings", { mode: "create", preset: c }) }
-    : tab === "teams"
-      ? { chips: TEAM_CHIPS, go: (c) => navigate("team-create", { preset: c }) }
-      : { chips: EMOJI_CHIPS, go: (c) => navigate("habit-settings", { mode: "create", preset: c }) };
+    ? { chips: GOAL_CHIPS.concat(TEAM_CHIPS), go: (c) => (c && c.goalType) ? navigate("team-create", { preset: c }) : navigate("goal-settings", { mode: "create", preset: c }) }
+    : { chips: EMOJI_CHIPS, go: (c) => navigate("habit-settings", { mode: "create", preset: c }) };
   const quickAddBlock = (
     <div style={{ background: TH.cardBg, borderRadius: 20, boxShadow: cardShadow, padding: "12px 13px" }}>
       <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600, marginBottom: 9, padding: "0 2px" }}>Быстрое добавление</div>
@@ -139,14 +140,16 @@ function HabitsLive() {
             display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
             animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.035) + "s",
           }}>
-            <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>{c.t} <I.Plus size={12} color={TH.plusIcon}/>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>{c.t} {c.goalType ? <I.Users size={11} color={TH.plusIcon}/> : <I.Plus size={12} color={TH.plusIcon}/>}
           </button>
         ))}
       </div>
     </div>
   );
 
-  const TRIAD = [{ id: "habits", t: "Привычки" }, { id: "goals", t: "Цели" }, { id: "teams", t: "Команды" }];
+  // ДИАДА (David): «Команды» исчезли как отдельная вкладка. Круги (бывшие команды) = совместные
+  // цели, живут среди «Целей» с лицами. Остаётся Привычки / Цели.
+  const TRIAD = [{ id: "habits", t: "Привычки" }, { id: "goals", t: "Цели" }];
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -233,7 +236,7 @@ function HabitsLive() {
       )}
 
       {tab === "goals" && (
-        goals.length === 0 ? (
+        (goals.length === 0 && teams.length === 0) ? (
           <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
             <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🎯</span>
             <div style={{ fontSize: 17, fontWeight: 600 }}>Пока нет целей</div>
@@ -241,7 +244,8 @@ function HabitsLive() {
             <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Поставить цель</span>
           </button>
         ) : (
-          <BosReorderList ids={goals.map((g) => g.id)} onReorder={(o) => { if (app && app.reorderGoals) app.reorderGoals(o); }}
+          <>
+          {goals.length > 0 && (<BosReorderList ids={goals.map((g) => g.id)} onReorder={(o) => { if (app && app.reorderGoals) app.reorderGoals(o); }}
             renderItem={(id, ctx) => {
               const g = goals.find((x) => x.id === id); if (!g) return null;
               const pct = g.target > 0 ? g.current / g.target : 0;
@@ -276,38 +280,22 @@ function HabitsLive() {
                   </SwipeRow>
                 </div>
               );
-            }} />
-        )
-      )}
-
-      {/* Команды — teams you created / joined, reusing the exact LiveTeamCard from the
-          Сообщество screen (continuity). Open teams «рядом» / Нетворк / Курсы stay on the
-          Сообщество tab for now (David: «разберёмся с сообществом попозже»). */}
-      {tab === "teams" && (
-        teams.length === 0 ? (
-          <button className="tap" onClick={() => navigate("team-create")} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🤝</span>
-            <div style={{ fontSize: 17, fontWeight: 600 }}>Пока нет команд</div>
-            <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Команда — это привычки вместе с друзьями: общий якорь, общая серия и поддержка.</div>
-            <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Создать команду</span>
+            }} />)}
+          {/* Круги (бывшие команды) — совместные цели живут ЗДЕСЬ ЖЕ, среди целей, с лицами;
+              тап по карточке → комната-орбита круга. Отдельной вкладки «Команды» больше нет. */}
+          {teams.length > 0 && (
+            <div style={{ marginTop: goals.length ? 12 : 0, display: "flex", flexDirection: "column", gap: 12 }}>
+              {teams.map((t) => <LiveTeamCard key={t._id} t={t} navigate={navigate} />)}
+            </div>
+          )}
+          <button onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ marginTop: 12, width: "100%", color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
+            <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,222,52,0.15)", display: "grid", placeItems: "center" }}><I.Plus size={22} color="#FEDE34"/></span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>Создать круг</div>
+              <div style={{ fontSize: 12, opacity: 0.65, marginTop: 2 }}>Общая цель с друзьями — позови людей, и у цели появятся лица круга.</div>
+            </div>
+            <I.ChevronRight size={18}/>
           </button>
-        ) : (
-          <>
-            <BosReorderList ids={teams.map((t) => t._id)} gap={12} onReorder={(o) => { if (app && app.reorderTeams) app.reorderTeams(o); }}
-              renderItem={(id, ctx) => {
-                const t = teams.find((x) => x._id === id); if (!t) return null;
-                return <div style={{ pointerEvents: ctx.mode ? "none" : "auto" }}><LiveTeamCard t={t} navigate={navigate} /></div>;
-              }} />
-            <button onClick={() => navigate("team-create")} className="tap team-new-cta" style={{ marginTop: 12, width: "100%", color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
-              <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,222,52,0.15)", display: "grid", placeItems: "center" }}>
-                <I.Plus size={22} color="#FEDE34"/>
-              </span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 16 }}>Создать команду</div>
-                <div style={{ fontSize: 12, opacity: 0.65, marginTop: 2 }}>Пригласи друзей, поставьте общую цель, выстраивайте серии вместе.</div>
-              </div>
-              <I.ChevronRight size={18}/>
-            </button>
           </>
         )
       )}

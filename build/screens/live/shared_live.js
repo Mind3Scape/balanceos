@@ -3148,7 +3148,7 @@ function CreateMenuLive({
     })
   }, {
     emoji: "🤝",
-    label: "Команду",
+    label: "Круг",
     go: () => navigate("team-create", {})
   }];
   return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
