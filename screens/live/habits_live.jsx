@@ -249,29 +249,32 @@ function HabitsLive() {
           {goals.length > 0 && (<BosReorderList ids={goals.map((g) => g.id)} onReorder={(o) => { if (app && app.reorderGoals) app.reorderGoals(o); }}
             renderItem={(id, ctx) => {
               const g = goals.find((x) => x.id === id); if (!g) return null;
-              const pct = g.target > 0 ? g.current / g.target : 0;
+              const pct = g.target > 0 ? Math.min(1, g.current / g.target) : 0;
+              // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
+              // расширенную, старую плоскую удалить»). Грей-стекло по умолчанию (.team-card), эмблема-
+              // водяной знак, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель); круги носят лица через LiveTeamCard.
+              const gAccent = (g.color && g.color !== "#0a0a0a") ? g.color : "#C7C7CC";
               const inner = (
                 <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" })}
-                  style={{ padding: "14px 16px", textAlign: "left", color: "var(--text)", pointerEvents: ctx.mode ? "none" : "auto" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji, 20, g.color)}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, color: "var(--text)", letterSpacing: "-0.2px", fontWeight: 600 }}>{g.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3, display: "flex", gap: 10 }}>
-                        <span>{g.current} / {g.target} {g.unit}</span>
-                        <span>·</span>
-                        <span>до {g.deadline}</span>
-                      </div>
+                  style={{ padding: 18, textAlign: "left", color: "var(--text)", position: "relative", overflow: "hidden", pointerEvents: ctx.mode ? "none" : "auto" }}>
+                  <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 96, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(g.emoji || "🎯", 84, gAccent)}</div>
+                  <div style={{ position: "relative" }}>
+                    <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{g.name}</div>
+                    <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, fontWeight: 500 }}>🎯 {g.target} {g.unit}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>до {g.deadline}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
+                      <span>К цели</span>
+                      <span style={{ color: "var(--text)" }}>{g.current} / {g.target} {g.unit || ""}</span>
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>
+                    <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
+                      <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }} />
+                    </div>
                   </div>
-                  <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (Math.min(1, pct) * 100) + "%", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }}/></div>
-                  {/* Личная цель лиц НЕ носит — круг = команда, она показывается как LiveTeamCard (с лицами) среди целей. */}
                 </div>
               );
-              if (ctx.mode) return <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>{inner}</div>;
+              if (ctx.mode) return <div className="team-card" style={{ ["--team-accent"]: gAccent, borderRadius: 22, overflow: "hidden" }}>{inner}</div>;
               return (
-                <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>
+                <div className="team-card" style={{ ["--team-accent"]: gAccent, borderRadius: 22, overflow: "hidden" }}>
                   <SwipeRow rowBg={rowBg} dark={isDark} actions={[
                     { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) },
                     { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) }) },

@@ -660,7 +660,11 @@ function HabitsLive() {
     renderItem: (id, ctx) => {
       var g = goals.find(x => x.id === id);
       if (!g) return null;
-      var pct = g.target > 0 ? g.current / g.target : 0;
+      var pct = g.target > 0 ? Math.min(1, g.current / g.target) : 0;
+      // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
+      // расширенную, старую плоскую удалить»). Грей-стекло по умолчанию (.team-card), эмблема-
+      // водяной знак, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель); круги носят лица через LiveTeamCard.
+      var gAccent = g.color && g.color !== "#0a0a0a" ? g.color : "#C7C7CC";
       var inner = /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",
         onClick: ctx.mode ? undefined : () => navigate("goal-detail", {
@@ -668,81 +672,96 @@ function HabitsLive() {
           from: "habits"
         }),
         style: {
-          padding: "14px 16px",
+          padding: 18,
           textAlign: "left",
           color: "var(--text)",
+          position: "relative",
+          overflow: "hidden",
           pointerEvents: ctx.mode ? "none" : "auto"
         }
       }, /*#__PURE__*/React.createElement("div", {
+        "aria-hidden": true,
+        className: "team-card__emblem",
         style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 14
+          position: "absolute",
+          top: -10,
+          right: -6,
+          fontSize: 96,
+          lineHeight: 1,
+          pointerEvents: "none",
+          transform: "rotate(8deg)"
         }
-      }, /*#__PURE__*/React.createElement("span", {
+      }, bosIcon(g.emoji || "🎯", 84, gAccent)), /*#__PURE__*/React.createElement("div", {
         style: {
-          width: 40,
-          height: 40,
-          borderRadius: 14,
-          background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg),
-          boxShadow: bosTileGlass(isDark),
-          display: "grid",
-          placeItems: "center",
-          fontSize: 20,
-          flexShrink: 0
-        }
-      }, bosIcon(g.emoji, 20, g.color)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1,
-          minWidth: 0
+          position: "relative"
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 15.5,
+          fontWeight: 700,
+          fontSize: 18,
           color: "var(--text)",
-          letterSpacing: "-0.2px",
-          fontWeight: 600
+          letterSpacing: "-0.4px"
         }
       }, g.name), /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 11,
-          color: "var(--text-4)",
-          marginTop: 3,
-          display: "flex",
-          gap: 10
-        }
-      }, /*#__PURE__*/React.createElement("span", null, g.current, " / ", g.target, " ", g.unit), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, "\u0434\u043E ", g.deadline))), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 14,
-          fontWeight: 700,
+          fontSize: 13,
           color: "var(--text-2)",
-          flexShrink: 0
+          marginTop: 6,
+          fontWeight: 500
         }
-      }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {
-        className: "bos-progress",
+      }, "\uD83C\uDFAF ", g.target, " ", g.unit), /*#__PURE__*/React.createElement("div", {
         style: {
-          marginTop: 10
+          fontSize: 12,
+          color: "var(--text-3)",
+          marginTop: 2
+        }
+      }, "\u0434\u043E ", g.deadline), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 14,
+          fontSize: 11,
+          color: "var(--text-3)",
+          textTransform: "uppercase",
+          letterSpacing: 1,
+          fontWeight: 600
+        }
+      }, /*#__PURE__*/React.createElement("span", null, "\u041A \u0446\u0435\u043B\u0438"), /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "var(--text)"
+        }
+      }, g.current, " / ", g.target, " ", g.unit || "")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 6,
+          height: 8,
+          borderRadius: 999,
+          background: "var(--card-track)",
+          overflow: "hidden"
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
-          width: Math.min(1, pct) * 100 + "%",
+          display: "block",
+          height: "100%",
+          width: pct * 100 + "%",
+          borderRadius: 999,
           background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
         }
-      })));
+      }))));
       if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
+        className: "team-card",
         style: {
+          ["--team-accent"]: gAccent,
           borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow,
-          background: TH.cardBg
+          overflow: "hidden"
         }
       }, inner);
       return /*#__PURE__*/React.createElement("div", {
+        className: "team-card",
         style: {
+          ["--team-accent"]: gAccent,
           borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow,
-          background: TH.cardBg
+          overflow: "hidden"
         }
       }, /*#__PURE__*/React.createElement(SwipeRow, {
         rowBg: rowBg,
