@@ -5209,8 +5209,7 @@ function UniverseFieldLive({
       return;
     }
     (async function () {
-      // ВАЖНО: при включённом облаке берём ТОЛЬКО облачный фетч (id-ключи) — иначе seed (name-ключи)
-      // и invitedPeople (id-ключи) дублируют одного человека (был баг «14 систем из 7 друзей»).
+      // Облачный фетч по id-ключам (без seed → без дублей). Собираем приглашённых + участников кругов.
       var seen = {},
         out = [],
         myId = null;
@@ -5222,10 +5221,11 @@ function UniverseFieldLive({
           var inv = await window.bosCloud.invitedPeople();
           (inv || []).forEach(function (p) {
             if (!p) return;
-            var id = p.id || p.user_id || p.name;
-            if (id && !seen[id]) {
+            var id = p.id || p.user_id;
+            if (id && id !== myId && !seen[id]) {
               seen[id] = 1;
               out.push({
+                id: id,
                 avatar: p.avatar,
                 name: p.username || p.name || ""
               });
@@ -5243,10 +5243,26 @@ function UniverseFieldLive({
             if (m && m.id && m.id !== myId && !seen[m.id]) {
               seen[m.id] = 1;
               out.push({
+                id: m.id,
                 avatar: m.avatar,
                 name: m.name || ""
               });
             }
+          });
+        }
+      } catch (e) {}
+      // РЕАЛЬНЫЕ уровни + размер (сколько у кого всего) — David: «их уровни можно показывать; колец
+      // столько сколько у них реально». Тянем публичную статистику; нет колонок → 0 (системы дефолт-мелкие).
+      try {
+        if (window.bosCloud.profilesPublic && out.length) {
+          var st = (await window.bosCloud.profilesPublic(out.map(function (o) {
+            return o.id;
+          }))) || {};
+          out.forEach(function (o) {
+            var s = st[o.id] || {};
+            o.level = s.level || 0;
+            o.habits = s.habits || 0;
+            o.goals = s.goals || 0;
           });
         }
       } catch (e) {}
@@ -5267,66 +5283,72 @@ function UniverseFieldLive({
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
   var discBg = isDark ? "linear-gradient(150deg,#39414f,#262d3a)" : "linear-gradient(150deg,#eef1f6,#dadfe7)";
 
-  // One person → a SPEC: avatar size + rings [{kind,items,pd,R}] + footprint (outer radius for packing).
+  // One person → a SPEC. КОЛЕЦ столько, сколько у человека РЕАЛЬНО элементов (пояса 4/6/8/10); больше
+  // всего → больше система (крупнее аватар + больше колец). Уровень показываем бейджем. ТВОЯ система
+  // заполнена реальными привычками+целями (эмодзи); чужие — bead-планеты по их публичному размеру.
+  var CAPS = [4, 6, 8, 10];
   function buildSystem(s, isYou) {
-    var avD = isYou ? 46 : 34,
-      R0 = avD / 2 + 13,
-      STEP = isYou ? 17 : 14,
-      rings = [];
+    var items, level;
     if (isYou) {
-      // ТВОЯ система = ТВОИ практики (привычки + цели) на кольцах. Друзей сюда НЕ вешаем — они
-      // отдельные СИСТЕМЫ вокруг (David: «нелогично всех вокруг одного»); так нет и двойного показа.
       var hb = (app && app.habits || []).filter(Boolean),
         gl = (app && app.goals || []).filter(Boolean);
-      if (hb.length) rings.push({
-        kind: "emoji",
-        items: hb.slice(0, 8).map(function (h) {
-          return h && h.emoji || "✨";
-        }),
-        pd: 19
-      });
-      if (gl.length) rings.push({
-        kind: "emoji",
-        items: gl.slice(0, 6).map(function (g) {
-          return g && g.emoji || "🎯";
-        }),
-        pd: 18
-      });
-      if (!rings.length) rings.push({
-        kind: "empty",
-        items: [],
-        pd: 0
-      });
+      items = hb.slice(0, 10).map(function (h) {
+        return {
+          kind: "emoji",
+          v: h && h.emoji || "✨"
+        };
+      }).concat(gl.slice(0, 8).map(function (g) {
+        return {
+          kind: "emoji",
+          v: g && g.emoji || "🎯"
+        };
+      }));
+      level = typeof bosLevelInfoLive === "function" && typeof bosLiveXPLive === "function" ? bosLevelInfoLive(bosLiveXPLive(app)).level || 0 : 0;
     } else {
-      var hh = _bosHashU(s.name || s.avatar);
-      rings.push({
-        kind: "bead",
-        items: new Array(2 + hh % 3).fill(0),
-        pd: 10
+      var w = Math.min((s.habits || 0) + (s.goals || 0), 18);
+      items = new Array(w).fill(0).map(function () {
+        return {
+          kind: "bead"
+        };
       });
-      if ((hh >> 3) % 2 === 0) rings.push({
-        kind: "bead",
-        items: new Array(1 + (hh >> 4) % 3).fill(0),
-        pd: 9
-      });
+      level = s.level || 0;
     }
-    rings.forEach(function (r, ri) {
-      r.R = R0 + ri * STEP;
+    var weight = items.length;
+    var rings = [],
+      idx = 0,
+      ri = 0;
+    while (ri < CAPS.length) {
+      rings.push(items.slice(idx, idx + CAPS[ri]));
+      idx += CAPS[ri];
+      ri++;
+      if (idx >= items.length) break;
+    }
+    var avD = isYou ? 46 : Math.round(32 + Math.min(weight, 12) * 1.3); // больше всего → крупнее
+    var R0 = avD / 2 + 12,
+      STEP = 14;
+    var ringSpecs = rings.map(function (it, i) {
+      return {
+        items: it,
+        R: R0 + i * STEP,
+        kind: it.length && it[0].kind || (isYou ? "emoji" : "bead"),
+        pd: isYou ? i === 0 ? 19 : 18 : 10
+      };
     });
-    var outerR = rings.length ? rings[rings.length - 1].R : avD / 2;
-    var maxPd = rings.reduce(function (m, r) {
-      return Math.max(m, r.pd);
-    }, 0);
+    var outerR = R0 + (rings.length - 1) * STEP;
     return {
       s: s,
       you: isYou,
       avD: avD,
-      rings: rings,
-      footprint: outerR + maxPd / 2 + 5
+      level: level,
+      weight: weight,
+      rings: ringSpecs,
+      footprint: outerR + 11 + 5
     };
   }
 
-  // Layout: build specs, then PACK across the whole screen with NO overlap (David: «не соприкасаться»).
+  // Layout: больше всего → БЛИЖЕ к центру, меньше → дальше к краям, БЕЗ наложений (David). Сортируем
+  // по размеру (footprint) убыв.; крупнейшую в центр; остальные по спирали наружу — первое свободное
+  // место (растущий радиус) → большие кучкуются у центра, мелкие занимают край.
   var layout = React.useMemo(function () {
     var W = typeof window !== "undefined" && window.innerWidth || 390;
     var H = typeof window !== "undefined" && window.innerHeight || 780;
@@ -5335,15 +5357,21 @@ function UniverseFieldLive({
       name: app && app.userName || "",
       you: true
     }, true)];
-    list.slice(0, 16).forEach(function (f) {
+    list.slice(0, 18).forEach(function (f) {
       specs.push(buildSystem(f, false));
     });
-    var placed = [],
-      overflow = 0,
-      TOP = 100,
+    specs.sort(function (a, b) {
+      return b.footprint - a.footprint;
+    });
+    var TOP = 100,
       BOT = H - 76,
-      GAP = 12;
+      GAP = 12,
+      cx = W / 2,
+      placed = [],
+      overflow = 0;
+    var cy = Math.max(TOP + specs[0].footprint, Math.min(BOT - specs[0].footprint, H * 0.47));
     function fits(x, y, fp) {
+      if (x < fp + 6 || x > W - fp - 6 || y < TOP + fp || y > BOT - fp) return false;
       for (var j = 0; j < placed.length; j++) {
         var dx = x - placed[j].x,
           dy = y - placed[j].y;
@@ -5356,33 +5384,30 @@ function UniverseFieldLive({
       if (i === 0) {
         placed.push({
           sp: sp,
-          x: W / 2,
-          y: Math.max(TOP + fp, Math.min(BOT - fp, H * 0.47)),
+          x: cx,
+          y: cy,
           fp: fp
         });
         return;
       }
-      var minX = fp + 8,
-        maxX = W - fp - 8,
-        minY = TOP + fp,
-        maxY = BOT - fp;
-      if (maxX <= minX || maxY <= minY) {
-        overflow++;
-        return;
-      }
-      var done = false;
-      for (var t = 0; t < 200; t++) {
-        var x = minX + Math.random() * (maxX - minX),
-          y = minY + Math.random() * (maxY - minY);
-        if (fits(x, y, fp)) {
-          placed.push({
-            sp: sp,
-            x: x,
-            y: y,
-            fp: fp
-          });
-          done = true;
-          break;
+      var done = false,
+        RMAX = Math.max(W, H);
+      for (var r = fp + 4; r < RMAX && !done; r += 10) {
+        var steps = Math.max(8, Math.round(2 * Math.PI * r / 26)),
+          a0 = _bosHashU(sp.s.name || "" + i) % steps;
+        for (var k = 0; k < steps && !done; k++) {
+          var ang = (k + a0) / steps * 2 * Math.PI,
+            x = cx + Math.cos(ang) * r,
+            y = cy + Math.sin(ang) * r;
+          if (fits(x, y, fp)) {
+            placed.push({
+              sp: sp,
+              x: x,
+              y: y,
+              fp: fp
+            });
+            done = true;
+          }
         }
       }
       if (!done) overflow++;
@@ -5476,11 +5501,12 @@ function UniverseFieldLive({
         var ppx = Math.cos(ang) * r.R,
           ppy = Math.sin(ang) * r.R;
         var needUpright = r.kind === "emoji" || r.kind === "avatar";
+        var val = r.kind === "emoji" ? it && it.v : it;
         var inner = needUpright ? /*#__PURE__*/React.createElement("div", {
           style: {
             animation: (cw ? "bosSpinFaceCCW " : "bosSpinFaceCW ") + dur + "s linear infinite"
           }
-        }, planet(r.kind, it, r.pd)) : planet(r.kind, it, r.pd);
+        }, planet(r.kind, val, r.pd)) : planet(r.kind, val, r.pd);
         return /*#__PURE__*/React.createElement("div", {
           key: k,
           style: {
@@ -5514,7 +5540,27 @@ function UniverseFieldLive({
       avatar: sp.s && sp.s.avatar,
       name: sp.s && sp.s.name,
       size: sp.avD
-    }) : null));
+    }) : null, sp.level > 0 && /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        left: sp.avD - 13 + "px",
+        top: sp.avD - 13 + "px",
+        minWidth: 16,
+        height: 16,
+        padding: "0 3px",
+        borderRadius: 999,
+        background: "linear-gradient(180deg,#FFE777,#F4B72A)",
+        color: "#4a3800",
+        fontSize: 9.5,
+        fontWeight: 800,
+        lineHeight: "14px",
+        textAlign: "center",
+        letterSpacing: "-0.3px",
+        border: "1.5px solid " + (isDark ? "#0e1422" : "#fff"),
+        boxShadow: "0 1px 2px rgba(224,138,0,0.5)"
+      }
+    }, sp.level)));
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",

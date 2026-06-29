@@ -2043,12 +2043,14 @@ function UniverseFieldLive({ app, people, onClose }) {
     var seed = Array.isArray(people) ? people : [];
     if (!(window.bosCloud && window.bosCloud.enabled())) { setFriends(seed); return; }
     (async function () {
-      // ВАЖНО: при включённом облаке берём ТОЛЬКО облачный фетч (id-ключи) — иначе seed (name-ключи)
-      // и invitedPeople (id-ключи) дублируют одного человека (был баг «14 систем из 7 друзей»).
+      // Облачный фетч по id-ключам (без seed → без дублей). Собираем приглашённых + участников кругов.
       var seen = {}, out = [], myId = null;
       try { myId = await window.bosCloud.uid(); } catch (e) {}
-      try { if (window.bosCloud.invitedPeople) { var inv = await window.bosCloud.invitedPeople(); (inv || []).forEach(function (p) { if (!p) return; var id = p.id || p.user_id || p.name; if (id && !seen[id]) { seen[id] = 1; out.push({ avatar: p.avatar, name: p.username || p.name || "" }); } }); } } catch (e) {}
-      try { var teams = (app && app.teams || []).filter(function (t) { return t.cloudId; }); for (var i = 0; i < teams.length; i++) { var mem = await window.bosCloud.teamMembers(teams[i].cloudId); (mem || []).forEach(function (m) { if (m && m.id && m.id !== myId && !seen[m.id]) { seen[m.id] = 1; out.push({ avatar: m.avatar, name: m.name || "" }); } }); } } catch (e) {}
+      try { if (window.bosCloud.invitedPeople) { var inv = await window.bosCloud.invitedPeople(); (inv || []).forEach(function (p) { if (!p) return; var id = p.id || p.user_id; if (id && id !== myId && !seen[id]) { seen[id] = 1; out.push({ id: id, avatar: p.avatar, name: p.username || p.name || "" }); } }); } } catch (e) {}
+      try { var teams = (app && app.teams || []).filter(function (t) { return t.cloudId; }); for (var i = 0; i < teams.length; i++) { var mem = await window.bosCloud.teamMembers(teams[i].cloudId); (mem || []).forEach(function (m) { if (m && m.id && m.id !== myId && !seen[m.id]) { seen[m.id] = 1; out.push({ id: m.id, avatar: m.avatar, name: m.name || "" }); } }); } } catch (e) {}
+      // РЕАЛЬНЫЕ уровни + размер (сколько у кого всего) — David: «их уровни можно показывать; колец
+      // столько сколько у них реально». Тянем публичную статистику; нет колонок → 0 (системы дефолт-мелкие).
+      try { if (window.bosCloud.profilesPublic && out.length) { var st = await window.bosCloud.profilesPublic(out.map(function (o) { return o.id; })) || {}; out.forEach(function (o) { var s = st[o.id] || {}; o.level = s.level || 0; o.habits = s.habits || 0; o.goals = s.goals || 0; }); } } catch (e) {}
       if (on) { _bosUniverseCache = out; setFriends(out); }
     })();
     return function () { on = false; };
@@ -2061,42 +2063,52 @@ function UniverseFieldLive({ app, people, onClose }) {
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
   var discBg = isDark ? "linear-gradient(150deg,#39414f,#262d3a)" : "linear-gradient(150deg,#eef1f6,#dadfe7)";
 
-  // One person → a SPEC: avatar size + rings [{kind,items,pd,R}] + footprint (outer radius for packing).
+  // One person → a SPEC. КОЛЕЦ столько, сколько у человека РЕАЛЬНО элементов (пояса 4/6/8/10); больше
+  // всего → больше система (крупнее аватар + больше колец). Уровень показываем бейджем. ТВОЯ система
+  // заполнена реальными привычками+целями (эмодзи); чужие — bead-планеты по их публичному размеру.
+  var CAPS = [4, 6, 8, 10];
   function buildSystem(s, isYou) {
-    var avD = isYou ? 46 : 34, R0 = avD / 2 + 13, STEP = isYou ? 17 : 14, rings = [];
+    var items, level;
     if (isYou) {
-      // ТВОЯ система = ТВОИ практики (привычки + цели) на кольцах. Друзей сюда НЕ вешаем — они
-      // отдельные СИСТЕМЫ вокруг (David: «нелогично всех вокруг одного»); так нет и двойного показа.
       var hb = (app && app.habits || []).filter(Boolean), gl = (app && app.goals || []).filter(Boolean);
-      if (hb.length) rings.push({ kind: "emoji", items: hb.slice(0, 8).map(function (h) { return (h && h.emoji) || "✨"; }), pd: 19 });
-      if (gl.length) rings.push({ kind: "emoji", items: gl.slice(0, 6).map(function (g) { return (g && g.emoji) || "🎯"; }), pd: 18 });
-      if (!rings.length) rings.push({ kind: "empty", items: [], pd: 0 });
+      items = hb.slice(0, 10).map(function (h) { return { kind: "emoji", v: (h && h.emoji) || "✨" }; })
+        .concat(gl.slice(0, 8).map(function (g) { return { kind: "emoji", v: (g && g.emoji) || "🎯" }; }));
+      level = (typeof bosLevelInfoLive === "function" && typeof bosLiveXPLive === "function") ? (bosLevelInfoLive(bosLiveXPLive(app)).level || 0) : 0;
     } else {
-      var hh = _bosHashU(s.name || s.avatar);
-      rings.push({ kind: "bead", items: new Array(2 + (hh % 3)).fill(0), pd: 10 });
-      if ((hh >> 3) % 2 === 0) rings.push({ kind: "bead", items: new Array(1 + ((hh >> 4) % 3)).fill(0), pd: 9 });
+      var w = Math.min(((s.habits || 0) + (s.goals || 0)), 18);
+      items = new Array(w).fill(0).map(function () { return { kind: "bead" }; });
+      level = s.level || 0;
     }
-    rings.forEach(function (r, ri) { r.R = R0 + ri * STEP; });
-    var outerR = rings.length ? rings[rings.length - 1].R : avD / 2;
-    var maxPd = rings.reduce(function (m, r) { return Math.max(m, r.pd); }, 0);
-    return { s: s, you: isYou, avD: avD, rings: rings, footprint: outerR + maxPd / 2 + 5 };
+    var weight = items.length;
+    var rings = [], idx = 0, ri = 0;
+    while (ri < CAPS.length) { rings.push(items.slice(idx, idx + CAPS[ri])); idx += CAPS[ri]; ri++; if (idx >= items.length) break; }
+    var avD = isYou ? 46 : Math.round(32 + Math.min(weight, 12) * 1.3);   // больше всего → крупнее
+    var R0 = avD / 2 + 12, STEP = 14;
+    var ringSpecs = rings.map(function (it, i) { return { items: it, R: R0 + i * STEP, kind: (it.length && it[0].kind) || (isYou ? "emoji" : "bead"), pd: isYou ? (i === 0 ? 19 : 18) : 10 }; });
+    var outerR = R0 + (rings.length - 1) * STEP;
+    return { s: s, you: isYou, avD: avD, level: level, weight: weight, rings: ringSpecs, footprint: outerR + 11 + 5 };
   }
 
-  // Layout: build specs, then PACK across the whole screen with NO overlap (David: «не соприкасаться»).
+  // Layout: больше всего → БЛИЖЕ к центру, меньше → дальше к краям, БЕЗ наложений (David). Сортируем
+  // по размеру (footprint) убыв.; крупнейшую в центр; остальные по спирали наружу — первое свободное
+  // место (растущий радиус) → большие кучкуются у центра, мелкие занимают край.
   var layout = React.useMemo(function () {
     var W = (typeof window !== "undefined" && window.innerWidth) || 390;
     var H = (typeof window !== "undefined" && window.innerHeight) || 780;
     var specs = [buildSystem({ avatar: app && app.avatar, name: (app && app.userName) || "", you: true }, true)];
-    list.slice(0, 16).forEach(function (f) { specs.push(buildSystem(f, false)); });
-    var placed = [], overflow = 0, TOP = 100, BOT = H - 76, GAP = 12;
-    function fits(x, y, fp) { for (var j = 0; j < placed.length; j++) { var dx = x - placed[j].x, dy = y - placed[j].y; if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + GAP) return false; } return true; }
+    list.slice(0, 18).forEach(function (f) { specs.push(buildSystem(f, false)); });
+    specs.sort(function (a, b) { return b.footprint - a.footprint; });
+    var TOP = 100, BOT = H - 76, GAP = 12, cx = W / 2, placed = [], overflow = 0;
+    var cy = Math.max(TOP + specs[0].footprint, Math.min(BOT - specs[0].footprint, H * 0.47));
+    function fits(x, y, fp) { if (x < fp + 6 || x > W - fp - 6 || y < TOP + fp || y > BOT - fp) return false; for (var j = 0; j < placed.length; j++) { var dx = x - placed[j].x, dy = y - placed[j].y; if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + GAP) return false; } return true; }
     specs.forEach(function (sp, i) {
       var fp = sp.footprint;
-      if (i === 0) { placed.push({ sp: sp, x: W / 2, y: Math.max(TOP + fp, Math.min(BOT - fp, H * 0.47)), fp: fp }); return; }
-      var minX = fp + 8, maxX = W - fp - 8, minY = TOP + fp, maxY = BOT - fp;
-      if (maxX <= minX || maxY <= minY) { overflow++; return; }
-      var done = false;
-      for (var t = 0; t < 200; t++) { var x = minX + Math.random() * (maxX - minX), y = minY + Math.random() * (maxY - minY); if (fits(x, y, fp)) { placed.push({ sp: sp, x: x, y: y, fp: fp }); done = true; break; } }
+      if (i === 0) { placed.push({ sp: sp, x: cx, y: cy, fp: fp }); return; }
+      var done = false, RMAX = Math.max(W, H);
+      for (var r = fp + 4; r < RMAX && !done; r += 10) {
+        var steps = Math.max(8, Math.round(2 * Math.PI * r / 26)), a0 = _bosHashU(sp.s.name || ("" + i)) % steps;
+        for (var k = 0; k < steps && !done; k++) { var ang = ((k + a0) / steps) * 2 * Math.PI, x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r; if (fits(x, y, fp)) { placed.push({ sp: sp, x: x, y: y, fp: fp }); done = true; } }
+      }
       if (!done) overflow++;
     });
     return { placed: placed, overflow: overflow };
@@ -2128,7 +2140,8 @@ function UniverseFieldLive({ app, people, onClose }) {
                         var ang = (k / r.items.length) * 2 * Math.PI + ri * 0.5;
                         var ppx = Math.cos(ang) * r.R, ppy = Math.sin(ang) * r.R;
                         var needUpright = (r.kind === "emoji" || r.kind === "avatar");
-                        var inner = needUpright ? <div style={{ animation: (cw ? "bosSpinFaceCCW " : "bosSpinFaceCW ") + dur + "s linear infinite" }}>{planet(r.kind, it, r.pd)}</div> : planet(r.kind, it, r.pd);
+                        var val = (r.kind === "emoji") ? (it && it.v) : it;
+                        var inner = needUpright ? <div style={{ animation: (cw ? "bosSpinFaceCCW " : "bosSpinFaceCW ") + dur + "s linear infinite" }}>{planet(r.kind, val, r.pd)}</div> : planet(r.kind, val, r.pd);
                         return <div key={k} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(" + ppx.toFixed(1) + "px," + ppy.toFixed(1) + "px) translate(-50%,-50%)" }}>{inner}</div>;
                       })}
                     </div>
@@ -2136,10 +2149,11 @@ function UniverseFieldLive({ app, people, onClose }) {
                 </React.Fragment>
               );
             })}
-            {/* центр-аватар; у тебя — золотое кольцо-маркёр «это твоя система» */}
+            {/* центр-аватар; у тебя — золотое кольцо-маркёр; у каждого — БЕЙДЖ УРОВНЯ (если известен) */}
             <div style={{ position: "relative", width: sp.avD, height: sp.avD }}>
               {sp.you && <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: sp.avD + 7, height: sp.avD + 7, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "2px solid " + youRing, boxShadow: "0 0 10px " + (isDark ? "rgba(255,221,120,0.4)" : "rgba(230,160,30,0.3)") }} />}
               {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={sp.s && sp.s.avatar} name={sp.s && sp.s.name} size={sp.avD} /> : null}
+              {sp.level > 0 && <span aria-hidden style={{ position: "absolute", left: (sp.avD - 13) + "px", top: (sp.avD - 13) + "px", minWidth: 16, height: 16, padding: "0 3px", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: 9.5, fontWeight: 800, lineHeight: "14px", textAlign: "center", letterSpacing: "-0.3px", border: "1.5px solid " + (isDark ? "#0e1422" : "#fff"), boxShadow: "0 1px 2px rgba(224,138,0,0.5)" }}>{sp.level}</span>}
             </div>
           </div>
         );

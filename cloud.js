@@ -70,6 +70,24 @@
     try { var r = await c.from("profiles").select("id,username,avatar,created_at").eq("referred_by", id).order("created_at", { ascending: true }); return r.data || []; }
     catch (e) { return []; }
   }
+  // PUBLIC stats for the «Вселенная»: a person's level + how much they have (habits/goals counts),
+  // so others' solar systems get REAL size + level. profiles is world-readable. Needs columns
+  // pub_level/pub_habits/pub_goals (David runs 1 ALTER); until then these no-op gracefully.
+  async function savePublicStats(s) {
+    var c = client(); var id = await uid(); if (!c || !id || !s) return false;
+    try { var r = await c.from("profiles").update({ pub_level: s.level | 0, pub_habits: s.habits | 0, pub_goals: s.goals | 0 }).eq("id", id); return !r.error; }
+    catch (e) { return false; }
+  }
+  // Map id → { level, habits, goals } for a set of users (invited + circle members). Falls back to
+  // {} if the columns don't exist yet, so the universe renders (others just default-small) pre-ALTER.
+  async function profilesPublic(ids) {
+    var c = client(); if (!c || !ids || !ids.length) return {};
+    try {
+      var r = await c.from("profiles").select("id,pub_level,pub_habits,pub_goals").in("id", ids);
+      if (r.error || !r.data) return {};
+      var out = {}; r.data.forEach(function (p) { out[p.id] = { level: p.pub_level || 0, habits: p.pub_habits || 0, goals: p.pub_goals || 0 }; }); return out;
+    } catch (e) { return {}; }
+  }
   // My short, pretty referral code (profiles.ref_code). Null if the column/code isn't there
   // yet (before patch_ref_codes.sql is run) — callers fall back to the raw uid via inviteCode().
   var _refCode = null;
@@ -629,6 +647,7 @@
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, currentUser: currentUser,
     loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople, refCode: refCode, inviteCode: inviteCode,
+    savePublicStats: savePublicStats, profilesPublic: profilesPublic,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,

@@ -29,6 +29,12 @@ function ProfileLive() {
   const lvlNum = _li.level;
   const lvlPct = _li.pct;
 
+  // Publish MY public stats (level + how much I have) so my solar system shows real size+level to
+  // others in «Вселенная». World-readable profiles; no-ops until David adds pub_* columns.
+  React.useEffect(() => {
+    try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, habits: (app?.habits || []).length, goals: (app?.goals || []).length }); } catch (e) {}
+  }, [lvlNum, (app?.habits || []).length, (app?.goals || []).length]);
+
   // Real multiplayer: pull the people you've actually invited (referral circle) from
   // the cloud and put them on your orbit.
   const [livePeople, setLivePeople] = React.useState([]);
