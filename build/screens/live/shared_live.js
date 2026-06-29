@@ -4073,6 +4073,242 @@ function CloudTeamsDiscoverLive({
   }, requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить")))));
 }
 
+/* ЗАСЕВ «НАЙТИ» — курируемая витрина челленджей-кругов ДО запуска (ноль органики TG → без засева
+   раздел пуст и мёртв). Это ШАБЛОНЫ: «Начать» создаёт ТВОЙ круг из шаблона (копия в «Целях») +
+   якорь-практику в «Привычках» — тот же движок круга, что у курса и цели-с-кругом. Честно: БЕЗ
+   фейковых счётчиков участников (твой старт = соло-копия); реальные открытые круги других людей
+   показывает CloudTeamsDiscoverLive ниже. seedId на круге = защита от дубля. LIVE only. */
+var SEED_CIRCLES = [{
+  id: "seed-run",
+  name: "Беговой клуб",
+  emblem: "🏃",
+  accent: "#FF3B30",
+  goalText: "100 км вместе",
+  target: 100,
+  unit: "км",
+  type: "collective",
+  practice: {
+    name: "Пробежка",
+    emoji: "🏃"
+  }
+}, {
+  id: "seed-morning",
+  name: "Утро чемпионов",
+  emblem: "🌅",
+  accent: "#FF9500",
+  goalText: "21 день подряд",
+  target: 21,
+  unit: "дней",
+  type: "streak",
+  practice: {
+    name: "Подъём в 6:00",
+    emoji: "⏰"
+  }
+}, {
+  id: "seed-meditate",
+  name: "Тихий час",
+  emblem: "🧘",
+  accent: "#34C759",
+  goalText: "1000 минут покоя",
+  target: 1000,
+  unit: "минут",
+  type: "collective",
+  practice: {
+    name: "Медитация",
+    emoji: "🧘"
+  }
+}, {
+  id: "seed-read",
+  name: "Книжный круг",
+  emblem: "📖",
+  accent: "#0A84FF",
+  goalText: "30 дней чтения",
+  target: 30,
+  unit: "дней",
+  type: "collective",
+  practice: {
+    name: "Чтение",
+    emoji: "📖"
+  }
+}];
+function SeedCirclesShowcaseLive({
+  app,
+  navigate
+}) {
+  var start = s => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+    var existing = (app?.teams || []).find(t => t.seedId === s.id);
+    if (existing) {
+      navigate("team-detail", {
+        team: existing
+      });
+      return;
+    } // уже начал → просто в круг
+    var teamObj = {
+      name: s.name,
+      emblem: s.emblem,
+      accent: s.accent,
+      vis: "private",
+      seedId: s.id,
+      goal: s.goalText,
+      type: s.type,
+      target: s.target || 0,
+      current: 0,
+      unit: s.unit || "",
+      stake: 0,
+      date: "",
+      progress: 0,
+      members: []
+    };
+    var nt = app?.addTeam(teamObj); // круг → сразу в «Целях» (офлайн-ок)
+    var practiceHabit = {
+      name: s.practice.name,
+      emoji: s.practice.emoji,
+      color: null,
+      days: [1, 1, 1, 1, 1, 1, 1],
+      goalPerDay: 1,
+      reminder: {
+        on: false,
+        time: "09:00"
+      },
+      log: {}
+    };
+    var opened = false;
+    try {
+      if (nt && window.bosCloud && window.bosCloud.enabled()) {
+        window.bosCloud.createTeam({
+          name: s.name,
+          emblem: s.emblem,
+          vis: "private",
+          goalKind: s.goalText,
+          goalTarget: s.target || 0,
+          goal: {
+            type: s.type,
+            target: s.target || 0,
+            unit: s.unit || "",
+            title: s.name
+          }
+        }).then(async row => {
+          if (row && row.id) {
+            if (app.updateTeam) app.updateTeam(nt._id, {
+              cloudId: row.id
+            });
+            var th = null;
+            try {
+              th = await window.bosCloud.addTeamHabit(row.id, {
+                name: s.practice.name,
+                emoji: s.practice.emoji,
+                isMain: true
+              });
+            } catch (e) {}
+            app?.addHabit({
+              ...practiceHabit,
+              teamId: row.id,
+              teamHabitId: th && th.id
+            });
+          } else {
+            app?.addHabit(practiceHabit);
+          }
+          navigate("team-detail", {
+            team: {
+              ...nt,
+              cloudId: row && row.id
+            }
+          });
+        }).catch(() => {
+          app?.addHabit(practiceHabit);
+          navigate("team-detail", {
+            team: nt
+          });
+        });
+        opened = true;
+      }
+    } catch (e) {}
+    if (!opened) {
+      app?.addHabit(practiceHabit);
+      navigate("team-detail", {
+        team: nt
+      });
+    } // офлайн/превью
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "4px 4px 8px"
+    }
+  }, "\u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, SEED_CIRCLES.map(s => {
+    var joined = (app?.teams || []).some(t => t.seedId === s.id);
+    return /*#__PURE__*/React.createElement("div", {
+      key: s.id,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        background: "var(--card)",
+        borderRadius: 22,
+        padding: 14,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        background: s.accent + "22",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 24,
+        flexShrink: 0
+      }
+    }, bosIcon(s.emblem, 24, s.accent)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15.5,
+        fontWeight: 600,
+        color: "var(--text)"
+      }
+    }, s.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "var(--text-3)",
+        marginTop: 2
+      }
+    }, "\uD83C\uDFAF ", s.goalText)), /*#__PURE__*/React.createElement("button", {
+      onClick: () => start(s),
+      className: "tap",
+      style: {
+        flexShrink: 0,
+        background: joined ? "var(--card-2)" : "#0a0a0a",
+        color: joined ? "var(--text-3)" : "#fff",
+        border: 0,
+        borderRadius: 999,
+        padding: "9px 16px",
+        fontSize: 13,
+        fontWeight: 600,
+        whiteSpace: "nowrap"
+      }
+    }, joined ? "Открыть" : "Начать"));
+  })));
+}
+
 /* ── Привычки-страница: нижняя полоска недели + Apple-палитра (live-only, v235). The
    HOME card stays the compact row — only the Привычки-page card grows this strip.
    Colours = the Apple JOURNAL palette (David found it: «такие же цвета, как в Журнале») —

@@ -158,6 +158,8 @@ function CommunityLive() {
           <div style={{ textAlign: "center", padding: "6px 18px 2px", color: "var(--text-4)", fontSize: 13.5, lineHeight: 1.5 }}>
             Найди круг или челлендж, к которому хочешь примкнуть — вступишь, и он появится у тебя в «Целях».
           </div>
+          {/* Курируемая ВИТРИНА челленджей — засев до запуска (без неё «Найти» пустует). */}
+          {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
           {/* Открытые круги из облака, в которые можно вступить. */}
           <CloudTeamsDiscoverLive app={app} />
         </div>
