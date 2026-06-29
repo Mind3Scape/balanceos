@@ -511,10 +511,11 @@ function TeamSettingsLive() {
    экран). Те же поля и тот же save (app.updateTeam + cloud updateTeam), что в TeamSettingsLive —
    комната под шторкой обновляется живьём, т.к. читает app.teams. Иконка = embedded EmojiPickerLive
    через двухвью (one-sheet host). «Все настройки и участники» → полный экран (ничего не теряем). */
-function TeamQuickEditSheetLive({ team }) {
+function TeamQuickEditSheetLive({ team, navigate }) {
+  // navigate приходит ПРОПОМ от открывающего (TeamDetailLive) — шторки рендерятся ВНЕ NavCtx,
+  // поэтому useNav() здесь null (это и роняло экран при тапе на карандаш). David: фикс краша.
   const app = useApp();
-  const { close } = useSheet();
-  const { navigate } = useNav();
+  const { open: openSheet, close } = useSheet();
   const [view, setView] = useCS("form");
   const [name, setName] = useCS(team.name || "");
   const [emblem, setEmblem] = useCS(team.emblem || "✨");
@@ -623,6 +624,8 @@ function TeamQuickEditSheetLive({ team }) {
 
       <button className="bos-btn" disabled={saving} style={{ marginTop: 18, opacity: saving ? 0.65 : 1 }} onClick={save}>{saving ? "Сохраняем…" : "Сохранить"}</button>
       <button onClick={() => { close(); navigate("team-settings", { team }); }} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 4, fontSize: 13.5, fontWeight: 600 }}>Все настройки и участники →</button>
+      {/* УДАЛИТЬ КРУГ — здесь, на правке (карандаш), а не на главной круга (David). Шторка правки = owner-only. */}
+      <button onClick={() => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet })} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: "12px", marginTop: 2, fontSize: 13.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Trash size={16}/> Удалить круг</button>
     </div>
   );
 }

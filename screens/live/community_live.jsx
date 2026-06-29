@@ -31,6 +31,9 @@
 // already caps at 5 faces + a «+N» overflow chip (iOS-style) and uses each member's real
 // avatar. Local-only teams fall back to their own members; empty cloud team = honest «ты один».
 function LiveTeamCard({ t, navigate }) {
+  // Светло-серое СТЕКЛО по умолчанию (David): чёрный/непокрашенный/демо-жёлтый accent → светло-серый;
+  // реальный выбранный цвет показывается как есть.
+  const cardAccent = (t.accent && t.accent !== "#0a0a0a" && t.accent !== "#fef3c7") ? t.accent : "#C7C7CC";
   const tgt = t.target || 0;
   const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
   const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
@@ -51,7 +54,7 @@ function LiveTeamCard({ t, navigate }) {
   const count = members.length;
   const ruPart = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "участник" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "участника" : "участников"; };
   return (
-    <div className="team-card" style={{ ["--team-accent"]: t.accent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden" }}>
+    <div className="team-card" style={{ ["--team-accent"]: cardAccent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden" }}>
       <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, t.accent)}</div>
       <div style={{ position: "relative" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -72,7 +75,7 @@ function LiveTeamCard({ t, navigate }) {
             ? <div style={{ display: "flex" }}>{[0, 1, 2].map((i) => (<span key={i} className="bos-skel" style={{ width: 28, height: 28, borderRadius: "50%", marginLeft: i ? -10 : 0, border: "2px solid var(--card)" }} />))}</div>
             : count > 0 ? <PeopleStackLive people={members} size={28} max={5} /> : <span style={{ fontSize: 12, color: "var(--text-4)" }}>Пока ты один — позови друзей</span>}
           <button onClick={() => navigate("team-detail", { team: t })} className="tap team-card__cta" style={{ marginLeft: "auto", border: 0, borderRadius: 999, padding: "11px 18px", fontSize: 13.5, fontWeight: 600 }}>
-            Открыть команду
+            Открыть круг
           </button>
         </div>
       </div>
@@ -282,7 +285,7 @@ function TeamOrbitLive({ emblem, accent, faces, isDark }) {
     <div style={{ position: "relative", width: W, height: H, margin: "0 auto" }}>
       <div style={ring(rOut * 2)} />
       <div style={ring(rIn * 2)} />
-      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 54, height: 54, borderRadius: 16, background: BOS_TILE_SHEEN + ", rgba(255,255,255,0.55)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center" }}>{bosIcon(emblem || "✨", 28, accent)}</div>
+      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 54, height: 54, borderRadius: "50%", background: BOS_TILE_SHEEN + ", rgba(255,255,255,0.55)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center" }}>{bosIcon(emblem || "✨", 28, accent)}</div>
       {place(inner, rIn, 0)}
       {place(outer, rOut, 28)}
     </div>
@@ -296,7 +299,8 @@ function TeamDetailLive() {
   const passed = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0, members: [] };
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
-  const accent = t.accent || "#fef3c7";
+  // Светло-серое СТЕКЛО по умолчанию (David): чёрный/демо-жёлтый/непокрашенный → светло-серый; реальный цвет показывается.
+  const accent = (t.accent && t.accent !== "#0a0a0a" && t.accent !== "#fef3c7") ? t.accent : "#C7C7CC";
   const isDark = app?.themeOverride === "dark";
   // The goal MODE — shown as a chip so the team's rule (общий счёт / серия / гонка) is ALWAYS
   // visible, not hidden behind the async cloud progress (David: «не вижу их отражение»).
@@ -492,13 +496,13 @@ function TeamDetailLive() {
           {/* Правка НА МЕСТЕ — карандаш открывает шторку правки прямо над комнатой (не уводит
               на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. «Поделиться»
               ушло вниз в тихие чипы («Позвать»), чтобы шапка не выбивалась. */}
-          {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<TeamQuickEditSheetLive team={t} />)} />}
+          {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<TeamQuickEditSheetLive team={t} navigate={navigate} />)} />}
         </div>
       }/>
       <div style={{ background: `linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%), linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)", transform: "translateZ(0)" }}>
         <div style={{ position: "relative" }}>
           {/* Орбита круга — общая звезда в центре, люди-планеты загораются за сегодня */}
-          <TeamOrbitLive emblem={t.emblem} accent={t.accent} faces={orbitFaces} isDark={isDark} />
+          <TeamOrbitLive emblem={t.emblem} accent={accent} faces={orbitFaces} isDark={isDark} />
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", textAlign: "center", marginTop: 2 }}>{t.name}</div>
           <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500, textAlign: "center" }}>🎯 {t.goal}</div>
           <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2, textAlign: "center" }}>{t.date}</div>
@@ -663,7 +667,7 @@ function TeamDetailLive() {
           какой день на календаре — и в командах должно работать». */}
       {_rosterLive && main && mainProg && mainProg.length > 0 && (
         <PeopleMonthCalendarLive
-          people={mainProg.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "У").charAt(0).toUpperCase()), color: "#FEDE34", you: !!m.me, avatar: m.avatar }))}
+          people={mainProg.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "У").charAt(0).toUpperCase()), color: accent, you: !!m.me, avatar: m.avatar }))}
           dayFrac={(pi, d, mi) => (mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0)}
           label={"Кто отметил «" + main.name + "»"}
         />
@@ -758,13 +762,14 @@ function TeamDetailLive() {
         </button>
       </div>
 
-      {/* Leave / delete — always shown for the live user. The owner deletes the whole
-          team (cloud deleteTeam); a member leaves (cloud leaveTeam). Both confirm first and
-          go back to the list. bosExitTeam guards a not-yet-synced local team (no cloudId). */}
-      <button onClick={() => bosConfirmExitTeam({ app, team: t, isOwner: _isOwner, navigate, openSheet })} className="tap"
-        style={{ width: "100%", marginTop: 26, background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-        {_isOwner ? <><I.Trash size={17}/> Удалить команду</> : <><I.Logout size={17}/> Покинуть команду</>}
-      </button>
+      {/* ПОКИНУТЬ — только участник (у него нет карандаша). Владелец УДАЛЯЕТ круг со шторки правки
+          (карандаш) — David: «удалить никчему на главной внутри круга». */}
+      {!_isOwner && (
+        <button onClick={() => bosConfirmExitTeam({ app, team: t, isOwner: false, navigate, openSheet })} className="tap"
+          style={{ width: "100%", marginTop: 26, background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          <I.Logout size={17}/> Покинуть круг
+        </button>
+      )}
     </div>
   );
 }

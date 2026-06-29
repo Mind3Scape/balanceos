@@ -1402,15 +1402,16 @@ function TeamSettingsLive() {
    комната под шторкой обновляется живьём, т.к. читает app.teams. Иконка = embedded EmojiPickerLive
    через двухвью (one-sheet host). «Все настройки и участники» → полный экран (ничего не теряем). */
 function TeamQuickEditSheetLive({
-  team
+  team,
+  navigate
 }) {
+  // navigate приходит ПРОПОМ от открывающего (TeamDetailLive) — шторки рендерятся ВНЕ NavCtx,
+  // поэтому useNav() здесь null (это и роняло экран при тапе на карандаш). David: фикс краша.
   var app = useApp();
   var {
+    open: openSheet,
     close
   } = useSheet();
-  var {
-    navigate
-  } = useNav();
   var [view, setView] = useCS("form");
   var [name, setName] = useCS(team.name || "");
   var [emblem, setEmblem] = useCS(team.emblem || "✨");
@@ -1818,7 +1819,32 @@ function TeamQuickEditSheetLive({
       fontSize: 13.5,
       fontWeight: 600
     }
-  }, "\u0412\u0441\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0438 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 \u2192"));
+  }, "\u0412\u0441\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0438 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 \u2192"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => bosConfirmExitTeam({
+      app,
+      team,
+      isOwner: true,
+      navigate,
+      openSheet
+    }),
+    className: "tap",
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--accent-red)",
+      padding: "12px",
+      marginTop: 2,
+      fontSize: 13.5,
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7
+    }
+  }, /*#__PURE__*/React.createElement(I.Trash, {
+    size: 16
+  }), " \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u0440\u0443\u0433"));
 }
 
 /* LIVE fork of the «add team habit» sheet — uses OUR standard icon picker (EmojiPickerLive:

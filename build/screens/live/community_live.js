@@ -34,6 +34,9 @@ function LiveTeamCard({
   t,
   navigate
 }) {
+  // Светло-серое СТЕКЛО по умолчанию (David): чёрный/непокрашенный/демо-жёлтый accent → светло-серый;
+  // реальный выбранный цвет показывается как есть.
+  var cardAccent = t.accent && t.accent !== "#0a0a0a" && t.accent !== "#fef3c7" ? t.accent : "#C7C7CC";
   var tgt = t.target || 0;
   var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
   var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
@@ -69,7 +72,7 @@ function LiveTeamCard({
   return /*#__PURE__*/React.createElement("div", {
     className: "team-card",
     style: {
-      ["--team-accent"]: t.accent,
+      ["--team-accent"]: cardAccent,
       borderRadius: 22,
       padding: 18,
       position: "relative",
@@ -206,7 +209,7 @@ function LiveTeamCard({
       fontSize: 13.5,
       fontWeight: 600
     }
-  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"))));
+  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u0440\u0443\u0433"))));
 }
 function CommunityLive() {
   var {
@@ -729,7 +732,7 @@ function TeamOrbitLive({
       transform: "translate(-50%,-50%)",
       width: 54,
       height: 54,
-      borderRadius: 16,
+      borderRadius: "50%",
       background: BOS_TILE_SHEEN + ", rgba(255,255,255,0.55)",
       boxShadow: bosTileGlass(isDark),
       display: "grid",
@@ -758,7 +761,8 @@ function TeamDetailLive() {
   };
   // Read the LIVE team from the store so a just-added habit appears immediately.
   var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
-  var accent = t.accent || "#fef3c7";
+  // Светло-серое СТЕКЛО по умолчанию (David): чёрный/демо-жёлтый/непокрашенный → светло-серый; реальный цвет показывается.
+  var accent = t.accent && t.accent !== "#0a0a0a" && t.accent !== "#fef3c7" ? t.accent : "#C7C7CC";
   var isDark = app?.themeOverride === "dark";
   // The goal MODE — shown as a chip so the team's rule (общий счёт / серия / гонка) is ALWAYS
   // visible, not hidden behind the async cloud progress (David: «не вижу их отражение»).
@@ -1122,7 +1126,8 @@ function TeamDetailLive() {
       }
     }, _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamQuickEditSheetLive, {
-        team: t
+        team: t,
+        navigate: navigate
       }))
     }))
   }), /*#__PURE__*/React.createElement("div", {
@@ -1142,7 +1147,7 @@ function TeamDetailLive() {
     }
   }, /*#__PURE__*/React.createElement(TeamOrbitLive, {
     emblem: t.emblem,
-    accent: t.accent,
+    accent: accent,
     faces: orbitFaces,
     isDark: isDark
   }), /*#__PURE__*/React.createElement("div", {
@@ -1614,7 +1619,7 @@ function TeamDetailLive() {
     people: mainProg.map(m => ({
       name: m.me ? "Ты" : m.name,
       initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
-      color: "#FEDE34",
+      color: accent,
       you: !!m.me,
       avatar: m.avatar
     })),
@@ -2007,11 +2012,11 @@ function TeamDetailLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Share, {
     size: 16
-  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C")), /*#__PURE__*/React.createElement("button", {
+  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C")), !_isOwner && /*#__PURE__*/React.createElement("button", {
     onClick: () => bosConfirmExitTeam({
       app,
       team: t,
-      isOwner: _isOwner,
+      isOwner: false,
       navigate,
       openSheet
     }),
@@ -2030,9 +2035,7 @@ function TeamDetailLive() {
       justifyContent: "center",
       gap: 7
     }
-  }, _isOwner ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(I.Trash, {
+  }, /*#__PURE__*/React.createElement(I.Logout, {
     size: 17
-  }), " \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(I.Logout, {
-    size: 17
-  }), " \u041F\u043E\u043A\u0438\u043D\u0443\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443")));
+  }), " \u041F\u043E\u043A\u0438\u043D\u0443\u0442\u044C \u043A\u0440\u0443\u0433"));
 }
