@@ -2340,17 +2340,21 @@ function LevelsLive() {
       marginTop: 6,
       opacity: 0.7
     }
-  }, Math.max(0, next - xp), " XP \u0434\u043E ", lvl + 1, " \u0443\u0440\u043E\u0432\u043D\u044F \xB7 ", titleFor(lvl + 1))))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 20
-    }
-  }, "\u041A\u0430\u043A \u0437\u0430\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0442\u044C XP"), /*#__PURE__*/React.createElement(SysCard, {
+  }, Math.max(0, next - xp), " XP \u0434\u043E ", lvl + 1, " \u0443\u0440\u043E\u0432\u043D\u044F \xB7 ", titleFor(lvl + 1))))), /*#__PURE__*/React.createElement(SysCard, {
     style: {
       padding: 14,
-      marginTop: 8
+      marginTop: 20
     }
-  }, [{
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "0 0 6px"
+    }
+  }, "\u041A\u0430\u043A \u0437\u0430\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0442\u044C XP"), [{
     t: "Выполнить привычку",
     v: "+10"
   }, {
@@ -2403,16 +2407,11 @@ function LevelsLive() {
       padding: "0 4px",
       lineHeight: 1.45
     }
-  }, "\u0417\u0430 \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0451\u043D\u043D\u044B\u0445 \u0434\u0440\u0443\u0437\u0435\u0439 \u043F\u043B\u0430\u0442\u0438\u043C \u0449\u0435\u0434\u0440\u0435\u0435 \u0432\u0441\u0435\u0433\u043E \u2014 \u0442\u0430\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u0442\u0432\u043E\u0439 \u043A\u0440\u0443\u0433."), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041A\u0440\u0443\u0433 \u0432\u043B\u0438\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement(SysCard, {
+  }, "\u0417\u0430 \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0451\u043D\u043D\u044B\u0445 \u0434\u0440\u0443\u0437\u0435\u0439 \u043F\u043B\u0430\u0442\u0438\u043C \u0449\u0435\u0434\u0440\u0435\u0435 \u0432\u0441\u0435\u0433\u043E \u2014 \u0442\u0430\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u0442\u0432\u043E\u0439 \u043A\u0440\u0443\u0433."), /*#__PURE__*/React.createElement(SysCard, {
     "data-tour": "influence-mult",
     style: {
       padding: 16,
-      marginTop: 8
+      marginTop: 22
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2576,19 +2575,14 @@ function LevelsLive() {
       fontSize: 14.5,
       fontWeight: 600
     }
-  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0434\u0440\u0443\u0433\u0430")), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u044F"), /*#__PURE__*/React.createElement(SysCard, {
+  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0434\u0440\u0443\u0433\u0430")), /*#__PURE__*/React.createElement(SysCard, {
     className: "tap",
     onClick: () => navigate("achievements", {
       from: "levels"
     }),
     style: {
       padding: 14,
-      marginTop: 8,
+      marginTop: 22,
       display: "flex",
       alignItems: "center",
       gap: 13,
@@ -2706,18 +2700,22 @@ function LevelsLive() {
       flexShrink: 0
     }
   }, "\u0412 \u041D\u0435\u0442\u0432\u043E\u0440\u043A")), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041D\u0430\u0433\u0440\u0430\u0434\u044B \u0437\u0430 XP"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      marginTop: 8
+      marginTop: 22
     }
-  }, rewards.map((r, i) => /*#__PURE__*/React.createElement(SysCard, {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "0 4px"
+    }
+  }, "\u041D\u0430\u0433\u0440\u0430\u0434\u044B \u0437\u0430 XP"), rewards.map((r, i) => /*#__PURE__*/React.createElement(SysCard, {
     key: i,
     style: {
       padding: 12,
@@ -3092,20 +3090,23 @@ function CourseDetailLive() {
       fontWeight: 500
     }
   }, m.v))))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
       marginTop: 22,
-      padding: "0 4px"
-    }
-  }, "\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8,
       background: "var(--card)",
       borderRadius: 22,
       overflow: "hidden",
       boxShadow: "var(--card-shadow)"
     }
-  }, programme.map((p, i) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "14px 18px 2px"
+    }
+  }, "\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430"), programme.map((p, i) => /*#__PURE__*/React.createElement("div", {
     key: i
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3148,19 +3149,23 @@ function CourseDetailLive() {
   }, p.b))), i < programme.length - 1 && /*#__PURE__*/React.createElement("div", {
     className: "divider"
   })))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
       marginTop: 22,
-      padding: "0 4px"
-    }
-  }, "\u0427\u0442\u043E \u0432\u0445\u043E\u0434\u0438\u0442"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8,
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
       gap: 10
     }
-  }, includes.map((it, i) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1",
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "0 4px"
+    }
+  }, "\u0427\u0442\u043E \u0432\u0445\u043E\u0434\u0438\u0442"), includes.map((it, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       background: "var(--card)",
@@ -3193,14 +3198,8 @@ function CourseDetailLive() {
       lineHeight: 1.45
     }
   }, it.b)))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
       marginTop: 22,
-      padding: "0 4px"
-    }
-  }, "\u0422\u0432\u043E\u0439 \u043A\u043E\u0443\u0447"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8,
       background: "var(--card)",
       borderRadius: 22,
       padding: 16,
@@ -3237,20 +3236,23 @@ function CourseDetailLive() {
       lineHeight: 1.5
     }
   }, "\xAB\u042F \u0441\u0442\u0440\u043E\u044E \u043A\u043E\u0443\u0447\u0438\u043D\u0433 \u0434\u043B\u044F \u0442\u0435\u0445, \u043A\u0442\u043E \u043D\u0435\u043D\u0430\u0432\u0438\u0434\u0438\u0442 \u0441\u043B\u043E\u0432\u043E \xAB\u043A\u043E\u0443\u0447\u0438\u043D\u0433\xBB. \u041F\u0440\u043E\u0441\u0442\u043E \u043F\u043E\u044F\u0432\u043B\u044F\u0439\u0441\u044F \u2014 \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u043E\u0435 \u0441\u0434\u0435\u043B\u0430\u044E \u044F.\xBB"))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
     style: {
       marginTop: 22,
-      padding: "0 4px"
-    }
-  }, "FAQ"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8,
       background: "var(--card)",
       borderRadius: 22,
       overflow: "hidden",
       boxShadow: "var(--card-shadow)"
     }
-  }, FAQ.map((f, i) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "14px 18px 2px"
+    }
+  }, "FAQ"), FAQ.map((f, i) => /*#__PURE__*/React.createElement("div", {
     key: i
   }, /*#__PURE__*/React.createElement("div", {
     style: {

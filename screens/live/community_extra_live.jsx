@@ -792,8 +792,8 @@ function LevelsLive() {
 
       {/* Gamification FIRST — for a new user the most important thing is HOW XP
          works and WHAT achievements unlock, so it sits right under the level. */}
-      <div className="section-label" style={{ marginTop: 20 }}>Как зарабатывать XP</div>
-      <SysCard style={{ padding: 14, marginTop: 8 }}>
+      <SysCard style={{ padding: 14, marginTop: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "0 0 6px" }}>Как зарабатывать XP</div>
         {[
           { t: "Выполнить привычку", v: "+10" },
           { t: "Идеальный день — все привычки", v: "+30" },
@@ -815,8 +815,8 @@ function LevelsLive() {
       {/* Круг влияния — your people make every step richer. Concrete XP only
          (no ×/%): shared habits pay more, and growing the circle unlocks milestone
          bonuses. Brand-gold accents on a neutral card. data-tour drives the demo. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Круг влияния</div>
-      <SysCard data-tour="influence-mult" style={{ padding: 16, marginTop: 8 }}>
+      {/* Круг влияния — подпись убрана (карточка названа «Множитель влияния»). */}
+      <SysCard data-tour="influence-mult" style={{ padding: 16, marginTop: 22 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
           <div style={{ width: 56, height: 56, borderRadius: 14, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 7px 18px rgba(254,222,52,0.34)" }}>
             <I.Users size={25} color="#0a0a0a" />
@@ -869,8 +869,8 @@ function LevelsLive() {
         <button onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)} className="tap" style={{ width: "100%", marginTop: 14, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 12, fontSize: 14.5, fontWeight: 600 }}>Пригласить друга</button>
       </SysCard>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Достижения</div>
-      <SysCard className="tap" onClick={() => navigate("achievements", { from: "levels" })} style={{ padding: 14, marginTop: 8, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
+      {/* Достижения — подпись убрана (карточка названа «Ачивки»). */}
+      <SysCard className="tap" onClick={() => navigate("achievements", { from: "levels" })} style={{ padding: 14, marginTop: 22, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
         <span className="bos-sys-chip-bg" style={{ width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15.5, fontWeight: 600 }}>Ачивки</div>
@@ -895,8 +895,9 @@ function LevelsLive() {
         <button onClick={() => { app?.setCommunityView?.({ section: "community", commTab: "network" }); navigate("community"); }} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>В Нетворк</button>
       </SysCard>
 
-      <div className="section-label" style={{ marginTop: 22 }}>Награды за XP</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      {/* Награды за XP — подпись ВНУТРЬ блока-списка (первой строкой). */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 22 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "0 4px" }}>Награды за XP</div>
         {rewards.map((r, i) => (
           <SysCard key={i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, opacity: rUnlocked(r) ? 1 : 0.55 }}>
             <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22 }}>{r.i}</span>
@@ -1029,9 +1030,9 @@ function CourseDetailLive() {
         </div>
       </div>
 
-      {/* PROGRAMME */}
-      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>Программа</div>
-      <div style={{ marginTop: 8, background: "var(--card)", borderRadius: 22, overflow: "hidden", boxShadow: "var(--card-shadow)" }}>
+      {/* PROGRAMME — подпись ВНУТРИ блока (David). */}
+      <div style={{ marginTop: 22, background: "var(--card)", borderRadius: 22, overflow: "hidden", boxShadow: "var(--card-shadow)" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "14px 18px 2px" }}>Программа</div>
         {programme.map((p, i) => (
           <div key={i}>
             <div style={{ display: "flex", gap: 14, padding: "16px 18px" }}>
@@ -1048,9 +1049,9 @@ function CourseDetailLive() {
         ))}
       </div>
 
-      {/* WHAT'S INCLUDED */}
-      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>Что входит</div>
-      <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {/* WHAT'S INCLUDED — подпись ВНУТРИ блока (full-width в гриде). */}
+      <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "0 4px" }}>Что входит</div>
         {includes.map((it, i) => (
           <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)" }}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 18, marginBottom: 8 }}>{it.i}</div>
@@ -1060,9 +1061,8 @@ function CourseDetailLive() {
         ))}
       </div>
 
-      {/* COACH */}
-      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>Твой коуч</div>
-      <div style={{ marginTop: 8, background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "center" }}>
+      {/* COACH — подпись убрана (карточка коуча самоочевидна: имя + роль). */}
+      <div style={{ marginTop: 22, background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "center" }}>
         <BuddyFaceLive name="Марк Халверсон" size={52} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Марк Халверсон</div>
@@ -1071,9 +1071,9 @@ function CourseDetailLive() {
         </div>
       </div>
 
-      {/* FAQ */}
-      <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>FAQ</div>
-      <div style={{ marginTop: 8, background: "var(--card)", borderRadius: 22, overflow: "hidden", boxShadow: "var(--card-shadow)" }}>
+      {/* FAQ — подпись ВНУТРИ блока. */}
+      <div style={{ marginTop: 22, background: "var(--card)", borderRadius: 22, overflow: "hidden", boxShadow: "var(--card-shadow)" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "14px 18px 2px" }}>FAQ</div>
         {FAQ.map((f, i) => (
           <div key={i}>
             <div style={{ padding: "14px 18px" }}>
