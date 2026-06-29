@@ -723,7 +723,7 @@ function TeamOrbitLive({
         key: (f.id || i) + "-" + r,
         style: Object.assign({}, st, {
           display: "block",
-          opacity: f.done ? 1 : 0.42
+          opacity: f.done ? 1 : 0.66
         })
       }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
         avatar: f.avatar,
@@ -1409,7 +1409,53 @@ function TeamDetailLive() {
         }
       }, "+", pay, isRace ? " 👑" : ""));
     })));
-  })())), /*#__PURE__*/React.createElement(StatTrioLive, {
+  })())), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      markChatRead();
+      navigate("team-chat", {
+        team: t
+      });
+    },
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 12,
+      position: "relative",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 9,
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(isDark),
+      border: 0,
+      borderRadius: 18,
+      padding: "15px 12px",
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18,
+      lineHeight: 1
+    }
+  }, "\uD83D\uDCAC"), " \u0427\u0430\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u044B", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 9,
+      right: 14,
+      background: "#FF3B30",
+      color: "#fff",
+      fontSize: 10,
+      fontWeight: 700,
+      borderRadius: 999,
+      minWidth: 18,
+      height: 18,
+      padding: "0 5px",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)), /*#__PURE__*/React.createElement(StatTrioLive, {
     isDark: isDark,
     card: {
       background: "var(--card)",
@@ -1442,82 +1488,7 @@ function TeamDetailLive() {
         color: "var(--text-4)"
       })
     }]
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      markChatRead();
-      navigate("team-chat", {
-        team: t
-      });
-    },
-    className: "tap",
-    style: {
-      width: "100%",
-      marginTop: 12,
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      background: BOS_TILE_SHEEN + ", var(--card)",
-      boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)",
-      border: 0,
-      borderRadius: 22,
-      padding: 14,
-      textAlign: "left",
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "relative",
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      background: BOS_TILE_SHEEN + ", var(--surface-3)",
-      boxShadow: bosTileGlass(isDark),
-      display: "grid",
-      placeItems: "center",
-      fontSize: 21,
-      flexShrink: 0
-    }
-  }, "\uD83D\uDCAC", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      top: -4,
-      right: -4,
-      background: "#FF3B30",
-      color: "#fff",
-      fontSize: 10,
-      fontWeight: 700,
-      borderRadius: 999,
-      minWidth: 18,
-      height: 18,
-      padding: "0 5px",
-      display: "grid",
-      placeItems: "center",
-      boxShadow: "0 0 0 2px var(--card)"
-    }
-  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, "\u0427\u0430\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-4)",
-      marginTop: 2,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  }, _chatLive && chatPeek && chatPeek.last ? chatPeek.last : "Обсудите цель и поддержите друг друга")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 18,
-    color: "var(--text-4)"
-  })), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -1667,7 +1638,7 @@ function TeamDetailLive() {
         style: {
           position: "relative",
           display: "block",
-          opacity: did ? 1 : 0.4
+          opacity: did ? 1 : 0.66
         }
       }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
         avatar: m.avatar,

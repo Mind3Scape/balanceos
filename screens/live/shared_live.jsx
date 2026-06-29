@@ -191,6 +191,23 @@ function bosChipGlass(isDark) {
       : "inset 0 1px 0.5px rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(0,0,0,0.05)",
   };
 }
+// Метрика цели/круга — СТАНДАРТНЫЙ iOS-выбор (нативный <select> = колесо на iPhone), чтобы единицу
+// ВЫБИРАЛИ, а не печатали (David: «дай выбор маленьким стандартным ios-меню, не чтобы я сам писал»).
+// Если у объекта единица не из списка (старые данные) — она добавляется первой, чтобы не потерялась.
+var BOS_UNITS = ["раз", "дней", "недель", "км", "шагов", "книг", "страниц", "минут", "часов", "стаканов", "литров", "дел", "штук"];
+function BosUnitSelectLive({ value, onChange }) {
+  var cur = value || "раз";
+  var opts = BOS_UNITS.indexOf(cur) >= 0 ? BOS_UNITS : [cur].concat(BOS_UNITS);
+  return (
+    <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+      <select value={cur} onChange={function (e) { onChange(e.target.value); }} className="tap" aria-label="Единица измерения"
+        style={{ appearance: "none", WebkitAppearance: "none", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "8px 32px 8px 14px", fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", cursor: "pointer" }}>
+        {opts.map(function (u) { return <option key={u} value={u}>{u}</option>; })}
+      </select>
+      <span aria-hidden style={{ position: "absolute", right: 12, fontSize: 12, color: "var(--text-3)", pointerEvents: "none" }}>▾</span>
+    </div>
+  );
+}
 // Number ink for a filled day in «подробно» — contrast over the fill (white on dark hues, ink on
 // light hues). Favours dark text when borderline (the top sheen lightens the centre).
 function bosCellInk(hx, p, isDark) {

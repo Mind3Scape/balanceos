@@ -281,7 +281,7 @@ function TeamOrbitLive({ emblem, accent, faces, isDark }) {
       if (p.plus) return <span key={"x" + r + i} style={Object.assign({}, st, { width: FS, height: FS, borderRadius: "50%", background: "rgba(0,0,0,0.18)", color: "var(--text)", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center" })}>+{p.plus}</span>;
       var f = p.face;
       return (
-        <span key={(f.id || i) + "-" + r} style={Object.assign({}, st, { display: "block", opacity: f.done ? 1 : 0.42 })}>
+        <span key={(f.id || i) + "-" + r} style={Object.assign({}, st, { display: "block", opacity: f.done ? 1 : 0.66 })}>
           <BuddyFaceLive avatar={f.avatar} name={f.name} size={FS} />
           {f.done && <span style={{ position: "absolute", right: -1, bottom: -1, width: 13, height: 13, borderRadius: "50%", background: "#0a0a0a", color: "#fff", fontSize: 8, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 0 0 1.5px var(--card)" }}>✓</span>}
         </span>
@@ -601,6 +601,14 @@ function TeamDetailLive() {
         </div>
       </div>
 
+      {/* Чат — СТЕКЛЯННАЯ кнопка прямо под карточкой круга (David: «старая кнопка чата как „Позвать"
+          мне нравилась — просто под главной карточкой и крупнее»). Тот же стеклянный стиль, что
+          «Позвать в круг», только больше; счётчик непрочитанных остаётся. */}
+      <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 18, padding: "15px 12px", fontSize: 15, fontWeight: 600, color: "var(--text-2)" }}>
+        <span style={{ fontSize: 18, lineHeight: 1 }}>💬</span> Чат команды
+        {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: 9, right: 14, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", display: "grid", placeItems: "center" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
+      </button>
+
       {/* Stat band — the SAME unified plaque as Habits/Goals detail (StatTrioLive). Team streak stays
           «—» (no honest cross-member streak yet). */}
       <StatTrioLive isDark={isDark} card={{ background: "var(--card)", boxShadow: "var(--card-shadow)", marginTop: 12, transform: "translateZ(0)" }} items={[
@@ -608,19 +616,6 @@ function TeamDetailLive() {
         { l: "Участники", v: _rosterLoading ? 0 : members.length, suf: "", icon: <I.Users size={14} color="var(--text-4)" /> },
         { l: "Сегодня", v: _rosterLoading ? 0 : inFlowToday, suf: "", icon: <I.Flame size={14} color="var(--text-4)" /> },
       ]} />
-
-      {/* Чат — заметная карточка-превью под статами (David: «чат в самом низу незаметен, такой
-          важный функционал»). Последнее сообщение + счётчик непрочитанных; тап → экран чата. */}
-      <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, display: "flex", alignItems: "center", gap: 13, background: BOS_TILE_SHEEN + ", var(--card)", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", border: 0, borderRadius: 22, padding: 14, textAlign: "left", color: "var(--text)" }}>
-        <span style={{ position: "relative", width: 44, height: 44, borderRadius: 14, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>💬
-          {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", display: "grid", placeItems: "center", boxShadow: "0 0 0 2px var(--card)" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Чат команды</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(_chatLive && chatPeek && chatPeek.last) ? chatPeek.last : "Обсудите цель и поддержите друг друга"}</div>
-        </div>
-        <I.ChevronRight size={18} color="var(--text-4)" />
-      </button>
 
       {/* Привычки команды — якорь + остальные ОДНОЙ зоной (David: «якорь и привычки команды рядом,
           не в разных частях экрана»). Календарь «кто отметил» уехал ПОД зону. */}
@@ -665,7 +660,7 @@ function TeamDetailLive() {
               {fShown.map((m) => {
                 const did = !!doneSet[m.id] || (m.id === meId && main.doneByMe);
                 return (
-                  <span key={m.id} style={{ position: "relative", display: "block", opacity: did ? 1 : 0.4 }}>
+                  <span key={m.id} style={{ position: "relative", display: "block", opacity: did ? 1 : 0.66 }}>
                     <BuddyFaceLive avatar={m.avatar} name={m.name} size={28} />
                     {did && <span style={{ position: "absolute", right: -1, bottom: -1, width: 13, height: 13, borderRadius: "50%", background: "#0a0a0a", color: "#fff", fontSize: 8, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 0 0 1.5px var(--card)" }}>✓</span>}
                   </span>

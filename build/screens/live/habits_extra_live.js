@@ -718,19 +718,9 @@ function GoalSettingsLive() {
       background: "transparent",
       padding: 0
     }
-  }), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement(BosUnitSelectLive, {
     value: unit,
-    onChange: e => setUnit(e.target.value),
-    style: {
-      flex: 1,
-      minWidth: 0,
-      fontSize: 18,
-      color: "var(--text-3)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: "4px 0"
-    }
+    onChange: setUnit
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,

@@ -324,8 +324,7 @@ function GoalSettingsLive() {
             onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
             className="goal-num"
             style={{ flex: "0 0 90px", fontSize: 28, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0 }}/>
-          <input value={unit} onChange={e => setUnit(e.target.value)}
-            style={{ flex: 1, minWidth: 0, fontSize: 18, color: "var(--text-3)", border: 0, outline: 0, background: "transparent", padding: "4px 0" }}/>
+          <BosUnitSelectLive value={unit} onChange={setUnit} />
         </div>
         <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 6 }}>От этого числа будет считаться прогресс цели.</div>
       </div>

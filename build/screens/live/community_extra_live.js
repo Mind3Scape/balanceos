@@ -374,20 +374,14 @@ function TeamCreateLive() {
       letterSpacing: 1,
       fontWeight: 600
     }
-  }, "\u0415\u0434\u0438\u043D\u0438\u0446\u0430"), /*#__PURE__*/React.createElement("input", {
-    value: unit,
-    onChange: e => setUnit(e.target.value),
-    placeholder: "\u0434\u0435\u043B",
+  }, "\u0415\u0434\u0438\u043D\u0438\u0446\u0430"), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: "100%",
-      fontSize: 18,
-      color: "var(--text-3)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: "4px 0"
+      marginTop: 4
     }
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(BosUnitSelectLive, {
+    value: unit,
+    onChange: setUnit
+  }))))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
@@ -1118,20 +1112,14 @@ function TeamSettingsLive() {
       letterSpacing: 1,
       fontWeight: 600
     }
-  }, "\u0415\u0434\u0438\u043D\u0438\u0446\u0430"), /*#__PURE__*/React.createElement("input", {
-    value: unit,
-    onChange: e => setUnit(e.target.value),
-    placeholder: "\u0434\u0435\u043B",
+  }, "\u0415\u0434\u0438\u043D\u0438\u0446\u0430"), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: "100%",
-      fontSize: 18,
-      color: "var(--text-3)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: "4px 0"
+      marginTop: 4
     }
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(BosUnitSelectLive, {
+    value: unit,
+    onChange: setUnit
+  }))))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14
     }
@@ -1694,20 +1682,9 @@ function TeamQuickEditSheetLive({
       background: "transparent",
       padding: 0
     }
-  }), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement(BosUnitSelectLive, {
     value: unit,
-    onChange: e => setUnit(e.target.value),
-    placeholder: "\u0434\u0435\u043B",
-    style: {
-      flex: 1,
-      minWidth: 0,
-      fontSize: 16,
-      color: "var(--text-3)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: "4px 0"
-    }
+    onChange: setUnit
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14

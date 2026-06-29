@@ -162,8 +162,7 @@ function TeamCreateLive() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Единица</div>
-              <input value={unit} onChange={e => setUnit(e.target.value)} placeholder="дел"
-                style={{ width: "100%", fontSize: 18, color: "var(--text-3)", border: 0, outline: 0, background: "transparent", padding: "4px 0" }}/>
+              <div style={{ marginTop: 4 }}><BosUnitSelectLive value={unit} onChange={setUnit} /></div>
             </div>
           </div>
         )}
@@ -419,8 +418,7 @@ function TeamSettingsLive() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Единица</div>
-              <input value={unit} onChange={e => setUnit(e.target.value)} placeholder="дел"
-                style={{ width: "100%", fontSize: 18, color: "var(--text-3)", border: 0, outline: 0, background: "transparent", padding: "4px 0" }}/>
+              <div style={{ marginTop: 4 }}><BosUnitSelectLive value={unit} onChange={setUnit} /></div>
             </div>
           </div>
         )}
@@ -596,8 +594,7 @@ function TeamQuickEditSheetLive({ team, navigate }) {
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
             <input type="text" inputMode="numeric" pattern="[0-9]*" value={target} onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
               style={{ flex: "0 0 80px", fontSize: 24, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0 }}/>
-            <input value={unit} onChange={e => setUnit(e.target.value)} placeholder="дел"
-              style={{ flex: 1, minWidth: 0, fontSize: 16, color: "var(--text-3)", border: 0, outline: 0, background: "transparent", padding: "4px 0" }}/>
+            <BosUnitSelectLive value={unit} onChange={setUnit} />
           </div>
         )}
       </div>
