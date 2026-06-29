@@ -296,6 +296,8 @@ function GoalSettingsLive() {
   // КРУГ — «цель + круг = команда»: включаешь круг → цель общая (можно позвать людей). Поле circle
   // едет в data (addGoal/updateGoal спред). David: один тумблер вместо отдельного создания команды.
   const [circleOn, setCircleOn] = useHS(g0?.circle === true);
+  // shareCode круга цели — тот же механизм, что у привычек-вместе (createSharedHabit + лица).
+  const [circleCode, setCircleCode] = useHS(g0?.shareCode || "");
   // REAL — the user's own habits, none pre-selected.
   const [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map((h) => ({ e: h.emoji || "✨", n: h.name, on: false })));
   const toggleLinked = (i) => setLinkedHabits((hs) => hs.map((h, j) => (j === i ? { ...h, on: !h.on } : h)));
@@ -403,18 +405,24 @@ function GoalSettingsLive() {
             Идти к цели кругом
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Включи круг и позови людей — цель станет общей, у каждого появятся лица круга.</div>
           </div>
-          <Switch on={circleOn} onChange={setCircleOn} />
+          <Switch on={circleOn} onChange={(v) => { setCircleOn(v); if (v && !circleCode && typeof bosGenShareCode === "function") setCircleCode(bosGenShareCode()); }} />
         </div>
         {circleOn && (
-          <button onClick={() => openSheet(<ShareGoalSheetLive goal={{ name: name.trim() || "Цель", emoji: iconPick, color }} />)} className="tap" style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 999, background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-2)", fontSize: 13, fontWeight: 600 }}><I.Plus size={13}/> Позвать в круг</button>
+          <button onClick={() => openSheet(<ShareGoalSheetLive goal={{ name: name.trim() || "Цель", emoji: iconPick, color, shareCode: circleCode }} />)} className="tap" style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 999, background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-2)", fontSize: 13, fontWeight: 600 }}><I.Plus size={13}/> Позвать в круг</button>
         )}
       </div>
 
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
         const data = { emoji: iconPick, color, name: name.trim() || "Новая цель", target: Math.max(1, target), unit, deadline, circle: circleOn };
+        // КРУГ: регистрируем РЕАЛЬНЫЙ общий круг — тот же механизм, что у привычек-вместе
+        // (createSharedHabit + shareCode). Лица на карточке цели читаются из участников этого кода.
+        if (circleOn && circleCode) {
+          data.shareCode = circleCode;
+          try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.createSharedHabit) window.bosCloud.createSharedHabit({ code: circleCode, name: data.name, emoji: iconPick, color }); } catch (e) {}
+        }
         if (editing) app?.updateGoal(g0.id, data);
         else app?.addGoal(data);
-        if (circleOn) { navigate("habits"); openSheet(<ShareGoalSheetLive goal={{ name: data.name, emoji: iconPick, color }} />); return; }
+        if (circleOn) { navigate("habits"); openSheet(<ShareGoalSheetLive goal={{ name: data.name, emoji: iconPick, color, shareCode: circleCode }} />); return; }
         navigate("habits");
       }}>
         {editing ? "Сохранить" : "Создать цель"}

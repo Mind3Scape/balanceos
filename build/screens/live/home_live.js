@@ -907,6 +907,14 @@ function HomeLive() {
             width: pct * 100 + "%",
             background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
           }
+        })), typeof HabitBuddyAvatarsLive === "function" && /*#__PURE__*/React.createElement("div", {
+          style: {
+            marginTop: 8
+          }
+        }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+          habit: g,
+          size: 16,
+          max: 5
         })))));
       })));
     }

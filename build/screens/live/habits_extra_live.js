@@ -629,6 +629,8 @@ function GoalSettingsLive() {
   // КРУГ — «цель + круг = команда»: включаешь круг → цель общая (можно позвать людей). Поле circle
   // едет в data (addGoal/updateGoal спред). David: один тумблер вместо отдельного создания команды.
   var [circleOn, setCircleOn] = useHS(g0?.circle === true);
+  // shareCode круга цели — тот же механизм, что у привычек-вместе (createSharedHabit + лица).
+  var [circleCode, setCircleCode] = useHS(g0?.shareCode || "");
   // REAL — the user's own habits, none pre-selected.
   var [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map(h => ({
     e: h.emoji || "✨",
@@ -979,13 +981,17 @@ function GoalSettingsLive() {
     }
   }, "\u0412\u043A\u043B\u044E\u0447\u0438 \u043A\u0440\u0443\u0433 \u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430 \u043A\u0440\u0443\u0433\u0430.")), /*#__PURE__*/React.createElement(Switch, {
     on: circleOn,
-    onChange: setCircleOn
+    onChange: v => {
+      setCircleOn(v);
+      if (v && !circleCode && typeof bosGenShareCode === "function") setCircleCode(bosGenShareCode());
+    }
   })), circleOn && /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
       goal: {
         name: name.trim() || "Цель",
         emoji: iconPick,
-        color
+        color,
+        shareCode: circleCode
       }
     })),
     className: "tap",
@@ -1019,6 +1025,19 @@ function GoalSettingsLive() {
         deadline,
         circle: circleOn
       };
+      // КРУГ: регистрируем РЕАЛЬНЫЙ общий круг — тот же механизм, что у привычек-вместе
+      // (createSharedHabit + shareCode). Лица на карточке цели читаются из участников этого кода.
+      if (circleOn && circleCode) {
+        data.shareCode = circleCode;
+        try {
+          if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.createSharedHabit) window.bosCloud.createSharedHabit({
+            code: circleCode,
+            name: data.name,
+            emoji: iconPick,
+            color
+          });
+        } catch (e) {}
+      }
       if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
       if (circleOn) {
         navigate("habits");
@@ -1026,7 +1045,8 @@ function GoalSettingsLive() {
           goal: {
             name: data.name,
             emoji: iconPick,
-            color
+            color,
+            shareCode: circleCode
           }
         }));
         return;

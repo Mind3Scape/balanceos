@@ -3224,11 +3224,30 @@ function ShareGoalSheetLive({
   var [shareUrl, setShareUrl] = React.useState(APP_URL);
   React.useEffect(() => {
     var on = true;
-    if (window.bosCloud && window.bosCloud.uid) {
-      (window.bosCloud.inviteCode ? window.bosCloud.inviteCode() : window.bosCloud.uid()).then(code => {
-        if (on && code) setShareUrl(typeof bosInviteLink === "function" ? bosInviteLink(code) : APP_URL + "?ref=" + code);
-      }).catch(() => {});
-    }
+    (async () => {
+      var ref = null;
+      try {
+        ref = window.bosCloud && window.bosCloud.inviteCode ? await window.bosCloud.inviteCode() : null;
+      } catch (e) {}
+      // Круг цели = тот же ОБЩИЙ механизм, что у привычек-вместе: shareCode + createSharedHabit,
+      // ссылка hb_<code> → друг вступает в ТОТ ЖЕ круг → его лицо появляется на твоей цели.
+      var code = goal && goal.shareCode;
+      if (code && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.createSharedHabit && typeof bosSharedHabitLink === "function") {
+        try {
+          await window.bosCloud.createSharedHabit({
+            code: code,
+            name: goal.name,
+            emoji: goal.emoji,
+            color: goal.color
+          });
+        } catch (e) {}
+        if (on) {
+          setShareUrl(bosSharedHabitLink(code, ref));
+          return;
+        }
+      }
+      if (on) setShareUrl(ref && typeof bosInviteLink === "function" ? bosInviteLink(ref) : APP_URL);
+    })();
     return () => {
       on = false;
     };

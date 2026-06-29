@@ -736,6 +736,14 @@ function HabitsLive() {
           width: Math.min(1, pct) * 100 + "%",
           background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
         }
+      })), typeof HabitBuddyAvatarsLive === "function" && /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 10
+        }
+      }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+        habit: g,
+        size: 22,
+        max: 5
       })));
       if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
         style: {

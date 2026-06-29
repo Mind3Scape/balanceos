@@ -261,6 +261,8 @@ function HabitsLive() {
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>
                   </div>
                   <div className="bos-progress" style={{ marginTop: 10 }}><span style={{ width: (Math.min(1, pct) * 100) + "%", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }}/></div>
+                  {/* Лица круга — общая цель носит те же лица, что и привычка-вместе (единый маркёр). */}
+                  {typeof HabitBuddyAvatarsLive === "function" && <div style={{ marginTop: 10 }}><HabitBuddyAvatarsLive habit={g} size={22} max={5} /></div>}
                 </div>
               );
               if (ctx.mode) return <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: TH.cardBg }}>{inner}</div>;
