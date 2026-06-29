@@ -77,7 +77,7 @@ function LiveTeamCard({
     fontSize: 11.5,
     fontWeight: 600,
     color: "var(--text-2)",
-    background: "rgba(255,255,255,0.6)",
+    ...bosChipGlass(false),
     padding: "4px 10px",
     borderRadius: 999,
     whiteSpace: "nowrap"
@@ -1238,7 +1238,7 @@ function TeamDetailLive() {
       fontSize: 11.5,
       fontWeight: 600,
       color: "var(--text-2)",
-      background: "rgba(255,255,255,0.5)",
+      ...bosChipGlass(isDark),
       padding: "4px 10px",
       borderRadius: 999
     }
@@ -1250,7 +1250,7 @@ function TeamDetailLive() {
       fontSize: 11.5,
       fontWeight: 600,
       color: "var(--text-2)",
-      background: "rgba(255,255,255,0.5)",
+      ...bosChipGlass(isDark),
       padding: "4px 10px",
       borderRadius: 999
     }
@@ -1442,12 +1442,92 @@ function TeamDetailLive() {
         color: "var(--text-4)"
       })
     }]
-  }), main && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      markChatRead();
+      navigate("team-chat", {
+        team: t
+      });
+    },
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 12,
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      background: BOS_TILE_SHEEN + ", var(--card)",
+      boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)",
+      border: 0,
+      borderRadius: 22,
+      padding: 14,
+      textAlign: "left",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "relative",
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(isDark),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 21,
+      flexShrink: 0
+    }
+  }, "\uD83D\uDCAC", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: -4,
+      right: -4,
+      background: "#FF3B30",
+      color: "#fff",
+      fontSize: 10,
+      fontWeight: 700,
+      borderRadius: 999,
+      minWidth: 18,
+      height: 18,
+      padding: "0 5px",
+      display: "grid",
+      placeItems: "center",
+      boxShadow: "0 0 0 2px var(--card)"
+    }
+  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u0427\u0430\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 2,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, _chatLive && chatPeek && chatPeek.last ? chatPeek.last : "Обсудите цель и поддержите друг друга")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    color: "var(--text-4)"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u043A\u043E\u043C\u0430\u043D\u0434\u044B", teamHabits.length ? " · " + teamHabits.length : ""), main && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: BOS_TILE_SHEEN + ", var(--card)",
       borderRadius: 22,
       padding: 18,
-      marginTop: 22,
+      marginTop: 8,
       color: "var(--text)",
       position: "relative",
       overflow: "hidden",
@@ -1658,22 +1738,7 @@ function TeamDetailLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 15
-  }), " \u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F")))), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
-    people: mainProg.map(m => ({
-      name: m.me ? "Ты" : m.name,
-      initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
-      color: accent,
-      you: !!m.me,
-      avatar: m.avatar
-    })),
-    dayFrac: (pi, d, mi) => mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0,
-    label: "Кто отметил «" + main.name + "»"
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u043A\u043E\u043C\u0430\u043D\u0434\u044B (", others.length, ")"), /*#__PURE__*/React.createElement("div", {
+  }), " \u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F")))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1815,7 +1880,17 @@ function TeamDetailLive() {
       fontSize: 14,
       fontWeight: 500
     }
-  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u043A\u043E\u043C\u0430\u043D\u0434\u044B")), _isOwner && pending.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u043A\u043E\u043C\u0430\u043D\u0434\u044B")), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
+    people: mainProg.map(m => ({
+      name: m.me ? "Ты" : m.name,
+      initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
+      color: accent,
+      you: !!m.me,
+      avatar: m.avatar
+    })),
+    dayFrac: (pi, d, mi) => mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0,
+    label: "Кто отметил «" + main.name + "»"
+  }), _isOwner && pending.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -1982,80 +2057,30 @@ function TeamDetailLive() {
         marginTop: 2
       }
     }, m.role === "owner" ? "Создатель команды" : "Участник"))));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginTop: 22
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      markChatRead();
-      navigate("team-chat", {
-        team: t
-      });
-    },
-    className: "tap",
-    style: {
-      flex: 1,
-      position: "relative",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 7,
-      background: BOS_TILE_SHEEN + ", var(--surface-3)",
-      boxShadow: bosTileGlass(isDark),
-      border: 0,
-      borderRadius: 16,
-      padding: "12px 10px",
-      fontSize: 13.5,
-      fontWeight: 600,
-      color: "var(--text-2)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 16,
-      lineHeight: 1
-    }
-  }, "\uD83D\uDCAC"), " \u0427\u0430\u0442", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      top: 7,
-      right: 12,
-      background: "#FF3B30",
-      color: "#fff",
-      fontSize: 10,
-      fontWeight: 700,
-      borderRadius: 999,
-      minWidth: 16,
-      height: 16,
-      padding: "0 4px",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
       team: t
     })),
     className: "tap",
     style: {
-      flex: 1,
+      width: "100%",
+      marginTop: 22,
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: 7,
+      gap: 8,
       background: BOS_TILE_SHEEN + ", var(--surface-3)",
       boxShadow: bosTileGlass(isDark),
       border: 0,
       borderRadius: 16,
-      padding: "12px 10px",
-      fontSize: 13.5,
+      padding: "13px 10px",
+      fontSize: 14,
       fontWeight: 600,
       color: "var(--text-2)"
     }
   }, /*#__PURE__*/React.createElement(I.Share, {
     size: 16
-  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C")), !_isOwner && /*#__PURE__*/React.createElement("button", {
+  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433"), !_isOwner && /*#__PURE__*/React.createElement("button", {
     onClick: () => bosConfirmExitTeam({
       app,
       team: t,

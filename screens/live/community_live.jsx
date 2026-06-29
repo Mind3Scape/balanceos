@@ -54,7 +54,7 @@ function LiveTeamCard({ t, navigate }) {
   const count = members.length;
   const ruPart = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "участник" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "участника" : "участников"; };
   // Инфо ЧИПАМИ, не строчками вразброс (David: «чипы для разной инфо вместо разброса»).
-  const chipS = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.6)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" };
+  const chipS = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(false), padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" };
   return (
     <div className="team-card tap" onClick={() => navigate("team-detail", { team: t })} style={{ ["--team-accent"]: cardAccent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", cursor: "pointer" }}>
       <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, null)}</div>
@@ -518,10 +518,10 @@ function TeamDetailLive() {
           <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500, textAlign: "center" }}>🎯 {t.goal}</div>
           <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2, textAlign: "center" }}>{t.date}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, justifyContent: "center" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 10px", borderRadius: 999 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "4px 10px", borderRadius: 999 }}>
               {t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"}
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 10px", borderRadius: 999 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "4px 10px", borderRadius: 999 }}>
               {teamModeMeta.e} {teamModeMeta.t}
             </span>
           </div>
@@ -609,14 +609,25 @@ function TeamDetailLive() {
         { l: "Сегодня", v: _rosterLoading ? 0 : inFlowToday, suf: "", icon: <I.Flame size={14} color="var(--text-4)" /> },
       ]} />
 
-      {/* Чат уехал вниз в тихие чипы (см. конец комнаты) — David: чат нужен в основном тренеру,
-          не должен доминировать; у семьи/друзей он просто тихий. */}
+      {/* Чат — заметная карточка-превью под статами (David: «чат в самом низу незаметен, такой
+          важный функционал»). Последнее сообщение + счётчик непрочитанных; тап → экран чата. */}
+      <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, display: "flex", alignItems: "center", gap: 13, background: BOS_TILE_SHEEN + ", var(--card)", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", border: 0, borderRadius: 22, padding: 14, textAlign: "left", color: "var(--text)" }}>
+        <span style={{ position: "relative", width: 44, height: 44, borderRadius: 14, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>💬
+          {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", display: "grid", placeItems: "center", boxShadow: "0 0 0 2px var(--card)" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Чат команды</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(_chatLive && chatPeek && chatPeek.last) ? chatPeek.last : "Обсудите цель и поддержите друг друга"}</div>
+        </div>
+        <I.ChevronRight size={18} color="var(--text-4)" />
+      </button>
 
-      {/* «Сегодня вместе» убрана — была плавающей подписью вне блока (David: «снаружи»); карточка-якорь
-          ниже самоочевидна («● ЯКОРЬ КОМАНДЫ»). */}
+      {/* Привычки команды — якорь + остальные ОДНОЙ зоной (David: «якорь и привычки команды рядом,
+          не в разных частях экрана»). Календарь «кто отметил» уехал ПОД зону. */}
+      <div className="section-label" style={{ marginTop: 22 }}>Привычки команды{teamHabits.length ? " · " + teamHabits.length : ""}</div>
       {main && (<>
       {/* Main habit — featured card (якорь команды) */}
-      <div style={{ background: BOS_TILE_SHEEN + ", var(--card)", borderRadius: 22, padding: 18, marginTop: 22, color: "var(--text)", position: "relative", overflow: "hidden", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", transform: "translateZ(0)" }}>
+      <div style={{ background: BOS_TILE_SHEEN + ", var(--card)", borderRadius: 22, padding: 18, marginTop: 8, color: "var(--text)", position: "relative", overflow: "hidden", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", transform: "translateZ(0)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ width: 48, height: 48, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (main.color ? main.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0 }}>{bosIcon(main.emoji, 26, main.color)}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -674,18 +685,6 @@ function TeamDetailLive() {
       </div>
       </>)}
 
-      {/* WHO did WHICH day — per-person month calendar for the team anchor habit (the SAME
-          calendar the personal/shared habits use, real avatars on the chips). David: «у кого
-          какой день на календаре — и в командах должно работать». */}
-      {_rosterLive && main && mainProg && mainProg.length > 0 && (
-        <PeopleMonthCalendarLive
-          people={mainProg.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "У").charAt(0).toUpperCase()), color: accent, you: !!m.me, avatar: m.avatar }))}
-          dayFrac={(pi, d, mi) => (mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0)}
-          label={"Кто отметил «" + main.name + "»"}
-        />
-      )}
-
-      <div className="section-label" style={{ marginTop: 22 }}>Привычки команды ({others.length})</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {teamHabits.length === 0 && (
           <div style={{ fontSize: 13, color: "var(--text-4)", padding: "4px 2px 8px", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем команды.</div>
@@ -717,6 +716,16 @@ function TeamDetailLive() {
           + Добавить привычку команды
         </button>
       </div>
+
+      {/* Кто какой день отметил — календарь по якорю, ПОД зоной привычек (так якорь и привычки
+          стоят рядом, а разбор по дням — отдельным блоком ниже). */}
+      {_rosterLive && main && mainProg && mainProg.length > 0 && (
+        <PeopleMonthCalendarLive
+          people={mainProg.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "У").charAt(0).toUpperCase()), color: accent, you: !!m.me, avatar: m.avatar }))}
+          dayFrac={(pi, d, mi) => (mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0)}
+          label={"Кто отметил «" + main.name + "»"}
+        />
+      )}
 
       {_isOwner && pending.length > 0 && (<>
         <div className="section-label" style={{ marginTop: 22 }}>Заявки на вступление ({pending.length})</div>
@@ -762,17 +771,10 @@ function TeamDetailLive() {
         })}
       </div>
 
-      {/* Тихое — чат и приглашение спокойными стеклянными чипами внизу комнаты. Чат живёт здесь
-          (не доминирует сверху); счётчик непрочитанных остаётся. «Позвать» = бывшая шара из шапки. */}
-      <div style={{ display: "flex", gap: 8, marginTop: 22 }}>
-        <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ flex: 1, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 16, padding: "12px 10px", fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>
-          <span style={{ fontSize: 16, lineHeight: 1 }}>💬</span> Чат
-          {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: 7, right: 12, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 16, height: 16, padding: "0 4px", display: "grid", placeItems: "center" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
-        </button>
-        <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 16, padding: "12px 10px", fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>
-          <I.Share size={16}/> Позвать
-        </button>
-      </div>
+      {/* Позвать — приглашение спокойной стеклянной кнопкой (чат поднялся наверх в заметную карточку). */}
+      <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" style={{ width: "100%", marginTop: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 16, padding: "13px 10px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>
+        <I.Share size={16}/> Позвать в круг
+      </button>
 
       {/* ПОКИНУТЬ — только участник (у него нет карандаша). Владелец УДАЛЯЕТ круг со шторки правки
           (карандаш) — David: «удалить никчему на главной внутри круга». */}
