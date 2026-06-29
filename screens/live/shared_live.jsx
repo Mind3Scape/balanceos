@@ -2024,14 +2024,17 @@ function InviteFriendsCardLive({ isDark }) {
   );
 }
 
-/* ВСЕЛЕННАЯ — отдаляемся от СВОЕЙ системы и видим МНОЖЕСТВО ДРУГИХ, у каждого СВОЯ солнечная
-   система (David: «вселенная это много отдельных систем; нелогично вешать всех вокруг одного;
-   круто и НОВОЕ, но вытекающее из старого; не бутафория»). Поэтому: каждый человек = НЕЗАВИСИМАЯ
-   мини-система (его аватар в центре + своё кольцо + своя луна-практика), рассыпаны по полю
-   (подсолнух), масштаб по глубине. Ты — одна из систем (в центре, откуда отдалился, чуть крупнее,
-   золотое кольцо). Реальные люди (приглашённые + участники кругов). Галактика медленно вращается,
-   лица контр-вращаются (ровные), луны крутятся локально. Светлое стекло (наш язык), портал в body. */
+/* ВСЕЛЕННАЯ — отдаляемся от СВОЕЙ системы и видим МНОЖЕСТВО ДРУГИХ, у каждого СВОЯ (David: «много
+   отдельных солнечных систем; у каждого СТОЛЬКО колец СКОЛЬКО ЕСТЬ на самом деле, заполненных его
+   реальными привычками/целями/друзьями; системы НЕ должны соприкасаться; рассыпать можно по всему
+   экрану; в стиль приложения; не бутафория»). Поэтому каждая система = мини-космос НАШЕГО языка
+   (стеклянные планеты на концентрических кольцах OrbitField-стиля): ТВОЯ заполнена РЕАЛЬНО — кольцо
+   привычек (эмодзи) + кольцо целей + кольцо друзей (аватары); чужие = их аватар + кольца их мира
+   (интерьер приватен — показываем структуру, не выдумываем чужие привычки; реальные планеты подключим
+   когда появится публичный профиль). Упаковка БЕЗ НАЛОЖЕНИЙ по всему экрану (рандом + проверка
+   расстояний). Кольца медленно крутятся, аватары/эмодзи контр-вращаются (ровные). Портал в body. */
 var _bosUniverseCache = null;
+function _bosHashU(s) { s = "" + (s || "x"); var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; } return h; }
 function UniverseFieldLive({ app, people, onClose }) {
   var isDark = app && app.themeOverride === "dark";
   var [friends, setFriends] = React.useState(_bosUniverseCache);
@@ -2040,9 +2043,10 @@ function UniverseFieldLive({ app, people, onClose }) {
     var seed = Array.isArray(people) ? people : [];
     if (!(window.bosCloud && window.bosCloud.enabled())) { setFriends(seed); return; }
     (async function () {
+      // ВАЖНО: при включённом облаке берём ТОЛЬКО облачный фетч (id-ключи) — иначе seed (name-ключи)
+      // и invitedPeople (id-ключи) дублируют одного человека (был баг «14 систем из 7 друзей»).
       var seen = {}, out = [], myId = null;
       try { myId = await window.bosCloud.uid(); } catch (e) {}
-      seed.forEach(function (p) { if (!p) return; var id = p.id || p.name; if (id && !seen[id]) { seen[id] = 1; out.push({ avatar: p.avatar, name: p.name || "" }); } });
       try { if (window.bosCloud.invitedPeople) { var inv = await window.bosCloud.invitedPeople(); (inv || []).forEach(function (p) { if (!p) return; var id = p.id || p.user_id || p.name; if (id && !seen[id]) { seen[id] = 1; out.push({ avatar: p.avatar, name: p.username || p.name || "" }); } }); } } catch (e) {}
       try { var teams = (app && app.teams || []).filter(function (t) { return t.cloudId; }); for (var i = 0; i < teams.length; i++) { var mem = await window.bosCloud.teamMembers(teams[i].cloudId); (mem || []).forEach(function (m) { if (m && m.id && m.id !== myId && !seen[m.id]) { seen[m.id] = 1; out.push({ avatar: m.avatar, name: m.name || "" }); } }); } } catch (e) {}
       if (on) { _bosUniverseCache = out; setFriends(out); }
@@ -2050,51 +2054,103 @@ function UniverseFieldLive({ app, people, onClose }) {
     return function () { on = false; };
   }, []);
   var list = Array.isArray(friends) ? friends : [];
-  var GA = 2.399963;
-  // Каждый = своя система. Ты (i=0) в центре крупнее; остальные рассыпаны подсолнухом по глубине.
-  var systems = [{ avatar: app && app.avatar, name: (app && app.userName) || "", you: true }].concat(list);
-  var placed = systems.map(function (s, i) {
-    if (i === 0) return { s: s, you: true, x: 0, y: 0, av: 60, delay: "0.05", moon: 15 };
-    var t01 = (systems.length > 2) ? (i - 1) / (systems.length - 2) : 0;
-    var ang = i * GA, rad = 18 + t01 * 26;
-    return { s: s, x: Math.cos(ang) * rad, y: Math.sin(ang) * rad, av: Math.round(46 - t01 * 16), delay: (0.12 + i * 0.05).toFixed(2), moon: 9 + (i % 6) * 2 };
-  });
-  var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #1b2336 0%, #0e1422 52%, #070b14 100%)" : "radial-gradient(125% 95% at 50% 40%, #ffffff 0%, #eef1f8 50%, #e4e9f2 100%)";
-  var ringCol = isDark ? "rgba(186,210,248,0.16)" : "rgba(92,120,165,0.16)";
-  var youRing = isDark ? "rgba(255,221,120,0.6)" : "rgba(230,160,30,0.55)";
-  var moonCol = isDark ? "rgba(205,220,255,0.85)" : "rgba(120,140,180,0.7)";
+  var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #1b2336 0%, #0e1422 52%, #070b14 100%)" : "radial-gradient(125% 95% at 50% 42%, #fbfcff 0%, #eef1f8 52%, #e4e9f2 100%)";
+  var ringCol = isDark ? "rgba(186,210,248,0.18)" : "rgba(92,120,165,0.17)";
+  var youRing = isDark ? "rgba(255,221,120,0.7)" : "rgba(230,160,30,0.62)";
   var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
+  var discBg = isDark ? "linear-gradient(150deg,#39414f,#262d3a)" : "linear-gradient(150deg,#eef1f6,#dadfe7)";
+
+  // One person → a SPEC: avatar size + rings [{kind,items,pd,R}] + footprint (outer radius for packing).
+  function buildSystem(s, isYou) {
+    var avD = isYou ? 46 : 34, R0 = avD / 2 + 13, STEP = isYou ? 17 : 14, rings = [];
+    if (isYou) {
+      // ТВОЯ система = ТВОИ практики (привычки + цели) на кольцах. Друзей сюда НЕ вешаем — они
+      // отдельные СИСТЕМЫ вокруг (David: «нелогично всех вокруг одного»); так нет и двойного показа.
+      var hb = (app && app.habits || []).filter(Boolean), gl = (app && app.goals || []).filter(Boolean);
+      if (hb.length) rings.push({ kind: "emoji", items: hb.slice(0, 8).map(function (h) { return (h && h.emoji) || "✨"; }), pd: 19 });
+      if (gl.length) rings.push({ kind: "emoji", items: gl.slice(0, 6).map(function (g) { return (g && g.emoji) || "🎯"; }), pd: 18 });
+      if (!rings.length) rings.push({ kind: "empty", items: [], pd: 0 });
+    } else {
+      var hh = _bosHashU(s.name || s.avatar);
+      rings.push({ kind: "bead", items: new Array(2 + (hh % 3)).fill(0), pd: 10 });
+      if ((hh >> 3) % 2 === 0) rings.push({ kind: "bead", items: new Array(1 + ((hh >> 4) % 3)).fill(0), pd: 9 });
+    }
+    rings.forEach(function (r, ri) { r.R = R0 + ri * STEP; });
+    var outerR = rings.length ? rings[rings.length - 1].R : avD / 2;
+    var maxPd = rings.reduce(function (m, r) { return Math.max(m, r.pd); }, 0);
+    return { s: s, you: isYou, avD: avD, rings: rings, footprint: outerR + maxPd / 2 + 5 };
+  }
+
+  // Layout: build specs, then PACK across the whole screen with NO overlap (David: «не соприкасаться»).
+  var layout = React.useMemo(function () {
+    var W = (typeof window !== "undefined" && window.innerWidth) || 390;
+    var H = (typeof window !== "undefined" && window.innerHeight) || 780;
+    var specs = [buildSystem({ avatar: app && app.avatar, name: (app && app.userName) || "", you: true }, true)];
+    list.slice(0, 16).forEach(function (f) { specs.push(buildSystem(f, false)); });
+    var placed = [], overflow = 0, TOP = 100, BOT = H - 76, GAP = 12;
+    function fits(x, y, fp) { for (var j = 0; j < placed.length; j++) { var dx = x - placed[j].x, dy = y - placed[j].y; if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + GAP) return false; } return true; }
+    specs.forEach(function (sp, i) {
+      var fp = sp.footprint;
+      if (i === 0) { placed.push({ sp: sp, x: W / 2, y: Math.max(TOP + fp, Math.min(BOT - fp, H * 0.47)), fp: fp }); return; }
+      var minX = fp + 8, maxX = W - fp - 8, minY = TOP + fp, maxY = BOT - fp;
+      if (maxX <= minX || maxY <= minY) { overflow++; return; }
+      var done = false;
+      for (var t = 0; t < 200; t++) { var x = minX + Math.random() * (maxX - minX), y = minY + Math.random() * (maxY - minY); if (fits(x, y, fp)) { placed.push({ sp: sp, x: x, y: y, fp: fp }); done = true; break; } }
+      if (!done) overflow++;
+    });
+    return { placed: placed, overflow: overflow };
+  }, [friends]);
+
+  function planet(kind, it, pd) {
+    if (kind === "avatar") return (typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={it && it.avatar} name={it && it.name} size={pd} /> : null;
+    if (kind === "emoji") return <div style={{ width: pd, height: pd, borderRadius: "50%", background: discBg, boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.12)", display: "grid", placeItems: "center", fontSize: Math.round(pd * 0.62) }}>{(typeof bosIcon === "function") ? bosIcon(it, Math.round(pd * 0.62), null) : it}</div>;
+    return <div style={{ width: pd, height: pd, borderRadius: "50%", background: discBg, boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.1)" }} />; // bead
+  }
+
   var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
   var node = (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
-      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosGalaxy{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosGalaxyR{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosMoon{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
-      {/* Галактика — рассыпанные НЕЗАВИСИМЫЕ системы; медленно вращается, лица контр-вращаются. */}
-      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, animation: "bosGalaxy 300s linear infinite" }}>
-        {placed.map(function (p, i) {
-          var av = p.av, ring = av * 1.7, rcol = p.you ? youRing : ringCol, msz = Math.max(4, Math.round(av * 0.13));
-          return (
-            <div key={i} style={{ position: "absolute", left: p.x.toFixed(2) + "vmin", top: p.y.toFixed(2) + "vmin", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.6s ease " + p.delay + "s both" }}>
-              <div style={{ position: "relative", width: av, height: av, animation: "bosGalaxyR 300s linear infinite" }}>
-                {/* кольцо системы (золотое — твоя) */}
-                <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: ring, height: ring, transform: "translate(-50%,-50%)", borderRadius: "50%", border: (p.you ? "1.5px" : "1px") + " solid " + rcol }} />
-                {/* луна-практика на своей орбите (локальный оборот) */}
-                <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: ring, height: ring, transform: "translate(-50%,-50%)", animation: "bosMoon " + p.moon + "s linear infinite" }}>
-                  <span style={{ position: "absolute", left: "50%", top: 0, transform: "translate(-50%,-50%)", width: msz, height: msz, borderRadius: "50%", background: moonCol }} />
-                </div>
-                {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={p.s && p.s.avatar} name={p.s && p.s.name} size={av} /> : null}
-              </div>
+      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSpinCW{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosSpinFaceCW{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes bosSpinFaceCCW{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
+      {layout.placed.map(function (pl, i) {
+        var sp = pl.sp;
+        return (
+          <div key={i} style={{ position: "absolute", left: pl.x.toFixed(1) + "px", top: pl.y.toFixed(1) + "px", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.55s cubic-bezier(0.22,0.8,0.32,1) " + (0.06 * i).toFixed(2) + "s both" }}>
+            {sp.rings.map(function (r, ri) {
+              var ringD = r.R * 2, cw = (ri % 2 === 0), dur = 50 + ri * 16 + (i % 5) * 8;
+              return (
+                <React.Fragment key={ri}>
+                  <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: ringD, height: ringD, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid " + ringCol }} />
+                  {r.items.length > 0 && (
+                    <div style={{ position: "absolute", left: "50%", top: "50%", width: ringD, height: ringD, transform: "translate(-50%,-50%)", animation: "bosSpinCW " + dur + "s linear infinite" + (cw ? "" : " reverse") }}>
+                      {r.items.map(function (it, k) {
+                        var ang = (k / r.items.length) * 2 * Math.PI + ri * 0.5;
+                        var ppx = Math.cos(ang) * r.R, ppy = Math.sin(ang) * r.R;
+                        var needUpright = (r.kind === "emoji" || r.kind === "avatar");
+                        var inner = needUpright ? <div style={{ animation: (cw ? "bosSpinFaceCCW " : "bosSpinFaceCW ") + dur + "s linear infinite" }}>{planet(r.kind, it, r.pd)}</div> : planet(r.kind, it, r.pd);
+                        return <div key={k} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(" + ppx.toFixed(1) + "px," + ppy.toFixed(1) + "px) translate(-50%,-50%)" }}>{inner}</div>;
+                      })}
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {/* центр-аватар; у тебя — золотое кольцо-маркёр «это твоя система» */}
+            <div style={{ position: "relative", width: sp.avD, height: sp.avD }}>
+              {sp.you && <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: sp.avD + 7, height: sp.avD + 7, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "2px solid " + youRing, boxShadow: "0 0 10px " + (isDark ? "rgba(255,221,120,0.4)" : "rgba(230,160,30,0.3)") }} />}
+              {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={sp.s && sp.s.avatar} name={sp.s && sp.s.name} size={sp.avD} /> : null}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
       <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: titleC }}>Вселенная</div>
         {sub ? <div style={{ fontSize: 13, color: subC, marginTop: 3 }}>{sub}</div> : null}
+        {layout.overflow > 0 ? <div style={{ fontSize: 11.5, color: subC, marginTop: 2, opacity: 0.8 }}>+{layout.overflow} ещё где-то в космосе</div> : null}
       </div>
       {friends != null && list.length === 0 && (
-        <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 86px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none" }}>Позови первых — и рядом с твоей появятся их солнечные системы.</div>
+        <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 96px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none" }}>Позови первых — и рядом с твоей появятся их солнечные системы.</div>
       )}
       <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "var(--text)", display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}><I.X size={18} /></button>
       <div style={{ position: "absolute", bottom: "calc(22px + var(--tg-bottom-inset, 0px))", left: 0, right: 0, textAlign: "center", fontSize: 12, color: subC, pointerEvents: "none" }}>коснись, чтобы вернуться</div>
