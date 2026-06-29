@@ -1354,7 +1354,8 @@ function WidgetMinusLive({ onRemove }) {
 function AddWidgetSheetLive({ defs = [], dark = false }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const widgets = app?.widgets || {};
-  const isOn = (id) => widgets[id] !== false; // default ON unless explicitly hidden
+  // «invite» is opt-in (off by default, matches the home board); everything else ON unless hidden.
+  const isOn = (id) => (id === "invite") ? (widgets.invite === true) : (widgets[id] !== false);
   const toggle = (id) => { app?.setWidgets({ ...(app.widgets || {}), [id]: !isOn(id) }); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } };
   return (
     <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
@@ -1739,7 +1740,7 @@ function CloudTeamsDiscoverLive({ app }) {
   if (!list) return null;
   if (!list.length) return (
     <div style={{ marginTop: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>✨ Живые круги</div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
         <div style={{ fontSize: 30, lineHeight: 1 }}>🌱</div>
         <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", marginTop: 9, letterSpacing: "-0.2px" }}>Здесь оживут круги людей</div>
@@ -1771,7 +1772,7 @@ function CloudTeamsDiscoverLive({ app }) {
   };
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>✨ Живые круги</div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {list.map((t) => (
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
@@ -1857,7 +1858,13 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
               <div style={{ flex: 1, minHeight: 10 }} />
-              <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 3, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 800, fontSize: 10.5, borderRadius: 999, padding: "4px 9px", boxShadow: "0 2px 6px rgba(239,159,20,0.3)" }}>🏆 +{s.reward} XP за финиш</span>
+              {/* Reward pill = the app's XP language (graphite chip + crisp gold text, like the
+                  level/«+150 XP» badge) — NOT a gold-gradient pill with muddy brown text (David:
+                  «надпись кривая, цвет мутный»). Emoji dropped (it skewed the baseline). */}
+              <div style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", background: "#0a0a0a", color: "#FEDE34", fontWeight: 700, fontSize: 11, letterSpacing: "0.2px", borderRadius: 999, padding: "3px 9px" }}>+{s.reward} XP</span>
+                <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>за финиш</span>
+              </div>
               <span style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, color: joined ? "var(--text-4)" : "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>{joined ? "Открыть" : "Начать"} <I.ChevronRight size={14}/></span>
             </div>
           );
@@ -1919,31 +1926,65 @@ function CircleFriendsStripLive({ app, navigate }) {
   );
 }
 
-/* «Собери свой круг» — РЕЛЯЦИОННЫЕ заготовки (Семья/Друзья/Команда/Пара), отдельно от челленджей
-   (David: «нужны примеры кругов, не только челленджи»). Челлендж = срочный приз; круг = про ЛЮДЕЙ.
-   Тап → форма создания круга ПРЕД-ЗАПОЛНЕНА (navigate team-create preset) → правишь и зовёшь своих. */
-const STARTER_CIRCLES = [
-  { i: "🏡", t: "Семья",        hook: "Общие дела и забота друг о друге", preset: { i: "🏡", t: "Наша семья",   accent: "#EAEAEF", goalType: "collective", goalTitle: "Общие дела вместе", target: 30, unit: "дел" } },
-  { i: "🤝", t: "Близкий круг",  hook: "Друзья, что держат ритм вместе",    preset: { i: "🤝", t: "Близкий круг", accent: "#EAEAEF", goalType: "streak",     goalTitle: "Держим ритм",      target: 30, unit: "дней" } },
-  { i: "💼", t: "Команда",       hook: "Рабочий фокус и поддержка",          preset: { i: "💼", t: "Наша команда", accent: "#EAEAEF", goalType: "collective", goalTitle: "Рабочий фокус",    target: 50, unit: "раз" } },
-  { i: "❤️", t: "Пара",          hook: "Растём вдвоём каждый день",          preset: { i: "❤️", t: "Мы вдвоём",   accent: "#EAEAEF", goalType: "streak",     goalTitle: "Вместе каждый день", target: 30, unit: "дней" } },
+/* «Живые круги» — витрина населённого приложения (David: «хочу увидеть живые круги чисто чтоб
+   создавать иллюзию... сама жизнь должна быть по-настоящему»). Это ПРИМЕРЫ: настоящие лица-мемоджи
+   + живой счёт «N отметились сегодня» дают ощущение, что круги идут прямо сейчас. Тап НЕ обманывает
+   фейковым «вступить» — ведёт в форму создания ПРЕД-ЗАПОЛНЕННУЮ (собери такой же круг). */
+const LIVING_CIRCLES = [
+  { i: "🏃", t: "Утренние пробежки", hook: "Выходят на рассвете — вместе проще не проспать", faces: ["m3", "m7", "m11", "m2", "m15"], total: 18, today: 9, preset: { i: "🏃", t: "Утренние пробежки", accent: "#EAEAEF", goalType: "streak", goalTitle: "Бегать по утрам", target: 30, unit: "дней" } },
+  { i: "🧘", t: "Тишина по утрам", hook: "5 минут медитации — никто не сходит с дистанции", faces: ["m8", "m4", "m12", "m6", "m17", "m10"], total: 24, today: 13, preset: { i: "🧘", t: "Тишина по утрам", accent: "#EAEAEF", goalType: "streak", goalTitle: "Медитировать каждый день", target: 21, unit: "дней" } },
+  { i: "📚", t: "Книжный клуб", hook: "Глава в день и живое обсуждение в чате круга", faces: ["m5", "m9", "m1", "m14"], total: 11, today: 4, preset: { i: "📚", t: "Книжный клуб", accent: "#EAEAEF", goalType: "collective", goalTitle: "Прочитать вместе", target: 12, unit: "книг" } },
+  { i: "💧", t: "Восемь стаканов", hook: "Пьют воду и держат друг друга в тонусе", faces: ["m13", "m16", "m2", "m7"], total: 9, today: 6, preset: { i: "💧", t: "Восемь стаканов", accent: "#EAEAEF", goalType: "collective", goalTitle: "Пить воду", target: 30, unit: "дней" } },
 ];
-function StarterCirclesLive({ navigate }) {
+
+// Overlapping memoji faces — the visual «жизнь» of a circle. Each face gets a card-coloured ring
+// so the stack reads cleanly; «+N» disc closes the overflow up to the circle's total.
+function LivingCircleFaces({ faces, total }) {
+  var shown = (faces || []).slice(0, 5);
+  var extra = (total || shown.length) - shown.length;
+  return (
+    <div style={{ display: "flex", alignItems: "center" }}>
+      {shown.map(function (a, i) {
+        return (
+          <div key={i} style={{ marginLeft: i ? -9 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)", position: "relative", zIndex: shown.length - i }}>
+            <BuddyFaceLive avatar={a} name="" size={26} />
+          </div>
+        );
+      })}
+      {extra > 0 && (
+        <div style={{ marginLeft: -9, width: 26, height: 26, borderRadius: "50%", background: "var(--surface-3)", boxShadow: "0 0 0 2px var(--card)", display: "grid", placeItems: "center", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>+{extra}</div>
+      )}
+    </div>
+  );
+}
+
+function LivingCirclesShowcaseLive({ navigate }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🌐 Собери свой круг</span>
-        <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>и позови близких</span>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>✨ Живые круги</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>люди ведут их вместе</span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {STARTER_CIRCLES.map(function (s) {
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {LIVING_CIRCLES.map(function (s) {
           return (
             <button key={s.t} onClick={function () { navigate("goal-settings", { mode: "create", preset: s.preset, circleOn: true }); }} className="tap"
-              style={{ textAlign: "left", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, cursor: "pointer", display: "flex", flexDirection: "column", color: "var(--text)" }}>
-              <span style={{ width: 42, height: 42, borderRadius: 13, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{bosIcon(s.i, 22, null)}</span>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 10 }}>{s.t}</div>
-              <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
-              <span style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>Создать <I.ChevronRight size={14} /></span>
+              style={{ textAlign: "left", width: "100%", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, cursor: "pointer", display: "flex", flexDirection: "column", gap: 11, color: "var(--text)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(s.i, 24, null)}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{s.t}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{s.hook}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <LivingCircleFaces faces={s.faces} total={s.total} />
+                <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}><b style={{ color: "var(--text-2)", fontWeight: 700 }}>{s.today}</b> отметились сегодня</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "var(--text-4)" }}>{s.total} в круге</span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>Собрать такой <I.ChevronRight size={14} /></span>
+              </div>
             </button>
           );
         })}

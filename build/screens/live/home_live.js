@@ -188,7 +188,10 @@ function HomeLive() {
 
   // ── Widget board plumbing ────────────────────────────────────────────────────
   var DEFAULT_ORDER = BOS_HOME_WIDGETS.map(w => w.id);
-  var isWidgetOn = id => widgets[id] !== false; // undefined → on
+  // «invite» (Позови своих) is OFF by default on the home board (David: «убираем с главной / скрой
+  // по дефолту») — the invite path lives in «Найти». Still re-addable via the widget sheet (opt-in:
+  // needs widgets.invite === true). Every other widget: on unless explicitly hidden.
+  var isWidgetOn = id => id === "invite" ? widgets.invite === true : widgets[id] !== false;
   var hideWidget = id => app.setWidgets({
     ...widgets,
     [id]: false

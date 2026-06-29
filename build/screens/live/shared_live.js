@@ -3180,7 +3180,8 @@ function AddWidgetSheetLive({
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
   var widgets = app?.widgets || {};
-  var isOn = id => widgets[id] !== false; // default ON unless explicitly hidden
+  // «invite» is opt-in (off by default, matches the home board); everything else ON unless hidden.
+  var isOn = id => id === "invite" ? widgets.invite === true : widgets[id] !== false;
   var toggle = id => {
     app?.setWidgets({
       ...(app.widgets || {}),
@@ -4145,7 +4146,7 @@ function CloudTeamsDiscoverLive({
       color: "var(--text-4)",
       padding: "4px 4px 8px"
     }
-  }, "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDF10 \u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
@@ -4239,7 +4240,7 @@ function CloudTeamsDiscoverLive({
       color: "var(--text-4)",
       padding: "4px 4px 8px"
     }
-  }, "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDF10 \u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -4603,21 +4604,32 @@ function SeedCirclesShowcaseLive({
         flex: 1,
         minHeight: 10
       }
-    }), /*#__PURE__*/React.createElement("span", {
+    }), /*#__PURE__*/React.createElement("div", {
       style: {
         alignSelf: "flex-start",
         display: "inline-flex",
         alignItems: "center",
-        gap: 3,
-        background: "linear-gradient(180deg,#FEDE34,#EF9F14)",
-        color: "#4a3800",
-        fontWeight: 800,
-        fontSize: 10.5,
-        borderRadius: 999,
-        padding: "4px 9px",
-        boxShadow: "0 2px 6px rgba(239,159,20,0.3)"
+        gap: 6
       }
-    }, "\uD83C\uDFC6 +", s.reward, " XP \u0437\u0430 \u0444\u0438\u043D\u0438\u0448"), /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        background: "#0a0a0a",
+        color: "#FEDE34",
+        fontWeight: 700,
+        fontSize: 11,
+        letterSpacing: "0.2px",
+        borderRadius: 999,
+        padding: "3px 9px"
+      }
+    }, "+", s.reward, " XP"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-4)",
+        fontWeight: 600
+      }
+    }, "\u0437\u0430 \u0444\u0438\u043D\u0438\u0448")), /*#__PURE__*/React.createElement("span", {
       style: {
         marginTop: 9,
         fontSize: 12.5,
@@ -4778,63 +4790,121 @@ function CircleFriendsStripLive({
   }, "\u0412\u044B \u0443\u0436\u0435 \u0432\u0435\u0434\u0451\u0442\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 \u0437\u0430\u0433\u043B\u044F\u043D\u0438 \u0432 \u043E\u0431\u0449\u0438\u0439 \u043A\u0440\u0443\u0433.")));
 }
 
-/* «Собери свой круг» — РЕЛЯЦИОННЫЕ заготовки (Семья/Друзья/Команда/Пара), отдельно от челленджей
-   (David: «нужны примеры кругов, не только челленджи»). Челлендж = срочный приз; круг = про ЛЮДЕЙ.
-   Тап → форма создания круга ПРЕД-ЗАПОЛНЕНА (navigate team-create preset) → правишь и зовёшь своих. */
-var STARTER_CIRCLES = [{
-  i: "🏡",
-  t: "Семья",
-  hook: "Общие дела и забота друг о друге",
+/* «Живые круги» — витрина населённого приложения (David: «хочу увидеть живые круги чисто чтоб
+   создавать иллюзию... сама жизнь должна быть по-настоящему»). Это ПРИМЕРЫ: настоящие лица-мемоджи
+   + живой счёт «N отметились сегодня» дают ощущение, что круги идут прямо сейчас. Тап НЕ обманывает
+   фейковым «вступить» — ведёт в форму создания ПРЕД-ЗАПОЛНЕННУЮ (собери такой же круг). */
+var LIVING_CIRCLES = [{
+  i: "🏃",
+  t: "Утренние пробежки",
+  hook: "Выходят на рассвете — вместе проще не проспать",
+  faces: ["m3", "m7", "m11", "m2", "m15"],
+  total: 18,
+  today: 9,
   preset: {
-    i: "🏡",
-    t: "Наша семья",
-    accent: "#EAEAEF",
-    goalType: "collective",
-    goalTitle: "Общие дела вместе",
-    target: 30,
-    unit: "дел"
-  }
-}, {
-  i: "🤝",
-  t: "Близкий круг",
-  hook: "Друзья, что держат ритм вместе",
-  preset: {
-    i: "🤝",
-    t: "Близкий круг",
+    i: "🏃",
+    t: "Утренние пробежки",
     accent: "#EAEAEF",
     goalType: "streak",
-    goalTitle: "Держим ритм",
+    goalTitle: "Бегать по утрам",
     target: 30,
     unit: "дней"
   }
 }, {
-  i: "💼",
-  t: "Команда",
-  hook: "Рабочий фокус и поддержка",
+  i: "🧘",
+  t: "Тишина по утрам",
+  hook: "5 минут медитации — никто не сходит с дистанции",
+  faces: ["m8", "m4", "m12", "m6", "m17", "m10"],
+  total: 24,
+  today: 13,
   preset: {
-    i: "💼",
-    t: "Наша команда",
-    accent: "#EAEAEF",
-    goalType: "collective",
-    goalTitle: "Рабочий фокус",
-    target: 50,
-    unit: "раз"
-  }
-}, {
-  i: "❤️",
-  t: "Пара",
-  hook: "Растём вдвоём каждый день",
-  preset: {
-    i: "❤️",
-    t: "Мы вдвоём",
+    i: "🧘",
+    t: "Тишина по утрам",
     accent: "#EAEAEF",
     goalType: "streak",
-    goalTitle: "Вместе каждый день",
+    goalTitle: "Медитировать каждый день",
+    target: 21,
+    unit: "дней"
+  }
+}, {
+  i: "📚",
+  t: "Книжный клуб",
+  hook: "Глава в день и живое обсуждение в чате круга",
+  faces: ["m5", "m9", "m1", "m14"],
+  total: 11,
+  today: 4,
+  preset: {
+    i: "📚",
+    t: "Книжный клуб",
+    accent: "#EAEAEF",
+    goalType: "collective",
+    goalTitle: "Прочитать вместе",
+    target: 12,
+    unit: "книг"
+  }
+}, {
+  i: "💧",
+  t: "Восемь стаканов",
+  hook: "Пьют воду и держат друг друга в тонусе",
+  faces: ["m13", "m16", "m2", "m7"],
+  total: 9,
+  today: 6,
+  preset: {
+    i: "💧",
+    t: "Восемь стаканов",
+    accent: "#EAEAEF",
+    goalType: "collective",
+    goalTitle: "Пить воду",
     target: 30,
     unit: "дней"
   }
 }];
-function StarterCirclesLive({
+
+// Overlapping memoji faces — the visual «жизнь» of a circle. Each face gets a card-coloured ring
+// so the stack reads cleanly; «+N» disc closes the overflow up to the circle's total.
+function LivingCircleFaces({
+  faces,
+  total
+}) {
+  var shown = (faces || []).slice(0, 5);
+  var extra = (total || shown.length) - shown.length;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center"
+    }
+  }, shown.map(function (a, i) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        marginLeft: i ? -9 : 0,
+        borderRadius: "50%",
+        boxShadow: "0 0 0 2px var(--card)",
+        position: "relative",
+        zIndex: shown.length - i
+      }
+    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+      avatar: a,
+      name: "",
+      size: 26
+    }));
+  }), extra > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginLeft: -9,
+      width: 26,
+      height: 26,
+      borderRadius: "50%",
+      background: "var(--surface-3)",
+      boxShadow: "0 0 0 2px var(--card)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "+", extra));
+}
+function LivingCirclesShowcaseLive({
   navigate
 }) {
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -4852,18 +4922,18 @@ function StarterCirclesLive({
       textTransform: "uppercase",
       color: "var(--text-4)"
     }
-  }, "\uD83C\uDF10 \u0421\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439 \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("span", {
+  }, "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11.5,
       color: "var(--text-4)"
     }
-  }, "\u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u0431\u043B\u0438\u0437\u043A\u0438\u0445")), /*#__PURE__*/React.createElement("div", {
+  }, "\u043B\u044E\u0434\u0438 \u0432\u0435\u0434\u0443\u0442 \u0438\u0445 \u0432\u043C\u0435\u0441\u0442\u0435")), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
+      display: "flex",
+      flexDirection: "column",
       gap: 10
     }
-  }, STARTER_CIRCLES.map(function (s) {
+  }, LIVING_CIRCLES.map(function (s) {
     return /*#__PURE__*/React.createElement("button", {
       key: s.t,
       onClick: function () {
@@ -4876,6 +4946,7 @@ function StarterCirclesLive({
       className: "tap",
       style: {
         textAlign: "left",
+        width: "100%",
         background: "var(--card)",
         borderRadius: 22,
         padding: 14,
@@ -4884,43 +4955,83 @@ function StarterCirclesLive({
         cursor: "pointer",
         display: "flex",
         flexDirection: "column",
+        gap: 11,
         color: "var(--text)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 12
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 42,
-        height: 42,
-        borderRadius: 13,
+        width: 46,
+        height: 46,
+        borderRadius: 14,
         background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
         boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)",
         display: "grid",
         placeItems: "center",
-        fontSize: 22,
+        fontSize: 24,
         flexShrink: 0
       }
-    }, bosIcon(s.i, 22, null)), /*#__PURE__*/React.createElement("div", {
+    }, bosIcon(s.i, 24, null)), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 15,
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15.5,
         fontWeight: 600,
         color: "var(--text)",
-        letterSpacing: "-0.2px",
-        marginTop: 10
+        letterSpacing: "-0.2px"
       }
     }, s.t), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 11.5,
+        fontSize: 12,
         color: "var(--text-4)",
-        marginTop: 3,
+        marginTop: 2,
         lineHeight: 1.35,
         display: "-webkit-box",
-        WebkitLineClamp: 2,
+        WebkitLineClamp: 1,
         WebkitBoxOrient: "vertical",
-        overflow: "hidden",
-        minHeight: 31
+        overflow: "hidden"
       }
-    }, s.hook), /*#__PURE__*/React.createElement("span", {
+    }, s.hook))), /*#__PURE__*/React.createElement("div", {
       style: {
-        marginTop: 8,
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement(LivingCircleFaces, {
+      faces: s.faces,
+      total: s.total
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-4)",
+        fontWeight: 500
+      }
+    }, /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: "var(--text-2)",
+        fontWeight: 700
+      }
+    }, s.today), " \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u0438\u0441\u044C \u0441\u0435\u0433\u043E\u0434\u043D\u044F")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-4)"
+      }
+    }, s.total, " \u0432 \u043A\u0440\u0443\u0433\u0435"), /*#__PURE__*/React.createElement("span", {
+      style: {
         fontSize: 12.5,
         fontWeight: 600,
         color: "var(--text-2)",
@@ -4928,9 +5039,9 @@ function StarterCirclesLive({
         alignItems: "center",
         gap: 2
       }
-    }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    }, "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0430\u043A\u043E\u0439 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
       size: 14
-    })));
+    }))));
   })));
 }
 

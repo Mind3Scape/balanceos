@@ -358,7 +358,7 @@ function CommunityLive() {
   }, "\u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438 \u0438 \u0436\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438 \u2014 \u0432\u0441\u0442\u0443\u043F\u0430\u0435\u0448\u044C \u0437\u0430 \u0441\u0435\u043A\u0443\u043D\u0434\u0443, \u0438 \u043A\u0440\u0443\u0433 \u043F\u043E\u044F\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0443 \u0442\u0435\u0431\u044F \u0432 \xAB\u0426\u0435\u043B\u044F\u0445\xBB.")), typeof SeedCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(SeedCirclesShowcaseLive, {
     app: app,
     navigate: navigate
-  }), typeof StarterCirclesLive === "function" && /*#__PURE__*/React.createElement(StarterCirclesLive, {
+  }), typeof LivingCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(LivingCirclesShowcaseLive, {
     navigate: navigate
   }), typeof CircleFriendsStripLive === "function" && /*#__PURE__*/React.createElement(CircleFriendsStripLive, {
     app: app,

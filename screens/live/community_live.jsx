@@ -165,8 +165,8 @@ function CommunityLive() {
           </div>
           {/* Челленджи — срочные, с призом за финиш. */}
           {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
-          {/* Готовые круги — реляционные заготовки (про людей, не про приз); тап → форма создания. */}
-          {typeof StarterCirclesLive === "function" && <StarterCirclesLive navigate={navigate} />}
+          {/* Живые круги — витрина с лицами + активностью («иллюзия жизни»); тап → создать похожий. */}
+          {typeof LivingCirclesShowcaseLive === "function" && <LivingCirclesShowcaseLive navigate={navigate} />}
           {/* РЕАЛЬНАЯ жизнь — живые лица из твоих кругов (скрыто, если людей нет; David: «по-настоящему»). */}
           {typeof CircleFriendsStripLive === "function" && <CircleFriendsStripLive app={app} navigate={navigate} />}
           {/* Позови своих — родной выбор контактов Telegram (реферал); друзья → в «Твои люди». */}
