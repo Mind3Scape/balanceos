@@ -626,11 +626,10 @@ function GoalSettingsLive() {
   var [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
   var [showCal, setShowCal] = useHS(false);
   var [linkHabit, setLinkHabit] = useHS(true);
-  // КРУГ — «цель + круг = команда»: включаешь круг → цель общая (можно позвать людей). Поле circle
-  // едет в data (addGoal/updateGoal спред). David: один тумблер вместо отдельного создания команды.
+  // КРУГ — «цель + круг = команда»: включаешь круг → цель становится КОМАНДОЙ (один движок —
+  // комната-орбита, режимы, вступление по ссылке team_<cloudId>). Тумблер только переключает путь
+  // сохранения ниже: вкл → app.addTeam (а не addGoal). David: один механизм, без второго «лёгкого» круга.
   var [circleOn, setCircleOn] = useHS(g0?.circle === true);
-  // shareCode круга цели — тот же механизм, что у привычек-вместе (createSharedHabit + лица).
-  var [circleCode, setCircleCode] = useHS(g0?.shareCode || "");
   // REAL — the user's own habits, none pre-selected.
   var [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map(h => ({
     e: h.emoji || "✨",
@@ -981,76 +980,115 @@ function GoalSettingsLive() {
     }
   }, "\u0412\u043A\u043B\u044E\u0447\u0438 \u043A\u0440\u0443\u0433 \u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430 \u043A\u0440\u0443\u0433\u0430.")), /*#__PURE__*/React.createElement(Switch, {
     on: circleOn,
-    onChange: v => {
-      setCircleOn(v);
-      if (v && !circleCode && typeof bosGenShareCode === "function") setCircleCode(bosGenShareCode());
-    }
-  })), circleOn && /*#__PURE__*/React.createElement("button", {
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
-      goal: {
-        name: name.trim() || "Цель",
-        emoji: iconPick,
-        color,
-        shareCode: circleCode
-      }
-    })),
-    className: "tap",
+    onChange: setCircleOn
+  })), circleOn && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 14,
-      display: "inline-flex",
+      marginTop: 12,
+      borderRadius: 14,
+      padding: "11px 12px",
+      background: "#eef4ff",
+      display: "flex",
       alignItems: "center",
-      gap: 6,
-      padding: "8px 14px",
-      borderRadius: 999,
-      background: "transparent",
-      border: "1px dashed rgba(0,0,0,0.18)",
-      color: "var(--text-2)",
-      fontSize: 13,
-      fontWeight: 600
+      gap: 10
     }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 13
-  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433")), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      background: "#dde9ff",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      fontSize: 15
+    }
+  }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#2b5cb8",
+      lineHeight: 1.4
+    }
+  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u043E\u0442\u043A\u0440\u043E\u0435\u0442\u0441\u044F ", /*#__PURE__*/React.createElement("b", null, "\u043A\u043E\u043C\u043D\u0430\u0442\u0430 \u043A\u0440\u0443\u0433\u0430"), ", \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
       marginTop: 20
     },
     onClick: () => {
+      var nm = name.trim() || "Новая цель";
+      var tgt = Math.max(1, target);
+      // КРУГ ВКЛ → ОДИН механизм: создаём настоящую КОМАНДУ (богатый круг — комната-орбита,
+      // режимы, вступление по ссылке team_<cloudId>). «Цель+круг» и «команда» теперь одно и то же.
+      // Зеркало TeamCreateLive.save: app.addTeam (локально → круг сразу в «Целях», работает офлайн)
+      // → cloud.createTeam (для cloudId) → комната-орбита + шторка приглашения.
+      if (circleOn) {
+        if (editing && g0) app?.removeGoal(g0.id); // конверсия цели в круг: не оставляем дубль-цель рядом
+        var teamObj = {
+          name: nm,
+          emblem: iconPick,
+          accent: color,
+          vis: "private",
+          goal: tgt + " " + (unit || ""),
+          // строка-заголовок карточки (LiveTeamCard рендерит t.goal как текст)
+          type: "collective",
+          target: tgt,
+          current: 0,
+          unit,
+          stake: 0,
+          date: "Этот месяц",
+          progress: 0,
+          members: []
+        };
+        var nt = app?.addTeam(teamObj);
+        navigate("team-detail", {
+          team: nt
+        }); // комната-орбита (читает живой круг из store по _id → cloudId долетит)
+        var opened = false;
+        try {
+          if (nt && window.bosCloud && window.bosCloud.enabled()) {
+            window.bosCloud.createTeam({
+              name: nt.name,
+              emblem: iconPick,
+              vis: "private",
+              goalKind: nt.goal,
+              goalTarget: tgt,
+              goal: {
+                type: "collective",
+                target: tgt,
+                unit,
+                title: nm
+              }
+            }).then(row => {
+              if (row && row.id && app.updateTeam) app.updateTeam(nt._id, {
+                cloudId: row.id
+              });
+              openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+                team: {
+                  ...nt,
+                  cloudId: row && row.id
+                }
+              }));
+            }).catch(() => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+              team: nt
+            })));
+            opened = true;
+          }
+        } catch (e) {}
+        if (!opened) openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+          team: nt
+        })); // офлайн/превью → круг живёт локально, шторка открывается сразу
+        return;
+      }
+      // КРУГ ВЫКЛ → личная цель, как раньше.
       var data = {
         emoji: iconPick,
         color,
-        name: name.trim() || "Новая цель",
-        target: Math.max(1, target),
+        name: nm,
+        target: tgt,
         unit,
         deadline,
-        circle: circleOn
+        circle: false
       };
-      // КРУГ: регистрируем РЕАЛЬНЫЙ общий круг — тот же механизм, что у привычек-вместе
-      // (createSharedHabit + shareCode). Лица на карточке цели читаются из участников этого кода.
-      if (circleOn && circleCode) {
-        data.shareCode = circleCode;
-        try {
-          if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.createSharedHabit) window.bosCloud.createSharedHabit({
-            code: circleCode,
-            name: data.name,
-            emoji: iconPick,
-            color
-          });
-        } catch (e) {}
-      }
       if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
-      if (circleOn) {
-        navigate("habits");
-        openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
-          goal: {
-            name: data.name,
-            emoji: iconPick,
-            color,
-            shareCode: circleCode
-          }
-        }));
-        return;
-      }
       navigate("habits");
     }
   }, editing ? "Сохранить" : "Создать цель"), editing && /*#__PURE__*/React.createElement("button", {

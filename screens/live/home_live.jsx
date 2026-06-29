@@ -351,8 +351,7 @@ function HomeLive() {
                           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
                         </div>
                         <div className="bos-progress"><span style={{ width: (pct*100) + "%", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }} /></div>
-                        {/* Лица круга цели (компактно) — единый маркёр «вместе», как у привычек. */}
-                        {typeof HabitBuddyAvatarsLive === "function" && <div style={{ marginTop: 8 }}><HabitBuddyAvatarsLive habit={g} size={16} max={5} /></div>}
+                        {/* Личная цель лиц НЕ носит — круг = команда (показывается как LiveTeamCard с лицами). */}
                       </div>
                     </SwipeRow>
                   </div>
