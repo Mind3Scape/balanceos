@@ -504,23 +504,7 @@ function HabitsLive() {
           textOverflow: "ellipsis",
           whiteSpace: "nowrap"
         }
-      }, h.name), h.teamHabitId && /*#__PURE__*/React.createElement("span", {
-        title: "\u041A\u043E\u043C\u0430\u043D\u0434\u043D\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430",
-        style: {
-          flexShrink: 0,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 3,
-          fontSize: 10,
-          fontWeight: 700,
-          color: "var(--text-4)",
-          background: "var(--surface-3)",
-          padding: "2px 7px",
-          borderRadius: 999
-        }
-      }, /*#__PURE__*/React.createElement(I.Users, {
-        size: 10
-      }), " \u041A\u043E\u043C\u0430\u043D\u0434\u043D\u0430\u044F")), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+      }, h.name)), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
@@ -563,6 +547,10 @@ function HabitsLive() {
       }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
         habit: h
       }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+        habit: h,
+        size: 22,
+        max: 5
+      }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
         habit: h,
         size: 22,
         max: 5

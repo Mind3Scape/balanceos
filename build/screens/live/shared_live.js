@@ -1292,6 +1292,84 @@ function useBuddyMembersLive(code) {
   return members;
 }
 
+/* Circle (team) members for a personal habit linked to a circle via teamId. Cache-backed like
+   useBuddyMembersLive — instant, no flash. Powers the unified FACES marker on personal cards that
+   REPLACES the old grey «Командная» бейдж (David: маркёр круга = ЛИЦА, не бейдж). */
+var _bosCircleCache = {};
+function useCircleMembersLive(teamId) {
+  var st = React.useState(function () {
+    return teamId && _bosCircleCache[teamId] || null;
+  });
+  var members = st[0],
+    setMembers = st[1];
+  React.useEffect(function () {
+    if (!teamId) {
+      setMembers(null);
+      return;
+    }
+    if (_bosCircleCache[teamId]) setMembers(_bosCircleCache[teamId]); // instant from cache
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers)) return;
+    var on = true;
+    var sig = function (a) {
+      return (a || []).map(function (m) {
+        return (m.id || "") + ":" + (m.avatar || "") + ":" + (m.name || "");
+      }).join("|");
+    };
+    var load = function () {
+      window.bosCloud.teamMembers(teamId).then(function (mem) {
+        if (!on || !Array.isArray(mem)) return;
+        var changed = sig(_bosCircleCache[teamId]) !== sig(mem);
+        _bosCircleCache[teamId] = mem;
+        if (changed) setMembers(mem); // swap only on real change
+      }).catch(function () {});
+    };
+    load();
+    var iv = setInterval(load, 25000);
+    return function () {
+      on = false;
+      clearInterval(iv);
+    };
+  }, [teamId]);
+  return members;
+}
+// My uid (module-cached) so circle faces show the OTHER people you share with — solo circle → no
+// others → no faces (honest «пока один», как у привычек-вместе), не серый бейдж.
+var _bosMyUidCache = null;
+function CircleFacesLive({
+  habit,
+  size,
+  max
+}) {
+  size = size || 22;
+  max = max || 5;
+  var teamId = habit && habit.teamId;
+  var members = useCircleMembersLive(teamId);
+  var uidSt = React.useState(_bosMyUidCache);
+  var myUid = uidSt[0],
+    setMyUid = uidSt[1];
+  React.useEffect(function () {
+    if (myUid != null) return;
+    if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.uid) {
+      window.bosCloud.uid().then(function (u) {
+        if (u) {
+          _bosMyUidCache = u;
+          setMyUid(u);
+        }
+      }).catch(function () {});
+    }
+  }, []);
+  if (!teamId) return null;
+  var others = (members || []).filter(function (m) {
+    return !myUid || m.id !== myUid;
+  });
+  if (!others.length) return null;
+  return React.createElement(PeopleStackLive, {
+    people: others,
+    size: size,
+    max: max
+  });
+}
+
 /* The ONE live avatar chip — a person's chosen avatar on a STANDARDISED soft-grey disc, so faces
    read cleanly and never blend into white cards (David: «на сероватом фоне классно, на белом
    сливаются — стандартизируй на сером»). We show ONLY what the person picked — emoji or memoji

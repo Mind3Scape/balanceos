@@ -197,7 +197,7 @@ function HabitsLive() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                         <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
-                        {h.teamHabitId && <span title="Командная привычка" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", padding: "2px 7px", borderRadius: 999 }}><I.Users size={10}/> Командная</span>}
+                        {/* «Командная» бейдж убран — маркёр круга = ЛИЦА (CircleFacesLive в нижнем ряду). David. */}
                       </div>
                       {(h.friends?.length > 0 || h.duration > 0) && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 11, color: "var(--text-4)" }}>
@@ -217,6 +217,7 @@ function HabitsLive() {
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12 }}>
                     <HabitWeekStrip habit={h} />
                     <HabitBuddyAvatarsLive habit={h} size={22} max={5} />
+                    {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={22} max={5} />}
                   </div>
                 </div>
               );

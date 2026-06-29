@@ -711,6 +711,10 @@ function HomeLive() {
         habit: h,
         size: 16,
         max: 5
+      }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
+        habit: h,
+        size: 16,
+        max: 5
       }))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
         habit: h,
         dark: isDark,
