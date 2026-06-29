@@ -2750,6 +2750,7 @@ function CourseDetailLive() {
     navigate,
     params
   } = useNav();
+  var app = useApp();
   var [enrolled, setEnrolled] = useCS(false);
   var c = params?.course || {
     id: "marathon",
@@ -2761,6 +2762,113 @@ function CourseDetailLive() {
     lvl: "База",
     length: "21 день",
     cohort: "1 — 21 мая"
+  };
+  // КУРС → КРУГ: записался → программа тренера падает к тебе — КРУГ (команда) в «Цели» + ПРАКТИКА
+  // в «Привычки». courseId на круге = защита от дубля при повторном заходе. David: «вступление в курс
+  // роняет практику+круг в Привычки». Зеркало GoalSettingsLive/TeamCreateLive (тот же движок круга).
+  var alreadyEnrolled = enrolled || (app?.teams || []).some(t => t.courseId === c.id);
+  var enrollCourse = () => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+    var existing = (app?.teams || []).find(t => t.courseId === c.id);
+    if (existing) {
+      navigate("team-detail", {
+        team: existing
+      });
+      return;
+    } // уже записан → сразу в круг
+    setEnrolled(true);
+    var days = parseInt(String(c.length || "").replace(/\D/g, ""), 10) || 21;
+    var practiceName = "Практика · " + c.t;
+    var teamObj = {
+      name: c.t,
+      emblem: c.i,
+      accent: "#0a0a0a",
+      vis: "private",
+      courseId: c.id,
+      goal: days + " дней",
+      type: "collective",
+      target: days,
+      current: 0,
+      unit: "дней",
+      stake: 0,
+      date: c.cohort || "",
+      progress: 0,
+      members: []
+    };
+    var nt = app?.addTeam(teamObj); // круг → сразу в «Целях» (работает офлайн)
+    var personalHabit = {
+      name: practiceName,
+      emoji: c.i,
+      color: null,
+      days: [1, 1, 1, 1, 1, 1, 1],
+      goalPerDay: 1,
+      reminder: {
+        on: false,
+        time: "09:00"
+      },
+      log: {}
+    };
+    var opened = false;
+    try {
+      if (nt && window.bosCloud && window.bosCloud.enabled()) {
+        window.bosCloud.createTeam({
+          name: c.t,
+          emblem: c.i,
+          vis: "private",
+          goalKind: teamObj.goal,
+          goalTarget: days,
+          goal: {
+            type: "collective",
+            target: days,
+            unit: "дней",
+            title: c.t
+          }
+        }).then(async row => {
+          if (row && row.id) {
+            if (app.updateTeam) app.updateTeam(nt._id, {
+              cloudId: row.id
+            });
+            var th = null;
+            try {
+              th = await window.bosCloud.addTeamHabit(row.id, {
+                name: practiceName,
+                emoji: c.i,
+                isMain: true
+              });
+            } catch (e) {}
+            app?.addHabit({
+              ...personalHabit,
+              teamId: row.id,
+              teamHabitId: th && th.id
+            }); // практика как ЛИЧНАЯ, связана с кругом
+          } else {
+            app?.addHabit(personalHabit);
+          }
+          navigate("team-detail", {
+            team: {
+              ...nt,
+              cloudId: row && row.id
+            }
+          });
+        }).catch(() => {
+          app?.addHabit(personalHabit);
+          navigate("team-detail", {
+            team: nt
+          });
+        });
+        opened = true;
+      }
+    } catch (e) {}
+    if (!opened) {
+      app?.addHabit(personalHabit);
+      navigate("team-detail", {
+        team: nt
+      });
+    } // офлайн/превью
   };
 
   // Default to Marathon programme content; could be data-driven per id
@@ -3182,10 +3290,18 @@ function CourseDetailLive() {
       opacity: 0.65,
       marginTop: 2
     }
-  }, "\u0415\u0434\u0438\u043D\u043E\u0440\u0430\u0437\u043E\u0432\u043E \xB7 \u043C\u043E\u0436\u043D\u043E \u0440\u0430\u0437\u0431\u0438\u0442\u044C \u043D\u0430 3 \u043C\u0435\u0441\u044F\u0446\u0430")), enrolled ? /*#__PURE__*/React.createElement("span", {
+  }, "\u0415\u0434\u0438\u043D\u043E\u0440\u0430\u0437\u043E\u0432\u043E \xB7 \u043C\u043E\u0436\u043D\u043E \u0440\u0430\u0437\u0431\u0438\u0442\u044C \u043D\u0430 3 \u043C\u0435\u0441\u044F\u0446\u0430")), alreadyEnrolled ? /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var ex = (app?.teams || []).find(t => t.courseId === c.id);
+      if (ex) navigate("team-detail", {
+        team: ex
+      });
+    },
+    className: "tap",
     style: {
       background: "rgba(52,199,89,0.18)",
       color: "#34C759",
+      border: 0,
       borderRadius: 999,
       padding: "12px 18px",
       fontSize: 14,
@@ -3198,14 +3314,7 @@ function CourseDetailLive() {
     size: 15,
     strokeWidth: 3
   }), " \u0412\u044B \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u044B") : /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setEnrolled(true);
-      if (window.tgHaptic) {
-        try {
-          window.tgHaptic("success");
-        } catch (e) {}
-      }
-    },
+    onClick: enrollCourse,
     className: "tap",
     style: {
       background: "var(--card)",

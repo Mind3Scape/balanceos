@@ -922,8 +922,45 @@ function LevelsLive() {
 /* ─── COURSE DETAIL — full programme description. No demo branches; faithful fork. ─── */
 function CourseDetailLive() {
   const { navigate, params } = useNav();
+  const app = useApp();
   const [enrolled, setEnrolled] = useCS(false);
   const c = params?.course || { id: "marathon", i: "🏃🏼‍♀️", accent: "#d6f3df", t: "Марафон", d: "21-дневная программа устойчивых привычек.", price: "110 000 ₽", lvl: "База", length: "21 день", cohort: "1 — 21 мая" };
+  // КУРС → КРУГ: записался → программа тренера падает к тебе — КРУГ (команда) в «Цели» + ПРАКТИКА
+  // в «Привычки». courseId на круге = защита от дубля при повторном заходе. David: «вступление в курс
+  // роняет практику+круг в Привычки». Зеркало GoalSettingsLive/TeamCreateLive (тот же движок круга).
+  const alreadyEnrolled = enrolled || (app?.teams || []).some((t) => t.courseId === c.id);
+  const enrollCourse = () => {
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    const existing = (app?.teams || []).find((t) => t.courseId === c.id);
+    if (existing) { navigate("team-detail", { team: existing }); return; } // уже записан → сразу в круг
+    setEnrolled(true);
+    const days = parseInt(String(c.length || "").replace(/\D/g, ""), 10) || 21;
+    const practiceName = "Практика · " + c.t;
+    const teamObj = {
+      name: c.t, emblem: c.i, accent: "#0a0a0a", vis: "private", courseId: c.id,
+      goal: days + " дней", type: "collective", target: days, current: 0, unit: "дней",
+      stake: 0, date: c.cohort || "", progress: 0, members: [],
+    };
+    const nt = app?.addTeam(teamObj);                    // круг → сразу в «Целях» (работает офлайн)
+    const personalHabit = { name: practiceName, emoji: c.i, color: null, days: [1, 1, 1, 1, 1, 1, 1], goalPerDay: 1, reminder: { on: false, time: "09:00" }, log: {} };
+    let opened = false;
+    try {
+      if (nt && window.bosCloud && window.bosCloud.enabled()) {
+        window.bosCloud.createTeam({ name: c.t, emblem: c.i, vis: "private", goalKind: teamObj.goal, goalTarget: days, goal: { type: "collective", target: days, unit: "дней", title: c.t } })
+          .then(async (row) => {
+            if (row && row.id) {
+              if (app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id });
+              let th = null; try { th = await window.bosCloud.addTeamHabit(row.id, { name: practiceName, emoji: c.i, isMain: true }); } catch (e) {}
+              app?.addHabit({ ...personalHabit, teamId: row.id, teamHabitId: th && th.id }); // практика как ЛИЧНАЯ, связана с кругом
+            } else { app?.addHabit(personalHabit); }
+            navigate("team-detail", { team: { ...nt, cloudId: row && row.id } });
+          })
+          .catch(() => { app?.addHabit(personalHabit); navigate("team-detail", { team: nt }); });
+        opened = true;
+      }
+    } catch (e) {}
+    if (!opened) { app?.addHabit(personalHabit); navigate("team-detail", { team: nt }); } // офлайн/превью
+  };
 
   // Default to Marathon programme content; could be data-driven per id
   const META = [
@@ -1057,12 +1094,12 @@ function CourseDetailLive() {
           <div style={{ fontSize: 22, fontWeight: 700, marginTop: 2, letterSpacing: "-0.4px" }}>{c.price}</div>
           <div style={{ fontSize: 11, opacity: 0.65, marginTop: 2 }}>Единоразово · можно разбить на 3 месяца</div>
         </div>
-        {enrolled ? (
-          <span style={{ background: "rgba(52,199,89,0.18)", color: "#34C759", borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+        {alreadyEnrolled ? (
+          <button onClick={() => { const ex = (app?.teams || []).find((t) => t.courseId === c.id); if (ex) navigate("team-detail", { team: ex }); }} className="tap" style={{ background: "rgba(52,199,89,0.18)", color: "#34C759", border: 0, borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <I.Check size={15} strokeWidth={3}/> Вы записаны
-          </span>
+          </button>
         ) : (
-          <button onClick={() => { setEnrolled(true); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }} className="tap" style={{ background: "var(--card)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <button onClick={enrollCourse} className="tap" style={{ background: "var(--card)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
             Записаться <I.ChevronRight size={14}/>
           </button>
         )}
