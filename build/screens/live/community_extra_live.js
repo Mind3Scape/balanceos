@@ -3186,15 +3186,9 @@ function CourseDetailLive() {
       gap: 14,
       alignItems: "center"
     }
-  }, /*#__PURE__*/React.createElement(AvatarStack, {
-    people: [{
-      name: "Марк Халверсон",
-      initials: "МХ",
-      color: "#d4b8e8"
-    }],
-    size: 52,
-    max: 1,
-    label: false
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    name: "\u041C\u0430\u0440\u043A \u0425\u0430\u043B\u0432\u0435\u0440\u0441\u043E\u043D",
+    size: 52
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -4204,8 +4198,8 @@ function ContactDetailLive() {
         marginTop: 4,
         fontSize: 11,
         fontWeight: 600,
-        color: "#0a0a0a",
-        background: "#FEDE34",
+        color: "#fff",
+        background: "#0a0a0a",
         border: 0,
         borderRadius: 999,
         padding: "4px 12px"

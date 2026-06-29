@@ -1065,7 +1065,7 @@ function CourseDetailLive() {
       {/* COACH */}
       <div className="section-label" style={{ marginTop: 22, padding: "0 4px" }}>Твой коуч</div>
       <div style={{ marginTop: 8, background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "center" }}>
-        <AvatarStack people={[{ name: "Марк Халверсон", initials: "МХ", color: "#d4b8e8" }]} size={52} max={1} label={false}/>
+        <BuddyFaceLive name="Марк Халверсон" size={52} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Марк Халверсон</div>
           <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Коуч по привычкам · 1200+ выпускников</div>
@@ -1394,7 +1394,7 @@ function ContactDetailLive() {
                   {!locked && (booked[j] ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 700, color: "#1E8E4E", background: "rgba(52,199,89,0.14)", borderRadius: 999, padding: "4px 10px" }}><I.Check size={11} strokeWidth={3}/> Записан</span>
                   ) : (
-                    <button onClick={() => setBooked(b => ({ ...b, [j]: true }))} className="tap" style={{ marginTop: 4, fontSize: 11, fontWeight: 600, color: "#0a0a0a", background: "#FEDE34", border: 0, borderRadius: 999, padding: "4px 12px" }}>Записаться</button>
+                    <button onClick={() => setBooked(b => ({ ...b, [j]: true }))} className="tap" style={{ marginTop: 4, fontSize: 11, fontWeight: 600, color: "#fff", background: "#0a0a0a", border: 0, borderRadius: 999, padding: "4px 12px" }}>Записаться</button>
                   ))}
                 </div>
               </div>
