@@ -122,7 +122,10 @@ function ProfileLive() {
     }
   }, /*#__PURE__*/React.createElement(PageHeader, {
     onBack: () => navigate("home"),
-    title: ""
+    title: "",
+    right: typeof EditGlassButtonLive === "function" ? /*#__PURE__*/React.createElement(EditGlassButtonLive, {
+      onClick: openAvatar
+    }) : null
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
@@ -134,10 +137,11 @@ function ProfileLive() {
     habits: app?.habits || [],
     people: orbitPeople,
     levelPct: lvlPct,
-    onTap: openAvatar,
     moodC: app?.mood?.c,
     dark: app?.themeOverride === "dark",
-    hideLevelArc: true
+    hideLevelArc: true,
+    editable: false,
+    levelBadge: lvlNum
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",

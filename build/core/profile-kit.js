@@ -329,11 +329,14 @@ function OrbitField({
   moodC,
   dark = false,
   hideLevelArc = false,
-  editable = true
+  editable = true,
+  levelBadge = 0
 }) {
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
   // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
+  // levelBadge>0 → wrap the centre avatar in the HOME treatment: a gold XP ring (levelPct) + the
+  // level-number badge at 45° (David: «на «Я» — такой же кружочек уровня, как на главной»).
   var t = useOrbClock();
   var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
   var lerp = (a, b, k) => a + (b - a) * k;
@@ -793,11 +796,53 @@ function OrbitField({
       cursor: onTap ? "pointer" : "default",
       opacity: eo
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, levelBadge > 0 && /*#__PURE__*/React.createElement("svg", {
+    width: "60",
+    height: "60",
+    viewBox: "0 0 60 60",
     "aria-hidden": true,
     style: {
       position: "absolute",
       inset: 0,
+      transform: "rotate(-90deg)"
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "orbXpRingC",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#FFE777"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.5",
+    stopColor: "#F4B72A"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#E08A00"
+  }))), /*#__PURE__*/React.createElement("circle", {
+    cx: "30",
+    cy: "30",
+    r: "28",
+    stroke: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+    strokeWidth: "2.5",
+    fill: "none"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "30",
+    cy: "30",
+    r: "28",
+    stroke: "url(#orbXpRingC)",
+    strokeWidth: "2.5",
+    fill: "none",
+    strokeLinecap: "round",
+    strokeDasharray: 2 * Math.PI * 28,
+    strokeDashoffset: 2 * Math.PI * 28 * (1 - Math.max(0.02, (levelPct || 0) / 100))
+  })), /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: levelBadge > 0 ? 7 : 0,
       borderRadius: "50%",
       background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : !avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "") + "linear-gradient(150deg,#eef1f6,#dadfe7)",
       boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
@@ -808,7 +853,27 @@ function OrbitField({
       color: "#5b6473",
       fontWeight: 600
     }
-  }, avIsEmoji ? avStr.slice(6) : !avIsMemoji ? centreInitial || null : null), editable && /*#__PURE__*/React.createElement("span", {
+  }, avIsEmoji ? avStr.slice(6) : !avIsMemoji ? centreInitial || null : null), levelBadge > 0 && /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      left: 30 + 28 * 0.7071 - 10,
+      top: 30 + 28 * 0.7071 - 10,
+      width: 20,
+      height: 20,
+      borderRadius: 999,
+      background: "linear-gradient(180deg,#FFE777,#F4B72A)",
+      color: "#4a3800",
+      fontSize: 11,
+      fontWeight: 800,
+      lineHeight: "17px",
+      textAlign: "center",
+      letterSpacing: "-0.3px",
+      border: "1.5px solid var(--card)",
+      boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)",
+      zIndex: 3
+    }
+  }, levelBadge), editable && /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
       right: -1,

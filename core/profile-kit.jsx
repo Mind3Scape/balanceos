@@ -94,10 +94,12 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
-function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true }) {
+function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0 }) {
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
   // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
+  // levelBadge>0 → wrap the centre avatar in the HOME treatment: a gold XP ring (levelPct) + the
+  // level-number badge at 45° (David: «на «Я» — такой же кружочек уровня, как на главной»).
   const t = useOrbClock();
   const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -290,12 +292,24 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
       {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
           with your avatar nested inside it. tap to change avatar */}
       <button onClick={onTap} className="tap" aria-label={editable ? "Сменить аватар" : (name || "Круг")} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: onTap ? "pointer" : "default", opacity: eo }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
+        {/* Gold XP ring around the centre (same as the home avatar) when a level badge is requested. */}
+        {levelBadge > 0 && (
+          <svg width="60" height="60" viewBox="0 0 60 60" aria-hidden style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+            <defs><linearGradient id="orbXpRingC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777" /><stop offset="0.5" stopColor="#F4B72A" /><stop offset="1" stopColor="#E08A00" /></linearGradient></defs>
+            <circle cx="30" cy="30" r="28" stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} strokeWidth="2.5" fill="none" />
+            <circle cx="30" cy="30" r="28" stroke="url(#orbXpRingC)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray={2 * Math.PI * 28} strokeDashoffset={2 * Math.PI * 28 * (1 - Math.max(0.02, (levelPct || 0) / 100))} />
+          </svg>
+        )}
+        <div aria-hidden style={{ position: "absolute", inset: levelBadge > 0 ? 7 : 0, borderRadius: "50%",
           background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg,#eef1f6,#dadfe7)",
           boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
           display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, color: "#5b6473", fontWeight: 600 }}>
           {avIsEmoji ? avStr.slice(6) : (!avIsMemoji ? (centreInitial || null) : null)}
         </div>
+        {/* Level-number badge at 45° on the ring — identical language to the home hero avatar. */}
+        {levelBadge > 0 && (
+          <span aria-hidden style={{ position: "absolute", left: 30 + 28 * 0.7071 - 10, top: 30 + 28 * 0.7071 - 10, width: 20, height: 20, borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: 11, fontWeight: 800, lineHeight: "17px", textAlign: "center", letterSpacing: "-0.3px", border: "1.5px solid var(--card)", boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)", zIndex: 3 }}>{levelBadge}</span>
+        )}
         {editable && (
         <span style={{ position: "absolute", right: -1, bottom: -1, width: 20, height: 20, borderRadius: "50%", color: dark ? "#fff" : "var(--text)", background: "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%), " + (dark ? "rgba(255,255,255,0.12)" : "var(--surface-3)"), boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.18)", display: "grid", placeItems: "center", zIndex: 2 }}>
           <I.Pencil size={10} />

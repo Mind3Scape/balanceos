@@ -2024,61 +2024,81 @@ function InviteFriendsCardLive({ isDark }) {
   );
 }
 
-/* ВСЕЛЕННАЯ — зум-аут со своей «солнечной системы» к космосу других (David: «сначала вижу только
-   свою систему, нажал — и вижу орбиты всех вокруг, максимально красиво»). По НАЧАЛУ АНОНИМНО, но
-   по-настоящему: центр = ТЫ (реальный аватар), вокруг — поле других систем БЕЗ ников/уровней (David:
-   «прикольно что анонимна»; подписи — позже, минималистично, только в своей системе по тапу-глазику).
-   Это «суть»: живой космос на чистом CSS (без пер-кадрового React → плавно на телефоне); реальные
-   орбиты людей подключим как «доп инфо вокруг» позже. Тап по фону / X / нижняя подсказка — назад. */
+/* ВСЕЛЕННАЯ — зум-аут от своей системы к РЕАЛЬНЫМ людям вокруг (David: «весь смысл чтобы всё было
+   НАСТОЯЩЕЕ, не бутафорская вселенная, и реально всех друзей отражало; и под наш дизайн»). Поэтому:
+   СВЕТЛЫЙ стеклянный космос (язык орбиты «Я», не тёмный sci-fi с радужными точками), а планеты =
+   ТВОИ РЕАЛЬНЫЕ люди (приглашённые + участники кругов, дедуп, настоящие аватары BuddyFaceLive).
+   Пусто → честный зов, без фейка. Чистый CSS (слой крутится, лица контр-вращаются = ровные),
+   портал в <body> (иначе position:fixed застрянет в transform страницы). */
+var _bosUniverseCache = null;
 function UniverseFieldLive({ app, people, onClose }) {
-  var lerp = function (a, b, k) { return a + (b - a) * k; };
-  var N = 58, GA = 2.399963;
-  var PAL = ["#86a8d8", "#9d92dc", "#d597b8", "#83ccc4", "#d2b87f", "#94b4e6"];
-  var orbs = React.useMemo(function () {
-    var out = [];
-    for (var i = 0; i < N; i++) {
-      var r01 = Math.sqrt((i + 1) / N), ang = i * GA;
-      out.push({ x: Math.cos(ang) * r01 * 44, y: Math.sin(ang) * r01 * 44, size: lerp(16, 3.4, r01), op: lerp(0.95, 0.16, r01), col: PAL[i % PAL.length], ring: i < 12, delay: (r01 * 0.5).toFixed(2) });
-    }
-    return out;
+  var isDark = app && app.themeOverride === "dark";
+  var [friends, setFriends] = React.useState(_bosUniverseCache);
+  React.useEffect(function () {
+    var on = true;
+    var seed = Array.isArray(people) ? people : [];
+    if (!(window.bosCloud && window.bosCloud.enabled())) { setFriends(seed); return; }
+    (async function () {
+      var seen = {}, out = [], myId = null;
+      try { myId = await window.bosCloud.uid(); } catch (e) {}
+      seed.forEach(function (p) { if (!p) return; var id = p.id || p.name; if (id && !seen[id]) { seen[id] = 1; out.push({ avatar: p.avatar, name: p.name || "" }); } });
+      try { if (window.bosCloud.invitedPeople) { var inv = await window.bosCloud.invitedPeople(); (inv || []).forEach(function (p) { if (!p) return; var id = p.id || p.user_id || p.name; if (id && !seen[id]) { seen[id] = 1; out.push({ avatar: p.avatar, name: p.username || p.name || "" }); } }); } } catch (e) {}
+      try { var teams = (app && app.teams || []).filter(function (t) { return t.cloudId; }); for (var i = 0; i < teams.length; i++) { var mem = await window.bosCloud.teamMembers(teams[i].cloudId); (mem || []).forEach(function (m) { if (m && m.id && m.id !== myId && !seen[m.id]) { seen[m.id] = 1; out.push({ avatar: m.avatar, name: m.name || "" }); } }); } } catch (e) {}
+      if (on) { _bosUniverseCache = out; setFriends(out); }
+    })();
+    return function () { on = false; };
   }, []);
-  var dust = React.useMemo(function () {
-    var out = [];
-    for (var d = 0; d < 22; d++) { var a = d * 2.6182, rr = ((d * 37) % 100) / 100; out.push({ x: Math.cos(a) * (10 + rr * 44), y: Math.sin(a) * (10 + rr * 44), s: 1 + (d % 3) * 0.6, o: 0.18 + (d % 4) * 0.06 }); }
-    return out;
-  }, []);
+  var list = Array.isArray(friends) ? friends : [];
+  // Belts (vmin radius, capacity, face px) — наполняются по мере роста; всё по язык орбиты «Я».
+  var BELTS = [{ r: 23, cap: 6, sz: 50 }, { r: 35, cap: 10, sz: 44 }, { r: 47, cap: 18, sz: 38 }];
+  var perBelt = [[], [], []];
+  for (var i = 0, bi = 0; i < list.length && bi < 3; i++) { if (perBelt[bi].length >= BELTS[bi].cap) { bi++; if (bi >= 3) break; } perBelt[bi].push(list[i]); }
+  var nodes = [];
+  perBelt.forEach(function (arr, b) {
+    var rad = BELTS[b].r, sz = BELTS[b].sz, cnt = arr.length;
+    arr.forEach(function (f, idx) {
+      var ang = (idx / Math.max(1, cnt)) * 360 + b * 24 - 90;
+      nodes.push({ f: f, x: Math.cos(ang * Math.PI / 180) * rad, y: Math.sin(ang * Math.PI / 180) * rad, sz: sz, delay: (0.12 + b * 0.1 + idx * 0.03).toFixed(2), key: b + "-" + idx });
+    });
+  });
+  var bg = isDark ? "radial-gradient(125% 95% at 50% 38%, #1b2336 0%, #0e1422 52%, #070b14 100%)" : "radial-gradient(125% 95% at 50% 36%, #ffffff 0%, #eef1f8 50%, #e4e9f2 100%)";
+  var ringCol = isDark ? "rgba(186,210,248,0.13)" : "rgba(92,120,165,0.12)";
+  var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
+  var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
+  var plural = list.length === 1 ? "человек" : (list.length < 5 ? "человека" : "человек");
+  var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом") : "пока ты один — позови своих");
   var node = (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: "radial-gradient(120% 90% at 50% 42%, #1a2238 0%, #0d1322 46%, #060912 100%)", animation: "bosUniFade 0.55s ease both" }}>
-      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosUniSpin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosUniSpinR{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
-      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, animation: "bosUniSpinR 220s linear infinite" }}>
-        {dust.map(function (s, i) { return <span key={"d" + i} aria-hidden style={{ position: "absolute", left: s.x + "vmin", top: s.y + "vmin", width: s.s, height: s.s, borderRadius: "50%", background: "#dfe8ff", opacity: s.o, transform: "translate(-50%,-50%)" }} />; })}
-      </div>
-      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, animation: "bosUniSpin 150s linear infinite" }}>
-        {orbs.map(function (o, i) {
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
+      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosUniSpin{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosUniFaceUp{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
+      {[BELTS[0].r, BELTS[1].r, BELTS[2].r].map(function (r, i) { return <span key={"ring" + i} aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: (r * 2) + "vmin", height: (r * 2) + "vmin", transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid " + ringCol }} />; })}
+      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, animation: nodes.length ? "bosUniSpin 160s linear infinite" : "none" }}>
+        {nodes.map(function (n) {
           return (
-            <span key={i} aria-hidden style={{ position: "absolute", left: o.x.toFixed(2) + "vmin", top: o.y.toFixed(2) + "vmin", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.7s ease " + o.delay + "s both" }}>
-              {o.ring && <span style={{ position: "absolute", left: "50%", top: "50%", width: o.size * 3.2, height: o.size * 3.2, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid rgba(180,205,255,0.16)" }} />}
-              <span style={{ display: "block", width: o.size, height: o.size, borderRadius: "50%", background: o.col, opacity: o.op, boxShadow: "0 0 " + (o.size * 1.2).toFixed(1) + "px " + o.col }} />
-            </span>
+            <div key={n.key} style={{ position: "absolute", left: n.x.toFixed(2) + "vmin", top: n.y.toFixed(2) + "vmin", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.6s ease " + n.delay + "s both" }}>
+              <div style={{ position: "relative", width: n.sz, height: n.sz, animation: "bosUniFaceUp 160s linear infinite" }}>
+                <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: n.sz * 1.5, height: n.sz * 1.5, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid " + ringCol }} />
+                {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={n.f && n.f.avatar} name={n.f && n.f.name} size={n.sz} /> : null}
+              </div>
+            </div>
           );
         })}
       </div>
-      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.6s ease 0.1s both" }}>
-        <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 118, height: 118, transform: "translate(-50%,-50%)", borderRadius: "50%", background: "radial-gradient(circle, rgba(140,170,230,0.32), transparent 70%)", filter: "blur(6px)" }} />
-        <div style={{ position: "relative" }}>
-          {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={app && app.avatar} name={app && app.userName} size={66} /> : <div style={{ width: 66, height: 66, borderRadius: "50%", background: "linear-gradient(150deg,#eef1f6,#dadfe7)" }} />}
-        </div>
+      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.55s ease 0.05s both" }}>
+        <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 122, height: 122, transform: "translate(-50%,-50%)", borderRadius: "50%", background: isDark ? "radial-gradient(circle, rgba(140,170,230,0.3), transparent 70%)" : "radial-gradient(circle, rgba(120,150,220,0.2), transparent 72%)", filter: "blur(6px)" }} />
+        <div style={{ position: "relative" }}>{(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={app && app.avatar} name={app && app.userName} size={68} /> : null}</div>
       </div>
       <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "rgba(220,230,255,0.66)" }}>Вселенная</div>
-        <div style={{ fontSize: 13, color: "rgba(200,215,255,0.5)", marginTop: 3 }}>ты не один в потоке</div>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: titleC }}>Вселенная</div>
+        {sub ? <div style={{ fontSize: 13, color: subC, marginTop: 3 }}>{sub}</div> : null}
       </div>
-      <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: "rgba(255,255,255,0.12)", color: "#fff", display: "grid", placeItems: "center", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}><I.X size={18} /></button>
-      <div style={{ position: "absolute", bottom: "calc(22px + var(--tg-bottom-inset, 0px))", left: 0, right: 0, textAlign: "center", fontSize: 12, color: "rgba(200,215,255,0.4)", pointerEvents: "none" }}>коснись, чтобы вернуться</div>
+      {friends != null && list.length === 0 && (
+        <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 72px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none" }}>Позови первых — и здесь оживёт ваша вселенная из реальных людей.</div>
+      )}
+      <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "var(--text)", display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}><I.X size={18} /></button>
+      <div style={{ position: "absolute", bottom: "calc(22px + var(--tg-bottom-inset, 0px))", left: 0, right: 0, textAlign: "center", fontSize: 12, color: subC, pointerEvents: "none" }}>коснись, чтобы вернуться</div>
     </div>
   );
-  // Portal to <body> so position:fixed escapes the page-stack's CSS transform (else the cosmos
-  // gets trapped inside the profile frame — light strip at top, off-centre).
+  // Portal to <body> so position:fixed escapes the page-stack's CSS transform.
   return (typeof ReactDOM !== "undefined" && ReactDOM.createPortal) ? ReactDOM.createPortal(node, document.body) : node;
 }
 

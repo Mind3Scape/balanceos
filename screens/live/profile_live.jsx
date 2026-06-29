@@ -67,11 +67,13 @@ function ProfileLive() {
   );
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader onBack={() => navigate("home")} title="" />
+      {/* Карандаш-правки в правый верхний угол (как на стр. Привычки) — David. */}
+      <PageHeader onBack={() => navigate("home")} title="" right={typeof EditGlassButtonLive === "function" ? <EditGlassButtonLive onClick={openAvatar} /> : null} />
 
       <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
-        <OrbitField avatar={app?.avatar} name={app?.userName} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} onTap={openAvatar} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc />
+        {/* Центр = аватар с золотым кольцом + ЦИФРОЙ уровня (как на главной); карандаш ушёл наверх-вправо. */}
+        <OrbitField avatar={app?.avatar} name={app?.userName} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
         <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 6, color: "var(--text)" }}>{app?.userName || "Ты"}</div>
         {/* Quick stats — one unified plaque (the SAME StatTrioLive band as the Habits page) */}
         <div style={{ marginTop: 14 }}>
