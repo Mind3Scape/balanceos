@@ -4156,57 +4156,111 @@ function CloudTeamsDiscoverLive({
    якорь-практику в «Привычках» — тот же движок круга, что у курса и цели-с-кругом. Честно: БЕЗ
    фейковых счётчиков участников (твой старт = соло-копия); реальные открытые круги других людей
    показывает CloudTeamsDiscoverLive ниже. seedId на круге = защита от дубля. LIVE only. */
+// Курируемая витрина «Найти» — разные сферы и разные метрики (не только км; David: «метрики у
+// каждого свои»), у каждого крючок-почему. Цвета ВЫКЛ — эмблемы на сером стекле как везде.
 var SEED_CIRCLES = [{
-  id: "seed-run",
-  name: "Беговой клуб",
-  emblem: "🏃",
-  accent: "#FF3B30",
-  goalText: "100 км вместе",
-  target: 100,
-  unit: "км",
-  type: "collective",
-  practice: {
-    name: "Пробежка",
-    emoji: "🏃"
-  }
-}, {
   id: "seed-morning",
   name: "Утро чемпионов",
   emblem: "🌅",
-  accent: "#FF9500",
   goalText: "21 день подряд",
   target: 21,
   unit: "дней",
   type: "streak",
+  hook: "Вставай раньше — задаёшь тон всему дню",
   practice: {
-    name: "Подъём в 6:00",
+    name: "Ранний подъём",
     emoji: "⏰"
+  }
+}, {
+  id: "seed-read",
+  name: "Книжный клуб",
+  emblem: "📚",
+  goalText: "12 книг за год",
+  target: 12,
+  unit: "книг",
+  type: "collective",
+  hook: "По главе в день — вместе веселее",
+  practice: {
+    name: "Чтение",
+    emoji: "📖"
   }
 }, {
   id: "seed-meditate",
   name: "Тихий час",
   emblem: "🧘",
-  accent: "#34C759",
-  goalText: "1000 минут покоя",
-  target: 1000,
-  unit: "минут",
-  type: "collective",
+  goalText: "30 дней практики",
+  target: 30,
+  unit: "дней",
+  type: "streak",
+  hook: "5 минут тишины каждый день",
   practice: {
     name: "Медитация",
     emoji: "🧘"
   }
 }, {
-  id: "seed-read",
-  name: "Книжный круг",
-  emblem: "📖",
-  accent: "#0A84FF",
-  goalText: "30 дней чтения",
+  id: "seed-steps",
+  name: "10 000 шагов",
+  emblem: "👟",
+  goalText: "30 дней движения",
   target: 30,
   unit: "дней",
   type: "collective",
+  hook: "Двигайтесь каждый день — счёт общий",
   practice: {
-    name: "Чтение",
-    emoji: "📖"
+    name: "Прогулка",
+    emoji: "👟"
+  }
+}, {
+  id: "seed-water",
+  name: "Восемь стаканов",
+  emblem: "💧",
+  goalText: "30 дней воды",
+  target: 30,
+  unit: "дней",
+  type: "collective",
+  hook: "Пей воду — держитесь кругом",
+  practice: {
+    name: "Вода",
+    emoji: "💧"
+  }
+}, {
+  id: "seed-cold",
+  name: "Холодный душ",
+  emblem: "🚿",
+  goalText: "21 день вызова",
+  target: 21,
+  unit: "дней",
+  type: "streak",
+  hook: "Закаляйся — слабо продержаться?",
+  practice: {
+    name: "Холодный душ",
+    emoji: "🚿"
+  }
+}, {
+  id: "seed-grateful",
+  name: "Дневник благодарности",
+  emblem: "🙏",
+  goalText: "30 дней",
+  target: 30,
+  unit: "дней",
+  type: "collective",
+  hook: "Три строки благодарности в день",
+  practice: {
+    name: "Благодарность",
+    emoji: "📓"
+  }
+}, {
+  id: "seed-focus",
+  name: "Глубокая работа",
+  emblem: "🎯",
+  goalText: "21 день фокуса",
+  target: 21,
+  unit: "дней",
+  type: "collective",
+  hook: "Час без телефона на важное",
+  practice: {
+    name: "Фокус-час",
+    emoji: "🎯"
   }
 }];
 function SeedCirclesShowcaseLive({
@@ -4313,6 +4367,18 @@ function SeedCirclesShowcaseLive({
       });
     } // офлайн/превью
   };
+  var chipS = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 11,
+    fontWeight: 600,
+    color: "var(--text-2)",
+    background: "var(--surface-3)",
+    padding: "3px 9px",
+    borderRadius: 999,
+    whiteSpace: "nowrap"
+  };
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
@@ -4320,9 +4386,9 @@ function SeedCirclesShowcaseLive({
       letterSpacing: 1,
       textTransform: "uppercase",
       color: "var(--text-4)",
-      padding: "4px 4px 8px"
+      padding: "4px 4px 10px"
     }
-  }, "\u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDD25 \u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438 \xB7 \u0432\u0441\u0442\u0443\u043F\u0430\u0439 \u0437\u0430 \u0441\u0435\u043A\u0443\u043D\u0434\u0443"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -4332,27 +4398,31 @@ function SeedCirclesShowcaseLive({
     var joined = (app?.teams || []).some(t => t.seedId === s.id);
     return /*#__PURE__*/React.createElement("div", {
       key: s.id,
+      className: "tap",
+      onClick: () => start(s),
       style: {
         display: "flex",
         alignItems: "center",
-        gap: 12,
+        gap: 13,
         background: "var(--card)",
         borderRadius: 22,
         padding: 14,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+        boxShadow: "var(--card-shadow)",
+        cursor: "pointer"
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        background: s.accent + "22",
+        width: 48,
+        height: 48,
+        borderRadius: 15,
+        background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
+        boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)",
         display: "grid",
         placeItems: "center",
-        fontSize: 24,
+        fontSize: 25,
         flexShrink: 0
       }
-    }, bosIcon(s.emblem, 24, s.accent)), /*#__PURE__*/React.createElement("div", {
+    }, bosIcon(s.emblem, 25, null)), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
@@ -4361,29 +4431,38 @@ function SeedCirclesShowcaseLive({
       style: {
         fontSize: 15.5,
         fontWeight: 600,
-        color: "var(--text)"
+        color: "var(--text)",
+        letterSpacing: "-0.2px"
       }
     }, s.name), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12.5,
-        color: "var(--text-3)",
-        marginTop: 2
-      }
-    }, "\uD83C\uDFAF ", s.goalText)), /*#__PURE__*/React.createElement("button", {
-      onClick: () => start(s),
-      className: "tap",
-      style: {
-        flexShrink: 0,
-        background: joined ? "var(--card-2)" : "#0a0a0a",
-        color: joined ? "var(--text-3)" : "#fff",
-        border: 0,
-        borderRadius: 999,
-        padding: "9px 16px",
-        fontSize: 13,
-        fontWeight: 600,
+        fontSize: 12,
+        color: "var(--text-4)",
+        marginTop: 1,
+        lineHeight: 1.35,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
         whiteSpace: "nowrap"
       }
-    }, joined ? "Открыть" : "Начать"));
+    }, s.hook), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: chipS
+    }, "\uD83C\uDFAF ", s.goalText))), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flexShrink: 0,
+        fontSize: 13,
+        fontWeight: 600,
+        color: joined ? "var(--text-4)" : "var(--text-2)",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2
+      }
+    }, joined ? "Открыть" : "Начать", " ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+      size: 15
+    })));
   })));
 }
 
