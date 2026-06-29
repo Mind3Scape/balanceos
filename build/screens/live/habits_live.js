@@ -664,7 +664,7 @@ function HabitsLive() {
       // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
       // расширенную, старую плоскую удалить»). Грей-стекло по умолчанию (.team-card), эмблема-
       // водяной знак, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель); круги носят лица через LiveTeamCard.
-      var gAccent = "#DADADF"; // ЦВЕТА ПОКА ВЫКЛ (David) — единое светло-серое стекло, как у кругов
+      var gAccent = "#EAEAEF"; // ЦВЕТА ПОКА ВЫКЛ (David) — едва-серое стекло, как у кругов
       var inner = /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",
         onClick: ctx.mode ? undefined : () => navigate("goal-detail", {
@@ -748,14 +748,8 @@ function HabitsLive() {
           background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
         }
       }))));
-      if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
-        className: "team-card",
-        style: {
-          ["--team-accent"]: gAccent,
-          borderRadius: 22,
-          overflow: "hidden"
-        }
-      }, inner);
+      // Без SwipeRow — тап по карточке (как у кругов). Opaque rowBg (#fff) прятал серое
+      // стекло → цель «отличалась по цвету» (David). Удаление/правка — через деталь цели.
       return /*#__PURE__*/React.createElement("div", {
         className: "team-card",
         style: {
@@ -763,31 +757,7 @@ function HabitsLive() {
           borderRadius: 22,
           overflow: "hidden"
         }
-      }, /*#__PURE__*/React.createElement(SwipeRow, {
-        rowBg: rowBg,
-        dark: isDark,
-        actions: [{
-          key: "share",
-          tone: "share",
-          label: "Поделиться",
-          icon: I.Share,
-          onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
-            goal: g,
-            dark: isDark
-          }))
-        }, {
-          key: "del",
-          tone: "delete",
-          label: "Удалить",
-          icon: I.X,
-          onAction: () => bosConfirmDelete(openSheet, {
-            title: "Удалить цель?",
-            message: "«" + g.name + "» удалится навсегда.",
-            confirmLabel: "Удалить",
-            onConfirm: () => removeGoal(g.id)
-          })
-        }]
-      }, inner));
+      }, inner);
     }
   }), teams.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {

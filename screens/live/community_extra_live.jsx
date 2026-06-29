@@ -664,13 +664,14 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Новая привычка команды</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 3 }}>Общая для всех в «{team?.name || "команде"}»</div>
       </div>
-      {/* Icon — наш стандартный пикер (эмодзи/символы/палитра), как при создании личной привычки. */}
-      <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap"
-        style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 10, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "7px 14px 7px 7px", cursor: "pointer" }}>
-        <span style={{ width: 44, height: 44, borderRadius: 13, background: BOS_TILE_SHEEN + ", var(--card)", boxShadow: bosTileGlass(false), display: "grid", placeItems: "center", fontSize: 22 }}>{bosIcon(emoji, 24, null)}</span>
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
-      </button>
-      <input className="bos-input" value={name} onChange={e => setName(e.target.value)} placeholder="напр. Холодный душ" style={{ marginTop: 14 }} />
+      {/* Идентичность — иконка (тап → пикер) + имя в ОДНОМ блоке (David: «не отдельно сменить иконку и
+          название ниже»), как карточка создания личной привычки. */}
+      <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12, background: "var(--surface-3)", borderRadius: 16, padding: 10 }}>
+        <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap"
+          style={{ width: 48, height: 48, borderRadius: 14, background: BOS_TILE_SHEEN + ", var(--card)", boxShadow: bosTileGlass(false), display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0, border: 0, cursor: "pointer" }}>{bosIcon(emoji, 24, null)}</button>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
+          style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
+      </div>
       {/* НОРМА по умолчанию — компактный выбор количества для тренера. Копируется участнику как
           его личная норма, которую он МОЖЕТ поправить под себя (30/50). David. */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--surface-3)", borderRadius: 14, padding: "11px 14px", marginTop: 12 }}>

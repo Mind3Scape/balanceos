@@ -31,9 +31,9 @@
 // already caps at 5 faces + a «+N» overflow chip (iOS-style) and uses each member's real
 // avatar. Local-only teams fall back to their own members; empty cloud team = honest «ты один».
 function LiveTeamCard({ t, navigate }) {
-  // ЦВЕТА ПОКА ВЫКЛ (David): единое светло-серое СТЕКЛО (его референс) для ВСЕХ кругов/целей;
+  // ЦВЕТА ПОКА ВЫКЛ (David): единое ЕДВА-серое СТЕКЛО (его референс) для ВСЕХ кругов/целей;
   // выбор цвета временно убран, включим позже.
-  const cardAccent = "#DADADF";
+  const cardAccent = "#EAEAEF";
   const tgt = t.target || 0;
   const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
   const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
@@ -283,7 +283,8 @@ function TeamOrbitLive({ emblem, accent, faces, isDark }) {
     <div style={{ position: "relative", width: W, height: H, margin: "0 auto" }}>
       <div style={ring(rOut * 2)} />
       <div style={ring(rIn * 2)} />
-      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 54, height: 54, borderRadius: "50%", background: BOS_TILE_SHEEN + ", rgba(255,255,255,0.55)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center" }}>{bosIcon(emblem || "✨", 28, accent)}</div>
+      {/* Центр орбиты — ТОТ ЖЕ серый диск, что у людей-планет (BuddyFaceLive), чтобы цвет не отличался (David). */}
+      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 54, height: 54, borderRadius: "50%", background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center" }}>{bosIcon(emblem || "✨", 28, null)}</div>
       {place(inner, rIn, 0)}
       {place(outer, rOut, 28)}
     </div>
@@ -297,8 +298,8 @@ function TeamDetailLive() {
   const passed = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0, members: [] };
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
-  // ЦВЕТА ПОКА ВЫКЛ (David): единое светло-серое СТЕКЛО для комнаты круга; включим позже.
-  const accent = "#DADADF";
+  // ЦВЕТА ПОКА ВЫКЛ (David): единое ЕДВА-серое СТЕКЛО для комнаты круга; включим позже.
+  const accent = "#EAEAEF";
   const isDark = app?.themeOverride === "dark";
   // The goal MODE — shown as a chip so the team's rule (общий счёт / серия / гонка) is ALWAYS
   // visible, not hidden behind the async cloud progress (David: «не вижу их отражение»).
@@ -599,10 +600,11 @@ function TeamDetailLive() {
       {/* Чат уехал вниз в тихие чипы (см. конец комнаты) — David: чат нужен в основном тренеру,
           не должен доминировать; у семьи/друзей он просто тихий. */}
 
-      <div className="section-label" style={{ marginTop: 22 }}>Сегодня вместе</div>
+      {/* «Сегодня вместе» убрана — была плавающей подписью вне блока (David: «снаружи»); карточка-якорь
+          ниже самоочевидна («● ЯКОРЬ КОМАНДЫ»). */}
       {main && (<>
       {/* Main habit — featured card (якорь команды) */}
-      <div style={{ background: BOS_TILE_SHEEN + ", var(--card)", borderRadius: 22, padding: 18, marginTop: 8, color: "var(--text)", position: "relative", overflow: "hidden", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", transform: "translateZ(0)" }}>
+      <div style={{ background: BOS_TILE_SHEEN + ", var(--card)", borderRadius: 22, padding: 18, marginTop: 22, color: "var(--text)", position: "relative", overflow: "hidden", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", transform: "translateZ(0)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ width: 48, height: 48, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (main.color ? main.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0 }}>{bosIcon(main.emoji, 26, main.color)}</span>
           <div style={{ flex: 1, minWidth: 0 }}>

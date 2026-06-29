@@ -34,9 +34,9 @@ function LiveTeamCard({
   t,
   navigate
 }) {
-  // ЦВЕТА ПОКА ВЫКЛ (David): единое светло-серое СТЕКЛО (его референс) для ВСЕХ кругов/целей;
+  // ЦВЕТА ПОКА ВЫКЛ (David): единое ЕДВА-серое СТЕКЛО (его референс) для ВСЕХ кругов/целей;
   // выбор цвета временно убран, включим позже.
-  var cardAccent = "#DADADF";
+  var cardAccent = "#EAEAEF";
   var tgt = t.target || 0;
   var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
   var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
@@ -724,12 +724,12 @@ function TeamOrbitLive({
       width: 54,
       height: 54,
       borderRadius: "50%",
-      background: BOS_TILE_SHEEN + ", rgba(255,255,255,0.55)",
+      background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
       boxShadow: bosTileGlass(isDark),
       display: "grid",
       placeItems: "center"
     }
-  }, bosIcon(emblem || "✨", 28, accent)), place(inner, rIn, 0), place(outer, rOut, 28));
+  }, bosIcon(emblem || "✨", 28, null)), place(inner, rIn, 0), place(outer, rOut, 28));
 }
 function TeamDetailLive() {
   var {
@@ -752,8 +752,8 @@ function TeamDetailLive() {
   };
   // Read the LIVE team from the store so a just-added habit appears immediately.
   var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
-  // ЦВЕТА ПОКА ВЫКЛ (David): единое светло-серое СТЕКЛО для комнаты круга; включим позже.
-  var accent = "#DADADF";
+  // ЦВЕТА ПОКА ВЫКЛ (David): единое ЕДВА-серое СТЕКЛО для комнаты круга; включим позже.
+  var accent = "#EAEAEF";
   var isDark = app?.themeOverride === "dark";
   // The goal MODE — shown as a chip so the team's rule (общий счёт / серия / гонка) is ALWAYS
   // visible, not hidden behind the async cloud progress (David: «не вижу их отражение»).
@@ -1385,17 +1385,12 @@ function TeamDetailLive() {
         color: "var(--text-4)"
       })
     }]
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0432\u043C\u0435\u0441\u0442\u0435"), main && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }), main && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: BOS_TILE_SHEEN + ", var(--card)",
       borderRadius: 22,
       padding: 18,
-      marginTop: 8,
+      marginTop: 22,
       color: "var(--text)",
       position: "relative",
       overflow: "hidden",

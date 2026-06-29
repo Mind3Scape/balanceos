@@ -253,7 +253,7 @@ function HabitsLive() {
               // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
               // расширенную, старую плоскую удалить»). Грей-стекло по умолчанию (.team-card), эмблема-
               // водяной знак, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель); круги носят лица через LiveTeamCard.
-              const gAccent = "#DADADF"; // ЦВЕТА ПОКА ВЫКЛ (David) — единое светло-серое стекло, как у кругов
+              const gAccent = "#EAEAEF"; // ЦВЕТА ПОКА ВЫКЛ (David) — едва-серое стекло, как у кругов
               const inner = (
                 <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ padding: 18, textAlign: "left", color: "var(--text)", position: "relative", overflow: "hidden", pointerEvents: ctx.mode ? "none" : "auto" }}>
@@ -272,17 +272,9 @@ function HabitsLive() {
                   </div>
                 </div>
               );
-              if (ctx.mode) return <div className="team-card" style={{ ["--team-accent"]: gAccent, borderRadius: 22, overflow: "hidden" }}>{inner}</div>;
-              return (
-                <div className="team-card" style={{ ["--team-accent"]: gAccent, borderRadius: 22, overflow: "hidden" }}>
-                  <SwipeRow rowBg={rowBg} dark={isDark} actions={[
-                    { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) },
-                    { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) }) },
-                  ]}>
-                    {inner}
-                  </SwipeRow>
-                </div>
-              );
+              // Без SwipeRow — тап по карточке (как у кругов). Opaque rowBg (#fff) прятал серое
+              // стекло → цель «отличалась по цвету» (David). Удаление/правка — через деталь цели.
+              return <div className="team-card" style={{ ["--team-accent"]: gAccent, borderRadius: 22, overflow: "hidden" }}>{inner}</div>;
             }} />)}
           {/* Круги (бывшие команды) — совместные цели живут ЗДЕСЬ ЖЕ, среди целей, с лицами;
               тап по карточке → комната-орбита круга. Отдельной вкладки «Команды» больше нет. */}

@@ -1927,48 +1927,52 @@ function TeamHabitSheetLive({
       color: "var(--text-3)",
       marginTop: 3
     }
-  }, "\u041E\u0431\u0449\u0430\u044F \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0432 \xAB", team?.name || "команде", "\xBB")), /*#__PURE__*/React.createElement("button", {
+  }, "\u041E\u0431\u0449\u0430\u044F \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0432 \xAB", team?.name || "команде", "\xBB")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "var(--surface-3)",
+      borderRadius: 16,
+      padding: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
     type: "button",
     "data-haptic": "selection",
     onClick: () => setView("picker"),
     className: "tap",
     style: {
-      marginTop: 16,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 10,
-      background: "var(--surface-3)",
-      border: 0,
+      width: 48,
+      height: 48,
       borderRadius: 14,
-      padding: "7px 14px 7px 7px",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 13,
       background: BOS_TILE_SHEEN + ", var(--card)",
       boxShadow: bosTileGlass(false),
       display: "grid",
       placeItems: "center",
-      fontSize: 22
+      fontSize: 24,
+      flexShrink: 0,
+      border: 0,
+      cursor: "pointer"
     }
-  }, bosIcon(emoji, 24, null)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 600,
-      color: "var(--text-2)"
-    }
-  }, "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443")), /*#__PURE__*/React.createElement("input", {
-    className: "bos-input",
+  }, bosIcon(emoji, 24, null)), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
-    placeholder: "\u043D\u0430\u043F\u0440. \u0425\u043E\u043B\u043E\u0434\u043D\u044B\u0439 \u0434\u0443\u0448",
+    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438",
+    "aria-label": "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438",
     style: {
-      marginTop: 14
+      flex: 1,
+      minWidth: 0,
+      border: 0,
+      outline: "none",
+      background: "transparent",
+      fontSize: 17,
+      fontWeight: 600,
+      color: "var(--text)",
+      letterSpacing: "-0.2px",
+      padding: "6px 0"
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
