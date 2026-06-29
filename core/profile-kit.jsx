@@ -94,7 +94,10 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
-function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false }) {
+function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true }) {
+  // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
+  // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
+  // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
   const t = useOrbClock();
   const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -122,7 +125,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
     };
     hb.forEach((h, i) => place((r) => nodes.push({ ring: r, kind: "h", emoji: h.emoji || "✨", streak: h.streak || 0, key: "h" + (h.id != null ? h.id : i) })));
     if (slot > 0) { ring++; slot = 0; } // people start their own belt, just outside your habits
-    pp.forEach((p, j) => place((r) => nodes.push({ ring: r, kind: "p", avatar: p.avatar, key: "p" + j })));
+    pp.forEach((p, j) => place((r) => nodes.push({ ring: r, kind: "p", avatar: p && p.avatar, lit: (p && typeof p === "object") ? p.lit : undefined, key: "p" + j })));
     if (overflow > 0) nodes.push({ ring: MAXR, kind: "more", count: overflow, key: "more" });
     // Even angular spread within each belt (so nothing collides), then a per-ring spin.
     const byRing = {};
@@ -263,8 +266,9 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           }
           const av = n.avatar, isEmoji = av && ("" + av).indexOf("emoji:") === 0, isMemoji = /^m\d+$/.test(av || "");
           const href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
+          const pOp = (n.lit === false ? 0.5 : 1) * op; // dim members not active today (lit opt-in; profile passes none → full)
           return (
-            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={pOp.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
               {dark && <circle cx="0" cy="0" r="18.5" fill={glow} opacity="0.16" style={{ filter: "blur(5px)" }} />}
               <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
               {isEmoji
@@ -272,6 +276,12 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
                 : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
               <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
               <circle cx="0" cy="0" r="16.6" fill="none" stroke="url(#orbEdge)" strokeWidth="1.4" />
+              {n.lit === true && (
+                <g transform="translate(11 11)">
+                  <circle cx="0" cy="0" r="6.6" fill="#0a0a0a" stroke={dark ? "#0a0a0a" : "#ffffff"} strokeWidth="1.5" />
+                  <path d="M -2.7 0.2 L -0.8 2.1 L 2.9 -2.1" fill="none" stroke="#ffffff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </g>
+              )}
             </g>
           );
         })}
@@ -279,16 +289,18 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
 
       {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
           with your avatar nested inside it. tap to change avatar */}
-      <button onClick={onTap} className="tap" aria-label="Сменить аватар" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: "pointer", opacity: eo }}>
+      <button onClick={onTap} className="tap" aria-label={editable ? "Сменить аватар" : (name || "Круг")} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: onTap ? "pointer" : "default", opacity: eo }}>
         <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%",
           background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg,#eef1f6,#dadfe7)",
           boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
           display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, color: "#5b6473", fontWeight: 600 }}>
           {avIsEmoji ? avStr.slice(6) : (!avIsMemoji ? (centreInitial || null) : null)}
         </div>
+        {editable && (
         <span style={{ position: "absolute", right: -1, bottom: -1, width: 20, height: 20, borderRadius: "50%", color: dark ? "#fff" : "var(--text)", background: "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%), " + (dark ? "rgba(255,255,255,0.12)" : "var(--surface-3)"), boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.18)", display: "grid", placeItems: "center", zIndex: 2 }}>
           <I.Pencil size={10} />
         </span>
+        )}
       </button>
     </div>
   );

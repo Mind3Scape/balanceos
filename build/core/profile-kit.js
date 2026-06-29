@@ -328,8 +328,12 @@ function OrbitField({
   onTap,
   moodC,
   dark = false,
-  hideLevelArc = false
+  hideLevelArc = false,
+  editable = true
 }) {
+  // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
+  // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
+  // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
   var t = useOrbClock();
   var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
   var lerp = (a, b, k) => a + (b - a) * k;
@@ -385,7 +389,8 @@ function OrbitField({
     pp.forEach((p, j) => place(r => nodes.push({
       ring: r,
       kind: "p",
-      avatar: p.avatar,
+      avatar: p && p.avatar,
+      lit: p && typeof p === "object" ? p.lit : undefined,
       key: "p" + j
     })));
     if (overflow > 0) nodes.push({
@@ -707,10 +712,11 @@ function OrbitField({
       isEmoji = av && ("" + av).indexOf("emoji:") === 0,
       isMemoji = /^m\d+$/.test(av || "");
     var href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
+    var pOp = (n.lit === false ? 0.5 : 1) * op; // dim members not active today (lit opt-in; profile passes none → full)
     return /*#__PURE__*/React.createElement("g", {
       key: n.key,
       transform: "translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")",
-      opacity: op.toFixed(2),
+      opacity: pOp.toFixed(2),
       filter: PAL.shadow ? "url(#orbShadow)" : undefined
     }, dark && /*#__PURE__*/React.createElement("circle", {
       cx: "0",
@@ -752,11 +758,27 @@ function OrbitField({
       fill: "none",
       stroke: "url(#orbEdge)",
       strokeWidth: "1.4"
-    }));
+    }), n.lit === true && /*#__PURE__*/React.createElement("g", {
+      transform: "translate(11 11)"
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "0",
+      cy: "0",
+      r: "6.6",
+      fill: "#0a0a0a",
+      stroke: dark ? "#0a0a0a" : "#ffffff",
+      strokeWidth: "1.5"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M -2.7 0.2 L -0.8 2.1 L 2.9 -2.1",
+      fill: "none",
+      stroke: "#ffffff",
+      strokeWidth: "1.7",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    })));
   })), /*#__PURE__*/React.createElement("button", {
     onClick: onTap,
     className: "tap",
-    "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
+    "aria-label": editable ? "Сменить аватар" : name || "Круг",
     style: {
       position: "absolute",
       left: "50%",
@@ -768,7 +790,7 @@ function OrbitField({
       border: 0,
       padding: 0,
       background: "transparent",
-      cursor: "pointer",
+      cursor: onTap ? "pointer" : "default",
       opacity: eo
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -786,7 +808,7 @@ function OrbitField({
       color: "#5b6473",
       fontWeight: 600
     }
-  }, avIsEmoji ? avStr.slice(6) : !avIsMemoji ? centreInitial || null : null), /*#__PURE__*/React.createElement("span", {
+  }, avIsEmoji ? avStr.slice(6) : !avIsMemoji ? centreInitial || null : null), editable && /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
       right: -1,

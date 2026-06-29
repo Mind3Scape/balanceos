@@ -4325,7 +4325,52 @@ function CloudTeamsDiscoverLive({
 // ПРОВЕРЕННУЮ механику командной XP-ставки: круг создаётся со stake=reward (unlock-only, без
 // списания) → дошёл до цели → settleTeamGoal начисляет приз, уровень растёт (тот же путь, что
 // David тестировал живьём на командных целях). Никакой новой XP-проводки.
+// Лесенка СРОКОВ от нескольких дней до месяца (David: «привычки как от нескольких дней, так и
+// месячные, и экспа соответственно»). Бонус за финиш растёт с длительностью: 3д→60 … 30д→300.
+// Срок ВСЕГДА виден на карточке — это и есть условие, за которое открывается бонус.
 var SEED_CIRCLES = [{
+  id: "seed-spark",
+  name: "Разогрев",
+  emblem: "⚡",
+  goalText: "3 дня",
+  target: 3,
+  unit: "дня",
+  type: "streak",
+  reward: 60,
+  hook: "Три дня подряд — поймай ритм",
+  practice: {
+    name: "Мой первый шаг",
+    emoji: "⚡"
+  }
+}, {
+  id: "seed-week",
+  name: "Неделя силы",
+  emblem: "💪",
+  goalText: "7 дней",
+  target: 7,
+  unit: "дней",
+  type: "streak",
+  reward: 120,
+  hook: "Семь дней без пропусков",
+  practice: {
+    name: "Зарядка",
+    emoji: "💪"
+  }
+}, {
+  id: "seed-steps",
+  name: "10 000 шагов",
+  emblem: "👟",
+  goalText: "14 дней",
+  target: 14,
+  unit: "дней",
+  type: "collective",
+  reward: 200,
+  hook: "Две недели движения — счёт общий",
+  practice: {
+    name: "Прогулка",
+    emoji: "👟"
+  }
+}, {
   id: "seed-morning",
   name: "Утро чемпионов",
   emblem: "🌅",
@@ -4348,66 +4393,24 @@ var SEED_CIRCLES = [{
   unit: "дней",
   type: "streak",
   reward: 300,
-  hook: "5 минут тишины каждый день",
+  hook: "5 минут тишины каждый день — месяц",
   practice: {
     name: "Медитация",
     emoji: "🧘"
   }
 }, {
-  id: "seed-steps",
-  name: "10 000 шагов",
-  emblem: "👟",
-  goalText: "30 дней",
+  id: "seed-read",
+  name: "Книжный клуб",
+  emblem: "📚",
+  goalText: "месяц",
   target: 30,
   unit: "дней",
   type: "collective",
   reward: 300,
-  hook: "Двигайтесь каждый день — счёт общий",
-  practice: {
-    name: "Прогулка",
-    emoji: "👟"
-  }
-}, {
-  id: "seed-read",
-  name: "Книжный клуб",
-  emblem: "📚",
-  goalText: "12 книг",
-  target: 12,
-  unit: "книг",
-  type: "collective",
-  reward: 250,
-  hook: "По главе в день — вместе веселее",
+  hook: "По главе в день — за месяц целая книга",
   practice: {
     name: "Чтение",
     emoji: "📖"
-  }
-}, {
-  id: "seed-water",
-  name: "Восемь стаканов",
-  emblem: "💧",
-  goalText: "30 дней",
-  target: 30,
-  unit: "дней",
-  type: "collective",
-  reward: 250,
-  hook: "Пей воду — держитесь кругом",
-  practice: {
-    name: "Вода",
-    emoji: "💧"
-  }
-}, {
-  id: "seed-grateful",
-  name: "Благодарность",
-  emblem: "🙏",
-  goalText: "30 дней",
-  target: 30,
-  unit: "дней",
-  type: "collective",
-  reward: 250,
-  hook: "Три строки благодарности в день",
-  practice: {
-    name: "Благодарность",
-    emoji: "📓"
   }
 }];
 function SeedCirclesShowcaseLive({
@@ -4607,6 +4610,25 @@ function SeedCirclesShowcaseLive({
     }), /*#__PURE__*/React.createElement("div", {
       style: {
         alignSelf: "flex-start",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        alignSelf: "flex-start",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        ...bosChipGlass(false),
+        padding: "3px 9px",
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--text-2)"
+      }
+    }, "\u23F1 ", s.goalText), /*#__PURE__*/React.createElement("div", {
+      style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 6
@@ -4629,7 +4651,7 @@ function SeedCirclesShowcaseLive({
         color: "var(--text-4)",
         fontWeight: 600
       }
-    }, "\u0437\u0430 \u0444\u0438\u043D\u0438\u0448")), /*#__PURE__*/React.createElement("span", {
+    }, "\u0437\u0430 \u0444\u0438\u043D\u0438\u0448"))), /*#__PURE__*/React.createElement("span", {
       style: {
         marginTop: 9,
         fontSize: 12.5,

@@ -619,177 +619,42 @@ function _bosTeamPut(k, v) {
   return v;
 }
 
-/* ОРБИТА КРУГА — герой комнаты команды. Общая звезда (эмблема) в центре, люди-планеты
-   вокруг на двух кольцах; планета ЗАГОРАЕТСЯ (полная + ✓), если человек сегодня в потоке,
-   иначе приглушена. Переиспользует BuddyFaceLive + стеклянные хелперы — один язык со всем
-   приложением, наш космос-стиль (но НЕ трогает экраны с орбитами на «Я»). */
+/* ОРБИТА КРУГА — герой комнаты команды. ЕДИНЫЙ космос со страницей «Я»: переиспользуем тот же
+   общий OrbitField (один стандарт, одна логика расстановки — David: «должно быть едино и целостно,
+   там стандарт»). Для круга: центр = ЭМБЛЕМА (без карандаша, editable=false); планеты = люди;
+   активные сегодня идут на ВНУТРЕННЕЕ кольцо и ГОРЯТ (✓), неактивные приглушены — зеркалит «сильнейшая
+   привычка ближе к центру» на «Я» (та же логика «кто куда зачем»). Кольца множатся с ростом числа
+   людей — это уже встроено в OrbitField (пояса 6/12/18 → «+N»). */
 function TeamOrbitLive({
   emblem,
-  accent,
   faces,
   isDark
 }) {
-  // КОЛЬЦА РАСТУТ с числом людей (David: «орбиты увеличиваются, если не помещается?») — 1 кольцо
-  // для пары человек, 2 для среднего круга, 3 для большого; дальше «+N». Так комната одинаково
-  // красиво держит и круг из 3, и из 18. (30-50 → будущий full-page вид, см. заметку David.)
-  var W = 262,
-    H = 190,
-    cx = W / 2,
-    cy = H / 2,
-    FS = 26;
-  var rings = [44, 68, 90],
-    caps = [3, 6, 9],
-    maxTotal = 18;
   var list = Array.isArray(faces) ? faces : [];
-  var items = list.slice(0, maxTotal).map(function (f) {
+  var anyActive = list.some(function (f) {
+    return f && f.done;
+  });
+  // active-first → самые включённые ближе к центру (зеркалит сортировку привычек по силе на «Я»).
+  // lit передаём ТОЛЬКО когда есть хоть один активный, иначе все полные (нейтральный покой, не серость).
+  var people = list.slice().sort(function (a, b) {
+    return (b && b.done ? 1 : 0) - (a && a.done ? 1 : 0);
+  }).map(function (f) {
     return {
-      face: f
+      avatar: f && f.avatar,
+      name: f && f.name,
+      lit: anyActive ? !!(f && f.done) : undefined
     };
   });
-  var extra = list.length - items.length;
-  if (extra > 0) items.push({
-    plus: extra
+  return /*#__PURE__*/React.createElement(OrbitField, {
+    avatar: emblem ? "emoji:" + emblem : "default",
+    name: "",
+    habits: [],
+    people: people,
+    moodC: null,
+    dark: isDark,
+    hideLevelArc: true,
+    editable: false
   });
-  var ringItems = [[], [], []],
-    idx = 0;
-  for (var r = 0; r < 3 && idx < items.length; r++) {
-    for (var k = 0; k < caps[r] && idx < items.length; k++) {
-      ringItems[r].push(items[idx++]);
-    }
-  }
-  // Минимум 2 кольца для космос-вида даже у соло-круга (не пусто); 3-е кольцо появляется с ростом.
-  var ringsUsed = ringItems[2].length ? 3 : 2;
-  // Космос-стиль как в онбординге: СПЛОШНЫЕ мягкие кольца + пыль + свечение (приглушённый синий).
-  var ringCol = isDark ? "rgba(186,210,248,0.22)" : "rgba(74,120,176,0.16)";
-  var ringStyle = function (d) {
-    return {
-      position: "absolute",
-      left: "50%",
-      top: "50%",
-      width: d,
-      height: d,
-      transform: "translate(-50%,-50%)",
-      borderRadius: "50%",
-      border: "1px solid " + ringCol
-    };
-  };
-  var dust = [];
-  for (var rr = 0; rr < ringsUsed; rr++) {
-    [30 + rr * 47, 165 + rr * 41, 283 + rr * 29].forEach(function (a, i2) {
-      var ang = a * Math.PI / 180,
-        rad = rings[rr];
-      dust.push(/*#__PURE__*/React.createElement("span", {
-        key: "du" + rr + i2,
-        "aria-hidden": true,
-        style: {
-          position: "absolute",
-          left: cx + rad * Math.cos(ang),
-          top: cy + rad * Math.sin(ang),
-          transform: "translate(-50%,-50%)",
-          width: 3,
-          height: 3,
-          borderRadius: "50%",
-          background: ringCol
-        }
-      }));
-    });
-  }
-  var place = function (arr, r, off) {
-    return arr.map(function (p, i) {
-      var ang = (-90 + off + i * (360 / Math.max(1, arr.length))) * Math.PI / 180;
-      var st = {
-        position: "absolute",
-        left: cx + r * Math.cos(ang),
-        top: cy + r * Math.sin(ang),
-        transform: "translate(-50%,-50%)"
-      };
-      if (p.plus) return /*#__PURE__*/React.createElement("span", {
-        key: "x" + r + i,
-        style: Object.assign({}, st, {
-          width: FS,
-          height: FS,
-          borderRadius: "50%",
-          background: "rgba(0,0,0,0.18)",
-          color: "var(--text)",
-          fontSize: 10.5,
-          fontWeight: 800,
-          display: "grid",
-          placeItems: "center"
-        })
-      }, "+", p.plus);
-      var f = p.face;
-      return /*#__PURE__*/React.createElement("span", {
-        key: (f.id || i) + "-" + r,
-        style: Object.assign({}, st, {
-          display: "block",
-          opacity: f.done ? 1 : 0.66
-        })
-      }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
-        avatar: f.avatar,
-        name: f.name,
-        size: FS
-      }), f.done && /*#__PURE__*/React.createElement("span", {
-        style: {
-          position: "absolute",
-          right: -1,
-          bottom: -1,
-          width: 12,
-          height: 12,
-          borderRadius: "50%",
-          background: "#0a0a0a",
-          color: "#fff",
-          fontSize: 8,
-          fontWeight: 800,
-          display: "grid",
-          placeItems: "center",
-          boxShadow: "0 0 0 1.5px var(--card)"
-        }
-      }, "\u2713"));
-    });
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      width: W,
-      height: H,
-      margin: "0 auto",
-      overflow: "visible"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      left: "50%",
-      top: "50%",
-      transform: "translate(-50%,-50%)",
-      width: 148,
-      height: 148,
-      borderRadius: "50%",
-      background: isDark ? "radial-gradient(circle, rgba(186,210,248,0.16), transparent 68%)" : "radial-gradient(circle, rgba(74,120,176,0.12), transparent 68%)",
-      pointerEvents: "none"
-    }
-  }), Array.from({
-    length: ringsUsed
-  }).map(function (_, ri) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: "r" + ri,
-      style: ringStyle(rings[ri] * 2)
-    });
-  }), dust, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      left: "50%",
-      top: "50%",
-      transform: "translate(-50%,-50%)",
-      width: 52,
-      height: 52,
-      borderRadius: "50%",
-      background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
-      boxShadow: bosTileGlass(isDark),
-      display: "grid",
-      placeItems: "center"
-    }
-  }, bosIcon(emblem || "✨", 27, null)), place(ringItems[0], rings[0], 0), place(ringItems[1], rings[1], 24), place(ringItems[2], rings[2], 12));
 }
 function TeamDetailLive() {
   var {

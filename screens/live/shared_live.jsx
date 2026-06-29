@@ -1800,13 +1800,16 @@ function CloudTeamsDiscoverLive({ app }) {
 // ПРОВЕРЕННУЮ механику командной XP-ставки: круг создаётся со stake=reward (unlock-only, без
 // списания) → дошёл до цели → settleTeamGoal начисляет приз, уровень растёт (тот же путь, что
 // David тестировал живьём на командных целях). Никакой новой XP-проводки.
+// Лесенка СРОКОВ от нескольких дней до месяца (David: «привычки как от нескольких дней, так и
+// месячные, и экспа соответственно»). Бонус за финиш растёт с длительностью: 3д→60 … 30д→300.
+// Срок ВСЕГДА виден на карточке — это и есть условие, за которое открывается бонус.
 const SEED_CIRCLES = [
-  { id: "seed-morning",  name: "Утро чемпионов", emblem: "🌅", goalText: "21 день",  target: 21, unit: "дней", type: "streak",     reward: 250, hook: "Вставай раньше — задаёшь тон дню",   practice: { name: "Ранний подъём", emoji: "⏰" } },
-  { id: "seed-meditate", name: "Тихий час",      emblem: "🧘", goalText: "30 дней",  target: 30, unit: "дней", type: "streak",     reward: 300, hook: "5 минут тишины каждый день",         practice: { name: "Медитация",     emoji: "🧘" } },
-  { id: "seed-steps",    name: "10 000 шагов",   emblem: "👟", goalText: "30 дней",  target: 30, unit: "дней", type: "collective", reward: 300, hook: "Двигайтесь каждый день — счёт общий", practice: { name: "Прогулка",      emoji: "👟" } },
-  { id: "seed-read",     name: "Книжный клуб",   emblem: "📚", goalText: "12 книг",  target: 12, unit: "книг", type: "collective", reward: 250, hook: "По главе в день — вместе веселее",    practice: { name: "Чтение",        emoji: "📖" } },
-  { id: "seed-water",    name: "Восемь стаканов", emblem: "💧", goalText: "30 дней", target: 30, unit: "дней", type: "collective", reward: 250, hook: "Пей воду — держитесь кругом",         practice: { name: "Вода",          emoji: "💧" } },
-  { id: "seed-grateful", name: "Благодарность",  emblem: "🙏", goalText: "30 дней",  target: 30, unit: "дней", type: "collective", reward: 250, hook: "Три строки благодарности в день",     practice: { name: "Благодарность", emoji: "📓" } },
+  { id: "seed-spark",    name: "Разогрев",       emblem: "⚡", goalText: "3 дня",   target: 3,  unit: "дня",  type: "streak",     reward: 60,  hook: "Три дня подряд — поймай ритм",          practice: { name: "Мой первый шаг", emoji: "⚡" } },
+  { id: "seed-week",     name: "Неделя силы",    emblem: "💪", goalText: "7 дней",  target: 7,  unit: "дней", type: "streak",     reward: 120, hook: "Семь дней без пропусков",               practice: { name: "Зарядка",        emoji: "💪" } },
+  { id: "seed-steps",    name: "10 000 шагов",   emblem: "👟", goalText: "14 дней", target: 14, unit: "дней", type: "collective", reward: 200, hook: "Две недели движения — счёт общий",      practice: { name: "Прогулка",       emoji: "👟" } },
+  { id: "seed-morning",  name: "Утро чемпионов", emblem: "🌅", goalText: "21 день", target: 21, unit: "дней", type: "streak",     reward: 250, hook: "Вставай раньше — задаёшь тон дню",       practice: { name: "Ранний подъём",  emoji: "⏰" } },
+  { id: "seed-meditate", name: "Тихий час",      emblem: "🧘", goalText: "30 дней", target: 30, unit: "дней", type: "streak",     reward: 300, hook: "5 минут тишины каждый день — месяц",     practice: { name: "Медитация",      emoji: "🧘" } },
+  { id: "seed-read",     name: "Книжный клуб",   emblem: "📚", goalText: "месяц",   target: 30, unit: "дней", type: "collective", reward: 300, hook: "По главе в день — за месяц целая книга", practice: { name: "Чтение",         emoji: "📖" } },
 ];
 function SeedCirclesShowcaseLive({ app, navigate }) {
   const start = (s) => {
@@ -1858,12 +1861,15 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
               <div style={{ flex: 1, minHeight: 10 }} />
-              {/* Reward pill = the app's XP language (graphite chip + crisp gold text, like the
-                  level/«+150 XP» badge) — NOT a gold-gradient pill with muddy brown text (David:
-                  «надпись кривая, цвет мутный»). Emoji dropped (it skewed the baseline). */}
-              <div style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <span style={{ display: "inline-flex", alignItems: "center", background: "#0a0a0a", color: "#FEDE34", fontWeight: 700, fontSize: 11, letterSpacing: "0.2px", borderRadius: 999, padding: "3px 9px" }}>+{s.reward} XP</span>
-                <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>за финиш</span>
+              {/* Срок (условие бонуса) + награда. Duration chip = серое стекло «⏱ N дней»; reward =
+                  графит+золото «+N XP» (язык XP-бейджа, David: бейдж был кривой/мутный). Вместе они
+                  читаются как «продержись N дней → +N XP за финиш». */}
+              <div style={{ alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4, ...bosChipGlass(false), padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>⏱ {s.goalText}</span>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", background: "#0a0a0a", color: "#FEDE34", fontWeight: 700, fontSize: 11, letterSpacing: "0.2px", borderRadius: 999, padding: "3px 9px" }}>+{s.reward} XP</span>
+                  <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>за финиш</span>
+                </div>
               </div>
               <span style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, color: joined ? "var(--text-4)" : "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>{joined ? "Открыть" : "Начать"} <I.ChevronRight size={14}/></span>
             </div>
