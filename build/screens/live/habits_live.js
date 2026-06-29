@@ -20,11 +20,12 @@
    `_bosSetHabitsTab` (the active-triad-tab memory, survives navigate-in-and-back). */
 var _bosHabitsTab = function () {
   try {
-    return localStorage.getItem("bos:habitsTab") || "habits";
+    var v = localStorage.getItem("bos:habitsTab") || "habits";
+    return v === "teams" ? "goals" : v;
   } catch (e) {
     return "habits";
   }
-}();
+}(); /* «teams»-вкладки больше нет (круги в «Целях») → коэрсим устаревший выбор в goals, иначе пустой экран */
 function _bosSetHabitsTab(t) {
   _bosHabitsTab = t;
   try {

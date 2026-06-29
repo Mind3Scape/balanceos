@@ -18,7 +18,7 @@
    + community_live.jsx (LiveTeamCard) + framework (SwipeRow, HabitCheck, I, hooks).
    New top-level names in this file: `function HabitsLive`, `_bosHabitsTab`,
    `_bosSetHabitsTab` (the active-triad-tab memory, survives navigate-in-and-back). */
-var _bosHabitsTab = (function () { try { return localStorage.getItem("bos:habitsTab") || "habits"; } catch (e) { return "habits"; } })();
+var _bosHabitsTab = (function () { try { var v = localStorage.getItem("bos:habitsTab") || "habits"; return v === "teams" ? "goals" : v; } catch (e) { return "habits"; } })(); /* «teams»-вкладки больше нет (круги в «Целях») → коэрсим устаревший выбор в goals, иначе пустой экран */
 function _bosSetHabitsTab(t) { _bosHabitsTab = t; try { localStorage.setItem("bos:habitsTab", t); } catch (e) {} }
 
 // Quick-add presets per triad tab (David: «при переключении на Цели/Команды всплывают подходящие
