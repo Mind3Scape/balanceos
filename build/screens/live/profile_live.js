@@ -63,6 +63,7 @@ function ProfileLive() {
   var _achEmojis = _liveAch.slice(0, 3).map(a => a.i);
   var _achCircles = livePeople.length;
   var isDark = app?.themeOverride === "dark";
+  var [universeOpen, setUniverseOpen] = React.useState(false); // зум-аут в «Вселенную»
   var statCard = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -175,7 +176,33 @@ function ProfileLive() {
         color: "var(--text-4)"
       })
     }]
-  }))), /*#__PURE__*/React.createElement(SysCard, {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      display: "flex",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setUniverseOpen(true),
+    className: "tap",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {}),
+      border: 0,
+      borderRadius: 999,
+      padding: "9px 16px",
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      cursor: "pointer"
+    }
+  }, "\uD83C\uDF0C \u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F"))), universeOpen && typeof UniverseFieldLive === "function" && /*#__PURE__*/React.createElement(UniverseFieldLive, {
+    app: app,
+    people: orbitPeople,
+    onClose: () => setUniverseOpen(false)
+  }), /*#__PURE__*/React.createElement(SysCard, {
     className: "tap",
     onClick: () => navigate("achievements", {
       from: "profile"

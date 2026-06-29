@@ -1033,6 +1033,9 @@ function IntroScreen() {
         /* In-place signup: the two entry doors slide up from the bottom while the orbit above
            stays put (same Stage, no remount). Demo opens the picker; Telegram → the state dial. */
         <div style={{ position: "relative", padding: "8px 22px calc(26px + var(--tg-bottom-inset, 0px))", zIndex: 3, animation: "suUp 0.6s cubic-bezier(0.22,0.8,0.32,1) both" }}>
+          {/* ДЕМО-дверь — ТОЛЬКО на демо-боте (?demo=1). На реальном боте демо убрано полностью
+              (David: «демо из полноценной версии убираем — как кнопку и как режим»). */}
+          {(typeof bosIsDemoBot === "function" && bosIsDemoBot()) && (
           <button onClick={() => openSheet && openSheet(<OnbDemoPicker navigate={navigate} dark={dark} />)} className="tap"
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginBottom: 11,
               background: dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.72)", color: pal.title,
@@ -1041,6 +1044,10 @@ function IntroScreen() {
               WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)" }}>
             <I.Eye size={18} /> Войти в деморежим
           </button>
+          )}
+          {/* TELEGRAM-дверь — на демо-боте СКРЫТА (David: «для демо дам другого бота, оттуда убрать
+              вход через тг»). На реальном боте это единственный вход. */}
+          {!(typeof bosIsDemoBot === "function" && bosIsDemoBot()) && (
           <button onClick={() => {
               // The state dial is a FIRST-ENTRY-only moment for a live user. If they've already
               // been through it once, log in straight to home — no dial again (David). First
@@ -1062,6 +1069,7 @@ function IntroScreen() {
             Войти через Telegram
             <span className="bos-shine" aria-hidden style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "42%", pointerEvents: "none", background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.20) 50%, transparent)", transform: "translateX(-160%) skewX(-18deg)", animation: "bosShine 5s ease-in-out 1.4s infinite" }} />
           </button>
+          )}
         </div>
       ) : (
       <div style={{ position: "relative", padding: "20px 24px 28px", zIndex: 2 }}>

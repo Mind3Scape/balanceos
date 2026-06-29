@@ -1424,9 +1424,9 @@ function SignUpScreen() {
         </div>
       </div>
       <div style={{ background: pal.sheet, borderTop: pal.sheetBorder, borderRadius: "33px 33px 0 0", padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))", animation: "suSheetIn 0.62s 0.56s cubic-bezier(0.22,0.8,0.32,1) both" }}>
-        {/* Two doors only (David): a secondary «Войти в деморежим» pill on top — opens a
-            sheet to pick WHICH demo (new vs. filled) — and the real Telegram entry below,
-            same pill shape. No more two big demo cards. */}
+        {/* ДЕМО-дверь — ТОЛЬКО на демо-боте (?demo=1). На реальном боте демо убрано полностью —
+            как кнопка и как режим (David: «демо из полноценной версии тг полностью убираем»). */}
+        {(typeof bosIsDemoBot === "function" && bosIsDemoBot()) && (
         <button onClick={() => openSheet(<DemoPickerSheet dark={dark} navigate={navigate} app={app} />)} className="tap" style={{
           width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
           background: pal.socialBg, color: pal.socialText, border: pal.socialBorder, borderRadius: 999,
@@ -1434,8 +1434,11 @@ function SignUpScreen() {
         }}>
           <I.Eye size={18} /> Войти в деморежим
         </button>
+        )}
 
-        {/* THE REAL APP — your Telegram account, saved for real. */}
+        {/* THE REAL APP — your Telegram account, saved for real. На демо-боте СКРЫТА (David: «для
+            демо дам другого бота, оттуда убрать вход через тг»). На реальном боте — единственный вход. */}
+        {!(typeof bosIsDemoBot === "function" && bosIsDemoBot()) && (
         <button onClick={goLive} className="tap" style={{
           position: "relative", overflow: "hidden",
           width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
@@ -1451,6 +1454,7 @@ function SignUpScreen() {
           {/* periodic gleam that sweeps across to catch the eye */}
           <span className="bos-shine" aria-hidden style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "42%", pointerEvents: "none", background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.20) 50%, transparent)", transform: "translateX(-160%) skewX(-18deg)", animation: "bosShine 5s ease-in-out 1.4s infinite" }} />
         </button>
+        )}
       </div>
     </div>
   );

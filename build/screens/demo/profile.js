@@ -3726,7 +3726,7 @@ function SignUpScreen() {
       padding: "24px 22px calc(26px + var(--tg-bottom-inset, 0px))",
       animation: "suSheetIn 0.62s 0.56s cubic-bezier(0.22,0.8,0.32,1) both"
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, typeof bosIsDemoBot === "function" && bosIsDemoBot() && /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet(/*#__PURE__*/React.createElement(DemoPickerSheet, {
       dark: dark,
       navigate: navigate,
@@ -3751,7 +3751,7 @@ function SignUpScreen() {
     }
   }, /*#__PURE__*/React.createElement(I.Eye, {
     size: 18
-  }), " \u0412\u043E\u0439\u0442\u0438 \u0432 \u0434\u0435\u043C\u043E\u0440\u0435\u0436\u0438\u043C"), /*#__PURE__*/React.createElement("button", {
+  }), " \u0412\u043E\u0439\u0442\u0438 \u0432 \u0434\u0435\u043C\u043E\u0440\u0435\u0436\u0438\u043C"), !(typeof bosIsDemoBot === "function" && bosIsDemoBot()) && /*#__PURE__*/React.createElement("button", {
     onClick: goLive,
     className: "tap",
     style: {

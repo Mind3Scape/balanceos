@@ -2157,7 +2157,7 @@ function IntroScreen() {
       zIndex: 3,
       animation: "suUp 0.6s cubic-bezier(0.22,0.8,0.32,1) both"
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, typeof bosIsDemoBot === "function" && bosIsDemoBot() && /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet && openSheet(/*#__PURE__*/React.createElement(OnbDemoPicker, {
       navigate: navigate,
       dark: dark
@@ -2183,7 +2183,7 @@ function IntroScreen() {
     }
   }, /*#__PURE__*/React.createElement(I.Eye, {
     size: 18
-  }), " \u0412\u043E\u0439\u0442\u0438 \u0432 \u0434\u0435\u043C\u043E\u0440\u0435\u0436\u0438\u043C"), /*#__PURE__*/React.createElement("button", {
+  }), " \u0412\u043E\u0439\u0442\u0438 \u0432 \u0434\u0435\u043C\u043E\u0440\u0435\u0436\u0438\u043C"), !(typeof bosIsDemoBot === "function" && bosIsDemoBot()) && /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       // The state dial is a FIRST-ENTRY-only moment for a live user. If they've already
       // been through it once, log in straight to home — no dial again (David). First

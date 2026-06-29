@@ -52,6 +52,7 @@ function ProfileLive() {
   const _achEmojis = _liveAch.slice(0, 3).map((a) => a.i);
   const _achCircles = livePeople.length;
   const isDark = app?.themeOverride === "dark";
+  const [universeOpen, setUniverseOpen] = React.useState(false); // зум-аут в «Вселенную»
   const statCard = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
     : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
@@ -80,7 +81,13 @@ function ProfileLive() {
             { l: "Опыт", v: _xp, icon: <I.Sparkles size={14} color="var(--text-4)" /> },
           ]} />
         </div>
+        {/* Зум-аут в космос других людей (анонимно, «суть») */}
+        <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
+          <button onClick={() => setUniverseOpen(true)} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 7, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {}), border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13.5, fontWeight: 600, color: "var(--text-2)", cursor: "pointer" }}>🌌 Вселенная</button>
+        </div>
       </div>
+
+      {universeOpen && typeof UniverseFieldLive === "function" && <UniverseFieldLive app={app} people={orbitPeople} onClose={() => setUniverseOpen(false)} />}
 
       <SysCard className="tap" onClick={() => navigate("achievements", { from: "profile" })} style={{ marginTop: 12, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
         <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>

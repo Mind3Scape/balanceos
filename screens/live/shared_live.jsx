@@ -2024,6 +2024,64 @@ function InviteFriendsCardLive({ isDark }) {
   );
 }
 
+/* ВСЕЛЕННАЯ — зум-аут со своей «солнечной системы» к космосу других (David: «сначала вижу только
+   свою систему, нажал — и вижу орбиты всех вокруг, максимально красиво»). По НАЧАЛУ АНОНИМНО, но
+   по-настоящему: центр = ТЫ (реальный аватар), вокруг — поле других систем БЕЗ ников/уровней (David:
+   «прикольно что анонимна»; подписи — позже, минималистично, только в своей системе по тапу-глазику).
+   Это «суть»: живой космос на чистом CSS (без пер-кадрового React → плавно на телефоне); реальные
+   орбиты людей подключим как «доп инфо вокруг» позже. Тап по фону / X / нижняя подсказка — назад. */
+function UniverseFieldLive({ app, people, onClose }) {
+  var lerp = function (a, b, k) { return a + (b - a) * k; };
+  var N = 58, GA = 2.399963;
+  var PAL = ["#86a8d8", "#9d92dc", "#d597b8", "#83ccc4", "#d2b87f", "#94b4e6"];
+  var orbs = React.useMemo(function () {
+    var out = [];
+    for (var i = 0; i < N; i++) {
+      var r01 = Math.sqrt((i + 1) / N), ang = i * GA;
+      out.push({ x: Math.cos(ang) * r01 * 44, y: Math.sin(ang) * r01 * 44, size: lerp(16, 3.4, r01), op: lerp(0.95, 0.16, r01), col: PAL[i % PAL.length], ring: i < 12, delay: (r01 * 0.5).toFixed(2) });
+    }
+    return out;
+  }, []);
+  var dust = React.useMemo(function () {
+    var out = [];
+    for (var d = 0; d < 22; d++) { var a = d * 2.6182, rr = ((d * 37) % 100) / 100; out.push({ x: Math.cos(a) * (10 + rr * 44), y: Math.sin(a) * (10 + rr * 44), s: 1 + (d % 3) * 0.6, o: 0.18 + (d % 4) * 0.06 }); }
+    return out;
+  }, []);
+  var node = (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: "radial-gradient(120% 90% at 50% 42%, #1a2238 0%, #0d1322 46%, #060912 100%)", animation: "bosUniFade 0.55s ease both" }}>
+      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosUniSpin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosUniSpinR{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
+      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, animation: "bosUniSpinR 220s linear infinite" }}>
+        {dust.map(function (s, i) { return <span key={"d" + i} aria-hidden style={{ position: "absolute", left: s.x + "vmin", top: s.y + "vmin", width: s.s, height: s.s, borderRadius: "50%", background: "#dfe8ff", opacity: s.o, transform: "translate(-50%,-50%)" }} />; })}
+      </div>
+      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, animation: "bosUniSpin 150s linear infinite" }}>
+        {orbs.map(function (o, i) {
+          return (
+            <span key={i} aria-hidden style={{ position: "absolute", left: o.x.toFixed(2) + "vmin", top: o.y.toFixed(2) + "vmin", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.7s ease " + o.delay + "s both" }}>
+              {o.ring && <span style={{ position: "absolute", left: "50%", top: "50%", width: o.size * 3.2, height: o.size * 3.2, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid rgba(180,205,255,0.16)" }} />}
+              <span style={{ display: "block", width: o.size, height: o.size, borderRadius: "50%", background: o.col, opacity: o.op, boxShadow: "0 0 " + (o.size * 1.2).toFixed(1) + "px " + o.col }} />
+            </span>
+          );
+        })}
+      </div>
+      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.6s ease 0.1s both" }}>
+        <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: 118, height: 118, transform: "translate(-50%,-50%)", borderRadius: "50%", background: "radial-gradient(circle, rgba(140,170,230,0.32), transparent 70%)", filter: "blur(6px)" }} />
+        <div style={{ position: "relative" }}>
+          {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={app && app.avatar} name={app && app.userName} size={66} /> : <div style={{ width: 66, height: 66, borderRadius: "50%", background: "linear-gradient(150deg,#eef1f6,#dadfe7)" }} />}
+        </div>
+      </div>
+      <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "rgba(220,230,255,0.66)" }}>Вселенная</div>
+        <div style={{ fontSize: 13, color: "rgba(200,215,255,0.5)", marginTop: 3 }}>ты не один в потоке</div>
+      </div>
+      <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: "rgba(255,255,255,0.12)", color: "#fff", display: "grid", placeItems: "center", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}><I.X size={18} /></button>
+      <div style={{ position: "absolute", bottom: "calc(22px + var(--tg-bottom-inset, 0px))", left: 0, right: 0, textAlign: "center", fontSize: 12, color: "rgba(200,215,255,0.4)", pointerEvents: "none" }}>коснись, чтобы вернуться</div>
+    </div>
+  );
+  // Portal to <body> so position:fixed escapes the page-stack's CSS transform (else the cosmos
+  // gets trapped inside the profile frame — light strip at top, off-centre).
+  return (typeof ReactDOM !== "undefined" && ReactDOM.createPortal) ? ReactDOM.createPortal(node, document.body) : node;
+}
+
 /* ── Привычки-страница: нижняя полоска недели + Apple-палитра (live-only, v235). The
    HOME card stays the compact row — only the Привычки-page card grows this strip.
    Colours = the Apple JOURNAL palette (David found it: «такие же цвета, как в Журнале») —
