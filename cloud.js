@@ -369,7 +369,8 @@
   async function teamHabitsFull(teamId) {
     var c = client(); var me = await uid(); if (!c || !teamId) return [];
     try {
-      var hs = await c.from("team_habits").select("id,name,emoji,is_main").eq("team_id", teamId).order("created_at", { ascending: true });
+      var hs = await c.from("team_habits").select("id,name,emoji,is_main,goal_per_day").eq("team_id", teamId).order("created_at", { ascending: true });
+      if (hs.error) hs = await c.from("team_habits").select("id,name,emoji,is_main").eq("team_id", teamId).order("created_at", { ascending: true }); // pre-SQL: нет колонки goal_per_day → graceful fallback
       var habits = (hs.data) || []; if (!habits.length) return [];
       var ids = habits.map(function (h) { return h.id; });
       var since = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
@@ -386,13 +387,16 @@
           var u = {}; hl.forEach(function (r) { if (r.day === day) u[r.user_id] = 1; });
           weekSum += total ? Object.keys(u).length / total : 0;
         }
-        return { id: h.id, name: h.name, emoji: h.emoji || "✨", isMain: !!h.is_main, doneToday: Object.keys(todayUsers).length, total: total, doneByMe: !!(me && todayUsers[me]), weekPct: weekSum / 7 };
+        return { id: h.id, name: h.name, emoji: h.emoji || "✨", isMain: !!h.is_main, goalPerDay: (h.goal_per_day || 1), doneToday: Object.keys(todayUsers).length, total: total, doneByMe: !!(me && todayUsers[me]), weekPct: weekSum / 7 };
       });
     } catch (e) { return []; }
   }
   async function addTeamHabit(teamId, h) {
     var c = client(); if (!c || !teamId) return null;
-    try { var r = await c.from("team_habits").insert({ team_id: teamId, name: (h && h.name) || "Привычка", emoji: (h && h.emoji) || "✨", is_main: !!(h && h.isMain) }).select().single(); return r.data || null; } catch (e) { return null; }
+    var _base = { team_id: teamId, name: (h && h.name) || "Привычка", emoji: (h && h.emoji) || "✨", is_main: !!(h && h.isMain) };
+    var _gpd = (h && h.goalPerDay) ? Math.max(1, h.goalPerDay) : null;
+    if (_gpd != null) { try { var rg = await c.from("team_habits").insert(Object.assign({}, _base, { goal_per_day: _gpd })).select().single(); if (!rg.error && rg.data) return rg.data; } catch (e) {} } // pre-SQL: колонки goal_per_day может не быть → fall through к базовой вставке
+    try { var r = await c.from("team_habits").insert(_base).select().single(); return r.data || null; } catch (e) { return null; }
   }
   // Toggle MY "done today" mark on a team habit.
   async function toggleTeamHabitToday(habitId, on) {

@@ -649,11 +649,12 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
   const [name, setName] = useCS("");
   const [movesGoal, setMovesGoal] = useCS(true);
   const [isMain, setIsMain] = useCS(false);
+  const [count, setCount] = useCS(1); // НОРМА по умолчанию (раз/день) — тренер задаёт, каждый поправит у себя
   const [picked, setPicked] = useCS(() => members.map((_, i) => i));
   const toggleMember = (i) => setPicked(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
   const participants = members.filter((_, i) => picked.includes(i)).map(m => ({ name: m.name, initials: m.initials, color: m.color, avatar: m.avatar }));
   const save = () => {
-    onAdd && onAdd({ emoji, name: name.trim() || "Новая привычка", isMain, movesGoal, participants, total: Math.max(1, participants.length || members.length || 1) });
+    onAdd && onAdd({ emoji, name: name.trim() || "Новая привычка", isMain, movesGoal, goalPerDay: Math.max(1, count), participants, total: Math.max(1, participants.length || members.length || 1) });
     close();
   };
   if (view === "picker") {
@@ -677,6 +678,18 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
         <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)" }}>Сменить иконку</span>
       </button>
       <input className="bos-input" value={name} onChange={e => setName(e.target.value)} placeholder="напр. Холодный душ" style={{ marginTop: 14 }} />
+      {/* НОРМА по умолчанию — компактный выбор количества для тренера. Копируется участнику как
+          его личная норма, которую он МОЖЕТ поправить под себя (30/50). David. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--surface-3)", borderRadius: 14, padding: "11px 14px", marginTop: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14.5 }}>{count} {count === 1 ? "раз" : "раз(а)"} в день</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Норма по умолчанию — каждый поправит под себя</div>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <button onClick={() => setCount(Math.max(1, count - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--card)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4} /></button>
+          <button onClick={() => setCount(count + 1)} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--card)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4} /></button>
+        </div>
+      </div>
       {members.length > 0 && (<>
         <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, margin: "18px 0 8px" }}>Участвуют</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

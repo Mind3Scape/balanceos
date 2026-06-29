@@ -1885,6 +1885,7 @@ function TeamHabitSheetLive({
   var [name, setName] = useCS("");
   var [movesGoal, setMovesGoal] = useCS(true);
   var [isMain, setIsMain] = useCS(false);
+  var [count, setCount] = useCS(1); // НОРМА по умолчанию (раз/день) — тренер задаёт, каждый поправит у себя
   var [picked, setPicked] = useCS(() => members.map((_, i) => i));
   var toggleMember = i => setPicked(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
   var participants = members.filter((_, i) => picked.includes(i)).map(m => ({
@@ -1899,6 +1900,7 @@ function TeamHabitSheetLive({
       name: name.trim() || "Новая привычка",
       isMain,
       movesGoal,
+      goalPerDay: Math.max(1, count),
       participants,
       total: Math.max(1, participants.length || members.length || 1)
     });
@@ -1995,7 +1997,71 @@ function TeamHabitSheetLive({
     style: {
       marginTop: 14
     }
-  }), members.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      background: "var(--surface-3)",
+      borderRadius: 14,
+      padding: "11px 14px",
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5
+    }
+  }, count, " ", count === 1 ? "раз" : "раз(а)", " \u0432 \u0434\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, "\u041D\u043E\u0440\u043C\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E \u2014 \u043A\u0430\u0436\u0434\u044B\u0439 \u043F\u043E\u043F\u0440\u0430\u0432\u0438\u0442 \u043F\u043E\u0434 \u0441\u0435\u0431\u044F")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCount(Math.max(1, count - 1)),
+    className: "tap hit44",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 999,
+      background: "var(--card)",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Minus, {
+    size: 16,
+    strokeWidth: 2.4
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCount(count + 1),
+    className: "tap hit44",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 999,
+      background: "var(--card)",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 16,
+    strokeWidth: 2.4
+  })))), members.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-4)",

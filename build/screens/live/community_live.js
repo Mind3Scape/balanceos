@@ -973,7 +973,7 @@ function TeamDetailLive() {
       teamHabitId: h.id,
       log: {},
       days: [1, 1, 1, 1, 1, 1, 1],
-      goalPerDay: 1,
+      goalPerDay: h.goalPerDay || 1,
       reminder: {
         on: false,
         time: "09:00"
