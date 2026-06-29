@@ -429,6 +429,10 @@ button { font: inherit; cursor: pointer; }
 }
 .bos-page::-webkit-scrollbar { display: none; }
 .bos-page.no-tabbar { padding-bottom: 30px; }
+
+/* Horizontal card rails (e.g. «Найти» челленджи) — scroll sideways, no visible scrollbar. */
+.bos-hscroll { scrollbar-width: none; }
+.bos-hscroll::-webkit-scrollbar { display: none; }
 /* Immersive full-bleed screens (onboarding) manage their own safe-area padding. */
 .bos-page.full-bleed { padding: 0; }
 

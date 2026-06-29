@@ -1699,9 +1699,20 @@ function CloudTeamsDiscoverLive({ app }) {
     } catch (e) { setList([]); }
     return () => { on = false; };
   }, []);
-  // Loading (null) AND loaded-empty ([]) → render NOTHING. No promissory skeleton, so the
-  // section can never pop then collapse — it only ever appears with real teams in it.
-  if (!list || !list.length) return null;
+  // While LOADING (null) → render nothing (no promissory skeleton that pops then collapses).
+  // Once LOADED-EMPTY ([]) → a warm, HONEST invite: «Найти» is the community pulse, so the live
+  // section shouldn't read as a dead blank — but we never fabricate circles that don't exist.
+  if (!list) return null;
+  if (!list.length) return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>✨ Живые круги</div>
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
+        <div style={{ fontSize: 30, lineHeight: 1 }}>🌱</div>
+        <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", marginTop: 9, letterSpacing: "-0.2px" }}>Здесь оживут круги людей</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 5, lineHeight: 1.45, maxWidth: 250, margin: "5px auto 0" }}>Начни челлендж выше или позови друга — и ваш круг появится тут первым.</div>
+      </div>
+    </div>
+  );
   // Send a JOIN REQUEST («из поиска — по заявке»). The creator approves it later; pre-SQL
   // (no approval system yet) the call falls back to an instant join.
   const join = (t) => {
@@ -1726,14 +1737,14 @@ function CloudTeamsDiscoverLive({ app }) {
   };
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>Открытые команды рядом</div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>✨ Живые круги</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {list.map((t) => (
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-            <span style={{ width: 44, height: 44, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, t.accent)}</span>
+            <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, null)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2 }}>🌐 Открытая · {t.members} участ.</div>
+              <div style={{ marginTop: 5 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(false), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span></div>
             </div>
             <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "#0a0a0a", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "#fff", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
           </div>
@@ -1751,14 +1762,12 @@ function CloudTeamsDiscoverLive({ app }) {
 // Курируемая витрина «Найти» — разные сферы и разные метрики (не только км; David: «метрики у
 // каждого свои»), у каждого крючок-почему. Цвета ВЫКЛ — эмблемы на сером стекле как везде.
 const SEED_CIRCLES = [
-  { id: "seed-morning",  name: "Утро чемпионов",      emblem: "🌅", goalText: "21 день подряд",  target: 21, unit: "дней",  type: "streak",     hook: "Вставай раньше — задаёшь тон всему дню", practice: { name: "Ранний подъём", emoji: "⏰" } },
-  { id: "seed-read",     name: "Книжный клуб",        emblem: "📚", goalText: "12 книг за год",  target: 12, unit: "книг",  type: "collective", hook: "По главе в день — вместе веселее",       practice: { name: "Чтение",        emoji: "📖" } },
-  { id: "seed-meditate", name: "Тихий час",           emblem: "🧘", goalText: "30 дней практики", target: 30, unit: "дней", type: "streak",     hook: "5 минут тишины каждый день",            practice: { name: "Медитация",     emoji: "🧘" } },
-  { id: "seed-steps",    name: "10 000 шагов",        emblem: "👟", goalText: "30 дней движения", target: 30, unit: "дней", type: "collective", hook: "Двигайтесь каждый день — счёт общий",   practice: { name: "Прогулка",      emoji: "👟" } },
-  { id: "seed-water",    name: "Восемь стаканов",     emblem: "💧", goalText: "30 дней воды",    target: 30, unit: "дней",  type: "collective", hook: "Пей воду — держитесь кругом",           practice: { name: "Вода",          emoji: "💧" } },
-  { id: "seed-cold",     name: "Холодный душ",        emblem: "🚿", goalText: "21 день вызова",  target: 21, unit: "дней",  type: "streak",     hook: "Закаляйся — слабо продержаться?",       practice: { name: "Холодный душ",  emoji: "🚿" } },
-  { id: "seed-grateful", name: "Дневник благодарности", emblem: "🙏", goalText: "30 дней",       target: 30, unit: "дней",  type: "collective", hook: "Три строки благодарности в день",       practice: { name: "Благодарность", emoji: "📓" } },
-  { id: "seed-focus",    name: "Глубокая работа",     emblem: "🎯", goalText: "21 день фокуса",  target: 21, unit: "дней",  type: "collective", hook: "Час без телефона на важное",            practice: { name: "Фокус-час",     emoji: "🎯" } },
+  { id: "seed-morning",  name: "Утро чемпионов", emblem: "🌅", goalText: "21 день",  target: 21, unit: "дней", type: "streak",     hook: "Вставай раньше — задаёшь тон дню",   practice: { name: "Ранний подъём", emoji: "⏰" } },
+  { id: "seed-meditate", name: "Тихий час",      emblem: "🧘", goalText: "30 дней",  target: 30, unit: "дней", type: "streak",     hook: "5 минут тишины каждый день",         practice: { name: "Медитация",     emoji: "🧘" } },
+  { id: "seed-steps",    name: "10 000 шагов",   emblem: "👟", goalText: "30 дней",  target: 30, unit: "дней", type: "collective", hook: "Двигайтесь каждый день — счёт общий", practice: { name: "Прогулка",      emoji: "👟" } },
+  { id: "seed-read",     name: "Книжный клуб",   emblem: "📚", goalText: "12 книг",  target: 12, unit: "книг", type: "collective", hook: "По главе в день — вместе веселее",    practice: { name: "Чтение",        emoji: "📖" } },
+  { id: "seed-water",    name: "Восемь стаканов", emblem: "💧", goalText: "30 дней", target: 30, unit: "дней", type: "collective", hook: "Пей воду — держитесь кругом",         practice: { name: "Вода",          emoji: "💧" } },
+  { id: "seed-grateful", name: "Благодарность",  emblem: "🙏", goalText: "30 дней",  target: 30, unit: "дней", type: "collective", hook: "Три строки благодарности в день",     practice: { name: "Благодарность", emoji: "📓" } },
 ];
 function SeedCirclesShowcaseLive({ app, navigate }) {
   const start = (s) => {
@@ -1790,22 +1799,28 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
     } catch (e) {}
     if (!opened) { app?.addHabit(practiceHabit); navigate("team-detail", { team: nt }); } // офлайн/превью
   };
-  const chipS = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", background: "var(--surface-3)", padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap" };
+  // Honest XP framing: the practice habit a challenge plants earns the SAME +10 XP per day as
+  // any habit (bosTotalXPLive). So «давать экспу за челлендж» = surface that real reward — no
+  // fabricated bonus. Gold pill = the app's reward/XP language (level badge, achievement XP).
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 10px" }}>🔥 Челленджи · вступай за секунду</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🔥 Челленджи</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>вступай за секунду →</span>
+      </div>
+      {/* Горизонтальная лента, не вертикальная стена (David: «много челленджей не делай — в ленте
+          должна быть и сама жизнь»). Карточки скроллятся вбок, оставляя место живым кругам ниже. */}
+      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "0 0 4px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
         {SEED_CIRCLES.map((s) => {
           const joined = (app?.teams || []).some((t) => t.seedId === s.id);
           return (
-            <div key={s.id} className="tap" onClick={() => start(s)} style={{ display: "flex", alignItems: "center", gap: 13, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", cursor: "pointer" }}>
-              <span style={{ width: 48, height: 48, borderRadius: 15, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 25, flexShrink: 0 }}>{bosIcon(s.emblem, 25, null)}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{s.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.hook}</div>
-                <div style={{ marginTop: 6 }}><span style={chipS}>🎯 {s.goalText}</span></div>
-              </div>
-              <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: joined ? "var(--text-4)" : "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>{joined ? "Открыть" : "Начать"} <I.ChevronRight size={15}/></span>
+            <div key={s.id} className="tap" onClick={() => start(s)} style={{ flex: "0 0 auto", width: 162, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", cursor: "pointer", display: "flex", flexDirection: "column" }}>
+              <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{bosIcon(s.emblem, 23, null)}</span>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.name}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
+              <div style={{ flex: 1, minHeight: 10 }} />
+              <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 3, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 800, fontSize: 10.5, borderRadius: 999, padding: "4px 9px", boxShadow: "0 2px 6px rgba(239,159,20,0.3)" }}>⚡ +10 XP / день</span>
+              <span style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, color: joined ? "var(--text-4)" : "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>{joined ? "Открыть" : "Начать"} <I.ChevronRight size={14}/></span>
             </div>
           );
         })}

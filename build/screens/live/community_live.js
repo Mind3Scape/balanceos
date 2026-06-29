@@ -339,13 +339,23 @@ function CommunityLive() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center",
-      padding: "6px 18px 2px",
-      color: "var(--text-4)",
-      fontSize: 13.5,
-      lineHeight: 1.5
+      padding: "2px 4px 0"
     }
-  }, "\u041D\u0430\u0439\u0434\u0438 \u043A\u0440\u0443\u0433 \u0438\u043B\u0438 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436, \u043A \u043A\u043E\u0442\u043E\u0440\u043E\u043C\u0443 \u0445\u043E\u0447\u0435\u0448\u044C \u043F\u0440\u0438\u043C\u043A\u043D\u0443\u0442\u044C \u2014 \u0432\u0441\u0442\u0443\u043F\u0438\u0448\u044C, \u0438 \u043E\u043D \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0443 \u0442\u0435\u0431\u044F \u0432 \xAB\u0426\u0435\u043B\u044F\u0445\xBB."), typeof SeedCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(SeedCirclesShowcaseLive, {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 21,
+      fontWeight: 700,
+      letterSpacing: "-0.5px",
+      color: "var(--text)"
+    }
+  }, "\u041D\u0430\u0439\u0434\u0438 \u0441\u0432\u043E\u0438\u0445"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)",
+      marginTop: 3,
+      lineHeight: 1.45
+    }
+  }, "\u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438 \u0438 \u0436\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438 \u2014 \u0432\u0441\u0442\u0443\u043F\u0430\u0435\u0448\u044C \u0437\u0430 \u0441\u0435\u043A\u0443\u043D\u0434\u0443, \u0438 \u043A\u0440\u0443\u0433 \u043F\u043E\u044F\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0443 \u0442\u0435\u0431\u044F \u0432 \xAB\u0426\u0435\u043B\u044F\u0445\xBB.")), typeof SeedCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(SeedCirclesShowcaseLive, {
     app: app,
     navigate: navigate
   }), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {

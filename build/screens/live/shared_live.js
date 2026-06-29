@@ -4022,9 +4022,54 @@ function CloudTeamsDiscoverLive({
       on = false;
     };
   }, []);
-  // Loading (null) AND loaded-empty ([]) → render NOTHING. No promissory skeleton, so the
-  // section can never pop then collapse — it only ever appears with real teams in it.
-  if (!list || !list.length) return null;
+  // While LOADING (null) → render nothing (no promissory skeleton that pops then collapses).
+  // Once LOADED-EMPTY ([]) → a warm, HONEST invite: «Найти» is the community pulse, so the live
+  // section shouldn't read as a dead blank — but we never fabricate circles that don't exist.
+  if (!list) return null;
+  if (!list.length) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "4px 4px 8px"
+    }
+  }, "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: "22px 18px",
+      boxShadow: "var(--card-shadow)",
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 30,
+      lineHeight: 1
+    }
+  }, "\uD83C\uDF31"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text)",
+      marginTop: 9,
+      letterSpacing: "-0.2px"
+    }
+  }, "\u0417\u0434\u0435\u0441\u044C \u043E\u0436\u0438\u0432\u0443\u0442 \u043A\u0440\u0443\u0433\u0438 \u043B\u044E\u0434\u0435\u0439"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 5,
+      lineHeight: 1.45,
+      maxWidth: 250,
+      margin: "5px auto 0"
+    }
+  }, "\u041D\u0430\u0447\u043D\u0438 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436 \u0432\u044B\u0448\u0435 \u0438\u043B\u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0433\u0430 \u2014 \u0438 \u0432\u0430\u0448 \u043A\u0440\u0443\u0433 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0442\u0443\u0442 \u043F\u0435\u0440\u0432\u044B\u043C.")));
   // Send a JOIN REQUEST («из поиска — по заявке»). The creator approves it later; pre-SQL
   // (no approval system yet) the call falls back to an instant join.
   var join = t => {
@@ -4088,7 +4133,7 @@ function CloudTeamsDiscoverLive({
       color: "var(--text-4)",
       padding: "4px 4px 8px"
     }
-  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B \u0440\u044F\u0434\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -4110,13 +4155,14 @@ function CloudTeamsDiscoverLive({
       width: 44,
       height: 44,
       borderRadius: 14,
-      background: "var(--card-2)",
+      background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
+      boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)",
       display: "grid",
       placeItems: "center",
       fontSize: 24,
       flexShrink: 0
     }
-  }, bosIcon(t.emblem || "✨", 24, t.accent)), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(t.emblem || "✨", 24, null)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -4129,11 +4175,21 @@ function CloudTeamsDiscoverLive({
     }
   }, t.name), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      color: "var(--text-3)",
-      marginTop: 2
+      marginTop: 5
     }
-  }, "\uD83C\uDF10 \u041E\u0442\u043A\u0440\u044B\u0442\u0430\u044F \xB7 ", t.members, " \u0443\u0447\u0430\u0441\u0442.")), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      ...bosChipGlass(false),
+      padding: "3px 9px",
+      borderRadius: 999
+    }
+  }, "\uD83C\uDF10 \u041E\u0442\u043A\u0440\u044B\u0442\u0430\u044F \xB7 ", t.members, " \u0443\u0447\u0430\u0441\u0442."))), /*#__PURE__*/React.createElement("button", {
     onClick: () => join(t),
     disabled: busy[t.id] || requested[t.id],
     className: "tap",
@@ -4162,33 +4218,20 @@ var SEED_CIRCLES = [{
   id: "seed-morning",
   name: "Утро чемпионов",
   emblem: "🌅",
-  goalText: "21 день подряд",
+  goalText: "21 день",
   target: 21,
   unit: "дней",
   type: "streak",
-  hook: "Вставай раньше — задаёшь тон всему дню",
+  hook: "Вставай раньше — задаёшь тон дню",
   practice: {
     name: "Ранний подъём",
     emoji: "⏰"
   }
 }, {
-  id: "seed-read",
-  name: "Книжный клуб",
-  emblem: "📚",
-  goalText: "12 книг за год",
-  target: 12,
-  unit: "книг",
-  type: "collective",
-  hook: "По главе в день — вместе веселее",
-  practice: {
-    name: "Чтение",
-    emoji: "📖"
-  }
-}, {
   id: "seed-meditate",
   name: "Тихий час",
   emblem: "🧘",
-  goalText: "30 дней практики",
+  goalText: "30 дней",
   target: 30,
   unit: "дней",
   type: "streak",
@@ -4201,7 +4244,7 @@ var SEED_CIRCLES = [{
   id: "seed-steps",
   name: "10 000 шагов",
   emblem: "👟",
-  goalText: "30 дней движения",
+  goalText: "30 дней",
   target: 30,
   unit: "дней",
   type: "collective",
@@ -4211,10 +4254,23 @@ var SEED_CIRCLES = [{
     emoji: "👟"
   }
 }, {
+  id: "seed-read",
+  name: "Книжный клуб",
+  emblem: "📚",
+  goalText: "12 книг",
+  target: 12,
+  unit: "книг",
+  type: "collective",
+  hook: "По главе в день — вместе веселее",
+  practice: {
+    name: "Чтение",
+    emoji: "📖"
+  }
+}, {
   id: "seed-water",
   name: "Восемь стаканов",
   emblem: "💧",
-  goalText: "30 дней воды",
+  goalText: "30 дней",
   target: 30,
   unit: "дней",
   type: "collective",
@@ -4224,21 +4280,8 @@ var SEED_CIRCLES = [{
     emoji: "💧"
   }
 }, {
-  id: "seed-cold",
-  name: "Холодный душ",
-  emblem: "🚿",
-  goalText: "21 день вызова",
-  target: 21,
-  unit: "дней",
-  type: "streak",
-  hook: "Закаляйся — слабо продержаться?",
-  practice: {
-    name: "Холодный душ",
-    emoji: "🚿"
-  }
-}, {
   id: "seed-grateful",
-  name: "Дневник благодарности",
+  name: "Благодарность",
   emblem: "🙏",
   goalText: "30 дней",
   target: 30,
@@ -4248,19 +4291,6 @@ var SEED_CIRCLES = [{
   practice: {
     name: "Благодарность",
     emoji: "📓"
-  }
-}, {
-  id: "seed-focus",
-  name: "Глубокая работа",
-  emblem: "🎯",
-  goalText: "21 день фокуса",
-  target: 21,
-  unit: "дней",
-  type: "collective",
-  hook: "Час без телефона на важное",
-  practice: {
-    name: "Фокус-час",
-    emoji: "🎯"
   }
 }];
 function SeedCirclesShowcaseLive({
@@ -4367,32 +4397,38 @@ function SeedCirclesShowcaseLive({
       });
     } // офлайн/превью
   };
-  var chipS = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    fontSize: 11,
-    fontWeight: 600,
-    color: "var(--text-2)",
-    background: "var(--surface-3)",
-    padding: "3px 9px",
-    borderRadius: 999,
-    whiteSpace: "nowrap"
-  };
+  // Honest XP framing: the practice habit a challenge plants earns the SAME +10 XP per day as
+  // any habit (bosTotalXPLive). So «давать экспу за челлендж» = surface that real reward — no
+  // fabricated bonus. Gold pill = the app's reward/XP language (level badge, achievement XP).
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      padding: "4px 4px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       fontWeight: 700,
       letterSpacing: 1,
       textTransform: "uppercase",
-      color: "var(--text-4)",
-      padding: "4px 4px 10px"
+      color: "var(--text-4)"
     }
-  }, "\uD83D\uDD25 \u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438 \xB7 \u0432\u0441\u0442\u0443\u043F\u0430\u0439 \u0437\u0430 \u0441\u0435\u043A\u0443\u043D\u0434\u0443"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDD25 \u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)"
+    }
+  }, "\u0432\u0441\u0442\u0443\u043F\u0430\u0439 \u0437\u0430 \u0441\u0435\u043A\u0443\u043D\u0434\u0443 \u2192")), /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
     style: {
       display: "flex",
-      flexDirection: "column",
-      gap: 10
+      gap: 11,
+      overflowX: "auto",
+      padding: "0 0 4px",
+      scrollSnapType: "x proximity",
+      WebkitOverflowScrolling: "touch"
     }
   }, SEED_CIRCLES.map(s => {
     var joined = (app?.teams || []).some(t => t.seedId === s.id);
@@ -4401,59 +4437,73 @@ function SeedCirclesShowcaseLive({
       className: "tap",
       onClick: () => start(s),
       style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 13,
+        flex: "0 0 auto",
+        width: 162,
+        scrollSnapAlign: "start",
         background: "var(--card)",
         borderRadius: 22,
         padding: 14,
         boxShadow: "var(--card-shadow)",
-        cursor: "pointer"
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column"
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 48,
-        height: 48,
-        borderRadius: 15,
+        width: 44,
+        height: 44,
+        borderRadius: 14,
         background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
         boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)",
         display: "grid",
         placeItems: "center",
-        fontSize: 25,
+        fontSize: 23,
         flexShrink: 0
       }
-    }, bosIcon(s.emblem, 25, null)), /*#__PURE__*/React.createElement("div", {
+    }, bosIcon(s.emblem, 23, null)), /*#__PURE__*/React.createElement("div", {
       style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15.5,
+        fontSize: 15,
         fontWeight: 600,
         color: "var(--text)",
-        letterSpacing: "-0.2px"
+        letterSpacing: "-0.2px",
+        marginTop: 11,
+        lineHeight: 1.25
       }
     }, s.name), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12,
+        fontSize: 11.5,
         color: "var(--text-4)",
-        marginTop: 1,
+        marginTop: 3,
         lineHeight: 1.35,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
         overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
+        minHeight: 31
       }
     }, s.hook), /*#__PURE__*/React.createElement("div", {
       style: {
-        marginTop: 6
+        flex: 1,
+        minHeight: 10
       }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: chipS
-    }, "\uD83C\uDFAF ", s.goalText))), /*#__PURE__*/React.createElement("span", {
+    }), /*#__PURE__*/React.createElement("span", {
       style: {
-        flexShrink: 0,
-        fontSize: 13,
+        alignSelf: "flex-start",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        background: "linear-gradient(180deg,#FEDE34,#EF9F14)",
+        color: "#4a3800",
+        fontWeight: 800,
+        fontSize: 10.5,
+        borderRadius: 999,
+        padding: "4px 9px",
+        boxShadow: "0 2px 6px rgba(239,159,20,0.3)"
+      }
+    }, "\u26A1 +10 XP / \u0434\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginTop: 9,
+        fontSize: 12.5,
         fontWeight: 600,
         color: joined ? "var(--text-4)" : "var(--text-2)",
         display: "inline-flex",
@@ -4461,7 +4511,7 @@ function SeedCirclesShowcaseLive({
         gap: 2
       }
     }, joined ? "Открыть" : "Начать", " ", /*#__PURE__*/React.createElement(I.ChevronRight, {
-      size: 15
+      size: 14
     })));
   })));
 }

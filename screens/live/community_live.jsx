@@ -159,8 +159,9 @@ function CommunityLive() {
           {/* НАЙТИ — только ЧУЖИЕ круги/цели, в которые можно вступить (дискавери). «Твои круги»
               отсюда УБРАНЫ — они живут на вкладке Привычки → Цели (с лицами). Дубля больше нет.
               Создание круга — на Привычки → «+». */}
-          <div style={{ textAlign: "center", padding: "6px 18px 2px", color: "var(--text-4)", fontSize: 13.5, lineHeight: 1.5 }}>
-            Найди круг или челлендж, к которому хочешь примкнуть — вступишь, и он появится у тебя в «Целях».
+          <div style={{ padding: "2px 4px 0" }}>
+            <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Найди своих</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Челленджи и живые круги — вступаешь за секунду, и круг появляется у тебя в «Целях».</div>
           </div>
           {/* Курируемая ВИТРИНА челленджей — засев до запуска (без неё «Найти» пустует). */}
           {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
