@@ -529,9 +529,10 @@ function PeopleMonthCalendarLive({
   // Ripples — волны расходятся по квадратикам от того, на который тапнул»). Web-Animations API,
   // staggered by grid distance; auto-cleans, no React state churn.
   var gridRef = React.useRef(null);
-  var todayIdx = startWeekday + today - 1; // flat index of «today» within `cells`
-  var triggerRipple = originIdx => {
-    var grid = gridRef.current;
+  var weekGridRef = React.useRef(null); // «Неделя»-грядка имеет СВОЙ ref → волна расходится и здесь.
+  var todayIdx = startWeekday + today - 1; // flat index of «today» within the month `cells`
+  var triggerRipple = (originIdx, gridEl) => {
+    var grid = gridEl || gridRef.current;
     if (!grid) return;
     var cols = 7,
       kids = grid.children;
@@ -560,9 +561,15 @@ function PeopleMonthCalendarLive({
       } catch (_) {}
     }
   };
+  // Волна работает в ОБОИХ масштабах: «Месяц» → его сетка; «Неделя» → 5-нед грядка (свой ref + индекс
+  // сегодня = строка current-week). Раньше fireToday всегда бил по gridRef месяца, которого в недельном
+  // виде НЕТ в DOM → в «Неделе» волны не было (David: «волна во всех видах и внутри»).
   var fireToday = () => {
     setSelDay(today);
-    triggerRipple(todayIdx);
+    if (view === "week") {
+      var wi = weeksData.findIndex(w => w.isToday);
+      triggerRipple(wi < 0 ? 28 : wi, weekGridRef.current);
+    } else triggerRipple(todayIdx, gridRef.current);
     if (todayTap && todayTap.onTap) todayTap.onTap();
   };
 
@@ -725,6 +732,7 @@ function PeopleMonthCalendarLive({
     name: m.name,
     size: 18
   }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), view === "week" && /*#__PURE__*/React.createElement("div", {
+    ref: weekGridRef,
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
@@ -843,15 +851,25 @@ function PeopleMonthCalendarLive({
       margin: compact ? "0 auto" : "6px auto 0"
     }
   }, cells.map(c => {
+    // Соседние месяцы (prev/next) = МАЛЕНЬКАЯ точка по центру клетки, а не бледный полный круг
+    // (David: тот сливался с пустыми днями — «почти неотличимы»). Меньший размер = ясное
+    // «выпирание»: видно, что там тоже дни, но они явно второстепенные, не путаются с этим месяцем.
     if (c.adj) return /*#__PURE__*/React.createElement("span", {
       key: c.key,
       "aria-hidden": true,
       style: {
         aspectRatio: "1/1",
-        borderRadius: "50%",
-        background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)"
+        display: "grid",
+        placeItems: "center"
       }
-    });
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: "34%",
+        height: "34%",
+        borderRadius: "50%",
+        background: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)"
+      }
+    }));
     var isToday = isCurMonth && c.d === today;
     // TODAY is the single tap-to-mark control now (David removed the bottom button — «тапаешь
     // день, бумс»). Interactive only in YOUR view (solo / «Все» / your own chip) — never on a

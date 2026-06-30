@@ -268,9 +268,10 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   // Ripples — волны расходятся по квадратикам от того, на который тапнул»). Web-Animations API,
   // staggered by grid distance; auto-cleans, no React state churn.
   const gridRef = React.useRef(null);
-  const todayIdx = startWeekday + today - 1; // flat index of «today» within `cells`
-  const triggerRipple = (originIdx) => {
-    const grid = gridRef.current; if (!grid) return;
+  const weekGridRef = React.useRef(null); // «Неделя»-грядка имеет СВОЙ ref → волна расходится и здесь.
+  const todayIdx = startWeekday + today - 1; // flat index of «today» within the month `cells`
+  const triggerRipple = (originIdx, gridEl) => {
+    const grid = gridEl || gridRef.current; if (!grid) return;
     const cols = 7, kids = grid.children;
     const or = Math.floor(originIdx / cols), oc = originIdx % cols;
     for (let i = 0; i < kids.length; i++) {
@@ -283,7 +284,15 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
       } catch (_) {}
     }
   };
-  const fireToday = () => { setSelDay(today); triggerRipple(todayIdx); if (todayTap && todayTap.onTap) todayTap.onTap(); };
+  // Волна работает в ОБОИХ масштабах: «Месяц» → его сетка; «Неделя» → 5-нед грядка (свой ref + индекс
+  // сегодня = строка current-week). Раньше fireToday всегда бил по gridRef месяца, которого в недельном
+  // виде НЕТ в DOM → в «Неделе» волны не было (David: «волна во всех видах и внутри»).
+  const fireToday = () => {
+    setSelDay(today);
+    if (view === "week") { const wi = weeksData.findIndex((w) => w.isToday); triggerRipple(wi < 0 ? 28 : wi, weekGridRef.current); }
+    else triggerRipple(todayIdx, gridRef.current);
+    if (todayTap && todayTap.onTap) todayTap.onTap();
+  };
 
   // ── «Месяц · Год» — тот же кружок-день в двух масштабах (David; неделя живёт на карточке). Год =
   //    «грядка» с начала года до сегодня; месяцы СКРЫТЫ пока не нажат глазик («Подробно»).
@@ -355,7 +364,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         )}
 
         {view === "week" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 7, width: "100%", maxWidth: 300, margin: "0 auto" }}>
+          <div ref={weekGridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 7, width: "100%", maxWidth: 300, margin: "0 auto" }}>
             {weeksData.map((wd, i) => {
               const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#0a0a0a";
               const itx = !!(todayTap && wd.isToday && (solo || selPerson == null || (people[selPerson] && people[selPerson].you)));
@@ -393,7 +402,10 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         {view === "month" && (
         <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 252, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
           {cells.map((c) => {
-            if (c.adj) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1", borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)" }} />;
+            // Соседние месяцы (prev/next) = МАЛЕНЬКАЯ точка по центру клетки, а не бледный полный круг
+            // (David: тот сливался с пустыми днями — «почти неотличимы»). Меньший размер = ясное
+            // «выпирание»: видно, что там тоже дни, но они явно второстепенные, не путаются с этим месяцем.
+            if (c.adj) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1", display: "grid", placeItems: "center" }}><span style={{ width: "34%", height: "34%", borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)" }} /></span>;
             const isToday = isCurMonth && c.d === today;
             // TODAY is the single tap-to-mark control now (David removed the bottom button — «тапаешь
             // день, бумс»). Interactive only in YOUR view (solo / «Все» / your own chip) — never on a
