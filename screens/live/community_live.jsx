@@ -160,10 +160,12 @@ function CommunityLive() {
               Создание круга — на Привычки → «+». */}
           <div style={{ padding: "2px 4px 0" }}>
             <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Найди своих</div>
-            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Челленджи и живые круги — вступаешь за секунду, и круг появляется у тебя в «Целях».</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Вступай в челленджи и живые круги — или собери свой круг с друзьями. Любой появится у тебя в «Целях».</div>
           </div>
           {/* Челленджи — срочные, с призом за финиш. */}
           {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
+          {/* Собери свой круг — пресеты создания (семья/тренинги/рост), переехали сюда из Целей (David). */}
+          {typeof CircleStartersShowcaseLive === "function" && <CircleStartersShowcaseLive navigate={navigate} />}
           {/* Живые круги — витрина с лицами + активностью («иллюзия жизни»); тап → создать похожий. */}
           {typeof LivingCirclesShowcaseLive === "function" && <LivingCirclesShowcaseLive navigate={navigate} />}
           {/* РЕАЛЬНАЯ жизнь — живые лица из твоих кругов (скрыто, если людей нет; David: «по-настоящему»). */}

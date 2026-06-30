@@ -33,11 +33,10 @@ function _bosSetHabitsTab(t) {
   } catch (e) {}
 }
 
-// Quick-add presets per triad tab (David: «при переключении на Цели/Команды всплывают подходящие
-// пилюли»). Habits reuse the shared EMOJI_CHIPS; goals & teams get their own context presets.
-//   GOAL preset → {i,t,target,unit,deadline} seeds goal-settings.
-//   TEAM preset → {i,t,accent,goalType,goalTitle,target,unit} seeds team-create. Three themes:
-//   семья · челленджи для друзей · личностный рост.
+// Quick-add presets for the active triad tab. Habits reuse the shared EMOJI_CHIPS; the Цели tab gets
+// its own GOAL presets → {i,t,target,unit,deadline} seeds goal-settings. КРУГ-пресеты (семья/тренинги/
+// челленджи) ПЕРЕЕХАЛИ во вкладку НАЙТИ (CircleStartersShowcaseLive, David: «их место в Найти, не на
+// странице привычек») — здесь больше нет TEAM_CHIPS, «Быстрое добавление» на Целях = чистые цели.
 var GOAL_CHIPS = [{
   i: "🏃",
   t: "Пробежать марафон",
@@ -80,69 +79,6 @@ var GOAL_CHIPS = [{
   target: 90,
   unit: "дней",
   deadline: "Месяц"
-}];
-var TEAM_CHIPS = [
-// вклад в окружение (David: фокус на вклад, не «семейные дела»)
-{
-  i: "🤝",
-  t: "Вклад в окружение",
-  accent: "#E59B9B",
-  goalType: "collective",
-  goalTitle: "Добрые дела",
-  target: 50,
-  unit: "дел"
-}, {
-  i: "🫶",
-  t: "Забота о близких",
-  accent: "#F0A24E",
-  goalType: "collective",
-  goalTitle: "Тёплые дела",
-  target: 30,
-  unit: "дел"
-},
-// челленджи для друзей
-{
-  i: "🔥",
-  t: "30 дней спорта",
-  accent: "#F0564C",
-  goalType: "streak",
-  goalTitle: "Спорт каждый день",
-  target: 30,
-  unit: "дней"
-}, {
-  i: "🏁",
-  t: "Беговой вызов",
-  accent: "#19B89B",
-  goalType: "race",
-  goalTitle: "100 км бега",
-  target: 100,
-  unit: "км"
-}, {
-  i: "💧",
-  t: "Без сахара вместе",
-  accent: "#54C3E4",
-  goalType: "streak",
-  goalTitle: "Дни без сахара",
-  target: 21,
-  unit: "дней"
-},
-// личностный рост
-{
-  i: "🧘",
-  t: "Осознанность",
-  accent: "#7F9AF2",
-  goalType: "collective",
-  goalTitle: "Минуты медитации",
-  target: 1000,
-  unit: "мин"
-}, {
-  i: "📖",
-  t: "Книжный клуб",
-  accent: "#8676E6",
-  goalType: "collective",
-  goalTitle: "Прочитано глав",
-  target: 100,
-  unit: "глав"
 }];
 function HabitsLive() {
   var {
@@ -237,19 +173,16 @@ function HabitsLive() {
   var [createOpen, setCreateOpen] = React.useState(false);
   var addBtnRef = React.useRef(null);
 
-  // «Быстрое добавление» now sits ABOVE the triad (David) and its chips FOLLOW the active tab:
-  // Привычки → habit presets, Цели → goal presets, Команды → team presets. The chips re-mount on
-  // tab change (key={tab}) so they pop in (briefPop). Each chip routes to the matching create screen
-  // with its preset (habit-settings / goal-settings / team-create).
-  // Цели = личные цели + круги (бывшие команды) ВМЕСТЕ. Пресеты слиты в один набор: чип-цель →
-  // goal-settings, чип-круг (есть goalType) → team-create. Чипы-круги помечены лицами (тихий намёк
-  // «совместный»), чтобы слитый набор читался без отдельной вкладки «Команды».
+  // «Быстрое добавление» sits ABOVE the triad (David) and its chips FOLLOW the active tab:
+  // Привычки → habit presets, Цели → goal presets. The chips re-mount on tab change (key={tab}) so
+  // they pop in (briefPop). Each chip routes to the matching create screen with its preset.
+  // Круг-пресеты (семья/тренинги) здесь больше НЕ живут — они во вкладке Найти (David); Цели = чисто
+  // личные цели. Сам круг по-прежнему создаётся снизу кнопкой «Создать круг».
   var QA = tab === "goals" ? {
-    chips: GOAL_CHIPS.concat(TEAM_CHIPS),
+    chips: GOAL_CHIPS,
     go: c => navigate("goal-settings", {
       mode: "create",
-      preset: c,
-      circleOn: !!(c && c.goalType)
+      preset: c
     })
   } : {
     chips: EMOJI_CHIPS,
@@ -312,10 +245,7 @@ function HabitsLive() {
       fontSize: 15,
       lineHeight: 1
     }
-  }, c.i), c.t, " ", c.goalType ? /*#__PURE__*/React.createElement(I.Users, {
-    size: 11,
-    color: TH.plusIcon
-  }) : /*#__PURE__*/React.createElement(I.Plus, {
+  }, c.i), c.t, " ", /*#__PURE__*/React.createElement(I.Plus, {
     size: 12,
     color: TH.plusIcon
   })))));

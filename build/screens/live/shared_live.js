@@ -4746,6 +4746,194 @@ function SeedCirclesShowcaseLive({
   })));
 }
 
+/* «Собери свой круг» — пресеты СОЗДАНИЯ кругов под темы жизни (David: «пресеты кругов для семьи,
+   тренингов и т.д. — их место во вкладке НАЙТИ, не на странице привычек»). Раньше были чипами в
+   «Быстром добавлении» на Целях (терялись в конце ленты) → переехали сюда заметными карточками,
+   тем же размером/языком, что «Челленджи». Тап → форма создания круга, заполненная пресетом
+   (goal-settings + circleOn) → пользователь зовёт людей и правит под себя. */
+var CIRCLE_STARTERS = [{
+  i: "🤝",
+  t: "Вклад в окружение",
+  goalType: "collective",
+  goalTitle: "Добрые дела",
+  target: 50,
+  unit: "дел",
+  hook: "Делаем добро вместе — счёт общий"
+}, {
+  i: "🫶",
+  t: "Забота о близких",
+  goalType: "collective",
+  goalTitle: "Тёплые дела",
+  target: 30,
+  unit: "дел",
+  hook: "Маленькие знаки внимания семье"
+}, {
+  i: "🔥",
+  t: "30 дней спорта",
+  goalType: "streak",
+  goalTitle: "Спорт каждый день",
+  target: 30,
+  unit: "дней",
+  hook: "Держим серию все вместе"
+}, {
+  i: "🏁",
+  t: "Беговой вызов",
+  goalType: "race",
+  goalTitle: "100 км бега",
+  target: 100,
+  unit: "км",
+  hook: "Кто первым добежит до цели"
+}, {
+  i: "💧",
+  t: "Без сахара вместе",
+  goalType: "streak",
+  goalTitle: "Дни без сахара",
+  target: 21,
+  unit: "дней",
+  hook: "21 день чистоты — рядом легче"
+}, {
+  i: "🧘",
+  t: "Осознанность",
+  goalType: "collective",
+  goalTitle: "Минуты медитации",
+  target: 1000,
+  unit: "мин",
+  hook: "Копим минуты тишины на всех"
+}, {
+  i: "📖",
+  t: "Книжный клуб",
+  goalType: "collective",
+  goalTitle: "Прочитано глав",
+  target: 100,
+  unit: "глав",
+  hook: "Читаем и обсуждаем вместе"
+}];
+function CircleStartersShowcaseLive({
+  navigate
+}) {
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      padding: "4px 4px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)"
+    }
+  }, "\uD83E\uDD1D \u0421\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439 \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)"
+    }
+  }, "\u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438 \u0437\u0430 \u0441\u0435\u043A\u0443\u043D\u0434\u0443 \u2192")), /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
+    style: {
+      display: "flex",
+      gap: 11,
+      overflowX: "auto",
+      padding: "0 0 4px",
+      scrollSnapType: "x proximity",
+      WebkitOverflowScrolling: "touch"
+    }
+  }, CIRCLE_STARTERS.map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.t,
+    className: "tap",
+    onClick: () => {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+      navigate("goal-settings", {
+        mode: "create",
+        circleOn: true,
+        preset: s
+      });
+    },
+    style: {
+      flex: "0 0 auto",
+      width: 162,
+      scrollSnapAlign: "start",
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 14,
+      boxShadow: "var(--card-shadow)",
+      cursor: "pointer",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
+      boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 23,
+      flexShrink: 0
+    }
+  }, bosIcon(s.i, 23, null)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)",
+      letterSpacing: "-0.2px",
+      marginTop: 11,
+      lineHeight: 1.25
+    }
+  }, s.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)",
+      marginTop: 3,
+      lineHeight: 1.35,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden",
+      minHeight: 31
+    }
+  }, s.hook), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 10
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      alignSelf: "flex-start",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      ...bosChipGlass(false),
+      padding: "3px 9px",
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-2)"
+    }
+  }, "\uD83C\uDFAF ", s.target, " ", s.unit), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginTop: 9,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 2
+    }
+  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 14
+  }))))));
+}
+
 /* «Твои люди» — РЕАЛЬНАЯ жизнь в «Найти» (David: «сама жизнь должна быть по-настоящему»): живые
    аватары людей из ТВОИХ кругов (cloud teamMembers, дедуп, без себя). НЕ выдумка: если кругов/людей
    нет — секция СКРЫТА. Кэш в модульной переменной → мгновенно при повторном входе. Тап → в общий круг. */
