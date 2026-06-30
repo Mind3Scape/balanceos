@@ -31,6 +31,12 @@ function HomeLive() {
   var habits = app?.habits || [];
   var goals = app?.goals || [];
   var teams = app?.teams || [];
+  // Универсальная кнопка «+» в шапке главной (David: «нужна явная кнопка создать привычку») —
+  // открывает то же меню Привычку/Цель/Команду, что и «+» на странице Привычки. Плюс простой
+  // СТАРТ для нового юзера ниже (0 привычек/целей/команд → один понятный шаг).
+  var [createOpen, setCreateOpen] = React.useState(false);
+  var addBtnRef = React.useRef(null);
+  var trulyNew = habits.length === 0 && goals.length === 0 && teams.length === 0;
   var userName = app?.userName ?? "";
   // Greeting follows the user's OWN local clock — real morning for whoever opens
   // it in the morning, evening in the evening. No server sync needed: each device
@@ -1117,6 +1123,42 @@ function HomeLive() {
       fontFamily: "var(--bos-title-font)"
     }
   }, userName ? greeting + ", " + userName : greeting + " 👋")), /*#__PURE__*/React.createElement("button", {
+    ref: addBtnRef,
+    onClick: () => {
+      setCreateOpen(true);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
+      }
+    },
+    className: "tap hit44",
+    "aria-label": "\u0421\u043E\u0437\u0434\u0430\u0442\u044C",
+    "aria-haspopup": "menu",
+    "aria-expanded": createOpen,
+    title: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C",
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 999,
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+        background: "var(--surface-3)"
+      }),
+      color: isDark ? "#fff" : "var(--text)",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 20,
+    strokeWidth: 2.4,
+    style: {
+      transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)",
+      transform: createOpen ? "rotate(45deg)" : "none"
+    }
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("notifications", {
       from: "home"
     }),
@@ -1154,7 +1196,78 @@ function HomeLive() {
       background: "var(--accent-red)",
       border: "2px solid " + (isDark ? "#0a0a0a" : "#fff")
     }
-  })))), visibleIds.length > 0 ? /*#__PURE__*/React.createElement(BosReorderList, {
+  })))), /*#__PURE__*/React.createElement(CreateMenuLive, {
+    open: createOpen,
+    onClose: () => setCreateOpen(false),
+    anchorRef: addBtnRef,
+    navigate: navigate
+  }), trulyNew ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("habit-settings", {
+      mode: "create"
+    }),
+    className: "tap",
+    style: {
+      width: "100%",
+      border: 0,
+      borderRadius: 22,
+      padding: "28px 20px",
+      cursor: "pointer",
+      textAlign: "center",
+      background: cardBg,
+      boxShadow: cardShadow,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 12,
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 60,
+      height: 60,
+      borderRadius: 18,
+      background: BOS_TILE_SHEEN + ", var(--surface-3)",
+      boxShadow: bosTileGlass(isDark),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 30
+    }
+  }, "\uD83C\uDF31"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0421\u043E\u0437\u0434\u0430\u0439 \u043F\u0435\u0440\u0432\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-4)",
+      lineHeight: 1.45,
+      maxWidth: 270
+    }
+  }, "\u041D\u0430\u0447\u043D\u0438 \u0441 \u043E\u0434\u043D\u043E\u0439 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u043E\u0439 \u2014 \u0441\u0442\u0430\u043A\u0430\u043D \u0432\u043E\u0434\u044B \u0438\u043B\u0438 5 \u043C\u0438\u043D\u0443\u0442 \u0447\u0442\u0435\u043D\u0438\u044F. \u041E\u0441\u0442\u0430\u043B\u044C\u043D\u043E\u0435 \u0441\u043E\u0431\u0435\u0440\u0451\u0442\u0441\u044F \u043F\u043E \u0445\u043E\u0434\u0443."), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginTop: 4,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      background: isDark ? "#fff" : "#0a0a0a",
+      color: isDark ? "#0a0a0a" : "#fff",
+      borderRadius: 999,
+      padding: "11px 20px",
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 17,
+    strokeWidth: 2.6
+  }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")), nodes["hero"] || null) : visibleIds.length > 0 ? /*#__PURE__*/React.createElement(BosReorderList, {
     ids: visibleIds,
     gap: 12,
     onReorder: onReorderWidgets,

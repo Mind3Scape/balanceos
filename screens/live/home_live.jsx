@@ -27,6 +27,12 @@ function HomeLive() {
   const habits = app?.habits || [];
   const goals = app?.goals || [];
   const teams = app?.teams || [];
+  // Универсальная кнопка «+» в шапке главной (David: «нужна явная кнопка создать привычку») —
+  // открывает то же меню Привычку/Цель/Команду, что и «+» на странице Привычки. Плюс простой
+  // СТАРТ для нового юзера ниже (0 привычек/целей/команд → один понятный шаг).
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const addBtnRef = React.useRef(null);
+  const trulyNew = habits.length === 0 && goals.length === 0 && teams.length === 0;
   const userName = app?.userName ?? "";
   // Greeting follows the user's OWN local clock — real morning for whoever opens
   // it in the morning, evening in the evening. No server sync needed: each device
@@ -437,6 +443,12 @@ function HomeLive() {
           <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{_todayLabel}</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.6px", marginTop: 2, fontFamily: "var(--bos-title-font)" }}>{userName ? greeting + ", " + userName : greeting + " 👋"}</div>
         </div>
+        {/* «+» — явная кнопка СОЗДАТЬ (привычку/цель/круг), всегда под рукой на главной (David). Тот
+            же CreateMenuLive, что на странице Привычки; стеклянный круг, «+» крутится при открытии. */}
+        <button ref={addBtnRef} onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap hit44" aria-label="Создать" aria-haspopup="menu" aria-expanded={createOpen} title="Создать"
+          style={{ width: 40, height: 40, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+          <I.Plus size={20} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
+        </button>
         {/* Notifications — a BARE iOS-nav glyph (no grey tile: David «квадратик ему не подходит»),
             a touch bolder for presence, optically centred with the greeting; the red dot rides the
             bell's top-right. hit44 keeps the tap target ≥44px. */}
@@ -451,8 +463,22 @@ function HomeLive() {
         </button>
       </div>
 
-      {/* The customizable widget board */}
-      {visibleIds.length > 0 ? (
+      <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
+
+      {/* Новому юзеру (0 привычек/целей/команд) — ПРОСТОЙ старт: один понятный шаг + подсказки ИИ, без
+          пёстрой доски (David: «новому максимально просто, по ходу разберётся»). Доска появляется с
+          первой привычкой. */}
+      {trulyNew ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <button onClick={() => navigate("habit-settings", { mode: "create" })} className="tap" style={{ width: "100%", border: 0, borderRadius: 22, padding: "28px 20px", cursor: "pointer", textAlign: "center", background: cardBg, boxShadow: cardShadow, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, color: "var(--text)" }}>
+            <span style={{ width: 60, height: 60, borderRadius: 18, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 30 }}>🌱</span>
+            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px" }}>Создай первую привычку</div>
+            <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 270 }}>Начни с одной маленькой — стакан воды или 5 минут чтения. Остальное соберётся по ходу.</div>
+            <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 7, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "11px 20px", fontSize: 15, fontWeight: 600 }}><I.Plus size={17} strokeWidth={2.6} /> Создать привычку</span>
+          </button>
+          {nodes["hero"] || null}
+        </div>
+      ) : visibleIds.length > 0 ? (
         <BosReorderList
           ids={visibleIds}
           gap={12}
