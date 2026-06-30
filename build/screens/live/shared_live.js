@@ -5327,11 +5327,11 @@ var CIRCLE_STARTERS = [{
 }, {
   i: "🏁",
   t: "Беговой вызов",
-  goalType: "race",
+  goalType: "collective",
   goalTitle: "100 км бега",
   target: 100,
   unit: "км",
-  hook: "Кто первым добежит до цели"
+  hook: "Набегаем 100 км вместе — счёт общий"
 }, {
   i: "💧",
   t: "Без сахара вместе",

@@ -2181,7 +2181,7 @@ const CIRCLE_STARTERS = [
   { i: "🤝", t: "Вклад в окружение", goalType: "collective", goalTitle: "Добрые дела",       target: 50,   unit: "дел",   hook: "Делаем добро вместе — счёт общий" },
   { i: "🫶", t: "Забота о близких",   goalType: "collective", goalTitle: "Тёплые дела",       target: 30,   unit: "дел",   hook: "Маленькие знаки внимания семье" },
   { i: "🔥", t: "30 дней спорта",     goalType: "streak",     goalTitle: "Спорт каждый день", target: 30,   unit: "дней",  hook: "Держим серию все вместе" },
-  { i: "🏁", t: "Беговой вызов",      goalType: "race",       goalTitle: "100 км бега",       target: 100,  unit: "км",    hook: "Кто первым добежит до цели" },
+  { i: "🏁", t: "Беговой вызов",      goalType: "collective", goalTitle: "100 км бега",       target: 100,  unit: "км",    hook: "Набегаем 100 км вместе — счёт общий" },
   { i: "💧", t: "Без сахара вместе",  goalType: "streak",     goalTitle: "Дни без сахара",    target: 21,   unit: "дней",  hook: "21 день чистоты — рядом легче" },
   { i: "🧘", t: "Осознанность",       goalType: "collective", goalTitle: "Минуты медитации",  target: 1000, unit: "мин",   hook: "Копим минуты тишины на всех" },
   { i: "📖", t: "Книжный клуб",       goalType: "collective", goalTitle: "Прочитано глав",    target: 100,  unit: "глав",  hook: "Читаем и обсуждаем вместе" },
