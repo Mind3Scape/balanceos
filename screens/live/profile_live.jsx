@@ -29,12 +29,6 @@ function ProfileLive() {
   const lvlNum = _li.level;
   const lvlPct = _li.pct;
 
-  // Publish MY public stats (level + how much I have) so my solar system shows real size+level to
-  // others in «Вселенная». World-readable profiles; no-ops until David adds pub_* columns.
-  React.useEffect(() => {
-    try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, habits: (app?.habits || []).length, goals: (app?.goals || []).length }); } catch (e) {}
-  }, [lvlNum, (app?.habits || []).length, (app?.goals || []).length]);
-
   // Real multiplayer: pull the people you've actually invited (referral circle) from
   // the cloud and put them on your orbit.
   const [livePeople, setLivePeople] = React.useState([]);
@@ -50,6 +44,16 @@ function ProfileLive() {
     return () => { on = false; };
   }, []);
   const orbitPeople = livePeople;
+
+  // Publish MY public ORBIT (level + habit icons + people count) so my system shows REAL to others in
+  // «Вселенная» — their orbits with my habits/people, как у меня (David). World-readable; no-ops until
+  // David adds the pub_orbit column. Only emoji+colour leave the device (no habit names). Re-publishes
+  // when anything changes via a small signature string.
+  const _pubHabits = (app?.habits || []).map((h) => ({ e: h.emoji, c: h.color }));
+  const _pubSig = JSON.stringify(_pubHabits) + "|" + orbitPeople.length + "|" + lvlNum + "|" + (app?.goals || []).length;
+  React.useEffect(() => {
+    try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, habits: _pubHabits, goals: (app?.goals || []).length, people: orbitPeople.length }); } catch (e) {}
+  }, [_pubSig]);
 
   // Achievements badge — REAL earned set + emojis.
   const _liveAch = bosEarnedAchievementsLive(app).filter((a) => a.earned);

@@ -2376,9 +2376,10 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       try { myId = await window.bosCloud.uid(); } catch (e) {}
       try { if (window.bosCloud.invitedPeople) { var inv = await window.bosCloud.invitedPeople(); (inv || []).forEach(function (p) { if (!p) return; var id = p.id || p.user_id; if (id && id !== myId && !seen[id]) { seen[id] = 1; out.push({ id: id, avatar: p.avatar, name: p.username || p.name || "" }); } }); } } catch (e) {}
       try { var teams = (app && app.teams || []).filter(function (t) { return t.cloudId; }); for (var i = 0; i < teams.length; i++) { var mem = await window.bosCloud.teamMembers(teams[i].cloudId); (mem || []).forEach(function (m) { if (m && m.id && m.id !== myId && !seen[m.id]) { seen[m.id] = 1; out.push({ id: m.id, avatar: m.avatar, name: m.name || "" }); } }); } } catch (e) {}
-      // РЕАЛЬНЫЕ уровни + размер (сколько у кого всего) — David: «их уровни можно показывать; колец
-      // столько сколько у них реально». Тянем публичную статистику; нет колонок → 0 (системы дефолт-мелкие).
-      try { if (window.bosCloud.profilesPublic && out.length) { var st = await window.bosCloud.profilesPublic(out.map(function (o) { return o.id; })) || {}; out.forEach(function (o) { var s = st[o.id] || {}; o.level = s.level || 0; o.habits = s.habits || 0; o.goals = s.goals || 0; }); } } catch (e) {}
+      // РЕАЛЬНАЯ орбита каждого: уровень + ЗНАЧКИ привычек + число людей (David: «их орбиты с привычками
+      // и вовлечёнными, как у меня»). Тянем публичную орбиту; нет колонки pub_orbit → пусто (системы
+      // дефолт-мелкие до ALTER от David).
+      try { if (window.bosCloud.profilesPublic && out.length) { var st = await window.bosCloud.profilesPublic(out.map(function (o) { return o.id; })) || {}; out.forEach(function (o) { var s = st[o.id] || {}; o.level = s.level || 0; o.habits = Array.isArray(s.habits) ? s.habits : []; o.goals = s.goals || 0; o.people = s.people || 0; }); } } catch (e) {}
       if (on) { _bosUniverseCache = out; setFriends(out); }
     })();
     return function () { on = false; };
@@ -2401,13 +2402,21 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // (ТВОЯ система рисуется НАСТОЯЩИМ OrbitField — идентично странице «Я», без отдельной схемы.)
   var CAPS = [4, 6, 8, 10];
   function buildSystem(s) {
-    var w = Math.min(((s.habits || 0) + (s.goals || 0)), 18); if (w < 1) w = 1;
-    var items = new Array(w).fill(0).map(function () { return { kind: "bead" }; });
+    // Реальные элементы орбиты: ЗНАЧКИ привычек (внутренние пояса) + лица вовлечённых (снаружи) — как у
+    // ТЕБЯ на стр. «Я» (привычки внутри, люди снаружи). Имена людей не публикуются → обезличенные лица.
+    var hb = Array.isArray(s.habits) ? s.habits : [];
+    var peopleN = s.people || 0;
+    var items = [];
+    hb.slice(0, 12).forEach(function (h) { items.push({ kind: "emoji", emoji: (h && h.e) || "✨" }); });
+    var pn = Math.min(peopleN, 10);
+    for (var pi = 0; pi < pn; pi++) items.push({ kind: "avatar", avatar: null, name: "" });
+    if (!items.length) items.push({ kind: "bead" });
+    var w = items.length;
     var rings = [], idx = 0, ri = 0;
     while (ri < CAPS.length) { rings.push(items.slice(idx, idx + CAPS[ri])); idx += CAPS[ri]; ri++; if (idx >= items.length) break; }
     var avD = Math.round(30 + Math.min(w, 12) * 1.4);   // больше всего → крупнее
-    var R0 = avD / 2 + 11, STEP = 13;
-    var ringSpecs = rings.map(function (it, i) { return { items: it, R: R0 + i * STEP, pd: 10 }; });
+    var R0 = avD / 2 + 12, STEP = 14;
+    var ringSpecs = rings.map(function (it, i) { return { items: it, R: R0 + i * STEP, pd: 13 }; });
     var outerR = R0 + (rings.length - 1) * STEP;
     return { s: s, avD: avD, level: s.level || 0, weight: w, rings: ringSpecs, footprint: outerR + 9 };
   }
@@ -2520,7 +2529,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
                           {r.items.map(function (it, k) {
                             var ang = (k / r.items.length) * 2 * Math.PI + ri * 0.5;
                             var ppx = Math.cos(ang) * r.R, ppy = Math.sin(ang) * r.R;
-                            return <div key={k} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(" + ppx.toFixed(1) + "px," + ppy.toFixed(1) + "px) translate(-50%,-50%)" }}>{planet("bead", null, r.pd)}</div>;
+                            return <div key={k} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(" + ppx.toFixed(1) + "px," + ppy.toFixed(1) + "px) translate(-50%,-50%)" }}>{planet(it.kind, it.kind === "emoji" ? it.emoji : it, r.pd)}</div>;
                           })}
                         </div>
                       )}

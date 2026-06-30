@@ -6059,8 +6059,9 @@ function UniverseFieldLive({
           });
         }
       } catch (e) {}
-      // РЕАЛЬНЫЕ уровни + размер (сколько у кого всего) — David: «их уровни можно показывать; колец
-      // столько сколько у них реально». Тянем публичную статистику; нет колонок → 0 (системы дефолт-мелкие).
+      // РЕАЛЬНАЯ орбита каждого: уровень + ЗНАЧКИ привычек + число людей (David: «их орбиты с привычками
+      // и вовлечёнными, как у меня»). Тянем публичную орбиту; нет колонки pub_orbit → пусто (системы
+      // дефолт-мелкие до ALTER от David).
       try {
         if (window.bosCloud.profilesPublic && out.length) {
           var st = (await window.bosCloud.profilesPublic(out.map(function (o) {
@@ -6069,8 +6070,9 @@ function UniverseFieldLive({
           out.forEach(function (o) {
             var s = st[o.id] || {};
             o.level = s.level || 0;
-            o.habits = s.habits || 0;
+            o.habits = Array.isArray(s.habits) ? s.habits : [];
             o.goals = s.goals || 0;
+            o.people = s.people || 0;
           });
         }
       } catch (e) {}
@@ -6105,13 +6107,27 @@ function UniverseFieldLive({
   // (ТВОЯ система рисуется НАСТОЯЩИМ OrbitField — идентично странице «Я», без отдельной схемы.)
   var CAPS = [4, 6, 8, 10];
   function buildSystem(s) {
-    var w = Math.min((s.habits || 0) + (s.goals || 0), 18);
-    if (w < 1) w = 1;
-    var items = new Array(w).fill(0).map(function () {
-      return {
-        kind: "bead"
-      };
+    // Реальные элементы орбиты: ЗНАЧКИ привычек (внутренние пояса) + лица вовлечённых (снаружи) — как у
+    // ТЕБЯ на стр. «Я» (привычки внутри, люди снаружи). Имена людей не публикуются → обезличенные лица.
+    var hb = Array.isArray(s.habits) ? s.habits : [];
+    var peopleN = s.people || 0;
+    var items = [];
+    hb.slice(0, 12).forEach(function (h) {
+      items.push({
+        kind: "emoji",
+        emoji: h && h.e || "✨"
+      });
     });
+    var pn = Math.min(peopleN, 10);
+    for (var pi = 0; pi < pn; pi++) items.push({
+      kind: "avatar",
+      avatar: null,
+      name: ""
+    });
+    if (!items.length) items.push({
+      kind: "bead"
+    });
+    var w = items.length;
     var rings = [],
       idx = 0,
       ri = 0;
@@ -6122,13 +6138,13 @@ function UniverseFieldLive({
       if (idx >= items.length) break;
     }
     var avD = Math.round(30 + Math.min(w, 12) * 1.4); // больше всего → крупнее
-    var R0 = avD / 2 + 11,
-      STEP = 13;
+    var R0 = avD / 2 + 12,
+      STEP = 14;
     var ringSpecs = rings.map(function (it, i) {
       return {
         items: it,
         R: R0 + i * STEP,
-        pd: 10
+        pd: 13
       };
     });
     var outerR = R0 + (rings.length - 1) * STEP;
@@ -6490,7 +6506,7 @@ function UniverseFieldLive({
             top: "50%",
             transform: "translate(" + ppx.toFixed(1) + "px," + ppy.toFixed(1) + "px) translate(-50%,-50%)"
           }
-        }, planet("bead", null, r.pd));
+        }, planet(it.kind, it.kind === "emoji" ? it.emoji : it, r.pd));
       })));
     }), /*#__PURE__*/React.createElement("div", {
       style: {
