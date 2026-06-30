@@ -1758,25 +1758,9 @@ function AchievementSheetLive({
     dark: isDark
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "2px 22px 26px",
+      padding: "8px 24px 26px",
       textAlign: "center",
-      color: "var(--text)",
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      top: -6,
-      left: 0,
-      right: 0,
-      height: 150,
-      background: "radial-gradient(circle at 50% 0%, " + accent + "30, transparent 70%)",
-      pointerEvents: "none"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative"
+      color: "var(--text)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1785,68 +1769,163 @@ function AchievementSheetLive({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 92,
-      height: 92,
-      position: "relative",
-      animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.08s both"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      inset: -14,
-      borderRadius: "50%",
-      background: "radial-gradient(circle, " + accent + "40, transparent 70%)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      width: "100%",
-      height: "100%",
-      borderRadius: 26,
-      background: BOS_TILE_SHEEN + ", linear-gradient(180deg,#fffdf6,#fff7e0)",
+      width: 90,
+      height: 90,
+      borderRadius: 24,
+      background: "linear-gradient(158deg, #FFDC4A 0%, #F4A81E 100%)",
       display: "grid",
       placeItems: "center",
-      fontSize: 44,
-      boxShadow: bosTileGlass(isDark) + ", 0 10px 26px " + accent + "33"
+      fontSize: 46,
+      boxShadow: "inset 0 2px 1px rgba(255,255,255,0.65), inset 0 0 0 0.7px rgba(180,120,0,0.28), 0 8px 18px rgba(0,0,0,0.13)",
+      animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.08s both"
     }
-  }, bosIcon(ach.i, 44, null)))), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(ach.i, 46, null))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: "#E0A500",
+      fontSize: 11.5,
+      color: "#C98A00",
       textTransform: "uppercase",
-      letterSpacing: 1.4,
+      letterSpacing: 1.8,
       fontWeight: 800,
-      marginTop: 14
+      marginTop: 20
     }
   }, "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u043E"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 23,
+      fontSize: 26,
       fontWeight: 800,
-      letterSpacing: "-0.5px",
+      letterSpacing: "-0.6px",
       color: "var(--text)",
-      marginTop: 3
+      marginTop: 6,
+      lineHeight: 1.1
     }
   }, ach.t), ach.d && /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13.5,
+      fontSize: 14.5,
       color: "var(--text-3)",
-      marginTop: 8,
       lineHeight: 1.5,
-      padding: "0 6px",
+      maxWidth: 270,
+      margin: "10px auto 0",
       textWrap: "balance"
     }
   }, ach.d), ach.xp ? /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-block",
-      marginTop: 16,
+      marginTop: 20,
       background: "linear-gradient(180deg,#FEDE34,#EF9F14)",
       color: "#4a3800",
-      fontWeight: 700,
+      fontWeight: 800,
+      fontSize: 14.5,
+      borderRadius: 999,
+      padding: "8px 18px"
+    }
+  }, "+", ach.xp, " XP") : null, /*#__PURE__*/React.createElement("button", {
+    onClick: close,
+    className: "bos-btn",
+    style: {
+      marginTop: 22
+    }
+  }, "\u041A\u043B\u0430\u0441\u0441!")));
+}
+
+/* Деталь достижения из СПИСКА (тап по медали) — тот же стиль, что у шторки-открытия: ЗОЛОТОЙ
+   квадрат-тайл (или серый-замок, если ещё закрыто), БЕЗ свечения, аккуратный текст. Рендерится
+   через openSheet (шторка-чрома снаружи). Заменяет прежний текстовый InfoSheet. LIVE. */
+function AchievementDetailSheetLive({
+  ach,
+  dark
+}) {
+  var sheet = typeof useSheet === "function" ? useSheet() : null;
+  var close = () => {
+    try {
+      if (sheet && sheet.close) sheet.close();
+    } catch (e) {}
+  };
+  if (!ach) return null;
+  var earned = !!ach.earned;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 24px 22px",
+      textAlign: "center",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 84,
+      height: 84,
+      borderRadius: 22,
+      position: "relative",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 42,
+      background: earned ? "linear-gradient(158deg, #FFDC4A 0%, #F4A81E 100%)" : "var(--card-2)",
+      boxShadow: earned ? "inset 0 2px 1px rgba(255,255,255,0.65), inset 0 0 0 0.7px rgba(180,120,0,0.28), 0 8px 18px rgba(0,0,0,0.13)" : "inset 0 0 0 1px var(--line)",
+      filter: earned ? "none" : "grayscale(1)",
+      opacity: earned ? 1 : 0.55
+    }
+  }, bosIcon(ach.i, 42, null), !earned && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: -3,
+      bottom: -3,
+      width: 24,
+      height: 24,
+      borderRadius: "50%",
+      background: "var(--card)",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 12
+    }
+  }, "\uD83D\uDD12"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: earned ? "#C98A00" : "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1.8,
+      fontWeight: 800,
+      marginTop: 18
+    }
+  }, earned ? "Достижение открыто" : "Ещё закрыто"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 24,
+      fontWeight: 800,
+      letterSpacing: "-0.5px",
+      marginTop: 6,
+      lineHeight: 1.1,
+      color: "var(--text)"
+    }
+  }, ach.t), ach.d && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      color: "var(--text-3)",
+      lineHeight: 1.5,
+      maxWidth: 280,
+      margin: "10px auto 0",
+      textWrap: "balance"
+    }
+  }, ach.d), !earned && ach.how && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-4)",
+      lineHeight: 1.45,
+      maxWidth: 280,
+      margin: "9px auto 0",
+      textWrap: "balance"
+    }
+  }, "\u041A\u0430\u043A \u043E\u0442\u043A\u0440\u044B\u0442\u044C: ", ach.how), ach.xp ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-block",
+      marginTop: 18,
+      background: earned ? "linear-gradient(180deg,#FEDE34,#EF9F14)" : "var(--card-2)",
+      color: earned ? "#4a3800" : "var(--text-3)",
+      fontWeight: 800,
       fontSize: 14,
       borderRadius: 999,
-      padding: "7px 16px",
-      boxShadow: "0 4px 12px " + accent + "4d"
+      padding: "7px 16px"
     }
   }, "+", ach.xp, " XP") : null, /*#__PURE__*/React.createElement("button", {
     onClick: close,
@@ -1854,7 +1933,7 @@ function AchievementSheetLive({
     style: {
       marginTop: 20
     }
-  }, "\u041A\u043B\u0430\u0441\u0441!"))));
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E"));
 }
 
 /* Stage-2 dedup (David): нажал «Вести у себя», а такая привычка уже есть → спросить — ПРИВЯЗАТЬ

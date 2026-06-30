@@ -1447,7 +1447,10 @@ function AchievementsLive() {
     t: "Цели и команда",
     ids: ["goal", "team"]
   }];
-  var showDetail = a => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
+  var showDetail = a => openSheet(typeof AchievementDetailSheetLive === "function" ? /*#__PURE__*/React.createElement(AchievementDetailSheetLive, {
+    ach: a,
+    dark: dark
+  }) : /*#__PURE__*/React.createElement(InfoSheet, {
     dark: dark,
     title: a.t,
     body: (a.earned ? "Открыто ✓\n\n" : "Как открыть: " + (a.how || "") + "\n\n") + a.d + (a.xp ? "  ·  +" + a.xp + " XP" : ""),

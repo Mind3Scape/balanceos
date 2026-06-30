@@ -646,9 +646,9 @@ function AchievementsLive() {
     { t: "Забота о себе", ids: ["week_state", "care30", "care100", "care180", "year"] },
     { t: "Цели и команда", ids: ["goal", "team"] },
   ];
-  const showDetail = (a) => openSheet(<InfoSheet dark={dark} title={a.t}
-    body={(a.earned ? "Открыто ✓\n\n" : "Как открыть: " + (a.how || "") + "\n\n") + a.d + (a.xp ? "  ·  +" + a.xp + " XP" : "")}
-    cta="Готово" />);
+  const showDetail = (a) => openSheet(typeof AchievementDetailSheetLive === "function"
+    ? <AchievementDetailSheetLive ach={a} dark={dark} />
+    : <InfoSheet dark={dark} title={a.t} body={(a.earned ? "Открыто ✓\n\n" : "Как открыть: " + (a.how || "") + "\n\n") + a.d + (a.xp ? "  ·  +" + a.xp + " XP" : "")} cta="Готово" />);
   const tile = (a) => (
     <button key={a.id} onClick={() => showDetail(a)} className="tap" aria-label={a.t}
       style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", display: "grid", placeItems: "center" }}>

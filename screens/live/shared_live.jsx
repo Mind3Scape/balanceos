@@ -776,25 +776,48 @@ function AchievementSheetLive({ ach, onClose }) {
   };
   return (
     <BottomSheet open={open} onClose={close} dark={isDark}>
-      <div style={{ padding: "2px 22px 26px", textAlign: "center", color: "var(--text)", position: "relative" }}>
-        <div aria-hidden style={{ position: "absolute", top: -6, left: 0, right: 0, height: 150, background: "radial-gradient(circle at 50% 0%, " + accent + "30, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <div style={{ width: 92, height: 92, position: "relative", animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.08s both" }}>
-              <div aria-hidden style={{ position: "absolute", inset: -14, borderRadius: "50%", background: "radial-gradient(circle, " + accent + "40, transparent 70%)" }} />
-              {/* Эмблема в нашем СТЕКЛЯННОМ тайле (как иконки привычек), без жёсткой золотой ОБВОДКИ —
-                  тёплое золото остаётся мягким свечением + золотой кикер + XP-пилюля. David: «непонятная золотая обводка». */}
-              <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 26, background: BOS_TILE_SHEEN + ", linear-gradient(180deg,#fffdf6,#fff7e0)", display: "grid", placeItems: "center", fontSize: 44, boxShadow: bosTileGlass(isDark) + ", 0 10px 26px " + accent + "33" }}>{bosIcon(ach.i, 44, null)}</div>
-            </div>
-          </div>
-          <div style={{ fontSize: 11, color: "#E0A500", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 800, marginTop: 14 }}>Достижение открыто</div>
-          <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", marginTop: 3 }}>{ach.t}</div>
-          {ach.d && <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 8, lineHeight: 1.5, padding: "0 6px", textWrap: "balance" }}>{ach.d}</div>}
-          {ach.xp ? <div style={{ display: "inline-block", marginTop: 16, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 700, fontSize: 14, borderRadius: 999, padding: "7px 16px", boxShadow: "0 4px 12px " + accent + "4d" }}>+{ach.xp} XP</div> : null}
-          <button onClick={close} className="bos-btn" style={{ marginTop: 20 }}>Класс!</button>
+      {/* ЗОЛОТОЙ квадрат-тайл БЕЗ свечения (David: «сам квадратик золотым, свечения не нужно»);
+          текст с воздухом — кикер → крупный титул → описание (узкая колонка, balance) → XP → кнопка. */}
+      <div style={{ padding: "8px 24px 26px", textAlign: "center", color: "var(--text)" }}>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ width: 90, height: 90, borderRadius: 24, background: "linear-gradient(158deg, #FFDC4A 0%, #F4A81E 100%)", display: "grid", placeItems: "center", fontSize: 46, boxShadow: "inset 0 2px 1px rgba(255,255,255,0.65), inset 0 0 0 0.7px rgba(180,120,0,0.28), 0 8px 18px rgba(0,0,0,0.13)", animation: "achEmblem 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.08s both" }}>{bosIcon(ach.i, 46, null)}</div>
         </div>
+        <div style={{ fontSize: 11.5, color: "#C98A00", textTransform: "uppercase", letterSpacing: 1.8, fontWeight: 800, marginTop: 20 }}>Достижение открыто</div>
+        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.6px", color: "var(--text)", marginTop: 6, lineHeight: 1.1 }}>{ach.t}</div>
+        {ach.d && <div style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.5, maxWidth: 270, margin: "10px auto 0", textWrap: "balance" }}>{ach.d}</div>}
+        {ach.xp ? <div style={{ display: "inline-block", marginTop: 20, background: "linear-gradient(180deg,#FEDE34,#EF9F14)", color: "#4a3800", fontWeight: 800, fontSize: 14.5, borderRadius: 999, padding: "8px 18px" }}>+{ach.xp} XP</div> : null}
+        <button onClick={close} className="bos-btn" style={{ marginTop: 22 }}>Класс!</button>
       </div>
     </BottomSheet>
+  );
+}
+
+/* Деталь достижения из СПИСКА (тап по медали) — тот же стиль, что у шторки-открытия: ЗОЛОТОЙ
+   квадрат-тайл (или серый-замок, если ещё закрыто), БЕЗ свечения, аккуратный текст. Рендерится
+   через openSheet (шторка-чрома снаружи). Заменяет прежний текстовый InfoSheet. LIVE. */
+function AchievementDetailSheetLive({ ach, dark }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : null;
+  const close = () => { try { if (sheet && sheet.close) sheet.close(); } catch (e) {} };
+  if (!ach) return null;
+  const earned = !!ach.earned;
+  return (
+    <div style={{ padding: "8px 24px 22px", textAlign: "center", color: "var(--text)" }}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <div style={{ width: 84, height: 84, borderRadius: 22, position: "relative", display: "grid", placeItems: "center", fontSize: 42,
+          background: earned ? "linear-gradient(158deg, #FFDC4A 0%, #F4A81E 100%)" : "var(--card-2)",
+          boxShadow: earned ? "inset 0 2px 1px rgba(255,255,255,0.65), inset 0 0 0 0.7px rgba(180,120,0,0.28), 0 8px 18px rgba(0,0,0,0.13)" : "inset 0 0 0 1px var(--line)",
+          filter: earned ? "none" : "grayscale(1)", opacity: earned ? 1 : 0.55 }}>
+          {bosIcon(ach.i, 42, null)}
+          {!earned && <span style={{ position: "absolute", right: -3, bottom: -3, width: 24, height: 24, borderRadius: "50%", background: "var(--card)", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", display: "grid", placeItems: "center", fontSize: 12 }}>🔒</span>}
+        </div>
+      </div>
+      <div style={{ fontSize: 11.5, color: earned ? "#C98A00" : "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.8, fontWeight: 800, marginTop: 18 }}>{earned ? "Достижение открыто" : "Ещё закрыто"}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", marginTop: 6, lineHeight: 1.1, color: "var(--text)" }}>{ach.t}</div>
+      {ach.d && <div style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.5, maxWidth: 280, margin: "10px auto 0", textWrap: "balance" }}>{ach.d}</div>}
+      {!earned && ach.how && <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 280, margin: "9px auto 0", textWrap: "balance" }}>Как открыть: {ach.how}</div>}
+      {ach.xp ? <div style={{ display: "inline-block", marginTop: 18, background: earned ? "linear-gradient(180deg,#FEDE34,#EF9F14)" : "var(--card-2)", color: earned ? "#4a3800" : "var(--text-3)", fontWeight: 800, fontSize: 14, borderRadius: 999, padding: "7px 16px" }}>+{ach.xp} XP</div> : null}
+      <button onClick={close} className="bos-btn" style={{ marginTop: 20 }}>Готово</button>
+    </div>
   );
 }
 
