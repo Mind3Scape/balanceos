@@ -5276,6 +5276,7 @@ function _bosHashU(s) {
 function UniverseFieldLive({
   app,
   people,
+  from,
   onClose
 }) {
   var isDark = app && app.themeOverride === "dark";
@@ -5501,19 +5502,15 @@ function UniverseFieldLive({
   // вселенной (→ scale 1). Дальше — ПАЛЬЦАМИ: пинч-зум + перетаскивание (David). Pointer Events =
   // и мышь (превью), и тач (телефон); 2 пальца = пинч; чистый тап (без сдвига) = закрыть.
   var [view, setView] = React.useState({
-    s: 2.5,
+    s: 1,
     x: 0,
     y: 0,
     anim: true
   });
+  var [entered, setEntered] = React.useState(false); // false → стоим на КАДРЕ твоей орбиты; →true = полёт к вселенной
   React.useEffect(function () {
     var r = requestAnimationFrame(function () {
-      setView({
-        s: 1,
-        x: 0,
-        y: 0,
-        anim: true
-      });
+      setEntered(true);
     });
     return function () {
       cancelAnimationFrame(r);
@@ -5660,6 +5657,24 @@ function UniverseFieldLive({
   }
   var plural = list.length === 1 ? "система" : list.length >= 2 && list.length <= 4 ? "системы" : "систем";
   var sub = friends == null ? "" : list.length ? list.length + " " + plural + " рядом — у каждого своя орбита" : "пока только твоя система — позови своих";
+  // КАДР твоей орбиты со стр. «Я»: пока !entered — галактика стоит ровно на ней (центр+масштаб), затем
+  // плавно «отъезжает» к вселенной (entered→view identity). transition включён → один цельный полёт.
+  var ease = "transform 0.95s cubic-bezier(0.4,0,0.2,1)";
+  var youFp = layout.placed[0] && layout.placed[0].fp || 70;
+  var s0 = from ? Math.max(1.3, Math.min(3.8, (from.size || 280) / (youFp * 2))) : 2.4;
+  var tx0 = from ? from.cx - layout.cx : 0,
+    ty0 = from ? from.cy - layout.cy : 0;
+  var galStyle = entered ? {
+    transform: "translate(" + view.x.toFixed(1) + "px," + view.y.toFixed(1) + "px) scale(" + view.s.toFixed(3) + ")",
+    transition: view.anim ? ease : "none"
+  } : {
+    transform: "translate(" + tx0.toFixed(1) + "px," + ty0.toFixed(1) + "px) scale(" + s0.toFixed(3) + ")",
+    transition: ease
+  };
+  galStyle.position = "absolute";
+  galStyle.inset = 0;
+  galStyle.transformOrigin = layout.cx + "px " + layout.cy + "px";
+  galStyle.willChange = "transform";
   var node = /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
@@ -5667,7 +5682,7 @@ function UniverseFieldLive({
       zIndex: 300,
       overflow: "hidden",
       background: bg,
-      animation: "bosUniFade 0.5s ease both"
+      animation: "bosUniFade 0.35s ease both"
     }
   }, /*#__PURE__*/React.createElement("style", null, "@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSpinCW{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosSpinFaceCW{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes bosSpinFaceCCW{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"), /*#__PURE__*/React.createElement("div", {
     onPointerDown: uDown,
@@ -5682,14 +5697,7 @@ function UniverseFieldLive({
       cursor: "grab"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 0,
-      transformOrigin: layout.cx + "px " + layout.cy + "px",
-      transform: "translate(" + view.x.toFixed(1) + "px," + view.y.toFixed(1) + "px) scale(" + view.s.toFixed(3) + ")",
-      transition: view.anim ? "transform 0.9s cubic-bezier(0.22,0.8,0.32,1)" : "none",
-      willChange: "transform"
-    }
+    style: galStyle
   }, layout.placed.map(function (pl, i) {
     var sp = pl.sp;
     return /*#__PURE__*/React.createElement("div", {
@@ -5699,7 +5707,7 @@ function UniverseFieldLive({
         left: pl.x.toFixed(1) + "px",
         top: pl.y.toFixed(1) + "px",
         transform: "translate(-50%,-50%)",
-        animation: "bosUniPop 0.55s cubic-bezier(0.22,0.8,0.32,1) " + (0.06 * i).toFixed(2) + "s both"
+        animation: i === 0 ? "none" : "bosUniPop 0.55s cubic-bezier(0.22,0.8,0.32,1) " + (0.18 + 0.05 * i).toFixed(2) + "s both"
       }
     }, sp.rings.map(function (r, ri) {
       var ringD = r.R * 2,

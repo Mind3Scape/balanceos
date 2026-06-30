@@ -76,6 +76,23 @@ function ProfileLive() {
   var _achCircles = livePeople.length;
   var isDark = app?.themeOverride === "dark";
   var [universeOpen, setUniverseOpen] = React.useState(false); // зум-аут в «Вселенную»
+  // Единый ЦЕЛОСТНЫЙ переход: меряем твою орбиту на «Я» и отдаём её рект во Вселенную — она стартует
+  // ровно отсюда и плавно отдаляется к множеству систем (David: «ощущение перехода ОТ нашей системы»).
+  var orbitRef = React.useRef(null);
+  var [universeFrom, setUniverseFrom] = React.useState(null);
+  var openUniverse = () => {
+    try {
+      var r = orbitRef.current && orbitRef.current.getBoundingClientRect();
+      setUniverseFrom(r && r.width ? {
+        cx: r.left + r.width / 2,
+        cy: r.top + r.height / 2,
+        size: Math.min(r.width, r.height)
+      } : null);
+    } catch (e) {
+      setUniverseFrom(null);
+    }
+    setUniverseOpen(true);
+  };
   var statCard = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -142,7 +159,7 @@ function ProfileLive() {
         gap: 8
       }
     }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => setUniverseOpen(true),
+      onClick: openUniverse,
       className: "tap",
       "aria-label": "\u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F",
       title: "\u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F",
@@ -169,6 +186,8 @@ function ProfileLive() {
       textAlign: "center",
       marginTop: 4
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: orbitRef
   }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
     name: app?.userName,
@@ -180,7 +199,7 @@ function ProfileLive() {
     hideLevelArc: true,
     editable: false,
     levelBadge: lvlNum
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",
       fontWeight: 700,
@@ -221,6 +240,7 @@ function ProfileLive() {
   }))), universeOpen && typeof UniverseFieldLive === "function" && /*#__PURE__*/React.createElement(UniverseFieldLive, {
     app: app,
     people: orbitPeople,
+    from: universeFrom,
     onClose: () => setUniverseOpen(false)
   }), /*#__PURE__*/React.createElement(SysCard, {
     className: "tap",

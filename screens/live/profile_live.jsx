@@ -59,6 +59,14 @@ function ProfileLive() {
   const _achCircles = livePeople.length;
   const isDark = app?.themeOverride === "dark";
   const [universeOpen, setUniverseOpen] = React.useState(false); // зум-аут в «Вселенную»
+  // Единый ЦЕЛОСТНЫЙ переход: меряем твою орбиту на «Я» и отдаём её рект во Вселенную — она стартует
+  // ровно отсюда и плавно отдаляется к множеству систем (David: «ощущение перехода ОТ нашей системы»).
+  const orbitRef = React.useRef(null);
+  const [universeFrom, setUniverseFrom] = React.useState(null);
+  const openUniverse = () => {
+    try { const r = orbitRef.current && orbitRef.current.getBoundingClientRect(); setUniverseFrom(r && r.width ? { cx: r.left + r.width / 2, cy: r.top + r.height / 2, size: Math.min(r.width, r.height) } : null); } catch (e) { setUniverseFrom(null); }
+    setUniverseOpen(true);
+  };
   const statCard = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
     : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
@@ -77,7 +85,7 @@ function ProfileLive() {
           David: кнопке вселенной «снизу по центру между блоками не место» → ушла в шапку. */}
       <PageHeader onBack={() => navigate("home")} title="" right={
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => setUniverseOpen(true)} className="tap" aria-label="Вселенная" title="Вселенная"
+          <button onClick={openUniverse} className="tap" aria-label="Вселенная" title="Вселенная"
             style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none") }}>
             <I.Globe size={18} strokeWidth={2} />
           </button>
@@ -88,7 +96,9 @@ function ProfileLive() {
       <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
         {/* Центр = аватар с золотым кольцом + ЦИФРОЙ уровня (как на главной); карандаш ушёл наверх-вправо. */}
-        <OrbitField avatar={app?.avatar} name={app?.userName} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
+        <div ref={orbitRef}>
+          <OrbitField avatar={app?.avatar} name={app?.userName} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
+        </div>
         <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 6, color: "var(--text)" }}>{app?.userName || "Ты"}</div>
         {/* Quick stats — one unified plaque (the SAME StatTrioLive band as the Habits page) */}
         <div style={{ marginTop: 14 }}>
@@ -100,7 +110,7 @@ function ProfileLive() {
         </div>
       </div>
 
-      {universeOpen && typeof UniverseFieldLive === "function" && <UniverseFieldLive app={app} people={orbitPeople} onClose={() => setUniverseOpen(false)} />}
+      {universeOpen && typeof UniverseFieldLive === "function" && <UniverseFieldLive app={app} people={orbitPeople} from={universeFrom} onClose={() => setUniverseOpen(false)} />}
 
       <SysCard className="tap" onClick={() => navigate("achievements", { from: "profile" })} style={{ marginTop: 12, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
         <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
