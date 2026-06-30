@@ -396,7 +396,7 @@ function HabitsLive() {
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: 14
         }
       }, /*#__PURE__*/React.createElement("span", {
@@ -414,7 +414,8 @@ function HabitsLive() {
       }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
-          minWidth: 0
+          minWidth: 0,
+          paddingTop: 1
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
@@ -450,7 +451,21 @@ function HabitsLive() {
         }
       }, /*#__PURE__*/React.createElement(I.Clock, {
         size: 11
-      }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+      }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 9,
+          flexShrink: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8
+        }
+      }, h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
         habit: h,
         dark: isDark,
         onComplete: () => {
@@ -465,24 +480,20 @@ function HabitsLive() {
         onToggle: () => toggle(h.id),
         xp: 10,
         float: true
-      })), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          marginTop: 12
-        }
-      }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
-        habit: h
-      }), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+      })), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
         habit: h,
-        size: 22,
-        max: 5
+        size: 20,
+        max: 4
       }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
         habit: h,
-        size: 22,
-        max: 5
+        size: 20,
+        max: 4
+      }))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 14
+        }
+      }, /*#__PURE__*/React.createElement(HabitMiniGrid, {
+        habit: h
       })));
       if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
         style: {

@@ -6278,6 +6278,63 @@ function UniverseFieldLive({
 var BOS_APPLE_COLORS = ["#A06A86", "#F0564C", "#E08AC4", "#E59B9B", "#CBA98D", "#F0A24E", "#19B89B", "#54C3E4", "#4A6CD6", "#84A4B8", "#7F9AF2", "#8676E6"];
 
 // 7 LOCAL day-keys for the CURRENT week, Пн→Вс (left→right) — matches the strip order.
+// HabitMiniGrid — «грядка» последних 14 недель НА КАРТОЧКЕ (карточка квадратнее, David): строки =
+// дни недели Пн↑Вс, столбцы = недели (как годовой вид в детали, только короче). Тот же кружок-день
+// и заливка-хитмап → карточка ↔ месяц ↔ год = один язык. Сегодня в тонком графит-кольце; пустые =
+// бледный диск (есть куда расти), будущее в текущей неделе — ещё бледнее.
+function HabitMiniGrid({
+  habit,
+  weeks = 14
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isDark = app && app.themeOverride === "dark";
+  if (!habit) return null;
+  var accent = bosHabitColor(habit);
+  var log = habit.log || {};
+  var doneFill = bosCellFill(accent, 1);
+  var empty = isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.055)";
+  var futureBg = isDark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.02)";
+  var ringC = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
+  var now = new Date();
+  now.setHours(0, 0, 0, 0);
+  var dow = (now.getDay() + 6) % 7;
+  var mon = new Date(now);
+  mon.setDate(now.getDate() - dow); // Monday of current week
+  var todayK = typeof bosTodayKey === "function" ? bosTodayKey(now) : "";
+  var cells = [];
+  for (var r = 0; r < 7; r++) for (var c = 0; c < weeks; c++) {
+    // weekday-major: rows = Пн..Вс
+    var d = new Date(mon);
+    d.setDate(mon.getDate() + (c - (weeks - 1)) * 7 + r);
+    var k = typeof bosTodayKey === "function" ? bosTodayKey(d) : "";
+    var fut = d.getTime() > now.getTime();
+    cells.push({
+      fl: !fut && !!log[k],
+      fut: fut,
+      today: k === todayK
+    });
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(" + weeks + ",1fr)",
+      gap: 4,
+      width: "100%"
+    }
+  }, cells.map(function (c, i) {
+    var sh = [c.fl ? bosCellGlass(isDark) : "", c.today ? "0 0 0 1.5px " + ringC : ""].filter(Boolean).join(", ") || "none";
+    return /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        aspectRatio: "1/1",
+        borderRadius: "50%",
+        background: c.fut ? futureBg : c.fl ? doneFill : empty,
+        boxShadow: sh
+      }
+    });
+  }));
+}
 function bosWeekKeys() {
   var now = new Date();
   now.setHours(0, 0, 0, 0);

@@ -177,12 +177,11 @@ function HabitsLive() {
               const inner = (
                 <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
                   style={{ padding: "14px 16px", pointerEvents: ctx.mode ? "none" : "auto" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
                     <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                         <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
-                        {/* «Командная» бейдж убран — маркёр круга = ЛИЦА (CircleFacesLive в нижнем ряду). David. */}
                       </div>
                       {(h.friends?.length > 0 || h.duration > 0) && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 11, color: "var(--text-4)" }}>
@@ -192,17 +191,23 @@ function HabitsLive() {
                         </div>
                       )}
                     </div>
-                    {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
-                      <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
-                    )}
-                    {h.goalPerDay > 1
-                      ? <HabitCountCheck habit={h} app={app} xp={10} />
-                      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
+                    {/* Правый столбец: галочка, а ПОД ней — лица круга (David: «друзья продолжением из-под галочки»). */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 9, flexShrink: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
+                          <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
+                        )}
+                        {h.goalPerDay > 1
+                          ? <HabitCountCheck habit={h} app={app} xp={10} />
+                          : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
+                      </div>
+                      <HabitBuddyAvatarsLive habit={h} size={20} max={4} />
+                      {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={20} max={4} />}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12 }}>
-                    <HabitWeekStrip habit={h} />
-                    <HabitBuddyAvatarsLive habit={h} size={22} max={5} />
-                    {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={22} max={5} />}
+                  {/* Мини-грядка последних недель — карточка квадратнее, один язык с видами «Месяц»/«Год». */}
+                  <div style={{ marginTop: 14 }}>
+                    <HabitMiniGrid habit={h} />
                   </div>
                 </div>
               );
