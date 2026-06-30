@@ -80,6 +80,7 @@
     var c = client(); var id = await uid(); if (!c || !id || !s) return false;
     var blob = {
       level: s.level | 0,
+      lvlPct: s.lvlPct | 0,
       goals: s.goals | 0,
       people: s.people | 0,
       habits: (Array.isArray(s.habits) ? s.habits : []).slice(0, 12).map(function (h) { return { e: ("" + ((h && h.e) || "✨")).slice(0, 8), c: (h && h.c) || null }; }),
@@ -94,7 +95,7 @@
     try {
       var r = await c.from("profiles").select("id,pub_orbit").in("id", ids);
       if (r.error || !r.data) return {};
-      var out = {}; r.data.forEach(function (p) { var o = p.pub_orbit || {}; out[p.id] = { level: o.level || 0, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0 }; }); return out;
+      var out = {}; r.data.forEach(function (p) { var o = p.pub_orbit || {}; out[p.id] = { level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0 }; }); return out;
     } catch (e) { return {}; }
   }
   // My short, pretty referral code (profiles.ref_code). Null if the column/code isn't there

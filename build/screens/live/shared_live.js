@@ -6078,6 +6078,7 @@ function UniverseFieldLive({
           out.forEach(function (o) {
             var s = st[o.id] || {};
             o.level = s.level || 0;
+            o.lvlPct = s.lvlPct || 2;
             o.habits = Array.isArray(s.habits) ? s.habits : [];
             o.goals = s.goals || 0;
             o.people = s.people || 0;
@@ -6110,59 +6111,39 @@ function UniverseFieldLive({
   var lvlNum = _ul.level,
     lvlPct = _ul.pct;
 
-  // Чужая система — bead-планеты по её ПУБЛИЧНОМУ размеру (привычки+цели). Колец столько, сколько у
-  // человека реально элементов (пояса 4/6/8/10); больше всего → крупнее система. Уровень — бейджем.
-  // (ТВОЯ система рисуется НАСТОЯЩИМ OrbitField — идентично странице «Я», без отдельной схемы.)
-  var CAPS = [4, 6, 8, 10];
+  // Чужая система = ТОТ ЖЕ настоящий OrbitField, что у тебя на «Я» (David: «должны быть прямо такие же,
+  // а сейчас иконки криво»). Поэтому НЕ рисуем отдельную bead-схему — готовим данные под OrbitField и
+  // рендерим его уменьшенным. Размер растёт с объёмом (больше привычек+людей → крупнее система).
   function buildSystem(s) {
-    // Реальные элементы орбиты: ЗНАЧКИ привычек (внутренние пояса) + лица вовлечённых (снаружи) — как у
-    // ТЕБЯ на стр. «Я» (привычки внутри, люди снаружи). Имена людей не публикуются → обезличенные лица.
     var hb = Array.isArray(s.habits) ? s.habits : [];
     var peopleN = s.people || 0;
-    var items = [];
-    hb.slice(0, 12).forEach(function (h) {
-      items.push({
-        kind: "emoji",
-        emoji: h && h.e || "✨"
-      });
+    var weight = Math.min(hb.length + peopleN, 16);
+    var size = Math.round(122 + Math.min(weight, 14) * 5.4); // диаметр системы на экране, ~122..198px
+    // habits → объекты, которые читает OrbitField (.emoji/.color/.streak/.id); люди → обезличенные лица.
+    var habits = hb.slice(0, 12).map(function (h, i) {
+      return {
+        emoji: h && h.e || "✨",
+        color: h && h.c,
+        streak: 0,
+        id: "ph" + i
+      };
     });
-    var pn = Math.min(peopleN, 10);
-    for (var pi = 0; pi < pn; pi++) items.push({
-      kind: "avatar",
+    var people = [];
+    for (var pi = 0; pi < Math.min(peopleN, 10); pi++) people.push({
       avatar: null,
       name: ""
     });
-    if (!items.length) items.push({
-      kind: "bead"
-    });
-    var w = items.length;
-    var rings = [],
-      idx = 0,
-      ri = 0;
-    while (ri < CAPS.length) {
-      rings.push(items.slice(idx, idx + CAPS[ri]));
-      idx += CAPS[ri];
-      ri++;
-      if (idx >= items.length) break;
-    }
-    var avD = Math.round(30 + Math.min(w, 12) * 1.4); // больше всего → крупнее
-    var R0 = avD / 2 + 12,
-      STEP = 14;
-    var ringSpecs = rings.map(function (it, i) {
-      return {
-        items: it,
-        R: R0 + i * STEP,
-        pd: 13
-      };
-    });
-    var outerR = R0 + (rings.length - 1) * STEP;
+    // footprint < size/2: видимая орбита заметно меньше своего 300-бокса (значки в пределах ~внутренних
+    // поясов), поэтому ужимаем зону размещения, чтобы во «Вселенную» влезало больше систем без наезда.
     return {
       s: s,
-      avD: avD,
+      size: size,
       level: s.level || 0,
-      weight: w,
-      rings: ringSpecs,
-      footprint: outerR + 9
+      lvlPct: s.lvlPct || 2,
+      habits: habits,
+      people: people,
+      weight: weight,
+      footprint: Math.round(size * 0.42 + 8)
     };
   }
 
@@ -6464,89 +6445,39 @@ function UniverseFieldLive({
     levelBadge: lvlNum,
     settled: true
   }) : null), entered && layout.placed.map(function (pl, i) {
-    var sp = pl.sp;
+    var sp = pl.sp,
+      k = sp.size / 300;
     return /*#__PURE__*/React.createElement("div", {
       key: i,
       style: {
         position: "absolute",
         left: pl.x.toFixed(1) + "px",
         top: pl.y.toFixed(1) + "px",
-        transform: "translate(-50%,-50%)",
-        animation: "bosUniPop 0.6s cubic-bezier(0.22,0.8,0.32,1) " + (0.05 + 0.045 * i).toFixed(2) + "s both"
+        pointerEvents: "none"
       }
-    }, sp.rings.map(function (r, ri) {
-      var ringD = r.R * 2,
-        cw = ri % 2 === 0,
-        dur = 46 + ri * 15 + i % 5 * 7;
-      return /*#__PURE__*/React.createElement(React.Fragment, {
-        key: ri
-      }, /*#__PURE__*/React.createElement("span", {
-        "aria-hidden": true,
-        style: {
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          width: ringD,
-          height: ringD,
-          transform: "translate(-50%,-50%)",
-          borderRadius: "50%",
-          border: "1px solid " + ringCol
-        }
-      }), r.items.length > 0 && /*#__PURE__*/React.createElement("div", {
-        style: {
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          width: ringD,
-          height: ringD,
-          transform: "translate(-50%,-50%)",
-          animation: "bosSpinCW " + dur + "s linear infinite" + (cw ? "" : " reverse")
-        }
-      }, r.items.map(function (it, k) {
-        var ang = k / r.items.length * 2 * Math.PI + ri * 0.5;
-        var ppx = Math.cos(ang) * r.R,
-          ppy = Math.sin(ang) * r.R;
-        return /*#__PURE__*/React.createElement("div", {
-          key: k,
-          style: {
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(" + ppx.toFixed(1) + "px," + ppy.toFixed(1) + "px) translate(-50%,-50%)"
-          }
-        }, planet(it.kind, it.kind === "emoji" ? it.emoji : it, r.pd));
-      })));
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: "relative",
-        width: sp.avD,
-        height: sp.avD
-      }
-    }, typeof BuddyFaceLive === "function" ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
-      avatar: sp.s && sp.s.avatar,
-      name: sp.s && sp.s.name,
-      size: sp.avD
-    }) : null, sp.level > 0 && /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         position: "absolute",
-        left: sp.avD - 13 + "px",
-        top: sp.avD - 13 + "px",
-        minWidth: 16,
-        height: 16,
-        padding: "0 3px",
-        borderRadius: 999,
-        background: "linear-gradient(180deg,#FFE777,#F4B72A)",
-        color: "#4a3800",
-        fontSize: 9.5,
-        fontWeight: 800,
-        lineHeight: "14px",
-        textAlign: "center",
-        letterSpacing: "-0.3px",
-        border: "1.5px solid " + (isDark ? "#0e1422" : "#fff"),
-        boxShadow: "0 1px 2px rgba(224,138,0,0.5)"
+        width: 300,
+        height: 300,
+        left: -150,
+        top: -150,
+        transform: "scale(" + k.toFixed(3) + ")",
+        transformOrigin: "150px 150px",
+        animation: "bosUniFade 0.55s ease " + (0.05 + 0.045 * i).toFixed(2) + "s both"
       }
-    }, sp.level)));
+    }, typeof OrbitField === "function" ? /*#__PURE__*/React.createElement(OrbitField, {
+      avatar: sp.s && sp.s.avatar,
+      name: sp.s && sp.s.name || "",
+      habits: sp.habits,
+      people: sp.people,
+      levelPct: sp.lvlPct,
+      dark: isDark,
+      hideLevelArc: false,
+      editable: false,
+      levelBadge: sp.level,
+      settled: true
+    }) : null));
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",

@@ -64,11 +64,12 @@ function ProfileLive() {
     e: h.emoji,
     c: h.color
   }));
-  var _pubSig = JSON.stringify(_pubHabits) + "|" + orbitPeople.length + "|" + lvlNum + "|" + (app?.goals || []).length;
+  var _pubSig = JSON.stringify(_pubHabits) + "|" + orbitPeople.length + "|" + lvlNum + "|" + lvlPct + "|" + (app?.goals || []).length;
   React.useEffect(() => {
     try {
       if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({
         level: lvlNum,
+        lvlPct: lvlPct,
         habits: _pubHabits,
         goals: (app?.goals || []).length,
         people: orbitPeople.length

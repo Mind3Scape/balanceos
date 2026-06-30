@@ -50,9 +50,9 @@ function ProfileLive() {
   // David adds the pub_orbit column. Only emoji+colour leave the device (no habit names). Re-publishes
   // when anything changes via a small signature string.
   const _pubHabits = (app?.habits || []).map((h) => ({ e: h.emoji, c: h.color }));
-  const _pubSig = JSON.stringify(_pubHabits) + "|" + orbitPeople.length + "|" + lvlNum + "|" + (app?.goals || []).length;
+  const _pubSig = JSON.stringify(_pubHabits) + "|" + orbitPeople.length + "|" + lvlNum + "|" + lvlPct + "|" + (app?.goals || []).length;
   React.useEffect(() => {
-    try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, habits: _pubHabits, goals: (app?.goals || []).length, people: orbitPeople.length }); } catch (e) {}
+    try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, lvlPct: lvlPct, habits: _pubHabits, goals: (app?.goals || []).length, people: orbitPeople.length }); } catch (e) {}
   }, [_pubSig]);
 
   // Achievements badge — REAL earned set + emojis.
