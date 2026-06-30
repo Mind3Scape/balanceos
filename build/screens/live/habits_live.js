@@ -80,6 +80,166 @@ var GOAL_CHIPS = [{
   unit: "дней",
   deadline: "Месяц"
 }];
+
+/* Long-press menu for a habit TILE (David: квадратные плитки 2-в-ряд → горизонтальный свайп
+   конфликтует с сеткой, поэтому действия живут в шторке-меню). One sheet, three rows: Поделиться /
+   Переставить плитки (entering the grid jiggle-mode) / Удалить. «swap» actions open their own sheet
+   so we just let openSheet replace this menu (no down-then-up flicker); «leave» closes first. */
+function HabitTileMenuLive({
+  habit,
+  dark,
+  onShare,
+  onReorder,
+  onDelete
+}) {
+  var {
+    close
+  } = useSheet();
+  var swap = fn => () => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    if (fn) fn();
+  };
+  var leave = fn => () => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    close();
+    if (fn) fn();
+  };
+  var Row = ({
+    icon,
+    label,
+    onClick,
+    danger
+  }) => /*#__PURE__*/React.createElement("button", {
+    onClick: onClick,
+    className: "tap",
+    style: {
+      width: "100%",
+      border: 0,
+      borderRadius: 16,
+      padding: "14px 15px",
+      background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-2)",
+      color: danger ? "#FF3B30" : "var(--text)",
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      fontSize: 15.5,
+      fontWeight: 600,
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 24,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, icon), label);
+  var reorderIcon = /*#__PURE__*/React.createElement("svg", {
+    width: "18",
+    height: "18",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M7 5v14M7 5L4 8M7 5l3 3M17 19V5M17 19l-3-3M17 19l3-3"
+  }));
+  var sheen = typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 16px 0",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "2px 4px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      background: sheen + (habit.color ? habit.color + "26" : "var(--surface-3)"),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20,
+      flexShrink: 0
+    }
+  }, bosIcon(habit.emoji, 22, habit.color)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16.5,
+      fontWeight: 700,
+      letterSpacing: "-0.3px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, habit.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(Row, {
+    icon: /*#__PURE__*/React.createElement(I.Share, {
+      size: 18
+    }),
+    label: "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F",
+    onClick: swap(onShare)
+  }), /*#__PURE__*/React.createElement(Row, {
+    icon: reorderIcon,
+    label: "\u041F\u0435\u0440\u0435\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043F\u043B\u0438\u0442\u043A\u0438",
+    onClick: leave(onReorder)
+  }), /*#__PURE__*/React.createElement(Row, {
+    icon: /*#__PURE__*/React.createElement(I.Trash, {
+      size: 18
+    }),
+    label: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    onClick: swap(onDelete),
+    danger: true
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: close,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 10,
+      border: 0,
+      borderRadius: 999,
+      padding: 14,
+      background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)",
+      color: "var(--text)",
+      fontSize: 15.5,
+      fontWeight: 600
+    }
+  }, "\u041E\u0442\u043C\u0435\u043D\u0430"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "max(8px, var(--tg-bottom-inset, 0px))"
+    }
+  }));
+}
 function HabitsLive() {
   var {
     navigate
@@ -172,6 +332,31 @@ function HabitsLive() {
   // The black «+» is the ONE universal create entry — it opens a small menu (Привычку / Цель / Команду).
   var [createOpen, setCreateOpen] = React.useState(false);
   var addBtnRef = React.useRef(null);
+
+  // Habit TILES (2-per-row grid) — long-press opens the tile menu (Поделиться / Переставить / Удалить);
+  // «Переставить» flips the grid into jiggle/drag-reorder via this controller ref (set by BosReorderGrid).
+  var gridCtl = React.useRef(null);
+  var onTileLongPress = id => {
+    var h = habits.find(x => x.id === id);
+    if (!h) return;
+    openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
+      habit: h,
+      dark: isDark,
+      onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+        habit: h,
+        dark: isDark
+      })),
+      onReorder: () => {
+        if (gridCtl.current) gridCtl.current.enterReorder();
+      },
+      onDelete: () => bosConfirmDelete(openSheet, {
+        title: "Удалить привычку?",
+        message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
+        confirmLabel: "Удалить",
+        onConfirm: () => remove(h.id)
+      })
+    }));
+  };
 
   // «Быстрое добавление» sits ABOVE the triad (David) and its chips FOLLOW the active tab:
   // Привычки → habit presets, Цели → goal presets. The chips re-mount on tab change (key={tab}) so
@@ -375,95 +560,67 @@ function HabitsLive() {
       lineHeight: 1.45,
       maxWidth: 250
     }
-  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0448\u0430\u0431\u043B\u043E\u043D \u0432\u044B\u0448\u0435, \u043D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0438\u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u0439 \u0441\u0432\u043E\u044E \u2014 \u043E\u0434\u043D\u043E\u043C\u0443 \u0438\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438.")) : /*#__PURE__*/React.createElement(BosReorderList, {
+  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0448\u0430\u0431\u043B\u043E\u043D \u0432\u044B\u0448\u0435, \u043D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0438\u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u0439 \u0441\u0432\u043E\u044E \u2014 \u043E\u0434\u043D\u043E\u043C\u0443 \u0438\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438.")) :
+  /*#__PURE__*/
+  /* 2-колоночная СЕТКА квадратных плиток (David: «привычки квадратными, чтоб поместилось два
+     блока в ряд; внизу 7 точечек, наверху чекмарк/кто ведём»). Свайп в сетке конфликтует →
+     действия (Поделиться/Удалить) + вход в реордер живут в шторке-меню по долгому нажатию. */
+  React.createElement(BosReorderGrid, {
     ids: habits.map(h => h.id),
     onReorder: o => {
       if (app && app.reorderHabits) app.reorderHabits(o);
     },
+    onLongPress: onTileLongPress,
+    ctlRef: gridCtl,
+    cols: 2,
+    gap: 12,
     renderItem: (id, ctx) => {
       var h = habits.find(x => x.id === id);
       if (!h) return null;
-      var inner = /*#__PURE__*/React.createElement("div", {
+      return /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",
         onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
           habit: h,
           from: "habits"
         }),
         style: {
-          padding: "14px 16px",
-          pointerEvents: ctx.mode ? "none" : "auto"
+          background: rowBg,
+          borderRadius: 22,
+          boxShadow: cardShadow,
+          padding: "13px 13px 12px",
+          minHeight: 158,
+          display: "flex",
+          flexDirection: "column",
+          pointerEvents: ctx.mode ? "none" : "auto",
+          overflow: "hidden"
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "flex-start",
-          gap: 14
+          justifyContent: "space-between",
+          gap: 8
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
-          width: 40,
-          height: 40,
-          borderRadius: 14,
+          width: 38,
+          height: 38,
+          borderRadius: 13,
           background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
           boxShadow: bosTileGlass(isDark),
           display: "grid",
           placeItems: "center",
-          fontSize: 20,
+          fontSize: 19,
           flexShrink: 0
         }
-      }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1,
-          minWidth: 0,
-          paddingTop: 1
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 7
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 16,
-          fontWeight: 600,
-          color: "var(--text)",
-          letterSpacing: "-0.2px",
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap"
-        }
-      }, h.name)), (h.friends?.length > 0 || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
+      }, bosIcon(h.emoji, 21, h.color)), /*#__PURE__*/React.createElement("span", {
+        onPointerDown: e => e.stopPropagation(),
+        onClick: e => e.stopPropagation(),
         style: {
           display: "flex",
           alignItems: "center",
           gap: 6,
-          marginTop: 3,
-          fontSize: 11,
-          color: "var(--text-4)"
-        }
-      }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 3
-        }
-      }, /*#__PURE__*/React.createElement(I.Clock, {
-        size: 11
-      }), " ", h.duration, " \u043C\u0438\u043D"), h.duration > 0 && h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\xB7"), h.friends?.length > 0 && /*#__PURE__*/React.createElement("span", null, "\u0432\u043C\u0435\u0441\u0442\u0435"))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: 9,
           flexShrink: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 8
         }
       }, h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
         habit: h,
@@ -480,61 +637,43 @@ function HabitsLive() {
         onToggle: () => toggle(h.id),
         xp: 10,
         float: true
-      })), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+      }))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 10,
+          fontSize: 15,
+          fontWeight: 600,
+          color: "var(--text)",
+          letterSpacing: "-0.2px",
+          lineHeight: 1.25,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden"
+        }
+      }, h.name), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 7,
+          display: "flex",
+          alignItems: "center",
+          gap: 6
+        }
+      }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
         habit: h,
-        size: 20,
+        size: 19,
         max: 4
       }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
         habit: h,
-        size: 20,
+        size: 19,
         max: 4
-      }))), /*#__PURE__*/React.createElement("div", {
+      })), /*#__PURE__*/React.createElement("div", {
         style: {
-          marginTop: 16,
-          marginBottom: 2
+          marginTop: "auto",
+          paddingTop: 12
         }
       }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
-        habit: h
+        habit: h,
+        fill: true
       })));
-      if (ctx.mode) return /*#__PURE__*/React.createElement("div", {
-        style: {
-          borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow,
-          background: rowBg
-        }
-      }, inner);
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: cardShadow
-        }
-      }, /*#__PURE__*/React.createElement(SwipeRow, {
-        rowBg: rowBg,
-        dark: isDark,
-        actions: [{
-          key: "share",
-          tone: "share",
-          label: "Поделиться",
-          icon: I.Share,
-          onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
-            habit: h,
-            dark: isDark
-          }))
-        }, {
-          key: "del",
-          tone: "delete",
-          label: "Удалить",
-          icon: I.X,
-          onAction: () => bosConfirmDelete(openSheet, {
-            title: "Удалить привычку?",
-            message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
-            confirmLabel: "Удалить",
-            onConfirm: () => remove(h.id)
-          })
-        }]
-      }, inner));
     }
   })), tab === "goals" && (goals.length === 0 && teams.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",

@@ -35,6 +35,44 @@ const GOAL_CHIPS = [
   { i: "🚭", t: "Бросить курить", target: 90, unit: "дней", deadline: "Месяц" },
 ];
 
+/* Long-press menu for a habit TILE (David: квадратные плитки 2-в-ряд → горизонтальный свайп
+   конфликтует с сеткой, поэтому действия живут в шторке-меню). One sheet, three rows: Поделиться /
+   Переставить плитки (entering the grid jiggle-mode) / Удалить. «swap» actions open their own sheet
+   so we just let openSheet replace this menu (no down-then-up flicker); «leave» closes first. */
+function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete }) {
+  const { close } = useSheet();
+  const swap = (fn) => () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } if (fn) fn(); };
+  const leave = (fn) => () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } close(); if (fn) fn(); };
+  const Row = ({ icon, label, onClick, danger }) => (
+    <button onClick={onClick} className="tap" style={{ width: "100%", border: 0, borderRadius: 16, padding: "14px 15px", background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-2)", color: danger ? "#FF3B30" : "var(--text)", display: "flex", alignItems: "center", gap: 13, fontSize: 15.5, fontWeight: 600, textAlign: "left" }}>
+      <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}>{icon}</span>
+      {label}
+    </button>
+  );
+  const reorderIcon = (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 5v14M7 5L4 8M7 5l3 3M17 19V5M17 19l-3-3M17 19l3-3"/></svg>
+  );
+  const sheen = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "");
+  return (
+    <div style={{ padding: "2px 16px 0", color: "var(--text)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 4px 14px" }}>
+        <span style={{ width: 40, height: 40, borderRadius: 13, background: sheen + (habit.color ? habit.color + "26" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(habit.emoji, 22, habit.color)}</span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{habit.name}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>Привычка</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Row icon={<I.Share size={18} />} label="Поделиться" onClick={swap(onShare)} />
+        <Row icon={reorderIcon} label="Переставить плитки" onClick={leave(onReorder)} />
+        <Row icon={<I.Trash size={18} />} label="Удалить" onClick={swap(onDelete)} danger />
+      </div>
+      <button onClick={close} className="tap" style={{ width: "100%", marginTop: 10, border: 0, borderRadius: 999, padding: 14, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)", fontSize: 15.5, fontWeight: 600 }}>Отмена</button>
+      <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
+    </div>
+  );
+}
+
 function HabitsLive() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
@@ -107,6 +145,20 @@ function HabitsLive() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const addBtnRef = React.useRef(null);
 
+  // Habit TILES (2-per-row grid) — long-press opens the tile menu (Поделиться / Переставить / Удалить);
+  // «Переставить» flips the grid into jiggle/drag-reorder via this controller ref (set by BosReorderGrid).
+  const gridCtl = React.useRef(null);
+  const onTileLongPress = (id) => {
+    const h = habits.find((x) => x.id === id); if (!h) return;
+    openSheet(
+      <HabitTileMenuLive habit={h} dark={isDark}
+        onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
+        onReorder={() => { if (gridCtl.current) gridCtl.current.enterReorder(); }}
+        onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) })}
+      />
+    );
+  };
+
   // «Быстрое добавление» sits ABOVE the triad (David) and its chips FOLLOW the active tab:
   // Привычки → habit presets, Цели → goal presets. The chips re-mount on tab change (key={tab}) so
   // they pop in (briefPop). Each chip routes to the matching create screen with its preset.
@@ -171,56 +223,40 @@ function HabitsLive() {
             <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Выбери шаблон выше, нажми «+» или создай свою — одному или вместе с друзьями.</div>
           </button>
         ) : (
-          <BosReorderList ids={habits.map((h) => h.id)} onReorder={(o) => { if (app && app.reorderHabits) app.reorderHabits(o); }}
+          /* 2-колоночная СЕТКА квадратных плиток (David: «привычки квадратными, чтоб поместилось два
+             блока в ряд; внизу 7 точечек, наверху чекмарк/кто ведём»). Свайп в сетке конфликтует →
+             действия (Поделиться/Удалить) + вход в реордер живут в шторке-меню по долгому нажатию. */
+          <BosReorderGrid ids={habits.map((h) => h.id)} onReorder={(o) => { if (app && app.reorderHabits) app.reorderHabits(o); }}
+            onLongPress={onTileLongPress} ctlRef={gridCtl} cols={2} gap={12}
             renderItem={(id, ctx) => {
               const h = habits.find((x) => x.id === id); if (!h) return null;
-              const inner = (
-                <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
-                  style={{ padding: "14px 16px", pointerEvents: ctx.mode ? "none" : "auto" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
-                    <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
-                      </div>
-                      {(h.friends?.length > 0 || h.duration > 0) && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 11, color: "var(--text-4)" }}>
-                          {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
-                          {h.duration > 0 && h.friends?.length > 0 && <span>·</span>}
-                          {h.friends?.length > 0 && <span>вместе</span>}
-                        </div>
-                      )}
-                    </div>
-                    {/* Правый столбец: галочка, а ПОД ней — лица круга (David: «друзья продолжением из-под галочки»). */}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 9, flexShrink: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
-                          <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
-                        )}
-                        {h.goalPerDay > 1
-                          ? <HabitCountCheck habit={h} app={app} xp={10} />
-                          : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
-                      </div>
-                      <HabitBuddyAvatarsLive habit={h} size={20} max={4} />
-                      {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={20} max={4} />}
-                    </div>
-                  </div>
-                  {/* Компактный недельный вид (как было) — но во всю ширину, крупнее: карточка плотнее.
-                      Грядка-год живёт в детали (David: снаружи только неделя, минимализм + волна). */}
-                  <div style={{ marginTop: 16, marginBottom: 2 }}>
-                    <HabitWeekStrip habit={h} />
-                  </div>
-                </div>
-              );
-              if (ctx.mode) return <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, background: rowBg }}>{inner}</div>;
               return (
-                <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow }}>
-                  <SwipeRow rowBg={rowBg} dark={isDark} actions={[
-                    { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />) },
-                    { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) }) },
-                  ]}>
-                    {inner}
-                  </SwipeRow>
+                <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
+                  style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 158, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+                  {/* СВЕРХУ — иконка (слева) + галочка/кольцо/счётчик (справа). Кластер контролов глушит
+                      pointerdown (тап по галочке не стартует жест сетки) и click (не открывает деталь). */}
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
+                    <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                      {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
+                        <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
+                      )}
+                      {h.goalPerDay > 1
+                        ? <HabitCountCheck habit={h} app={app} xp={10} />
+                        : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
+                    </span>
+                  </div>
+                  {/* НАЗВАНИЕ (до 2 строк) */}
+                  <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
+                  {/* «КТО ВЕДЁМ» — лица круга (схлопывается, если ведёшь один) */}
+                  <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
+                    <HabitBuddyAvatarsLive habit={h} size={19} max={4} />
+                    {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={19} max={4} />}
+                  </div>
+                  {/* СНИЗУ — недельная полоска (7 точек), прижата к низу плитки */}
+                  <div style={{ marginTop: "auto", paddingTop: 12 }}>
+                    <HabitWeekStrip habit={h} fill />
+                  </div>
                 </div>
               );
             }} />

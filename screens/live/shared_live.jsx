@@ -1441,6 +1441,150 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
   );
 }
 
+/* Long-press → context menu → optional jiggle/drag reorder, but laid out as a 2-COLUMN GRID of
+   square tiles (David: «привычки квадратными плитками по 2 в ряд»). Mirrors BosReorderList's proven
+   press/drag machinery, but: (1) the container is a CSS grid; (2) the dragged tile follows the
+   finger in 2D; (3) the OTHER tiles slide to their new slots via a per-drag rect snapshot, so the
+   shift math works in two dimensions (Δx AND Δy), not just vertically.
+   NORMAL press: renderItem(id,{mode:false}) → a tap navigates; a press held STILL ~480ms fires
+   onLongPress(id) (the parent opens the tile menu: Поделиться / Переставить / Удалить) and swallows
+   the trailing click so the tile doesn't ALSO navigate. Reorder is entered DELIBERATELY from that
+   menu (enterReorder, exposed via ctlRef) — a grid has no obvious drag-handle, so we don't want a
+   stray hold to start dragging. In REORDER mode every tile jiggles and a press begins a drag at
+   once; «Готово» (floating, portal'd like BosReorderList) leaves the mode. */
+function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12 }) {
+  const [mode, setMode] = React.useState(false);
+  const [order, setOrder] = React.useState(ids);
+  const [drag, setDrag] = React.useState({ id: null, from: -1, to: -1, dx: 0, dy: 0 });
+  const refs = React.useRef({});
+  const g = React.useRef(null); // live gesture (avoids stale closures)
+  const idsKey = (ids || []).join("|");
+  React.useEffect(() => { if (!g.current) setOrder(ids || []); }, [idsKey]);
+  // Let the parent flip us into reorder mode from the long-press menu («Переставить плитки»).
+  React.useEffect(() => { if (ctlRef) ctlRef.current = { enterReorder: () => setMode(true), exit: () => setMode(false) }; }, [ctlRef]);
+
+  const onDown = (id) => (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (g.current) return; // one finger at a time
+    const startY = e.clientY, startX = e.clientX;
+    const curOrder = order.slice();
+    const from = curOrder.indexOf(id);
+    const gc = { id, from, to: from, startY, startX, fired: false, order: curOrder };
+    const cleanup = () => {
+      if (gc.longTimer) { clearTimeout(gc.longTimer); gc.longTimer = null; }
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (g.current === gc) g.current = null;
+    };
+    // Held-still long-press in NORMAL mode → open the tile menu. Mark the gesture consumed and
+    // swallow the trailing click so the tile doesn't navigate into the detail screen too.
+    const popMenu = () => {
+      gc.fired = true;
+      if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e2) {} }
+      const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); window.removeEventListener("click", swallow, true); };
+      window.addEventListener("click", swallow, true);
+      setTimeout(() => { try { window.removeEventListener("click", swallow, true); } catch (e2) {} }, 800);
+      if (onLongPress) { try { onLongPress(id); } catch (e2) {} }
+      cleanup();
+    };
+    // Press in REORDER mode → begin a drag at once (snapshot every tile's rect for 2D shifts).
+    const begin = () => {
+      gc.fired = true;
+      const snap = {};
+      curOrder.forEach((iid) => { const el = refs.current[iid]; if (el) { const r = el.getBoundingClientRect(); snap[iid] = { left: r.left, top: r.top, w: r.width, h: r.height }; } });
+      gc.snap = snap;
+      setDrag({ id, from, to: from, dx: 0, dy: 0 });
+      if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (e2) {} }
+    };
+    const onMove = (e2) => {
+      const y = e2.clientY, x = e2.clientX;
+      if (!gc.fired) { if (Math.abs(y - startY) > 10 || Math.abs(x - startX) > 10) cleanup(); return; }
+      if (!gc.snap) return; // a popMenu press has no drag
+      if (e2.cancelable) e2.preventDefault();
+      const dx = x - startX, dy = y - startY;
+      // target slot = the tile whose CENTRE is nearest the finger (2D)
+      let to = gc.from, best = Infinity;
+      for (let i = 0; i < curOrder.length; i++) {
+        const s = gc.snap[curOrder[i]]; if (!s) continue;
+        const cx = s.left + s.w / 2, cy = s.top + s.h / 2;
+        const d = (cx - x) * (cx - x) + (cy - y) * (cy - y);
+        if (d < best) { best = d; to = i; }
+      }
+      gc.to = to;
+      setDrag({ id, from: gc.from, to, dx, dy });
+    };
+    const onUp = () => {
+      const fired = gc.fired, gto = gc.to, gfrom = gc.from, dragging = !!gc.snap;
+      cleanup();
+      if (fired && dragging) {
+        if (gto !== gfrom && gto >= 0) {
+          const next = curOrder.slice(); const [x] = next.splice(gfrom, 1); next.splice(gto, 0, x);
+          setOrder(next);
+          try { onReorder && onReorder(next); } catch (e2) {}
+          if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e2) {} }
+        }
+        setDrag({ id: null, from: -1, to: -1, dx: 0, dy: 0 });
+      }
+    };
+    g.current = gc;
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    if (mode) begin(); else gc.longTimer = setTimeout(popMenu, 480);
+  };
+
+  const done = () => { setMode(false); setDrag({ id: null, from: -1, to: -1, dx: 0, dy: 0 }); };
+
+  // 2D shift for the non-dragged tiles — slide each to the slot it WOULD occupy once the dragged
+  // tile lands at `to`. Uses the drag-time rect snapshot, so it's a grid-correct Δx/Δy (not just Δy).
+  const shiftOf = (idx) => {
+    const gc = g.current;
+    if (!gc || !gc.snap || drag.from < 0 || drag.to < 0 || drag.from === drag.to) return { x: 0, y: 0 };
+    const myId = order[idx];
+    if (myId === drag.id) return { x: 0, y: 0 };
+    const virtual = order.slice(); const fi = virtual.indexOf(drag.id); if (fi < 0) return { x: 0, y: 0 };
+    virtual.splice(fi, 1); virtual.splice(drag.to, 0, drag.id);
+    const slot = virtual.indexOf(myId);
+    const cur = gc.snap[myId], tgt = gc.snap[order[slot]];
+    if (!cur || !tgt) return { x: 0, y: 0 };
+    return { x: tgt.left - cur.left, y: tgt.top - cur.top };
+  };
+
+  return (
+    <>
+      {/* «Готово» FLOATS (same portal as BosReorderList — pinned bottom-centre above the tab bar). */}
+      {mode && ReactDOM.createPortal(
+        <div style={{ position: "absolute", bottom: "calc(var(--bos-safe-bottom, 0px) + 94px)", left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, zIndex: 7000, pointerEvents: "none" }}>
+          <button onClick={done} className="tap" data-haptic="selection" aria-label="Готово — выйти из режима перестановки" style={{
+            pointerEvents: "auto", border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "11px 22px",
+            fontSize: 14, fontWeight: 600, boxShadow: "0 10px 26px rgba(0,0,0,0.36)", cursor: "pointer",
+            animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
+          }}>Готово</button>
+        </div>,
+        (typeof document !== "undefined" && document.querySelector(".page-stack")) || document.body
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(" + cols + ", 1fr)", gap, color: "var(--text)" }}>
+        {order.map((id, idx) => {
+          const isDrag = drag.id === id;
+          const sh = isDrag ? { x: 0, y: 0 } : shiftOf(idx);
+          return (
+            <div key={id} ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
+              style={{ position: "relative", touchAction: mode ? "none" : "auto",
+                transform: isDrag ? "translate(" + drag.dx + "px, " + drag.dy + "px) scale(1.045)" : "translate(" + sh.x + "px, " + sh.y + "px)",
+                transition: isDrag ? "none" : "transform 0.24s cubic-bezier(0.2,0,0,1)",
+                zIndex: isDrag ? 40 : 1, willChange: mode ? "transform" : "auto" }}>
+              <div className={mode && !isDrag ? "bos-jiggle" : ""} style={{ animationDelay: (-(idx % 5) * 0.045) + "s", borderRadius: 22, boxShadow: isDrag ? "0 16px 34px rgba(20,30,60,0.22)" : "none" }}>
+                {renderItem(id, { mode, dragging: isDrag })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 /* The home widget CATALOGUE — one source of truth shared by the board (home_live), the add
    sheet, and the «Виджеты главного» settings screen (home_extra_live). `var` so it's global
    across the built files. id = the widgets[id] visibility flag; order lives in widgets.order. */
