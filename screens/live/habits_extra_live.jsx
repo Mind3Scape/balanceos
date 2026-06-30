@@ -304,7 +304,8 @@ function GoalSettingsLive() {
   const CIRCLE_MODES = [
     { id: "collective", e: "🌊", t: "Общий счёт",     d: "Отметки всех складываются в одно число." },
     { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — круг проходит, если прошли все." },
-    { id: "race",       e: "🏁", t: "Гонка",           d: "Первый до цели побеждает, остальные получают часть XP." },
+    // «Гонка» временно скрыта (David: «может вернём позже») — вернуть = раскомментировать.
+    // { id: "race",    e: "🏁", t: "Гонка",           d: "Первый до цели побеждает, остальные получают часть XP." },
   ];
   // REAL — the user's own habits, none pre-selected.
   const [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map((h) => ({ e: h.emoji || "✨", n: h.name, on: false })));

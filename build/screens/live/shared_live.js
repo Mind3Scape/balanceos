@@ -3909,21 +3909,23 @@ function CreateMenuLive({
     }
   }, [open]);
   if (!open || !pos) return null;
+  // «+» = создать ПРИВЫЧКУ или КРУГ (David). Монохромные SVG-иконки в стекле вместо цветных эмодзи:
+  // огонёк-серия = привычка, люди = круг. «Круг» = цель с включённым «вести вместе» (один движок).
+  // Тот же компонент на главной И на стр. Привычки → меню везде одинаковое.
   var items = [{
-    emoji: "🌱",
+    icon: I.Flame,
     label: "Привычку",
     go: () => navigate("habit-settings", {
       mode: "create"
     })
   }, {
-    emoji: "🎯",
-    label: "Цель",
+    icon: I.Users,
+    label: "Круг",
     go: () => navigate("goal-settings", {
-      mode: "create"
+      mode: "create",
+      circleOn: true
     })
-  }
-  // «Круг» отдельным пунктом убран — это та же «Цель» с тумблером «вести вместе» (David: один движок).
-  ];
+  }];
   return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -3978,12 +3980,19 @@ function CreateMenuLive({
   }, /*#__PURE__*/React.createElement("span", {
     "aria-hidden": true,
     style: {
-      fontSize: 22,
-      width: 26,
-      textAlign: "center",
-      lineHeight: 1
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+      background: "rgba(10,10,10,0.05)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
     }
-  }, it.emoji), it.label)))), document.body);
+  }, React.createElement(it.icon, {
+    size: 18,
+    color: "#0a0a0a",
+    strokeWidth: 1.9
+  })), it.label)))), document.body);
 }
 
 // LIVE share-a-goal sheet — the goal twin of ShareHabitSheetLive, kept minimal: share

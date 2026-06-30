@@ -1686,10 +1686,12 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
     }
   }, [open]);
   if (!open || !pos) return null;
+  // «+» = создать ПРИВЫЧКУ или КРУГ (David). Монохромные SVG-иконки в стекле вместо цветных эмодзи:
+  // огонёк-серия = привычка, люди = круг. «Круг» = цель с включённым «вести вместе» (один движок).
+  // Тот же компонент на главной И на стр. Привычки → меню везде одинаковое.
   const items = [
-    { emoji: "🌱", label: "Привычку", go: () => navigate("habit-settings", { mode: "create" }) },
-    { emoji: "🎯", label: "Цель",     go: () => navigate("goal-settings", { mode: "create" }) },
-    // «Круг» отдельным пунктом убран — это та же «Цель» с тумблером «вести вместе» (David: один движок).
+    { icon: I.Flame, label: "Привычку", go: () => navigate("habit-settings", { mode: "create" }) },
+    { icon: I.Users, label: "Круг",     go: () => navigate("goal-settings", { mode: "create", circleOn: true }) },
   ];
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
@@ -1707,7 +1709,7 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
             padding: "12px 14px", border: 0, background: "transparent", borderRadius: 16,
             fontSize: 16, fontWeight: 600, color: "#0a0a0a", cursor: "pointer", textAlign: "left",
           }}>
-            <span aria-hidden style={{ fontSize: 22, width: 26, textAlign: "center", lineHeight: 1 }}>{it.emoji}</span>
+            <span aria-hidden style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(it.icon, { size: 18, color: "#0a0a0a", strokeWidth: 1.9 })}</span>
             {it.label}
           </button>
         ))}

@@ -459,7 +459,15 @@ function SettingsLive() {
       padding: "16px 14px 2px",
       fontSize: 13
     }
-  }, "\u0412\u0435\u0440\u0441\u0438\u044F ", APP_VERSION));
+  }, "\u0412\u0435\u0440\u0441\u0438\u044F ", APP_VERSION), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      textAlign: "center",
+      padding: "5px 14px 6px",
+      fontSize: 12.5,
+      opacity: 0.85
+    }
+  }, "\u0421\u0434\u0435\u043B\u0430\u043D\u043E \u0441 \uD83D\uDC9B"));
 }
 function NotificationsLive() {
   var {

@@ -194,6 +194,8 @@ function SettingsLive() {
         row(null, "Условия использования", () => openSheet(<InfoSheet title="Условия использования" body={PRIVACY_BODY} cta="Готово" dark={routeDark}/>), true),
       ])}
       <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "16px 14px 2px", fontSize: 13 }}>Версия {APP_VERSION}</div>
+      {/* Тёплая подпись внизу настроек (David: «сделано с любовью» — золотое сердечко). */}
+      <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "5px 14px 6px", fontSize: 12.5, opacity: 0.85 }}>Сделано с 💛</div>
     </div>
   );
 }
