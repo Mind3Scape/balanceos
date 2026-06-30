@@ -490,9 +490,10 @@ function HabitsLive() {
         max: 4
       }))), /*#__PURE__*/React.createElement("div", {
         style: {
-          marginTop: 14
+          marginTop: 16,
+          marginBottom: 2
         }
-      }, /*#__PURE__*/React.createElement(HabitMiniGrid, {
+      }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
         habit: h
       })));
       if (ctx.mode) return /*#__PURE__*/React.createElement("div", {

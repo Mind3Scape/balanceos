@@ -270,15 +270,16 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
       const el = kids[i]; if (!el || el.getAttribute("aria-hidden")) continue;
       const dist = Math.hypot(Math.floor(i / cols) - or, (i % cols) - oc);
       try {
-        el.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }],
+        // Волна = не только размер, но и лёгкий БЛЕСК (осветление) проходящий по клетке (David).
+        el.animate([{ transform: "scale(1)", filter: "brightness(1)" }, { transform: "scale(1.18)", filter: "brightness(1.32)" }, { transform: "scale(1)", filter: "brightness(1)" }],
           { duration: 430, delay: dist * 42, easing: "cubic-bezier(0.22,0.9,0.3,1.2)" });
       } catch (_) {}
     }
   };
   const fireToday = () => { setSelDay(today); triggerRipple(todayIdx); if (todayTap && todayTap.onTap) todayTap.onTap(); };
 
-  // ── «Неделя · Месяц · Год» — тот же кружок-день в трёх масштабах (David). Год = «грядка» с начала
-  //    года до сегодня (месяцы сверху, без дней недели слева); Неделя = крупная текущая строка.
+  // ── «Месяц · Год» — тот же кружок-день в двух масштабах (David; неделя живёт на карточке). Год =
+  //    «грядка» с начала года до сегодня; месяцы СКРЫТЫ пока не нажат глазик («Подробно»).
   const MO_ABBR = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
   const yearScrollRef = React.useRef(null);
   const yearData = React.useMemo(() => {
@@ -300,31 +301,24 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
     if (selPerson == null) { const v = people.map((_, i) => dayFrac(i, d, m) || 0); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; }
     return dayFrac(selPerson, d, m) || 0;
   };
-  const weekData = React.useMemo(() => {
-    const wd = (new Date(year, CUR_M, today).getDay() + 6) % 7, tRef = new Date(year, CUR_M, today).getTime();
-    return Array.from({ length: 7 }, (_, i) => { const dt = new Date(year, CUR_M, today - wd + i); return { d: dt.getDate(), m: dt.getMonth(), wlbl: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][i], isToday: dt.getMonth() === CUR_M && dt.getDate() === today, future: dt.getTime() > tRef }; });
-  }, [year, CUR_M, today]);
   React.useEffect(() => { if (view === "year" && yearScrollRef.current) yearScrollRef.current.scrollLeft = yearScrollRef.current.scrollWidth; }, [view]);
 
   return (
     <>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: label ? 12 : 0 }}>
-        {/* Title + eye toggle live INSIDE the card now (David: «надписи вписаны в блок, не вынесены —
-            чтобы блоки читались бум-бум-бум»). «Компактно» = pretty cells ↔ «Подробно» = dates+labels. */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          {label ? <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)" }}>{label}</div> : <span />}
-          {view === "month"
-            ? <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-                <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Компактно"}
-              </button>
-            : <span />}
-        </div>
-        {/* Неделя · Месяц · Год — один кружок-день в трёх масштабах (David). Активный = тёмная пилюля (как чипы). */}
-        <div style={{ display: "flex", gap: 2, background: chipBg, borderRadius: 12, padding: 3, marginBottom: 12 }}>
-          {[["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
-            <button key={v} onClick={() => setView(v)} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "6px 0", fontSize: 13, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{l}</button>
-          ))}
+        {/* Без заголовка (David: «„Календарь привычки“ убрать — и так понятно»). Переключатель Месяц·Год
+            (неделя живёт на карточке) + глазик «Компактно/Подробно» — РАБОТАЕТ В ОБОИХ режимах:
+            по умолчанию минимализм (без подписей/чисел), по глазику — месяцы/числа. */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 2, background: chipBg, borderRadius: 12, padding: 3, flex: 1 }}>
+            {[["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
+              <button key={v} onClick={() => setView(v)} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "6px 0", fontSize: 13, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{l}</button>
+            ))}
+          </div>
+          <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: chipBg, border: 0, borderRadius: 999, padding: "7px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+            <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Компактно"}
+          </button>
         </div>
         {!solo && (
           <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2, marginBottom: 12 }}>
@@ -346,31 +340,6 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             <button onClick={() => setMIdx((m) => Math.max(0, m - 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}><I.ChevronLeft size={16} /></button>
             <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>{MONTHS[mIdx]} {year}</div>
             <button onClick={() => setMIdx((m) => Math.min(11, m + 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 11 ? 0.35 : 1 }}><I.ChevronRight size={16} /></button>
-          </div>
-        )}
-
-        {view === "week" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8, maxWidth: 330, width: "100%", margin: "2px auto 0" }}>
-            {weekData.map((wk, i) => {
-              const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#0a0a0a";
-              const itx = !!(todayTap && wk.isToday && (solo || selPerson == null || (people[selPerson] && people[selPerson].you)));
-              const pct = wk.future ? null : (itx ? todayTap.pct : yearPct(wk.m, wk.d));
-              const fut = pct == null;
-              const filled = !fut && pct > 0;
-              const done = !fut && pct >= 1;
-              const bg = fut ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)") : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : track) : bosCellFill(hx, pct));
-              const ink = fut ? "var(--text-4)" : (pct <= 0 ? (itx ? hx : "var(--text)") : (itx ? "#fff" : bosCellInk(hx, pct, isDark)));
-              const ringC = wk.isToday ? (itx ? hx : (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)")) : null;
-              const sh = [filled ? bosCellGlass(isDark) : "", ringC ? ("0 0 0 1.6px " + ringC) : ""].filter(Boolean).join(", ") || "none";
-              return (
-                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-4)" }}>{wk.wlbl}</span>
-                  <button onClick={itx ? fireToday : undefined} className="tap" style={{ width: "100%", aspectRatio: "1/1", border: 0, borderRadius: "50%", background: bg, boxShadow: sh, color: ink, display: "grid", placeItems: "center", fontSize: 14, fontWeight: wk.isToday ? 700 : 500, cursor: itx ? "pointer" : "default" }}>
-                    {itx && !done ? <span style={{ fontWeight: 800 }}>{todayTap.hint}</span> : (itx && done ? <I.Check size={16} strokeWidth={3} color={ink} /> : wk.d)}
-                  </button>
-                </div>
-              );
-            })}
           </div>
         )}
 
@@ -431,11 +400,14 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         {view === "year" && (
           <div ref={yearScrollRef} className="screen-scroll" style={{ overflowX: "auto", paddingBottom: 4 }}>
             <div style={{ minWidth: yearData.cols * 14, margin: "0 auto" }}>
-              <div style={{ display: "flex", marginBottom: 7 }}>
-                {Array.from({ length: yearData.cols }, (_, c) => (
-                  <div key={c} style={{ width: 14, flexShrink: 0, fontSize: 11, fontWeight: 600, color: "var(--text-4)", whiteSpace: "nowrap", overflow: "visible" }}>{yearData.colLabel[c] || ""}</div>
-                ))}
-              </div>
+              {/* Месяцы — только в «Подробно» (по глазику); по умолчанию грядка минималистичная (David). */}
+              {!compact && (
+                <div style={{ display: "flex", marginBottom: 7 }}>
+                  {Array.from({ length: yearData.cols }, (_, c) => (
+                    <div key={c} style={{ width: 14, flexShrink: 0, fontSize: 11, fontWeight: 600, color: "var(--text-4)", whiteSpace: "nowrap", overflow: "visible" }}>{yearData.colLabel[c] || ""}</div>
+                  ))}
+                </div>
+              )}
               <div style={{ display: "grid", gridTemplateRows: "repeat(7, 11px)", gridAutoFlow: "column", gridAutoColumns: "11px", gap: 3 }}>
                 {yearData.slots.map((s, i) => {
                   if (!s) return <span key={i} aria-hidden style={{ width: 11, height: 11 }} />;
@@ -2386,41 +2358,6 @@ function UniverseFieldLive({ app, people, from, onClose }) {
 const BOS_APPLE_COLORS = ["#A06A86", "#F0564C", "#E08AC4", "#E59B9B", "#CBA98D", "#F0A24E", "#19B89B", "#54C3E4", "#4A6CD6", "#84A4B8", "#7F9AF2", "#8676E6"];
 
 // 7 LOCAL day-keys for the CURRENT week, Пн→Вс (left→right) — matches the strip order.
-// HabitMiniGrid — «грядка» последних 14 недель НА КАРТОЧКЕ (карточка квадратнее, David): строки =
-// дни недели Пн↑Вс, столбцы = недели (как годовой вид в детали, только короче). Тот же кружок-день
-// и заливка-хитмап → карточка ↔ месяц ↔ год = один язык. Сегодня в тонком графит-кольце; пустые =
-// бледный диск (есть куда расти), будущее в текущей неделе — ещё бледнее.
-function HabitMiniGrid({ habit, weeks = 14 }) {
-  var app = (typeof useApp === "function") ? useApp() : null;
-  var isDark = app && app.themeOverride === "dark";
-  if (!habit) return null;
-  var accent = bosHabitColor(habit);
-  var log = habit.log || {};
-  var doneFill = bosCellFill(accent, 1);
-  var empty = isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.055)";
-  var futureBg = isDark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.02)";
-  var ringC = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
-  var now = new Date(); now.setHours(0, 0, 0, 0);
-  var dow = (now.getDay() + 6) % 7;
-  var mon = new Date(now); mon.setDate(now.getDate() - dow);            // Monday of current week
-  var todayK = (typeof bosTodayKey === "function") ? bosTodayKey(now) : "";
-  var cells = [];
-  for (var r = 0; r < 7; r++) for (var c = 0; c < weeks; c++) {         // weekday-major: rows = Пн..Вс
-    var d = new Date(mon); d.setDate(mon.getDate() + (c - (weeks - 1)) * 7 + r);
-    var k = (typeof bosTodayKey === "function") ? bosTodayKey(d) : "";
-    var fut = d.getTime() > now.getTime();
-    cells.push({ fl: !fut && !!log[k], fut: fut, today: k === todayK });
-  }
-  return (
-    <div aria-hidden style={{ display: "grid", gridTemplateColumns: "repeat(" + weeks + ",1fr)", gap: 4, width: "100%" }}>
-      {cells.map(function (c, i) {
-        var sh = [c.fl ? bosCellGlass(isDark) : "", c.today ? ("0 0 0 1.5px " + ringC) : ""].filter(Boolean).join(", ") || "none";
-        return <span key={i} style={{ aspectRatio: "1/1", borderRadius: "50%", background: c.fut ? futureBg : (c.fl ? doneFill : empty), boxShadow: sh }} />;
-      })}
-    </div>
-  );
-}
-
 function bosWeekKeys() {
   var now = new Date(); now.setHours(0, 0, 0, 0);
   var dow = (now.getDay() + 6) % 7;            // Mon=0 … Sun=6
@@ -2442,10 +2379,10 @@ function bosHabitColor(habit) {
 // closed that day; faint same-hue tint = not closed — so the whole row stays ONE colour
 // family (David). NO «today» marker on purpose: the current day is already obvious, a ring
 // only added noise. Display-only; reads the REAL date-log (same source as the streak).
-function HabitWeekStrip({ habit }) {
-  // Same cell language as the month calendar (Э4 continuity): squircle, FLAT accent when done,
-  // neutral track when empty, a subtle ring on today — so the week strip on the card reads as
-  // the exact same «day = square» tile as the detail calendar.
+function HabitWeekStrip({ habit, fill = true }) {
+  // Same cell language as the month calendar (continuity): circle, glossy accent when done,
+  // neutral track when empty, a subtle ring on today — карточка ↔ деталь = один кружок-день.
+  // fill=true (карточка) → клетки тянутся во всю ширину (крупнее, карточка плотнее/квадратнее).
   var app = (typeof useApp === "function") ? useApp() : null;
   var isDark = app && app.themeOverride === "dark";
   var keys = bosWeekKeys();
@@ -2462,7 +2399,7 @@ function HabitWeekStrip({ habit }) {
       var ti = keys.indexOf(todayK), kids = stripRef.current.children;
       for (var i = 0; i < kids.length; i++) {
         var dist = ti >= 0 ? Math.abs(i - ti) : 0;
-        try { kids[i].animate([{ transform: "scale(1)" }, { transform: "scale(1.32)" }, { transform: "scale(1)" }], { duration: 440, delay: dist * 55, easing: "cubic-bezier(0.22,0.9,0.3,1.2)" }); } catch (e) {}
+        try { kids[i].animate([{ transform: "scale(1)", filter: "brightness(1)" }, { transform: "scale(1.32)", filter: "brightness(1.35)" }, { transform: "scale(1)", filter: "brightness(1)" }], { duration: 440, delay: dist * 55, easing: "cubic-bezier(0.22,0.9,0.3,1.2)" }); } catch (e) {}
       }
     }
     prevDone.current = doneNow;
@@ -2473,12 +2410,13 @@ function HabitWeekStrip({ habit }) {
   var doneFill = bosCellFill(accent, 1);   // SAME soft glossy fill as the month calendar (continuity)
   var empty = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var ringC = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
+  var cell = fill ? { flex: 1, aspectRatio: "1/1", minWidth: 0 } : { width: 20, height: 20, flexShrink: 0 };
   return (
-    <div ref={stripRef} aria-hidden style={{ display: "flex", gap: 6 }}>
+    <div ref={stripRef} aria-hidden style={{ display: "flex", gap: fill ? 7 : 6, width: fill ? "100%" : "auto" }}>
       {keys.map(function (k, i) {
         var fl = !!log[k];
         var sh = [fl ? bosCellGlass(isDark) : "", (k === todayK) ? ("0 0 0 1.5px " + ringC) : ""].filter(Boolean).join(", ") || "none";
-        return <span key={i} style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, background: fl ? doneFill : empty, boxShadow: sh }} />;
+        return <span key={i} style={{ ...cell, borderRadius: "50%", background: fl ? doneFill : empty, boxShadow: sh }} />;
       })}
     </div>
   );

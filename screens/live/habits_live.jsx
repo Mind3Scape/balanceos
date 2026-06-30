@@ -205,9 +205,10 @@ function HabitsLive() {
                       {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={20} max={4} />}
                     </div>
                   </div>
-                  {/* Мини-грядка последних недель — карточка квадратнее, один язык с видами «Месяц»/«Год». */}
-                  <div style={{ marginTop: 14 }}>
-                    <HabitMiniGrid habit={h} />
+                  {/* Компактный недельный вид (как было) — но во всю ширину, крупнее: карточка плотнее.
+                      Грядка-год живёт в детали (David: снаружи только неделя, минимализм + волна). */}
+                  <div style={{ marginTop: 16, marginBottom: 2 }}>
+                    <HabitWeekStrip habit={h} />
                   </div>
                 </div>
               );
