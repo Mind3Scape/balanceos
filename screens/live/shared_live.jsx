@@ -2118,24 +2118,51 @@ function UniverseFieldLive({ app, people, onClose }) {
   var layout = React.useMemo(function () {
     var W = (typeof window !== "undefined" && window.innerWidth) || 390;
     var H = (typeof window !== "undefined" && window.innerHeight) || 780;
-    var specs = [buildSystem({ avatar: app && app.avatar, name: (app && app.userName) || "", you: true }, true)];
-    list.slice(0, 18).forEach(function (f) { specs.push(buildSystem(f, false)); });
-    specs.sort(function (a, b) { return b.footprint - a.footprint; });
-    var TOP = 100, BOT = H - 76, GAP = 12, cx = W / 2, placed = [], overflow = 0;
-    var cy = Math.max(TOP + specs[0].footprint, Math.min(BOT - specs[0].footprint, H * 0.47));
-    function fits(x, y, fp) { if (x < fp + 6 || x > W - fp - 6 || y < TOP + fp || y > BOT - fp) return false; for (var j = 0; j < placed.length; j++) { var dx = x - placed[j].x, dy = y - placed[j].y; if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + GAP) return false; } return true; }
-    specs.forEach(function (sp, i) {
-      var fp = sp.footprint;
-      if (i === 0) { placed.push({ sp: sp, x: cx, y: cy, fp: fp }); return; }
-      var done = false, RMAX = Math.max(W, H);
-      for (var r = fp + 4; r < RMAX && !done; r += 10) {
-        var steps = Math.max(8, Math.round(2 * Math.PI * r / 26)), a0 = _bosHashU(sp.s.name || ("" + i)) % steps;
+    // ТЫ — ГЛАВНЫЙ, всегда в ЦЕНТРЕ (David: «оставить тебя как главного; единый зум от твоей системы
+    // к вселенной»). Остальные — вокруг, крупные ближе к тебе, мелкие дальше; ПЛОТНО (но не касаясь).
+    var me = buildSystem({ avatar: app && app.avatar, name: (app && app.userName) || "", you: true }, true);
+    var others = list.slice(0, 18).map(function (f) { return buildSystem(f, false); }).sort(function (a, b) { return b.footprint - a.footprint; });
+    var TOP = 96, BOT = H - 72, GAP = 6, cx = W / 2, placed = [], overflow = 0;
+    var cy = Math.max(TOP + me.footprint, Math.min(BOT - me.footprint, H * 0.46));
+    function fits(x, y, fp) { if (x < fp + 4 || x > W - fp - 4 || y < TOP + fp || y > BOT - fp) return false; for (var j = 0; j < placed.length; j++) { var dx = x - placed[j].x, dy = y - placed[j].y; if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + GAP) return false; } return true; }
+    placed.push({ sp: me, x: cx, y: cy, fp: me.footprint });
+    others.forEach(function (sp, i) {
+      var fp = sp.footprint, done = false, RMAX = Math.max(W, H) * 0.95;
+      for (var r = me.footprint + fp - 2; r < RMAX && !done; r += 8) {
+        var steps = Math.max(8, Math.round(2 * Math.PI * r / 22)), a0 = _bosHashU(sp.s.name || ("" + i)) % steps;
         for (var k = 0; k < steps && !done; k++) { var ang = ((k + a0) / steps) * 2 * Math.PI, x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r; if (fits(x, y, fp)) { placed.push({ sp: sp, x: x, y: y, fp: fp }); done = true; } }
       }
       if (!done) overflow++;
     });
-    return { placed: placed, overflow: overflow };
+    return { placed: placed, overflow: overflow, cx: cx, cy: cy };
   }, [friends]);
+
+  // ЕДИНЫЙ ЗУМ: открываемся «в твоей системе» (scale 2.5, центр на тебе) и плавно отдаляемся к
+  // вселенной (→ scale 1). Дальше — ПАЛЬЦАМИ: пинч-зум + перетаскивание (David). Pointer Events =
+  // и мышь (превью), и тач (телефон); 2 пальца = пинч; чистый тап (без сдвига) = закрыть.
+  var [view, setView] = React.useState({ s: 2.5, x: 0, y: 0, anim: true });
+  React.useEffect(function () { var r = requestAnimationFrame(function () { setView({ s: 1, x: 0, y: 0, anim: true }); }); return function () { cancelAnimationFrame(r); }; }, []);
+  var vp = React.useRef({ pts: {}, mode: null, sd: 1, ss: 1, sx: 0, sy: 0, ox: 0, oy: 0, moved: 0 });
+  function _cS(s) { return s < 0.6 ? 0.6 : s > 4 ? 4 : s; }
+  function uDown(e) {
+    var g = vp.current; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
+    if (ids.length === 1) { g.mode = "pan"; g.sx = e.clientX; g.sy = e.clientY; g.ox = view.x; g.oy = view.y; g.moved = 0; }
+    else if (ids.length >= 2) { g.mode = "pinch"; var a = g.pts[ids[0]], b = g.pts[ids[1]]; g.sd = Math.hypot(a.x - b.x, a.y - b.y) || 1; g.ss = view.s; }
+    setView(function (v) { return { s: v.s, x: v.x, y: v.y, anim: false }; });
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+  function uMove(e) {
+    var g = vp.current; if (!g.pts[e.pointerId]) return; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
+    if (g.mode === "pinch" && ids.length >= 2) { var a = g.pts[ids[0]], b = g.pts[ids[1]]; var ns = _cS(g.ss * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd)); setView(function (v) { return { s: ns, x: v.x, y: v.y, anim: false }; }); }
+    else if (g.mode === "pan" && ids.length === 1) { var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); setView(function (v) { return { s: v.s, x: g.ox + dx, y: g.oy + dy, anim: false }; }); }
+  }
+  function uUp(e) {
+    var g = vp.current; var tap = (g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1);
+    delete g.pts[e.pointerId]; if (!Object.keys(g.pts).length) g.mode = null;
+    setView(function (v) { return { s: v.s, x: v.x, y: v.y, anim: true }; });
+    if (tap) { try { onClose && onClose(); } catch (_) {} }
+  }
+  function uWheel(e) { var ns = _cS(view.s * (1 - (e.deltaY || 0) * 0.0012)); setView(function (v) { return { s: ns, x: v.x, y: v.y, anim: false }; }); }
 
   function planet(kind, it, pd) {
     if (kind === "avatar") return (typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={it && it.avatar} name={it && it.name} size={pd} /> : null;
@@ -2146,8 +2173,11 @@ function UniverseFieldLive({ app, people, onClose }) {
   var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
   var node = (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
       <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSpinCW{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosSpinFaceCW{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes bosSpinFaceCCW{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
+      {/* Жесты: пинч-зум + перетаскивание + колесо; чистый тап (без сдвига) закрывает. */}
+      <div onPointerDown={uDown} onPointerMove={uMove} onPointerUp={uUp} onPointerCancel={uUp} onWheel={uWheel} style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "grab" }}>
+        <div style={{ position: "absolute", inset: 0, transformOrigin: layout.cx + "px " + layout.cy + "px", transform: "translate(" + view.x.toFixed(1) + "px," + view.y.toFixed(1) + "px) scale(" + view.s.toFixed(3) + ")", transition: view.anim ? "transform 0.9s cubic-bezier(0.22,0.8,0.32,1)" : "none", willChange: "transform" }}>
       {layout.placed.map(function (pl, i) {
         var sp = pl.sp;
         return (
@@ -2181,6 +2211,8 @@ function UniverseFieldLive({ app, people, onClose }) {
           </div>
         );
       })}
+        </div>
+      </div>
       <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: titleC }}>Вселенная</div>
         {sub ? <div style={{ fontSize: 13, color: subC, marginTop: 3 }}>{sub}</div> : null}
