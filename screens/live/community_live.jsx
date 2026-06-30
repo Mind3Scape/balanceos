@@ -31,9 +31,8 @@
 // already caps at 5 faces + a «+N» overflow chip (iOS-style) and uses each member's real
 // avatar. Local-only teams fall back to their own members; empty cloud team = honest «ты один».
 function LiveTeamCard({ t, navigate }) {
-  // ЦВЕТА ПОКА ВЫКЛ (David): единое ЕДВА-серое СТЕКЛО (его референс) для ВСЕХ кругов/целей;
-  // выбор цвета временно убран, включим позже.
-  const cardAccent = "#EAEAEF";
+  // Карточка круга теперь БЕЛАЯ как привычки/цели (David: «в целях карточки того же цвета — единый
+  // стиль»). Круги живут среди целей, поэтому делим единый белый вид; эмблема-watermark + чипы-стекло.
   const tgt = t.target || 0;
   const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
   const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
@@ -56,7 +55,7 @@ function LiveTeamCard({ t, navigate }) {
   // Инфо ЧИПАМИ, не строчками вразброс (David: «чипы для разной инфо вместо разброса»).
   const chipS = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(false), padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" };
   return (
-    <div className="team-card tap" onClick={() => navigate("team-detail", { team: t })} style={{ ["--team-accent"]: cardAccent, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", cursor: "pointer" }}>
+    <div className="tap" onClick={() => navigate("team-detail", { team: t })} style={{ background: "var(--card)", boxShadow: "var(--card-shadow)", borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", cursor: "pointer" }}>
       <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, null)}</div>
       <div style={{ position: "relative" }}>
         <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>

@@ -661,9 +661,9 @@ function HabitsLive() {
       if (!g) return null;
       var pct = g.target > 0 ? Math.min(1, g.current / g.target) : 0;
       // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
-      // расширенную, старую плоскую удалить»). Грей-стекло по умолчанию (.team-card), эмблема-
-      // водяной знак, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель); круги носят лица через LiveTeamCard.
-      var gAccent = "#EAEAEF"; // ЦВЕТА ПОКА ВЫКЛ (David) — едва-серое стекло, как у кругов
+      // расширенную»). БЕЛАЯ карточка (как привычки/Найти — David: «цели того же цвета, единый
+      // стиль»), эмблема-водяной знак, чипы-стекло, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель).
+      var gAccent = "#c9ced8"; // эмблема-водяной знак (серый силуэт) — карточка теперь БЕЛАЯ как привычки (David: единый стиль)
       var inner = /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",
         onClick: ctx.mode ? undefined : () => navigate("goal-detail", {
@@ -716,7 +716,9 @@ function HabitsLive() {
           fontSize: 11.5,
           fontWeight: 600,
           color: "var(--text-2)",
-          background: "rgba(255,255,255,0.6)",
+          ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+            background: "var(--surface-3)"
+          }),
           padding: "4px 10px",
           borderRadius: 999,
           whiteSpace: "nowrap"
@@ -729,7 +731,9 @@ function HabitsLive() {
           fontSize: 11.5,
           fontWeight: 600,
           color: "var(--text-2)",
-          background: "rgba(255,255,255,0.6)",
+          ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+            background: "var(--surface-3)"
+          }),
           padding: "4px 10px",
           borderRadius: 999,
           whiteSpace: "nowrap"
@@ -770,9 +774,9 @@ function HabitsLive() {
       // Без SwipeRow — тап по карточке (как у кругов). Opaque rowBg (#fff) прятал серое
       // стекло → цель «отличалась по цвету» (David). Удаление/правка — через деталь цели.
       return /*#__PURE__*/React.createElement("div", {
-        className: "team-card",
         style: {
-          ["--team-accent"]: gAccent,
+          background: rowBg,
+          boxShadow: cardShadow,
           borderRadius: 22,
           overflow: "hidden"
         }

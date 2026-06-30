@@ -87,7 +87,7 @@ function ProfileLive() {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={openUniverse} className="tap" aria-label="Вселенная" title="Вселенная"
             style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none") }}>
-            <I.Galaxy size={19} strokeWidth={1.8} />
+            <I.Galaxy size={18} strokeWidth={1.8} />
           </button>
           {typeof EditGlassButtonLive === "function" ? <EditGlassButtonLive onClick={openAvatar} /> : null}
         </div>

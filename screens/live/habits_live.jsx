@@ -251,9 +251,9 @@ function HabitsLive() {
               const g = goals.find((x) => x.id === id); if (!g) return null;
               const pct = g.target > 0 ? Math.min(1, g.current / g.target) : 0;
               // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
-              // расширенную, старую плоскую удалить»). Грей-стекло по умолчанию (.team-card), эмблема-
-              // водяной знак, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель); круги носят лица через LiveTeamCard.
-              const gAccent = "#EAEAEF"; // ЦВЕТА ПОКА ВЫКЛ (David) — едва-серое стекло, как у кругов
+              // расширенную»). БЕЛАЯ карточка (как привычки/Найти — David: «цели того же цвета, единый
+              // стиль»), эмблема-водяной знак, чипы-стекло, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель).
+              const gAccent = "#c9ced8"; // эмблема-водяной знак (серый силуэт) — карточка теперь БЕЛАЯ как привычки (David: единый стиль)
               const inner = (
                 <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" })}
                   style={{ padding: 18, textAlign: "left", color: "var(--text)", position: "relative", overflow: "hidden", pointerEvents: ctx.mode ? "none" : "auto" }}>
@@ -262,8 +262,8 @@ function HabitsLive() {
                     <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{g.name}</div>
                     {/* Инфо ЧИПАМИ (David), как у кругов */}
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.6)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>🎯 {g.target} {g.unit}</span>
-                      {g.deadline && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.6)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>📅 до {g.deadline}</span>}
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>🎯 {g.target} {g.unit}</span>
+                      {g.deadline && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>📅 до {g.deadline}</span>}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
                       <span>К цели</span>
@@ -277,7 +277,7 @@ function HabitsLive() {
               );
               // Без SwipeRow — тап по карточке (как у кругов). Opaque rowBg (#fff) прятал серое
               // стекло → цель «отличалась по цвету» (David). Удаление/правка — через деталь цели.
-              return <div className="team-card" style={{ ["--team-accent"]: gAccent, borderRadius: 22, overflow: "hidden" }}>{inner}</div>;
+              return <div style={{ background: rowBg, boxShadow: cardShadow, borderRadius: 22, overflow: "hidden" }}>{inner}</div>;
             }} />)}
           {/* Круги (бывшие команды) — совместные цели живут ЗДЕСЬ ЖЕ, среди целей, с лицами;
               тап по карточке → комната-орбита круга. Отдельной вкладки «Команды» больше нет. */}

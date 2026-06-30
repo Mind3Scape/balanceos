@@ -34,9 +34,8 @@ function LiveTeamCard({
   t,
   navigate
 }) {
-  // ЦВЕТА ПОКА ВЫКЛ (David): единое ЕДВА-серое СТЕКЛО (его референс) для ВСЕХ кругов/целей;
-  // выбор цвета временно убран, включим позже.
-  var cardAccent = "#EAEAEF";
+  // Карточка круга теперь БЕЛАЯ как привычки/цели (David: «в целях карточки того же цвета — единый
+  // стиль»). Круги живут среди целей, поэтому делим единый белый вид; эмблема-watermark + чипы-стекло.
   var tgt = t.target || 0;
   var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
   var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
@@ -83,12 +82,13 @@ function LiveTeamCard({
     whiteSpace: "nowrap"
   };
   return /*#__PURE__*/React.createElement("div", {
-    className: "team-card tap",
+    className: "tap",
     onClick: () => navigate("team-detail", {
       team: t
     }),
     style: {
-      ["--team-accent"]: cardAccent,
+      background: "var(--card)",
+      boxShadow: "var(--card-shadow)",
       borderRadius: 22,
       padding: 18,
       position: "relative",

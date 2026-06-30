@@ -178,7 +178,7 @@ function ProfileLive() {
         boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none"
       }
     }, /*#__PURE__*/React.createElement(I.Galaxy, {
-      size: 19,
+      size: 18,
       strokeWidth: 1.8
     })), typeof EditGlassButtonLive === "function" ? /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: openAvatar

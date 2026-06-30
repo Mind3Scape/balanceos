@@ -256,35 +256,16 @@ var I = {
   }), /*#__PURE__*/React.createElement("path", {
     d: "M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"
   })),
-  // «Вселенная» — НЕ глобус: звезда в центре + две наклонённые орбиты с планетами (как наш космос).
-  Galaxy: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
-    cx: "12",
-    cy: "12",
-    r: "2.1",
-    fill: "currentColor",
-    stroke: "none"
-  }), /*#__PURE__*/React.createElement("ellipse", {
-    cx: "12",
-    cy: "12",
-    rx: "9",
-    ry: "3.5",
-    transform: "rotate(-25 12 12)"
-  }), /*#__PURE__*/React.createElement("ellipse", {
-    cx: "12",
-    cy: "12",
-    rx: "9",
-    ry: "3.5",
-    transform: "rotate(35 12 12)"
+  // «Вселенная» — СПИРАЛЬНАЯ галактика (David: «спиралевидная вселенная, не атом; толщина как карандаш»):
+  // ядро + два рукава-спирали (180°-симметрия), тонкая линия как у I.Pencil.
+  Galaxy: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M14.5 4.3C19.5 6 21 11.5 18 15.5 15.5 18.8 10 19.5 6.8 16.8 4.2 14.6 4.2 10.8 6.8 9 8.9 7.5 11.8 8.2 12.6 10.4"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M9.5 19.7C4.5 18 3 12.5 6 8.5 8.5 5.2 14 4.5 17.2 7.2 19.8 9.4 19.8 13.2 17.2 15 15.1 16.5 12.2 15.8 11.4 13.6"
   }), /*#__PURE__*/React.createElement("circle", {
-    cx: "19.2",
-    cy: "8.2",
-    r: "1.1",
-    fill: "currentColor",
-    stroke: "none"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: "5.2",
-    cy: "15.4",
-    r: "1.1",
+    cx: "12",
+    cy: "12",
+    r: "1.3",
     fill: "currentColor",
     stroke: "none"
   })),
