@@ -2388,11 +2388,8 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   }, []);
   var list = Array.isArray(friends) ? friends : [];
   var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #1b2336 0%, #0e1422 52%, #070b14 100%)" : "radial-gradient(125% 95% at 50% 42%, #fbfcff 0%, #eef1f8 52%, #e4e9f2 100%)";
-  var ringCol = isDark ? "rgba(186,210,248,0.18)" : "rgba(92,120,165,0.17)";
-  var youRing = isDark ? "rgba(255,221,120,0.7)" : "rgba(230,160,30,0.62)";
   var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
-  var discBg = isDark ? "linear-gradient(150deg,#39414f,#262d3a)" : "linear-gradient(150deg,#eef1f6,#dadfe7)";
 
   // Твой РЕАЛЬНЫЙ уровень/прогресс — кормит OrbitField (золотое кольцо + цифра) идентично стр. «Я».
   var _ux = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
@@ -2480,11 +2477,6 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   }
   function uWheel(e) { var ns = _cS(view.s * (1 - (e.deltaY || 0) * 0.0012)); setView(function (v) { return { s: ns, x: v.x, y: v.y, anim: false }; }); }
 
-  function planet(kind, it, pd) {
-    if (kind === "avatar") return (typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={it && it.avatar} name={it && it.name} size={pd} /> : null;
-    if (kind === "emoji") return <div style={{ width: pd, height: pd, borderRadius: "50%", background: discBg, boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.12)", display: "grid", placeItems: "center", fontSize: Math.round(pd * 0.62) }}>{(typeof bosIcon === "function") ? bosIcon(it, Math.round(pd * 0.62), null) : it}</div>;
-    return <div style={{ width: pd, height: pd, borderRadius: "50%", background: discBg, boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.1)" }} />; // bead
-  }
 
   var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");

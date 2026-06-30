@@ -1,37 +1,19 @@
-/* HABITS — LIVE-only fork of HabitsScreen (real Telegram user, app.mode === "live"
-   is ALWAYS true here). Redesigned (David) so the whole screen reads as ONE block
-   language (iOS-26 «всё в блоках»):
-     1. «Быстрое добавление» — chips + the black universal «+» wrapped in ONE white
-        block (the «+» opens CreateMenuLive → Привычку / Цель / Команду).
-     2. A TRIAD segmented switcher «Привычки · Цели · Команды» sits DIRECTLY UNDER
-        that block and swaps the page between the three lists. No big duplicate title,
-        no «Сегодня» section labels — the triad already names the context (David).
-        «Команды» reuses LiveTeamCard (from community_live.jsx) so teams you created /
-        joined also live here, not only on the Сообщество tab (coexist for now).
-     3. «Обучение» is a THIN disclosure block: a slim header row when collapsed, it
-        expands in place into a full block of 3 guide rows. Reuses bosLearnHidden so the
-        Settings toggle still flips it.
-   The live fork hard-codes the iOS-weight primary typography (habit / goal NAME at
-   fontWeight 600 + var(--text)). Everything else reuses the shared core/ toolkit
-   (EMOJI_CHIPS, HabitRing, AvatarStack) + shared_live.jsx (CreateMenuLive,
-   ShareHabitSheetLive, HabitWeekStrip, bosTileGlass/BOS_TILE_SHEEN, HabitBuddyAvatarsLive)
-   + community_live.jsx (LiveTeamCard) + framework (SwipeRow, HabitCheck, I, hooks).
-   New top-level names in this file: `function HabitsLive`, `_bosHabitsTab`,
-   `_bosSetHabitsTab` (the active-triad-tab memory, survives navigate-in-and-back). */
-var _bosHabitsTab = function () {
-  try {
-    var v = localStorage.getItem("bos:habitsTab") || "habits";
-    return v === "teams" ? "goals" : v;
-  } catch (e) {
-    return "habits";
-  }
-}(); /* «teams»-вкладки больше нет (круги в «Целях») → коэрсим устаревший выбор в goals, иначе пустой экран */
-function _bosSetHabitsTab(t) {
-  _bosHabitsTab = t;
-  try {
-    localStorage.setItem("bos:habitsTab", t);
-  } catch (e) {}
-}
+/* HABITS — LIVE-only fork (real Telegram user, app.mode === "live" is ALWAYS true here).
+   ONE block language (iOS-26 «всё в блоках»), as redesigned by David:
+     1. Шапка: лента ЧЕЛЛЕНДЖЕЙ (популярные привычка/цель/«вместе»-пресеты с XP-наградой,
+        горизонтальный скролл) + универсальный «+» справа (CreateMenuLive → Привычку / Цель;
+        круг = тумблер «Идти к цели вместе» внутри цели). «Быстрого добавления» и переключателя
+        Привычки/Цели больше НЕТ — их David убрал.
+     2. ОДНА сетка квадратных плиток: привычки И цели ВПЕРЕМЕШКУ, общий drag-реордер (порядок
+        в bos:practiceOrder, ключи "h<id>"/"g<id>"). Плитка цели зеркалит привычку (иконка + %,
+        имя, полоска прогресса снизу вместо недельных точек). Долгое нажатие → меню плитки
+        (Поделиться / Переставить / Удалить). teams (LiveTeamCard) — пока ниже сетки.
+     3. «Обучение» — тонкий disclosure-блок (bosLearnHidden, тот же флаг что в Настройках).
+   Reuses shared core/ + shared_live.jsx (CreateMenuLive, ShareHabitSheetLive/ShareGoalSheetLive,
+   HabitWeekStrip, BosReorderGrid, bosConfirmDelete, bosTileGlass/BOS_TILE_SHEEN, HabitBuddyAvatarsLive,
+   CircleFacesLive) + community_live.jsx (LiveTeamCard) + framework (HabitCheck/HabitCountCheck/
+   HabitRing, I, hooks). Top-level names here: HabitTileMenuLive, HabitsLive, bosLoadPracticeOrder,
+   bosSavePracticeOrder, CHALLENGE_STARTERS. */
 
 // «ЧЕЛЛЕНДЖИ» — витрина-лента наверху стр. Привычки (David: «не голые пресеты, а самые ПОПУЛЯРНЫЕ
 // привычки/цели/„вместе"-челленджи, у каждой виден XP-БОНУС — быстрое добавление ЧЕЛЛЕНДЖЕЙ»). Тап →
