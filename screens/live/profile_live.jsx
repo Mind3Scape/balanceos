@@ -110,22 +110,26 @@ function ProfileLive() {
           «Настройки/Уведомления/Поддержка» (David: «друзья/достижения/уровни одним блоком, уровень
           интегрировать как верхушку красивее; старый верхний стат-блок убрать»). */}
       <div className="bos-sys-card" style={{ marginTop: 16, padding: 0, overflow: "hidden" }}>
-        <button onClick={() => navigate("levels", { from: "profile" })} className="tap" style={{ width: "100%", border: 0, padding: "15px 16px", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", display: "flex", alignItems: "center", gap: 13, textAlign: "left", cursor: "pointer" }}>
-          <span style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22 }}>🏆</span>
+        {/* Уровень — теперь РАВНОВЫСОКАЯ строка как остальные: прогресс свёрнут в тонкое ЗОЛОТОЕ
+            КОЛЬЦО вокруг иконки (язык орбит/колец приложения), без тяжёлого баннера и широкой полосы.
+            Иконка — монохромный SVG в кружке, как у Достижений/Друзей и нижнего меню. */}
+        <button onClick={() => navigate("levels", { from: "profile" })} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+          <span style={{ position: "relative", width: 40, height: 40, flexShrink: 0, display: "grid", placeItems: "center" }}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", transformBox: "fill-box", transformOrigin: "center" }}>
+              <circle cx="20" cy="20" r="18" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)"} strokeWidth="2.5" />
+              <circle cx="20" cy="20" r="18" fill="none" stroke="url(#bosLvlRing)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="113.1" strokeDashoffset={113.1 * (1 - Math.max(0, Math.min(100, lvlPct)) / 100)} />
+              <defs><linearGradient id="bosLvlRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" /></linearGradient></defs>
+            </svg>
+            <span className="bos-sys-chip-bg" style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center" }}><I.Sparkles size={15} color="var(--text)" /></span>
+          </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.2px" }}>Уровень {lvlNum}</span>
-              <span style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.55 }}>{_xp} XP</span>
-            </div>
-            <div style={{ fontSize: 12, color: "rgba(0,0,0,0.62)", marginTop: 2, lineHeight: 1.3 }}>До {lvlNum + 1} уровня — {lvlPct}%</div>
-            <span style={{ display: "block", height: 5, borderRadius: 999, background: "rgba(0,0,0,0.14)", overflow: "hidden", marginTop: 8 }}>
-              <span style={{ display: "block", height: "100%", width: lvlPct + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }} />
-            </span>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Уровень {lvlNum}</div>
+            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>До {lvlNum + 1} уровня — {lvlPct}% · {_xp} XP</div>
           </div>
-          <I.ChevronRight size={20} color="rgba(0,0,0,0.45)" />
+          <I.ChevronRight size={18} className="bos-sys-text-2" />
         </button>
         <button onClick={() => navigate("achievements", { from: "profile" })} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
-          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>🏅</span>
+          {chip(I.Trophy)}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Достижения</div>
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{_achEarnedN + " из " + _achTotal + (_achEarnedN === 0 ? " · открой первую" : "")}</div>
@@ -136,7 +140,7 @@ function ProfileLive() {
           <I.ChevronRight size={18} className="bos-sys-text-2" />
         </button>
         <button onClick={() => openSheet(<FriendsSheetLive dark={isDark} />)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
-          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>🪐</span>
+          {chip(I.Users)}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Друзья</div>
             <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{livePeople.length > 0 ? (livePeople.length + (livePeople.length === 1 ? " человек на орбите" : " на твоей орбите")) : "Позови первого — он появится на орбите"}</div>

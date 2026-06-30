@@ -232,77 +232,96 @@ function ProfileLive() {
     className: "tap",
     style: {
       width: "100%",
-      border: 0,
-      padding: "15px 16px",
-      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
-      color: "#0a0a0a",
       display: "flex",
       alignItems: "center",
-      gap: 13,
+      gap: 12,
+      background: "transparent",
+      border: 0,
+      cursor: "pointer",
       textAlign: "left",
-      cursor: "pointer"
+      padding: "13px 14px"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
-      background: "rgba(255,255,255,0.5)",
-      display: "grid",
-      placeItems: "center",
+      position: "relative",
+      width: 40,
+      height: 40,
       flexShrink: 0,
-      fontSize: 22
+      display: "grid",
+      placeItems: "center"
     }
-  }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "40",
+    height: "40",
+    viewBox: "0 0 40 40",
+    style: {
+      position: "absolute",
+      inset: 0,
+      transform: "rotate(-90deg)",
+      transformBox: "fill-box",
+      transformOrigin: "center"
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "20",
+    cy: "20",
+    r: "18",
+    fill: "none",
+    stroke: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
+    strokeWidth: "2.5"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "20",
+    cy: "20",
+    r: "18",
+    fill: "none",
+    stroke: "url(#bosLvlRing)",
+    strokeWidth: "2.5",
+    strokeLinecap: "round",
+    strokeDasharray: "113.1",
+    strokeDashoffset: 113.1 * (1 - Math.max(0, Math.min(100, lvlPct)) / 100)
+  }), /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "bosLvlRing",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#FEDE34"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#EF9F14"
+  })))), /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(I.Sparkles, {
+    size: 15,
+    color: "var(--text)"
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      alignItems: "baseline",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
       fontSize: 16,
-      fontWeight: 700,
-      letterSpacing: "-0.2px"
+      fontWeight: 600,
+      color: "var(--text)"
     }
-  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", lvlNum), /*#__PURE__*/React.createElement("span", {
+  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", lvlNum), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
     style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      opacity: 0.55
+      fontSize: 12.5,
+      marginTop: 1
     }
-  }, _xp, " XP")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "rgba(0,0,0,0.62)",
-      marginTop: 2,
-      lineHeight: 1.3
-    }
-  }, "\u0414\u043E ", lvlNum + 1, " \u0443\u0440\u043E\u0432\u043D\u044F \u2014 ", lvlPct, "%"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      height: 5,
-      borderRadius: 999,
-      background: "rgba(0,0,0,0.14)",
-      overflow: "hidden",
-      marginTop: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      height: "100%",
-      width: lvlPct + "%",
-      borderRadius: 999,
-      background: "rgba(0,0,0,0.82)"
-    }
-  }))), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 20,
-    color: "rgba(0,0,0,0.45)"
+  }, "\u0414\u043E ", lvlNum + 1, " \u0443\u0440\u043E\u0432\u043D\u044F \u2014 ", lvlPct, "% \xB7 ", _xp, " XP")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    className: "bos-sys-text-2"
   })), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("achievements", {
       from: "profile"
@@ -320,18 +339,7 @@ function ProfileLive() {
       textAlign: "left",
       padding: "13px 14px"
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 16,
-      flexShrink: 0
-    }
-  }, "\uD83C\uDFC5"), /*#__PURE__*/React.createElement("div", {
+  }, chip(I.Trophy), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
@@ -386,18 +394,7 @@ function ProfileLive() {
       textAlign: "left",
       padding: "13px 14px"
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: "50%",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 16,
-      flexShrink: 0
-    }
-  }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
+  }, chip(I.Users), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0
