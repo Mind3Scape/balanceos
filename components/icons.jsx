@@ -49,6 +49,8 @@ const I = {
   Lock: (p) => <Icon {...p}><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></Icon>,
   Volume: (p) => <Icon {...p}><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M19 12a4 4 0 0 0-2-3.5"/><path d="M16 8.5a4 4 0 0 1 0 7"/></Icon>,
   Globe: (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></Icon>,
+  // «Вселенная» — НЕ глобус: звезда в центре + две наклонённые орбиты с планетами (как наш космос).
+  Galaxy: (p) => <Icon {...p}><circle cx="12" cy="12" r="2.1" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(-25 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(35 12 12)"/><circle cx="19.2" cy="8.2" r="1.1" fill="currentColor" stroke="none"/><circle cx="5.2" cy="15.4" r="1.1" fill="currentColor" stroke="none"/></Icon>,
   Heart: (p) => <Icon {...p}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill={p.filled ? "currentColor" : "none"}/></Icon>,
   Compass: (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" fill="currentColor"/></Icon>,
   Foot: (p) => <Icon {...p}><circle cx="8" cy="6" r="2.5"/><circle cx="14" cy="6" r="1.6"/><circle cx="17" cy="9" r="1.4"/><circle cx="18" cy="13" r="1.2"/><path d="M5 13c0 4 2 7 5 7s5-3 5-7c0-2-1-4-3-5"/></Icon>,

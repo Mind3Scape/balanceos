@@ -64,7 +64,7 @@ function ProfileLive() {
   const orbitRef = React.useRef(null);
   const [universeFrom, setUniverseFrom] = React.useState(null);
   const openUniverse = () => {
-    try { const r = orbitRef.current && orbitRef.current.getBoundingClientRect(); setUniverseFrom(r && r.width ? { cx: r.left + r.width / 2, cy: r.top + r.height / 2, size: Math.min(r.width, r.height) } : null); } catch (e) { setUniverseFrom(null); }
+    try { const r = orbitRef.current && orbitRef.current.getBoundingClientRect(); setUniverseFrom(r && r.width ? { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height, size: Math.min(r.width, r.height) } : null); } catch (e) { setUniverseFrom(null); }
     setUniverseOpen(true);
   };
   const statCard = isDark
@@ -87,7 +87,7 @@ function ProfileLive() {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={openUniverse} className="tap" aria-label="Вселенная" title="Вселенная"
             style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none") }}>
-            <I.Globe size={18} strokeWidth={2} />
+            <I.Galaxy size={19} strokeWidth={1.8} />
           </button>
           {typeof EditGlassButtonLive === "function" ? <EditGlassButtonLive onClick={openAvatar} /> : null}
         </div>
@@ -96,7 +96,9 @@ function ProfileLive() {
       <div style={{ textAlign: "center", marginTop: 4 }}>
         {/* Your orbit — you in the centre, habits orbiting by strength, your invited people around you */}
         {/* Центр = аватар с золотым кольцом + ЦИФРОЙ уровня (как на главной); карандаш ушёл наверх-вправо. */}
-        <div ref={orbitRef}>
+        {/* При входе во Вселенную прячем СТРАНИЧНУЮ орбиту (overlay рисует её идентичную копию ровно
+            на этом же месте) → нет «двойной орбиты», переход читается как одно целое. */}
+        <div ref={orbitRef} style={{ opacity: universeOpen ? 0 : 1, transition: "opacity 0.2s ease" }}>
           <OrbitField avatar={app?.avatar} name={app?.userName} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
         </div>
         <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 6, color: "var(--text)" }}>{app?.userName || "Ты"}</div>

@@ -2086,65 +2086,71 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
   var discBg = isDark ? "linear-gradient(150deg,#39414f,#262d3a)" : "linear-gradient(150deg,#eef1f6,#dadfe7)";
 
-  // One person → a SPEC. КОЛЕЦ столько, сколько у человека РЕАЛЬНО элементов (пояса 4/6/8/10); больше
-  // всего → больше система (крупнее аватар + больше колец). Уровень показываем бейджем. ТВОЯ система
-  // заполнена реальными привычками+целями (эмодзи); чужие — bead-планеты по их публичному размеру.
+  // Твой РЕАЛЬНЫЙ уровень/прогресс — кормит OrbitField (золотое кольцо + цифра) идентично стр. «Я».
+  var _ux = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
+  var _ul = (typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(_ux) : { level: 1, pct: 2 };
+  var lvlNum = _ul.level, lvlPct = _ul.pct;
+
+  // Чужая система — bead-планеты по её ПУБЛИЧНОМУ размеру (привычки+цели). Колец столько, сколько у
+  // человека реально элементов (пояса 4/6/8/10); больше всего → крупнее система. Уровень — бейджем.
+  // (ТВОЯ система рисуется НАСТОЯЩИМ OrbitField — идентично странице «Я», без отдельной схемы.)
   var CAPS = [4, 6, 8, 10];
-  function buildSystem(s, isYou) {
-    var items, level;
-    if (isYou) {
-      var hb = (app && app.habits || []).filter(Boolean), gl = (app && app.goals || []).filter(Boolean);
-      items = hb.slice(0, 10).map(function (h) { return { kind: "emoji", v: (h && h.emoji) || "✨" }; })
-        .concat(gl.slice(0, 8).map(function (g) { return { kind: "emoji", v: (g && g.emoji) || "🎯" }; }));
-      level = (typeof bosLevelInfoLive === "function" && typeof bosLiveXPLive === "function") ? (bosLevelInfoLive(bosLiveXPLive(app)).level || 0) : 0;
-    } else {
-      var w = Math.min(((s.habits || 0) + (s.goals || 0)), 18);
-      items = new Array(w).fill(0).map(function () { return { kind: "bead" }; });
-      level = s.level || 0;
-    }
-    var weight = items.length;
+  function buildSystem(s) {
+    var w = Math.min(((s.habits || 0) + (s.goals || 0)), 18); if (w < 1) w = 1;
+    var items = new Array(w).fill(0).map(function () { return { kind: "bead" }; });
     var rings = [], idx = 0, ri = 0;
     while (ri < CAPS.length) { rings.push(items.slice(idx, idx + CAPS[ri])); idx += CAPS[ri]; ri++; if (idx >= items.length) break; }
-    var avD = isYou ? 46 : Math.round(32 + Math.min(weight, 12) * 1.3);   // больше всего → крупнее
-    var R0 = avD / 2 + 12, STEP = 14;
-    var ringSpecs = rings.map(function (it, i) { return { items: it, R: R0 + i * STEP, kind: (it.length && it[0].kind) || (isYou ? "emoji" : "bead"), pd: isYou ? (i === 0 ? 19 : 18) : 10 }; });
+    var avD = Math.round(30 + Math.min(w, 12) * 1.4);   // больше всего → крупнее
+    var R0 = avD / 2 + 11, STEP = 13;
+    var ringSpecs = rings.map(function (it, i) { return { items: it, R: R0 + i * STEP, pd: 10 }; });
     var outerR = R0 + (rings.length - 1) * STEP;
-    return { s: s, you: isYou, avD: avD, level: level, weight: weight, rings: ringSpecs, footprint: outerR + 11 + 5 };
+    return { s: s, avD: avD, level: s.level || 0, weight: w, rings: ringSpecs, footprint: outerR + 9 };
   }
 
-  // Layout: больше всего → БЛИЖЕ к центру, меньше → дальше к краям, БЕЗ наложений (David). Сортируем
-  // по размеру (footprint) убыв.; крупнейшую в центр; остальные по спирали наружу — первое свободное
-  // место (растущий радиус) → большие кучкуются у центра, мелкие занимают край.
+  // Размер ТВОЕЙ орбиты берём со стр. «Я» (measured rect) → overlay рисует её копию ТЕХ ЖЕ размеров на
+  // ТОМ ЖЕ месте. Fallback (не из «Я»): ширина страницы × 300 (как в OrbitField).
+  var W = (typeof window !== "undefined" && window.innerWidth) || 390;
+  var H = (typeof window !== "undefined" && window.innerHeight) || 780;
+  var youW = (from && from.w) ? from.w : (W - 32);
+  var youH = (from && from.h) ? from.h : 300;
+  // Layout: ТЫ — в ЦЕНТРЕ (настоящий OrbitField). Остальные — вокруг по спирали наружу, БЕЗ наложений
+  // и не касаясь твоей системы; больше всего → ближе и крупнее. Многие садятся ЗА краем при scale 1 и
+  // проявляются на ОТЪЕЗДЕ камеры (один цельный зум от твоей орбиты к вселенной).
   var layout = React.useMemo(function () {
-    var W = (typeof window !== "undefined" && window.innerWidth) || 390;
-    var H = (typeof window !== "undefined" && window.innerHeight) || 780;
-    // ТЫ — ГЛАВНЫЙ, всегда в ЦЕНТРЕ (David: «оставить тебя как главного; единый зум от твоей системы
-    // к вселенной»). Остальные — вокруг, крупные ближе к тебе, мелкие дальше; ПЛОТНО (но не касаясь).
-    var me = buildSystem({ avatar: app && app.avatar, name: (app && app.userName) || "", you: true }, true);
-    var others = list.slice(0, 18).map(function (f) { return buildSystem(f, false); }).sort(function (a, b) { return b.footprint - a.footprint; });
-    var TOP = 96, BOT = H - 72, GAP = 6, cx = W / 2, placed = [], overflow = 0;
-    var cy = Math.max(TOP + me.footprint, Math.min(BOT - me.footprint, H * 0.46));
-    function fits(x, y, fp) { if (x < fp + 4 || x > W - fp - 4 || y < TOP + fp || y > BOT - fp) return false; for (var j = 0; j < placed.length; j++) { var dx = x - placed[j].x, dy = y - placed[j].y; if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + GAP) return false; } return true; }
-    placed.push({ sp: me, x: cx, y: cy, fp: me.footprint });
+    var youFp = Math.min(youW, youH) / 2 + 14;                       // радиус твоей системы на экране (native)
+    var cx = W / 2, cy = from ? from.cy : H * 0.44;
+    var others = list.slice(0, 18).map(function (f) { return buildSystem(f); }).sort(function (a, b) { return b.footprint - a.footprint; });
+    var GAP = 9, placed = [], overflow = 0, RMAX = Math.max(W, H) * 1.15;
+    function fits(x, y, fp) {
+      if (x < fp + 2 || x > W - fp - 2 || y < 52 + fp || y > H - 44 - fp) return false;
+      var ddx = x - cx, ddy = y - cy; if (Math.sqrt(ddx * ddx + ddy * ddy) < youFp + fp + GAP) return false;
+      for (var j = 0; j < placed.length; j++) { var dx = x - placed[j].x, dy = y - placed[j].y; if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + GAP) return false; }
+      return true;
+    }
     others.forEach(function (sp, i) {
-      var fp = sp.footprint, done = false, RMAX = Math.max(W, H) * 0.95;
-      for (var r = me.footprint + fp - 2; r < RMAX && !done; r += 8) {
-        var steps = Math.max(8, Math.round(2 * Math.PI * r / 22)), a0 = _bosHashU(sp.s.name || ("" + i)) % steps;
+      var fp = sp.footprint, done = false;
+      for (var r = youFp + fp + GAP; r < RMAX && !done; r += 7) {
+        var steps = Math.max(8, Math.round(2 * Math.PI * r / 20)), a0 = _bosHashU(sp.s.name || ("" + i)) % steps;
         for (var k = 0; k < steps && !done; k++) { var ang = ((k + a0) / steps) * 2 * Math.PI, x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r; if (fits(x, y, fp)) { placed.push({ sp: sp, x: x, y: y, fp: fp }); done = true; } }
       }
       if (!done) overflow++;
     });
-    return { placed: placed, overflow: overflow, cx: cx, cy: cy };
-  }, [friends]);
+    return { placed: placed, overflow: overflow, cx: cx, cy: cy, youFp: youFp };
+  }, [friends, from, youW, youH]);
 
-  // ЕДИНЫЙ ЗУМ: открываемся «в твоей системе» (scale 2.5, центр на тебе) и плавно отдаляемся к
-  // вселенной (→ scale 1). Дальше — ПАЛЬЦАМИ: пинч-зум + перетаскивание (David). Pointer Events =
-  // и мышь (превью), и тач (телефон); 2 пальца = пинч; чистый тап (без сдвига) = закрыть.
-  var [view, setView] = React.useState({ s: 1, x: 0, y: 0, anim: true });
-  var [entered, setEntered] = React.useState(false); // false → стоим на КАДРЕ твоей орбиты; →true = полёт к вселенной
-  React.useEffect(function () { var r = requestAnimationFrame(function () { setEntered(true); }); return function () { cancelAnimationFrame(r); }; }, []);
+  // ЕДИНЫЙ ПОЛЁТ: открываемся РОВНО на твоей орбите (scale 1, её место со стр. «Я») и плавно
+  // ОТЪЕЗЖАЕМ к вселенной (scale↓ + центр к середине). Дальше — ПАЛЬЦАМИ: пинч-зум + перетаскивание
+  // (David). Pointer Events = и мышь (превью), и тач (телефон); 2 пальца = пинч; чистый тап = закрыть.
+  var SETTLE = 0.6;                                                  // насколько отъезжаем (твоя система остаётся главной)
+  var [view, setView] = React.useState({ s: SETTLE, x: 0, y: from ? (H * 0.44 - from.cy) : 0, anim: true });
+  var [entered, setEntered] = React.useState(false); // false → стоим РОВНО на твоей орбите; →true = отъезд к вселенной
+  React.useEffect(function () {
+    var a = requestAnimationFrame(function () { var b = requestAnimationFrame(function () { setEntered(true); }); vp.current._raf2 = b; });
+    var tm = setTimeout(function () { setEntered(true); }, 80); // фолбэк: rAF бывает throttled (фон/headless) — отъезд всё равно стартует
+    return function () { cancelAnimationFrame(a); if (vp.current._raf2) cancelAnimationFrame(vp.current._raf2); clearTimeout(tm); };
+  }, []);
   var vp = React.useRef({ pts: {}, mode: null, sd: 1, ss: 1, sx: 0, sy: 0, ox: 0, oy: 0, moved: 0 });
-  function _cS(s) { return s < 0.6 ? 0.6 : s > 4 ? 4 : s; }
+  function _cS(s) { return s < 0.32 ? 0.32 : s > 4 ? 4 : s; }
   function uDown(e) {
     var g = vp.current; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
     if (ids.length === 1) { g.mode = "pan"; g.sx = e.clientX; g.sy = e.clientY; g.ox = view.x; g.oy = view.y; g.moved = 0; }
@@ -2173,55 +2179,56 @@ function UniverseFieldLive({ app, people, from, onClose }) {
 
   var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
-  // КАДР твоей орбиты со стр. «Я»: пока !entered — галактика стоит ровно на ней (центр+масштаб), затем
-  // плавно «отъезжает» к вселенной (entered→view identity). transition включён → один цельный полёт.
+  // !entered — галактика стоит РОВНО на твоей орбите (scale 1, центр = её место со стр. «Я»), затем
+  // плавно ОТЪЕЗЖАЕТ к вселенной (entered→view: scale↓, центр к середине). Origin = твой центр →
+  // твоя система не «прыгает», просто уменьшается на месте, а вокруг проявляются другие.
   var ease = "transform 0.95s cubic-bezier(0.4,0,0.2,1)";
-  var youFp = (layout.placed[0] && layout.placed[0].fp) || 70;
-  var s0 = from ? Math.max(1.3, Math.min(3.8, (from.size || 280) / (youFp * 2))) : 2.4;
+  var s0 = from ? 1 : 1.9;
   var tx0 = from ? (from.cx - layout.cx) : 0, ty0 = from ? (from.cy - layout.cy) : 0;
   var galStyle = entered
     ? { transform: "translate(" + view.x.toFixed(1) + "px," + view.y.toFixed(1) + "px) scale(" + view.s.toFixed(3) + ")", transition: view.anim ? ease : "none" }
     : { transform: "translate(" + tx0.toFixed(1) + "px," + ty0.toFixed(1) + "px) scale(" + s0.toFixed(3) + ")", transition: ease };
-  galStyle.position = "absolute"; galStyle.inset = 0; galStyle.transformOrigin = layout.cx + "px " + layout.cy + "px"; galStyle.willChange = "transform";
+  galStyle.position = "absolute"; galStyle.inset = 0; galStyle.transformOrigin = layout.cx + "px " + layout.cy + "px"; galStyle.willChange = "transform"; galStyle.pointerEvents = "none";
   var node = (
-    <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.35s ease both" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
       <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSpinCW{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosSpinFaceCW{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes bosSpinFaceCCW{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
       {/* Жесты: пинч-зум + перетаскивание + колесо; чистый тап (без сдвига) закрывает. */}
       <div onPointerDown={uDown} onPointerMove={uMove} onPointerUp={uUp} onPointerCancel={uUp} onWheel={uWheel} style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "grab" }}>
         <div style={galStyle}>
-      {layout.placed.map(function (pl, i) {
-        var sp = pl.sp;
-        return (
-          <div key={i} style={{ position: "absolute", left: pl.x.toFixed(1) + "px", top: pl.y.toFixed(1) + "px", transform: "translate(-50%,-50%)", animation: i === 0 ? "none" : ("bosUniPop 0.55s cubic-bezier(0.22,0.8,0.32,1) " + (0.18 + 0.05 * i).toFixed(2) + "s both") }}>
-            {sp.rings.map(function (r, ri) {
-              var ringD = r.R * 2, cw = (ri % 2 === 0), dur = 50 + ri * 16 + (i % 5) * 8;
-              return (
-                <React.Fragment key={ri}>
-                  <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: ringD, height: ringD, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid " + ringCol }} />
-                  {r.items.length > 0 && (
-                    <div style={{ position: "absolute", left: "50%", top: "50%", width: ringD, height: ringD, transform: "translate(-50%,-50%)", animation: "bosSpinCW " + dur + "s linear infinite" + (cw ? "" : " reverse") }}>
-                      {r.items.map(function (it, k) {
-                        var ang = (k / r.items.length) * 2 * Math.PI + ri * 0.5;
-                        var ppx = Math.cos(ang) * r.R, ppy = Math.sin(ang) * r.R;
-                        var needUpright = (r.kind === "emoji" || r.kind === "avatar");
-                        var val = (r.kind === "emoji") ? (it && it.v) : it;
-                        var inner = needUpright ? <div style={{ animation: (cw ? "bosSpinFaceCCW " : "bosSpinFaceCW ") + dur + "s linear infinite" }}>{planet(r.kind, val, r.pd)}</div> : planet(r.kind, val, r.pd);
-                        return <div key={k} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(" + ppx.toFixed(1) + "px," + ppy.toFixed(1) + "px) translate(-50%,-50%)" }}>{inner}</div>;
-                      })}
-                    </div>
-                  )}
-                </React.Fragment>
-              );
-            })}
-            {/* центр-аватар; у тебя — золотое кольцо-маркёр; у каждого — БЕЙДЖ УРОВНЯ (если известен) */}
-            <div style={{ position: "relative", width: sp.avD, height: sp.avD }}>
-              {sp.you && <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: sp.avD + 7, height: sp.avD + 7, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "2px solid " + youRing, boxShadow: "0 0 10px " + (isDark ? "rgba(255,221,120,0.4)" : "rgba(230,160,30,0.3)") }} />}
-              {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={sp.s && sp.s.avatar} name={sp.s && sp.s.name} size={sp.avD} /> : null}
-              {sp.level > 0 && <span aria-hidden style={{ position: "absolute", left: (sp.avD - 13) + "px", top: (sp.avD - 13) + "px", minWidth: 16, height: 16, padding: "0 3px", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: 9.5, fontWeight: 800, lineHeight: "14px", textAlign: "center", letterSpacing: "-0.3px", border: "1.5px solid " + (isDark ? "#0e1422" : "#fff"), boxShadow: "0 1px 2px rgba(224,138,0,0.5)" }}>{sp.level}</span>}
-            </div>
+          {/* ТЫ — НАСТОЯЩАЯ орбита (идентична стр. «Я»), settled (без ре-анимации). Стартует РОВНО на
+              месте страничной (та же позиция и размер) и отъезжает — один цельный зум, без подмены. */}
+          <div style={{ position: "absolute", left: layout.cx + "px", top: layout.cy + "px", width: youW + "px", height: youH + "px", transform: "translate(-50%,-50%)" }}>
+            {(typeof OrbitField === "function") ? <OrbitField avatar={app && app.avatar} name={(app && app.userName) || ""} habits={(app && app.habits) || []} people={Array.isArray(people) ? people : []} levelPct={lvlPct} moodC={app && app.mood && app.mood.c} dark={isDark} hideLevelArc editable={false} levelBadge={lvlNum} settled /> : null}
           </div>
-        );
-      })}
+          {/* Другие солнечные системы — проявляются на отъезде (entered); у каждого СВОИ кольца + уровень */}
+          {entered && layout.placed.map(function (pl, i) {
+            var sp = pl.sp;
+            return (
+              <div key={i} style={{ position: "absolute", left: pl.x.toFixed(1) + "px", top: pl.y.toFixed(1) + "px", transform: "translate(-50%,-50%)", animation: "bosUniPop 0.6s cubic-bezier(0.22,0.8,0.32,1) " + (0.05 + 0.045 * i).toFixed(2) + "s both" }}>
+                {sp.rings.map(function (r, ri) {
+                  var ringD = r.R * 2, cw = (ri % 2 === 0), dur = 46 + ri * 15 + (i % 5) * 7;
+                  return (
+                    <React.Fragment key={ri}>
+                      <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: ringD, height: ringD, transform: "translate(-50%,-50%)", borderRadius: "50%", border: "1px solid " + ringCol }} />
+                      {r.items.length > 0 && (
+                        <div style={{ position: "absolute", left: "50%", top: "50%", width: ringD, height: ringD, transform: "translate(-50%,-50%)", animation: "bosSpinCW " + dur + "s linear infinite" + (cw ? "" : " reverse") }}>
+                          {r.items.map(function (it, k) {
+                            var ang = (k / r.items.length) * 2 * Math.PI + ri * 0.5;
+                            var ppx = Math.cos(ang) * r.R, ppy = Math.sin(ang) * r.R;
+                            return <div key={k} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(" + ppx.toFixed(1) + "px," + ppy.toFixed(1) + "px) translate(-50%,-50%)" }}>{planet("bead", null, r.pd)}</div>;
+                          })}
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+                <div style={{ position: "relative", width: sp.avD, height: sp.avD }}>
+                  {(typeof BuddyFaceLive === "function") ? <BuddyFaceLive avatar={sp.s && sp.s.avatar} name={sp.s && sp.s.name} size={sp.avD} /> : null}
+                  {sp.level > 0 && <span aria-hidden style={{ position: "absolute", left: (sp.avD - 13) + "px", top: (sp.avD - 13) + "px", minWidth: 16, height: 16, padding: "0 3px", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: 9.5, fontWeight: 800, lineHeight: "14px", textAlign: "center", letterSpacing: "-0.3px", border: "1.5px solid " + (isDark ? "#0e1422" : "#fff"), boxShadow: "0 1px 2px rgba(224,138,0,0.5)" }}>{sp.level}</span>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
       <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>

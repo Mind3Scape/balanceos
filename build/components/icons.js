@@ -256,6 +256,38 @@ var I = {
   }), /*#__PURE__*/React.createElement("path", {
     d: "M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"
   })),
+  // «Вселенная» — НЕ глобус: звезда в центре + две наклонённые орбиты с планетами (как наш космос).
+  Galaxy: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "2.1",
+    fill: "currentColor",
+    stroke: "none"
+  }), /*#__PURE__*/React.createElement("ellipse", {
+    cx: "12",
+    cy: "12",
+    rx: "9",
+    ry: "3.5",
+    transform: "rotate(-25 12 12)"
+  }), /*#__PURE__*/React.createElement("ellipse", {
+    cx: "12",
+    cy: "12",
+    rx: "9",
+    ry: "3.5",
+    transform: "rotate(35 12 12)"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "19.2",
+    cy: "8.2",
+    r: "1.1",
+    fill: "currentColor",
+    stroke: "none"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "5.2",
+    cy: "15.4",
+    r: "1.1",
+    fill: "currentColor",
+    stroke: "none"
+  })),
   Heart: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
     d: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
     fill: p.filled ? "currentColor" : "none"

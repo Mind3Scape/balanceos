@@ -86,6 +86,8 @@ function ProfileLive() {
       setUniverseFrom(r && r.width ? {
         cx: r.left + r.width / 2,
         cy: r.top + r.height / 2,
+        w: r.width,
+        h: r.height,
         size: Math.min(r.width, r.height)
       } : null);
     } catch (e) {
@@ -175,9 +177,9 @@ function ProfileLive() {
         background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
         boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none"
       }
-    }, /*#__PURE__*/React.createElement(I.Globe, {
-      size: 18,
-      strokeWidth: 2
+    }, /*#__PURE__*/React.createElement(I.Galaxy, {
+      size: 19,
+      strokeWidth: 1.8
     })), typeof EditGlassButtonLive === "function" ? /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: openAvatar
     }) : null)
@@ -187,7 +189,11 @@ function ProfileLive() {
       marginTop: 4
     }
   }, /*#__PURE__*/React.createElement("div", {
-    ref: orbitRef
+    ref: orbitRef,
+    style: {
+      opacity: universeOpen ? 0 : 1,
+      transition: "opacity 0.2s ease"
+    }
   }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
     name: app?.userName,
