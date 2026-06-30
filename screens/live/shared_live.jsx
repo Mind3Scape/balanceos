@@ -2359,7 +2359,42 @@ function HabitWeekStrip({ habit }) {
    glass graphite as the per-habit strip) if ANY habit was closed that day; today carries a gold
    ring. Each cell shows weekday + date number. Display-only; reads the real per-habit date-log.
    The parent card taps → history. LIVE only. */
-function HomeWeekStripLive({ habits = [], isDark }) {
+// «Эта неделя» на главной. НОВЫЙ дизайн (референс David) = КРУЖОЧКИ: залитый глянцевый круг =
+// выполнено, ПУНКТИРНЫЙ = сегодня (ещё не отмечено), тусклый диск = пусто; подпись дня снизу — всё в
+// наших цветах (графит-стекло) и обеих темах. СТАРЫЙ виджет (квадраты-squircle) сохранён НИЖЕ как
+// HomeWeekStripClassicLive — вернуть = поставить BOS_HOME_WEEK_STYLE = "squares" (одна строка).
+var BOS_HOME_WEEK_STYLE = "circles"; // "circles" (новый) | "squares" (старый, архив)
+function HomeWeekStripLive(props) {
+  if (BOS_HOME_WEEK_STYLE === "squares") return <HomeWeekStripClassicLive {...props} />;
+  var habits = props.habits || [], isDark = props.isDark;
+  var keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
+  var todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+  var WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  var emptyBg = isDark ? "rgba(255,255,255,0.06)" : "#eceef3";
+  var emptyInset = isDark ? "inset 0 1px 1px rgba(255,255,255,0.05), inset 0 0 0 0.5px rgba(255,255,255,0.05)" : "inset 0 1.5px 2px rgba(0,0,0,0.06), inset 0 0 0 0.5px rgba(0,0,0,0.04)";
+  var doneFill = (typeof bosCellFill === "function") ? bosCellFill("#0a0a0a", 1) : "#0a0a0a";
+  var doneGlass = (typeof bosCellGlass === "function") ? bosCellGlass(isDark) : "0 1px 3px rgba(0,0,0,0.18)";
+  var dash = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
+  return (
+    <div style={{ display: "flex", gap: 5 }}>
+      {keys.map(function (k, i) {
+        var on = habits.length > 0 && habits.some(function (h) { return h.log && h.log[k]; });
+        var isToday = k === todayK;
+        var cs = { width: "100%", aspectRatio: "1 / 1", borderRadius: "50%", boxSizing: "border-box" };
+        if (on) { cs.background = doneFill; cs.boxShadow = doneGlass; }
+        else if (isToday) { cs.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.015)"; cs.border = "1.5px dashed " + dash; }
+        else { cs.background = emptyBg; cs.boxShadow = emptyInset; }
+        return (
+          <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}>
+            <div style={cs} />
+            <span style={{ fontSize: 10, fontWeight: 600, color: isToday ? "var(--text-2)" : "var(--text-4)", letterSpacing: "0.3px" }}>{WD[i]}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+function HomeWeekStripClassicLive({ habits = [], isDark }) {
   const keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
   const todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
