@@ -496,17 +496,31 @@ function PeopleMonthCalendarLive({
     cursor: "pointer"
   });
   var weekday = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  var cells = [...Array.from({
+  // Edges show the adjacent months' days as BARELY-grey discs (David: «едва серенькие выпирания
+  // слева и справа — что там тоже какие-то дни») instead of empty blanks.
+  var _prevDays = new Date(year, mIdx, 0).getDate();
+  var _lead = Array.from({
     length: startWeekday
   }, (_, i) => ({
-    blank: true,
-    key: "b" + i
-  })), ...Array.from({
+    adj: true,
+    d: _prevDays - startWeekday + 1 + i,
+    key: "p" + i
+  }));
+  var _main = Array.from({
     length: daysInMonth
   }, (_, i) => ({
     d: i + 1,
     key: "d" + (i + 1)
-  }))];
+  }));
+  var _used = (startWeekday + daysInMonth) % 7;
+  var _trail = Array.from({
+    length: _used === 0 ? 0 : 7 - _used
+  }, (_, i) => ({
+    adj: true,
+    d: i + 1,
+    key: "n" + i
+  }));
+  var cells = [..._lead, ..._main, ..._trail];
   var selActive = future(selDay) ? null : people.filter((_, i) => (pf(i, selDay) ?? 0) >= 0.5).length;
   var selAvg = future(selDay) ? null : Math.round((allFrac(selDay) || 0) * 100);
   var selName = selPerson != null && people[selPerson] ? people[selPerson].name : null;
@@ -594,6 +608,27 @@ function PeopleMonthCalendarLive({
     }
     return dayFrac(selPerson, d, m) || 0;
   };
+  // «Неделя» = 5-недельная ГРЯДКА (David: «нравится сам эффект грядки, пятинедельная»): 5 строк-недель
+  // × 7 дней (Пн..Вс), нижняя строка — текущая неделя, сегодня тап-отметка.
+  var weeksData = React.useMemo(() => {
+    var N = 5,
+      now = new Date(year, CUR_M, today),
+      dow = (now.getDay() + 6) % 7;
+    var mon = new Date(now);
+    mon.setDate(now.getDate() - dow);
+    var out = [];
+    for (var w = 0; w < N; w++) for (var c = 0; c < 7; c++) {
+      var d = new Date(mon);
+      d.setDate(mon.getDate() + (w - (N - 1)) * 7 + c);
+      out.push({
+        d: d.getDate(),
+        m: d.getMonth(),
+        isToday: d.getMonth() === CUR_M && d.getDate() === today && d.getFullYear() === year,
+        future: d.getTime() > now.getTime()
+      });
+    }
+    return out;
+  }, [year, CUR_M, today]);
   React.useEffect(() => {
     if (view === "year" && yearScrollRef.current) yearScrollRef.current.scrollLeft = yearScrollRef.current.scrollWidth;
   }, [view]);
@@ -621,7 +656,7 @@ function PeopleMonthCalendarLive({
       padding: 3,
       flex: 1
     }
-  }, [["month", "Месяц"], ["year", "Год"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
+  }, [["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
     key: v,
     onClick: () => setView(v),
     className: "tap",
@@ -689,7 +724,53 @@ function PeopleMonthCalendarLive({
     avatar: m.avatar,
     name: m.name,
     size: 18
-  }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), view === "month" && !compact && /*#__PURE__*/React.createElement("div", {
+  }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), view === "week" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7,1fr)",
+      gap: 7,
+      width: "100%",
+      maxWidth: 300,
+      margin: "0 auto"
+    }
+  }, weeksData.map((wd, i) => {
+    var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#0a0a0a";
+    var itx = !!(todayTap && wd.isToday && (solo || selPerson == null || people[selPerson] && people[selPerson].you));
+    var pct = wd.future ? null : itx ? todayTap.pct : yearPct(wd.m, wd.d);
+    var fut = pct == null;
+    var filled = !fut && pct > 0;
+    var done = !fut && pct >= 1;
+    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : track : bosCellFill(hx, pct);
+    var ringC = wd.isToday ? itx ? hx : isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)" : null;
+    var sh = [filled ? bosCellGlass(isDark) : "", ringC ? "0 0 0 1.7px " + ringC : ""].filter(Boolean).join(", ") || "none";
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      onClick: itx ? fireToday : undefined,
+      className: "tap",
+      style: {
+        aspectRatio: "1/1",
+        border: 0,
+        borderRadius: "50%",
+        padding: 0,
+        background: bg,
+        boxShadow: sh,
+        cursor: itx ? "pointer" : "default",
+        display: "grid",
+        placeItems: "center",
+        color: itx ? done ? "#fff" : hx : "transparent",
+        fontWeight: 800,
+        fontSize: 13
+      }
+    }, itx && !done ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        textShadow: filled ? "0 0.5px 1.5px rgba(0,0,0,0.5)" : "none"
+      }
+    }, todayTap.hint) : itx && done ? /*#__PURE__*/React.createElement(I.Check, {
+      size: 15,
+      strokeWidth: 3,
+      color: "#fff"
+    }) : null);
+  })), view === "month" && !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -738,7 +819,7 @@ function PeopleMonthCalendarLive({
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
       gap: 6,
-      maxWidth: 300,
+      maxWidth: 252,
       width: "100%",
       margin: "12px auto 0"
     }
@@ -757,16 +838,18 @@ function PeopleMonthCalendarLive({
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
       gap: 6,
-      maxWidth: 300,
+      maxWidth: 252,
       width: "100%",
       margin: compact ? "0 auto" : "6px auto 0"
     }
   }, cells.map(c => {
-    if (c.blank) return /*#__PURE__*/React.createElement("span", {
+    if (c.adj) return /*#__PURE__*/React.createElement("span", {
       key: c.key,
       "aria-hidden": true,
       style: {
-        aspectRatio: "1/1"
+        aspectRatio: "1/1",
+        borderRadius: "50%",
+        background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)"
       }
     });
     var isToday = isCurMonth && c.d === today;

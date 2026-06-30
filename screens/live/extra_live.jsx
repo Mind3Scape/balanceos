@@ -37,17 +37,18 @@
    BOTH habit + goal detail so the whole app keeps one rhythm. `items`: {icon, l, v, suf?, text?}. */
 function StatTrioLive({ items, card, isDark }) {
   const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
-  const div = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  const div = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.11)";
   const sufStyle = { fontSize: 11, color: "var(--text-4)", fontWeight: 600, marginLeft: 1 };
-  // Thin uniform band (David: «слишком толстый — сделай тонкой линией; и низ неровный из-за
-  // разных кеглей»). Icon sits IN LINE with the value; EVERY value is the same size (16px) so a
-  // text value like «31 дек» no longer breaks the rhythm next to the numbers. Two tight rows.
+  // ПОД СТЕКЛО (David: «верхний блок в стекло, чтобы гармонировал с нижним календарём, иконки
+  // выразительнее — сейчас нет ощущения разграничения»): тот же sheen+glass-тень, что у иконки-тайла,
+  // разделители жирнее. Icon в линию со значением; все значения одного кегля (16px) — ровный низ.
+  const glassBg = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
   return (
-    <div style={{ ...card, borderRadius: 18, padding: "11px 0", display: "flex", alignItems: "stretch" }}>
+    <div style={{ background: glassBg, boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : (card && card.boxShadow) || "none"), borderRadius: 18, padding: "13px 0", display: "flex", alignItems: "stretch" }}>
       {items.map((s, i) => (
         <div key={i} style={{ flex: 1, minWidth: 0, padding: "0 6px", borderLeft: i > 0 ? ("0.5px solid " + div) : "none",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text)", fontWeight: 600, fontSize: 16, letterSpacing: "-0.3px", lineHeight: 1 }}>
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text)", fontWeight: 700, fontSize: 17, letterSpacing: "-0.3px", lineHeight: 1 }}>
             {s.icon}
             <span style={{ display: "inline-flex", alignItems: "baseline", minWidth: 0 }}>
               {s.text ? s.text : <Count value={s.v} />}
@@ -158,7 +159,15 @@ function HabitDetailLive() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
-        <EditGlassButtonLive onClick={() => navigate("habit-settings", { mode: "edit", habit: h })} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* «Вести вместе» → круглая СТЕКЛЯННАЯ кнопка с иконкой «поделиться», слева от карандашика
+              (David: баннер «Веди вместе» убран, приглашение живёт здесь). */}
+          <button onClick={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)} className="tap" data-haptic="selection" aria-label="Вести вместе" title="Вести вместе"
+            style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark) }}>
+            <I.Share size={16} strokeWidth={2} />
+          </button>
+          <EditGlassButtonLive onClick={() => navigate("habit-settings", { mode: "edit", habit: h })} />
+        </div>
       } />
 
       {/* Hero — neutral tile (or the habit's soft colour), like the lists outside */}
@@ -174,20 +183,18 @@ function HabitDetailLive() {
 
       {/* Stat row — native: thin line icons, one card, hairline dividers (StatTrioLive) */}
       <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={14} color="var(--text-4)" /> },
-        { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={14} color="var(--text-4)" /> },
-        { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
+        { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={h.color || (isDark ? "#fff" : "#0a0a0a")} /> },
+        { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} strokeWidth={2} color={h.color || (isDark ? "#fff" : "#0a0a0a")} /> },
+        { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2} color={h.color || (isDark ? "#fff" : "#0a0a0a")} /> },
       ]} />
 
       {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
          so the whole app reads one way. Live = your own real days. */}
       <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" todayTap={_todayTap} />
 
-      {/* «Вместе» block — ALWAYS shown: with buddies it lists them; alone it's the TAPPABLE invite
-          (the only invite affordance now — the separate bottom button is gone). Label lives inside. */}
+      {/* СКРЫТО (David: «убери баннеры „Веди вместе“ и „Инсайт“ — может, потом пригодятся»).
+          Приглашение переехало в стеклянную кнопку «поделиться» в шапке. Код сохранён:
       <SharedBuddiesLive habit={h} isDark={isDark} members={buddies} />
-
-      {/* Insight — label INSIDE the card (David: надписи в блоках) */}
       <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
           <I.Sparkles size={16} color={h.color || (isDark ? "#fff" : "#0a0a0a")} />
@@ -199,6 +206,7 @@ function HabitDetailLive() {
             : `Ещё ${Math.max(1, 7 - streak)} дн. — и привычка станет автоматической. Сейчас самый важный момент.`}
         </div>
       </div>
+      */}
 
       {/* No bottom action button — completion now happens by tapping TODAY in the calendar above
           (David: «убрать нижнюю кнопку, тапаешь день недели — и она отмечается»). */}
@@ -258,9 +266,9 @@ function GoalDetailLive() {
 
       {/* Stat row — shared native row (StatTrioLive), same rhythm as the habit page */}
       <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Осталось", v: remaining, icon: <I.Target size={14} color="var(--text-4)" /> },
-        { l: "Сделано", v: g.current || 0, icon: <I.Check size={15} color="var(--text-4)" /> },
-        { l: "Срок", text: g.deadline, icon: <I.Calendar size={14} color="var(--text-4)" /> },
+        { l: "Осталось", v: remaining, icon: <I.Target size={16} strokeWidth={2} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
+        { l: "Сделано", v: g.current || 0, icon: <I.Check size={16} strokeWidth={2.4} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
+        { l: "Срок", text: g.deadline, icon: <I.Calendar size={16} strokeWidth={2} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
       ]} />
 
       {/* Built from these habits — tap drills into the habit's own stats */}

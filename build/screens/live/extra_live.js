@@ -43,21 +43,23 @@ function StatTrioLive({
   var Count = typeof CountUp !== "undefined" ? CountUp : ({
     value
   }) => value;
-  var div = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)";
+  var div = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.11)";
   var sufStyle = {
     fontSize: 11,
     color: "var(--text-4)",
     fontWeight: 600,
     marginLeft: 1
   };
-  // Thin uniform band (David: «слишком толстый — сделай тонкой линией; и низ неровный из-за
-  // разных кеглей»). Icon sits IN LINE with the value; EVERY value is the same size (16px) so a
-  // text value like «31 дек» no longer breaks the rhythm next to the numbers. Two tight rows.
+  // ПОД СТЕКЛО (David: «верхний блок в стекло, чтобы гармонировал с нижним календарём, иконки
+  // выразительнее — сейчас нет ощущения разграничения»): тот же sheen+glass-тень, что у иконки-тайла,
+  // разделители жирнее. Icon в линию со значением; все значения одного кегля (16px) — ровный низ.
+  var glassBg = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      ...card,
+      background: glassBg,
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : card && card.boxShadow || "none",
       borderRadius: 18,
-      padding: "11px 0",
+      padding: "13px 0",
       display: "flex",
       alignItems: "stretch"
     }
@@ -71,7 +73,7 @@ function StatTrioLive({
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: 4
+      gap: 5
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -79,8 +81,8 @@ function StatTrioLive({
       alignItems: "center",
       gap: 5,
       color: "var(--text)",
-      fontWeight: 600,
-      fontSize: 16,
+      fontWeight: 700,
+      fontSize: 17,
       letterSpacing: "-0.3px",
       lineHeight: 1
     }
@@ -265,12 +267,42 @@ function HabitDetailLive() {
     dark: isDark,
     title: "",
     onBack: () => navigate(back),
-    right: /*#__PURE__*/React.createElement(EditGlassButtonLive, {
+    right: /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+        habit: h,
+        dark: isDark
+      })),
+      className: "tap",
+      "data-haptic": "selection",
+      "aria-label": "\u0412\u0435\u0441\u0442\u0438 \u0432\u043C\u0435\u0441\u0442\u0435",
+      title: "\u0412\u0435\u0441\u0442\u0438 \u0432\u043C\u0435\u0441\u0442\u0435",
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        border: 0,
+        display: "grid",
+        placeItems: "center",
+        cursor: "pointer",
+        color: isDark ? "#fff" : "var(--text)",
+        background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
+        boxShadow: bosTileGlass(isDark)
+      }
+    }, /*#__PURE__*/React.createElement(I.Share, {
+      size: 16,
+      strokeWidth: 2
+    })), /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: () => navigate("habit-settings", {
         mode: "edit",
         habit: h
       })
-    })
+    }))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
@@ -313,24 +345,27 @@ function HabitDetailLive() {
       v: streak,
       suf: "д",
       icon: /*#__PURE__*/React.createElement(I.Flame, {
-        size: 14,
-        color: "var(--text-4)"
+        size: 16,
+        filled: true,
+        color: h.color || (isDark ? "#fff" : "#0a0a0a")
       })
     }, {
       l: "Лучшая",
       v: best,
       suf: "д",
       icon: /*#__PURE__*/React.createElement(I.Trophy, {
-        size: 14,
-        color: "var(--text-4)"
+        size: 16,
+        strokeWidth: 2,
+        color: h.color || (isDark ? "#fff" : "#0a0a0a")
       })
     }, {
       l: "Всего",
       v: total,
       suf: "",
       icon: /*#__PURE__*/React.createElement(I.ChartBar, {
-        size: 14,
-        color: "var(--text-4)"
+        size: 16,
+        strokeWidth: 2,
+        color: h.color || (isDark ? "#fff" : "#0a0a0a")
       })
     }]
   }), /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
@@ -338,41 +373,7 @@ function HabitDetailLive() {
     dayFrac: habitFrac,
     label: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438",
     todayTap: _todayTap
-  }), /*#__PURE__*/React.createElement(SharedBuddiesLive, {
-    habit: h,
-    isDark: isDark,
-    members: buddies
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...card,
-      borderRadius: 22,
-      padding: 14,
-      marginTop: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 16,
-    color: h.color || (isDark ? "#fff" : "#0a0a0a")
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      letterSpacing: "-0.2px",
-      color: "var(--text-2)"
-    }
-  }, "\u0418\u043D\u0441\u0430\u0439\u0442")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: "var(--text-2)",
-      lineHeight: 1.5
-    }
-  }, streak >= 7 ? `Серия уже ${streak} дней — это работает на автопилоте. Не разрывай цепочку сегодня.` : `Ещё ${Math.max(1, 7 - streak)} дн. — и привычка станет автоматической. Сейчас самый важный момент.`)));
+  }));
 }
 
 /* GOAL DETAIL — LIVE. Progress ring, the habits it's built from (cross-linked into
@@ -516,22 +517,25 @@ function GoalDetailLive() {
       l: "Осталось",
       v: remaining,
       icon: /*#__PURE__*/React.createElement(I.Target, {
-        size: 14,
-        color: "var(--text-4)"
+        size: 16,
+        strokeWidth: 2,
+        color: g.color || (isDark ? "#fff" : "#0a0a0a")
       })
     }, {
       l: "Сделано",
       v: g.current || 0,
       icon: /*#__PURE__*/React.createElement(I.Check, {
-        size: 15,
-        color: "var(--text-4)"
+        size: 16,
+        strokeWidth: 2.4,
+        color: g.color || (isDark ? "#fff" : "#0a0a0a")
       })
     }, {
       l: "Срок",
       text: g.deadline,
       icon: /*#__PURE__*/React.createElement(I.Calendar, {
-        size: 14,
-        color: "var(--text-4)"
+        size: 16,
+        strokeWidth: 2,
+        color: g.color || (isDark ? "#fff" : "#0a0a0a")
       })
     }]
   }), linked.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {

@@ -252,7 +252,14 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
   const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 6px", borderRadius: 999, background: active ? (isDark ? "#fff" : "#0a0a0a") : chipBg, color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)", border: 0, flexShrink: 0, fontSize: 13, fontWeight: active ? 700 : 500, whiteSpace: "nowrap", cursor: "pointer" });
   const weekday = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
-  const cells = [...Array.from({ length: startWeekday }, (_, i) => ({ blank: true, key: "b" + i })), ...Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, key: "d" + (i + 1) }))];
+  // Edges show the adjacent months' days as BARELY-grey discs (David: «едва серенькие выпирания
+  // слева и справа — что там тоже какие-то дни») instead of empty blanks.
+  const _prevDays = new Date(year, mIdx, 0).getDate();
+  const _lead = Array.from({ length: startWeekday }, (_, i) => ({ adj: true, d: _prevDays - startWeekday + 1 + i, key: "p" + i }));
+  const _main = Array.from({ length: daysInMonth }, (_, i) => ({ d: i + 1, key: "d" + (i + 1) }));
+  const _used = (startWeekday + daysInMonth) % 7;
+  const _trail = Array.from({ length: _used === 0 ? 0 : 7 - _used }, (_, i) => ({ adj: true, d: i + 1, key: "n" + i }));
+  const cells = [..._lead, ..._main, ..._trail];
   const selActive = future(selDay) ? null : people.filter((_, i) => (pf(i, selDay) ?? 0) >= 0.5).length;
   const selAvg = future(selDay) ? null : Math.round((allFrac(selDay) || 0) * 100);
   const selName = (selPerson != null && people[selPerson]) ? people[selPerson].name : null;
@@ -301,6 +308,18 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
     if (selPerson == null) { const v = people.map((_, i) => dayFrac(i, d, m) || 0); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; }
     return dayFrac(selPerson, d, m) || 0;
   };
+  // «Неделя» = 5-недельная ГРЯДКА (David: «нравится сам эффект грядки, пятинедельная»): 5 строк-недель
+  // × 7 дней (Пн..Вс), нижняя строка — текущая неделя, сегодня тап-отметка.
+  const weeksData = React.useMemo(() => {
+    const N = 5, now = new Date(year, CUR_M, today), dow = (now.getDay() + 6) % 7;
+    const mon = new Date(now); mon.setDate(now.getDate() - dow);
+    const out = [];
+    for (let w = 0; w < N; w++) for (let c = 0; c < 7; c++) {
+      const d = new Date(mon); d.setDate(mon.getDate() + (w - (N - 1)) * 7 + c);
+      out.push({ d: d.getDate(), m: d.getMonth(), isToday: d.getMonth() === CUR_M && d.getDate() === today && d.getFullYear() === year, future: d.getTime() > now.getTime() });
+    }
+    return out;
+  }, [year, CUR_M, today]);
   React.useEffect(() => { if (view === "year" && yearScrollRef.current) yearScrollRef.current.scrollLeft = yearScrollRef.current.scrollWidth; }, [view]);
 
   return (
@@ -311,7 +330,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             по умолчанию минимализм (без подписей/чисел), по глазику — месяцы/числа. */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
           <div style={{ display: "flex", gap: 2, background: chipBg, borderRadius: 12, padding: 3, flex: 1 }}>
-            {[["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
+            {[["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
               <button key={v} onClick={() => setView(v)} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "6px 0", fontSize: 13, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{l}</button>
             ))}
           </div>
@@ -335,6 +354,27 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
           </div>
         )}
 
+        {view === "week" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 7, width: "100%", maxWidth: 300, margin: "0 auto" }}>
+            {weeksData.map((wd, i) => {
+              const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#0a0a0a";
+              const itx = !!(todayTap && wd.isToday && (solo || selPerson == null || (people[selPerson] && people[selPerson].you)));
+              const pct = wd.future ? null : (itx ? todayTap.pct : yearPct(wd.m, wd.d));
+              const fut = pct == null;
+              const filled = !fut && pct > 0;
+              const done = !fut && pct >= 1;
+              const bg = fut ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)") : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : track) : bosCellFill(hx, pct));
+              const ringC = wd.isToday ? (itx ? hx : (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)")) : null;
+              const sh = [filled ? bosCellGlass(isDark) : "", ringC ? ("0 0 0 1.7px " + ringC) : ""].filter(Boolean).join(", ") || "none";
+              return (
+                <button key={i} onClick={itx ? fireToday : undefined} className="tap" style={{ aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, background: bg, boxShadow: sh, cursor: itx ? "pointer" : "default", display: "grid", placeItems: "center", color: itx ? (done ? "#fff" : hx) : "transparent", fontWeight: 800, fontSize: 13 }}>
+                  {itx && !done ? <span style={{ textShadow: filled ? "0 0.5px 1.5px rgba(0,0,0,0.5)" : "none" }}>{todayTap.hint}</span> : (itx && done ? <I.Check size={15} strokeWidth={3} color="#fff" /> : null)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {view === "month" && !compact && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <button onClick={() => setMIdx((m) => Math.max(0, m - 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}><I.ChevronLeft size={16} /></button>
@@ -344,16 +384,16 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         )}
 
         {view === "month" && !compact && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "12px auto 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 252, width: "100%", margin: "12px auto 0" }}>
             {weekday.map((w, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, letterSpacing: 0.3, color: "var(--text-4)" }}>{w}</div>)}
           </div>
         )}
         {/* Day cells — CIRCLES (день = кружок; люди = чипы выше), залитые хитмапом по выполнению.
             «Красиво» прячет числа/подписи/навигацию для глазастой сетки. */}
         {view === "month" && (
-        <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 300, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
+        <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 252, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
           {cells.map((c) => {
-            if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }} />;
+            if (c.adj) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1", borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)" }} />;
             const isToday = isCurMonth && c.d === today;
             // TODAY is the single tap-to-mark control now (David removed the bottom button — «тапаешь
             // день, бумс»). Interactive only in YOUR view (solo / «Все» / your own chip) — never on a
