@@ -2370,24 +2370,25 @@ function HomeWeekStripLive(props) {
   var keys = (typeof bosWeekKeys === "function") ? bosWeekKeys() : [];
   var todayK = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   var WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-  var emptyBg = isDark ? "rgba(255,255,255,0.06)" : "#eceef3";
-  var emptyInset = isDark ? "inset 0 1px 1px rgba(255,255,255,0.05), inset 0 0 0 0.5px rgba(255,255,255,0.05)" : "inset 0 1.5px 2px rgba(0,0,0,0.06), inset 0 0 0 0.5px rgba(0,0,0,0.04)";
+  // ТОЛЬКО ГРАДИЕНТЫ, без обводок (David). Выполнено = глянцевый графит-круг; пусто = тусклый
+  // градиент-диск; СЕГОДНЯ = вертикальная «капсула»-подсветка за днём (удлинённая, как на референсе),
+  // а не кольцо-строчка. Кружки МЕНЬШЕ (28px), капсула чуть уже ячейки → дышит.
   var doneFill = (typeof bosCellFill === "function") ? bosCellFill("#0a0a0a", 1) : "#0a0a0a";
   var doneGlass = (typeof bosCellGlass === "function") ? bosCellGlass(isDark) : "0 1px 3px rgba(0,0,0,0.18)";
-  var dash = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
+  var emptyFill = isDark ? "linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))" : "linear-gradient(160deg, #eef0f4, #e1e4ea)";
+  var emptyInset = isDark ? "inset 0 1px 1px rgba(255,255,255,0.06)" : "inset 0 1px 2px rgba(0,0,0,0.06)";
+  var todayCap = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
   return (
-    <div style={{ display: "flex", gap: 5 }}>
+    <div style={{ display: "flex" }}>
       {keys.map(function (k, i) {
         var on = habits.length > 0 && habits.some(function (h) { return h.log && h.log[k]; });
         var isToday = k === todayK;
-        var cs = { width: "100%", aspectRatio: "1 / 1", borderRadius: "50%", boxSizing: "border-box" };
-        if (on) { cs.background = doneFill; cs.boxShadow = doneGlass; }
-        else if (isToday) { cs.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.015)"; cs.border = "1.5px dashed " + dash; }
-        else { cs.background = emptyBg; cs.boxShadow = emptyInset; }
         return (
-          <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}>
-            <div style={cs} />
-            <span style={{ fontSize: 10, fontWeight: 600, color: isToday ? "var(--text-2)" : "var(--text-4)", letterSpacing: "0.3px" }}>{WD[i]}</span>
+          <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "8px 7px 6px", borderRadius: 18, background: isToday ? todayCap : "transparent" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: on ? doneFill : emptyFill, boxShadow: on ? doneGlass : emptyInset }} />
+              <span style={{ fontSize: 10, fontWeight: 600, color: isToday ? "var(--text-2)" : "var(--text-4)", letterSpacing: "0.2px" }}>{WD[i]}</span>
+            </div>
           </div>
         );
       })}
