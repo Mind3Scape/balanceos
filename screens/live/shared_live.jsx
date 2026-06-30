@@ -317,10 +317,11 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
     if (selPerson == null) { const v = people.map((_, i) => dayFrac(i, d, m) || 0); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; }
     return dayFrac(selPerson, d, m) || 0;
   };
-  // «Неделя» = 5-недельная ГРЯДКА (David: «нравится сам эффект грядки, пятинедельная»): 5 строк-недель
-  // × 7 дней (Пн..Вс), нижняя строка — текущая неделя, сегодня тап-отметка.
+  // «Неделя» = ТЕКУЩАЯ неделя одной строкой (7 кружков Пн..Вс) — ровно как полоска на КАРТОЧКЕ,
+  // континьюити карта↔деталь (David: «в недельном виде месячные кружочки» → 5×7 читалось как месяц).
+  // Грядка-эффект теперь живёт ТОЛЬКО в «Месяце»/«Годе»; неделя — лаконичная строка, сегодня тап-отметка.
   const weeksData = React.useMemo(() => {
-    const N = 5, now = new Date(year, CUR_M, today), dow = (now.getDay() + 6) % 7;
+    const N = 1, now = new Date(year, CUR_M, today), dow = (now.getDay() + 6) % 7;
     const mon = new Date(now); mon.setDate(now.getDate() - dow);
     const out = [];
     for (let w = 0; w < N; w++) for (let c = 0; c < 7; c++) {
@@ -402,10 +403,11 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         {view === "month" && (
         <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 252, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
           {cells.map((c) => {
-            // Соседние месяцы (prev/next) = МАЛЕНЬКАЯ точка по центру клетки, а не бледный полный круг
-            // (David: тот сливался с пустыми днями — «почти неотличимы»). Меньший размер = ясное
-            // «выпирание»: видно, что там тоже дни, но они явно второстепенные, не путаются с этим месяцем.
-            if (c.adj) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1", display: "grid", placeItems: "center" }}><span style={{ width: "34%", height: "34%", borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)" }} /></span>;
+            // Соседние месяцы (prev/next) = еле заметный ПОЛНЫЙ кружок (David: «продолжить еле заметными
+            // кружочками слева и справа, чтобы месяц был ближе к ГРЯДКЕ»). Полный размер достраивает
+            // прямоугольник-грядку; opacity ниже пустого дня (track) → месяц мягко «бледнеет» по краям,
+            // но клетка-кружок не рвётся на точки — бесшовное продолжение бесконечной грядки.
+            if (c.adj) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1", borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.045)" }} />;
             const isToday = isCurMonth && c.d === today;
             // TODAY is the single tap-to-mark control now (David removed the bottom button — «тапаешь
             // день, бумс»). Interactive only in YOUR view (solo / «Все» / your own chip) — never on a
@@ -468,7 +470,10 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
                   const filled = pct > 0;
                   const isToday = s.m === CUR_M && s.d === today;
                   const bg = pct <= 0 ? track : bosCellFill(hx, pct);
-                  const sh = [filled ? bosCellGlass(isDark) : "", isToday ? "0 0 0 1.6px #EFA017" : ""].filter(Boolean).join(", ") || "none";
+                  // «Сегодня» = тот же нейтральный серый ободок, что в «Месяце»/«Неделе»/на карточке —
+                  // континьюити (David: «почему дату на годовом выделяем оранжевым — должно быть гармонично»).
+                  const todayRingY = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.48)";
+                  const sh = [filled ? bosCellGlass(isDark) : "", isToday ? ("0 0 0 1.6px " + todayRingY) : ""].filter(Boolean).join(", ") || "none";
                   return <span key={i} title={(MONTHS[s.m] || "") + " " + s.d} style={{ width: 11, height: 11, borderRadius: "50%", background: bg, boxShadow: sh }} />;
                 })}
               </div>
