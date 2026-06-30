@@ -1341,9 +1341,11 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
 /* The home widget CATALOGUE — one source of truth shared by the board (home_live), the add
    sheet, and the «Виджеты главного» settings screen (home_extra_live). `var` so it's global
    across the built files. id = the widgets[id] visibility flag; order lives in widgets.order. */
+// Блок «Уровень» УЕХАЛ с главной на страницу «Я» (David: «золотой баннер уровня перенести внутрь Я»)
+// → его нет в списке виджетов главной. Кейс id==="level" в home_live остаётся, но не рендерится
+// (нет в DEFAULT_ORDER → отфильтровывается), чтобы откат был лёгким.
 var BOS_HOME_WIDGETS = [
   { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   emoji: "✨" },
-  { id: "level",   t: "Уровень",      d: "Прогресс и опыт",          emoji: "🏆" },
   { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅" },
   { id: "team",    t: "Команды",      d: "Твои команды",             emoji: "👥" },
   { id: "mood",    t: "Состояние",    d: "Ежедневный чек-ин",        emoji: "💭" },

@@ -102,48 +102,49 @@ function ProfileLive() {
           <OrbitField avatar={app?.avatar} name={app?.userName} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
         </div>
         <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 6, color: "var(--text)" }}>{app?.userName || "Ты"}</div>
-        {/* Quick stats — one unified plaque (the SAME StatTrioLive band as the Habits page) */}
-        <div style={{ marginTop: 14 }}>
-          <StatTrioLive isDark={isDark} card={statCard} items={[
-            { l: "Уровень", v: lvlNum, icon: <I.Trophy size={14} color="var(--text-4)" /> },
-            { l: "До " + (lvlNum + 1) + " ур.", v: lvlPct, suf: "%", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
-            { l: "Опыт", v: _xp, icon: <I.Sparkles size={14} color="var(--text-4)" /> },
-          ]} />
-        </div>
       </div>
 
       {universeOpen && typeof UniverseFieldLive === "function" && <UniverseFieldLive app={app} people={orbitPeople} from={universeFrom} onClose={() => setUniverseOpen(false)} />}
 
-      <SysCard className="tap" onClick={() => navigate("achievements", { from: "profile" })} style={{ marginTop: 12, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-        <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🏅</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Достижения</div>
-          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>
-            {_achEarnedN + " из " + _achTotal + (_achCircles > 0 ? " · " + _achCircles + (_achCircles === 1 ? " приглашён" : " приглашено") : (_achEarnedN === 0 ? " · открой первую" : ""))}
+      {/* Уровень (золотая ВЕРХУШКА — перенесена с главной) + Достижения + Друзья — ЕДИНЫЙ блок в стиле
+          «Настройки/Уведомления/Поддержка» (David: «друзья/достижения/уровни одним блоком, уровень
+          интегрировать как верхушку красивее; старый верхний стат-блок убрать»). */}
+      <div className="bos-sys-card" style={{ marginTop: 16, padding: 0, overflow: "hidden" }}>
+        <button onClick={() => navigate("levels", { from: "profile" })} className="tap" style={{ width: "100%", border: 0, padding: "15px 16px", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", display: "flex", alignItems: "center", gap: 13, textAlign: "left", cursor: "pointer" }}>
+          <span style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22 }}>🏆</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.2px" }}>Уровень {lvlNum}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.55 }}>{_xp} XP</span>
+            </div>
+            <div style={{ fontSize: 12, color: "rgba(0,0,0,0.62)", marginTop: 2, lineHeight: 1.3 }}>До {lvlNum + 1} уровня — {lvlPct}%</div>
+            <span style={{ display: "block", height: 5, borderRadius: 999, background: "rgba(0,0,0,0.14)", overflow: "hidden", marginTop: 8 }}>
+              <span style={{ display: "block", height: "100%", width: lvlPct + "%", borderRadius: 999, background: "rgba(0,0,0,0.82)" }} />
+            </span>
           </div>
-        </div>
-        <div style={{ display: "flex", marginRight: 4 }}>
-          {_achEmojis.map((e, i) => <span key={i} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 13, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{e}</span>)}
-        </div>
-        <I.ChevronRight size={18} className="bos-sys-text-2"/>
-      </SysCard>
-
-      {/* Друзья — твои приглашённые на орбите (поднято из Настроек к орбу) */}
-      <SysCard className="tap" onClick={() => openSheet(<FriendsSheetLive dark={app?.themeOverride === "dark"} />)} style={{ marginTop: 12, padding: 14, display: "flex", alignItems: "center", gap: 13, cursor: "pointer" }}>
-        <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🪐</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Друзья</div>
-          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2 }}>
-            {livePeople.length > 0 ? (livePeople.length + (livePeople.length === 1 ? " человек на орбите" : " на твоей орбите")) : "Позови первого — он появится на орбите"}
+          <I.ChevronRight size={20} color="rgba(0,0,0,0.45)" />
+        </button>
+        <button onClick={() => navigate("achievements", { from: "profile" })} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>🏅</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Достижения</div>
+            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{_achEarnedN + " из " + _achTotal + (_achEarnedN === 0 ? " · открой первую" : "")}</div>
           </div>
-        </div>
-        {livePeople.length > 0 && (
-          <div style={{ marginRight: 4, flexShrink: 0 }}>
-            <PeopleStackLive people={livePeople} size={26} max={4} />
+          <div style={{ display: "flex", marginRight: 4 }}>
+            {_achEmojis.map((e, i) => <span key={i} style={{ width: 24, height: 24, borderRadius: 7, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 12, marginLeft: i ? -7 : 0, border: "1.5px solid var(--card)" }}>{e}</span>)}
           </div>
-        )}
-        <I.ChevronRight size={18} className="bos-sys-text-2"/>
-      </SysCard>
+          <I.ChevronRight size={18} className="bos-sys-text-2" />
+        </button>
+        <button onClick={() => openSheet(<FriendsSheetLive dark={isDark} />)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+          <span className="bos-sys-chip-bg" style={{ width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>🪐</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Друзья</div>
+            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{livePeople.length > 0 ? (livePeople.length + (livePeople.length === 1 ? " человек на орбите" : " на твоей орбите")) : "Позови первого — он появится на орбите"}</div>
+          </div>
+          {livePeople.length > 0 && <div style={{ marginRight: 4, flexShrink: 0 }}><PeopleStackLive people={livePeople} size={24} max={4} /></div>}
+          <I.ChevronRight size={18} className="bos-sys-text-2" />
+        </button>
+      </div>
 
       {/* App menu — one grouped iOS card, hairline-divided rows */}
       {/* App menu — Настройки first, Уведомления under (David). ИИ-инсайты removed (ИИ is its

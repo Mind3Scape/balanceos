@@ -213,63 +213,122 @@ function ProfileLive() {
       marginTop: 6,
       color: "var(--text)"
     }
-  }, app?.userName || "Ты"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14
-    }
-  }, /*#__PURE__*/React.createElement(StatTrioLive, {
-    isDark: isDark,
-    card: statCard,
-    items: [{
-      l: "Уровень",
-      v: lvlNum,
-      icon: /*#__PURE__*/React.createElement(I.Trophy, {
-        size: 14,
-        color: "var(--text-4)"
-      })
-    }, {
-      l: "До " + (lvlNum + 1) + " ур.",
-      v: lvlPct,
-      suf: "%",
-      icon: /*#__PURE__*/React.createElement(I.ChartBar, {
-        size: 14,
-        color: "var(--text-4)"
-      })
-    }, {
-      l: "Опыт",
-      v: _xp,
-      icon: /*#__PURE__*/React.createElement(I.Sparkles, {
-        size: 14,
-        color: "var(--text-4)"
-      })
-    }]
-  }))), universeOpen && typeof UniverseFieldLive === "function" && /*#__PURE__*/React.createElement(UniverseFieldLive, {
+  }, app?.userName || "Ты")), universeOpen && typeof UniverseFieldLive === "function" && /*#__PURE__*/React.createElement(UniverseFieldLive, {
     app: app,
     people: orbitPeople,
     from: universeFrom,
     onClose: () => setUniverseOpen(false)
-  }), /*#__PURE__*/React.createElement(SysCard, {
-    className: "tap",
-    onClick: () => navigate("achievements", {
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-card",
+    style: {
+      marginTop: 16,
+      padding: 0,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("levels", {
       from: "profile"
     }),
+    className: "tap",
     style: {
-      marginTop: 12,
-      padding: 14,
+      width: "100%",
+      border: 0,
+      padding: "15px 16px",
+      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+      color: "#0a0a0a",
       display: "flex",
       alignItems: "center",
       gap: 13,
+      textAlign: "left",
       cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
     style: {
       width: 42,
       height: 42,
       borderRadius: 14,
+      background: "rgba(255,255,255,0.5)",
       display: "grid",
       placeItems: "center",
-      fontSize: 22,
+      flexShrink: 0,
+      fontSize: 22
+    }
+  }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      letterSpacing: "-0.2px"
+    }
+  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", lvlNum), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      opacity: 0.55
+    }
+  }, _xp, " XP")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "rgba(0,0,0,0.62)",
+      marginTop: 2,
+      lineHeight: 1.3
+    }
+  }, "\u0414\u043E ", lvlNum + 1, " \u0443\u0440\u043E\u0432\u043D\u044F \u2014 ", lvlPct, "%"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: 5,
+      borderRadius: 999,
+      background: "rgba(0,0,0,0.14)",
+      overflow: "hidden",
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: lvlPct + "%",
+      borderRadius: 999,
+      background: "rgba(0,0,0,0.82)"
+    }
+  }))), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 20,
+    color: "rgba(0,0,0,0.45)"
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("achievements", {
+      from: "profile"
+    }),
+    className: "tap",
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "transparent",
+      border: 0,
+      borderTop: "0.5px solid var(--line)",
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "13px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 16,
       flexShrink: 0
     }
   }, "\uD83C\uDFC5"), /*#__PURE__*/React.createElement("div", {
@@ -287,9 +346,9 @@ function ProfileLive() {
     className: "bos-sys-text-3",
     style: {
       fontSize: 12.5,
-      marginTop: 2
+      marginTop: 1
     }
-  }, _achEarnedN + " из " + _achTotal + (_achCircles > 0 ? " · " + _achCircles + (_achCircles === 1 ? " приглашён" : " приглашено") : _achEarnedN === 0 ? " · открой первую" : ""))), /*#__PURE__*/React.createElement("div", {
+  }, _achEarnedN + " из " + _achTotal + (_achEarnedN === 0 ? " · открой первую" : ""))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       marginRight: 4
@@ -297,41 +356,45 @@ function ProfileLive() {
   }, _achEmojis.map((e, i) => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
-      width: 26,
-      height: 26,
-      borderRadius: 8,
+      width: 24,
+      height: 24,
+      borderRadius: 7,
       background: "var(--card-2)",
       display: "grid",
       placeItems: "center",
-      fontSize: 13,
+      fontSize: 12,
       marginLeft: i ? -7 : 0,
       border: "1.5px solid var(--card)"
     }
   }, e))), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
     className: "bos-sys-text-2"
-  })), /*#__PURE__*/React.createElement(SysCard, {
-    className: "tap",
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet(/*#__PURE__*/React.createElement(FriendsSheetLive, {
-      dark: app?.themeOverride === "dark"
+      dark: isDark
     })),
+    className: "tap",
     style: {
-      marginTop: 12,
-      padding: 14,
+      width: "100%",
       display: "flex",
       alignItems: "center",
-      gap: 13,
-      cursor: "pointer"
+      gap: 12,
+      background: "transparent",
+      border: 0,
+      borderTop: "0.5px solid var(--line)",
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "13px 14px"
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-sys-chip-bg",
     style: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
       display: "grid",
       placeItems: "center",
-      fontSize: 22,
+      fontSize: 16,
       flexShrink: 0
     }
   }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
@@ -349,7 +412,7 @@ function ProfileLive() {
     className: "bos-sys-text-3",
     style: {
       fontSize: 12.5,
-      marginTop: 2
+      marginTop: 1
     }
   }, livePeople.length > 0 ? livePeople.length + (livePeople.length === 1 ? " человек на орбите" : " на твоей орбите") : "Позови первого — он появится на орбите")), livePeople.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -358,12 +421,12 @@ function ProfileLive() {
     }
   }, /*#__PURE__*/React.createElement(PeopleStackLive, {
     people: livePeople,
-    size: 26,
+    size: 24,
     max: 4
   })), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
     className: "bos-sys-text-2"
-  })), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-card",
     style: {
       marginTop: 12,
