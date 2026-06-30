@@ -172,13 +172,13 @@ function HabitDetailLive() {
   var calPeople = _shared ? buddies.map(m => ({
     name: m.me ? "Ты" : m.name,
     initials: m.me ? "Я" : (m.name || "Д").charAt(0).toUpperCase(),
-    color: h.color || "#FEDE34",
+    color: h.color || "#0a0a0a",
     you: !!m.me,
     avatar: m.avatar
   })) : [{
     name: "Ты",
     initials: "Я",
-    color: h.color || "#FEDE34",
+    color: h.color || "#0a0a0a",
     you: true
   }];
   // For a SHARED habit, YOUR row reads the PERSONAL log (h.log) — the complete source of truth for

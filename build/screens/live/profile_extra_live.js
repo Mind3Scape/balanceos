@@ -1001,7 +1001,7 @@ function HistoryLive() {
       style: {
         aspectRatio: "1/1",
         border: 0,
-        borderRadius: "30%",
+        borderRadius: "50%",
         padding: 0,
         display: "grid",
         placeItems: "center",
@@ -1042,7 +1042,7 @@ function HistoryLive() {
     style: {
       width: 15,
       height: 15,
-      borderRadius: "30%",
+      borderRadius: "50%",
       background: p <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", p),
       boxShadow: p > 0 ? bosCellGlass(isDark) : "none"
     }

@@ -134,7 +134,7 @@ function DeadlineCalendarLive({ onPick }) {
           const today = m === TODAY_M && d === TODAY_D;
           return (
             <button key={i} className="tap" data-no-haptic disabled={past(d)} onClick={() => pick(d)}
-              style={{ aspectRatio: "1/1", border: 0, borderRadius: ends ? 999 : (mid ? 7 : 10), cursor: past(d) ? "default" : "pointer",
+              style={{ aspectRatio: "1/1", border: 0, borderRadius: ends ? 999 : (mid ? 7 : 999), cursor: past(d) ? "default" : "pointer",
                 background: ends ? "#0a0a0a" : (mid ? "rgba(10,10,10,0.08)" : "transparent"),
                 color: ends ? "#fff" : "var(--text)", opacity: past(d) ? 0.3 : 1,
                 fontSize: 13.5, fontWeight: (ends || today) ? 700 : 400,
@@ -348,7 +348,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             const onClick = itx ? fireToday : (compact ? undefined : () => setSelDay(c.d));
             return (
               <button key={c.key} {...(itx ? { "data-no-haptic": "" } : {})} onClick={onClick} className="tap" style={{
-                aspectRatio: "1/1", border: 0, borderRadius: "30%", padding: 0, display: "grid", placeItems: "center",
+                aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, display: "grid", placeItems: "center",
                 fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: (itx || !compact) ? "pointer" : "default",
                 background: bg, boxShadow: shadow, color: ink, position: "relative" }}>
                 {itx
@@ -995,7 +995,7 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
                     </div>
                     <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
                       {keys.map((k, j) => (
-                        <span key={j} style={{ width: 16, height: 16, borderRadius: "30%", background: m.days[k] ? bosCellFill(accent, 1) : emptyCell, boxShadow: m.days[k] ? bosCellGlass(isDark) : "none" }} />
+                        <span key={j} style={{ width: 16, height: 16, borderRadius: "50%", background: m.days[k] ? bosCellFill(accent, 1) : emptyCell, boxShadow: m.days[k] ? bosCellGlass(isDark) : "none" }} />
                       ))}
                     </div>
                   </div>
@@ -2352,7 +2352,7 @@ function HabitWeekStrip({ habit }) {
       {keys.map(function (k, i) {
         var fl = !!log[k];
         var sh = [fl ? bosCellGlass(isDark) : "", (k === todayK) ? ("0 0 0 1.5px " + ringC) : ""].filter(Boolean).join(", ") || "none";
-        return <span key={i} style={{ width: 20, height: 20, borderRadius: "30%", flexShrink: 0, background: fl ? doneFill : empty, boxShadow: sh }} />;
+        return <span key={i} style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, background: fl ? doneFill : empty, boxShadow: sh }} />;
       })}
     </div>
   );

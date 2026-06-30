@@ -466,7 +466,7 @@ function HistoryLive() {
             return (
               <button key={c.key} onClick={compact ? undefined : () => setSelDay(c.d)} className="tap"
                 style={{
-                  aspectRatio: "1/1", border: 0, borderRadius: "30%", padding: 0,
+                  aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0,
                   display: "grid", placeItems: "center", position: "relative",
                   fontSize: 12.5, fontWeight: isToday ? 700 : 500, cursor: compact ? "default" : "pointer",
                   background: bg, boxShadow: sh, color: ink,
@@ -482,7 +482,7 @@ function HistoryLive() {
             <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Меньше</span>
             <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
               {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
-                <span key={i} style={{ width: 15, height: 15, borderRadius: "30%", background: p <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", p), boxShadow: p > 0 ? bosCellGlass(isDark) : "none" }} />
+                <span key={i} style={{ width: 15, height: 15, borderRadius: "50%", background: p <= 0 ? TH.cellIdle : bosCellFill("#0a0a0a", p), boxShadow: p > 0 ? bosCellGlass(isDark) : "none" }} />
               ))}
             </div>
             <span className="bos-sys-text-3" style={{ fontSize: 11 }}>Больше</span>

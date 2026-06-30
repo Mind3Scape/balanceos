@@ -304,7 +304,7 @@ function HabitSettingsLive() {
         flex: 1,
         aspectRatio: "1/1",
         maxWidth: 40,
-        borderRadius: "30%",
+        borderRadius: "50%",
         border: 0,
         cursor: "pointer",
         fontSize: 12.5,

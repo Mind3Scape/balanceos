@@ -287,7 +287,7 @@ function DeadlineCalendarLive({
       style: {
         aspectRatio: "1/1",
         border: 0,
-        borderRadius: ends ? 999 : mid ? 7 : 10,
+        borderRadius: ends ? 999 : mid ? 7 : 999,
         cursor: past(d) ? "default" : "pointer",
         background: ends ? "#0a0a0a" : mid ? "rgba(10,10,10,0.08)" : "transparent",
         color: ends ? "#fff" : "var(--text)",
@@ -735,7 +735,7 @@ function PeopleMonthCalendarLive({
       style: {
         aspectRatio: "1/1",
         border: 0,
-        borderRadius: "30%",
+        borderRadius: "50%",
         padding: 0,
         display: "grid",
         placeItems: "center",
@@ -2381,7 +2381,7 @@ function SharedBuddiesLive({
       style: {
         width: 16,
         height: 16,
-        borderRadius: "30%",
+        borderRadius: "50%",
         background: m.days[k] ? bosCellFill(accent, 1) : emptyCell,
         boxShadow: m.days[k] ? bosCellGlass(isDark) : "none"
       }
@@ -6155,7 +6155,7 @@ function HabitWeekStrip({
       style: {
         width: 20,
         height: 20,
-        borderRadius: "30%",
+        borderRadius: "50%",
         flexShrink: 0,
         background: fl ? doneFill : empty,
         boxShadow: sh
