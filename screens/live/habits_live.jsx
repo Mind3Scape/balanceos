@@ -39,7 +39,7 @@ const GOAL_CHIPS = [
    конфликтует с сеткой, поэтому действия живут в шторке-меню). One sheet, three rows: Поделиться /
    Переставить плитки (entering the grid jiggle-mode) / Удалить. «swap» actions open their own sheet
    so we just let openSheet replace this menu (no down-then-up flicker); «leave» closes first. */
-function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete }) {
+function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete, kindLabel = "Привычка" }) {
   const { close } = useSheet();
   const swap = (fn) => () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } if (fn) fn(); };
   const leave = (fn) => () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } close(); if (fn) fn(); };
@@ -59,7 +59,7 @@ function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete }) {
         <span style={{ width: 40, height: 40, borderRadius: 13, background: sheen + (habit.color ? habit.color + "26" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(habit.emoji, 22, habit.color)}</span>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{habit.name}</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>Привычка</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>{kindLabel}</div>
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -72,6 +72,12 @@ function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete }) {
     </div>
   );
 }
+
+// Один ОБЩИЙ порядок для смешанного списка «привычки + цели» (David: «цели появляются среди привычек,
+// человек сам расставляет как хочет»). Храним массив ключей "h<id>"/"g<id>" в localStorage; новые
+// элементы (которых ещё нет в сохранённом порядке) дописываются в конец в естественном порядке.
+function bosLoadPracticeOrder() { try { return JSON.parse(localStorage.getItem("bos:practiceOrder") || "[]") || []; } catch (e) { return []; } }
+function bosSavePracticeOrder(keys) { try { localStorage.setItem("bos:practiceOrder", JSON.stringify(keys || [])); } catch (e) {} }
 
 function HabitsLive() {
   const { navigate } = useNav();
@@ -136,10 +142,10 @@ function HabitsLive() {
   const removeGoal = app?.removeGoal || (() => {});
   const rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
-  // TRIAD — which of Привычки / Цели / Команды is shown. Kept in a module var so it
-  // survives navigating into a detail screen and back (the screen remounts).
-  const [tab, setTabState] = React.useState(_bosHabitsTab);
-  const setTab = (t) => { _bosSetHabitsTab(t); setTabState(t); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } };
+  // Привычки и цели — ОДИН смешанный список плиток (David). Переключателя Привычки/Цели больше нет;
+  // тип выбирается при создании («+» → Привычку/Круг), а карточки потом стоят вперемешку. orderTick
+  // форсит пересборку общего порядка после перетаскивания.
+  const [orderTick, setOrderTick] = React.useState(0);
 
   // The black «+» is the ONE universal create entry — it opens a small menu (Привычку / Цель / Команду).
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -148,65 +154,107 @@ function HabitsLive() {
   // Habit TILES (2-per-row grid) — long-press opens the tile menu (Поделиться / Переставить / Удалить);
   // «Переставить» flips the grid into jiggle/drag-reorder via this controller ref (set by BosReorderGrid).
   const gridCtl = React.useRef(null);
-  const onTileLongPress = (id) => {
-    const h = habits.find((x) => x.id === id); if (!h) return;
+  const onTileLongPress = (key) => {
+    const openReorder = () => { if (gridCtl.current) gridCtl.current.enterReorder(); };
+    if (("" + key)[0] === "g") {
+      const g = goals.find((x) => ("g" + x.id) === key); if (!g) return;
+      openSheet(
+        <HabitTileMenuLive habit={g} dark={isDark} kindLabel="Цель"
+          onShare={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)}
+          onReorder={openReorder}
+          onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) })}
+        />
+      );
+      return;
+    }
+    const h = habits.find((x) => ("h" + x.id) === key); if (!h) return;
     openSheet(
       <HabitTileMenuLive habit={h} dark={isDark}
         onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
-        onReorder={() => { if (gridCtl.current) gridCtl.current.enterReorder(); }}
+        onReorder={openReorder}
         onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) })}
       />
     );
   };
 
-  // «Быстрое добавление» sits ABOVE the triad (David) and its chips FOLLOW the active tab:
-  // Привычки → habit presets, Цели → goal presets. The chips re-mount on tab change (key={tab}) so
-  // they pop in (briefPop). Each chip routes to the matching create screen with its preset.
-  // Круг-пресеты (семья/тренинги) здесь больше НЕ живут — они во вкладке Найти (David); Цели = чисто
-  // личные цели. Сам круг по-прежнему создаётся снизу кнопкой «Создать круг».
-  const QA = tab === "goals"
-    ? { chips: GOAL_CHIPS, go: (c) => navigate("goal-settings", { mode: "create", preset: c }) }
-    : { chips: EMOJI_CHIPS, go: (c) => navigate("habit-settings", { mode: "create", preset: c }) };
-  const quickAddBlock = (
-    <div style={{ background: TH.cardBg, borderRadius: 20, boxShadow: cardShadow, padding: "12px 13px" }}>
-      <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 600, marginBottom: 9, padding: "0 2px" }}>Быстрое добавление</div>
-      <div key={tab} style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "3px 2px" }}>
-        {QA.chips.map((c, i) => (
-          <button key={i} className="tap" data-no-haptic onClick={() => QA.go(c)} style={{
-            ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), borderRadius: 999, padding: "8px 12px", fontSize: 13, color: TH.chipText, border: 0,
-            display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
-            animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.035) + "s",
-          }}>
-            <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>{c.t} <I.Plus size={12} color={TH.plusIcon}/>
-          </button>
-        ))}
+  // Смешанный список: привычки + цели в едином порядке (ключи "h<id>"/"g<id>"), отсортированы по
+  // сохранённому порядку перестановки; новые элементы — в конец.
+  const entries = React.useMemo(() => {
+    const all = habits.map((h) => ({ k: "h" + h.id, type: "h", item: h }))
+      .concat(goals.map((g) => ({ k: "g" + g.id, type: "g", item: g })));
+    const saved = bosLoadPracticeOrder();
+    if (saved && saved.length) {
+      const pos = {}; saved.forEach((k, i) => { pos[k] = i; });
+      return all.map((e, i) => ({ e: e, i: i }))
+        .sort((a, b) => (pos[a.e.k] != null ? pos[a.e.k] : 1000 + a.i) - (pos[b.e.k] != null ? pos[b.e.k] : 1000 + b.i))
+        .map((x) => x.e);
+    }
+    return all;
+  }, [habits, goals, orderTick]);
+
+  // ПЛИТКА ПРИВЫЧКИ — сверху иконка + галочка/кольцо/счётчик, имя, лица круга, снизу недельная полоска.
+  const habitTile = (h, ctx) => (
+    <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
+      style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 158, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
+        <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
+            <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
+          )}
+          {h.goalPerDay > 1
+            ? <HabitCountCheck habit={h} app={app} xp={10} />
+            : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
+        </span>
+      </div>
+      <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
+      <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
+        <HabitBuddyAvatarsLive habit={h} size={19} max={4} />
+        {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={19} max={4} />}
+      </div>
+      <div style={{ marginTop: "auto", paddingTop: 12 }}>
+        <HabitWeekStrip habit={h} fill />
       </div>
     </div>
   );
 
-  // ДИАДА (David): «Команды» исчезли как отдельная вкладка. Круги (бывшие команды) = совместные
-  // цели, живут среди «Целей» с лицами. Остаётся Привычки / Цели.
-  const TRIAD = [{ id: "habits", t: "Привычки" }, { id: "goals", t: "Цели" }];
+  // ПЛИТКА ЦЕЛИ — та же квадратная плитка (David: «цели тоже плитками, единый вид»). Сверху иконка +
+  // процент, имя, лица круга (если цель — круг), СНИЗУ — полоска прогресса к цели (зеркало недельной).
+  const goalTile = (g, ctx) => {
+    const pct = g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0;
+    const gc = g.color || "#0a0a0a";
+    return (
+      <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" })}
+        style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 158, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+          <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 21, g.color)}</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", paddingTop: 2 }}>{Math.round(pct * 100)}%</span>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>
+        <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
+          <HabitBuddyAvatarsLive habit={g} size={19} max={4} />
+          {typeof CircleFacesLive === "function" && <CircleFacesLive habit={g} size={19} max={4} />}
+        </div>
+        <div style={{ marginTop: "auto", paddingTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{(g.current || 0)} / {g.target} {g.unit || ""}</span>
+          </div>
+          <div style={{ height: 7, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
+            <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc }} />
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
 
-      {/* «Быстрое добавление» ABOVE the triad (David) — its chips follow the active tab. */}
-      <div style={{ marginBottom: 12 }}>{quickAddBlock}</div>
-
-      {/* TRIAD switcher + the universal «+» on ONE row (David). The «+» opens CreateMenuLive
-          (Привычку / Цель / Команду), so it no longer lives on «Быстрое добавление» — that block
-          is now a free, draggable card inside the Привычки list. The triad keeps the iOS segmented
-          look (defined grey track #E6E6EA + white floating pill); sharing the row with the «+» it
-          still fits all three labels on the narrowest phones. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        <div className="tab-pill" style={{ flex: 1, marginBottom: 0, background: isDark ? "rgba(255,255,255,0.07)" : "#E6E6EA" }}>
-          {TRIAD.map((s) => (
-            <button key={s.id} className={"tap " + (tab === s.id ? "active" : "")} onClick={() => setTab(s.id)}
-              style={{ fontSize: 14, fontWeight: tab === s.id ? 600 : 500, letterSpacing: "-0.2px", padding: "11px 4px", boxShadow: tab === s.id ? (isDark ? "0 1px 4px rgba(0,0,0,0.45)" : "0 1px 3px rgba(0,0,0,0.14)") : "none" }}>{s.t}</button>
-          ))}
-        </div>
+      {/* Чистая шапка: только «+» (David убрал «Быстрое добавление» и переключатель Привычки/Цели).
+          «+» открывает CreateMenuLive → Привычку / Круг. Страница ниже = ОДНА сетка плиток. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
         <button ref={addBtnRef} data-tour="add" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
           title="Создать" aria-haspopup="menu" aria-expanded={createOpen}
           style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center" }}>
@@ -214,116 +262,27 @@ function HabitsLive() {
         </button>
       </div>
 
-      {/* 3 — the active list. No section labels: the triad above names the context. */}
-      {tab === "habits" && (
-        habits.length === 0 ? (
-          <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
-            <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки</div>
-            <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Выбери шаблон выше, нажми «+» или создай свою — одному или вместе с друзьями.</div>
-          </button>
-        ) : (
-          /* 2-колоночная СЕТКА квадратных плиток (David: «привычки квадратными, чтоб поместилось два
-             блока в ряд; внизу 7 точечек, наверху чекмарк/кто ведём»). Свайп в сетке конфликтует →
-             действия (Поделиться/Удалить) + вход в реордер живут в шторке-меню по долгому нажатию. */
-          <BosReorderGrid ids={habits.map((h) => h.id)} onReorder={(o) => { if (app && app.reorderHabits) app.reorderHabits(o); }}
-            onLongPress={onTileLongPress} ctlRef={gridCtl} cols={2} gap={12}
-            renderItem={(id, ctx) => {
-              const h = habits.find((x) => x.id === id); if (!h) return null;
-              return (
-                <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
-                  style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 158, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-                  {/* СВЕРХУ — иконка (слева) + галочка/кольцо/счётчик (справа). Кластер контролов глушит
-                      pointerdown (тап по галочке не стартует жест сетки) и click (не открывает деталь). */}
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
-                    <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                      {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
-                        <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
-                      )}
-                      {h.goalPerDay > 1
-                        ? <HabitCountCheck habit={h} app={app} xp={10} />
-                        : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
-                    </span>
-                  </div>
-                  {/* НАЗВАНИЕ (до 2 строк) */}
-                  <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
-                  {/* «КТО ВЕДЁМ» — лица круга (схлопывается, если ведёшь один) */}
-                  <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
-                    <HabitBuddyAvatarsLive habit={h} size={19} max={4} />
-                    {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={19} max={4} />}
-                  </div>
-                  {/* СНИЗУ — недельная полоска (7 точек), прижата к низу плитки */}
-                  <div style={{ marginTop: "auto", paddingTop: 12 }}>
-                    <HabitWeekStrip habit={h} fill />
-                  </div>
-                </div>
-              );
-            }} />
-        )
+      {/* ЕДИНАЯ сетка плиток: привычки + цели вперемешку, общий drag-реордер (порядок в bos:practiceOrder). */}
+      {entries.length === 0 ? (
+        <button className="tap" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+          <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
+          <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки и цели</div>
+          <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 260 }}>Нажми «+» вверху — заведи привычку или собери круг. Карточки потом расставишь как удобно.</div>
+        </button>
+      ) : (
+        <BosReorderGrid ids={entries.map((e) => e.k)} onReorder={(keys) => { bosSavePracticeOrder(keys); setOrderTick((t) => t + 1); }}
+          onLongPress={onTileLongPress} ctlRef={gridCtl} cols={2} gap={12}
+          renderItem={(k, ctx) => { const e = entries.find((x) => x.k === k); if (!e) return null; return e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx); }} />
       )}
 
-      {tab === "goals" && (
-        (goals.length === 0 && teams.length === 0) ? (
-          <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "34px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-            <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🎯</span>
-            <div style={{ fontSize: 17, fontWeight: 600 }}>Пока нет целей</div>
-            <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 250 }}>Цель — это вершина, к которой ведут твои привычки. Поставь первую.</div>
-            <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: TH.addBtnBg, color: TH.addBtnFg, borderRadius: 999, padding: "10px 18px", fontSize: 14.5, fontWeight: 600 }}><I.Plus size={16} strokeWidth={2.5}/> Поставить цель</span>
-          </button>
-        ) : (
-          <>
-          {goals.length > 0 && (<BosReorderList ids={goals.map((g) => g.id)} onReorder={(o) => { if (app && app.reorderGoals) app.reorderGoals(o); }}
-            renderItem={(id, ctx) => {
-              const g = goals.find((x) => x.id === id); if (!g) return null;
-              const pct = g.target > 0 ? Math.min(1, g.current / g.target) : 0;
-              // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
-              // расширенную»). БЕЛАЯ карточка (как привычки/Найти — David: «цели того же цвета, единый
-              // стиль»), эмблема-водяной знак, чипы-стекло, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель).
-              const gAccent = "#c9ced8"; // эмблема-водяной знак (серый силуэт) — карточка теперь БЕЛАЯ как привычки (David: единый стиль)
-              const inner = (
-                <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" })}
-                  style={{ padding: 18, textAlign: "left", color: "var(--text)", position: "relative", overflow: "hidden", pointerEvents: ctx.mode ? "none" : "auto" }}>
-                  <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 96, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(g.emoji || "🎯", 84, gAccent)}</div>
-                  <div style={{ position: "relative" }}>
-                    <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{g.name}</div>
-                    {/* Инфо ЧИПАМИ (David), как у кругов */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>🎯 {g.target} {g.unit}</span>
-                      {g.deadline && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>📅 до {g.deadline}</span>}
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
-                      <span>К цели</span>
-                      <span style={{ color: "var(--text)" }}>{g.current} / {g.target} {g.unit || ""}</span>
-                    </div>
-                    <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
-                      <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }} />
-                    </div>
-                  </div>
-                </div>
-              );
-              // Без SwipeRow — тап по карточке (как у кругов). Opaque rowBg (#fff) прятал серое
-              // стекло → цель «отличалась по цвету» (David). Удаление/правка — через деталь цели.
-              return <div style={{ background: rowBg, boxShadow: cardShadow, borderRadius: 22, overflow: "hidden" }}>{inner}</div>;
-            }} />)}
-          {/* Круги (бывшие команды) — совместные цели живут ЗДЕСЬ ЖЕ, среди целей, с лицами;
-              тап по карточке → комната-орбита круга. Отдельной вкладки «Команды» больше нет. */}
-          {teams.length > 0 && (
-            <div style={{ marginTop: goals.length ? 12 : 0, display: "flex", flexDirection: "column", gap: 12 }}>
-              {teams.map((t) => <LiveTeamCard key={t._id} t={t} navigate={navigate} />)}
-            </div>
-          )}
-          <button onClick={() => navigate("goal-settings", { mode: "create", circleOn: true })} className="tap team-new-cta" style={{ marginTop: 12, width: "100%", color: "#fff", border: 0, borderRadius: 22, padding: 18, display: "flex", alignItems: "center", gap: 14, textAlign: "left" }}>
-            <span style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "grid", placeItems: "center" }}><I.Plus size={22} color="#fff"/></span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 16 }}>Создать круг</div>
-              <div style={{ fontSize: 12, opacity: 0.65, marginTop: 2 }}>Общая цель с друзьями — позови людей, и у цели появятся лица круга.</div>
-            </div>
-            <I.ChevronRight size={18}/>
-          </button>
-          </>
-        )
+      {/* Круги-команды (легаси cloud-команды) — пока ниже сетки, если есть. */}
+      {teams.length > 0 && (
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
+          {teams.map((t) => <LiveTeamCard key={t._id} t={t} navigate={navigate} />)}
+        </div>
       )}
+
+      {/* (Старая отдельная вкладка «Цели» удалена — цели теперь плитками в общей сетке выше.) */}
 
       {/* «Обучение» — a THIN disclosure block: a slim header row when collapsed, it expands
           in place into 3 guide rows. Reuses bosLearnHidden (Settings toggle flips the same flag). */}

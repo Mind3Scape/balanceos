@@ -90,7 +90,8 @@ function HabitTileMenuLive({
   dark,
   onShare,
   onReorder,
-  onDelete
+  onDelete,
+  kindLabel = "Привычка"
 }) {
   var {
     close
@@ -197,7 +198,7 @@ function HabitTileMenuLive({
       color: "var(--text-4)",
       marginTop: 1
     }
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("div", {
+  }, kindLabel))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -239,6 +240,22 @@ function HabitTileMenuLive({
       height: "max(8px, var(--tg-bottom-inset, 0px))"
     }
   }));
+}
+
+// Один ОБЩИЙ порядок для смешанного списка «привычки + цели» (David: «цели появляются среди привычек,
+// человек сам расставляет как хочет»). Храним массив ключей "h<id>"/"g<id>" в localStorage; новые
+// элементы (которых ещё нет в сохранённом порядке) дописываются в конец в естественном порядке.
+function bosLoadPracticeOrder() {
+  try {
+    return JSON.parse(localStorage.getItem("bos:practiceOrder") || "[]") || [];
+  } catch (e) {
+    return [];
+  }
+}
+function bosSavePracticeOrder(keys) {
+  try {
+    localStorage.setItem("bos:practiceOrder", JSON.stringify(keys || []));
+  } catch (e) {}
 }
 function HabitsLive() {
   var {
@@ -316,18 +333,10 @@ function HabitsLive() {
   var removeGoal = app?.removeGoal || (() => {});
   var rowBg = isDark ? "#141414" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
-  // TRIAD — which of Привычки / Цели / Команды is shown. Kept in a module var so it
-  // survives navigating into a detail screen and back (the screen remounts).
-  var [tab, setTabState] = React.useState(_bosHabitsTab);
-  var setTab = t => {
-    _bosSetHabitsTab(t);
-    setTabState(t);
-    if (window.tgHaptic) {
-      try {
-        window.tgHaptic("selection");
-      } catch (e) {}
-    }
-  };
+  // Привычки и цели — ОДИН смешанный список плиток (David). Переключателя Привычки/Цели больше нет;
+  // тип выбирается при создании («+» → Привычку/Круг), а карточки потом стоят вперемешку. orderTick
+  // форсит пересборку общего порядка после перетаскивания.
+  var [orderTick, setOrderTick] = React.useState(0);
 
   // The black «+» is the ONE universal create entry — it opens a small menu (Привычку / Цель / Команду).
   var [createOpen, setCreateOpen] = React.useState(false);
@@ -336,8 +345,32 @@ function HabitsLive() {
   // Habit TILES (2-per-row grid) — long-press opens the tile menu (Поделиться / Переставить / Удалить);
   // «Переставить» flips the grid into jiggle/drag-reorder via this controller ref (set by BosReorderGrid).
   var gridCtl = React.useRef(null);
-  var onTileLongPress = id => {
-    var h = habits.find(x => x.id === id);
+  var onTileLongPress = key => {
+    var openReorder = () => {
+      if (gridCtl.current) gridCtl.current.enterReorder();
+    };
+    if (("" + key)[0] === "g") {
+      var g = goals.find(x => "g" + x.id === key);
+      if (!g) return;
+      openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
+        habit: g,
+        dark: isDark,
+        kindLabel: "\u0426\u0435\u043B\u044C",
+        onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+          goal: g,
+          dark: isDark
+        })),
+        onReorder: openReorder,
+        onDelete: () => bosConfirmDelete(openSheet, {
+          title: "Удалить цель?",
+          message: "«" + g.name + "» удалится навсегда.",
+          confirmLabel: "Удалить",
+          onConfirm: () => removeGoal(g.id)
+        })
+      }));
+      return;
+    }
+    var h = habits.find(x => "h" + x.id === key);
     if (!h) return;
     openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
       habit: h,
@@ -346,9 +379,7 @@ function HabitsLive() {
         habit: h,
         dark: isDark
       })),
-      onReorder: () => {
-        if (gridCtl.current) gridCtl.current.enterReorder();
-      },
+      onReorder: openReorder,
       onDelete: () => bosConfirmDelete(openSheet, {
         title: "Удалить привычку?",
         message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
@@ -358,92 +389,252 @@ function HabitsLive() {
     }));
   };
 
-  // «Быстрое добавление» sits ABOVE the triad (David) and its chips FOLLOW the active tab:
-  // Привычки → habit presets, Цели → goal presets. The chips re-mount on tab change (key={tab}) so
-  // they pop in (briefPop). Each chip routes to the matching create screen with its preset.
-  // Круг-пресеты (семья/тренинги) здесь больше НЕ живут — они во вкладке Найти (David); Цели = чисто
-  // личные цели. Сам круг по-прежнему создаётся снизу кнопкой «Создать круг».
-  var QA = tab === "goals" ? {
-    chips: GOAL_CHIPS,
-    go: c => navigate("goal-settings", {
-      mode: "create",
-      preset: c
-    })
-  } : {
-    chips: EMOJI_CHIPS,
-    go: c => navigate("habit-settings", {
-      mode: "create",
-      preset: c
-    })
-  };
-  var quickAddBlock = /*#__PURE__*/React.createElement("div", {
+  // Смешанный список: привычки + цели в едином порядке (ключи "h<id>"/"g<id>"), отсортированы по
+  // сохранённому порядку перестановки; новые элементы — в конец.
+  var entries = React.useMemo(() => {
+    var all = habits.map(h => ({
+      k: "h" + h.id,
+      type: "h",
+      item: h
+    })).concat(goals.map(g => ({
+      k: "g" + g.id,
+      type: "g",
+      item: g
+    })));
+    var saved = bosLoadPracticeOrder();
+    if (saved && saved.length) {
+      var pos = {};
+      saved.forEach((k, i) => {
+        pos[k] = i;
+      });
+      return all.map((e, i) => ({
+        e: e,
+        i: i
+      })).sort((a, b) => (pos[a.e.k] != null ? pos[a.e.k] : 1000 + a.i) - (pos[b.e.k] != null ? pos[b.e.k] : 1000 + b.i)).map(x => x.e);
+    }
+    return all;
+  }, [habits, goals, orderTick]);
+
+  // ПЛИТКА ПРИВЫЧКИ — сверху иконка + галочка/кольцо/счётчик, имя, лица круга, снизу недельная полоска.
+  var habitTile = (h, ctx) => /*#__PURE__*/React.createElement("div", {
+    className: ctx.mode ? "" : "tap",
+    onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
+      habit: h,
+      from: "habits"
+    }),
     style: {
-      background: TH.cardBg,
-      borderRadius: 20,
+      background: rowBg,
+      borderRadius: 22,
       boxShadow: cardShadow,
-      padding: "12px 13px"
+      padding: "13px 13px 12px",
+      minHeight: 158,
+      display: "flex",
+      flexDirection: "column",
+      pointerEvents: ctx.mode ? "none" : "auto",
+      overflow: "hidden"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1.2,
-      fontWeight: 600,
-      marginBottom: 9,
-      padding: "0 2px"
-    }
-  }, "\u0411\u044B\u0441\u0442\u0440\u043E\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
-    key: tab,
-    style: {
       display: "flex",
-      gap: 8,
-      overflowX: "auto",
-      scrollbarWidth: "none",
-      WebkitOverflowScrolling: "touch",
-      touchAction: "pan-x",
-      padding: "3px 2px"
-    }
-  }, QA.chips.map((c, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    className: "tap",
-    "data-no-haptic": true,
-    onClick: () => QA.go(c),
-    style: {
-      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
-        background: TH.chipBg
-      }),
-      borderRadius: 999,
-      padding: "8px 12px",
-      fontSize: 13,
-      color: TH.chipText,
-      border: 0,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      whiteSpace: "nowrap",
-      flexShrink: 0,
-      animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + i * 0.035 + "s"
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: 8
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 15,
-      lineHeight: 1
+      width: 38,
+      height: 38,
+      borderRadius: 13,
+      background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
+      boxShadow: bosTileGlass(isDark),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 19,
+      flexShrink: 0
     }
-  }, c.i), c.t, " ", /*#__PURE__*/React.createElement(I.Plus, {
-    size: 12,
-    color: TH.plusIcon
-  })))));
+  }, bosIcon(h.emoji, 21, h.color)), /*#__PURE__*/React.createElement("span", {
+    onPointerDown: e => e.stopPropagation(),
+    onClick: e => e.stopPropagation(),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      flexShrink: 0
+    }
+  }, h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+    habit: h,
+    dark: isDark,
+    onComplete: () => {
+      if (!h.done) toggle(h.id);
+    }
+  }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+    habit: h,
+    app: app,
+    xp: 10
+  }) : /*#__PURE__*/React.createElement(HabitCheck, {
+    done: h.done,
+    onToggle: () => toggle(h.id),
+    xp: 10,
+    float: true
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)",
+      letterSpacing: "-0.2px",
+      lineHeight: 1.25,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden"
+    }
+  }, h.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 7,
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+    habit: h,
+    size: 19,
+    max: 4
+  }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
+    habit: h,
+    size: 19,
+    max: 4
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "auto",
+      paddingTop: 12
+    }
+  }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
+    habit: h,
+    fill: true
+  })));
 
-  // ДИАДА (David): «Команды» исчезли как отдельная вкладка. Круги (бывшие команды) = совместные
-  // цели, живут среди «Целей» с лицами. Остаётся Привычки / Цели.
-  var TRIAD = [{
-    id: "habits",
-    t: "Привычки"
-  }, {
-    id: "goals",
-    t: "Цели"
-  }];
+  // ПЛИТКА ЦЕЛИ — та же квадратная плитка (David: «цели тоже плитками, единый вид»). Сверху иконка +
+  // процент, имя, лица круга (если цель — круг), СНИЗУ — полоска прогресса к цели (зеркало недельной).
+  var goalTile = (g, ctx) => {
+    var pct = g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0;
+    var gc = g.color || "#0a0a0a";
+    return /*#__PURE__*/React.createElement("div", {
+      className: ctx.mode ? "" : "tap",
+      onClick: ctx.mode ? undefined : () => navigate("goal-detail", {
+        goal: g,
+        from: "habits"
+      }),
+      style: {
+        background: rowBg,
+        borderRadius: 22,
+        boxShadow: cardShadow,
+        padding: "13px 13px 12px",
+        minHeight: 158,
+        display: "flex",
+        flexDirection: "column",
+        pointerEvents: ctx.mode ? "none" : "auto",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg),
+        boxShadow: bosTileGlass(isDark),
+        display: "grid",
+        placeItems: "center",
+        fontSize: 19,
+        flexShrink: 0
+      }
+    }, bosIcon(g.emoji || "🎯", 21, g.color)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-3)",
+        fontVariantNumeric: "tabular-nums",
+        paddingTop: 2
+      }
+    }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        fontSize: 15,
+        fontWeight: 600,
+        color: "var(--text)",
+        letterSpacing: "-0.2px",
+        lineHeight: 1.25,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden"
+      }
+    }, g.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 7,
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+      habit: g,
+      size: 19,
+      max: 4
+    }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
+      habit: g,
+      size: 19,
+      max: 4
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "auto",
+        paddingTop: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        marginBottom: 5
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: "var(--text-4)",
+        textTransform: "uppercase",
+        letterSpacing: 0.7
+      }
+    }, "\u0426\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--text-3)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, g.current || 0, " / ", g.target, " ", g.unit || "")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 7,
+        borderRadius: 999,
+        background: "var(--card-track)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        height: "100%",
+        width: pct * 100 + "%",
+        borderRadius: 999,
+        background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc
+      }
+    }))));
+  };
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
     className: "page-in",
@@ -457,34 +648,12 @@ function HabitsLive() {
     navigate: navigate
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 12
-    }
-  }, quickAddBlock), /*#__PURE__*/React.createElement("div", {
-    style: {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      marginBottom: 14
+      justifyContent: "flex-end",
+      marginBottom: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "tab-pill",
-    style: {
-      flex: 1,
-      marginBottom: 0,
-      background: isDark ? "rgba(255,255,255,0.07)" : "#E6E6EA"
-    }
-  }, TRIAD.map(s => /*#__PURE__*/React.createElement("button", {
-    key: s.id,
-    className: "tap " + (tab === s.id ? "active" : ""),
-    onClick: () => setTab(s.id),
-    style: {
-      fontSize: 14,
-      fontWeight: tab === s.id ? 600 : 500,
-      letterSpacing: "-0.2px",
-      padding: "11px 4px",
-      boxShadow: tab === s.id ? isDark ? "0 1px 4px rgba(0,0,0,0.45)" : "0 1px 3px rgba(0,0,0,0.14)" : "none"
-    }
-  }, s.t))), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("button", {
     ref: addBtnRef,
     "data-tour": "add",
     onClick: () => {
@@ -519,11 +688,16 @@ function HabitsLive() {
       transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)",
       transform: createOpen ? "rotate(45deg)" : "none"
     }
-  }))), tab === "habits" && (habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
+  }))), entries.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
-    onClick: () => navigate("habit-settings", {
-      mode: "create"
-    }),
+    onClick: () => {
+      setCreateOpen(true);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
+      }
+    },
     style: {
       width: "100%",
       background: TH.cardBg,
@@ -553,319 +727,31 @@ function HabitsLive() {
       fontSize: 17,
       fontWeight: 600
     }
-  }, "\u0417\u0434\u0435\u0441\u044C \u0431\u0443\u0434\u0443\u0442 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0417\u0434\u0435\u0441\u044C \u0431\u0443\u0434\u0443\u0442 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u0446\u0435\u043B\u0438"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
       color: "var(--text-4)",
       lineHeight: 1.45,
-      maxWidth: 250
+      maxWidth: 260
     }
-  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0448\u0430\u0431\u043B\u043E\u043D \u0432\u044B\u0448\u0435, \u043D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0438\u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u0439 \u0441\u0432\u043E\u044E \u2014 \u043E\u0434\u043D\u043E\u043C\u0443 \u0438\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438.")) :
-  /*#__PURE__*/
-  /* 2-колоночная СЕТКА квадратных плиток (David: «привычки квадратными, чтоб поместилось два
-     блока в ряд; внизу 7 точечек, наверху чекмарк/кто ведём»). Свайп в сетке конфликтует →
-     действия (Поделиться/Удалить) + вход в реордер живут в шторке-меню по долгому нажатию. */
-  React.createElement(BosReorderGrid, {
-    ids: habits.map(h => h.id),
-    onReorder: o => {
-      if (app && app.reorderHabits) app.reorderHabits(o);
+  }, "\u041D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0432\u0432\u0435\u0440\u0445\u0443 \u2014 \u0437\u0430\u0432\u0435\u0434\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0438\u043B\u0438 \u0441\u043E\u0431\u0435\u0440\u0438 \u043A\u0440\u0443\u0433. \u041A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u043F\u043E\u0442\u043E\u043C \u0440\u0430\u0441\u0441\u0442\u0430\u0432\u0438\u0448\u044C \u043A\u0430\u043A \u0443\u0434\u043E\u0431\u043D\u043E.")) : /*#__PURE__*/React.createElement(BosReorderGrid, {
+    ids: entries.map(e => e.k),
+    onReorder: keys => {
+      bosSavePracticeOrder(keys);
+      setOrderTick(t => t + 1);
     },
     onLongPress: onTileLongPress,
     ctlRef: gridCtl,
     cols: 2,
     gap: 12,
-    renderItem: (id, ctx) => {
-      var h = habits.find(x => x.id === id);
-      if (!h) return null;
-      return /*#__PURE__*/React.createElement("div", {
-        className: ctx.mode ? "" : "tap",
-        onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
-          habit: h,
-          from: "habits"
-        }),
-        style: {
-          background: rowBg,
-          borderRadius: 22,
-          boxShadow: cardShadow,
-          padding: "13px 13px 12px",
-          minHeight: 158,
-          display: "flex",
-          flexDirection: "column",
-          pointerEvents: ctx.mode ? "none" : "auto",
-          overflow: "hidden"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 8
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 38,
-          height: 38,
-          borderRadius: 13,
-          background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
-          boxShadow: bosTileGlass(isDark),
-          display: "grid",
-          placeItems: "center",
-          fontSize: 19,
-          flexShrink: 0
-        }
-      }, bosIcon(h.emoji, 21, h.color)), /*#__PURE__*/React.createElement("span", {
-        onPointerDown: e => e.stopPropagation(),
-        onClick: e => e.stopPropagation(),
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          flexShrink: 0
-        }
-      }, h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
-        habit: h,
-        dark: isDark,
-        onComplete: () => {
-          if (!h.done) toggle(h.id);
-        }
-      }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
-        habit: h,
-        app: app,
-        xp: 10
-      }) : /*#__PURE__*/React.createElement(HabitCheck, {
-        done: h.done,
-        onToggle: () => toggle(h.id),
-        xp: 10,
-        float: true
-      }))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginTop: 10,
-          fontSize: 15,
-          fontWeight: 600,
-          color: "var(--text)",
-          letterSpacing: "-0.2px",
-          lineHeight: 1.25,
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden"
-        }
-      }, h.name), /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginTop: 7,
-          display: "flex",
-          alignItems: "center",
-          gap: 6
-        }
-      }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
-        habit: h,
-        size: 19,
-        max: 4
-      }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
-        habit: h,
-        size: 19,
-        max: 4
-      })), /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginTop: "auto",
-          paddingTop: 12
-        }
-      }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
-        habit: h,
-        fill: true
-      })));
-    }
-  })), tab === "goals" && (goals.length === 0 && teams.length === 0 ? /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: () => navigate("goal-settings", {
-      mode: "create"
-    }),
-    style: {
-      width: "100%",
-      background: TH.cardBg,
-      border: 0,
-      borderRadius: 22,
-      padding: "34px 20px",
-      boxShadow: cardShadow,
-      color: "var(--text)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      textAlign: "center",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 54,
-      height: 54,
-      borderRadius: 16,
-      background: TH.iconBg,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 27
-    }
-  }, "\uD83C\uDFAF"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 17,
-      fontWeight: 600
-    }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0446\u0435\u043B\u0435\u0439"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: "var(--text-4)",
-      lineHeight: 1.45,
-      maxWidth: 250
-    }
-  }, "\u0426\u0435\u043B\u044C \u2014 \u044D\u0442\u043E \u0432\u0435\u0440\u0448\u0438\u043D\u0430, \u043A \u043A\u043E\u0442\u043E\u0440\u043E\u0439 \u0432\u0435\u0434\u0443\u0442 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438. \u041F\u043E\u0441\u0442\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E."), /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginTop: 6,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      background: TH.addBtnBg,
-      color: TH.addBtnFg,
-      borderRadius: 999,
-      padding: "10px 18px",
-      fontSize: 14.5,
-      fontWeight: 600
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 16,
-    strokeWidth: 2.5
-  }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement(React.Fragment, null, goals.length > 0 && /*#__PURE__*/React.createElement(BosReorderList, {
-    ids: goals.map(g => g.id),
-    onReorder: o => {
-      if (app && app.reorderGoals) app.reorderGoals(o);
-    },
-    renderItem: (id, ctx) => {
-      var g = goals.find(x => x.id === id);
-      if (!g) return null;
-      var pct = g.target > 0 ? Math.min(1, g.current / g.target) : 0;
-      // РАСШИРЕННАЯ карточка цели — тот же богатый вид, что у кругов (David: «оставить только
-      // расширенную»). БЕЛАЯ карточка (как привычки/Найти — David: «цели того же цвета, единый
-      // стиль»), эмблема-водяной знак, чипы-стекло, 🎯 + «К ЦЕЛИ». Лиц нет (личная цель).
-      var gAccent = "#c9ced8"; // эмблема-водяной знак (серый силуэт) — карточка теперь БЕЛАЯ как привычки (David: единый стиль)
-      var inner = /*#__PURE__*/React.createElement("div", {
-        className: ctx.mode ? "" : "tap",
-        onClick: ctx.mode ? undefined : () => navigate("goal-detail", {
-          goal: g,
-          from: "habits"
-        }),
-        style: {
-          padding: 18,
-          textAlign: "left",
-          color: "var(--text)",
-          position: "relative",
-          overflow: "hidden",
-          pointerEvents: ctx.mode ? "none" : "auto"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        "aria-hidden": true,
-        className: "team-card__emblem",
-        style: {
-          position: "absolute",
-          top: -10,
-          right: -6,
-          fontSize: 96,
-          lineHeight: 1,
-          pointerEvents: "none",
-          transform: "rotate(8deg)"
-        }
-      }, bosIcon(g.emoji || "🎯", 84, gAccent)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          position: "relative"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontWeight: 700,
-          fontSize: 18,
-          color: "var(--text)",
-          letterSpacing: "-0.4px"
-        }
-      }, g.name), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 6,
-          marginTop: 8
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          fontSize: 11.5,
-          fontWeight: 600,
-          color: "var(--text-2)",
-          ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
-            background: "var(--surface-3)"
-          }),
-          padding: "4px 10px",
-          borderRadius: 999,
-          whiteSpace: "nowrap"
-        }
-      }, "\uD83C\uDFAF ", g.target, " ", g.unit), g.deadline && /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          fontSize: 11.5,
-          fontWeight: 600,
-          color: "var(--text-2)",
-          ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
-            background: "var(--surface-3)"
-          }),
-          padding: "4px 10px",
-          borderRadius: 999,
-          whiteSpace: "nowrap"
-        }
-      }, "\uD83D\uDCC5 \u0434\u043E ", g.deadline)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: 14,
-          fontSize: 11,
-          color: "var(--text-3)",
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          fontWeight: 600
-        }
-      }, /*#__PURE__*/React.createElement("span", null, "\u041A \u0446\u0435\u043B\u0438"), /*#__PURE__*/React.createElement("span", {
-        style: {
-          color: "var(--text)"
-        }
-      }, g.current, " / ", g.target, " ", g.unit || "")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginTop: 6,
-          height: 8,
-          borderRadius: 999,
-          background: "var(--card-track)",
-          overflow: "hidden"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "block",
-          height: "100%",
-          width: pct * 100 + "%",
-          borderRadius: 999,
-          background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
-        }
-      }))));
-      // Без SwipeRow — тап по карточке (как у кругов). Opaque rowBg (#fff) прятал серое
-      // стекло → цель «отличалась по цвету» (David). Удаление/правка — через деталь цели.
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          background: rowBg,
-          boxShadow: cardShadow,
-          borderRadius: 22,
-          overflow: "hidden"
-        }
-      }, inner);
+    renderItem: (k, ctx) => {
+      var e = entries.find(x => x.k === k);
+      if (!e) return null;
+      return e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx);
     }
   }), teams.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: goals.length ? 12 : 0,
+      marginTop: 12,
       display: "flex",
       flexDirection: "column",
       gap: 12
@@ -874,54 +760,7 @@ function HabitsLive() {
     key: t._id,
     t: t,
     navigate: navigate
-  }))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("goal-settings", {
-      mode: "create",
-      circleOn: true
-    }),
-    className: "tap team-new-cta",
-    style: {
-      marginTop: 12,
-      width: "100%",
-      color: "#fff",
-      border: 0,
-      borderRadius: 22,
-      padding: 18,
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      textAlign: "left"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 48,
-      height: 48,
-      borderRadius: "50%",
-      background: "rgba(255,255,255,0.15)",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 22,
-    color: "#fff"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 600,
-      fontSize: 16
-    }
-  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      opacity: 0.65,
-      marginTop: 2
-    }
-  }, "\u041E\u0431\u0449\u0430\u044F \u0446\u0435\u043B\u044C \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438 \u2014 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439, \u0438 \u0443 \u0446\u0435\u043B\u0438 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430 \u043A\u0440\u0443\u0433\u0430.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 18
-  })))), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       background: TH.cardBg,
