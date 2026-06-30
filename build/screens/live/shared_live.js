@@ -3981,11 +3981,11 @@ function HomeHeroSwipeLive({
   }, /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
-      fontSize: 14.5,
+      fontSize: 13,
       fontWeight: 400,
       color: "var(--text)",
-      lineHeight: 1.5,
-      letterSpacing: "-0.2px",
+      lineHeight: 1.45,
+      letterSpacing: "-0.1px",
       animation: _liveBrief ? "briefFade 0.5s ease both" : undefined
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -3995,7 +3995,7 @@ function HomeHeroSwipeLive({
       marginRight: 6
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 14,
+    size: 13,
     color: "#EF9F14",
     filled: true,
     strokeWidth: 0
@@ -4082,11 +4082,11 @@ function HomeHeroSwipeLive({
   }, /*#__PURE__*/React.createElement("div", {
     key: _homeSummary,
     style: {
-      fontSize: 14.5,
+      fontSize: 13,
       fontWeight: 400,
       color: "var(--text)",
-      lineHeight: 1.5,
-      letterSpacing: "-0.2px",
+      lineHeight: 1.45,
+      letterSpacing: "-0.1px",
       animation: "briefFade 0.5s ease both"
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -4096,7 +4096,7 @@ function HomeHeroSwipeLive({
       marginRight: 6
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 14,
+    size: 13,
     color: "#EF9F14",
     filled: true,
     strokeWidth: 0
