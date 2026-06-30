@@ -33,52 +33,63 @@ function _bosSetHabitsTab(t) {
   } catch (e) {}
 }
 
-// Quick-add presets for the active triad tab. Habits reuse the shared EMOJI_CHIPS; the Цели tab gets
-// its own GOAL presets → {i,t,target,unit,deadline} seeds goal-settings. КРУГ-пресеты (семья/тренинги/
-// челленджи) ПЕРЕЕХАЛИ во вкладку НАЙТИ (CircleStartersShowcaseLive, David: «их место в Найти, не на
-// странице привычек») — здесь больше нет TEAM_CHIPS, «Быстрое добавление» на Целях = чистые цели.
-var GOAL_CHIPS = [{
-  i: "🏃",
-  t: "Пробежать марафон",
-  target: 42,
-  unit: "км",
-  deadline: "1 год"
-}, {
-  i: "📚",
-  t: "Прочитать 12 книг",
-  target: 12,
-  unit: "книг",
-  deadline: "1 год"
+// «ЧЕЛЛЕНДЖИ» — витрина-лента наверху стр. Привычки (David: «не голые пресеты, а самые ПОПУЛЯРНЫЕ
+// привычки/цели/„вместе"-челленджи, у каждой виден XP-БОНУС — быстрое добавление ЧЕЛЛЕНДЖЕЙ»). Тап →
+// создание заполнено пресетом. XP-бейдж = ЧЕСТНАЯ награда за прохождение (days × 10 XP/отметку — XP в
+// приложении ВЫВОДИТСЯ из реальных отметок, не рисуется счётчиком). kind: habit | goal | together
+// (together = цель с тумблером «Идти к цели вместе»). preset-поля совпадают с тем, что читает создание.
+var CHALLENGE_STARTERS = [{
+  i: "🔥",
+  t: "Холодный душ",
+  kind: "habit",
+  days: 30,
+  color: "#0a0a0a"
 }, {
   i: "💪",
-  t: "Прийти в форму",
-  target: 12,
-  unit: "недель",
+  t: "30 дней спорта",
+  kind: "together",
+  days: 30,
+  target: 30,
+  unit: "дней"
+}, {
+  i: "💧",
+  t: "Вода каждый день",
+  kind: "habit",
+  days: 21,
+  color: "#34C759"
+}, {
+  i: "📚",
+  t: "Книга за месяц",
+  kind: "goal",
+  days: 30,
+  target: 1,
+  unit: "книга",
   deadline: "Месяц"
+}, {
+  i: "🏃",
+  t: "Бег вместе",
+  kind: "together",
+  days: 30,
+  target: 30,
+  unit: "км"
 }, {
   i: "🧘",
-  t: "100 дней практики",
-  target: 100,
-  unit: "дней",
-  deadline: "Месяц"
+  t: "10 минут тишины",
+  kind: "habit",
+  days: 21,
+  color: "#AF52DE"
 }, {
-  i: "🗣️",
-  t: "Выучить язык",
-  target: 6,
-  unit: "месяцев",
-  deadline: "1 год"
-}, {
-  i: "💰",
-  t: "Накопить подушку",
-  target: 6,
-  unit: "месяцев",
-  deadline: "1 год"
+  i: "🌅",
+  t: "Ранний подъём",
+  kind: "habit",
+  days: 21,
+  color: "#FF9500"
 }, {
   i: "🚭",
-  t: "Бросить курить",
-  target: 90,
-  unit: "дней",
-  deadline: "Месяц"
+  t: "Без сахара",
+  kind: "habit",
+  days: 30,
+  color: "#FF2D55"
 }];
 
 /* Long-press menu for a habit TILE (David: квадратные плитки 2-в-ряд → горизонтальный свайп
@@ -389,6 +400,39 @@ function HabitsLive() {
     }));
   };
 
+  // Тап по пилюле-челленджу → создание заполнено пресетом. habit → создание привычки; goal → цель;
+  // together → цель с включённым «Идти к цели вместе» (можно сразу звать людей).
+  var startChallenge = c => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    if (c.kind === "habit") {
+      navigate("habit-settings", {
+        mode: "create",
+        preset: {
+          i: c.i,
+          t: c.t,
+          color: c.color
+        }
+      });
+    } else {
+      navigate("goal-settings", {
+        mode: "create",
+        circleOn: c.kind === "together",
+        preset: {
+          i: c.i,
+          t: c.t,
+          target: c.target,
+          unit: c.unit,
+          deadline: c.deadline,
+          goalType: "collective"
+        }
+      });
+    }
+  };
+
   // Смешанный список: привычки + цели в едином порядке (ключи "h<id>"/"g<id>"), отсортированы по
   // сохранённому порядку перестановки; новые элементы — в конец.
   var entries = React.useMemo(() => {
@@ -650,10 +694,75 @@ function HabitsLive() {
     style: {
       display: "flex",
       alignItems: "center",
-      justifyContent: "flex-end",
+      gap: 8,
       marginBottom: 12
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      gap: 8,
+      overflowX: "auto",
+      scrollbarWidth: "none",
+      WebkitOverflowScrolling: "touch",
+      touchAction: "pan-x",
+      padding: "2px 1px",
+      WebkitMaskImage: "linear-gradient(90deg, #000 88%, transparent)",
+      maskImage: "linear-gradient(90deg, #000 88%, transparent)"
+    }
+  }, CHALLENGE_STARTERS.map((c, i) => {
+    var xp = (c.days || 7) * 10;
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      className: "tap",
+      "data-no-haptic": true,
+      onClick: () => startChallenge(c),
+      style: {
+        ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+          background: TH.chipBg
+        }),
+        borderRadius: 999,
+        padding: "7px 9px 7px 11px",
+        border: 0,
+        flexShrink: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        whiteSpace: "nowrap",
+        animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + i * 0.03 + "s"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 15,
+        lineHeight: 1
+      }
+    }, c.i), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: TH.chipText
+      }
+    }, c.t), c.kind === "together" && /*#__PURE__*/React.createElement(I.Users, {
+      size: 12,
+      color: TH.chipText,
+      style: {
+        opacity: 0.55,
+        marginLeft: -2
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 800,
+        color: "#9a6800",
+        background: "rgba(245,180,30,0.18)",
+        borderRadius: 999,
+        padding: "2px 6px",
+        letterSpacing: "-0.2px",
+        lineHeight: 1.3
+      }
+    }, "+", xp, " XP"));
+  })), /*#__PURE__*/React.createElement("button", {
     ref: addBtnRef,
     "data-tour": "add",
     onClick: () => {

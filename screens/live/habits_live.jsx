@@ -21,18 +21,20 @@
 var _bosHabitsTab = (function () { try { var v = localStorage.getItem("bos:habitsTab") || "habits"; return v === "teams" ? "goals" : v; } catch (e) { return "habits"; } })(); /* «teams»-вкладки больше нет (круги в «Целях») → коэрсим устаревший выбор в goals, иначе пустой экран */
 function _bosSetHabitsTab(t) { _bosHabitsTab = t; try { localStorage.setItem("bos:habitsTab", t); } catch (e) {} }
 
-// Quick-add presets for the active triad tab. Habits reuse the shared EMOJI_CHIPS; the Цели tab gets
-// its own GOAL presets → {i,t,target,unit,deadline} seeds goal-settings. КРУГ-пресеты (семья/тренинги/
-// челленджи) ПЕРЕЕХАЛИ во вкладку НАЙТИ (CircleStartersShowcaseLive, David: «их место в Найти, не на
-// странице привычек») — здесь больше нет TEAM_CHIPS, «Быстрое добавление» на Целях = чистые цели.
-const GOAL_CHIPS = [
-  { i: "🏃", t: "Пробежать марафон", target: 42, unit: "км", deadline: "1 год" },
-  { i: "📚", t: "Прочитать 12 книг", target: 12, unit: "книг", deadline: "1 год" },
-  { i: "💪", t: "Прийти в форму", target: 12, unit: "недель", deadline: "Месяц" },
-  { i: "🧘", t: "100 дней практики", target: 100, unit: "дней", deadline: "Месяц" },
-  { i: "🗣️", t: "Выучить язык", target: 6, unit: "месяцев", deadline: "1 год" },
-  { i: "💰", t: "Накопить подушку", target: 6, unit: "месяцев", deadline: "1 год" },
-  { i: "🚭", t: "Бросить курить", target: 90, unit: "дней", deadline: "Месяц" },
+// «ЧЕЛЛЕНДЖИ» — витрина-лента наверху стр. Привычки (David: «не голые пресеты, а самые ПОПУЛЯРНЫЕ
+// привычки/цели/„вместе"-челленджи, у каждой виден XP-БОНУС — быстрое добавление ЧЕЛЛЕНДЖЕЙ»). Тап →
+// создание заполнено пресетом. XP-бейдж = ЧЕСТНАЯ награда за прохождение (days × 10 XP/отметку — XP в
+// приложении ВЫВОДИТСЯ из реальных отметок, не рисуется счётчиком). kind: habit | goal | together
+// (together = цель с тумблером «Идти к цели вместе»). preset-поля совпадают с тем, что читает создание.
+const CHALLENGE_STARTERS = [
+  { i: "🔥", t: "Холодный душ",    kind: "habit",    days: 30, color: "#0a0a0a" },
+  { i: "💪", t: "30 дней спорта",   kind: "together", days: 30, target: 30, unit: "дней" },
+  { i: "💧", t: "Вода каждый день", kind: "habit",    days: 21, color: "#34C759" },
+  { i: "📚", t: "Книга за месяц",   kind: "goal",     days: 30, target: 1, unit: "книга", deadline: "Месяц" },
+  { i: "🏃", t: "Бег вместе",       kind: "together", days: 30, target: 30, unit: "км" },
+  { i: "🧘", t: "10 минут тишины",  kind: "habit",    days: 21, color: "#AF52DE" },
+  { i: "🌅", t: "Ранний подъём",    kind: "habit",    days: 21, color: "#FF9500" },
+  { i: "🚭", t: "Без сахара",       kind: "habit",    days: 30, color: "#FF2D55" },
 ];
 
 /* Long-press menu for a habit TILE (David: квадратные плитки 2-в-ряд → горизонтальный свайп
@@ -177,6 +179,17 @@ function HabitsLive() {
     );
   };
 
+  // Тап по пилюле-челленджу → создание заполнено пресетом. habit → создание привычки; goal → цель;
+  // together → цель с включённым «Идти к цели вместе» (можно сразу звать людей).
+  const startChallenge = (c) => {
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    if (c.kind === "habit") {
+      navigate("habit-settings", { mode: "create", preset: { i: c.i, t: c.t, color: c.color } });
+    } else {
+      navigate("goal-settings", { mode: "create", circleOn: c.kind === "together", preset: { i: c.i, t: c.t, target: c.target, unit: c.unit, deadline: c.deadline, goalType: "collective" } });
+    }
+  };
+
   // Смешанный список: привычки + цели в едином порядке (ключи "h<id>"/"g<id>"), отсортированы по
   // сохранённому порядку перестановки; новые элементы — в конец.
   const entries = React.useMemo(() => {
@@ -252,9 +265,27 @@ function HabitsLive() {
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
 
-      {/* Чистая шапка: только «+» (David убрал «Быстрое добавление» и переключатель Привычки/Цели).
-          «+» открывает CreateMenuLive → Привычку / Круг. Страница ниже = ОДНА сетка плиток. */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 12 }}>
+      {/* Шапка: ЛЕНТА ЧЕЛЛЕНДЖЕЙ (горизонтальный скролл, уходит за край) + «+» закреплён справа (David:
+          «верни пилюли наверх рядом с „+", переработай в челленджи с XP-бонусом»). Тап пилюли → создание
+          заполнено; «+» открывает CreateMenuLive → Привычку / Цель. Страница ниже = ОДНА сетка плиток. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "2px 1px", WebkitMaskImage: "linear-gradient(90deg, #000 88%, transparent)", maskImage: "linear-gradient(90deg, #000 88%, transparent)" }}>
+          {CHALLENGE_STARTERS.map((c, i) => {
+            const xp = (c.days || 7) * 10;
+            return (
+              <button key={i} className="tap" data-no-haptic onClick={() => startChallenge(c)} style={{
+                ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), borderRadius: 999, padding: "7px 9px 7px 11px", border: 0, flexShrink: 0,
+                display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap",
+                animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.03) + "s",
+              }}>
+                <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: TH.chipText }}>{c.t}</span>
+                {c.kind === "together" && <I.Users size={12} color={TH.chipText} style={{ opacity: 0.55, marginLeft: -2 }} />}
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9a6800", background: "rgba(245,180,30,0.18)", borderRadius: 999, padding: "2px 6px", letterSpacing: "-0.2px", lineHeight: 1.3 }}>+{xp} XP</span>
+              </button>
+            );
+          })}
+        </div>
         <button ref={addBtnRef} data-tour="add" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
           title="Создать" aria-haspopup="menu" aria-expanded={createOpen}
           style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center" }}>
