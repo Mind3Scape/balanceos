@@ -658,44 +658,59 @@ function TeamDetailLive() {
             </div>
           );
         })()}
-        {/* Adopted → отметка идёт через ЛИЧНУЮ копию (единый источник). Не адаптирована → «Вести у себя». */}
-        {_rosterLive && (adoptedFor(main)
-          ? <button onClick={() => markAdopted(main)} className="tap" style={{ width: "100%", marginTop: 14, border: myDone(main) ? "1.5px solid var(--line)" : 0, borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 600, background: myDone(main) ? "transparent" : "#0a0a0a", color: myDone(main) ? "var(--text-2)" : "#fff" }}>
-              {myDone(main) ? "✓ Сделано сегодня" : "Отметить сегодня"}
-            </button>
-          : <button onClick={() => adoptTeamHabit(main)} className="tap" style={{ width: "100%", marginTop: 14, background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 600, color: "var(--text-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Plus size={15} /> Вести у себя</button>
-        )}
+        {/* Отметка ПРЯМО В КОМАНДЕ (toggleMyTeamHabit) — личная копия не нужна (David: «отмечать в
+            команде, не таща в личное»). Если уже адаптирована — отметка через личную копию (единый лог).
+            «Вести и у себя» — опц. опт-ин под кнопкой (НЕ способ отметки, а «появится в личных»). */}
+        {_rosterLive && (<>
+          <button onClick={() => (adoptedFor(main) ? markAdopted(main) : toggleMyTeamHabit(main))} className="tap" style={{ width: "100%", marginTop: 14, border: myDone(main) ? "1.5px solid var(--line)" : 0, borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 600, background: myDone(main) ? "transparent" : "#0a0a0a", color: myDone(main) ? "var(--text-2)" : "#fff" }}>
+            {myDone(main) ? "✓ Сделано сегодня" : "Отметить сегодня"}
+          </button>
+          {!adoptedFor(main) && <button onClick={() => adoptTeamHabit(main)} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", border: "1px dashed rgba(0,0,0,0.16)", borderRadius: 999, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}><I.Plus size={13} /> Вести и у себя</button>}
+        </>)}
       </div>
       </>)}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      <div style={{ marginTop: 8 }}>
         {teamHabits.length === 0 && (
           <div style={{ fontSize: 13, color: "var(--text-4)", padding: "4px 2px 8px", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем команды.</div>
         )}
-        {others.map((h, i) => (
-          <div key={i} style={{ background: "var(--card)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
-            <span style={{ width: 40, height: 40, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{bosIcon(h.emoji, 22, h.color)}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{h.name}</div>
-              {/* Aggregate weekly consistency — the day-by-day view lives in the calendar above */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7 }}>
-                <div style={{ flex: 1, maxWidth: 110, height: 5, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
-                  <span style={{ display: "block", height: "100%", width: Math.round((h.weekPct || 0) * 100) + "%", background: "#0a0a0a", borderRadius: 999 }} />
+        {/* Командные привычки = ТЕ ЖЕ квадратные плитки, что на стр. Привычки (David: «не выдумывать
+            третий способ отметки — единый язык»). Галочка отмечает ПРЯМО В КОМАНДЕ (toggleMyTeamHabit),
+            личная копия не нужна; «Вести у себя» снизу плитки — опц. опт-ин (появится и в личных). */}
+        {others.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {others.map((h, i) => {
+              const done = myDone(h);
+              const adopted = !!adoptedFor(h);
+              const markInTeam = () => (adopted ? markAdopted(h) : toggleMyTeamHabit(h));
+              return (
+                <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: "13px 13px 12px", minHeight: 150, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
+                    {_rosterLive && <button onClick={markInTeam} className={"check-btn tap " + (done ? "" : "unchecked")} aria-label="Отметить" style={{ flexShrink: 0, width: 30, height: 30, "--check-color": "#0a0a0a" }}>{done && <I.Check size={16} color="#fff" strokeWidth={3} />}</button>}
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
+                  <div style={{ marginTop: "auto", paddingTop: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.6 }}>Сегодня</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>{h.doneToday}/{h.total}</span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
+                      <span style={{ display: "block", height: "100%", width: Math.round((h.weekPct || 0) * 100) + "%", borderRadius: 999, background: h.color || "#0a0a0a" }} />
+                    </div>
+                    {_rosterLive && !adopted && (
+                      <button onClick={() => adoptTeamHabit(h)} className="tap" style={{ marginTop: 9, width: "100%", background: "transparent", border: "1px dashed rgba(0,0,0,0.16)", borderRadius: 999, padding: "6px 8px", fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}><I.Plus size={12} /> Вести у себя</button>
+                    )}
+                    {_rosterLive && adopted && (
+                      <div style={{ marginTop: 9, fontSize: 11, fontWeight: 600, color: "var(--text-4)", textAlign: "center" }}>👤 ведёшь и у себя</div>
+                    )}
+                  </div>
                 </div>
-                <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>{Math.round((h.weekPct || 0) * 100)}% за неделю</span>
-              </div>
-            </div>
-            <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{h.doneToday}/{h.total}</div>
-              <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1 }}>сегодня</div>
-            </div>
-            {_rosterLive && (adoptedFor(h)
-              ? <button onClick={() => markAdopted(h)} className={"check-btn tap " + (myDone(h) ? "" : "unchecked")} aria-label="Отметить" style={{ flexShrink: 0, width: 34, height: 34, "--check-color": "#0a0a0a" }}>{myDone(h) && <I.Check size={16} color="#fff" strokeWidth={3} />}</button>
-              : <button onClick={() => adoptTeamHabit(h)} className="tap" aria-label="Вести у себя" title="Вести у себя" style={{ flexShrink: 0, height: 34, padding: "0 12px", borderRadius: 999, border: "1px dashed rgba(0,0,0,0.18)", background: "transparent", color: "var(--text-2)", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}><I.Plus size={13} /> У себя</button>
-            )}
+              );
+            })}
           </div>
-        ))}
-        <button onClick={openAddHabit} className="tap" style={{ background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 22, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
+        )}
+        <button onClick={openAddHabit} className="tap" style={{ marginTop: 12, width: "100%", background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 22, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
           + Добавить привычку команды
         </button>
       </div>

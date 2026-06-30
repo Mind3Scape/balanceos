@@ -1545,8 +1545,8 @@ function TeamDetailLive() {
         placeItems: "center"
       }
     }, "+", fExtra));
-  })(), _rosterLive && (adoptedFor(main) ? /*#__PURE__*/React.createElement("button", {
-    onClick: () => markAdopted(main),
+  })(), _rosterLive && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    onClick: () => adoptedFor(main) ? markAdopted(main) : toggleMyTeamHabit(main),
     className: "tap",
     style: {
       width: "100%",
@@ -1559,31 +1559,28 @@ function TeamDetailLive() {
       background: myDone(main) ? "transparent" : "#0a0a0a",
       color: myDone(main) ? "var(--text-2)" : "#fff"
     }
-  }, myDone(main) ? "✓ Сделано сегодня" : "Отметить сегодня") : /*#__PURE__*/React.createElement("button", {
+  }, myDone(main) ? "✓ Сделано сегодня" : "Отметить сегодня"), !adoptedFor(main) && /*#__PURE__*/React.createElement("button", {
     onClick: () => adoptTeamHabit(main),
     className: "tap",
     style: {
       width: "100%",
-      marginTop: 14,
+      marginTop: 8,
       background: "transparent",
-      border: "1px dashed rgba(0,0,0,0.18)",
+      border: "1px dashed rgba(0,0,0,0.16)",
       borderRadius: 999,
-      padding: "11px 14px",
-      fontSize: 14,
+      padding: "8px 14px",
+      fontSize: 12.5,
       fontWeight: 600,
-      color: "var(--text-2)",
+      color: "var(--text-3)",
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: 7
+      gap: 6
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 15
-  }), " \u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F")))), /*#__PURE__*/React.createElement("div", {
+    size: 13
+  }), " \u0412\u0435\u0441\u0442\u0438 \u0438 \u0443 \u0441\u0435\u0431\u044F")))), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
       marginTop: 8
     }
   }, teamHabits.length === 0 && /*#__PURE__*/React.createElement("div", {
@@ -1593,126 +1590,151 @@ function TeamDetailLive() {
       padding: "4px 2px 8px",
       lineHeight: 1.5
     }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u043E\u043D\u0430 \u0441\u0442\u0430\u043D\u0435\u0442 \u044F\u043A\u043E\u0440\u0435\u043C \u043A\u043E\u043C\u0430\u043D\u0434\u044B."), others.map((h, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u043E\u043D\u0430 \u0441\u0442\u0430\u043D\u0435\u0442 \u044F\u043A\u043E\u0440\u0435\u043C \u043A\u043E\u043C\u0430\u043D\u0434\u044B."), others.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "var(--card)",
-      borderRadius: 22,
-      padding: 14,
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      boxShadow: "var(--card-shadow)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 14,
-      background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"),
-      boxShadow: bosTileGlass(isDark),
       display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      flexShrink: 0
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
     }
-  }, bosIcon(h.emoji, 22, h.color)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, h.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginTop: 7
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      maxWidth: 110,
-      height: 5,
-      borderRadius: 999,
-      background: "var(--surface-3)",
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      height: "100%",
-      width: Math.round((h.weekPct || 0) * 100) + "%",
-      background: "#0a0a0a",
-      borderRadius: 999
-    }
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-4)"
-    }
-  }, Math.round((h.weekPct || 0) * 100), "% \u0437\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "right",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: "var(--text)"
-    }
-  }, h.doneToday, "/", h.total), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1
-    }
-  }, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F")), _rosterLive && (adoptedFor(h) ? /*#__PURE__*/React.createElement("button", {
-    onClick: () => markAdopted(h),
-    className: "check-btn tap " + (myDone(h) ? "" : "unchecked"),
-    "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C",
-    style: {
-      flexShrink: 0,
-      width: 34,
-      height: 34,
-      "--check-color": "#0a0a0a"
-    }
-  }, myDone(h) && /*#__PURE__*/React.createElement(I.Check, {
-    size: 16,
-    color: "#fff",
-    strokeWidth: 3
-  })) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => adoptTeamHabit(h),
-    className: "tap",
-    "aria-label": "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F",
-    title: "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F",
-    style: {
-      flexShrink: 0,
-      height: 34,
-      padding: "0 12px",
-      borderRadius: 999,
-      border: "1px dashed rgba(0,0,0,0.18)",
-      background: "transparent",
-      color: "var(--text-2)",
-      fontSize: 12.5,
-      fontWeight: 600,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 13
-  }), " \u0423 \u0441\u0435\u0431\u044F")))), /*#__PURE__*/React.createElement("button", {
+  }, others.map((h, i) => {
+    var done = myDone(h);
+    var adopted = !!adoptedFor(h);
+    var markInTeam = () => adopted ? markAdopted(h) : toggleMyTeamHabit(h);
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        background: "var(--card)",
+        borderRadius: 22,
+        boxShadow: "var(--card-shadow)",
+        padding: "13px 13px 12px",
+        minHeight: 150,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"),
+        boxShadow: bosTileGlass(isDark),
+        display: "grid",
+        placeItems: "center",
+        fontSize: 19,
+        flexShrink: 0
+      }
+    }, bosIcon(h.emoji, 21, h.color)), _rosterLive && /*#__PURE__*/React.createElement("button", {
+      onClick: markInTeam,
+      className: "check-btn tap " + (done ? "" : "unchecked"),
+      "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C",
+      style: {
+        flexShrink: 0,
+        width: 30,
+        height: 30,
+        "--check-color": "#0a0a0a"
+      }
+    }, done && /*#__PURE__*/React.createElement(I.Check, {
+      size: 16,
+      color: "#fff",
+      strokeWidth: 3
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        fontSize: 15,
+        fontWeight: 600,
+        color: "var(--text)",
+        letterSpacing: "-0.2px",
+        lineHeight: 1.25,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden"
+      }
+    }, h.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "auto",
+        paddingTop: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        marginBottom: 5
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: "var(--text-4)",
+        textTransform: "uppercase",
+        letterSpacing: 0.6
+      }
+    }, "\u0421\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-2)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, h.doneToday, "/", h.total)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 6,
+        borderRadius: 999,
+        background: "var(--surface-3)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        height: "100%",
+        width: Math.round((h.weekPct || 0) * 100) + "%",
+        borderRadius: 999,
+        background: h.color || "#0a0a0a"
+      }
+    })), _rosterLive && !adopted && /*#__PURE__*/React.createElement("button", {
+      onClick: () => adoptTeamHabit(h),
+      className: "tap",
+      style: {
+        marginTop: 9,
+        width: "100%",
+        background: "transparent",
+        border: "1px dashed rgba(0,0,0,0.16)",
+        borderRadius: 999,
+        padding: "6px 8px",
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "var(--text-3)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 5
+      }
+    }, /*#__PURE__*/React.createElement(I.Plus, {
+      size: 12
+    }), " \u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F"), _rosterLive && adopted && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 9,
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--text-4)",
+        textAlign: "center"
+      }
+    }, "\uD83D\uDC64 \u0432\u0435\u0434\u0451\u0448\u044C \u0438 \u0443 \u0441\u0435\u0431\u044F")));
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: openAddHabit,
     className: "tap",
     style: {
+      marginTop: 12,
+      width: "100%",
       background: "transparent",
       border: "1px dashed rgba(0,0,0,0.18)",
       borderRadius: 22,
