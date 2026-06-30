@@ -459,6 +459,7 @@ function PeopleMonthCalendarLive({
   };
   var [selDay, setSelDay] = React.useState(today);
   var [compact, setCompact] = React.useState(true); // «красиво» (default, just cells) ↔ «подробно» по глазику
+  var [view, setView] = React.useState("month"); // Неделя · Месяц · Год — один кружок-день в трёх масштабах (David)
   var daysInMonth = new Date(year, mIdx + 1, 0).getDate();
   var startWeekday = new Date(year, mIdx, 1).getDay();
   var isCurMonth = mIdx === CUR_M;
@@ -546,6 +547,68 @@ function PeopleMonthCalendarLive({
     triggerRipple(todayIdx);
     if (todayTap && todayTap.onTap) todayTap.onTap();
   };
+
+  // ── «Неделя · Месяц · Год» — тот же кружок-день в трёх масштабах (David). Год = «грядка» с начала
+  //    года до сегодня (месяцы сверху, без дней недели слева); Неделя = крупная текущая строка.
+  var MO_ABBR = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+  var yearScrollRef = React.useRef(null);
+  var yearData = React.useMemo(() => {
+    var jan1 = new Date(year, 0, 1);
+    var wd0 = (jan1.getDay() + 6) % 7; // Mon-first offset of Jan 1
+    var tot = Math.round((new Date(year, CUR_M, today) - jan1) / 86400000) + 1; // days Jan 1 → today
+    var cols = Math.ceil((wd0 + tot) / 7);
+    var firstCol = {},
+      slots = [],
+      colLabel = {};
+    for (var c = 0; c < cols; c++) for (var r = 0; r < 7; r++) {
+      var off = c * 7 + r - wd0;
+      if (off < 0 || off >= tot) {
+        slots.push(null);
+        continue;
+      }
+      var dt = new Date(year, 0, 1 + off),
+        m = dt.getMonth();
+      if (firstCol[m] === undefined) {
+        firstCol[m] = c;
+        colLabel[c] = MO_ABBR[m];
+      }
+      slots.push({
+        m,
+        d: dt.getDate()
+      });
+    }
+    return {
+      cols,
+      slots,
+      colLabel
+    };
+  }, [year, CUR_M, today]);
+  var yearPct = (m, d) => {
+    if (selPerson == null) {
+      var v = people.map((_, i) => dayFrac(i, d, m) || 0);
+      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+    }
+    return dayFrac(selPerson, d, m) || 0;
+  };
+  var weekData = React.useMemo(() => {
+    var wd = (new Date(year, CUR_M, today).getDay() + 6) % 7,
+      tRef = new Date(year, CUR_M, today).getTime();
+    return Array.from({
+      length: 7
+    }, (_, i) => {
+      var dt = new Date(year, CUR_M, today - wd + i);
+      return {
+        d: dt.getDate(),
+        m: dt.getMonth(),
+        wlbl: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][i],
+        isToday: dt.getMonth() === CUR_M && dt.getDate() === today,
+        future: dt.getTime() > tRef
+      };
+    });
+  }, [year, CUR_M, today]);
+  React.useEffect(() => {
+    if (view === "year" && yearScrollRef.current) yearScrollRef.current.scrollLeft = yearScrollRef.current.scrollWidth;
+  }, [view]);
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
@@ -568,7 +631,7 @@ function PeopleMonthCalendarLive({
       letterSpacing: "-0.2px",
       color: "var(--text-2)"
     }
-  }, label) : /*#__PURE__*/React.createElement("span", null), /*#__PURE__*/React.createElement("button", {
+  }, label) : /*#__PURE__*/React.createElement("span", null), view === "month" ? /*#__PURE__*/React.createElement("button", {
     onClick: () => setCompact(c => !c),
     className: "tap",
     "aria-label": compact ? "Подробно" : "Компактно",
@@ -589,7 +652,31 @@ function PeopleMonthCalendarLive({
   }, /*#__PURE__*/React.createElement(I.Eye, {
     size: 14,
     color: "var(--text-3)"
-  }), compact ? "Подробно" : "Компактно")), !solo && /*#__PURE__*/React.createElement("div", {
+  }), compact ? "Подробно" : "Компактно") : /*#__PURE__*/React.createElement("span", null)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 2,
+      background: chipBg,
+      borderRadius: 12,
+      padding: 3,
+      marginBottom: 12
+    }
+  }, [["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setView(v),
+    className: "tap",
+    style: {
+      flex: 1,
+      border: 0,
+      borderRadius: 9,
+      padding: "6px 0",
+      fontSize: 13,
+      fontWeight: view === v ? 700 : 500,
+      cursor: "pointer",
+      background: view === v ? isDark ? "#fff" : "#0a0a0a" : "transparent",
+      color: view === v ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)"
+    }
+  }, l))), !solo && /*#__PURE__*/React.createElement("div", {
     className: "screen-scroll",
     style: {
       display: "flex",
@@ -621,7 +708,7 @@ function PeopleMonthCalendarLive({
     avatar: m.avatar,
     name: m.name,
     size: 18
-  }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), !compact && /*#__PURE__*/React.createElement("div", {
+  }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), view === "month" && !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -665,7 +752,67 @@ function PeopleMonthCalendarLive({
     }
   }, /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 16
-  }))), !compact && /*#__PURE__*/React.createElement("div", {
+  }))), view === "week" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7,1fr)",
+      gap: 8,
+      maxWidth: 330,
+      width: "100%",
+      margin: "2px auto 0"
+    }
+  }, weekData.map((wk, i) => {
+    var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#0a0a0a";
+    var itx = !!(todayTap && wk.isToday && (solo || selPerson == null || people[selPerson] && people[selPerson].you));
+    var pct = wk.future ? null : itx ? todayTap.pct : yearPct(wk.m, wk.d);
+    var fut = pct == null;
+    var filled = !fut && pct > 0;
+    var done = !fut && pct >= 1;
+    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : track : bosCellFill(hx, pct);
+    var ink = fut ? "var(--text-4)" : pct <= 0 ? itx ? hx : "var(--text)" : itx ? "#fff" : bosCellInk(hx, pct, isDark);
+    var ringC = wk.isToday ? itx ? hx : isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)" : null;
+    var sh = [filled ? bosCellGlass(isDark) : "", ringC ? "0 0 0 1.6px " + ringC : ""].filter(Boolean).join(", ") || "none";
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 600,
+        color: "var(--text-4)"
+      }
+    }, wk.wlbl), /*#__PURE__*/React.createElement("button", {
+      onClick: itx ? fireToday : undefined,
+      className: "tap",
+      style: {
+        width: "100%",
+        aspectRatio: "1/1",
+        border: 0,
+        borderRadius: "50%",
+        background: bg,
+        boxShadow: sh,
+        color: ink,
+        display: "grid",
+        placeItems: "center",
+        fontSize: 14,
+        fontWeight: wk.isToday ? 700 : 500,
+        cursor: itx ? "pointer" : "default"
+      }
+    }, itx && !done ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 800
+      }
+    }, todayTap.hint) : itx && done ? /*#__PURE__*/React.createElement(I.Check, {
+      size: 16,
+      strokeWidth: 3,
+      color: ink
+    }) : wk.d));
+  })), view === "month" && !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(7,1fr)",
@@ -683,7 +830,7 @@ function PeopleMonthCalendarLive({
       letterSpacing: 0.3,
       color: "var(--text-4)"
     }
-  }, w))), /*#__PURE__*/React.createElement("div", {
+  }, w))), view === "month" && /*#__PURE__*/React.createElement("div", {
     ref: gridRef,
     style: {
       display: "grid",
@@ -764,7 +911,71 @@ function PeopleMonthCalendarLive({
         fontVariantNumeric: "tabular-nums"
       }
     }, todayTap.hint) : !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
-  })), !compact && /*#__PURE__*/React.createElement("div", {
+  })), view === "year" && /*#__PURE__*/React.createElement("div", {
+    ref: yearScrollRef,
+    className: "screen-scroll",
+    style: {
+      overflowX: "auto",
+      paddingBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: yearData.cols * 14,
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      marginBottom: 7
+    }
+  }, Array.from({
+    length: yearData.cols
+  }, (_, c) => /*#__PURE__*/React.createElement("div", {
+    key: c,
+    style: {
+      width: 14,
+      flexShrink: 0,
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-4)",
+      whiteSpace: "nowrap",
+      overflow: "visible"
+    }
+  }, yearData.colLabel[c] || ""))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateRows: "repeat(7, 11px)",
+      gridAutoFlow: "column",
+      gridAutoColumns: "11px",
+      gap: 3
+    }
+  }, yearData.slots.map((s, i) => {
+    if (!s) return /*#__PURE__*/React.createElement("span", {
+      key: i,
+      "aria-hidden": true,
+      style: {
+        width: 11,
+        height: 11
+      }
+    });
+    var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#0a0a0a";
+    var pct = yearPct(s.m, s.d);
+    var filled = pct > 0;
+    var isToday = s.m === CUR_M && s.d === today;
+    var bg = pct <= 0 ? track : bosCellFill(hx, pct);
+    var sh = [filled ? bosCellGlass(isDark) : "", isToday ? "0 0 0 1.6px #EFA017" : ""].filter(Boolean).join(", ") || "none";
+    return /*#__PURE__*/React.createElement("span", {
+      key: i,
+      title: (MONTHS[s.m] || "") + " " + s.d,
+      style: {
+        width: 11,
+        height: 11,
+        borderRadius: "50%",
+        background: bg,
+        boxShadow: sh
+      }
+    });
+  })))), view === "month" && !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
       paddingTop: 12,

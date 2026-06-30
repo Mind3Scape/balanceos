@@ -233,6 +233,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const setSelPerson = (v) => { if (onSelPerson) onSelPerson(v); else setSelInner(v); };
   const [selDay, setSelDay] = React.useState(today);
   const [compact, setCompact] = React.useState(true); // «красиво» (default, just cells) ↔ «подробно» по глазику
+  const [view, setView] = React.useState("month"); // Неделя · Месяц · Год — один кружок-день в трёх масштабах (David)
   const daysInMonth = new Date(year, mIdx + 1, 0).getDate();
   const startWeekday = new Date(year, mIdx, 1).getDay();
   const isCurMonth = mIdx === CUR_M;
@@ -276,6 +277,35 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   };
   const fireToday = () => { setSelDay(today); triggerRipple(todayIdx); if (todayTap && todayTap.onTap) todayTap.onTap(); };
 
+  // ── «Неделя · Месяц · Год» — тот же кружок-день в трёх масштабах (David). Год = «грядка» с начала
+  //    года до сегодня (месяцы сверху, без дней недели слева); Неделя = крупная текущая строка.
+  const MO_ABBR = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+  const yearScrollRef = React.useRef(null);
+  const yearData = React.useMemo(() => {
+    const jan1 = new Date(year, 0, 1);
+    const wd0 = (jan1.getDay() + 6) % 7;                                  // Mon-first offset of Jan 1
+    const tot = Math.round((new Date(year, CUR_M, today) - jan1) / 86400000) + 1; // days Jan 1 → today
+    const cols = Math.ceil((wd0 + tot) / 7);
+    const firstCol = {}, slots = [], colLabel = {};
+    for (let c = 0; c < cols; c++) for (let r = 0; r < 7; r++) {
+      const off = c * 7 + r - wd0;
+      if (off < 0 || off >= tot) { slots.push(null); continue; }
+      const dt = new Date(year, 0, 1 + off), m = dt.getMonth();
+      if (firstCol[m] === undefined) { firstCol[m] = c; colLabel[c] = MO_ABBR[m]; }
+      slots.push({ m, d: dt.getDate() });
+    }
+    return { cols, slots, colLabel };
+  }, [year, CUR_M, today]);
+  const yearPct = (m, d) => {
+    if (selPerson == null) { const v = people.map((_, i) => dayFrac(i, d, m) || 0); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; }
+    return dayFrac(selPerson, d, m) || 0;
+  };
+  const weekData = React.useMemo(() => {
+    const wd = (new Date(year, CUR_M, today).getDay() + 6) % 7, tRef = new Date(year, CUR_M, today).getTime();
+    return Array.from({ length: 7 }, (_, i) => { const dt = new Date(year, CUR_M, today - wd + i); return { d: dt.getDate(), m: dt.getMonth(), wlbl: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][i], isToday: dt.getMonth() === CUR_M && dt.getDate() === today, future: dt.getTime() > tRef }; });
+  }, [year, CUR_M, today]);
+  React.useEffect(() => { if (view === "year" && yearScrollRef.current) yearScrollRef.current.scrollLeft = yearScrollRef.current.scrollWidth; }, [view]);
+
   return (
     <>
       <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: label ? 12 : 0 }}>
@@ -283,10 +313,18 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             чтобы блоки читались бум-бум-бум»). «Компактно» = pretty cells ↔ «Подробно» = dates+labels. */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           {label ? <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text-2)" }}>{label}</div> : <span />}
-          <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-            <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Компактно"}
-          </button>
+          {view === "month"
+            ? <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: chipBg, border: 0, borderRadius: 999, padding: "5px 11px", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+                <I.Eye size={14} color="var(--text-3)" />{compact ? "Подробно" : "Компактно"}
+              </button>
+            : <span />}
+        </div>
+        {/* Неделя · Месяц · Год — один кружок-день в трёх масштабах (David). Активный = тёмная пилюля (как чипы). */}
+        <div style={{ display: "flex", gap: 2, background: chipBg, borderRadius: 12, padding: 3, marginBottom: 12 }}>
+          {[["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
+            <button key={v} onClick={() => setView(v)} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "6px 0", fontSize: 13, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{l}</button>
+          ))}
         </div>
         {!solo && (
           <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2, marginBottom: 12 }}>
@@ -303,7 +341,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
           </div>
         )}
 
-        {!compact && (
+        {view === "month" && !compact && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <button onClick={() => setMIdx((m) => Math.max(0, m - 1))} className="tap" style={{ background: chipBg, border: 0, borderRadius: 999, width: 32, height: 32, display: "grid", placeItems: "center", color: "inherit", opacity: mIdx === 0 ? 0.35 : 1 }}><I.ChevronLeft size={16} /></button>
             <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>{MONTHS[mIdx]} {year}</div>
@@ -311,13 +349,39 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
           </div>
         )}
 
-        {!compact && (
+        {view === "week" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8, maxWidth: 330, width: "100%", margin: "2px auto 0" }}>
+            {weekData.map((wk, i) => {
+              const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#0a0a0a";
+              const itx = !!(todayTap && wk.isToday && (solo || selPerson == null || (people[selPerson] && people[selPerson].you)));
+              const pct = wk.future ? null : (itx ? todayTap.pct : yearPct(wk.m, wk.d));
+              const fut = pct == null;
+              const filled = !fut && pct > 0;
+              const done = !fut && pct >= 1;
+              const bg = fut ? (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)") : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : track) : bosCellFill(hx, pct));
+              const ink = fut ? "var(--text-4)" : (pct <= 0 ? (itx ? hx : "var(--text)") : (itx ? "#fff" : bosCellInk(hx, pct, isDark)));
+              const ringC = wk.isToday ? (itx ? hx : (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)")) : null;
+              const sh = [filled ? bosCellGlass(isDark) : "", ringC ? ("0 0 0 1.6px " + ringC) : ""].filter(Boolean).join(", ") || "none";
+              return (
+                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-4)" }}>{wk.wlbl}</span>
+                  <button onClick={itx ? fireToday : undefined} className="tap" style={{ width: "100%", aspectRatio: "1/1", border: 0, borderRadius: "50%", background: bg, boxShadow: sh, color: ink, display: "grid", placeItems: "center", fontSize: 14, fontWeight: wk.isToday ? 700 : 500, cursor: itx ? "pointer" : "default" }}>
+                    {itx && !done ? <span style={{ fontWeight: 800 }}>{todayTap.hint}</span> : (itx && done ? <I.Check size={16} strokeWidth={3} color={ink} /> : wk.d)}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {view === "month" && !compact && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 300, width: "100%", margin: "12px auto 0" }}>
             {weekday.map((w, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 600, letterSpacing: 0.3, color: "var(--text-4)" }}>{w}</div>)}
           </div>
         )}
-        {/* Day cells — SQUIRCLES (time = rounded squares; people = circles, the chips above), filled as
-            a heat-cell by completion. «Красиво» hides numbers/labels/nav for a glanceable grid. */}
+        {/* Day cells — CIRCLES (день = кружок; люди = чипы выше), залитые хитмапом по выполнению.
+            «Красиво» прячет числа/подписи/навигацию для глазастой сетки. */}
+        {view === "month" && (
         <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, maxWidth: 300, width: "100%", margin: compact ? "0 auto" : "6px auto 0" }}>
           {cells.map((c) => {
             if (c.blank) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1" }} />;
@@ -360,8 +424,35 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             );
           })}
         </div>
+        )}
 
-        {!compact && (
+        {/* Год — «грядка» с начала года до сегодня: столбцы = недели, строки = дни недели (Пн↑Вс),
+            месяцы сверху. Тот же кружок-день и заливка-хитмап. Открывается прокрученной к сегодня. */}
+        {view === "year" && (
+          <div ref={yearScrollRef} className="screen-scroll" style={{ overflowX: "auto", paddingBottom: 4 }}>
+            <div style={{ minWidth: yearData.cols * 14, margin: "0 auto" }}>
+              <div style={{ display: "flex", marginBottom: 7 }}>
+                {Array.from({ length: yearData.cols }, (_, c) => (
+                  <div key={c} style={{ width: 14, flexShrink: 0, fontSize: 11, fontWeight: 600, color: "var(--text-4)", whiteSpace: "nowrap", overflow: "visible" }}>{yearData.colLabel[c] || ""}</div>
+                ))}
+              </div>
+              <div style={{ display: "grid", gridTemplateRows: "repeat(7, 11px)", gridAutoFlow: "column", gridAutoColumns: "11px", gap: 3 }}>
+                {yearData.slots.map((s, i) => {
+                  if (!s) return <span key={i} aria-hidden style={{ width: 11, height: 11 }} />;
+                  const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#0a0a0a";
+                  const pct = yearPct(s.m, s.d);
+                  const filled = pct > 0;
+                  const isToday = s.m === CUR_M && s.d === today;
+                  const bg = pct <= 0 ? track : bosCellFill(hx, pct);
+                  const sh = [filled ? bosCellGlass(isDark) : "", isToday ? "0 0 0 1.6px #EFA017" : ""].filter(Boolean).join(", ") || "none";
+                  return <span key={i} title={(MONTHS[s.m] || "") + " " + s.d} style={{ width: 11, height: 11, borderRadius: "50%", background: bg, boxShadow: sh }} />;
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === "month" && !compact && (
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", fontSize: 12, color: "var(--text-3)", lineHeight: 1.45 }}>
             {future(selDay) ? `${MONTHS[mIdx]} ${selDay} — ещё впереди`
               : solo
