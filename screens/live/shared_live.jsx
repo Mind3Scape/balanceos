@@ -1686,12 +1686,12 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
     }
   }, [open]);
   if (!open || !pos) return null;
-  // «+» = создать ПРИВЫЧКУ или КРУГ (David). Монохромные SVG-иконки в стекле вместо цветных эмодзи:
-  // огонёк-серия = привычка, люди = круг. «Круг» = цель с включённым «вести вместе» (один движок).
-  // Тот же компонент на главной И на стр. Привычки → меню везде одинаковое.
+  // «+» = создать ПРИВЫЧКУ или ЦЕЛЬ (David: «Цель» понятнее новичку, чем «Круг»; круг = тумблер
+  // «Идти к цели вместе» ВНУТРИ создания цели). Монохромные SVG-иконки в стекле: огонёк-серия =
+  // привычка, флажок-вершина = цель. Тот же компонент на главной И на стр. Привычки → меню одинаковое.
   const items = [
     { icon: I.Flame, label: "Привычку", go: () => navigate("habit-settings", { mode: "create" }) },
-    { icon: I.Users, label: "Круг",     go: () => navigate("goal-settings", { mode: "create", circleOn: true }) },
+    { icon: I.Flag,  label: "Цель",     go: () => navigate("goal-settings", { mode: "create" }) },
   ];
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>

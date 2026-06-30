@@ -409,8 +409,8 @@ function GoalSettingsLive() {
       <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
-            Идти к цели кругом
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Включи круг и позови людей — цель станет общей, у каждого появятся лица круга.</div>
+            Идти к цели вместе
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Включи и позови людей — цель станет общей, у каждого появятся лица.</div>
           </div>
           <Switch on={circleOn} onChange={setCircleOn} />
         </div>
