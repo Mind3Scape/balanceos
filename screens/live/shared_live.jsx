@@ -2183,27 +2183,27 @@ var BOS_PARTNERS = [
   { id: "medit",   name: "Открытая медитация", emblem: "🧘", accent: "#B9D4FF", cost: 250, tags: ["Ум", "Покой"],
     what: "Час осознанности с гидом в студии",
     about: "Спокойная групповая практика: дыхание, сканирование тела и тишина под руководством гида. Новичкам — самое то, опыт не нужен.",
-    address: "Студия «Тишина» · ул. Пушкина, 12", dates: "Пн и Чт · 19:00", duration: "60 мин" },
+    address: "Студия «Тишина» · ул. Пушкина, 12", dates: "Пн и Чт · 19:00", duration: "60 мин", limit: "до 12 мест", perk: "Ачивка «Тихий ум»" },
   { id: "bachata", name: "Урок бачаты",        emblem: "💃", accent: "#FFC7DD", cost: 350, tags: ["Танец", "Тело"],
     what: "Первое занятие в танцевальной студии",
     about: "Базовые шаги и связки бачаты в лёгкой атмосфере. Партнёр не нужен — распределят на месте, менять можно свободно.",
-    address: "Танцстудия «Ритмо» · пр. Мира, 8", dates: "Вт и Сб · 20:00", duration: "75 мин" },
+    address: "Танцстудия «Ритмо» · пр. Мира, 8", dates: "Вт и Сб · 20:00", duration: "75 мин", limit: "до 20 пар", perk: "Ачивка «Первый танец»" },
   { id: "box",     name: "Пробный бокс",       emblem: "🥊", accent: "#FFCFAD", cost: 400, tags: ["Сила", "Энергия"],
     what: "Тренировка с личным тренером",
     about: "Постановка техники, работа на лапах и мешке под присмотром тренера. Бинты и перчатки выдают на месте.",
-    address: "Зал «Ринг» · ул. Лесная, 3", dates: "По будням · 18:00–21:00", duration: "60 мин" },
+    address: "Зал «Ринг» · ул. Лесная, 3", dates: "По будням · 18:00–21:00", duration: "60 мин", limit: "до 8 мест", perk: "Ачивка «Первый раунд»" },
   { id: "yoga",    name: "Йога на рассвете",   emblem: "🧘‍♀️", accent: "#BFEECF", cost: 250, tags: ["Тело", "Гибкость"],
     what: "Утренняя практика в парке",
     about: "Мягкая виньяса на свежем воздухе — встречаем рассвет и бережно тянемся. Коврик можно взять на месте.",
-    address: "Парк Горького · южный вход", dates: "Сб и Вс · 7:30", duration: "50 мин" },
+    address: "Парк Горького · южный вход", dates: "Сб и Вс · 7:30", duration: "50 мин", limit: "до 30 мест", perk: "Ачивка «Рассвет»" },
   { id: "coffee",  name: "Кофе-встреча",       emblem: "☕", accent: "#F0DCB0", cost: 150, tags: ["Отдых", "Люди"],
     what: "Чашка в партнёрской кофейне",
     about: "Спешелти-кофе и тёплое знакомство с людьми из твоего круга. Приходи один — уйдёшь не один.",
-    address: "Кофейня «Зерно» · ул. Кофейная, 1", dates: "Каждый день · 9:00–20:00", duration: "—" },
+    address: "Кофейня «Зерно» · ул. Кофейная, 1", dates: "Каждый день · 9:00–20:00", duration: "—", limit: "до 6 гостей", perk: "Ачивка «Свой круг»" },
   { id: "art",     name: "Арт-вечер",          emblem: "🎨", accent: "#D8C4FF", cost: 300, tags: ["Творчество", "Поток"],
     what: "Живопись с нуля, без опыта",
     about: "Вечер интуитивной живописи: холст, краски и никакого «правильно». Всё для работы выдают на месте.",
-    address: "Арт-пространство «Мазок» · ул. Радужная, 5", dates: "Пт · 19:00", duration: "120 мин" },
+    address: "Арт-пространство «Мазок» · ул. Радужная, 5", dates: "Пт · 19:00", duration: "120 мин", limit: "до 15 мест", perk: "Ачивка «Первый мазок»" },
 ];
 function bosLoadRedeemedPartners() { try { return JSON.parse(localStorage.getItem("bos:redeemedPartners") || "{}") || {}; } catch (e) { return {}; } }
 // Общий помощник: пометить партнёра полученным (списание XP делает вызывающий через app.spendXP).
@@ -2231,11 +2231,13 @@ function PartnersShowcaseLive({ app, navigate, from = "community" }) {
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🎁 Потратить XP</span>
         <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>живое от партнёров →</span>
       </div>
-      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "0 0 4px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
+      {/* padding-bottom 18 — иначе overflow-y (авто из-за overflow-x) СРЕЗАЕТ тень карточек в серую
+          полосу «внизу обрезается» (David). Тень мягкая, чтобы не мутить фон. */}
+      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "3px 0 18px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
         {BOS_PARTNERS.map((p) => {
           const got = !!redeemed[p.id];
           return (
-            <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 170, scrollSnapAlign: "start", borderRadius: 22, padding: 15, background: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent, boxShadow: "0 7px 18px rgba(35,28,15,0.14), inset 0 0 0 0.5px rgba(255,255,255,0.55)", cursor: "pointer", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 170, scrollSnapAlign: "start", borderRadius: 22, padding: 15, background: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent, boxShadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)", cursor: "pointer", display: "flex", flexDirection: "column", overflow: "hidden" }}>
               <span style={{ fontSize: 36, lineHeight: 1 }}>{p.emblem}</span>
               <div style={{ fontSize: 15.5, fontWeight: 700, color: "#1b1b1f", marginTop: 12, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
               <div style={{ fontSize: 11.5, color: "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
@@ -2281,15 +2283,21 @@ function PartnerDetailLive() {
   return (
     <div className="page-in" style={{ paddingBottom: 112 }}>
       {/* HERO — цвет партнёра, крупный эмодзи; круглая полупрозрачная «назад» поверх. */}
-      <div style={{ position: "relative", background: "linear-gradient(168deg, rgba(255,255,255,0.62), rgba(255,255,255,0.05) 60%), " + p.accent, padding: "calc(16px + var(--tg-top-inset, 0px)) 22px 30px", borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
+      {/* FULL-BLEED: цвет тянется до самого верха (перекрывает 60px safe-area .bos-page отрицательным
+          margin'ом), поэтому НЕТ белой полосы сверху; квадратный верх теперь у самого края экрана. */}
+      <div style={{ position: "relative", background: "linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0) 44%), " + p.accent, marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))", padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 14px) 22px 30px", borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
         <button onClick={() => navigate(back)} className="tap" aria-label="Назад" style={{ width: 38, height: 38, borderRadius: "50%", border: 0, background: "rgba(255,255,255,0.55)", display: "grid", placeItems: "center", cursor: "pointer", color: "#1b1b1f" }}>
           <I.ChevronLeft size={20} strokeWidth={2.4} />
         </button>
         <div style={{ fontSize: 60, lineHeight: 1, marginTop: 18 }}>{p.emblem}</div>
         <div style={{ fontSize: 27, fontWeight: 800, color: "#161619", letterSpacing: "-0.6px", marginTop: 14, lineHeight: 1.05 }}>{p.name}</div>
         <div style={{ fontSize: 14.5, color: "rgba(22,22,25,0.62)", marginTop: 5, lineHeight: 1.4 }}>{p.what}</div>
+        {/* Чипы = «характеристики» (David: хочу больше и по делу): что развивает (Ум/Покой), ограничение
+            мест (👥 exclusivity/urgency) и НАГРАДА в приложении (🏅 ачивка — «получишь что-то»). */}
         <div style={{ display: "flex", gap: 6, marginTop: 13, flexWrap: "wrap" }}>
-          {p.tags.map((t, i) => <span key={i} style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#3a3a40", fontWeight: 600 }}>{t}</span>)}
+          {p.tags.map((t, i) => <span key={i} style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600 }}>{t}</span>)}
+          {p.limit && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>👥 {p.limit}</span>}
+          {p.perk && <span style={{ background: "rgba(255,255,255,0.92)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#0a0a0a", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}>🏅 {p.perk}</span>}
         </div>
       </div>
 
@@ -2312,7 +2320,7 @@ function PartnerDetailLive() {
 
         <div style={{ display: "flex", alignItems: "flex-start", gap: 9, marginTop: 15, padding: "0 2px" }}>
           <span style={{ fontSize: 15, lineHeight: 1.4 }}>🪙</span>
-          <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.45 }}>Для тебя бесплатно — платишь только <b style={{ color: "var(--text-2)" }}>{p.cost} XP</b> из копилки. Уровень от этого не падает.</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.45 }}>Платишь <b style={{ color: "var(--text-2)" }}>{p.cost} XP</b> из копилки — не деньгами. Уровень от траты не падает.</div>
         </div>
       </div>
 

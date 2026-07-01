@@ -5312,7 +5312,9 @@ var BOS_PARTNERS = [{
   about: "Спокойная групповая практика: дыхание, сканирование тела и тишина под руководством гида. Новичкам — самое то, опыт не нужен.",
   address: "Студия «Тишина» · ул. Пушкина, 12",
   dates: "Пн и Чт · 19:00",
-  duration: "60 мин"
+  duration: "60 мин",
+  limit: "до 12 мест",
+  perk: "Ачивка «Тихий ум»"
 }, {
   id: "bachata",
   name: "Урок бачаты",
@@ -5324,7 +5326,9 @@ var BOS_PARTNERS = [{
   about: "Базовые шаги и связки бачаты в лёгкой атмосфере. Партнёр не нужен — распределят на месте, менять можно свободно.",
   address: "Танцстудия «Ритмо» · пр. Мира, 8",
   dates: "Вт и Сб · 20:00",
-  duration: "75 мин"
+  duration: "75 мин",
+  limit: "до 20 пар",
+  perk: "Ачивка «Первый танец»"
 }, {
   id: "box",
   name: "Пробный бокс",
@@ -5336,7 +5340,9 @@ var BOS_PARTNERS = [{
   about: "Постановка техники, работа на лапах и мешке под присмотром тренера. Бинты и перчатки выдают на месте.",
   address: "Зал «Ринг» · ул. Лесная, 3",
   dates: "По будням · 18:00–21:00",
-  duration: "60 мин"
+  duration: "60 мин",
+  limit: "до 8 мест",
+  perk: "Ачивка «Первый раунд»"
 }, {
   id: "yoga",
   name: "Йога на рассвете",
@@ -5348,7 +5354,9 @@ var BOS_PARTNERS = [{
   about: "Мягкая виньяса на свежем воздухе — встречаем рассвет и бережно тянемся. Коврик можно взять на месте.",
   address: "Парк Горького · южный вход",
   dates: "Сб и Вс · 7:30",
-  duration: "50 мин"
+  duration: "50 мин",
+  limit: "до 30 мест",
+  perk: "Ачивка «Рассвет»"
 }, {
   id: "coffee",
   name: "Кофе-встреча",
@@ -5360,7 +5368,9 @@ var BOS_PARTNERS = [{
   about: "Спешелти-кофе и тёплое знакомство с людьми из твоего круга. Приходи один — уйдёшь не один.",
   address: "Кофейня «Зерно» · ул. Кофейная, 1",
   dates: "Каждый день · 9:00–20:00",
-  duration: "—"
+  duration: "—",
+  limit: "до 6 гостей",
+  perk: "Ачивка «Свой круг»"
 }, {
   id: "art",
   name: "Арт-вечер",
@@ -5372,7 +5382,9 @@ var BOS_PARTNERS = [{
   about: "Вечер интуитивной живописи: холст, краски и никакого «правильно». Всё для работы выдают на месте.",
   address: "Арт-пространство «Мазок» · ул. Радужная, 5",
   dates: "Пт · 19:00",
-  duration: "120 мин"
+  duration: "120 мин",
+  limit: "до 15 мест",
+  perk: "Ачивка «Первый мазок»"
 }];
 function bosLoadRedeemedPartners() {
   try {
@@ -5452,7 +5464,7 @@ function PartnersShowcaseLive({
       display: "flex",
       gap: 11,
       overflowX: "auto",
-      padding: "0 0 4px",
+      padding: "3px 0 18px",
       scrollSnapType: "x proximity",
       WebkitOverflowScrolling: "touch"
     }
@@ -5469,7 +5481,7 @@ function PartnersShowcaseLive({
         borderRadius: 22,
         padding: 15,
         background: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent,
-        boxShadow: "0 7px 18px rgba(35,28,15,0.14), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
+        boxShadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
         cursor: "pointer",
         display: "flex",
         flexDirection: "column",
@@ -5603,8 +5615,9 @@ function PartnerDetailLive() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      background: "linear-gradient(168deg, rgba(255,255,255,0.62), rgba(255,255,255,0.05) 60%), " + p.accent,
-      padding: "calc(16px + var(--tg-top-inset, 0px)) 22px 30px",
+      background: "linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0) 44%), " + p.accent,
+      marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
+      padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 14px) 22px 30px",
       borderBottomLeftRadius: 30,
       borderBottomRightRadius: 30
     }
@@ -5662,10 +5675,35 @@ function PartnerDetailLive() {
       borderRadius: 999,
       padding: "4px 11px",
       fontSize: 11.5,
-      color: "#3a3a40",
+      color: "#2a2a30",
       fontWeight: 600
     }
-  }, t)))), /*#__PURE__*/React.createElement("div", {
+  }, t)), p.limit && /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "rgba(255,255,255,0.6)",
+      borderRadius: 999,
+      padding: "4px 11px",
+      fontSize: 11.5,
+      color: "#2a2a30",
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, "\uD83D\uDC65 ", p.limit), p.perk && /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "rgba(255,255,255,0.92)",
+      borderRadius: 999,
+      padding: "4px 11px",
+      fontSize: 11.5,
+      color: "#0a0a0a",
+      fontWeight: 700,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      boxShadow: "0 2px 6px rgba(0,0,0,0.08)"
+    }
+  }, "\uD83C\uDFC5 ", p.perk))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "20px 16px 0"
     }
@@ -5740,11 +5778,11 @@ function PartnerDetailLive() {
       color: "var(--text-3)",
       lineHeight: 1.45
     }
-  }, "\u0414\u043B\u044F \u0442\u0435\u0431\u044F \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E \u2014 \u043F\u043B\u0430\u0442\u0438\u0448\u044C \u0442\u043E\u043B\u044C\u043A\u043E ", /*#__PURE__*/React.createElement("b", {
+  }, "\u041F\u043B\u0430\u0442\u0438\u0448\u044C ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: "var(--text-2)"
     }
-  }, p.cost, " XP"), " \u0438\u0437 \u043A\u043E\u043F\u0438\u043B\u043A\u0438. \u0423\u0440\u043E\u0432\u0435\u043D\u044C \u043E\u0442 \u044D\u0442\u043E\u0433\u043E \u043D\u0435 \u043F\u0430\u0434\u0430\u0435\u0442."))), /*#__PURE__*/React.createElement("div", {
+  }, p.cost, " XP"), " \u0438\u0437 \u043A\u043E\u043F\u0438\u043B\u043A\u0438 \u2014 \u043D\u0435 \u0434\u0435\u043D\u044C\u0433\u0430\u043C\u0438. \u0423\u0440\u043E\u0432\u0435\u043D\u044C \u043E\u0442 \u0442\u0440\u0430\u0442\u044B \u043D\u0435 \u043F\u0430\u0434\u0430\u0435\u0442."))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
       left: 0,
