@@ -2366,7 +2366,7 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   var teamObj = {
     name: goalLike.name || "Цель",
     emblem: goalLike.emoji || "🎯",
-    accent: goalLike.color || "#0a0a0a",
+    accent: goalLike.color || BOS_GREY,
     vis: vis,
     goal: (goalLike.target || 0) + " " + (goalLike.unit || ""),
     type: type,

@@ -1043,7 +1043,7 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   var vis = opts.vis || "private", type = opts.type || "collective", stake = Math.max(0, opts.stake || 0);
   var linked = (app.habits || []).filter(function (h) { return (goalLike.habitIds || []).indexOf(h.id) >= 0; });
   var teamObj = {
-    name: goalLike.name || "Цель", emblem: goalLike.emoji || "🎯", accent: goalLike.color || "#0a0a0a", vis: vis,
+    name: goalLike.name || "Цель", emblem: goalLike.emoji || "🎯", accent: goalLike.color || BOS_GREY, vis: vis,
     goal: (goalLike.target || 0) + " " + (goalLike.unit || ""), type: type,
     target: goalLike.target || 0, current: 0, unit: goalLike.unit || "", stake: stake,
     date: goalLike.deadline || "Этот месяц", progress: 0, members: [],

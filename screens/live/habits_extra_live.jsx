@@ -36,7 +36,7 @@ function HabitSettingsLive() {
   // our own emoji sheet, opened by tapping the tile below.
   // Every habit carries an Apple colour now (coherent with the week-strip). Old null-colour
   // habits resolve to their stable bosHabitColor when edited.
-  const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a")) : (preset?.color ?? "#0a0a0a"));
+  const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a")) : (preset?.color ?? BOS_GREY)); // новый = нейтральный «белый» BOS_GREY (David: пикер по дефолту на белом везде)
   const [goal, setGoal] = useHS(editing ? (params.habit.goalPerDay || 1) : 1);
   const [duration, setDuration] = useHS(editing ? (params.habit.duration || 0) : 0); // минуты; 0 = без таймера
   // Как отмечать привычку — ОДИН из трёх ВЗАИМОИСКЛЮЧАЮЩИХ режимов (David: «не выдумывай третий способ,
@@ -123,7 +123,7 @@ function HabitSettingsLive() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {/* Tap the tile → emoji PANEL (opens straight on emojis, no ABC keyboard). */}
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} current={iconPick} accent={color} />)}
-            style={{ width: 56, height: 56, borderRadius: 16, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 28, color)}
           </button>
           {/* Name is edited right here — tap to type, no separate field above. */}
@@ -342,7 +342,7 @@ function GoalSettingsLive() {
   // chosen colour fills the goal's progress bar + detail ring (David: «всё один в один»).
   // Дефолт цвета ЦЕЛИ = НЕЙТРАЛЬНЫЙ (null → белая/светло-серая карточка, David). Цвет появляется
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
-  const [color, setColor] = useHS(g0?.color ?? preset?.color ?? null);
+  const [color, setColor] = useHS(g0?.color ?? preset?.color ?? BOS_GREY); // новый = нейтральный «белый» BOS_GREY (единый дефолт с привычками/командами)
   const [target, setTarget] = useHS(g0?.target || preset?.target || 22);
   const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "недель");
   const [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
@@ -381,7 +381,7 @@ function GoalSettingsLive() {
       <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} current={iconPick} accent={color} />)}
-            style={{ width: 56, height: 56, borderRadius: 16, background: color ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 28, color)}
           </button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели" aria-label="Название цели"
