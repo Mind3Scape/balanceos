@@ -754,25 +754,10 @@ function LevelsLive() {
   const xp = _xpLive;
   const next = _li.next;
   const pctBar = _li.pct;
-  // Кошелёк = заработано − потрачено. Уровень выше (hero) считается от ПОЛНОГО _xpLive и трата его НЕ
-  // трогает (David: «трата не обнуляет уровень»). Копилка синхронизируется в облаке через AppProvider.
+  // Копилка (кошелёк) = заработано − потрачено. Уровень (hero) считается от ПОЛНОГО _xpLive, и трата его
+  // НЕ трогает (David). Плейсхолдер-список «Награды за XP» убран — теперь трата идёт на ПАРТНЁРОВ (живое).
   const credits = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : _xpLive;
-  const [claimed, setClaimed] = React.useState({}); // купленные в этой сессии награды → строка «Получено»
-  const buyReward = (r, idx) => {
-    if (!r || claimed[idx] || credits < r.c) return;
-    if (app && typeof app.spendXP === "function" && app.spendXP(r.c)) {
-      setClaimed((m) => Object.assign({}, m, { [idx]: true }));
-    }
-  };
-  const rUnlocked = (r) => lvl >= r.lvl;
-  const rewards = [
-    { i: "🎁", t: "Коробка-сюрприз", c: 200, lvl: 5, unlocked: true },
-    { i: "🧘🏼‍♀️", t: "Персональная медитация", c: 500, lvl: 6, unlocked: true },
-    { i: "📚", t: "Скидка на премиум-курс", c: 800, lvl: 7, unlocked: true },
-    { i: "🏃🏼‍♀️", t: "Звонок с коучем (30 мин)", c: 1500, lvl: 9, unlocked: false },
-    { i: "🎯", t: "Свой командный вызов", c: 2500, lvl: 10, unlocked: false },
-    { i: "✨", t: "Пожизненный AI Pro", c: 5000, lvl: 12, unlocked: false },
-  ];
+  const netLeft = Math.max(0, 10 - lvl); // Нетворк открывается с 10 уровня
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Уровни" onBack={() => navigate("home")} />
@@ -795,83 +780,54 @@ function LevelsLive() {
         </div>
       </div>
 
-      {/* Gamification FIRST — for a new user the most important thing is HOW XP
-         works and WHAT achievements unlock, so it sits right under the level. */}
-      <SysCard style={{ padding: 14, marginTop: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "0 0 6px" }}>Как зарабатывать XP</div>
+      {/* КОПИЛКА — кошелёк, крупно и со СМЫСЛОМ: отдельная от уровня валюта, её ТРАТЯТ на живое
+          (David: «человек понимал, что тратит экспу не чтобы уровень качать, а реально на вещи»). */}
+      <SysCard style={{ padding: 18, marginTop: 16, borderRadius: 22 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 26, background: "linear-gradient(150deg,#eef1f6,#dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)" }}>🪙</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Копилка</div>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, marginTop: 3 }}>{credits.toLocaleString()} <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-4)" }}>XP</span></div>
+          </div>
+        </div>
+        <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 13, lineHeight: 1.45 }}>
+          Твоя валюта для <b style={{ color: "var(--text-2)" }}>живого</b> — трать на медитации, танцы, тренировки от партнёров ниже. <b style={{ color: "var(--text-2)" }}>Уровень от траты не падает</b> — он растёт сам.
+        </div>
+      </SysCard>
+
+      {/* ПАРТНЁРЫ — на что потратить копилку (та же лента, что во «Найти»). */}
+      <div style={{ marginTop: 22 }}>
+        {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
+      </div>
+
+      {/* НЕТВОРК — большой будущий разлок (с 10 уровня); партнёры выше доступны СРАЗУ (David). */}
+      <SysCard style={{ padding: 16, marginTop: 22, display: "flex", alignItems: "center", gap: 13 }}>
+        <span style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 22, background: "var(--surface-3)" }}>{netLeft > 0 ? "🔒" : "🌐"}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Нетворк{netLeft > 0 ? " · с 10 уровня" : ""}</div>
+          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 2, lineHeight: 1.4 }}>
+            {netLeft > 0 ? <>Живые созвоны и менторы за XP. Ещё <b style={{ color: "var(--text-2)" }}>{netLeft} {ruPpl(netLeft, ["уровень", "уровня", "уровней"])}</b>.</> : "Открыт — живые созвоны и менторы за XP."}
+          </div>
+        </div>
+        {netLeft <= 0 && <button onClick={() => { app?.setCommunityView?.({ section: "community", commTab: "network" }); navigate("community"); }} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "9px 15px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>Открыть</button>}
+      </SysCard>
+
+      {/* КАК РАСТЁТ УРОВЕНЬ — один компактный справочник (без дублей) + позвать друга. */}
+      <SysCard style={{ padding: 14, marginTop: 22 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "0 0 4px" }}>Как растёт уровень</div>
         {[
           { t: "Выполнить привычку", v: "+10" },
-          { t: "Идеальный день — все привычки", v: "+30" },
+          { t: "Идеальный день", v: "+30" },
           { t: "Серия 7 дней", v: "+75" },
           { t: "Достичь цели", v: "+250" },
-          { t: "Позвать друга в привычку", v: "+75", infl: true },
-          { t: "Пригласить друга в приложение", v: "+150", infl: true },
+          { t: "Привести друга", v: "+150", infl: true },
         ].map((r, i, arr) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 7 }}>{r.infl && <span style={{ fontSize: 14 }}>🤝</span>}{r.t}</span>
             <span style={{ color: r.infl ? "#2f8fd6" : "#E0A500", fontWeight: 700 }}>{r.v} XP</span>
           </div>
         ))}
-      </SysCard>
-      <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 8, padding: "0 4px", lineHeight: 1.45 }}>
-        За приглашённых друзей платим щедрее всего — так растёт твой круг.
-      </div>
-
-      {/* Круг влияния — your people make every step richer. Concrete XP only
-         (no ×/%): shared habits pay more, and growing the circle unlocks milestone
-         bonuses. Brand-gold accents on a neutral card. data-tour drives the demo. */}
-      {/* Круг влияния — подпись убрана (карточка названа «Множитель влияния»). */}
-      <SysCard data-tour="influence-mult" style={{ padding: 16, marginTop: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, flexShrink: 0, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 7px 18px rgba(254,222,52,0.34)" }}>
-            <I.Users size={25} color="#0a0a0a" />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 700 }}>Множитель влияния</div>
-            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 3, lineHeight: 1.4 }}>
-              {invited > 0
-                ? <>Рядом с тобой уже <b style={{ color: "var(--text-2)" }}>{invited} {ruPpl(invited, ["человек", "человека", "человек"])}</b>. Чем больше друзей — тем больше XP ты получаешь.</>
-                : <>Позови друзей — и каждый поможет тебе получать больше XP.</>}
-            </div>
-          </div>
-        </div>
-
-        {/* Together is richer — the felt "multiplier", in plain XP */}
-        <div style={{ marginTop: 14, padding: "12px 13px", borderRadius: 14, background: isDark ? "rgba(254,222,52,0.10)" : "#FFF7DC" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5 }}>
-            <span className="bos-sys-text-2">Привычка в одиночку</span>
-            <span style={{ fontWeight: 700, color: "#E0A500" }}>+10 XP</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, marginTop: 7 }}>
-            <span className="bos-sys-text-2">Привычка с другом</span>
-            <span style={{ fontWeight: 800, color: "#E0A500" }}>+15 XP</span>
-          </div>
-          <div className="bos-sys-text-3" style={{ fontSize: 12, marginTop: 9, lineHeight: 1.4 }}>
-            Одни и те же привычки с друзьями приносят больше XP.
-          </div>
-        </div>
-
-        {/* Milestone progress — the "2 из 3 до бонуса" carrot. No ceiling. */}
-        {nextMile ? (
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5 }}>
-              <span className="bos-sys-text-3">Приглашено друзей</span>
-              <span><b style={{ color: "var(--text-2)", fontWeight: 700 }}>{invited}</b> <span className="bos-sys-text-3">из {nextMile.n}</span></span>
-            </div>
-            <div style={{ height: 7, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden", marginTop: 7 }}>
-              <span style={{ display: "block", height: "100%", width: Math.min(100, Math.max(6, (invited - prevMileN) / (nextMile.n - prevMileN) * 100)) + "%", background: "linear-gradient(90deg,#FEDE34,#EF9F14)", borderRadius: 999 }} />
-            </div>
-            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
-              Ещё <b style={{ color: "var(--text-2)" }}>{nextMile.n - invited}</b> — и получишь <b style={{ color: "#E0A500" }}>+{nextMile.bonus} XP</b> разом.
-            </div>
-          </div>
-        ) : (
-          <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 14, lineHeight: 1.45 }}>
-            Круг можно растить бесконечно — и каждый новый друг приносит тебе <b style={{ color: "#E0A500" }}>+150 XP</b>.
-          </div>
-        )}
-
-        <button onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)} className="tap" style={{ width: "100%", marginTop: 14, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 12, fontSize: 14.5, fontWeight: 600 }}>Пригласить друга</button>
+        <button onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)} className="tap" style={{ width: "100%", marginTop: 12, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 12, fontSize: 14.5, fontWeight: 600 }}>Пригласить друга · +150 XP</button>
       </SysCard>
 
       {/* Достижения — подпись убрана (карточка названа «Ачивки»). */}
@@ -886,38 +842,6 @@ function LevelsLive() {
         </div>
         <I.ChevronRight size={18} className="bos-sys-text-2"/>
       </SysCard>
-
-      {/* Spendable XP balance — Variant A: one currency. Lifetime XP drives the
-          level (never spent); this balance is what you spend on rewards & mentors.
-          Spending it does NOT lower your level. */}
-      <SysCard style={{ padding: 16, marginTop: 22, display: "flex", alignItems: "center", gap: 14, borderRadius: 22 }}>
-        <span className="bos-sys-chip-bg" style={{ width: 50, height: 50, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 24 }}>🪙</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Баланс XP</div>
-          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 2 }}>{credits.toLocaleString()}</div>
-          <div className="bos-sys-text-3" style={{ fontSize: 11.5, marginTop: 1 }}>можно потратить · уровень от траты не падает</div>
-        </div>
-        <button onClick={() => { app?.setCommunityView?.({ section: "community", commTab: "network" }); navigate("community"); }} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 16px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>В Нетворк</button>
-      </SysCard>
-
-      {/* Награды за XP — подпись ВНУТРЬ блока-списка (первой строкой). */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 22 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "0 4px" }}>Награды за XP</div>
-        {rewards.map((r, i) => (
-          <SysCard key={i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, opacity: rUnlocked(r) ? 1 : 0.55 }}>
-            <span className="bos-sys-chip-bg" style={{ width: 42, height: 42, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22 }}>{r.i}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{r.t}</div>
-              <div className="bos-sys-text-3" style={{ fontSize: 11, marginTop: 2 }}>
-                {rUnlocked(r) ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`}
-              </div>
-            </div>
-            <button onClick={() => buyReward(r, i)} disabled={!rUnlocked(r) || !!claimed[i] || credits < r.c} className="tap" style={{ background: (rUnlocked(r) && credits >= r.c && !claimed[i]) ? "#FEDE34" : "var(--surface-3)", color: (rUnlocked(r) && credits >= r.c && !claimed[i]) ? "#0a0a0a" : "var(--text-4)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-              {claimed[i] ? "✓ Получено" : rUnlocked(r) ? (credits >= r.c ? "Получить" : "Нужно больше") : "🔒"}
-            </button>
-          </SysCard>
-        ))}
-      </div>
 
     </div>
   );

@@ -2136,56 +2136,10 @@ function LevelsLive() {
   var xp = _xpLive;
   var next = _li.next;
   var pctBar = _li.pct;
-  // Кошелёк = заработано − потрачено. Уровень выше (hero) считается от ПОЛНОГО _xpLive и трата его НЕ
-  // трогает (David: «трата не обнуляет уровень»). Копилка синхронизируется в облаке через AppProvider.
+  // Копилка (кошелёк) = заработано − потрачено. Уровень (hero) считается от ПОЛНОГО _xpLive, и трата его
+  // НЕ трогает (David). Плейсхолдер-список «Награды за XP» убран — теперь трата идёт на ПАРТНЁРОВ (живое).
   var credits = typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : _xpLive;
-  var [claimed, setClaimed] = React.useState({}); // купленные в этой сессии награды → строка «Получено»
-  var buyReward = (r, idx) => {
-    if (!r || claimed[idx] || credits < r.c) return;
-    if (app && typeof app.spendXP === "function" && app.spendXP(r.c)) {
-      setClaimed(m => Object.assign({}, m, {
-        [idx]: true
-      }));
-    }
-  };
-  var rUnlocked = r => lvl >= r.lvl;
-  var rewards = [{
-    i: "🎁",
-    t: "Коробка-сюрприз",
-    c: 200,
-    lvl: 5,
-    unlocked: true
-  }, {
-    i: "🧘🏼‍♀️",
-    t: "Персональная медитация",
-    c: 500,
-    lvl: 6,
-    unlocked: true
-  }, {
-    i: "📚",
-    t: "Скидка на премиум-курс",
-    c: 800,
-    lvl: 7,
-    unlocked: true
-  }, {
-    i: "🏃🏼‍♀️",
-    t: "Звонок с коучем (30 мин)",
-    c: 1500,
-    lvl: 9,
-    unlocked: false
-  }, {
-    i: "🎯",
-    t: "Свой командный вызов",
-    c: 2500,
-    lvl: 10,
-    unlocked: false
-  }, {
-    i: "✨",
-    t: "Пожизненный AI Pro",
-    c: 5000,
-    lvl: 12,
-    unlocked: false
-  }];
+  var netLeft = Math.max(0, 10 - lvl); // Нетворк открывается с 10 уровня
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -2272,8 +2226,140 @@ function LevelsLive() {
     }
   }, Math.max(0, next - xp), " XP \u0434\u043E ", lvl + 1, " \u0443\u0440\u043E\u0432\u043D\u044F \xB7 ", titleFor(lvl + 1))))), /*#__PURE__*/React.createElement(SysCard, {
     style: {
+      padding: 18,
+      marginTop: 16,
+      borderRadius: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 52,
+      height: 52,
+      borderRadius: 16,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 26,
+      background: "linear-gradient(150deg,#eef1f6,#dadfe7)",
+      boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)"
+    }
+  }, "\uD83E\uDE99"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600
+    }
+  }, "\u041A\u043E\u043F\u0438\u043B\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 30,
+      fontWeight: 800,
+      letterSpacing: "-1px",
+      lineHeight: 1,
+      marginTop: 3
+    }
+  }, credits.toLocaleString(), " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      color: "var(--text-4)"
+    }
+  }, "XP")))), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 13,
+      lineHeight: 1.45
+    }
+  }, "\u0422\u0432\u043E\u044F \u0432\u0430\u043B\u044E\u0442\u0430 \u0434\u043B\u044F ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "\u0436\u0438\u0432\u043E\u0433\u043E"), " \u2014 \u0442\u0440\u0430\u0442\u044C \u043D\u0430 \u043C\u0435\u0434\u0438\u0442\u0430\u0446\u0438\u0438, \u0442\u0430\u043D\u0446\u044B, \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 \u043D\u0438\u0436\u0435. ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C \u043E\u0442 \u0442\u0440\u0430\u0442\u044B \u043D\u0435 \u043F\u0430\u0434\u0430\u0435\u0442"), " \u2014 \u043E\u043D \u0440\u0430\u0441\u0442\u0451\u0442 \u0441\u0430\u043C.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 22
+    }
+  }, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
+    app: app,
+    navigate: navigate
+  })), /*#__PURE__*/React.createElement(SysCard, {
+    style: {
+      padding: 16,
+      marginTop: 22,
+      display: "flex",
+      alignItems: "center",
+      gap: 13
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: 14,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22,
+      background: "var(--surface-3)"
+    }
+  }, netLeft > 0 ? "🔒" : "🌐"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 700
+    }
+  }, "\u041D\u0435\u0442\u0432\u043E\u0440\u043A", netLeft > 0 ? " · с 10 уровня" : ""), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, netLeft > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0416\u0438\u0432\u044B\u0435 \u0441\u043E\u0437\u0432\u043E\u043D\u044B \u0438 \u043C\u0435\u043D\u0442\u043E\u0440\u044B \u0437\u0430 XP. \u0415\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, netLeft, " ", ruPpl(netLeft, ["уровень", "уровня", "уровней"])), ".") : "Открыт — живые созвоны и менторы за XP.")), netLeft <= 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      app?.setCommunityView?.({
+        section: "community",
+        commTab: "network"
+      });
+      navigate("community");
+    },
+    className: "tap",
+    style: {
+      background: "#0a0a0a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 999,
+      padding: "9px 15px",
+      fontSize: 13,
+      fontWeight: 600,
+      flexShrink: 0
+    }
+  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C")), /*#__PURE__*/React.createElement(SysCard, {
+    style: {
       padding: 14,
-      marginTop: 20
+      marginTop: 22
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2282,13 +2368,13 @@ function LevelsLive() {
       letterSpacing: 1,
       textTransform: "uppercase",
       color: "var(--text-4)",
-      padding: "0 0 6px"
+      padding: "0 0 4px"
     }
-  }, "\u041A\u0430\u043A \u0437\u0430\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0442\u044C XP"), [{
+  }, "\u041A\u0430\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u0443\u0440\u043E\u0432\u0435\u043D\u044C"), [{
     t: "Выполнить привычку",
     v: "+10"
   }, {
-    t: "Идеальный день — все привычки",
+    t: "Идеальный день",
     v: "+30"
   }, {
     t: "Серия 7 дней",
@@ -2297,11 +2383,7 @@ function LevelsLive() {
     t: "Достичь цели",
     v: "+250"
   }, {
-    t: "Позвать друга в привычку",
-    v: "+75",
-    infl: true
-  }, {
-    t: "Пригласить друга в приложение",
+    t: "Привести друга",
     v: "+150",
     infl: true
   }].map((r, i, arr) => /*#__PURE__*/React.createElement("div", {
@@ -2310,7 +2392,7 @@ function LevelsLive() {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "10px 0",
+      padding: "9px 0",
       borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0,
       fontSize: 14
     }
@@ -2329,174 +2411,14 @@ function LevelsLive() {
       color: r.infl ? "#2f8fd6" : "#E0A500",
       fontWeight: 700
     }
-  }, r.v, " XP")))), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 12,
-      marginTop: 8,
-      padding: "0 4px",
-      lineHeight: 1.45
-    }
-  }, "\u0417\u0430 \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0451\u043D\u043D\u044B\u0445 \u0434\u0440\u0443\u0437\u0435\u0439 \u043F\u043B\u0430\u0442\u0438\u043C \u0449\u0435\u0434\u0440\u0435\u0435 \u0432\u0441\u0435\u0433\u043E \u2014 \u0442\u0430\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u0442\u0432\u043E\u0439 \u043A\u0440\u0443\u0433."), /*#__PURE__*/React.createElement(SysCard, {
-    "data-tour": "influence-mult",
-    style: {
-      padding: 16,
-      marginTop: 22
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 13
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 56,
-      height: 56,
-      borderRadius: 14,
-      flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
-      boxShadow: "0 7px 18px rgba(254,222,52,0.34)"
-    }
-  }, /*#__PURE__*/React.createElement(I.Users, {
-    size: 25,
-    color: "#0a0a0a"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 700
-    }
-  }, "\u041C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C \u0432\u043B\u0438\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 12.5,
-      marginTop: 3,
-      lineHeight: 1.4
-    }
-  }, invited > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, "\u0420\u044F\u0434\u043E\u043C \u0441 \u0442\u043E\u0431\u043E\u0439 \u0443\u0436\u0435 ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "var(--text-2)"
-    }
-  }, invited, " ", ruPpl(invited, ["человек", "человека", "человек"])), ". \u0427\u0435\u043C \u0431\u043E\u043B\u044C\u0448\u0435 \u0434\u0440\u0443\u0437\u0435\u0439 \u2014 \u0442\u0435\u043C \u0431\u043E\u043B\u044C\u0448\u0435 XP \u0442\u044B \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0448\u044C.") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0437\u0435\u0439 \u2014 \u0438 \u043A\u0430\u0436\u0434\u044B\u0439 \u043F\u043E\u043C\u043E\u0436\u0435\u0442 \u0442\u0435\u0431\u0435 \u043F\u043E\u043B\u0443\u0447\u0430\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435 XP.")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
-      padding: "12px 13px",
-      borderRadius: 14,
-      background: isDark ? "rgba(254,222,52,0.10)" : "#FFF7DC"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      fontSize: 13.5
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-text-2"
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0432 \u043E\u0434\u0438\u043D\u043E\u0447\u043A\u0443"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 700,
-      color: "#E0A500"
-    }
-  }, "+10 XP")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      fontSize: 13.5,
-      marginTop: 7
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-text-2"
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0441 \u0434\u0440\u0443\u0433\u043E\u043C"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 800,
-      color: "#E0A500"
-    }
-  }, "+15 XP")), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 12,
-      marginTop: 9,
-      lineHeight: 1.4
-    }
-  }, "\u041E\u0434\u043D\u0438 \u0438 \u0442\u0435 \u0436\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438 \u043F\u0440\u0438\u043D\u043E\u0441\u044F\u0442 \u0431\u043E\u043B\u044C\u0448\u0435 XP.")), nextMile ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "baseline",
-      fontSize: 12.5
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-text-3"
-  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u043E \u0434\u0440\u0443\u0437\u0435\u0439"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "var(--text-2)",
-      fontWeight: 700
-    }
-  }, invited), " ", /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-text-3"
-  }, "\u0438\u0437 ", nextMile.n))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 7,
-      background: "var(--surface-3)",
-      borderRadius: 999,
-      overflow: "hidden",
-      marginTop: 7
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      height: "100%",
-      width: Math.min(100, Math.max(6, (invited - prevMileN) / (nextMile.n - prevMileN) * 100)) + "%",
-      background: "linear-gradient(90deg,#FEDE34,#EF9F14)",
-      borderRadius: 999
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 12.5,
-      marginTop: 8,
-      lineHeight: 1.45
-    }
-  }, "\u0415\u0449\u0451 ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "var(--text-2)"
-    }
-  }, nextMile.n - invited), " \u2014 \u0438 \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "#E0A500"
-    }
-  }, "+", nextMile.bonus, " XP"), " \u0440\u0430\u0437\u043E\u043C.")) : /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 12.5,
-      marginTop: 14,
-      lineHeight: 1.45
-    }
-  }, "\u041A\u0440\u0443\u0433 \u043C\u043E\u0436\u043D\u043E \u0440\u0430\u0441\u0442\u0438\u0442\u044C \u0431\u0435\u0441\u043A\u043E\u043D\u0435\u0447\u043D\u043E \u2014 \u0438 \u043A\u0430\u0436\u0434\u044B\u0439 \u043D\u043E\u0432\u044B\u0439 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u043D\u043E\u0441\u0438\u0442 \u0442\u0435\u0431\u0435 ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "#E0A500"
-    }
-  }, "+150 XP"), "."), /*#__PURE__*/React.createElement("button", {
+  }, r.v, " XP"))), /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareAppSheetLive, {
       dark: isDark
     })),
     className: "tap",
     style: {
       width: "100%",
-      marginTop: 14,
+      marginTop: 12,
       background: isDark ? "#fff" : "#0a0a0a",
       color: isDark ? "#0a0a0a" : "#fff",
       border: 0,
@@ -2505,7 +2427,7 @@ function LevelsLive() {
       fontSize: 14.5,
       fontWeight: 600
     }
-  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0434\u0440\u0443\u0433\u0430")), /*#__PURE__*/React.createElement(SysCard, {
+  }, "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0434\u0440\u0443\u0433\u0430 \xB7 +150 XP")), /*#__PURE__*/React.createElement(SysCard, {
     className: "tap",
     onClick: () => navigate("achievements", {
       from: "levels"
@@ -2566,137 +2488,7 @@ function LevelsLive() {
   }, a.i))), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 18,
     className: "bos-sys-text-2"
-  })), /*#__PURE__*/React.createElement(SysCard, {
-    style: {
-      padding: 16,
-      marginTop: 22,
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      borderRadius: 22
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 50,
-      height: 50,
-      borderRadius: 14,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 24
-    }
-  }, "\uD83E\uDE99"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, "\u0411\u0430\u043B\u0430\u043D\u0441 XP"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 26,
-      fontWeight: 700,
-      marginTop: 2
-    }
-  }, credits.toLocaleString()), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 11.5,
-      marginTop: 1
-    }
-  }, "\u043C\u043E\u0436\u043D\u043E \u043F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C \xB7 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u043E\u0442 \u0442\u0440\u0430\u0442\u044B \u043D\u0435 \u043F\u0430\u0434\u0430\u0435\u0442")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      app?.setCommunityView?.({
-        section: "community",
-        commTab: "network"
-      });
-      navigate("community");
-    },
-    className: "tap",
-    style: {
-      background: "#0a0a0a",
-      color: "#fff",
-      border: 0,
-      borderRadius: 999,
-      padding: "10px 16px",
-      fontSize: 13,
-      fontWeight: 600,
-      flexShrink: 0
-    }
-  }, "\u0412 \u041D\u0435\u0442\u0432\u043E\u0440\u043A")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 22
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      color: "var(--text-4)",
-      padding: "0 4px"
-    }
-  }, "\u041D\u0430\u0433\u0440\u0430\u0434\u044B \u0437\u0430 XP"), rewards.map((r, i) => /*#__PURE__*/React.createElement(SysCard, {
-    key: i,
-    style: {
-      padding: 12,
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      opacity: rUnlocked(r) ? 1 : 0.55
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-sys-chip-bg",
-    style: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22
-    }
-  }, r.i), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, r.t), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 11,
-      marginTop: 2
-    }
-  }, rUnlocked(r) ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`)), /*#__PURE__*/React.createElement("button", {
-    onClick: () => buyReward(r, i),
-    disabled: !rUnlocked(r) || !!claimed[i] || credits < r.c,
-    className: "tap",
-    style: {
-      background: rUnlocked(r) && credits >= r.c && !claimed[i] ? "#FEDE34" : "var(--surface-3)",
-      color: rUnlocked(r) && credits >= r.c && !claimed[i] ? "#0a0a0a" : "var(--text-4)",
-      border: 0,
-      borderRadius: 999,
-      padding: "8px 14px",
-      fontSize: 12,
-      fontWeight: 600,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, claimed[i] ? "✓ Получено" : rUnlocked(r) ? credits >= r.c ? "Получить" : "Нужно больше" : "🔒")))));
+  })));
 }
 
 /* ─── COURSE DETAIL — full programme description. No demo branches; faithful fork. ─── */
