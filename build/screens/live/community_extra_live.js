@@ -2296,7 +2296,8 @@ function LevelsLive() {
     }
   }, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
     app: app,
-    navigate: navigate
+    navigate: navigate,
+    from: "levels"
   })), /*#__PURE__*/React.createElement(SysCard, {
     style: {
       padding: 16,

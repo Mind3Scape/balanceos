@@ -797,7 +797,7 @@ function LevelsLive() {
 
       {/* ПАРТНЁРЫ — на что потратить копилку (та же лента, что во «Найти»). */}
       <div style={{ marginTop: 22 }}>
-        {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
+        {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} from="levels" />}
       </div>
 
       {/* НЕТВОРК — большой будущий разлок (с 10 уровня); партнёры выше доступны СРАЗУ (David). */}

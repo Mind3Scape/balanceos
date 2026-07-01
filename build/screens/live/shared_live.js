@@ -5299,54 +5299,80 @@ function SeedCirclesShowcaseLive({
    копит: «о, на это я мог бы потратить экспу». Доступно СРАЗУ (в отличие от Нетворка — тот с 10 уровня).
    Партнёрская выдача пока плейсхолдер (как курсы): забрал → «покажи на входе». Отмеченное живёт в
    localStorage (bos:redeemedPartners), трата (spentXP) — в копилке через app.spendXP. */
+// accent = НАСЫЩЕННЫЙ пастель (не блёклый — David: карточки читались серовато). about/address/dates/duration
+// кормят детальную страницу партнёра. Адреса/даты — ПЛЕЙСХОЛДЕР (David: «потенциальный адрес/даты»).
 var BOS_PARTNERS = [{
   id: "medit",
   name: "Открытая медитация",
   emblem: "🧘",
-  accent: "#dbe9ff",
-  what: "Час осознанности с гидом в студии",
+  accent: "#B9D4FF",
   cost: 250,
-  tags: ["Ум", "Покой"]
+  tags: ["Ум", "Покой"],
+  what: "Час осознанности с гидом в студии",
+  about: "Спокойная групповая практика: дыхание, сканирование тела и тишина под руководством гида. Новичкам — самое то, опыт не нужен.",
+  address: "Студия «Тишина» · ул. Пушкина, 12",
+  dates: "Пн и Чт · 19:00",
+  duration: "60 мин"
 }, {
   id: "bachata",
   name: "Урок бачаты",
   emblem: "💃",
-  accent: "#ffe0ec",
-  what: "Первое занятие в танцевальной студии",
+  accent: "#FFC7DD",
   cost: 350,
-  tags: ["Танец", "Тело"]
+  tags: ["Танец", "Тело"],
+  what: "Первое занятие в танцевальной студии",
+  about: "Базовые шаги и связки бачаты в лёгкой атмосфере. Партнёр не нужен — распределят на месте, менять можно свободно.",
+  address: "Танцстудия «Ритмо» · пр. Мира, 8",
+  dates: "Вт и Сб · 20:00",
+  duration: "75 мин"
 }, {
   id: "box",
   name: "Пробный бокс",
   emblem: "🥊",
-  accent: "#ffe1c8",
-  what: "Тренировка с личным тренером",
+  accent: "#FFCFAD",
   cost: 400,
-  tags: ["Сила", "Энергия"]
+  tags: ["Сила", "Энергия"],
+  what: "Тренировка с личным тренером",
+  about: "Постановка техники, работа на лапах и мешке под присмотром тренера. Бинты и перчатки выдают на месте.",
+  address: "Зал «Ринг» · ул. Лесная, 3",
+  dates: "По будням · 18:00–21:00",
+  duration: "60 мин"
 }, {
   id: "yoga",
   name: "Йога на рассвете",
   emblem: "🧘‍♀️",
-  accent: "#d6f3df",
-  what: "Утренняя практика в парке",
+  accent: "#BFEECF",
   cost: 250,
-  tags: ["Тело", "Гибкость"]
+  tags: ["Тело", "Гибкость"],
+  what: "Утренняя практика в парке",
+  about: "Мягкая виньяса на свежем воздухе — встречаем рассвет и бережно тянемся. Коврик можно взять на месте.",
+  address: "Парк Горького · южный вход",
+  dates: "Сб и Вс · 7:30",
+  duration: "50 мин"
 }, {
   id: "coffee",
   name: "Кофе-встреча",
   emblem: "☕",
-  accent: "#efe3d2",
-  what: "Чашка в партнёрской кофейне",
+  accent: "#F0DCB0",
   cost: 150,
-  tags: ["Отдых", "Люди"]
+  tags: ["Отдых", "Люди"],
+  what: "Чашка в партнёрской кофейне",
+  about: "Спешелти-кофе и тёплое знакомство с людьми из твоего круга. Приходи один — уйдёшь не один.",
+  address: "Кофейня «Зерно» · ул. Кофейная, 1",
+  dates: "Каждый день · 9:00–20:00",
+  duration: "—"
 }, {
   id: "art",
   name: "Арт-вечер",
   emblem: "🎨",
-  accent: "#e9ddff",
-  what: "Живопись с нуля, без опыта",
+  accent: "#D8C4FF",
   cost: 300,
-  tags: ["Творчество", "Поток"]
+  tags: ["Творчество", "Поток"],
+  what: "Живопись с нуля, без опыта",
+  about: "Вечер интуитивной живописи: холст, краски и никакого «правильно». Всё для работы выдают на месте.",
+  address: "Арт-пространство «Мазок» · ул. Радужная, 5",
+  dates: "Пт · 19:00",
+  duration: "120 мин"
 }];
 function bosLoadRedeemedPartners() {
   try {
@@ -5355,42 +5381,51 @@ function bosLoadRedeemedPartners() {
     return {};
   }
 }
+// Общий помощник: пометить партнёра полученным (списание XP делает вызывающий через app.spendXP).
+function bosMarkPartnerRedeemed(id) {
+  var n = Object.assign({}, bosLoadRedeemedPartners(), {
+    [id]: true
+  });
+  try {
+    localStorage.setItem("bos:redeemedPartners", JSON.stringify(n));
+  } catch (e) {}
+  try {
+    window.dispatchEvent(new Event("bos:partnersChanged"));
+  } catch (e) {}
+  return n;
+}
 
-// Горизонтальная лента партнёров — тот же язык, что «Челленджи», но про ТРАТУ: серо-стеклянный герб на
-// пастельном accent'е, название, что получишь, цена «🪙 N XP» и «Получить». Тап → шторка PartnerSheetLive.
+// Горизонтальная лента партнёров про ТРАТУ XP. Цветные карточки-впечатления (см. ниже). Тап по карточке →
+// нативная страница партнёра PartnerDetailLive (описание, адрес, даты, кнопка «Получить»).
 function PartnersShowcaseLive({
   app,
-  navigate
+  navigate,
+  from = "community"
 }) {
-  var {
-    open: openSheet
-  } = useSheet();
   var [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
+  React.useEffect(function () {
+    var h = function () {
+      setRedeemed(bosLoadRedeemedPartners());
+    };
+    window.addEventListener("bos:partnersChanged", h); // деталь-страница выкупила → карточка тут же ✓
+    return function () {
+      window.removeEventListener("bos:partnersChanged", h);
+    };
+  }, []);
   var openPartner = p => {
     if (window.tgHaptic) {
       try {
         window.tgHaptic("selection");
       } catch (e) {}
     }
-    openSheet(/*#__PURE__*/React.createElement(PartnerSheetLive, {
+    navigate("partner-detail", {
       partner: p,
-      app: app,
-      redeemed: !!redeemed[p.id],
-      onRedeemed: id => setRedeemed(m => {
-        var n = Object.assign({}, m, {
-          [id]: true
-        });
-        try {
-          localStorage.setItem("bos:redeemedPartners", JSON.stringify(n));
-        } catch (e) {}
-        return n;
-      })
-    }));
+      from: from
+    });
   };
-  // Карточки НАМЕРЕННО другого вида, чем привычки/челленджи (David: «партнёры — это НЕ привычки, что-то
-  // другое»). Привычка/челлендж = белая карточка + серый значок-тайл. Партнёр = ЦВЕТНАЯ карточка целиком
-  // (accent-заливка + белый блик + КРУПНЫЙ эмодзи, без серого тайла) → читается как «впечатление/награда».
-  // Обычная секция (без полки) → выравнивание как у остальных, ничего не «вылазит» слева.
+  // Карточки НАМЕРЕННО другого вида, чем привычки/челленджи (David: «партнёры — это НЕ привычки»). Привычка/
+  // челлендж = белый тайл + серый значок. Партнёр = ЦВЕТНАЯ карточка целиком (насыщенный accent + светлый
+  // градиент сверху для глубины + КРУПНЫЙ эмодзи без серого тайла) → «карточка-впечатление», отдельный вид.
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -5433,33 +5468,20 @@ function PartnersShowcaseLive({
         scrollSnapAlign: "start",
         borderRadius: 22,
         padding: 15,
-        background: p.accent,
-        boxShadow: "0 7px 18px rgba(35,28,15,0.13), inset 0 0 0 0.5px rgba(255,255,255,0.5)",
+        background: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent,
+        boxShadow: "0 7px 18px rgba(35,28,15,0.14), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
         cursor: "pointer",
         display: "flex",
         flexDirection: "column",
-        position: "relative",
         overflow: "hidden"
       }
-    }, /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
-        position: "absolute",
-        top: -34,
-        right: -34,
-        width: 120,
-        height: 120,
-        background: "radial-gradient(circle, rgba(255,255,255,0.6), transparent 68%)",
-        pointerEvents: "none"
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        position: "relative",
         fontSize: 36,
         lineHeight: 1
       }
     }, p.emblem), /*#__PURE__*/React.createElement("div", {
       style: {
-        position: "relative",
         fontSize: 15.5,
         fontWeight: 700,
         color: "#1b1b1f",
@@ -5469,7 +5491,6 @@ function PartnersShowcaseLive({
       }
     }, p.name), /*#__PURE__*/React.createElement("div", {
       style: {
-        position: "relative",
         fontSize: 11.5,
         color: "rgba(27,27,31,0.62)",
         marginTop: 3,
@@ -5487,7 +5508,6 @@ function PartnersShowcaseLive({
       }
     }), /*#__PURE__*/React.createElement("div", {
       style: {
-        position: "relative",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between"
@@ -5497,7 +5517,7 @@ function PartnersShowcaseLive({
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        background: "rgba(255,255,255,0.8)",
+        background: "rgba(255,255,255,0.82)",
         color: "#0a0a0a",
         fontWeight: 800,
         fontSize: 11.5,
@@ -5516,31 +5536,36 @@ function PartnersShowcaseLive({
     }, got ? /*#__PURE__*/React.createElement(I.Check, {
       size: 14,
       strokeWidth: 3
-    }) : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    }) : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
       size: 13
     })))));
   })));
 }
 
-// Шторка партнёра — детали + «Получить за N XP». Списывает копилку (app.spendXP), помечает получённым.
-// «Бесплатно, платишь только XP» — суть, которой David хотел отличить это от старых скидок.
-function PartnerSheetLive({
-  partner,
-  app,
-  onRedeemed,
-  redeemed = false
-}) {
+// СТРАНИЦА ПАРТНЁРА — нативная деталь (iOS-стиль): цветной hero в тон партнёру + крупный эмодзи, описание,
+// сгруппированная карточка «где / когда / сколько» (line-иконки, hairline-разделители) и ЛИПКАЯ frosted-
+// кнопка «Получить за N XP» внизу. Заменяет прежнюю шторку (David: хочу ПОПАДАТЬ на страницу с адресом/
+// датами). Списывает копилку app.spendXP; bosMarkPartnerRedeemed помечает получённым + шлёт событие, чтобы
+// карточки в лентах сразу встали ✓.
+function PartnerDetailLive() {
   var {
-    close
-  } = useSheet();
-  var [got, setGot] = React.useState(!!redeemed);
+    navigate,
+    params
+  } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var p = params && params.partner || BOS_PARTNERS[0];
+  var back = params && params.from || "community";
+  var isDark = app && app.themeOverride === "dark";
+  var [got, setGot] = React.useState(function () {
+    return !!bosLoadRedeemedPartners()[p.id];
+  });
   var balance = typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : 0;
-  var afford = balance >= partner.cost;
+  var afford = balance >= p.cost;
   var redeem = () => {
     if (got || !afford) return;
-    if (app && typeof app.spendXP === "function" && app.spendXP(partner.cost)) {
+    if (app && typeof app.spendXP === "function" && app.spendXP(p.cost)) {
+      bosMarkPartnerRedeemed(p.id);
       setGot(true);
-      if (onRedeemed) onRedeemed(partner.id);
       if (window.tgHaptic) {
         try {
           window.tgHaptic("success");
@@ -5548,163 +5573,234 @@ function PartnerSheetLive({
       }
     }
   };
+  var info = [{
+    icon: /*#__PURE__*/React.createElement(I.MapPin, {
+      size: 16,
+      strokeWidth: 2
+    }),
+    l: "Где",
+    v: p.address
+  }, {
+    icon: /*#__PURE__*/React.createElement(I.Calendar, {
+      size: 16,
+      strokeWidth: 2
+    }),
+    l: "Когда",
+    v: p.dates
+  }, {
+    icon: /*#__PURE__*/React.createElement(I.Clock, {
+      size: 16,
+      strokeWidth: 2
+    }),
+    l: "Сколько",
+    v: p.duration
+  }].filter(r => r.v && r.v !== "—");
   return /*#__PURE__*/React.createElement("div", {
+    className: "page-in",
     style: {
-      padding: "2px 20px 6px",
-      color: "var(--text)"
+      paddingBottom: 112
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center"
+      position: "relative",
+      background: "linear-gradient(168deg, rgba(255,255,255,0.62), rgba(255,255,255,0.05) 60%), " + p.accent,
+      padding: "calc(16px + var(--tg-top-inset, 0px)) 22px 30px",
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate(back),
+    className: "tap",
+    "aria-label": "\u041D\u0430\u0437\u0430\u0434",
     style: {
-      width: 68,
-      height: 68,
-      borderRadius: 20,
-      margin: "0 auto 12px",
-      background: partner.accent,
+      width: 38,
+      height: 38,
+      borderRadius: "50%",
+      border: 0,
+      background: "rgba(255,255,255,0.55)",
       display: "grid",
       placeItems: "center",
-      fontSize: 34
+      cursor: "pointer",
+      color: "#1b1b1f"
     }
-  }, partner.emblem), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(I.ChevronLeft, {
+    size: 20,
+    strokeWidth: 2.4
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 21,
-      fontWeight: 700,
-      letterSpacing: "-0.3px"
+      fontSize: 60,
+      lineHeight: 1,
+      marginTop: 18
     }
-  }, partner.name), /*#__PURE__*/React.createElement("div", {
+  }, p.emblem), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 14,
-      color: "var(--text-3)",
-      marginTop: 4,
+      fontSize: 27,
+      fontWeight: 800,
+      color: "#161619",
+      letterSpacing: "-0.6px",
+      marginTop: 14,
+      lineHeight: 1.05
+    }
+  }, p.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      color: "rgba(22,22,25,0.62)",
+      marginTop: 5,
       lineHeight: 1.4
     }
-  }, partner.what), /*#__PURE__*/React.createElement("div", {
+  }, p.what), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
-      justifyContent: "center",
-      marginTop: 10,
+      marginTop: 13,
       flexWrap: "wrap"
     }
-  }, partner.tags.map((t, i) => /*#__PURE__*/React.createElement("span", {
+  }, p.tags.map((t, i) => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
-      background: "var(--card-2)",
+      background: "rgba(255,255,255,0.6)",
       borderRadius: 999,
       padding: "4px 11px",
       fontSize: 11.5,
-      color: "var(--text-3)",
-      fontWeight: 500
+      color: "#3a3a40",
+      fontWeight: 600
     }
   }, t)))), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 18,
-      background: "var(--surface-3)",
-      borderRadius: 16,
-      padding: "13px 16px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, "\u0411\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E \xB7 \u043F\u043B\u0430\u0442\u0438\u0448\u044C XP"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 20,
-      fontWeight: 700,
-      marginTop: 3,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, "\uD83E\uDE99 ", partner.cost, " XP")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "right"
+      padding: "20px 16px 0"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)"
-    }
-  }, "\u0442\u0432\u043E\u044F \u043A\u043E\u043F\u0438\u043B\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 15,
-      fontWeight: 600,
-      marginTop: 2,
-      color: afford || got ? "var(--text)" : "var(--accent-red)"
+      color: "var(--text-2)",
+      lineHeight: 1.5
     }
-  }, balance.toLocaleString(), " XP"))), got ? /*#__PURE__*/React.createElement("div", {
+  }, p.about), info.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 16
+      background: "var(--card)",
+      borderRadius: 18,
+      marginTop: 18,
+      boxShadow: "var(--card-shadow)",
+      overflow: "hidden"
+    }
+  }, info.map((r, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      padding: "13px 15px",
+      borderTop: i ? "1px solid var(--line)" : 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+      background: "var(--surface-3)",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-3)",
+      flexShrink: 0
+    }
+  }, r.icon), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "rgba(52,199,89,0.12)",
+      fontSize: 11.5,
+      color: "var(--text-4)",
+      fontWeight: 600
+    }
+  }, r.l), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      color: "var(--text)",
+      marginTop: 1,
+      fontWeight: 500
+    }
+  }, r.v))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 9,
+      marginTop: 15,
+      padding: "0 2px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15,
+      lineHeight: 1.4
+    }
+  }, "\uD83E\uDE99"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      lineHeight: 1.45
+    }
+  }, "\u0414\u043B\u044F \u0442\u0435\u0431\u044F \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E \u2014 \u043F\u043B\u0430\u0442\u0438\u0448\u044C \u0442\u043E\u043B\u044C\u043A\u043E ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, p.cost, " XP"), " \u0438\u0437 \u043A\u043E\u043F\u0438\u043B\u043A\u0438. \u0423\u0440\u043E\u0432\u0435\u043D\u044C \u043E\u0442 \u044D\u0442\u043E\u0433\u043E \u043D\u0435 \u043F\u0430\u0434\u0430\u0435\u0442."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      padding: "12px 16px calc(14px + var(--tg-bottom-inset, 0px))",
+      background: isDark ? "rgba(18,20,26,0.8)" : "rgba(244,244,246,0.82)",
+      backdropFilter: "blur(14px)",
+      WebkitBackdropFilter: "blur(14px)",
+      borderTop: "1px solid var(--line)",
+      zIndex: 5
+    }
+  }, got ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "rgba(52,199,89,0.14)",
       color: "#1E8E4E",
       borderRadius: 16,
-      padding: 16,
+      padding: "13px",
+      textAlign: "center",
+      fontWeight: 700,
       display: "flex",
       flexDirection: "column",
-      alignItems: "center",
-      gap: 6
+      gap: 2
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",
+      justifyContent: "center",
       gap: 7,
-      fontSize: 16,
-      fontWeight: 700
+      fontSize: 15
     }
   }, /*#__PURE__*/React.createElement(I.Check, {
-    size: 18,
+    size: 17,
     strokeWidth: 3
   }), " \u041F\u043E\u043B\u0443\u0447\u0435\u043D\u043E"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 12.5,
+      fontSize: 12,
       fontWeight: 500,
-      color: "var(--text-3)",
-      textAlign: "center"
+      color: "var(--text-3)"
     }
-  }, "\u041F\u043E\u043A\u0430\u0436\u0438 \u044D\u0442\u043E\u0442 \u044D\u043A\u0440\u0430\u043D \u043D\u0430 \u0432\u0445\u043E\u0434\u0435 \u043A \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u0443")), /*#__PURE__*/React.createElement("button", {
-    onClick: close,
-    className: "tap",
-    style: {
-      width: "100%",
-      marginTop: 12,
-      background: "var(--surface-3)",
-      color: "var(--text)",
-      border: 0,
-      borderRadius: 999,
-      padding: 14,
-      fontSize: 15,
-      fontWeight: 600
-    }
-  }, "\u0413\u043E\u0442\u043E\u0432\u043E")) : /*#__PURE__*/React.createElement("button", {
+  }, "\u041F\u043E\u043A\u0430\u0436\u0438 \u044D\u0442\u043E\u0442 \u044D\u043A\u0440\u0430\u043D \u043D\u0430 \u0432\u0445\u043E\u0434\u0435 \u043A \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u0443")) : /*#__PURE__*/React.createElement("button", {
     onClick: redeem,
     disabled: !afford,
     className: "tap",
     style: {
       width: "100%",
-      marginTop: 16,
       background: afford ? "#0a0a0a" : "var(--surface-3)",
       color: afford ? "#fff" : "var(--text-4)",
       border: 0,
-      borderRadius: 999,
-      padding: 15,
-      fontSize: 15.5,
-      fontWeight: 600
+      borderRadius: 16,
+      padding: 16,
+      fontSize: 16,
+      fontWeight: 700
     }
-  }, afford ? "Получить за " + partner.cost + " XP" : "Нужно ещё " + (partner.cost - balance) + " XP"));
+  }, afford ? "Получить за " + p.cost + " XP" : "Нужно ещё " + (p.cost - balance) + " XP")));
 }
 
 /* «Собери свой круг» — пресеты СОЗДАНИЯ кругов под темы жизни (David: «пресеты кругов для семьи,
