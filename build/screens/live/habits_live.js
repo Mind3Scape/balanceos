@@ -478,7 +478,7 @@ function HabitsLive() {
   // Смешанный список: привычки + цели в едином порядке (ключи "h<id>"/"g<id>"), отсортированы по
   // сохранённому порядку перестановки; новые элементы — в конец.
   var entries = React.useMemo(() => {
-    var all = habits.map(h => ({
+    var all = habits.filter(h => !h.goalOnly).map(h => ({
       k: "h" + h.id,
       type: "h",
       item: h

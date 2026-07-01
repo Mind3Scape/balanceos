@@ -263,7 +263,7 @@ function GoalDetailLive() {
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginTop: 14, letterSpacing: "-0.4px" }}>{g.name}</div>
         <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
-          <Count value={cur} /> из {g.target} {g.unit} · до {g.deadline}
+          <Count value={cur} /> из {g.target} {g.unit}{g.deadline ? " · до " + g.deadline : ""}
         </div>
       </div>
 
@@ -274,29 +274,40 @@ function GoalDetailLive() {
         { l: "Срок", text: g.deadline, icon: <I.Calendar size={16} strokeWidth={2} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
       ]} />
 
-      {/* Built from these habits — tap drills into the habit's own stats */}
-      {linked.length > 0 && (
-        <>
-          <div className="section-label" style={{ marginTop: 22 }}>Складывается из привычек</div>
-          <div style={{ ...card, borderRadius: 22, marginTop: 8, overflow: "hidden" }}>
-            {linked.map((h, i) => (
-              <div key={h.id}>
-                <button className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "goal-detail" })} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "transparent", border: 0, textAlign: "left", color: "var(--text)" }}>
-                  <span style={{ width: 38, height: 38, borderRadius: 14, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 20, h.color)}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600 }}>{h.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {(typeof bosStreak === "function") ? bosStreak(h.log) : (h.streak || 0)}д серия</div>
-                  </div>
-                  <I.ChevronRight size={17} color="var(--text-4)" />
-                </button>
-                {i < linked.length - 1 && <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)" }} />}
+      {/* СКЛАДЫВАЕТСЯ ИЗ ПРИВЫЧЕК — цель ведут её привычки: отмечаешь ПРЯМО ТУТ (чек-кружок), кольцо
+          растёт. Тап по имени → детали привычки. «+ Привычка для этой цели» заводит новую (можно
+          «только внутри цели»). Пусто → мягкий призыв. Ручного «+1» больше нет (David: «нафига оно»). */}
+      <div className="section-label" style={{ marginTop: 22 }}>Складывается из привычек</div>
+      <div style={{ ...card, borderRadius: 22, marginTop: 8, overflow: "hidden" }}>
+        {linked.map((h, i) => (
+          <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+            <button onClick={() => { if (app?.toggleHabit) app.toggleHabit(h.id); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" aria-label="Отметить сегодня"
+              style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+                background: h.done ? (h.color || goalColor) : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+                boxShadow: h.done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }}>
+              {h.done && <I.Check size={16} strokeWidth={3} color="#fff" />}
+            </button>
+            <button className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "goal-detail" })} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, padding: 0, background: "transparent", border: 0, textAlign: "left", color: "var(--text)" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}{h.goalOnly && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginLeft: 7 }}>· в цели</span>}</div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>🔥 {(typeof bosStreak === "function") ? bosStreak(h.log) : (h.streak || 0)}д серия</div>
               </div>
-            ))}
+              <I.ChevronRight size={16} color="var(--text-4)" />
+            </button>
           </div>
-        </>
-      )}
+        ))}
+        {linked.length === 0 && (
+          <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>Цель наполняют привычки, ведущие к ней. Добавь первую — и кольцо начнёт расти само.</div>
+        )}
+        <button className="tap" onClick={() => navigate("habit-settings", { mode: "create", goalFor: { id: g.id, name: g.name } })}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: linked.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0, background: "transparent", border: 0, color: "var(--text-2)", cursor: "pointer" }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
+          <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
+        </button>
+      </div>
 
-      {/* Pace hint */}
+      {/* Pace hint — срок опускаем, если его нет (не «до undefined»). */}
       <div className="section-label" style={{ marginTop: 22 }}>Подсказка</div>
       <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
         <I.Sparkles size={18} color={isDark ? "#fff" : "#0a0a0a"} />
@@ -304,27 +315,16 @@ function GoalDetailLive() {
           {done
             ? `Цель достигнута 🎉 «${g.name}» закрыта — можно поставить новую планку.`
             : pct >= 0.8
-              ? `Финишная прямая — осталось ${remaining} ${g.unit}. Не сбавляй до ${g.deadline}.`
+              ? `Финишная прямая — осталось ${remaining} ${g.unit}.${g.deadline ? " Не сбавляй до " + g.deadline + "." : ""}`
               : pct >= 0.5
                 ? `Больше половины пути. ${linked[0] ? `Главный двигатель — «${linked[0].name}»: не разрывай серию.` : "Держи темп."}`
-                : `${linked[0] ? `Каждая отметка «${linked[0].name}» приближает к цели. ` : "Начало положено. "}Осталось ${remaining} ${g.unit} до ${g.deadline}.`}
+                : `${linked[0] ? `Каждая отметка «${linked[0].name}» приближает к цели. ` : "Начни с первой привычки. "}Осталось ${remaining} ${g.unit}${g.deadline ? " до " + g.deadline : ""}.`}
         </div>
       </div>
 
-      {/* Действие. Цель С ПРИВЫЧКАМИ наполняется сама (отмечаешь привычки → кольцо растёт) — тут не
-          ручной «+1», а мягкая подпись, чтобы не было двойного смысла (David: «+1 ничего не значит»).
-          Цель БЕЗ привычек (голая) сохраняет ручной «+1». Достигнута → статичная плашка. */}
-      {done ? (
+      {/* Достигнута → статичная плашка. Иначе действий тут нет — цель ведут привычки выше. */}
+      {done && (
         <button className="bos-btn" style={{ marginTop: 22, background: isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)", color: "var(--text-2)" }}>✓ Цель достигнута</button>
-      ) : prog.fromHabits ? (
-        <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22, display: "flex", alignItems: "center", gap: 10 }}>
-          <I.Check size={18} strokeWidth={2.4} color={g.color || (isDark ? "#fff" : "#0a0a0a")} />
-          <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.45 }}>Кольцо растёт само — отмечай привычки выше, каждая отметка приближает к цели.</div>
-        </div>
-      ) : (
-        <button onClick={() => { if (app?.updateGoal) app.updateGoal(g.id, { current: Math.min(g.target, (g.current || 0) + 1) }); }} className="bos-btn" style={{ marginTop: 22 }}>
-          +1 к прогрессу
-        </button>
       )}
     </div>
   );

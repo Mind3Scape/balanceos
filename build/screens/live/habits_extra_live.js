@@ -29,6 +29,11 @@ function HabitSettingsLive() {
   var app = useApp();
   var editing = params?.mode === "edit";
   var preset = params?.preset; // quick-add chip → {i: emoji, t: label}
+  // Создаём привычку ДЛЯ конкретной цели → после сохранения привяжем её к цели (habitIds) и вернёмся
+  // в цель. goalOnly = «вести только внутри цели» (не показывать в общем списке привычек) — David: «час
+  // рояля не хочу выводить на личную». (Существующая привычка тоже помнит goalOnly при редактировании.)
+  var goalFor = params?.goalFor || null;
+  var [goalOnly, setGoalOnly] = useHS(editing ? !!params.habit.goalOnly : false);
   var [name, setName] = useHS(editing ? params.habit.name : preset?.t || "Прогулка");
   var [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : preset?.i || "👟");
   // Icon = the EmojiPickerLive panel (opens straight on emojis). The iOS keyboard can't be
@@ -622,7 +627,40 @@ function HabitSettingsLive() {
       value: "quit",
       label: "Бросить"
     }]
-  })), /*#__PURE__*/React.createElement("button", {
+  })), goalFor && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 14,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text-2)",
+      lineHeight: 1.4
+    }
+  }, "\u0412\u0435\u0441\u0442\u0438 \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u0446\u0435\u043B\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2
+    }
+  }, "\u041D\u0435 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0432 \u043E\u0431\u0449\u0435\u043C \u0441\u043F\u0438\u0441\u043A\u0435 \u2014 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0436\u0438\u0432\u0451\u0442 \u0432\u043D\u0443\u0442\u0440\u0438 \xAB", goalFor.name, "\xBB.")), /*#__PURE__*/React.createElement(Switch, {
+    on: goalOnly,
+    onChange: setGoalOnly
+  }))), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
       marginTop: 20
@@ -647,9 +685,30 @@ function HabitSettingsLive() {
         }
       };
       if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
+      // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
+      // привязываем её к цели (habitIds) и возвращаемся в цель — кольцо начнёт расти от её отметок.
+      if (goalFor) {
+        base.goalId = goalFor.id;
+        base.goalOnly = goalOnly;
+      }
+      var linkToGoal = nh => {
+        if (!goalFor || !nh) return false;
+        var g = (app?.goals || []).find(x => x.id === goalFor.id);
+        var ids = (g && g.habitIds || []).concat(nh.id);
+        app?.updateGoal(goalFor.id, {
+          habitIds: ids
+        });
+        navigate("goal-detail", {
+          goal: Object.assign({}, g || goalFor, {
+            habitIds: ids
+          }),
+          from: "habits"
+        });
+        return true;
+      };
       // SHARED habit: if sharing is on, spin up the mini-team + team-habit and open
       // the share sheet. Guarded — if anything fails, the habit is still saved.
-      if (shareOn) {
+      if (shareOn && !goalFor) {
         if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);
         navigate("habits"); // the sheet lives above the router, so it stays open over the list
         openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
@@ -661,10 +720,15 @@ function HabitSettingsLive() {
         }));
         return;
       }
-      if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);
+      if (editing) {
+        app?.updateHabit(params.habit.id, base);
+      } else {
+        var nh = app?.addHabit(base);
+        if (linkToGoal(nh)) return;
+      }
       navigate("habits");
     }
-  }, editing ? "Сохранить" : "Добавить привычку"), editing && /*#__PURE__*/React.createElement("button", {
+  }, editing ? "Сохранить" : goalFor ? "Добавить в цель" : "Добавить привычку"), editing && /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {
       app?.removeHabit(params.habit.id);

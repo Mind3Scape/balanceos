@@ -216,7 +216,7 @@ function HabitsLive() {
   // Смешанный список: привычки + цели в едином порядке (ключи "h<id>"/"g<id>"), отсортированы по
   // сохранённому порядку перестановки; новые элементы — в конец.
   const entries = React.useMemo(() => {
-    const all = habits.map((h) => ({ k: "h" + h.id, type: "h", item: h }))
+    const all = habits.filter((h) => !h.goalOnly).map((h) => ({ k: "h" + h.id, type: "h", item: h }))
       .concat(goals.map((g) => ({ k: "g" + g.id, type: "g", item: g })))
       // Команды (круги/командные цели) живут в ТОЙ ЖЕ сетке — их можно тащить и ставить между
       // привычками/целями, как просил David. Ключ "t<id>" (cloud _id или локальный id).

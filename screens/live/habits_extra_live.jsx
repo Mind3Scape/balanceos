@@ -24,6 +24,11 @@ function HabitSettingsLive() {
   const app = useApp();
   const editing = params?.mode === "edit";
   const preset = params?.preset; // quick-add chip → {i: emoji, t: label}
+  // Создаём привычку ДЛЯ конкретной цели → после сохранения привяжем её к цели (habitIds) и вернёмся
+  // в цель. goalOnly = «вести только внутри цели» (не показывать в общем списке привычек) — David: «час
+  // рояля не хочу выводить на личную». (Существующая привычка тоже помнит goalOnly при редактировании.)
+  const goalFor = params?.goalFor || null;
+  const [goalOnly, setGoalOnly] = useHS(editing ? !!params.habit.goalOnly : false);
   const [name, setName] = useHS(editing ? params.habit.name : (preset?.t || "Прогулка"));
   const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : (preset?.i || "👟"));
   // Icon = the EmojiPickerLive panel (opens straight on emojis). The iOS keyboard can't be
@@ -259,6 +264,19 @@ function HabitSettingsLive() {
         <Segmented value={type} onChange={setType} options={[{ value: "build", label: "Развивать" }, { value: "quit", label: "Бросить" }]} />
       </div>
 
+      {/* Привычка ДЛЯ цели — тумблер «вести только внутри цели» (скрыть из общего списка). David: рояль. */}
+      {goalFor && (
+        <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>Вести только внутри цели</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Не показывать в общем списке — привычка живёт внутри «{goalFor.name}».</div>
+            </div>
+            <Switch on={goalOnly} onChange={setGoalOnly} />
+          </div>
+        </div>
+      )}
+
       {/* Add */}
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={async () => {
         const nm = name.trim() || "Новая привычка";
@@ -272,20 +290,31 @@ function HabitSettingsLive() {
           reminder: { on: reminderOn, time: reminderTime },
         };
         if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
+        // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
+        // привязываем её к цели (habitIds) и возвращаемся в цель — кольцо начнёт расти от её отметок.
+        if (goalFor) { base.goalId = goalFor.id; base.goalOnly = goalOnly; }
+        const linkToGoal = (nh) => {
+          if (!goalFor || !nh) return false;
+          const g = (app?.goals || []).find((x) => x.id === goalFor.id);
+          const ids = (((g && g.habitIds) || [])).concat(nh.id);
+          app?.updateGoal(goalFor.id, { habitIds: ids });
+          navigate("goal-detail", { goal: Object.assign({}, g || goalFor, { habitIds: ids }), from: "habits" });
+          return true;
+        };
         // SHARED habit: if sharing is on, spin up the mini-team + team-habit and open
         // the share sheet. Guarded — if anything fails, the habit is still saved.
-        if (shareOn) {
+        if (shareOn && !goalFor) {
           if (editing) app?.updateHabit(params.habit.id, base);
           else app?.addHabit(base);
           navigate("habits"); // the sheet lives above the router, so it stays open over the list
           openSheet(<ShareHabitSheetLive habit={{ name: nm, emoji: iconPick, color }} />);
           return;
         }
-        if (editing) app?.updateHabit(params.habit.id, base);
-        else app?.addHabit(base);
+        if (editing) { app?.updateHabit(params.habit.id, base); }
+        else { const nh = app?.addHabit(base); if (linkToGoal(nh)) return; }
         navigate("habits");
       }}>
-        {editing ? "Сохранить" : "Добавить привычку"}
+        {editing ? "Сохранить" : goalFor ? "Добавить в цель" : "Добавить привычку"}
       </button>
       {editing && (
         <button className="tap" onClick={() => { app?.removeHabit(params.habit.id); navigate("habits"); }}
