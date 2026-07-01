@@ -158,15 +158,16 @@ function CommunityLive() {
           {/* НАЙТИ — только ЧУЖИЕ круги/цели, в которые можно вступить (дискавери). «Твои круги»
               отсюда УБРАНЫ — они живут на вкладке Привычки → Цели (с лицами). Дубля больше нет.
               Создание круга — на Привычки → «+». */}
+          {/* Партнёры — «на что потратить XP»: живые бесплатные вещи (медитация/бачата/бокс) за копилку.
+              НА САМОМ ВЕРХУ (David) — первое, что видно: ради чего копишь XP. Золотая полка, чтобы блок
+              НЕ сливался с нейтральными челленджами/кругами. Доступно с 1 уровня (Нетворк — с 10). */}
+          {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
           <div style={{ padding: "2px 4px 0" }}>
             <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Найди своих</div>
             <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Вступай в челленджи и живые круги — или собери свой круг с друзьями. Любой появится у тебя в «Целях».</div>
           </div>
           {/* Челленджи — срочные, с призом за финиш. */}
           {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
-          {/* Партнёры — «на что потратить XP»: живые бесплатные вещи (медитация/бачата/бокс) за копилку.
-              Стоит сразу под челленджами (заработал → потратил); доступно с 1 уровня (Нетворк — с 10). */}
-          {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
           {/* Собери свой круг — пресеты создания (семья/тренинги/рост), переехали сюда из Целей (David). */}
           {typeof CircleStartersShowcaseLive === "function" && <CircleStartersShowcaseLive navigate={navigate} />}
           {/* Живые круги — витрина с лицами + активностью («иллюзия жизни»); тап → создать похожий. */}

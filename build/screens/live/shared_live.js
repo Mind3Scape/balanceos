@@ -5360,12 +5360,12 @@ function bosLoadRedeemedPartners() {
 // пастельном accent'е, название, что получишь, цена «🪙 N XP» и «Получить». Тап → шторка PartnerSheetLive.
 function PartnersShowcaseLive({
   app,
-  navigate,
-  compact = false
+  navigate
 }) {
   var {
     open: openSheet
   } = useSheet();
+  var isDark = app?.themeOverride === "dark";
   var [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
   var openPartner = p => {
     if (window.tgHaptic) {
@@ -5388,25 +5388,35 @@ function PartnersShowcaseLive({
       })
     }));
   };
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  // ЗОЛОТАЯ ПОЛКА — чтобы блок «трат» НЕ сливался с нейтральными челленджами/кругами (David). Тёплый
+  // кремовый фон + золотой заголовок = зона награды. Белые карточки внутри «всплывают» на тинте.
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: isDark ? "rgba(254,222,52,0.07)" : "linear-gradient(180deg,#FFF6E2,#FFFCF4)",
+      borderRadius: 24,
+      padding: "14px 0 8px",
+      border: isDark ? "1px solid rgba(254,222,52,0.14)" : "1px solid rgba(239,159,20,0.13)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "baseline",
       justifyContent: "space-between",
-      padding: "4px 4px 10px"
+      padding: "0 16px 11px"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 1,
+      fontSize: 11.5,
+      fontWeight: 800,
+      letterSpacing: 0.6,
       textTransform: "uppercase",
-      color: "var(--text-4)"
+      color: isDark ? "#F2C64B" : "#C8880C"
     }
   }, "\uD83C\uDF81 \u041F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C XP"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11.5,
-      color: "var(--text-4)"
+      fontWeight: 500,
+      color: isDark ? "rgba(242,198,75,0.6)" : "#B8891F"
     }
   }, "\u0436\u0438\u0432\u043E\u0435 \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 \u2192")), /*#__PURE__*/React.createElement("div", {
     className: "bos-hscroll",
@@ -5414,7 +5424,7 @@ function PartnersShowcaseLive({
       display: "flex",
       gap: 11,
       overflowX: "auto",
-      padding: "0 0 4px",
+      padding: "0 16px 4px",
       scrollSnapType: "x proximity",
       WebkitOverflowScrolling: "touch"
     }
@@ -5429,9 +5439,9 @@ function PartnersShowcaseLive({
         width: 168,
         scrollSnapAlign: "start",
         background: "var(--card)",
-        borderRadius: 22,
+        borderRadius: 20,
         padding: 14,
-        boxShadow: "var(--card-shadow)",
+        boxShadow: "0 4px 14px rgba(120,90,10,0.10)",
         cursor: "pointer",
         display: "flex",
         flexDirection: "column"

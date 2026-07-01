@@ -2189,24 +2189,27 @@ function bosLoadRedeemedPartners() { try { return JSON.parse(localStorage.getIte
 
 // Горизонтальная лента партнёров — тот же язык, что «Челленджи», но про ТРАТУ: серо-стеклянный герб на
 // пастельном accent'е, название, что получишь, цена «🪙 N XP» и «Получить». Тап → шторка PartnerSheetLive.
-function PartnersShowcaseLive({ app, navigate, compact = false }) {
+function PartnersShowcaseLive({ app, navigate }) {
   const { open: openSheet } = useSheet();
+  const isDark = app?.themeOverride === "dark";
   const [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
   const openPartner = (p) => {
     if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
     openSheet(<PartnerSheetLive partner={p} app={app} redeemed={!!redeemed[p.id]} onRedeemed={(id) => setRedeemed((m) => { const n = Object.assign({}, m, { [id]: true }); try { localStorage.setItem("bos:redeemedPartners", JSON.stringify(n)); } catch (e) {} return n; })} />);
   };
+  // ЗОЛОТАЯ ПОЛКА — чтобы блок «трат» НЕ сливался с нейтральными челленджами/кругами (David). Тёплый
+  // кремовый фон + золотой заголовок = зона награды. Белые карточки внутри «всплывают» на тинте.
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🎁 Потратить XP</span>
-        <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>живое от партнёров →</span>
+    <div style={{ background: isDark ? "rgba(254,222,52,0.07)" : "linear-gradient(180deg,#FFF6E2,#FFFCF4)", borderRadius: 24, padding: "14px 0 8px", border: isDark ? "1px solid rgba(254,222,52,0.14)" : "1px solid rgba(239,159,20,0.13)" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 16px 11px" }}>
+        <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: isDark ? "#F2C64B" : "#C8880C" }}>🎁 Потратить XP</span>
+        <span style={{ fontSize: 11.5, fontWeight: 500, color: isDark ? "rgba(242,198,75,0.6)" : "#B8891F" }}>живое от партнёров →</span>
       </div>
-      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "0 0 4px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
+      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "0 16px 4px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
         {BOS_PARTNERS.map((p) => {
           const got = !!redeemed[p.id];
           return (
-            <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 168, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", cursor: "pointer", display: "flex", flexDirection: "column" }}>
+            <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 168, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "0 4px 14px rgba(120,90,10,0.10)", cursor: "pointer", display: "flex", flexDirection: "column" }}>
               <span style={{ width: 44, height: 44, borderRadius: 14, background: p.accent, display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{p.emblem}</span>
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{p.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
