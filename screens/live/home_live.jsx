@@ -466,19 +466,12 @@ function HomeLive() {
 
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
 
-      {/* Новому юзеру (0 привычек/целей/команд) — ПРОСТОЙ старт: один понятный шаг + подсказки ИИ, без
-          пёстрой доски (David: «новому максимально просто, по ходу разберётся»). Доска появляется с
-          первой привычкой. */}
+      {/* Новому юзеру (0 привычек/целей/команд) — ПРОСТОЙ старт = ОДИН hero-блок: ИИ-сводка + пилюли
+          (там уже есть «➕ Создать привычку» + мягкий ИИ-старт «Рассказать о себе»). Прежнюю большую
+          карточку «Создай первую привычку» убрал — она дублировала пилюлю и занимала пол-экрана
+          (David: «нету смысла показывать на пол-экрана, в пилюлях уже есть»). Доска — с первой привычкой. */}
       {trulyNew ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <button onClick={() => navigate("habit-settings", { mode: "create" })} className="tap" style={{ width: "100%", border: 0, borderRadius: 22, padding: "28px 20px", cursor: "pointer", textAlign: "center", background: cardBg, boxShadow: cardShadow, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, color: "var(--text)" }}>
-            <span style={{ width: 60, height: 60, borderRadius: 18, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 30 }}>🌱</span>
-            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px" }}>Создай первую привычку</div>
-            <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 270 }}>Начни с одной маленькой — стакан воды или 5 минут чтения. Остальное соберётся по ходу.</div>
-            <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 7, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "11px 20px", fontSize: 15, fontWeight: 600 }}><I.Plus size={17} strokeWidth={2.6} /> Создать привычку</span>
-          </button>
-          {nodes["hero"] || null}
-        </div>
+        nodes["hero"] || null
       ) : visibleIds.length > 0 ? (
         <BosReorderList
           ids={visibleIds}
