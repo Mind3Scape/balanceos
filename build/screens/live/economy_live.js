@@ -101,7 +101,25 @@ function bosTeamGoalXPLive(app) {
 // level/XP total is SHOWN, so badges, bringing people in, AND winning team goals all push your
 // level forward — each riding on top of base (never feeding "reach level N").
 function bosLiveXPLive(app) {
-  return bosBaseXPLive(app) + (typeof bosAchievementBonusXPLive === "function" ? bosAchievementBonusXPLive(app) : 0) + (typeof bosReferralXPLive === "function" ? bosReferralXPLive(app) : 0) + (typeof bosTeamGoalXPLive === "function" ? bosTeamGoalXPLive(app) : 0);
+  return bosBaseXPLive(app) + (typeof bosAchievementBonusXPLive === "function" ? bosAchievementBonusXPLive(app) : 0) + (typeof bosReferralXPLive === "function" ? bosReferralXPLive(app) : 0) + (typeof bosTeamGoalXPLive === "function" ? bosTeamGoalXPLive(app) : 0) + (typeof bosChallengeBonusXPLive === "function" ? bosChallengeBonusXPLive(app) : 0);
+}
+// Разовый XP-бонус за старт курируемого челленджа со стр. Привычки. Привычка/цель/команда, созданная
+// из челленджа, несёт метку challenge {key,bonus}; суммируем бонусы УНИКАЛЬНЫХ ключей среди habits+
+// goals+teams (дедуп → нельзя нафармить пересозданием). Derived, как весь XP — удалил привычку, ушёл и
+// бонус (честно). Значения бонусов задаёт CHALLENGE_STARTERS (habits_live.jsx).
+function bosChallengeBonusXPLive(app) {
+  if (!app) return 0;
+  var seen = {},
+    sum = 0;
+  var items = (app.habits || []).concat(app.goals || []).concat(app.teams || []);
+  for (var i = 0; i < items.length; i++) {
+    var c = items[i] && items[i].challenge;
+    if (c && c.key && !seen[c.key]) {
+      seen[c.key] = 1;
+      sum += c.bonus | 0;
+    }
+  }
+  return sum;
 }
 // XP → level. Each level costs a little more than the last (100, 150, 200…): a gentle curve
 // so the first wins come fast and later levels feel earned.

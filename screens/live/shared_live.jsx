@@ -518,10 +518,10 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft }) {
       accent: "#9bd0ff",
     },
     {
-      i: "🤝", t: "Собери круг",
-      d: "Общие привычки с друзьями тоже идут в твой опыт — и так веселее.",
-      cta: "Создать круг", action: () => navigate("goal-settings", { mode: "create", circleOn: true }),
-      meta: "Привычки вместе",
+      i: "🤝", t: "Делайте вместе",
+      d: "Общие цели и привычки с друзьями тоже идут в твой опыт — и так веселее.",
+      cta: "Цель вместе", action: () => navigate("goal-settings", { mode: "create", circleOn: true }),
+      meta: "Вместе с друзьями",
       accent: "#85e3a8",
     },
   ];
@@ -3033,12 +3033,12 @@ function TeamShareSheetLive({ team }) {
     <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ width: 60, height: 60, borderRadius: 16, margin: "0 auto 12px", background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(false), display: "grid", placeItems: "center", fontSize: 32 }}>{bosIcon(team?.emblem || "✨", 32, null)}</div>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться кругом</div>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Позвать вместе</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>
           Вести привычки вместе — веселее, и за совместные привычки больше XP ✨
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", background: "var(--surface-3)", padding: "4px 11px", borderRadius: 999 }}>
-          {isPublic ? "🌐 Открытый · ссылка ведёт прямо в круг" : "🔒 Приватный · войдут только по этой ссылке"}
+          {isPublic ? "🌐 Открытый · по ссылке сразу присоединятся" : "🔒 Приватный · войдут только по этой ссылке"}
         </div>
       </div>
       <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10, background: "var(--surface-3)", borderRadius: 14, padding: "11px 8px 11px 14px" }}>

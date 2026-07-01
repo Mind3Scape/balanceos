@@ -17,33 +17,38 @@
 
 // «ЧЕЛЛЕНДЖИ» — витрина-лента наверху стр. Привычки (David: «не голые пресеты, а самые ПОПУЛЯРНЫЕ
 // привычки/цели/„вместе"-челленджи, у каждой виден XP-БОНУС — быстрое добавление ЧЕЛЛЕНДЖЕЙ»). Тап →
-// создание заполнено пресетом. XP-бейдж = ЧЕСТНАЯ награда за прохождение (days × 10 XP/отметку — XP в
-// приложении ВЫВОДИТСЯ из реальных отметок, не рисуется счётчиком). kind: habit | goal | together
+// создание заполнено пресетом. `bonus` = РЕАЛЬНЫЙ разовый XP за старт челленджа: создание помечает
+// привычку/цель/команду ключом `challenge {key,bonus}`, а bosChallengeBonusXPLive выводит бонус (дедуп
+// по key — не фармится повтором, честно как весь XP: derived, не рисуется). kind: habit | goal | together
 // (together = цель с тумблером «Идти к цели вместе»). preset-поля совпадают с тем, что читает создание.
 var CHALLENGE_STARTERS = [{
   i: "🔥",
   t: "Холодный душ",
   kind: "habit",
-  days: 30,
+  key: "cold",
+  bonus: 50,
   color: "#0a0a0a"
 }, {
   i: "💪",
   t: "30 дней спорта",
   kind: "together",
-  days: 30,
+  key: "sport30",
+  bonus: 75,
   target: 30,
   unit: "дней"
 }, {
   i: "💧",
   t: "Вода каждый день",
   kind: "habit",
-  days: 21,
+  key: "water",
+  bonus: 30,
   color: "#34C759"
 }, {
   i: "📚",
   t: "Книга за месяц",
   kind: "goal",
-  days: 30,
+  key: "book",
+  bonus: 40,
   target: 1,
   unit: "книга",
   deadline: "Месяц"
@@ -51,26 +56,30 @@ var CHALLENGE_STARTERS = [{
   i: "🏃",
   t: "Бег вместе",
   kind: "together",
-  days: 30,
+  key: "runtog",
+  bonus: 75,
   target: 30,
   unit: "км"
 }, {
   i: "🧘",
   t: "10 минут тишины",
   kind: "habit",
-  days: 21,
+  key: "silence",
+  bonus: 30,
   color: "#AF52DE"
 }, {
   i: "🌅",
   t: "Ранний подъём",
   kind: "habit",
-  days: 21,
+  key: "wake",
+  bonus: 40,
   color: "#FF9500"
 }, {
   i: "🚭",
   t: "Без сахара",
   kind: "habit",
-  days: 30,
+  key: "nosugar",
+  bonus: 50,
   color: "#FF2D55"
 }];
 
@@ -390,13 +399,20 @@ function HabitsLive() {
         window.tgHaptic("light");
       } catch (e) {}
     }
+    // challenge {key,bonus} едет в пресет → создание кладёт его на привычку/цель/команду → реальный
+    // разовый XP-бонус выводится (дедуп по key). Тап без создания не начисляет — только реальное сохранение.
+    var ch = {
+      key: c.key,
+      bonus: c.bonus
+    };
     if (c.kind === "habit") {
       navigate("habit-settings", {
         mode: "create",
         preset: {
           i: c.i,
           t: c.t,
-          color: c.color
+          color: c.color,
+          challenge: ch
         }
       });
     } else {
@@ -409,7 +425,8 @@ function HabitsLive() {
           target: c.target,
           unit: c.unit,
           deadline: c.deadline,
-          goalType: "collective"
+          goalType: "collective",
+          challenge: ch
         }
       });
     }
@@ -694,7 +711,7 @@ function HabitsLive() {
       maskImage: "linear-gradient(90deg, #000 88%, transparent)"
     }
   }, CHALLENGE_STARTERS.map((c, i) => {
-    var xp = (c.days || 7) * 10;
+    var xp = c.bonus;
     return /*#__PURE__*/React.createElement("button", {
       key: i,
       className: "tap",

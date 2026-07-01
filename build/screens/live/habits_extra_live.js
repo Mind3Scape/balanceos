@@ -550,6 +550,7 @@ function HabitSettingsLive() {
           time: reminderTime
         }
       };
+      if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
       // SHARED habit: if sharing is on, spin up the mini-team + team-habit and open
       // the share sheet. Guarded — if anything fails, the habit is still saved.
       if (shareOn) {
@@ -1165,6 +1166,7 @@ function GoalSettingsLive() {
           progress: 0,
           members: []
         };
+        if (preset && preset.challenge) teamObj.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
         var nt = app?.addTeam(teamObj);
         navigate("team-detail", {
           team: nt
@@ -1216,6 +1218,7 @@ function GoalSettingsLive() {
         deadline,
         circle: false
       };
+      if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
       if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
       navigate("habits");
     }

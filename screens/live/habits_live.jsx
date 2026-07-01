@@ -17,18 +17,19 @@
 
 // «ЧЕЛЛЕНДЖИ» — витрина-лента наверху стр. Привычки (David: «не голые пресеты, а самые ПОПУЛЯРНЫЕ
 // привычки/цели/„вместе"-челленджи, у каждой виден XP-БОНУС — быстрое добавление ЧЕЛЛЕНДЖЕЙ»). Тап →
-// создание заполнено пресетом. XP-бейдж = ЧЕСТНАЯ награда за прохождение (days × 10 XP/отметку — XP в
-// приложении ВЫВОДИТСЯ из реальных отметок, не рисуется счётчиком). kind: habit | goal | together
+// создание заполнено пресетом. `bonus` = РЕАЛЬНЫЙ разовый XP за старт челленджа: создание помечает
+// привычку/цель/команду ключом `challenge {key,bonus}`, а bosChallengeBonusXPLive выводит бонус (дедуп
+// по key — не фармится повтором, честно как весь XP: derived, не рисуется). kind: habit | goal | together
 // (together = цель с тумблером «Идти к цели вместе»). preset-поля совпадают с тем, что читает создание.
 const CHALLENGE_STARTERS = [
-  { i: "🔥", t: "Холодный душ",    kind: "habit",    days: 30, color: "#0a0a0a" },
-  { i: "💪", t: "30 дней спорта",   kind: "together", days: 30, target: 30, unit: "дней" },
-  { i: "💧", t: "Вода каждый день", kind: "habit",    days: 21, color: "#34C759" },
-  { i: "📚", t: "Книга за месяц",   kind: "goal",     days: 30, target: 1, unit: "книга", deadline: "Месяц" },
-  { i: "🏃", t: "Бег вместе",       kind: "together", days: 30, target: 30, unit: "км" },
-  { i: "🧘", t: "10 минут тишины",  kind: "habit",    days: 21, color: "#AF52DE" },
-  { i: "🌅", t: "Ранний подъём",    kind: "habit",    days: 21, color: "#FF9500" },
-  { i: "🚭", t: "Без сахара",       kind: "habit",    days: 30, color: "#FF2D55" },
+  { i: "🔥", t: "Холодный душ",    kind: "habit",    key: "cold",    bonus: 50, color: "#0a0a0a" },
+  { i: "💪", t: "30 дней спорта",   kind: "together", key: "sport30", bonus: 75, target: 30, unit: "дней" },
+  { i: "💧", t: "Вода каждый день", kind: "habit",    key: "water",   bonus: 30, color: "#34C759" },
+  { i: "📚", t: "Книга за месяц",   kind: "goal",     key: "book",    bonus: 40, target: 1, unit: "книга", deadline: "Месяц" },
+  { i: "🏃", t: "Бег вместе",       kind: "together", key: "runtog",  bonus: 75, target: 30, unit: "км" },
+  { i: "🧘", t: "10 минут тишины",  kind: "habit",    key: "silence", bonus: 30, color: "#AF52DE" },
+  { i: "🌅", t: "Ранний подъём",    kind: "habit",    key: "wake",    bonus: 40, color: "#FF9500" },
+  { i: "🚭", t: "Без сахара",       kind: "habit",    key: "nosugar", bonus: 50, color: "#FF2D55" },
 ];
 
 /* Long-press menu for a habit TILE (David: квадратные плитки 2-в-ряд → горизонтальный свайп
@@ -177,10 +178,13 @@ function HabitsLive() {
   // together → цель с включённым «Идти к цели вместе» (можно сразу звать людей).
   const startChallenge = (c) => {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    // challenge {key,bonus} едет в пресет → создание кладёт его на привычку/цель/команду → реальный
+    // разовый XP-бонус выводится (дедуп по key). Тап без создания не начисляет — только реальное сохранение.
+    const ch = { key: c.key, bonus: c.bonus };
     if (c.kind === "habit") {
-      navigate("habit-settings", { mode: "create", preset: { i: c.i, t: c.t, color: c.color } });
+      navigate("habit-settings", { mode: "create", preset: { i: c.i, t: c.t, color: c.color, challenge: ch } });
     } else {
-      navigate("goal-settings", { mode: "create", circleOn: c.kind === "together", preset: { i: c.i, t: c.t, target: c.target, unit: c.unit, deadline: c.deadline, goalType: "collective" } });
+      navigate("goal-settings", { mode: "create", circleOn: c.kind === "together", preset: { i: c.i, t: c.t, target: c.target, unit: c.unit, deadline: c.deadline, goalType: "collective", challenge: ch } });
     }
   };
 
@@ -265,7 +269,7 @@ function HabitsLive() {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "2px 1px", WebkitMaskImage: "linear-gradient(90deg, #000 88%, transparent)", maskImage: "linear-gradient(90deg, #000 88%, transparent)" }}>
           {CHALLENGE_STARTERS.map((c, i) => {
-            const xp = (c.days || 7) * 10;
+            const xp = c.bonus;
             return (
               <button key={i} className="tap" data-no-haptic onClick={() => startChallenge(c)} style={{
                 ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), borderRadius: 999, padding: "7px 9px 7px 11px", border: 0, flexShrink: 0,

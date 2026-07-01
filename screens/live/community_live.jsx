@@ -608,67 +608,8 @@ function TeamDetailLive() {
       {/* Привычки команды — якорь + остальные ОДНОЙ зоной (David: «якорь и привычки команды рядом,
           не в разных частях экрана»). Календарь «кто отметил» уехал ПОД зону. */}
       <div className="section-label" style={{ marginTop: 22 }}>Привычки команды{teamHabits.length ? " · " + teamHabits.length : ""}</div>
-      {main && (<>
-      {/* Main habit — featured card (якорь команды) */}
-      <div style={{ background: BOS_TILE_SHEEN + ", var(--card)", borderRadius: 22, padding: 18, marginTop: 8, color: "var(--text)", position: "relative", overflow: "hidden", boxShadow: bosTileGlass(isDark) + ", var(--card-shadow)", transform: "translateZ(0)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ width: 48, height: 48, borderRadius: 14, background: BOS_TILE_SHEEN + ", " + (main.color ? main.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0 }}>{bosIcon(main.emoji, 26, main.color)}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.4, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF9F14" }}/>Якорь команды</div>
-            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.4px", marginTop: 3, color: "var(--text)" }}>{main.name}</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 14 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>Сегодня</span>
-          <span style={{ fontSize: 13, color: "var(--text-3)" }}>{main.doneToday} из {main.total} участников ✓</span>
-        </div>
-        {/* Guard against a desynced doneByMe / total: clamp the bar to [0,100%]. */}
-        {(() => { const denom = main.total || 1; return (
-        <div style={{ height: 8, background: "var(--surface-3)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
-          <span style={{ display: "block", height: "100%", width: Math.min(100, (main.doneToday/denom*100))+"%", background: bosCellFill("#0a0a0a", 1), borderRadius: 999 }} />
-        </div>
-        ); })()}
-        {/* Member faces — REAL avatars (BuddyFaceLive), dimmed until they check in today. Anonymous
-            dots only while the roster loads. */}
-        {(() => {
-          const todayK = new Date().toISOString().slice(0, 10);
-          const doneSet = {}; (mainProg || []).forEach((m) => { if (m.days && m.days[todayK]) doneSet[m.id] = true; });
-          const faces = (Array.isArray(members) && members.length) ? members : null;
-          if (!faces) return (
-            <div style={{ display: "flex", gap: 5, marginTop: 12, flexWrap: "wrap" }}>
-              {Array.from({ length: Math.max(0, main.total) }).map((_, i) => (
-                <span key={i} style={{ width: 22, height: 22, borderRadius: "50%", background: i < main.doneToday ? "#0a0a0a" : "var(--surface-3)", display: "grid", placeItems: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{i < main.doneToday ? "✓" : ""}</span>
-              ))}
-            </div>
-          );
-          const FCAP = 10; // full-width card fits ~10 faces, then a «+N» disc for the rest
-          const fShown = faces.slice(0, FCAP), fExtra = faces.length - fShown.length;
-          return (
-            <div style={{ display: "flex", gap: 7, marginTop: 12, flexWrap: "wrap" }}>
-              {fShown.map((m) => {
-                const did = !!doneSet[m.id] || (m.id === meId && main.doneByMe);
-                return (
-                  <span key={m.id} style={{ position: "relative", display: "block", opacity: did ? 1 : 0.66 }}>
-                    <BuddyFaceLive avatar={m.avatar} name={m.name} size={28} />
-                    {did && <span style={{ position: "absolute", right: -1, bottom: -1, width: 13, height: 13, borderRadius: "50%", background: "#0a0a0a", color: "#fff", fontSize: 8, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 0 0 1.5px var(--card)" }}>✓</span>}
-                  </span>
-                );
-              })}
-              {fExtra > 0 && <span style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.16)", color: "var(--text)", fontSize: 11, fontWeight: 800, letterSpacing: "-0.5px", display: "grid", placeItems: "center" }}>+{fExtra}</span>}
-            </div>
-          );
-        })()}
-        {/* Отметка ПРЯМО В КОМАНДЕ (toggleMyTeamHabit) — личная копия не нужна (David: «отмечать в
-            команде, не таща в личное»). Если уже адаптирована — отметка через личную копию (единый лог).
-            «Вести и у себя» — опц. опт-ин под кнопкой (НЕ способ отметки, а «появится в личных»). */}
-        {_rosterLive && (<>
-          <button onClick={() => (adoptedFor(main) ? markAdopted(main) : toggleMyTeamHabit(main))} className="tap" style={{ width: "100%", marginTop: 14, border: myDone(main) ? "1.5px solid var(--line)" : 0, borderRadius: 999, padding: "11px 14px", fontSize: 14, fontWeight: 600, background: myDone(main) ? "transparent" : "#0a0a0a", color: myDone(main) ? "var(--text-2)" : "#fff" }}>
-            {myDone(main) ? "✓ Сделано сегодня" : "Отметить сегодня"}
-          </button>
-          {!adoptedFor(main) && <button onClick={() => adoptTeamHabit(main)} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", border: "1px dashed rgba(0,0,0,0.16)", borderRadius: 999, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}><I.Plus size={13} /> Вести и у себя</button>}
-        </>)}
-      </div>
-      </>)}
+      {/* Якорь больше НЕ отдельная геро-карточка (David: «якорь тоже плиткой») — он первой плиткой в
+          общей сетке ниже (с бейджем «● Якорь»). Лица «кто отметил сегодня» живут в календаре под сеткой. */}
 
       <div style={{ marginTop: 8 }}>
         {teamHabits.length === 0 && (
@@ -677,14 +618,15 @@ function TeamDetailLive() {
         {/* Командные привычки = ТЕ ЖЕ квадратные плитки, что на стр. Привычки (David: «не выдумывать
             третий способ отметки — единый язык»). Галочка отмечает ПРЯМО В КОМАНДЕ (toggleMyTeamHabit),
             личная копия не нужна; «Вести у себя» снизу плитки — опц. опт-ин (появится и в личных). */}
-        {others.length > 0 && (
+        {teamHabits.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {others.map((h, i) => {
+            {[main].concat(others).filter(Boolean).map((h, i) => {
               const done = myDone(h);
               const adopted = !!adoptedFor(h);
               const markInTeam = () => (adopted ? markAdopted(h) : toggleMyTeamHabit(h));
               return (
                 <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: "13px 13px 12px", minHeight: 150, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                  {h.isMain && <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EF9F14" }} />Якорь</div>}
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                     <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
                     {_rosterLive && <button onClick={markInTeam} className={"check-btn tap " + (done ? "" : "unchecked")} aria-label="Отметить" style={{ flexShrink: 0, width: 30, height: 30, "--check-color": "#0a0a0a" }}>{done && <I.Check size={16} color="#fff" strokeWidth={3} />}</button>}

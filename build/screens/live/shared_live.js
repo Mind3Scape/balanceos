@@ -1053,14 +1053,14 @@ function NetworkLockedLive({
     accent: "#9bd0ff"
   }, {
     i: "🤝",
-    t: "Собери круг",
-    d: "Общие привычки с друзьями тоже идут в твой опыт — и так веселее.",
-    cta: "Создать круг",
+    t: "Делайте вместе",
+    d: "Общие цели и привычки с друзьями тоже идут в твой опыт — и так веселее.",
+    cta: "Цель вместе",
     action: () => navigate("goal-settings", {
       mode: "create",
       circleOn: true
     }),
-    meta: "Привычки вместе",
+    meta: "Вместе с друзьями",
     accent: "#85e3a8"
   }];
   return /*#__PURE__*/React.createElement("div", {
@@ -7801,7 +7801,7 @@ function TeamShareSheetLive({
       fontWeight: 700,
       letterSpacing: "-0.3px"
     }
-  }, "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u043A\u0440\u0443\u0433\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
       color: "var(--text-3)",
@@ -7823,7 +7823,7 @@ function TeamShareSheetLive({
       padding: "4px 11px",
       borderRadius: 999
     }
-  }, isPublic ? "🌐 Открытый · ссылка ведёт прямо в круг" : "🔒 Приватный · войдут только по этой ссылке")), /*#__PURE__*/React.createElement("div", {
+  }, isPublic ? "🌐 Открытый · по ссылке сразу присоединятся" : "🔒 Приватный · войдут только по этой ссылке")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       display: "flex",
