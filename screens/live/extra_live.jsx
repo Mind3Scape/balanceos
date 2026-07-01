@@ -182,10 +182,12 @@ function HabitDetailLive() {
       </div>
 
       {/* Stat row — native: thin line icons, one card, hairline dividers (StatTrioLive) */}
+      {/* Иконки в стекле НЕЙТРАЛЬНЫЕ — цвет привычки их НЕ красит (David: «зелёный не должен влиять на
+          иконки серия/лучшая в стекле»); цвет живёт на иконке-тайле привычки и в календаре. */}
       <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={h.color || (isDark ? "#fff" : "#0a0a0a")} /> },
-        { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} strokeWidth={2} color={h.color || (isDark ? "#fff" : "#0a0a0a")} /> },
-        { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2} color={h.color || (isDark ? "#fff" : "#0a0a0a")} /> },
+        { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={isDark ? "#fff" : "#0a0a0a"} /> },
+        { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
+        { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
       ]} />
 
       {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
@@ -286,9 +288,9 @@ function GoalDetailLive() {
 
       {/* Stat row — shared native row (StatTrioLive), same rhythm as the habit page */}
       <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Осталось", v: remaining, icon: <I.Target size={16} strokeWidth={2} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
-        { l: "Сделано", v: cur, icon: <I.Check size={16} strokeWidth={2.4} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
-        { l: "Срок", text: g.deadline, icon: <I.Calendar size={16} strokeWidth={2} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
+        { l: "Осталось", v: remaining, icon: <I.Target size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
+        { l: "Сделано", v: cur, icon: <I.Check size={16} strokeWidth={2.4} color={isDark ? "#fff" : "#0a0a0a"} /> },
+        { l: "Срок", text: g.deadline, icon: <I.Calendar size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
       ]} />
 
       {/* СКЛАДЫВАЕТСЯ ИЗ ПРИВЫЧЕК — цель ведут её привычки: отмечаешь ПРЯМО ТУТ (чек-кружок), кольцо

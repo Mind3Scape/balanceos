@@ -724,7 +724,7 @@ function HabitsLive() {
     return {
       hasColor: true,
       accent,
-      bg: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + soft,
+      bg: "linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 62%), " + soft,
       shadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
       txt: "#1b1b1f",
       sub: "rgba(27,27,31,0.58)",

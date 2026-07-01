@@ -359,6 +359,16 @@ function bosLightenHex(hx, amt) {
   };
   return "#" + mk(r) + mk(g) + mk(b);
 }
+// Пустая клетка календаря = МЯГКИЙ тон цвета привычки (David: «пустые дни должны стать мягко-
+// зелёными/любой цвет, а не серыми»). Цвет на низкой альфе → еле-еле в тон; фолбэк серый.
+function bosCellEmpty(accent, isDark, mul) {
+  mul = mul == null ? 1 : mul; // 1=пустой день (~19-23%); <1 = слабее (будущее/соседний месяц)
+  if (accent && accent[0] === "#" && accent.length === 7) {
+    var a = Math.max(3, Math.round((isDark ? 0x3a : 0x30) * mul));
+    return accent + ("0" + a.toString(16)).slice(-2);
+  }
+  return isDark ? "rgba(255,255,255," + (0.10 * mul).toFixed(3) + ")" : "rgba(0,0,0," + (0.06 * mul).toFixed(3) + ")";
+}
 // Glass edge for a filled tile — a soft top highlight + a faint contour, so each cell reads like the
 // habit's ICON tile (David: «как у иконки — осветление сверху, переход, виден контур; не сливается,
 // и не плоский серый»). Light catches the top; the contour keeps it off the background.
@@ -767,7 +777,7 @@ function PeopleMonthCalendarLive({
     var fut = pct == null;
     var filled = !fut && pct > 0;
     var done = !fut && pct >= 1;
-    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : track : bosCellFill(hx, pct);
+    var bg = fut ? bosCellEmpty(hx, isDark, 0.42) : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : bosCellEmpty(hx, isDark) : bosCellFill(hx, pct);
     var ringC = wd.isToday ? itx ? hx : isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)" : null;
     var sh = [filled ? bosCellGlass(isDark) : "", ringC ? "0 0 0 1.7px " + ringC : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("button", {
@@ -880,7 +890,7 @@ function PeopleMonthCalendarLive({
       style: {
         aspectRatio: "1/1",
         borderRadius: "50%",
-        background: isDark ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.045)"
+        background: bosCellEmpty(selColor, isDark, 0.3)
       }
     });
     var isToday = isCurMonth && c.d === today;
@@ -895,7 +905,7 @@ function PeopleMonthCalendarLive({
     var done = !fut && pct >= 1;
     var filled = !fut && pct > 0;
     // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
-    var bg = fut ? isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : track : bosCellFill(hx, pct);
+    var bg = fut ? bosCellEmpty(hx, isDark, 0.42) : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : bosCellEmpty(hx, isDark) : bosCellFill(hx, pct);
     // One COHESIVE today-glyph colour (David: «цвет цифры прыгает с чёрного на белый на 4→5 —
     // бред; пусть пока копится и в конце ВСЕГДА белый; „+" пусть остаётся в цвете обводки»).
     // Filled today = ALWAYS white number/✓ (never flips) + soft shadow so it reads on any fill;
@@ -2738,7 +2748,7 @@ function SharedBuddiesLive({
   var today = typeof bosTodayKey === "function" ? bosTodayKey() : "";
   var keys = typeof bosWeekKeys === "function" ? bosWeekKeys() : [];
   var members = membersProp || fetched || [];
-  var emptyCell = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
+  var emptyCell = typeof bosCellEmpty === "function" ? bosCellEmpty(accent, isDark) : isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -4327,7 +4337,7 @@ function HabitMonthMini({
     keys.push(d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2));
   }
   var doneFill = bosCellFill(accent, 1);
-  var empty = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)";
+  var empty = typeof bosCellEmpty === "function" ? bosCellEmpty(accent, isDark) : isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)";
   var radius = square ? 4 : "50%"; // David: везде КРУЖКИ по умолчанию; квадраты — по тоглу
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -7816,7 +7826,7 @@ function HabitWeekStrip({
   var accent = bosHabitColor(habit);
   var log = habit.log || {};
   var doneFill = bosCellFill(accent, 1); // SAME soft glossy fill as the month calendar (continuity)
-  var empty = isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
+  var empty = typeof bosCellEmpty === "function" ? bosCellEmpty(accent, isDark) : isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
   var ringC = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
   var cell = fill ? {
     flex: 1,
@@ -8007,12 +8017,19 @@ var BOS_GREY = "#8E8E93";
 // the colour, so every picker circle reads «в стекле» (David's example). Returns {background,boxShadow};
 // `selected` adds the white-gap halo ring in the swatch's own colour. ONE source → identical everywhere.
 function bosColorSwatch(hx, selected) {
-  var col = typeof hx === "string" && hx[0] === "#" ? hx : BOS_GREY;
-  var sheen = "radial-gradient(125% 125% at 30% 24%, rgba(255,255,255,0.62), rgba(255,255,255,0.10) 44%, rgba(255,255,255,0) 62%)";
-  var glass = "inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -3px 5px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.12)";
+  var raw = typeof hx === "string" && hx[0] === "#" ? hx : BOS_GREY;
+  // Свотч = СТЕКЛЯННЫЙ кружок (верт. блик + стекло-тень), НЕ глянцевый шар (David). Тон = МЯГКАЯ
+  // ПАСТЕЛЬ = ровно тот цвет, что выйдет на карточке. Серый(станд) → СВЕТЛО-серый (базовый нейтраль,
+  // «который везде»), чёрный → графит — оба различимы и отражают выбор.
+  var isBlack = raw.toLowerCase() === "#0a0a0a";
+  var isGrey = raw === BOS_GREY;
+  var tone = isBlack ? "#3b3f47" : isGrey ? "#e9ebf0" : typeof bosLightenHex === "function" ? bosLightenHex(raw, 0.42) : raw;
+  var sheen = "linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.12) 52%, rgba(255,255,255,0) 78%)";
+  var glass = typeof bosTileGlass === "function" ? bosTileGlass(false) : "inset 0 1px 1px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.1)";
+  var ring = isGrey ? "#c2c7d2" : raw;
   return {
-    background: sheen + ", " + col,
-    boxShadow: (selected ? "0 0 0 2px #fff, 0 0 0 4px " + col + ", " : "") + glass
+    background: sheen + ", " + tone,
+    boxShadow: (selected ? "0 0 0 2px #fff, 0 0 0 3px " + ring + ", " : "") + glass
   };
 }
 /* THE colour picker — ONE component for привычки / цели / команды so the choice is pixel-identical
@@ -8024,8 +8041,8 @@ function BosColorPickerLive({
 }) {
   var isHex = typeof value === "string" && value[0] === "#";
   var custom = isHex && value !== "#0a0a0a" && value !== BOS_GREY && !BOS_APPLE_COLORS.includes(value);
-  var sheen = "radial-gradient(125% 125% at 30% 24%, rgba(255,255,255,0.62), rgba(255,255,255,0.10) 44%, rgba(255,255,255,0) 62%)";
-  var glass = "inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -3px 5px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.12)";
+  var sheen = "linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.12) 52%, rgba(255,255,255,0) 78%)"; // верт. стекло, не шар (David)
+  var glass = typeof bosTileGlass === "function" ? bosTileGlass(false) : "inset 0 1px 1px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.1)";
   var base = {
     width: 32,
     height: 32,

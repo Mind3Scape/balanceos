@@ -347,7 +347,7 @@ function HabitDetailLive() {
       icon: /*#__PURE__*/React.createElement(I.Flame, {
         size: 16,
         filled: true,
-        color: h.color || (isDark ? "#fff" : "#0a0a0a")
+        color: isDark ? "#fff" : "#0a0a0a"
       })
     }, {
       l: "Лучшая",
@@ -356,7 +356,7 @@ function HabitDetailLive() {
       icon: /*#__PURE__*/React.createElement(I.Trophy, {
         size: 16,
         strokeWidth: 2,
-        color: h.color || (isDark ? "#fff" : "#0a0a0a")
+        color: isDark ? "#fff" : "#0a0a0a"
       })
     }, {
       l: "Всего",
@@ -365,7 +365,7 @@ function HabitDetailLive() {
       icon: /*#__PURE__*/React.createElement(I.ChartBar, {
         size: 16,
         strokeWidth: 2,
-        color: h.color || (isDark ? "#fff" : "#0a0a0a")
+        color: isDark ? "#fff" : "#0a0a0a"
       })
     }]
   }), /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
@@ -571,7 +571,7 @@ function GoalDetailLive() {
       icon: /*#__PURE__*/React.createElement(I.Target, {
         size: 16,
         strokeWidth: 2,
-        color: g.color || (isDark ? "#fff" : "#0a0a0a")
+        color: isDark ? "#fff" : "#0a0a0a"
       })
     }, {
       l: "Сделано",
@@ -579,7 +579,7 @@ function GoalDetailLive() {
       icon: /*#__PURE__*/React.createElement(I.Check, {
         size: 16,
         strokeWidth: 2.4,
-        color: g.color || (isDark ? "#fff" : "#0a0a0a")
+        color: isDark ? "#fff" : "#0a0a0a"
       })
     }, {
       l: "Срок",
@@ -587,7 +587,7 @@ function GoalDetailLive() {
       icon: /*#__PURE__*/React.createElement(I.Calendar, {
         size: 16,
         strokeWidth: 2,
-        color: g.color || (isDark ? "#fff" : "#0a0a0a")
+        color: isDark ? "#fff" : "#0a0a0a"
       })
     }]
   }), /*#__PURE__*/React.createElement("div", {
