@@ -1046,6 +1046,45 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   return nt;
 }
 
+// СТАТИЧНАЯ МИНИ-ОРБИТА для карточки цели/круга (David: «превью — вокруг чего цель, а не просто
+// смайлик; орбиты наполняются привычками и людьми; пусть статично»). Центр = значок цели, вокруг —
+// её привычки (эмодзи) на внутреннем кольце и люди (лица) на внешнем. Ничего не крутится (перф на
+// многих карточках + спокойствие). Лёгкий CSS, БЕЗ useOrbClock. habits=[{emoji,color}], people=[{avatar,name}].
+function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], size = 128, dark = false }) {
+  var C = size / 2;
+  var cR = Math.round(size * 0.19);            // центр-диск (радиус)
+  var r1 = size * 0.315, r2 = size * 0.455;    // радиусы колец (привычки / люди)
+  var hb = (habits || []).filter(Boolean).slice(0, 7);
+  var pp = (people || []).filter(Boolean).slice(0, 9);
+  var ringLine = dark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.09)";
+  var accent = centerColor || (dark ? "#fff" : "#0a0a0a");
+  var ring = function (R) { return <span aria-hidden style={{ position: "absolute", left: C - R, top: C - R, width: R * 2, height: R * 2, borderRadius: "50%", border: "1px solid " + ringLine }} />; };
+  var place = function (items, R, sz, off, render) {
+    return items.map(function (it, i) {
+      var ang = (i / Math.max(1, items.length)) * Math.PI * 2 - Math.PI / 2 + off;
+      var x = C + Math.cos(ang) * R, y = C + Math.sin(ang) * R;
+      return <span key={i} style={{ position: "absolute", left: Math.round(x - sz / 2), top: Math.round(y - sz / 2), width: sz, height: sz }}>{render(it)}</span>;
+    });
+  };
+  var hSz = Math.max(16, Math.round(size * 0.16));
+  var pSz = Math.max(16, Math.round(size * 0.155));
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} aria-hidden>
+      {ring(r1)}{ring(r2)}
+      {/* привычки — стеклянные диски с эмодзи (внутреннее кольцо) */}
+      {place(hb, r1, hSz, 0, function (h) {
+        return <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: (h.color ? h.color + "22" : (dark ? "rgba(255,255,255,0.10)" : "#fff")), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)"), display: "grid", placeItems: "center", fontSize: Math.round(hSz * 0.6) }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, Math.round(hSz * 0.62), h.color) : (h.emoji || "✨")}</span>;
+      })}
+      {/* люди — реальные лица (внешнее кольцо) */}
+      {place(pp, r2, pSz, 0.32, function (p) {
+        return <span style={{ display: "block", borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)" }}>{typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={p.avatar} name={p.name} size={pSz} /> : null}</span>;
+      })}
+      {/* центр — значок цели на стеклянном диске */}
+      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (centerColor ? centerColor + "26" : (dark ? "rgba(255,255,255,0.12)" : "#fff")), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 2px 8px rgba(0,0,0,0.14)"), display: "grid", placeItems: "center" }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", Math.round(cR * 1.1), accent) : (centerEmoji || "🎯")}</span>
+    </div>
+  );
+}
+
 // Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,
 // those were fake seed personas). Delegates to PeopleStackLive so cards + teams share one logic.
 function HabitBuddyAvatarsLive({ habit, size = 22, max = 5 }) {
@@ -1533,7 +1572,7 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
    menu (enterReorder, exposed via ctlRef) — a grid has no obvious drag-handle, so we don't want a
    stray hold to start dragging. In REORDER mode every tile jiggles and a press begins a drag at
    once; «Готово» (floating, portal'd like BosReorderList) leaves the mode. */
-function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12 }) {
+function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull }) {
   const [mode, setMode] = React.useState(false);
   const [order, setOrder] = React.useState(ids);
   const [drag, setDrag] = React.useState({ id: null, from: -1, to: -1, dx: 0, dy: 0 });
@@ -1652,6 +1691,7 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
           return (
             <div key={id} ref={(el) => { refs.current[id] = el; }} onPointerDown={onDown(id)}
               style={{ position: "relative", touchAction: mode ? "none" : "auto",
+                gridColumn: (spanFull && spanFull(id)) ? "1 / -1" : undefined,
                 transform: isDrag ? "translate(" + drag.dx + "px, " + drag.dy + "px) scale(1.045)" : "translate(" + sh.x + "px, " + sh.y + "px)",
                 transition: isDrag ? "none" : "transform 0.24s cubic-bezier(0.2,0,0,1)",
                 zIndex: isDrag ? 40 : 1, willChange: mode ? "transform" : "auto" }}>
@@ -1790,6 +1830,14 @@ var BOS_CARD_STYLE_DEFAULT = { form: "square", name: true, marks: "week", faces:
 function bosLoadCardStyle() { try { var s = JSON.parse(localStorage.getItem("bos:cardStyle") || "null"); if (s && typeof s === "object") return Object.assign({}, BOS_CARD_STYLE_DEFAULT, s); } catch (e) {} return Object.assign({}, BOS_CARD_STYLE_DEFAULT); }
 function bosSaveCardStyle(s) { try { localStorage.setItem("bos:cardStyle", JSON.stringify(s)); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
 
+// СТИЛЬ ЦЕЛЕЙ — ОТДЕЛЬНЫЙ от привычек (David: «карточки целей и привычек должны отличаться; в
+// шестерёнке — стиль привычек И стиль целей, у целей другие пресеты»). База = ВЫСОКИЙ БАННЕР (как
+// цель выглядела изначально). form: banner (полноширинный высокий) | square (2-в-ряд минимал).
+// orbits = мини-орбита (привычки+люди вокруг цели-превью). name/progress — тоглы. Тот же event.
+var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: false, progress: true };
+function bosLoadGoalStyle() { try { var s = JSON.parse(localStorage.getItem("bos:goalStyle") || "null"); if (s && typeof s === "object") return Object.assign({}, BOS_GOAL_STYLE_DEFAULT, s); } catch (e) {} return Object.assign({}, BOS_GOAL_STYLE_DEFAULT); }
+function bosSaveGoalStyle(s) { try { localStorage.setItem("bos:goalStyle", JSON.stringify(s)); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
+
 // Месячная «грядка» для превью карточки — последние 5 недель (35 клеток) хитмапом по логу привычки.
 // Тот же язык клеток, что у недельной полоски и календаря (bosCellFill/bosCellGlass) → континуити.
 function HabitMonthMini({ habit, square = false }) {
@@ -1810,25 +1858,32 @@ function HabitMonthMini({ habit, square = false }) {
   );
 }
 
-// Меню «Стиль карточек» — всплывашка у шестерёнки (как CreateMenuLive у «+»): выбор ФОРМЫ (квадрат/строка)
-// SVG-иконками + ТОГЛЫ (отметки нет/неделя/месяц, лица, название). Название — тогл только для квадрата
-// (строке ярлык нужен всегда). Правки применяются сразу (onChange → save → перерисовка).
-function CardStyleMenuLive({ open, onClose, anchorRef, value, onChange }) {
+// Меню шестерёнки — ДВЕ вкладки: «Привычки» и «Цели» (David: у каждого свой стиль/пресеты). Само
+// грузит и сохраняет оба стиля (bosSaveCardStyle/bosSaveGoalStyle → event → список перерисовывается).
+// Привычки: форма квадрат/строка + отметки/клетки/лица/название. Цели: форма БАННЕР/квадрат + орбиты
+// (мини-орбита привычек+людей) + прогресс + название. Всплывашка у шестерёнки (как CreateMenuLive).
+function CardStyleMenuLive({ open, onClose, anchorRef }) {
   const [pos, setPos] = React.useState(null);
-  const st = value || bosLoadCardStyle();
+  const [tab, setTab] = React.useState("habits");
+  const [hs, setHs] = React.useState(bosLoadCardStyle);
+  const [gs, setGs] = React.useState(bosLoadGoalStyle);
   React.useEffect(() => {
-    if (open && anchorRef && anchorRef.current) { const r = anchorRef.current.getBoundingClientRect(); setPos({ right: Math.round(window.innerWidth - r.right), top: Math.round(r.bottom + 10) }); }
+    if (!open) return;
+    setHs(bosLoadCardStyle()); setGs(bosLoadGoalStyle());
+    if (anchorRef && anchorRef.current) { const r = anchorRef.current.getBoundingClientRect(); setPos({ right: Math.round(window.innerWidth - r.right), top: Math.round(r.bottom + 10) }); }
   }, [open]);
   if (!open || !pos) return null;
-  const set = (patch) => onChange(Object.assign({}, st, patch));
+  const setH = (patch) => { const n = Object.assign({}, hs, patch); setHs(n); bosSaveCardStyle(n); };
+  const setG = (patch) => { const n = Object.assign({}, gs, patch); setGs(n); bosSaveGoalStyle(n); };
   const SQ = (<svg width="34" height="20" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="13" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="19" y="3" width="13" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
   const RC = (<svg width="34" height="20" viewBox="0 0 34 20" fill="none"><rect x="2" y="2.5" width="30" height="6.5" rx="2.5" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="2" y="11" width="30" height="6.5" rx="2.5" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
-  const formBtn = (key, label, icon) => (
-    <button onClick={() => set({ form: key })} className="tap" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "13px 6px", borderRadius: 14, border: st.form === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)", background: st.form === key ? "rgba(10,10,10,0.05)" : "transparent", cursor: "pointer" }}>
+  const BN = (<svg width="34" height="20" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="30" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /><circle cx="8" cy="10" r="2.4" stroke="#0a0a0a" strokeWidth="1.4" /><rect x="14" y="7" width="15" height="2" rx="1" fill="#0a0a0a" /><rect x="14" y="12" width="10" height="2" rx="1" fill="#0a0a0a" opacity="0.5" /></svg>);
+  const formBtn = (key, label, icon, cur, onPick) => (
+    <button key={key} onClick={() => onPick(key)} className="tap" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "13px 6px", borderRadius: 14, border: cur === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)", background: cur === key ? "rgba(10,10,10,0.05)" : "transparent", cursor: "pointer" }}>
       {icon}<span style={{ fontSize: 12, fontWeight: 600, color: "#0a0a0a" }}>{label}</span>
     </button>
   );
-  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в 256px → «Месяц» вылезал за край).
+  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в 258px).
   const seg = (val, opts, onPick) => (
     <div style={{ display: "flex", gap: 4, background: "rgba(10,10,10,0.05)", borderRadius: 12, padding: 4 }}>
       {opts.map((o) => (
@@ -1841,19 +1896,37 @@ function CardStyleMenuLive({ open, onClose, anchorRef, value, onChange }) {
       <span>{label}</span><Switch on={on} onChange={onCh} />
     </div>
   );
+  const divider = <div style={{ height: 1, background: "rgba(10,10,10,0.08)", margin: "13px 0 10px" }} />;
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
       <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right", animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 258, padding: 14, borderRadius: 22, background: "rgba(255,255,255,0.86)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(10,10,10,0.42)", marginBottom: 10 }}>Стиль карточек</div>
-        <div style={{ display: "flex", gap: 8 }}>{formBtn("square", "Квадрат", SQ)}{formBtn("rect", "Строка", RC)}</div>
-        <div style={{ height: 1, background: "rgba(10,10,10,0.08)", margin: "13px 0 10px" }} />
-        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
-        {seg(st.marks, [{ v: "none", l: "Нет" }, { v: "week", l: "Неделя" }, { v: "month", l: "Месяц" }], (v) => set({ marks: v }))}
-        {st.marks !== "none" && <div style={{ marginTop: 8 }}>{seg(st.cells || "round", [{ v: "round", l: "Кружки" }, { v: "square", l: "Квадраты" }], (v) => set({ cells: v }))}</div>}
-        <div style={{ marginTop: 6 }}>
-          {toggleRow("Лица друзей", st.faces, (v) => set({ faces: v }))}
-          {st.form === "square" && toggleRow("Название", st.name, (v) => set({ name: v }))}
-        </div>
+        {/* Вкладки: Привычки / Цели */}
+        {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }], setTab)}
+        <div style={{ height: 12 }} />
+        {tab === "habits" ? (
+          <>
+            <div style={{ display: "flex", gap: 8 }}>{formBtn("square", "Квадрат", SQ, hs.form, (k) => setH({ form: k }))}{formBtn("rect", "Строка", RC, hs.form, (k) => setH({ form: k }))}</div>
+            {divider}
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
+            {seg(hs.marks, [{ v: "none", l: "Нет" }, { v: "week", l: "Неделя" }, { v: "month", l: "Месяц" }], (v) => setH({ marks: v }))}
+            {hs.marks !== "none" && <div style={{ marginTop: 8 }}>{seg(hs.cells || "round", [{ v: "round", l: "Кружки" }, { v: "square", l: "Квадраты" }], (v) => setH({ cells: v }))}</div>}
+            <div style={{ marginTop: 6 }}>
+              {toggleRow("Лица друзей", hs.faces, (v) => setH({ faces: v }))}
+              {hs.form === "square" && toggleRow("Название", hs.name, (v) => setH({ name: v }))}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 8 }}>{formBtn("banner", "Баннер", BN, gs.form, (k) => setG({ form: k }))}{formBtn("square", "Квадрат", SQ, gs.form, (k) => setG({ form: k }))}</div>
+            {divider}
+            <div style={{ marginTop: 0 }}>
+              {toggleRow("Орбиты вокруг цели", gs.orbits, (v) => setG({ orbits: v }))}
+              {toggleRow("Прогресс", gs.progress, (v) => setG({ progress: v }))}
+              {toggleRow("Название", gs.name, (v) => setG({ name: v }))}
+            </div>
+            <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 0" }}>Орбиты показывают привычки и людей вокруг цели — превью, вокруг чего она.</div>
+          </>
+        )}
       </div>
     </div>,
     document.body

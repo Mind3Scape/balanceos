@@ -269,6 +269,35 @@ function bosSavePracticeOrder(keys) {
     localStorage.setItem("bos:practiceOrder", JSON.stringify(keys || []));
   } catch (e) {}
 }
+
+// Орбита для КАРТОЧКИ цели: резолвит её людей (shareCode-бадди) + привычки (habitIds) и рисует
+// статичную GoalOrbitMini. Отдельный компонент — чтобы честно вызвать хук useBuddyMembersLive (в
+// goalTile, который зовётся в .map, хук нельзя). habits = полный список (для резолва по id).
+function GoalCardOrbit({
+  goal,
+  habits,
+  size,
+  dark
+}) {
+  var members = typeof useBuddyMembersLive === "function" ? useBuddyMembersLive(goal && goal.shareCode) : null;
+  var people = (members || []).filter(m => m && !m.me).map(m => ({
+    avatar: m.avatar,
+    name: m.name
+  }));
+  var linked = (goal && goal.habitIds || []).map(id => (habits || []).find(h => h.id === id)).filter(Boolean).map(h => ({
+    emoji: h.emoji,
+    color: h.color
+  }));
+  if (typeof GoalOrbitMini !== "function") return null;
+  return /*#__PURE__*/React.createElement(GoalOrbitMini, {
+    centerEmoji: goal && goal.emoji,
+    centerColor: goal && goal.color,
+    habits: linked,
+    people: people,
+    size: size,
+    dark: dark
+  });
+}
 function HabitsLive() {
   var {
     navigate
@@ -354,12 +383,17 @@ function HabitsLive() {
   var [createOpen, setCreateOpen] = React.useState(false);
   var addBtnRef = React.useRef(null);
 
-  // Стиль карточек (форма + тоглы) — шестерёнка слева от «+». Дефолт = текущий вид; запоминается.
+  // Стиль карточек — ОТДЕЛЬНО привычки (cardStyle) и цели (goalStyle). Шестерёнка → меню с 2 вкладками.
+  // Дефолты: привычки = текущий вид; цели = высокий БАННЕР (David: вернуть исходный вид цели). Запоминается.
   var [cardStyle, setCardStyle] = React.useState(bosLoadCardStyle);
+  var [goalStyle, setGoalStyle] = React.useState(bosLoadGoalStyle);
   var [styleOpen, setStyleOpen] = React.useState(false);
   var gearBtnRef = React.useRef(null);
   React.useEffect(() => {
-    var h = () => setCardStyle(bosLoadCardStyle());
+    var h = () => {
+      setCardStyle(bosLoadCardStyle());
+      setGoalStyle(bosLoadGoalStyle());
+    };
     window.addEventListener("bos:cardStyleChanged", h);
     return () => window.removeEventListener("bos:cardStyleChanged", h);
   }, []);
@@ -666,7 +700,7 @@ function HabitsLive() {
   // ПЛИТКА ЦЕЛИ — та же логика форм/тоглов. «Отметки» у цели = полоска прогресса (показываем пока
   // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
   var goalTile = (g, ctx) => {
-    var rect = cardStyle.form === "rect";
+    var banner = goalStyle.form === "banner";
     // Прогресс = из привычек цели, если они есть (bosGoalProgress), иначе ручной current.
     var gp = typeof bosGoalProgress === "function" ? bosGoalProgress(g, habits) : {
       pct: g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0,
@@ -679,31 +713,35 @@ function HabitsLive() {
       goal: g,
       from: "habits"
     });
-    var faces = cardStyle.faces ? /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        flexShrink: 0
-      }
-    }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
-      habit: g,
-      size: rect ? 16 : 20,
-      max: rect ? 5 : 3
-    }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
-      habit: g,
-      size: rect ? 16 : 20,
-      max: rect ? 5 : 3
-    })) : null;
+    var orbit = goalStyle.orbits ? /*#__PURE__*/React.createElement(GoalCardOrbit, {
+      goal: g,
+      habits: habits,
+      size: banner ? 104 : 116,
+      dark: isDark
+    }) : null;
     var pctEl = /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
-        fontWeight: 700,
-        color: "var(--text-3)",
+        fontSize: 13,
+        fontWeight: 800,
+        color: gc,
         fontVariantNumeric: "tabular-nums",
         flexShrink: 0
       }
     }, Math.round(pct * 100), "%");
-    var progress = cardStyle.marks !== "none" ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    var icon = /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: 13,
+        background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "2e" : TH.iconBg),
+        boxShadow: bosTileGlass(isDark),
+        display: "grid",
+        placeItems: "center",
+        fontSize: 20,
+        flexShrink: 0
+      }
+    }, bosIcon(g.emoji || "🎯", 22, g.color));
+    var progBar = goalStyle.progress ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
@@ -729,7 +767,7 @@ function HabitsLive() {
       style: {
         height: 7,
         borderRadius: 999,
-        background: "var(--card-track)",
+        background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)",
         overflow: "hidden"
       }
     }, /*#__PURE__*/React.createElement("span", {
@@ -738,59 +776,68 @@ function HabitsLive() {
         height: "100%",
         width: pct * 100 + "%",
         borderRadius: 999,
-        background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc
+        background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + gc
       }
     }))) : null;
-    var icon = /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 38,
-        height: 38,
-        borderRadius: 13,
-        background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg),
-        boxShadow: bosTileGlass(isDark),
-        display: "grid",
-        placeItems: "center",
-        fontSize: 19,
-        flexShrink: 0
-      }
-    }, bosIcon(g.emoji || "🎯", 21, g.color));
-    if (rect) {
+
+    // БАННЕР — высокий полноширинный, тонированный ЦВЕТОМ ЦЕЛИ (чтобы визуально ОТЛИЧАТЬСЯ от белых
+    // карточек привычек, David). Слева иконка+имя+срок+прогресс, справа орбита (если включена).
+    if (banner) {
       return /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",
         onClick: onOpen,
         style: {
-          background: rowBg,
-          borderRadius: 18,
+          background: "linear-gradient(125deg, " + gc + "26 0%, " + gc + "0d 46%, " + rowBg + " 100%), " + rowBg,
+          borderRadius: 22,
           boxShadow: cardShadow,
-          padding: "11px 14px",
+          padding: 16,
           display: "flex",
           alignItems: "center",
-          gap: 13,
+          gap: 14,
+          minHeight: 116,
           pointerEvents: ctx.mode ? "none" : "auto",
           overflow: "hidden"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 11
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 12
         }
       }, icon, /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
           minWidth: 0
         }
-      }, /*#__PURE__*/React.createElement("div", {
+      }, goalStyle.name && /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 15.5,
-          fontWeight: 600,
+          fontSize: 16,
+          fontWeight: 700,
           color: "var(--text)",
-          letterSpacing: "-0.2px",
+          letterSpacing: "-0.3px",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap"
         }
-      }, g.name), progress && /*#__PURE__*/React.createElement("div", {
+      }, g.name), g.deadline && /*#__PURE__*/React.createElement("div", {
         style: {
-          marginTop: 8
+          fontSize: 11.5,
+          color: "var(--text-4)",
+          marginTop: 1
         }
-      }, progress)), faces, pctEl);
+      }, "\u0434\u043E ", g.deadline)), !orbit && pctEl), progBar), orbit);
     }
-    var compact = cardStyle.marks === "none";
+
+    // КВАДРАТ — минимал. С орбитами: орбита-герой + имя + доля (David: «чуть ли не только орбиты и
+    // надпись, или даже без надписи»). Без орбит: иконка + имя + прогресс.
     return /*#__PURE__*/React.createElement("div", {
       className: ctx.mode ? "" : "tap",
       onClick: onOpen,
@@ -799,27 +846,44 @@ function HabitsLive() {
         borderRadius: 22,
         boxShadow: cardShadow,
         padding: "13px 13px 12px",
-        minHeight: compact ? undefined : 146,
+        minHeight: 146,
         display: "flex",
         flexDirection: "column",
+        alignItems: orbit ? "center" : "stretch",
+        justifyContent: orbit ? "center" : "flex-start",
+        textAlign: orbit ? "center" : "left",
         pointerEvents: ctx.mode ? "none" : "auto",
         overflow: "hidden"
       }
-    }, /*#__PURE__*/React.createElement("div", {
+    }, orbit ? /*#__PURE__*/React.createElement(React.Fragment, null, orbit, goalStyle.name && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        fontSize: 14,
+        fontWeight: 600,
+        color: "var(--text)",
+        letterSpacing: "-0.2px",
+        lineHeight: 1.2,
+        maxWidth: "100%",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, g.name), goalStyle.progress && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: goalStyle.name ? 3 : 8,
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: gc,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, Math.round(pct * 100), "%")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 8
       }
-    }, icon, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        flexShrink: 0
-      }
-    }, faces, pctEl)), cardStyle.name && /*#__PURE__*/React.createElement("div", {
+    }, icon, pctEl), goalStyle.name && /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 10,
         fontSize: 15,
@@ -832,12 +896,12 @@ function HabitsLive() {
         WebkitBoxOrient: "vertical",
         overflow: "hidden"
       }
-    }, g.name), progress && /*#__PURE__*/React.createElement("div", {
+    }, g.name), progBar && /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: "auto",
         paddingTop: 12
       }
-    }, progress));
+    }, progBar)));
   };
 
   // ПЛИТКА КОМАНДЫ (круга) — та же форма, что цель, но эмблема + ЛИЦА участников + метка «Команда»
@@ -1025,12 +1089,7 @@ function HabitsLive() {
   }), typeof CardStyleMenuLive === "function" && /*#__PURE__*/React.createElement(CardStyleMenuLive, {
     open: styleOpen,
     onClose: () => setStyleOpen(false),
-    anchorRef: gearBtnRef,
-    value: cardStyle,
-    onChange: s => {
-      bosSaveCardStyle(s);
-      setCardStyle(s);
-    }
+    anchorRef: gearBtnRef
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -1224,6 +1283,7 @@ function HabitsLive() {
     ctlRef: gridCtl,
     cols: cardStyle.form === "rect" ? 1 : 2,
     gap: 12,
+    spanFull: k => k && k[0] === "g" && goalStyle.form === "banner",
     renderItem: (k, ctx) => {
       var e = entries.find(x => x.k === k);
       if (!e) return null;

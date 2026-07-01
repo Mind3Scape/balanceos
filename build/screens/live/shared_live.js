@@ -2422,6 +2422,108 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   return nt;
 }
 
+// СТАТИЧНАЯ МИНИ-ОРБИТА для карточки цели/круга (David: «превью — вокруг чего цель, а не просто
+// смайлик; орбиты наполняются привычками и людьми; пусть статично»). Центр = значок цели, вокруг —
+// её привычки (эмодзи) на внутреннем кольце и люди (лица) на внешнем. Ничего не крутится (перф на
+// многих карточках + спокойствие). Лёгкий CSS, БЕЗ useOrbClock. habits=[{emoji,color}], people=[{avatar,name}].
+function GoalOrbitMini({
+  centerEmoji,
+  centerColor,
+  habits = [],
+  people = [],
+  size = 128,
+  dark = false
+}) {
+  var C = size / 2;
+  var cR = Math.round(size * 0.19); // центр-диск (радиус)
+  var r1 = size * 0.315,
+    r2 = size * 0.455; // радиусы колец (привычки / люди)
+  var hb = (habits || []).filter(Boolean).slice(0, 7);
+  var pp = (people || []).filter(Boolean).slice(0, 9);
+  var ringLine = dark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.09)";
+  var accent = centerColor || (dark ? "#fff" : "#0a0a0a");
+  var ring = function (R) {
+    return /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        left: C - R,
+        top: C - R,
+        width: R * 2,
+        height: R * 2,
+        borderRadius: "50%",
+        border: "1px solid " + ringLine
+      }
+    });
+  };
+  var place = function (items, R, sz, off, render) {
+    return items.map(function (it, i) {
+      var ang = i / Math.max(1, items.length) * Math.PI * 2 - Math.PI / 2 + off;
+      var x = C + Math.cos(ang) * R,
+        y = C + Math.sin(ang) * R;
+      return /*#__PURE__*/React.createElement("span", {
+        key: i,
+        style: {
+          position: "absolute",
+          left: Math.round(x - sz / 2),
+          top: Math.round(y - sz / 2),
+          width: sz,
+          height: sz
+        }
+      }, render(it));
+    });
+  };
+  var hSz = Math.max(16, Math.round(size * 0.16));
+  var pSz = Math.max(16, Math.round(size * 0.155));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: size,
+      height: size,
+      flexShrink: 0
+    },
+    "aria-hidden": true
+  }, ring(r1), ring(r2), place(hb, r1, hSz, 0, function (h) {
+    return /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: "100%",
+        height: "100%",
+        borderRadius: "50%",
+        background: h.color ? h.color + "22" : dark ? "rgba(255,255,255,0.10)" : "#fff",
+        boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: Math.round(hSz * 0.6)
+      }
+    }, typeof bosIcon === "function" ? bosIcon(h.emoji, Math.round(hSz * 0.62), h.color) : h.emoji || "✨");
+  }), place(pp, r2, pSz, 0.32, function (p) {
+    return /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        borderRadius: "50%",
+        boxShadow: "0 0 0 2px var(--card, #fff)"
+      }
+    }, typeof BuddyFaceLive === "function" ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
+      avatar: p.avatar,
+      name: p.name,
+      size: pSz
+    }) : null);
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: C - cR,
+      top: C - cR,
+      width: cR * 2,
+      height: cR * 2,
+      borderRadius: "50%",
+      background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (centerColor ? centerColor + "26" : dark ? "rgba(255,255,255,0.12)" : "#fff"),
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 2px 8px rgba(0,0,0,0.14)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", Math.round(cR * 1.1), accent) : centerEmoji || "🎯"));
+}
+
 // Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,
 // those were fake seed personas). Delegates to PeopleStackLive so cards + teams share one logic.
 function HabitBuddyAvatarsLive({
@@ -3547,7 +3649,8 @@ function BosReorderGrid({
   onLongPress,
   ctlRef,
   cols = 2,
-  gap = 12
+  gap = 12,
+  spanFull
 }) {
   var [mode, setMode] = React.useState(false);
   var [order, setOrder] = React.useState(ids);
@@ -3823,6 +3926,7 @@ function BosReorderGrid({
       style: {
         position: "relative",
         touchAction: mode ? "none" : "auto",
+        gridColumn: spanFull && spanFull(id) ? "1 / -1" : undefined,
         transform: isDrag ? "translate(" + drag.dx + "px, " + drag.dy + "px) scale(1.045)" : "translate(" + sh.x + "px, " + sh.y + "px)",
         transition: isDrag ? "none" : "transform 0.24s cubic-bezier(0.2,0,0,1)",
         zIndex: isDrag ? 40 : 1,
@@ -4156,6 +4260,32 @@ function bosSaveCardStyle(s) {
   } catch (e) {}
 }
 
+// СТИЛЬ ЦЕЛЕЙ — ОТДЕЛЬНЫЙ от привычек (David: «карточки целей и привычек должны отличаться; в
+// шестерёнке — стиль привычек И стиль целей, у целей другие пресеты»). База = ВЫСОКИЙ БАННЕР (как
+// цель выглядела изначально). form: banner (полноширинный высокий) | square (2-в-ряд минимал).
+// orbits = мини-орбита (привычки+люди вокруг цели-превью). name/progress — тоглы. Тот же event.
+var BOS_GOAL_STYLE_DEFAULT = {
+  form: "banner",
+  name: true,
+  orbits: false,
+  progress: true
+};
+function bosLoadGoalStyle() {
+  try {
+    var s = JSON.parse(localStorage.getItem("bos:goalStyle") || "null");
+    if (s && typeof s === "object") return Object.assign({}, BOS_GOAL_STYLE_DEFAULT, s);
+  } catch (e) {}
+  return Object.assign({}, BOS_GOAL_STYLE_DEFAULT);
+}
+function bosSaveGoalStyle(s) {
+  try {
+    localStorage.setItem("bos:goalStyle", JSON.stringify(s));
+  } catch (e) {}
+  try {
+    window.dispatchEvent(new Event("bos:cardStyleChanged"));
+  } catch (e) {}
+}
+
 // Месячная «грядка» для превью карточки — последние 5 недель (35 клеток) хитмапом по логу привычки.
 // Тот же язык клеток, что у недельной полоски и календаря (bosCellFill/bosCellGlass) → континуити.
 function HabitMonthMini({
@@ -4199,20 +4329,24 @@ function HabitMonthMini({
   }));
 }
 
-// Меню «Стиль карточек» — всплывашка у шестерёнки (как CreateMenuLive у «+»): выбор ФОРМЫ (квадрат/строка)
-// SVG-иконками + ТОГЛЫ (отметки нет/неделя/месяц, лица, название). Название — тогл только для квадрата
-// (строке ярлык нужен всегда). Правки применяются сразу (onChange → save → перерисовка).
+// Меню шестерёнки — ДВЕ вкладки: «Привычки» и «Цели» (David: у каждого свой стиль/пресеты). Само
+// грузит и сохраняет оба стиля (bosSaveCardStyle/bosSaveGoalStyle → event → список перерисовывается).
+// Привычки: форма квадрат/строка + отметки/клетки/лица/название. Цели: форма БАННЕР/квадрат + орбиты
+// (мини-орбита привычек+людей) + прогресс + название. Всплывашка у шестерёнки (как CreateMenuLive).
 function CardStyleMenuLive({
   open,
   onClose,
-  anchorRef,
-  value,
-  onChange
+  anchorRef
 }) {
   var [pos, setPos] = React.useState(null);
-  var st = value || bosLoadCardStyle();
+  var [tab, setTab] = React.useState("habits");
+  var [hs, setHs] = React.useState(bosLoadCardStyle);
+  var [gs, setGs] = React.useState(bosLoadGoalStyle);
   React.useEffect(() => {
-    if (open && anchorRef && anchorRef.current) {
+    if (!open) return;
+    setHs(bosLoadCardStyle());
+    setGs(bosLoadGoalStyle());
+    if (anchorRef && anchorRef.current) {
       var r = anchorRef.current.getBoundingClientRect();
       setPos({
         right: Math.round(window.innerWidth - r.right),
@@ -4221,7 +4355,16 @@ function CardStyleMenuLive({
     }
   }, [open]);
   if (!open || !pos) return null;
-  var set = patch => onChange(Object.assign({}, st, patch));
+  var setH = patch => {
+    var n = Object.assign({}, hs, patch);
+    setHs(n);
+    bosSaveCardStyle(n);
+  };
+  var setG = patch => {
+    var n = Object.assign({}, gs, patch);
+    setGs(n);
+    bosSaveGoalStyle(n);
+  };
   var SQ = /*#__PURE__*/React.createElement("svg", {
     width: "34",
     height: "20",
@@ -4266,10 +4409,44 @@ function CardStyleMenuLive({
     stroke: "#0a0a0a",
     strokeWidth: "1.6"
   }));
-  var formBtn = (key, label, icon) => /*#__PURE__*/React.createElement("button", {
-    onClick: () => set({
-      form: key
-    }),
+  var BN = /*#__PURE__*/React.createElement("svg", {
+    width: "34",
+    height: "20",
+    viewBox: "0 0 34 20",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "2",
+    y: "3",
+    width: "30",
+    height: "14",
+    rx: "3",
+    stroke: "#0a0a0a",
+    strokeWidth: "1.6"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "8",
+    cy: "10",
+    r: "2.4",
+    stroke: "#0a0a0a",
+    strokeWidth: "1.4"
+  }), /*#__PURE__*/React.createElement("rect", {
+    x: "14",
+    y: "7",
+    width: "15",
+    height: "2",
+    rx: "1",
+    fill: "#0a0a0a"
+  }), /*#__PURE__*/React.createElement("rect", {
+    x: "14",
+    y: "12",
+    width: "10",
+    height: "2",
+    rx: "1",
+    fill: "#0a0a0a",
+    opacity: "0.5"
+  }));
+  var formBtn = (key, label, icon, cur, onPick) => /*#__PURE__*/React.createElement("button", {
+    key: key,
+    onClick: () => onPick(key),
     className: "tap",
     style: {
       flex: 1,
@@ -4279,8 +4456,8 @@ function CardStyleMenuLive({
       gap: 7,
       padding: "13px 6px",
       borderRadius: 14,
-      border: st.form === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)",
-      background: st.form === key ? "rgba(10,10,10,0.05)" : "transparent",
+      border: cur === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)",
+      background: cur === key ? "rgba(10,10,10,0.05)" : "transparent",
       cursor: "pointer"
     }
   }, icon, /*#__PURE__*/React.createElement("span", {
@@ -4290,7 +4467,7 @@ function CardStyleMenuLive({
       color: "#0a0a0a"
     }
   }, label));
-  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в 256px → «Месяц» вылезал за край).
+  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в 258px).
   var seg = (val, opts, onPick) => /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -4332,6 +4509,13 @@ function CardStyleMenuLive({
     on: on,
     onChange: onCh
   }));
+  var divider = /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: "rgba(10,10,10,0.08)",
+      margin: "13px 0 10px"
+    }
+  });
   return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -4360,34 +4544,33 @@ function CardStyleMenuLive({
       boxShadow: "0 16px 44px rgba(20,30,60,0.26)",
       color: "#0a0a0a"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, seg(tab, [{
+    v: "habits",
+    l: "Привычки"
+  }, {
+    v: "goals",
+    l: "Цели"
+  }], setTab), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 0.8,
-      textTransform: "uppercase",
-      color: "rgba(10,10,10,0.42)",
-      marginBottom: 10
+      height: 12
     }
-  }, "\u0421\u0442\u0438\u043B\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A"), /*#__PURE__*/React.createElement("div", {
+  }), tab === "habits" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8
     }
-  }, formBtn("square", "Квадрат", SQ), formBtn("rect", "Строка", RC)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: "rgba(10,10,10,0.08)",
-      margin: "13px 0 10px"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
+  }, formBtn("square", "Квадрат", SQ, hs.form, k => setH({
+    form: k
+  })), formBtn("rect", "Строка", RC, hs.form, k => setH({
+    form: k
+  }))), divider, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       fontWeight: 600,
       marginBottom: 8,
       color: "rgba(10,10,10,0.5)"
     }
-  }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0438"), seg(st.marks, [{
+  }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0438"), seg(hs.marks, [{
     v: "none",
     l: "Нет"
   }, {
@@ -4396,29 +4579,55 @@ function CardStyleMenuLive({
   }, {
     v: "month",
     l: "Месяц"
-  }], v => set({
+  }], v => setH({
     marks: v
-  })), st.marks !== "none" && /*#__PURE__*/React.createElement("div", {
+  })), hs.marks !== "none" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8
     }
-  }, seg(st.cells || "round", [{
+  }, seg(hs.cells || "round", [{
     v: "round",
     l: "Кружки"
   }, {
     v: "square",
     l: "Квадраты"
-  }], v => set({
+  }], v => setH({
     cells: v
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 6
     }
-  }, toggleRow("Лица друзей", st.faces, v => set({
+  }, toggleRow("Лица друзей", hs.faces, v => setH({
     faces: v
-  })), st.form === "square" && toggleRow("Название", st.name, v => set({
+  })), hs.form === "square" && toggleRow("Название", hs.name, v => setH({
     name: v
-  }))))), document.body);
+  })))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, formBtn("banner", "Баннер", BN, gs.form, k => setG({
+    form: k
+  })), formBtn("square", "Квадрат", SQ, gs.form, k => setG({
+    form: k
+  }))), divider, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 0
+    }
+  }, toggleRow("Орбиты вокруг цели", gs.orbits, v => setG({
+    orbits: v
+  })), toggleRow("Прогресс", gs.progress, v => setG({
+    progress: v
+  })), toggleRow("Название", gs.name, v => setG({
+    name: v
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "rgba(10,10,10,0.42)",
+      lineHeight: 1.4,
+      padding: "4px 2px 0"
+    }
+  }, "\u041E\u0440\u0431\u0438\u0442\u044B \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0432\u043E\u043A\u0440\u0443\u0433 \u0446\u0435\u043B\u0438 \u2014 \u043F\u0440\u0435\u0432\u044C\u044E, \u0432\u043E\u043A\u0440\u0443\u0433 \u0447\u0435\u0433\u043E \u043E\u043D\u0430.")))), document.body);
 }
 
 // LIVE share-a-goal sheet — the goal twin of ShareHabitSheetLive, kept minimal: share

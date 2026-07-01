@@ -81,6 +81,17 @@ function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete, kindLabe
 function bosLoadPracticeOrder() { try { return JSON.parse(localStorage.getItem("bos:practiceOrder") || "[]") || []; } catch (e) { return []; } }
 function bosSavePracticeOrder(keys) { try { localStorage.setItem("bos:practiceOrder", JSON.stringify(keys || [])); } catch (e) {} }
 
+// Орбита для КАРТОЧКИ цели: резолвит её людей (shareCode-бадди) + привычки (habitIds) и рисует
+// статичную GoalOrbitMini. Отдельный компонент — чтобы честно вызвать хук useBuddyMembersLive (в
+// goalTile, который зовётся в .map, хук нельзя). habits = полный список (для резолва по id).
+function GoalCardOrbit({ goal, habits, size, dark }) {
+  const members = (typeof useBuddyMembersLive === "function") ? useBuddyMembersLive(goal && goal.shareCode) : null;
+  const people = (members || []).filter((m) => m && !m.me).map((m) => ({ avatar: m.avatar, name: m.name }));
+  const linked = ((goal && goal.habitIds) || []).map((id) => (habits || []).find((h) => h.id === id)).filter(Boolean).map((h) => ({ emoji: h.emoji, color: h.color }));
+  if (typeof GoalOrbitMini !== "function") return null;
+  return <GoalOrbitMini centerEmoji={goal && goal.emoji} centerColor={goal && goal.color} habits={linked} people={people} size={size} dark={dark} />;
+}
+
 function HabitsLive() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
@@ -153,11 +164,13 @@ function HabitsLive() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const addBtnRef = React.useRef(null);
 
-  // Стиль карточек (форма + тоглы) — шестерёнка слева от «+». Дефолт = текущий вид; запоминается.
+  // Стиль карточек — ОТДЕЛЬНО привычки (cardStyle) и цели (goalStyle). Шестерёнка → меню с 2 вкладками.
+  // Дефолты: привычки = текущий вид; цели = высокий БАННЕР (David: вернуть исходный вид цели). Запоминается.
   const [cardStyle, setCardStyle] = React.useState(bosLoadCardStyle);
+  const [goalStyle, setGoalStyle] = React.useState(bosLoadGoalStyle);
   const [styleOpen, setStyleOpen] = React.useState(false);
   const gearBtnRef = React.useRef(null);
-  React.useEffect(() => { const h = () => setCardStyle(bosLoadCardStyle()); window.addEventListener("bos:cardStyleChanged", h); return () => window.removeEventListener("bos:cardStyleChanged", h); }, []);
+  React.useEffect(() => { const h = () => { setCardStyle(bosLoadCardStyle()); setGoalStyle(bosLoadGoalStyle()); }; window.addEventListener("bos:cardStyleChanged", h); return () => window.removeEventListener("bos:cardStyleChanged", h); }, []);
 
   // Habit TILES (2-per-row grid) — long-press opens the tile menu (Поделиться / Переставить / Удалить);
   // «Переставить» flips the grid into jiggle/drag-reorder via this controller ref (set by BosReorderGrid).
@@ -275,48 +288,66 @@ function HabitsLive() {
   // ПЛИТКА ЦЕЛИ — та же логика форм/тоглов. «Отметки» у цели = полоска прогресса (показываем пока
   // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
   const goalTile = (g, ctx) => {
-    const rect = cardStyle.form === "rect";
+    const banner = goalStyle.form === "banner";
     // Прогресс = из привычек цели, если они есть (bosGoalProgress), иначе ручной current.
     const gp = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, habits) : { pct: g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0 };
     const pct = gp.pct;
     const curVal = gp.current;
     const gc = g.color || "#0a0a0a";
     const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
-    const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={g} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={g} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
-    const pctEl = <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
-    const progress = cardStyle.marks !== "none" ? (
+    const orbit = goalStyle.orbits ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 104 : 116} dark={isDark} /> : null;
+    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: gc, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
+    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "2e" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, g.color)}</span>;
+    const progBar = goalStyle.progress ? (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{curVal} / {g.target} {g.unit || ""}</span>
         </div>
-        <div style={{ height: 7, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc }} />
+        <div style={{ height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + gc }} />
         </div>
       </div>
     ) : null;
-    const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 21, g.color)}</span>;
-    if (rect) {
+
+    // БАННЕР — высокий полноширинный, тонированный ЦВЕТОМ ЦЕЛИ (чтобы визуально ОТЛИЧАТЬСЯ от белых
+    // карточек привычек, David). Слева иконка+имя+срок+прогресс, справа орбита (если включена).
+    if (banner) {
       return (
-        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 18, boxShadow: cardShadow, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-          {icon}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
-            {progress && <div style={{ marginTop: 8 }}>{progress}</div>}
+        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: "linear-gradient(125deg, " + gc + "26 0%, " + gc + "0d 46%, " + rowBg + " 100%), " + rowBg, borderRadius: 22, boxShadow: cardShadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {icon}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
+                {g.deadline && <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>до {g.deadline}</div>}
+              </div>
+              {!orbit && pctEl}
+            </div>
+            {progBar}
           </div>
-          {faces}{pctEl}
+          {orbit}
         </div>
       );
     }
-    const compact = cardStyle.marks === "none";
+
+    // КВАДРАТ — минимал. С орбитами: орбита-герой + имя + доля (David: «чуть ли не только орбиты и
+    // надпись, или даже без надписи»). Без орбит: иконка + имя + прогресс.
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          {icon}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{pctEl}</div>
-        </div>
-        {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>}
-        {progress && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progress}</div>}
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 146, display: "flex", flexDirection: "column", alignItems: orbit ? "center" : "stretch", justifyContent: orbit ? "center" : "flex-start", textAlign: orbit ? "center" : "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        {orbit ? (
+          <>
+            {orbit}
+            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
+            {goalStyle.progress && <div style={{ marginTop: goalStyle.name ? 3 : 8, fontSize: 12.5, fontWeight: 800, color: gc, fontVariantNumeric: "tabular-nums" }}>{Math.round(pct * 100)}%</div>}
+          </>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>{icon}{pctEl}</div>
+            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>}
+            {progBar && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progBar}</div>}
+          </>
+        )}
       </div>
     );
   };
@@ -375,7 +406,7 @@ function HabitsLive() {
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
-      {typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleOpen} onClose={() => setStyleOpen(false)} anchorRef={gearBtnRef} value={cardStyle} onChange={(s) => { bosSaveCardStyle(s); setCardStyle(s); }} />}
+      {typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleOpen} onClose={() => setStyleOpen(false)} anchorRef={gearBtnRef} />}
 
       {/* Шапка: ЛЕНТА ЧЕЛЛЕНДЖЕЙ (горизонтальный скролл, уходит за край) + «+» закреплён справа (David:
           «верни пилюли наверх рядом с „+", переработай в челленджи с XP-бонусом»). Тап пилюли → создание
@@ -421,6 +452,7 @@ function HabitsLive() {
       ) : (
         <BosReorderGrid ids={entries.map((e) => e.k)} onReorder={(keys) => { bosSavePracticeOrder(keys); setOrderTick((t) => t + 1); }}
           onLongPress={onTileLongPress} ctlRef={gridCtl} cols={cardStyle.form === "rect" ? 1 : 2} gap={12}
+          spanFull={(k) => k && k[0] === "g" && goalStyle.form === "banner"}
           renderItem={(k, ctx) => { const e = entries.find((x) => x.k === k); if (!e) return null; return e.type === "t" ? teamTile(e.item, ctx) : e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx); }} />
       )}
 
