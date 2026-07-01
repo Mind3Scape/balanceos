@@ -355,50 +355,68 @@ function HabitsLive() {
   // ПЛИТКА КОМАНДЫ (круга) — та же форма, что цель, но эмблема + ЛИЦА участников + метка «Команда»
   // (чтобы читалась как «цель с людьми», а не соло-цель). Прогресс = командный (счёт всех / target,
   // либо процент). Тап открывает круг. Живёт в общей сетке → перетаскивается наравне с привычками.
+  // КОМАНДА = общая цель → тот же goalStyle (баннер/квадрат + орбиты + прогресс + название). Орбита
+  // команды показывает УЧАСТНИКОВ (лица) + командные привычки. Метка «Команда» сохранена в прогрессе.
   const teamTile = (t, ctx) => {
-    const rect = cardStyle.form === "rect";
+    const banner = goalStyle.form === "banner";
     const tgt = t.target || 0;
     const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
     const pct = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
     const gc = t.accent || t.color || "#0a0a0a";
     const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t, from: "habits" });
     const members = t.members || [];
-    const faces = cardStyle.faces && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={rect ? 16 : 20} max={rect ? 5 : 3} /></span> : null;
-    const pctEl = <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
+    const orbit = goalStyle.orbits && typeof GoalOrbitMini === "function"
+      ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={gc} habits={(t.habits || []).map((h) => ({ emoji: h.emoji }))} people={members} size={banner ? 104 : 116} dark={isDark} />
+      : null;
+    const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={banner ? 20 : 20} max={3} /></span> : null;
+    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: gc, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
     const valTxt = t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : (Math.round(pct * 100) + "%");
-    const progress = cardStyle.marks !== "none" ? (
+    const progBar = goalStyle.progress ? (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Команда</span>
           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{valTxt}</span>
         </div>
-        <div style={{ height: 7, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc }} />
+        <div style={{ height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + gc }} />
         </div>
       </div>
     ) : null;
-    const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (gc + "26"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 21, gc)}</span>;
-    if (rect) {
+    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (gc + "2e"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 22, gc)}</span>;
+
+    if (banner) {
       return (
-        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 18, boxShadow: cardShadow, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-          {icon}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-            {progress && <div style={{ marginTop: 8 }}>{progress}</div>}
+        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: "linear-gradient(125deg, " + gc + "26 0%, " + gc + "0d 46%, " + rowBg + " 100%), " + rowBg, borderRadius: 22, boxShadow: cardShadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {icon}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>Команда{members.length ? " · " + members.length : ""}</div>
+              </div>
+              {!orbit && (faces || pctEl)}
+            </div>
+            {progBar}
           </div>
-          {faces}{pctEl}
+          {orbit}
         </div>
       );
     }
-    const compact = cardStyle.marks === "none";
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          {icon}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{pctEl}</div>
-        </div>
-        {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</div>}
-        {progress && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progress}</div>}
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 146, display: "flex", flexDirection: "column", alignItems: orbit ? "center" : "stretch", justifyContent: orbit ? "center" : "flex-start", textAlign: orbit ? "center" : "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        {orbit ? (
+          <>
+            {orbit}
+            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
+            {goalStyle.progress && <div style={{ marginTop: goalStyle.name ? 3 : 8, fontSize: 12.5, fontWeight: 800, color: gc, fontVariantNumeric: "tabular-nums" }}>{Math.round(pct * 100)}%</div>}
+          </>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>{icon}<div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{pctEl}</div></div>
+            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</div>}
+            {progBar && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progBar}</div>}
+          </>
+        )}
       </div>
     );
   };
@@ -452,7 +470,7 @@ function HabitsLive() {
       ) : (
         <BosReorderGrid ids={entries.map((e) => e.k)} onReorder={(keys) => { bosSavePracticeOrder(keys); setOrderTick((t) => t + 1); }}
           onLongPress={onTileLongPress} ctlRef={gridCtl} cols={cardStyle.form === "rect" ? 1 : 2} gap={12}
-          spanFull={(k) => k && k[0] === "g" && goalStyle.form === "banner"}
+          spanFull={(k) => k && (k[0] === "g" || k[0] === "t") && goalStyle.form === "banner"}
           renderItem={(k, ctx) => { const e = entries.find((x) => x.k === k); if (!e) return null; return e.type === "t" ? teamTile(e.item, ctx) : e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx); }} />
       )}
 

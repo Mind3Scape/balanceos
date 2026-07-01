@@ -907,8 +907,10 @@ function HabitsLive() {
   // ПЛИТКА КОМАНДЫ (круга) — та же форма, что цель, но эмблема + ЛИЦА участников + метка «Команда»
   // (чтобы читалась как «цель с людьми», а не соло-цель). Прогресс = командный (счёт всех / target,
   // либо процент). Тап открывает круг. Живёт в общей сетке → перетаскивается наравне с привычками.
+  // КОМАНДА = общая цель → тот же goalStyle (баннер/квадрат + орбиты + прогресс + название). Орбита
+  // команды показывает УЧАСТНИКОВ (лица) + командные привычки. Метка «Команда» сохранена в прогрессе.
   var teamTile = (t, ctx) => {
-    var rect = cardStyle.form === "rect";
+    var banner = goalStyle.form === "banner";
     var tgt = t.target || 0;
     var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
     var pct = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
@@ -918,7 +920,17 @@ function HabitsLive() {
       from: "habits"
     });
     var members = t.members || [];
-    var faces = cardStyle.faces && members.length ? /*#__PURE__*/React.createElement("span", {
+    var orbit = goalStyle.orbits && typeof GoalOrbitMini === "function" ? /*#__PURE__*/React.createElement(GoalOrbitMini, {
+      centerEmoji: t.emblem || "👥",
+      centerColor: gc,
+      habits: (t.habits || []).map(h => ({
+        emoji: h.emoji
+      })),
+      people: members,
+      size: banner ? 104 : 116,
+      dark: isDark
+    }) : null;
+    var faces = !orbit && members.length ? /*#__PURE__*/React.createElement("span", {
       style: {
         display: "flex",
         alignItems: "center",
@@ -926,20 +938,20 @@ function HabitsLive() {
       }
     }, /*#__PURE__*/React.createElement(PeopleStackLive, {
       people: members,
-      size: rect ? 16 : 20,
-      max: rect ? 5 : 3
+      size: banner ? 20 : 20,
+      max: 3
     })) : null;
     var pctEl = /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12.5,
-        fontWeight: 700,
-        color: "var(--text-3)",
+        fontSize: 13,
+        fontWeight: 800,
+        color: gc,
         fontVariantNumeric: "tabular-nums",
         flexShrink: 0
       }
     }, Math.round(pct * 100), "%");
     var valTxt = t.target ? cur + " / " + tgt + " " + (t.unit || "") : Math.round(pct * 100) + "%";
-    var progress = cardStyle.marks !== "none" ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    var progBar = goalStyle.progress ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
@@ -965,7 +977,7 @@ function HabitsLive() {
       style: {
         height: 7,
         borderRadius: 999,
-        background: "var(--card-track)",
+        background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)",
         overflow: "hidden"
       }
     }, /*#__PURE__*/React.createElement("span", {
@@ -974,59 +986,75 @@ function HabitsLive() {
         height: "100%",
         width: pct * 100 + "%",
         borderRadius: 999,
-        background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc
+        background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + gc
       }
     }))) : null;
     var icon = /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 38,
-        height: 38,
+        width: 40,
+        height: 40,
         borderRadius: 13,
-        background: BOS_TILE_SHEEN + ", " + (gc + "26"),
+        background: BOS_TILE_SHEEN + ", " + (gc + "2e"),
         boxShadow: bosTileGlass(isDark),
         display: "grid",
         placeItems: "center",
-        fontSize: 19,
+        fontSize: 20,
         flexShrink: 0
       }
-    }, bosIcon(t.emblem || "👥", 21, gc));
-    if (rect) {
+    }, bosIcon(t.emblem || "👥", 22, gc));
+    if (banner) {
       return /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",
         onClick: onOpen,
         style: {
-          background: rowBg,
-          borderRadius: 18,
+          background: "linear-gradient(125deg, " + gc + "26 0%, " + gc + "0d 46%, " + rowBg + " 100%), " + rowBg,
+          borderRadius: 22,
           boxShadow: cardShadow,
-          padding: "11px 14px",
+          padding: 16,
           display: "flex",
           alignItems: "center",
-          gap: 13,
+          gap: 14,
+          minHeight: 116,
           pointerEvents: ctx.mode ? "none" : "auto",
           overflow: "hidden"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 11
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 12
         }
       }, icon, /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
           minWidth: 0
         }
-      }, /*#__PURE__*/React.createElement("div", {
+      }, goalStyle.name && /*#__PURE__*/React.createElement("div", {
         style: {
-          fontSize: 15.5,
-          fontWeight: 600,
+          fontSize: 16,
+          fontWeight: 700,
           color: "var(--text)",
-          letterSpacing: "-0.2px",
+          letterSpacing: "-0.3px",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap"
         }
-      }, t.name), progress && /*#__PURE__*/React.createElement("div", {
+      }, t.name), /*#__PURE__*/React.createElement("div", {
         style: {
-          marginTop: 8
+          fontSize: 11.5,
+          color: "var(--text-4)",
+          marginTop: 1
         }
-      }, progress)), faces, pctEl);
+      }, "\u041A\u043E\u043C\u0430\u043D\u0434\u0430", members.length ? " · " + members.length : "")), !orbit && (faces || pctEl)), progBar), orbit);
     }
-    var compact = cardStyle.marks === "none";
     return /*#__PURE__*/React.createElement("div", {
       className: ctx.mode ? "" : "tap",
       onClick: onOpen,
@@ -1035,13 +1063,37 @@ function HabitsLive() {
         borderRadius: 22,
         boxShadow: cardShadow,
         padding: "13px 13px 12px",
-        minHeight: compact ? undefined : 146,
+        minHeight: 146,
         display: "flex",
         flexDirection: "column",
+        alignItems: orbit ? "center" : "stretch",
+        justifyContent: orbit ? "center" : "flex-start",
+        textAlign: orbit ? "center" : "left",
         pointerEvents: ctx.mode ? "none" : "auto",
         overflow: "hidden"
       }
-    }, /*#__PURE__*/React.createElement("div", {
+    }, orbit ? /*#__PURE__*/React.createElement(React.Fragment, null, orbit, goalStyle.name && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        fontSize: 14,
+        fontWeight: 600,
+        color: "var(--text)",
+        letterSpacing: "-0.2px",
+        lineHeight: 1.2,
+        maxWidth: "100%",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, t.name), goalStyle.progress && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: goalStyle.name ? 3 : 8,
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: gc,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, Math.round(pct * 100), "%")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
@@ -1055,7 +1107,7 @@ function HabitsLive() {
         gap: 10,
         flexShrink: 0
       }
-    }, faces, pctEl)), cardStyle.name && /*#__PURE__*/React.createElement("div", {
+    }, faces, pctEl)), goalStyle.name && /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 10,
         fontSize: 15,
@@ -1068,12 +1120,12 @@ function HabitsLive() {
         WebkitBoxOrient: "vertical",
         overflow: "hidden"
       }
-    }, t.name), progress && /*#__PURE__*/React.createElement("div", {
+    }, t.name), progBar && /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: "auto",
         paddingTop: 12
       }
-    }, progress));
+    }, progBar)));
   };
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
@@ -1283,7 +1335,7 @@ function HabitsLive() {
     ctlRef: gridCtl,
     cols: cardStyle.form === "rect" ? 1 : 2,
     gap: 12,
-    spanFull: k => k && k[0] === "g" && goalStyle.form === "banner",
+    spanFull: k => k && (k[0] === "g" || k[0] === "t") && goalStyle.form === "banner",
     renderItem: (k, ctx) => {
       var e = entries.find(x => x.k === k);
       if (!e) return null;
