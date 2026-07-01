@@ -4,10 +4,13 @@
         горизонтальный скролл) + универсальный «+» справа (CreateMenuLive → Привычку / Цель;
         круг = тумблер «Идти к цели вместе» внутри цели). «Быстрого добавления» и переключателя
         Привычки/Цели больше НЕТ — их David убрал.
-     2. ОДНА сетка квадратных плиток: привычки И цели ВПЕРЕМЕШКУ, общий drag-реордер (порядок
-        в bos:practiceOrder, ключи "h<id>"/"g<id>"). Плитка цели зеркалит привычку (иконка + %,
-        имя, полоска прогресса снизу вместо недельных точек). Долгое нажатие → меню плитки
-        (Поделиться / Переставить / Удалить). teams (LiveTeamCard) — пока ниже сетки.
+     2. ОДНА сетка квадратных плиток: привычки, цели И КОМАНДЫ (круги) ВПЕРЕМЕШКУ, общий
+        drag-реордер (порядок в bos:practiceOrder, ключи "h<id>"/"g<id>"/"t<id>"). Плитка цели
+        зеркалит привычку (иконка + %, имя, полоска прогресса снизу вместо недельных точек);
+        плитка команды = цель + лица участников + метка «Команда» (teamTile). Долгое нажатие →
+        меню плитки (Поделиться / Переставить / Удалить; у команды «Удалить» нет — оно в настройках
+        круга). teams больше НЕ рендерятся отдельным блоком под сеткой — они В сетке (David: «команды
+        должны двигаться как привычки, между ними и над ними»).
      3. «Обучение» — тонкий disclosure-блок (bosLearnHidden, тот же флаг что в Настройках).
    Reuses shared core/ + shared_live.jsx (CreateMenuLive, ShareHabitSheetLive/ShareGoalSheetLive,
    HabitWeekStrip, BosReorderGrid, bosConfirmDelete, bosTileGlass/BOS_TILE_SHEEN, HabitBuddyAvatarsLive,
@@ -64,7 +67,7 @@ function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete, kindLabe
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <Row icon={<I.Share size={18} />} label="Поделиться" onClick={swap(onShare)} />
         <Row icon={reorderIcon} label="Переставить плитки" onClick={leave(onReorder)} />
-        <Row icon={<I.Trash size={18} />} label="Удалить" onClick={swap(onDelete)} danger />
+        {onDelete && <Row icon={<I.Trash size={18} />} label="Удалить" onClick={swap(onDelete)} danger />}
       </div>
       <button onClick={close} className="tap" style={{ width: "100%", marginTop: 10, border: 0, borderRadius: 999, padding: 14, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)", fontSize: 15.5, fontWeight: 600 }}>Отмена</button>
       <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
@@ -172,6 +175,19 @@ function HabitsLive() {
       );
       return;
     }
+    if (("" + key)[0] === "t") {
+      const t = teams.find((x) => ("t" + (x._id != null ? x._id : x.id)) === key); if (!t) return;
+      // Меню для команды: те же «Поделиться / Переставить». «Удалить» тут НЕ даём — удаление круга
+      // затрагивает всех участников, это делается в настройках команды. onDelete не передаём → строка скрыта.
+      const tHabit = { name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color };
+      openSheet(
+        <HabitTileMenuLive habit={tHabit} dark={isDark} kindLabel="Команда"
+          onShare={() => openSheet(<TeamShareSheet team={t} />)}
+          onReorder={openReorder}
+        />
+      );
+      return;
+    }
     const h = habits.find((x) => ("h" + x.id) === key); if (!h) return;
     openSheet(
       <HabitTileMenuLive habit={h} dark={isDark}
@@ -201,7 +217,10 @@ function HabitsLive() {
   // сохранённому порядку перестановки; новые элементы — в конец.
   const entries = React.useMemo(() => {
     const all = habits.map((h) => ({ k: "h" + h.id, type: "h", item: h }))
-      .concat(goals.map((g) => ({ k: "g" + g.id, type: "g", item: g })));
+      .concat(goals.map((g) => ({ k: "g" + g.id, type: "g", item: g })))
+      // Команды (круги/командные цели) живут в ТОЙ ЖЕ сетке — их можно тащить и ставить между
+      // привычками/целями, как просил David. Ключ "t<id>" (cloud _id или локальный id).
+      .concat(teams.map((t) => ({ k: "t" + (t._id != null ? t._id : t.id), type: "t", item: t })));
     const saved = bosLoadPracticeOrder();
     if (saved && saved.length) {
       const pos = {}; saved.forEach((k, i) => { pos[k] = i; });
@@ -210,7 +229,7 @@ function HabitsLive() {
         .map((x) => x.e);
     }
     return all;
-  }, [habits, goals, orderTick]);
+  }, [habits, goals, teams, orderTick]);
 
   // ПЛИТКА ПРИВЫЧКИ — форма+тоглы из cardStyle. ЛИЦА переехали в ВЕРХНИЙ ряд к контролу (David: убрать
   // пустое место внизу — все плитки одной высоты). marks: неделя / месяц-грядка / нет. rect = строка.
@@ -299,6 +318,57 @@ function HabitsLive() {
     );
   };
 
+  // ПЛИТКА КОМАНДЫ (круга) — та же форма, что цель, но эмблема + ЛИЦА участников + метка «Команда»
+  // (чтобы читалась как «цель с людьми», а не соло-цель). Прогресс = командный (счёт всех / target,
+  // либо процент). Тап открывает круг. Живёт в общей сетке → перетаскивается наравне с привычками.
+  const teamTile = (t, ctx) => {
+    const rect = cardStyle.form === "rect";
+    const tgt = t.target || 0;
+    const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+    const pct = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
+    const gc = t.accent || t.color || "#0a0a0a";
+    const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t });
+    const members = t.members || [];
+    const faces = cardStyle.faces && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={rect ? 16 : 20} max={rect ? 5 : 3} /></span> : null;
+    const pctEl = <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
+    const valTxt = t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : (Math.round(pct * 100) + "%");
+    const progress = cardStyle.marks !== "none" ? (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Команда</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{valTxt}</span>
+        </div>
+        <div style={{ height: 7, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc }} />
+        </div>
+      </div>
+    ) : null;
+    const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (gc + "26"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 21, gc)}</span>;
+    if (rect) {
+      return (
+        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 18, boxShadow: cardShadow, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+          {icon}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+            {progress && <div style={{ marginTop: 8 }}>{progress}</div>}
+          </div>
+          {faces}{pctEl}
+        </div>
+      );
+    }
+    const compact = cardStyle.marks === "none";
+    return (
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          {icon}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{pctEl}</div>
+        </div>
+        {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</div>}
+        {progress && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progress}</div>}
+      </div>
+    );
+  };
+
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
@@ -348,15 +418,11 @@ function HabitsLive() {
       ) : (
         <BosReorderGrid ids={entries.map((e) => e.k)} onReorder={(keys) => { bosSavePracticeOrder(keys); setOrderTick((t) => t + 1); }}
           onLongPress={onTileLongPress} ctlRef={gridCtl} cols={cardStyle.form === "rect" ? 1 : 2} gap={12}
-          renderItem={(k, ctx) => { const e = entries.find((x) => x.k === k); if (!e) return null; return e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx); }} />
+          renderItem={(k, ctx) => { const e = entries.find((x) => x.k === k); if (!e) return null; return e.type === "t" ? teamTile(e.item, ctx) : e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx); }} />
       )}
 
-      {/* Круги-команды (легаси cloud-команды) — пока ниже сетки, если есть. */}
-      {teams.length > 0 && (
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
-          {teams.map((t) => <LiveTeamCard key={t._id} t={t} navigate={navigate} />)}
-        </div>
-      )}
+      {/* Команды (круги) теперь ВНУТРИ общей сетки выше (teamTile) — их можно перетаскивать наравне
+          с привычками и целями (David). Отдельного блока под сеткой больше нет. */}
 
       {/* (Старая отдельная вкладка «Цели» удалена — цели теперь плитками в общей сетке выше.) */}
 

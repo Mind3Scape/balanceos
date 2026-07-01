@@ -4,10 +4,13 @@
         горизонтальный скролл) + универсальный «+» справа (CreateMenuLive → Привычку / Цель;
         круг = тумблер «Идти к цели вместе» внутри цели). «Быстрого добавления» и переключателя
         Привычки/Цели больше НЕТ — их David убрал.
-     2. ОДНА сетка квадратных плиток: привычки И цели ВПЕРЕМЕШКУ, общий drag-реордер (порядок
-        в bos:practiceOrder, ключи "h<id>"/"g<id>"). Плитка цели зеркалит привычку (иконка + %,
-        имя, полоска прогресса снизу вместо недельных точек). Долгое нажатие → меню плитки
-        (Поделиться / Переставить / Удалить). teams (LiveTeamCard) — пока ниже сетки.
+     2. ОДНА сетка квадратных плиток: привычки, цели И КОМАНДЫ (круги) ВПЕРЕМЕШКУ, общий
+        drag-реордер (порядок в bos:practiceOrder, ключи "h<id>"/"g<id>"/"t<id>"). Плитка цели
+        зеркалит привычку (иконка + %, имя, полоска прогресса снизу вместо недельных точек);
+        плитка команды = цель + лица участников + метка «Команда» (teamTile). Долгое нажатие →
+        меню плитки (Поделиться / Переставить / Удалить; у команды «Удалить» нет — оно в настройках
+        круга). teams больше НЕ рендерятся отдельным блоком под сеткой — они В сетке (David: «команды
+        должны двигаться как привычки, между ними и над ними»).
      3. «Обучение» — тонкий disclosure-блок (bosLearnHidden, тот же флаг что в Настройках).
    Reuses shared core/ + shared_live.jsx (CreateMenuLive, ShareHabitSheetLive/ShareGoalSheetLive,
    HabitWeekStrip, BosReorderGrid, bosConfirmDelete, bosTileGlass/BOS_TILE_SHEEN, HabitBuddyAvatarsLive,
@@ -223,7 +226,7 @@ function HabitTileMenuLive({
     icon: reorderIcon,
     label: "\u041F\u0435\u0440\u0435\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043F\u043B\u0438\u0442\u043A\u0438",
     onClick: leave(onReorder)
-  }), /*#__PURE__*/React.createElement(Row, {
+  }), onDelete && /*#__PURE__*/React.createElement(Row, {
     icon: /*#__PURE__*/React.createElement(I.Trash, {
       size: 18
     }),
@@ -389,6 +392,27 @@ function HabitsLive() {
       }));
       return;
     }
+    if (("" + key)[0] === "t") {
+      var t = teams.find(x => "t" + (x._id != null ? x._id : x.id) === key);
+      if (!t) return;
+      // Меню для команды: те же «Поделиться / Переставить». «Удалить» тут НЕ даём — удаление круга
+      // затрагивает всех участников, это делается в настройках команды. onDelete не передаём → строка скрыта.
+      var tHabit = {
+        name: t.name,
+        emoji: t.emblem || "👥",
+        color: t.accent || t.color
+      };
+      openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
+        habit: tHabit,
+        dark: isDark,
+        kindLabel: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430",
+        onShare: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheet, {
+          team: t
+        })),
+        onReorder: openReorder
+      }));
+      return;
+    }
     var h = habits.find(x => "h" + x.id === key);
     if (!h) return;
     openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
@@ -462,6 +486,13 @@ function HabitsLive() {
       k: "g" + g.id,
       type: "g",
       item: g
+    })))
+    // Команды (круги/командные цели) живут в ТОЙ ЖЕ сетке — их можно тащить и ставить между
+    // привычками/целями, как просил David. Ключ "t<id>" (cloud _id или локальный id).
+    .concat(teams.map(t => ({
+      k: "t" + (t._id != null ? t._id : t.id),
+      type: "t",
+      item: t
     })));
     var saved = bosLoadPracticeOrder();
     if (saved && saved.length) {
@@ -475,7 +506,7 @@ function HabitsLive() {
       })).sort((a, b) => (pos[a.e.k] != null ? pos[a.e.k] : 1000 + a.i) - (pos[b.e.k] != null ? pos[b.e.k] : 1000 + b.i)).map(x => x.e);
     }
     return all;
-  }, [habits, goals, orderTick]);
+  }, [habits, goals, teams, orderTick]);
 
   // ПЛИТКА ПРИВЫЧКИ — форма+тоглы из cardStyle. ЛИЦА переехали в ВЕРХНИЙ ряд к контролу (David: убрать
   // пустое место внизу — все плитки одной высоты). marks: неделя / месяц-грядка / нет. rect = строка.
@@ -802,6 +833,177 @@ function HabitsLive() {
       }
     }, progress));
   };
+
+  // ПЛИТКА КОМАНДЫ (круга) — та же форма, что цель, но эмблема + ЛИЦА участников + метка «Команда»
+  // (чтобы читалась как «цель с людьми», а не соло-цель). Прогресс = командный (счёт всех / target,
+  // либо процент). Тап открывает круг. Живёт в общей сетке → перетаскивается наравне с привычками.
+  var teamTile = (t, ctx) => {
+    var rect = cardStyle.form === "rect";
+    var tgt = t.target || 0;
+    var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+    var pct = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
+    var gc = t.accent || t.color || "#0a0a0a";
+    var onOpen = ctx.mode ? undefined : () => navigate("team-detail", {
+      team: t
+    });
+    var members = t.members || [];
+    var faces = cardStyle.faces && members.length ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(PeopleStackLive, {
+      people: members,
+      size: rect ? 16 : 20,
+      max: rect ? 5 : 3
+    })) : null;
+    var pctEl = /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-3)",
+        fontVariantNumeric: "tabular-nums",
+        flexShrink: 0
+      }
+    }, Math.round(pct * 100), "%");
+    var valTxt = t.target ? cur + " / " + tgt + " " + (t.unit || "") : Math.round(pct * 100) + "%";
+    var progress = cardStyle.marks !== "none" ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        marginBottom: 5
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: "var(--text-4)",
+        textTransform: "uppercase",
+        letterSpacing: 0.7
+      }
+    }, "\u041A\u043E\u043C\u0430\u043D\u0434\u0430"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--text-3)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, valTxt)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 7,
+        borderRadius: 999,
+        background: "var(--card-track)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        height: "100%",
+        width: pct * 100 + "%",
+        borderRadius: 999,
+        background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc
+      }
+    }))) : null;
+    var icon = /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        background: BOS_TILE_SHEEN + ", " + (gc + "26"),
+        boxShadow: bosTileGlass(isDark),
+        display: "grid",
+        placeItems: "center",
+        fontSize: 19,
+        flexShrink: 0
+      }
+    }, bosIcon(t.emblem || "👥", 21, gc));
+    if (rect) {
+      return /*#__PURE__*/React.createElement("div", {
+        className: ctx.mode ? "" : "tap",
+        onClick: onOpen,
+        style: {
+          background: rowBg,
+          borderRadius: 18,
+          boxShadow: cardShadow,
+          padding: "11px 14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 13,
+          pointerEvents: ctx.mode ? "none" : "auto",
+          overflow: "hidden"
+        }
+      }, icon, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 15.5,
+          fontWeight: 600,
+          color: "var(--text)",
+          letterSpacing: "-0.2px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
+      }, t.name), progress && /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 8
+        }
+      }, progress)), faces, pctEl);
+    }
+    var compact = cardStyle.marks === "none";
+    return /*#__PURE__*/React.createElement("div", {
+      className: ctx.mode ? "" : "tap",
+      onClick: onOpen,
+      style: {
+        background: rowBg,
+        borderRadius: 22,
+        boxShadow: cardShadow,
+        padding: "13px 13px 12px",
+        minHeight: compact ? undefined : 146,
+        display: "flex",
+        flexDirection: "column",
+        pointerEvents: ctx.mode ? "none" : "auto",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, icon, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexShrink: 0
+      }
+    }, faces, pctEl)), cardStyle.name && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        fontSize: 15,
+        fontWeight: 600,
+        color: "var(--text)",
+        letterSpacing: "-0.2px",
+        lineHeight: 1.25,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden"
+      }
+    }, t.name), progress && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "auto",
+        paddingTop: 12
+      }
+    }, progress));
+  };
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
     className: "page-in",
@@ -1018,20 +1220,9 @@ function HabitsLive() {
     renderItem: (k, ctx) => {
       var e = entries.find(x => x.k === k);
       if (!e) return null;
-      return e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx);
+      return e.type === "t" ? teamTile(e.item, ctx) : e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx);
     }
-  }), teams.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
-    }
-  }, teams.map(t => /*#__PURE__*/React.createElement(LiveTeamCard, {
-    key: t._id,
-    t: t,
-    navigate: navigate
-  }))), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       background: TH.cardBg,
