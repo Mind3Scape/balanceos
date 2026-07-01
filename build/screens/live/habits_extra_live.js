@@ -873,7 +873,10 @@ function GoalSettingsLive() {
       letterSpacing: "-0.2px",
       padding: "6px 0"
     }
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), typeof BosColorPickerLive === "function" && /*#__PURE__*/React.createElement(BosColorPickerLive, {
+    value: color,
+    onChange: setColor
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
@@ -885,7 +888,8 @@ function GoalSettingsLive() {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 10
+      gap: 10,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("input", {
     type: "text",
@@ -895,19 +899,27 @@ function GoalSettingsLive() {
     onChange: e => setTarget(parseInt(e.target.value.replace(/\D/g, "")) || 0),
     className: "goal-num",
     style: {
-      flex: "0 0 90px",
+      flex: "0 0 auto",
+      width: 72,
       fontSize: 28,
       fontWeight: 700,
       color: "var(--text)",
       border: 0,
       outline: 0,
       background: "transparent",
-      padding: 0
+      padding: 0,
+      minWidth: 0
     }
-  }), /*#__PURE__*/React.createElement(BosUnitSelectLive, {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 auto",
+      minWidth: 0,
+      display: "flex"
+    }
+  }, /*#__PURE__*/React.createElement(BosUnitSelectLive, {
     value: unit,
     onChange: setUnit
-  })), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-4)",
@@ -1122,157 +1134,7 @@ function GoalSettingsLive() {
   }, "\u0412\u043A\u043B\u044E\u0447\u0438 \u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430.")), /*#__PURE__*/React.createElement(Switch, {
     on: circleOn,
     onChange: setCircleOn
-  }))), circleOn && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 14
-    }
-  }, CIRCLE_MODES.map(m => {
-    var active = goalType === m.id;
-    return /*#__PURE__*/React.createElement("button", {
-      key: m.id,
-      type: "button",
-      onClick: () => setGoalType(m.id),
-      className: "tap",
-      style: {
-        background: "#fff",
-        border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)",
-        borderRadius: 22,
-        padding: 14,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        textAlign: "left",
-        boxShadow: "var(--card-shadow)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 38,
-        height: 38,
-        borderRadius: "50%",
-        background: active ? "#0a0a0a" : "#e8e8e8",
-        color: active ? "#fff" : "var(--text)",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 18,
-        flexShrink: 0
-      }
-    }, m.e), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 600,
-        color: "var(--text)"
-      }
-    }, m.t), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-4)",
-        marginTop: 2,
-        lineHeight: 1.45
-      }
-    }, m.d)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 18,
-        height: 18,
-        borderRadius: "50%",
-        background: active ? "#0a0a0a" : "transparent",
-        border: active ? "0" : "1.5px solid var(--text-5)",
-        flexShrink: 0,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, active && /*#__PURE__*/React.createElement(I.Check, {
-      size: 11,
-      color: "#fff",
-      strokeWidth: 3
-    })));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14
-    }
-  }, /*#__PURE__*/React.createElement(Segmented, {
-    value: circleVis,
-    onChange: setCircleVis,
-    options: [{
-      value: "private",
-      label: "Приватный"
-    }, {
-      value: "public",
-      label: "Открытый"
-    }]
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "#fff",
-      borderRadius: 22,
-      padding: 16,
-      marginTop: 14,
-      boxShadow: "var(--card-shadow)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--text-2)",
-      fontWeight: 500
-    }
-  }, "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C XP \u043D\u0430 \u0444\u0438\u043D\u0438\u0448"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-4)",
-      marginTop: 2,
-      lineHeight: 1.5
-    }
-  }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u0434\u043E \u0446\u0435\u043B\u0438 \u2014 \u0431\u0430\u043D\u043A \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u043A\u0430\u0436\u0434\u043E\u043C\u0443. \u041D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E, \u043D\u043E \u0430\u0437\u0430\u0440\u0442\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
-    on: stakeOn,
-    onChange: setStakeOn
-  })), stakeOn && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
-      paddingTop: 14,
-      borderTop: "1px solid var(--line)",
-      display: "flex",
-      alignItems: "baseline",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    inputMode: "numeric",
-    pattern: "[0-9]*",
-    value: stakeAmount,
-    onChange: e => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0),
-    style: {
-      flex: "0 0 80px",
-      fontSize: 22,
-      fontWeight: 700,
-      color: "var(--text)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: 0,
-      minWidth: 0
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)"
-    }
-  }, "XP \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E"))), /*#__PURE__*/React.createElement("div", {
+  }))), circleOn && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       borderRadius: 14,
@@ -1299,7 +1161,7 @@ function GoalSettingsLive() {
       color: "#2b5cb8",
       lineHeight: 1.4
     }
-  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u043E\u0442\u043A\u0440\u043E\u0435\u0442\u0441\u044F ", /*#__PURE__*/React.createElement("b", null, "\u043A\u043E\u043C\u043D\u0430\u0442\u0430 \u043A\u0440\u0443\u0433\u0430"), ", \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), /*#__PURE__*/React.createElement("button", {
+  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435. \u0420\u0435\u0436\u0438\u043C \u0438 XP-\u0441\u0442\u0430\u0432\u043A\u0443 \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0448\u044C \u043F\u043E\u0442\u043E\u043C \u0432 \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
       marginTop: 20

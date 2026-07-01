@@ -381,7 +381,9 @@ function BosUnitSelectLive({
     style: {
       position: "relative",
       display: "inline-flex",
-      alignItems: "center"
+      alignItems: "center",
+      maxWidth: "100%",
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("select", {
     value: cur,
@@ -402,7 +404,9 @@ function BosUnitSelectLive({
       fontWeight: 600,
       color: "var(--text)",
       letterSpacing: "-0.2px",
-      cursor: "pointer"
+      cursor: "pointer",
+      maxWidth: "100%",
+      textOverflow: "ellipsis"
     }
   }, opts.map(function (u) {
     return /*#__PURE__*/React.createElement("option", {

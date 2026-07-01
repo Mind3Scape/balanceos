@@ -291,7 +291,8 @@ function HabitsLive() {
   // карточку КАК КАРТОЧКИ ПАРТНЁРОВ — насыщенный accent + белый градиент-блик + тёмный текст). Чёрный
   // (#0a0a0a, старый дефолт) считаем НЕйтральным → белая карточка. Один источник вида для goalTile+teamTile.
   const goalSkin = (color) => {
-    const accent = (color && ("" + color).toLowerCase() !== "#0a0a0a") ? color : null;
+    // Нейтральные (нет цвета / чёрный / системный серый) → БЕЛАЯ карточка. Реальный цвет → заливка.
+    const accent = (color && ("" + color).toLowerCase() !== "#0a0a0a" && color !== "#8E8E93") ? color : null;
     if (!accent) return {
       hasColor: false, accent: isDark ? "#e8e8ea" : "#0a0a0a", bg: rowBg, shadow: cardShadow,
       txt: "var(--text)", sub: "var(--text-4)", lbl: "var(--text-4)", val: "var(--text-3)",

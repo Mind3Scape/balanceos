@@ -199,9 +199,9 @@ function BosUnitSelectLive({ value, onChange }) {
   var cur = value || "раз";
   var opts = BOS_UNITS.indexOf(cur) >= 0 ? BOS_UNITS : [cur].concat(BOS_UNITS);
   return (
-    <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+    <div style={{ position: "relative", display: "inline-flex", alignItems: "center", maxWidth: "100%", minWidth: 0 }}>
       <select value={cur} onChange={function (e) { onChange(e.target.value); }} className="tap" aria-label="Единица измерения"
-        style={{ appearance: "none", WebkitAppearance: "none", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "8px 32px 8px 14px", fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", cursor: "pointer" }}>
+        style={{ appearance: "none", WebkitAppearance: "none", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "8px 32px 8px 14px", fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", cursor: "pointer", maxWidth: "100%", textOverflow: "ellipsis" }}>
         {opts.map(function (u) { return <option key={u} value={u}>{u}</option>; })}
       </select>
       <span aria-hidden style={{ position: "absolute", right: 12, fontSize: 12, color: "var(--text-3)", pointerEvents: "none" }}>▾</span>
