@@ -361,6 +361,12 @@ function bosLightenHex(hx, amt) {
 }
 // Пустая клетка календаря = МЯГКИЙ тон цвета привычки (David: «пустые дни должны стать мягко-
 // зелёными/любой цвет, а не серыми»). Цвет на низкой альфе → еле-еле в тон; фолбэк серый.
+// Стеклянное кольцо «СЕГОДНЯ» — ЕДИНОЕ внутри (календарь) и снаружи (страйп на карточке), David:
+// «текущий день выделен одинаково, кольцом стекла, без плюсика». Светлый внутр. блик + тонкий контур
+// + мягкая тень = вид стеклянного чекбокса; читается и на белом, и на цветной клетке.
+function bosTodayRing(isDark) {
+  return isDark ? "inset 0 0 0 1.5px rgba(255,255,255,0.44), 0 1px 2px rgba(0,0,0,0.30)" : "inset 0 0 0 1.5px rgba(255,255,255,0.95), 0 0 0 1.3px rgba(10,10,10,0.17), 0 1px 2.5px rgba(0,0,0,0.10)";
+}
 function bosCellEmpty(accent, isDark, mul) {
   mul = mul == null ? 1 : mul; // 1=пустой день (~19-23%); <1 = слабее (будущее/соседний месяц)
   if (accent && accent[0] === "#" && accent.length === 7) {
@@ -778,8 +784,8 @@ function PeopleMonthCalendarLive({
     var filled = !fut && pct > 0;
     var done = !fut && pct >= 1;
     var bg = fut ? bosCellEmpty(hx, isDark, 0.42) : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : bosCellEmpty(hx, isDark) : bosCellFill(hx, pct);
-    var ringC = wd.isToday ? itx ? hx : isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)" : null;
-    var sh = [filled ? bosCellGlass(isDark) : "", ringC ? "0 0 0 1.7px " + ringC : ""].filter(Boolean).join(", ") || "none";
+    // Сегодня = единое стеклянное кольцо (bosTodayRing), как снаружи; без «+».
+    var sh = [filled ? bosCellGlass(isDark) : "", wd.isToday ? bosTodayRing(isDark) : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("button", {
       key: i,
       onClick: itx ? fireToday : undefined,
@@ -794,15 +800,11 @@ function PeopleMonthCalendarLive({
         cursor: itx ? "pointer" : "default",
         display: "grid",
         placeItems: "center",
-        color: itx ? done ? "#fff" : hx : "transparent",
+        color: "#fff",
         fontWeight: 800,
         fontSize: 13
       }
-    }, itx && !done ? /*#__PURE__*/React.createElement("span", {
-      style: {
-        textShadow: filled ? "0 0.5px 1.5px rgba(0,0,0,0.5)" : "none"
-      }
-    }, todayTap.hint) : itx && done ? /*#__PURE__*/React.createElement(I.Check, {
+    }, itx && done ? /*#__PURE__*/React.createElement(I.Check, {
       size: 15,
       strokeWidth: 3,
       color: "#fff"
@@ -912,10 +914,9 @@ function PeopleMonthCalendarLive({
     // empty today = accent «+» (harmonises with the ring). Non-today keeps the heat-map ink.
     var ink = fut ? "var(--text-4)" : pct <= 0 ? itx ? hx : "var(--text)" : itx ? "#fff" : bosCellInk(hx, pct, isDark);
     var todayGlow = itx && filled ? "0 0.5px 1.5px rgba(0,0,0,0.55)" : "none";
-    var todayRing = itx ? hx : isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.42)";
-    var ring = !compact && isSel ? selRing : isToday ? todayRing : null;
-    var ringW = itx && isToday ? 2 : 1.6;
-    var shadow = [filled ? bosCellGlass(isDark) : "", ring ? "0 0 0 " + ringW + "px " + ring : ""].filter(Boolean).join(", ") || "none";
+    // Сегодня = единое СТЕКЛЯННОЕ кольцо (bosTodayRing) — как на внешнем страйпе (David); выбранный
+    // день (не сегодня) — тонкая обводка selRing. Без accent-зелёного/серого разнобоя.
+    var shadow = [filled ? bosCellGlass(isDark) : "", isToday ? bosTodayRing(isDark) : !compact && isSel ? "0 0 0 1.6px " + selRing : ""].filter(Boolean).join(", ") || "none";
     var onClick = itx ? fireToday : compact ? undefined : () => setSelDay(c.d);
     return /*#__PURE__*/React.createElement("button", _extends({
       key: c.key
@@ -939,23 +940,14 @@ function PeopleMonthCalendarLive({
         color: ink,
         position: "relative"
       }
-    }), itx ? done ? /*#__PURE__*/React.createElement(I.Check, {
+    }), itx && done ? /*#__PURE__*/React.createElement(I.Check, {
       size: 15,
       strokeWidth: 3,
       color: ink,
       style: {
         filter: todayGlow !== "none" ? "drop-shadow(0 0.5px 1px rgba(0,0,0,0.5))" : "none"
       }
-    }) : /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: todayTap.hint && todayTap.hint.length > 1 ? 12 : 15,
-        fontWeight: 800,
-        lineHeight: 1,
-        color: ink,
-        textShadow: todayGlow,
-        fontVariantNumeric: "tabular-nums"
-      }
-    }, todayTap.hint) : !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
+    }) : !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
   })), view === "year" && /*#__PURE__*/React.createElement("div", {
     ref: yearScrollRef,
     className: "screen-scroll",
@@ -7827,7 +7819,6 @@ function HabitWeekStrip({
   var log = habit.log || {};
   var doneFill = bosCellFill(accent, 1); // SAME soft glossy fill as the month calendar (continuity)
   var empty = typeof bosCellEmpty === "function" ? bosCellEmpty(accent, isDark) : isDark ? "rgba(255,255,255,0.13)" : "rgba(0,0,0,0.08)";
-  var ringC = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.34)";
   var cell = fill ? {
     flex: 1,
     aspectRatio: "1/1",
@@ -7847,7 +7838,8 @@ function HabitWeekStrip({
     }
   }, keys.map(function (k, i) {
     var fl = !!log[k];
-    var sh = [fl ? bosCellGlass(isDark) : "", k === todayK ? "0 0 0 1.5px " + ringC : ""].filter(Boolean).join(", ") || "none";
+    // Сегодня = единое СТЕКЛЯННОЕ кольцо (то же, что в календаре); заполненный день — своя стекло-заливка.
+    var sh = [fl ? bosCellGlass(isDark) : "", k === todayK ? bosTodayRing(isDark) : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("span", {
       key: i,
       style: {
