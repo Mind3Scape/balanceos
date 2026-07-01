@@ -718,18 +718,21 @@ function HabitsLive() {
       fill: isDark ? "#e6e6ea" : "#0a0a0a",
       iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg
     };
+    // Заливка = МЯГКАЯ ПАСТЕЛЬ (цвет осветлён к белому) + белый блик — ровно язык карточек партнёров
+    // «Потратить XP», а не сырой насыщенный цвет (David: «убого»). Прогресс/иконка — на полном цвете для контраста.
+    var soft = typeof bosLightenHex === "function" ? bosLightenHex(accent, 0.52) : accent;
     return {
       hasColor: true,
       accent,
-      bg: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + accent,
-      shadow: "0 4px 14px rgba(40,30,15,0.13), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
+      bg: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + soft,
+      shadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
       txt: "#1b1b1f",
-      sub: "rgba(27,27,31,0.6)",
+      sub: "rgba(27,27,31,0.58)",
       lbl: "rgba(27,27,31,0.5)",
       val: "rgba(27,27,31,0.72)",
-      track: "rgba(255,255,255,0.42)",
-      fill: "rgba(27,27,31,0.82)",
-      iconBg: "linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.55))"
+      track: "rgba(255,255,255,0.55)",
+      fill: accent,
+      iconBg: "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.62))"
     };
   };
   var goalTile = (g, ctx) => {

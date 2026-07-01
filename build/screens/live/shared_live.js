@@ -345,6 +345,20 @@ function bosCellFill(hx, p) {
   };
   return "linear-gradient(180deg, " + hx + hex(top) + ", " + hx + hex(bot) + ")";
 }
+// Осветлить hex к белому на amt (0..1) → МЯГКАЯ ПАСТЕЛЬ. Наши BOS_APPLE_COLORS средне-насыщенные;
+// заливать карточку целиком ими = «убого» (David). Осветляем до партнёрской пастели (#B9D4FF-класс),
+// сохраняя палитру. ЕДИНЫЙ тон для заливки карточек целей/команд = язык карточек «Потратить XP».
+function bosLightenHex(hx, amt) {
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) return hx || "#eef1f6";
+  var k = Math.max(0, Math.min(1, amt));
+  var r = parseInt(hx.slice(1, 3), 16),
+    g = parseInt(hx.slice(3, 5), 16),
+    b = parseInt(hx.slice(5, 7), 16);
+  var mk = function (c) {
+    return Math.round(c + (255 - c) * k).toString(16).padStart(2, "0");
+  };
+  return "#" + mk(r) + mk(g) + mk(b);
+}
 // Glass edge for a filled tile — a soft top highlight + a faint contour, so each cell reads like the
 // habit's ICON tile (David: «как у иконки — осветление сверху, переход, виден контур; не сливается,
 // и не плоский серый»). Light catches the top; the contour keeps it off the background.

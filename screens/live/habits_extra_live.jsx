@@ -477,15 +477,53 @@ function GoalSettingsLive() {
         </div>
       </div>
 
-      {/* Круг вкл → короткая заметка. Режим (общий счёт/серия) и XP-ставку НЕ спрашиваем при создании
-          (David: «слишком много опций, оставь основное») — они настраиваются ПОТОМ в «Настройки цели».
-          По умолчанию: общий счёт, приватная. */}
-      {circleOn && (
+      {/* Круг ВКЛ → тут же настройки совместной цели: режим счёта + видимость + XP-ставка (David:
+          «эти три нужны, но когда активируешь „вместе" — не гнать человека потом в карандашик»).
+          Раскрываются только при тумблере, чтобы соло-цель оставалась простой. */}
+      {circleOn && (<>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+          {CIRCLE_MODES.map((m) => {
+            const active = goalType === m.id;
+            return (
+              <button key={m.id} type="button" onClick={() => setGoalType(m.id)} className="tap"
+                style={{ background: "#fff", border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
+                <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{m.e}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{m.t}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{m.d}</div>
+                </div>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? "#0a0a0a" : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color="#fff" strokeWidth={3} />}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <Segmented value={circleVis} onChange={setCircleVis} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Открытая" }]} />
+        </div>
+
+        <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Поставить XP на финиш</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Дойдёте до цели — банк вернётся каждому. Необязательно, но азартно.</div>
+            </div>
+            <Switch on={stakeOn} onChange={setStakeOn} />
+          </div>
+          {stakeOn && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)", display: "flex", alignItems: "baseline", gap: 8 }}>
+              <input type="text" inputMode="numeric" pattern="[0-9]*" value={stakeAmount} onChange={(e) => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0)}
+                style={{ flex: "0 0 80px", fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }} />
+              <span style={{ fontSize: 13, color: "var(--text-4)" }}>XP с каждого</span>
+            </div>
+          )}
+        </div>
+
         <div style={{ marginTop: 14, borderRadius: 14, padding: "11px 12px", background: "#eef4ff", display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🪐</span>
-          <div style={{ fontSize: 12.5, color: "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — цель станет общей, позовёшь людей по ссылке. Режим и XP-ставку настроишь потом в цели.</div>
+          <div style={{ fontSize: 12.5, color: "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — цель станет общей, и сразу позовёшь людей по ссылке.</div>
         </div>
-      )}
+      </>)}
 
       <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
         const nm = name.trim() || "Новая цель";
