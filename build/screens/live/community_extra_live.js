@@ -844,7 +844,7 @@ function TeamSettingsLive() {
       padding: "0 16px 24px"
     }
   }, /*#__PURE__*/React.createElement(PageHeader, {
-    title: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043A\u043E\u043C\u0430\u043D\u0434\u044B",
+    title: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0446\u0435\u043B\u0438",
     onBack: () => navigate("team-detail", {
       team
     })
@@ -1275,10 +1275,10 @@ function TeamSettingsLive() {
       lineHeight: 1.45,
       marginBottom: 12
     }
-  }, "\u041F\u0440\u0438\u0448\u043B\u0438 \u0441\u0441\u044B\u043B\u043A\u0443 \u2014 \u0434\u0440\u0443\u0433 \u043E\u0442\u043A\u0440\u043E\u0435\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u0443 \u0432 Telegram \u0438 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F \u043A \u043E\u0431\u0449\u0435\u0439 \u0446\u0435\u043B\u0438. \u0417\u0430 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 XP."), /*#__PURE__*/React.createElement("button", {
+  }, "\u041F\u0440\u0438\u0448\u043B\u0438 \u0441\u0441\u044B\u043B\u043A\u0443 \u2014 \u0434\u0440\u0443\u0433 \u043E\u0442\u043A\u0440\u043E\u0435\u0442 \u0446\u0435\u043B\u044C \u0432 Telegram \u0438 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F \u043A \u043E\u0431\u0449\u0435\u0439 \u0446\u0435\u043B\u0438. \u0417\u0430 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 XP."), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       var link = typeof bosTeamInviteLink === "function" ? bosTeamInviteLink(team.cloudId) : "https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId;
-      var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
+      var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Присоединяйся к цели «" + (team.name || "") + "» в BalanceOS";
       if (window.bosShare) window.bosShare(link, text);else {
         try {
           navigator.clipboard.writeText(link);
@@ -1332,7 +1332,7 @@ function TeamSettingsLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Trash, {
     size: 17
-  }), " \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443"));
+  }), " \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0446\u0435\u043B\u044C"));
 }
 
 /* ПРАВКА КРУГА НА МЕСТЕ — карандаш в комнате открывает ЭТУ шторку (не уводит на отдельный
@@ -1759,7 +1759,7 @@ function TeamQuickEditSheetLive({
     }
   }, /*#__PURE__*/React.createElement(I.Trash, {
     size: 16
-  }), " \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u0440\u0443\u0433"));
+  }), " \u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0446\u0435\u043B\u044C"));
 }
 
 /* LIVE fork of the «add team habit» sheet — uses OUR standard icon picker (EmojiPickerLive:

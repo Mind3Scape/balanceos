@@ -996,7 +996,7 @@ function HabitsLive() {
         textTransform: "uppercase",
         letterSpacing: 0.7
       }
-    }, "\u041A\u043E\u043C\u0430\u043D\u0434\u0430"), /*#__PURE__*/React.createElement("span", {
+    }, "\u0426\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11,
         fontWeight: 600,
@@ -1083,7 +1083,7 @@ function HabitsLive() {
           color: sk.sub,
           marginTop: 1
         }
-      }, "\u041A\u043E\u043C\u0430\u043D\u0434\u0430", members.length ? " · " + members.length : "")), !orbit && (faces || pctEl)), progBar), orbit);
+      }, "\u0412\u043C\u0435\u0441\u0442\u0435", members.length ? " · " + members.length : "")), !orbit && (faces || pctEl)), progBar), orbit);
     }
     return /*#__PURE__*/React.createElement("div", {
       className: ctx.mode ? "" : "tap",

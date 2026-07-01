@@ -145,7 +145,7 @@ function LiveTeamCard({
       letterSpacing: 1,
       fontWeight: 600
     }
-  }, /*#__PURE__*/React.createElement("span", null, t.target ? "К цели" : "Прогресс команды"), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, t.target ? "К цели" : "Прогресс цели"), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "var(--text)"
     }
@@ -1040,7 +1040,7 @@ function TeamDetailLive() {
       padding: "0 16px 24px"
     }
   }, /*#__PURE__*/React.createElement(PageHeader, {
-    title: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430",
+    title: "\u0426\u0435\u043B\u044C",
     onBack: () => navigate(from),
     right: /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1069,12 +1069,80 @@ function TeamDetailLive() {
     style: {
       position: "relative"
     }
-  }, /*#__PURE__*/React.createElement(TeamOrbitLive, {
-    emblem: t.emblem,
-    accent: accent,
-    faces: orbitFaces,
-    isDark: isDark
-  }), /*#__PURE__*/React.createElement("div", {
+  }, (() => {
+    var gStyle = typeof bosLoadGoalStyle === "function" ? bosLoadGoalStyle() : {
+      orbits: true
+    };
+    if (gStyle.orbits) return /*#__PURE__*/React.createElement(TeamOrbitLive, {
+      emblem: t.emblem,
+      accent: accent,
+      faces: orbitFaces,
+      isDark: isDark
+    });
+    var _t = goalProg && goalProg.target || t.target || 0;
+    var _c = goalProg ? goalProg.current : t.current != null ? t.current : Math.round((t.progress || 0) * _t);
+    var hp = _t > 0 ? Math.min(1, _c / _t) : t.progress || 0;
+    var CC = 2 * Math.PI * 54;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 190,
+        height: 190,
+        margin: "0 auto 2px",
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: "190",
+      height: "190",
+      viewBox: "0 0 140 140",
+      style: {
+        transform: "rotate(-90deg)"
+      }
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "70",
+      cy: "70",
+      r: "54",
+      fill: "none",
+      stroke: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+      strokeWidth: "13"
+    }), hp > 0 && /*#__PURE__*/React.createElement("circle", {
+      cx: "70",
+      cy: "70",
+      r: "54",
+      fill: "none",
+      stroke: isDark ? "#e6e6ea" : "#0a0a0a",
+      strokeWidth: "13",
+      strokeLinecap: "round",
+      strokeDasharray: CC,
+      strokeDashoffset: CC * (1 - hp),
+      style: {
+        transition: "stroke-dashoffset 0.6s ease"
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        inset: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 34,
+        lineHeight: 1
+      }
+    }, bosIcon(t.emblem || "🎯", 32, null)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 26,
+        fontWeight: 800,
+        marginTop: 4,
+        letterSpacing: "-0.5px",
+        color: "var(--text)"
+      }
+    }, Math.round(hp * 100), "%"))));
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 22,
       fontWeight: 700,
@@ -1315,7 +1383,7 @@ function TeamDetailLive() {
       fontSize: 18,
       lineHeight: 1
     }
-  }, "\uD83D\uDCAC"), " \u0427\u0430\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u044B", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
+  }, "\uD83D\uDCAC"), " \u0427\u0430\u0442 \u0446\u0435\u043B\u0438", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
       top: 9,
@@ -1369,7 +1437,7 @@ function TeamDetailLive() {
     style: {
       marginTop: 22
     }
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u043A\u043E\u043C\u0430\u043D\u0434\u044B", teamHabits.length ? " · " + teamHabits.length : ""), /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0446\u0435\u043B\u0438", teamHabits.length ? " · " + teamHabits.length : ""), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8
     }
@@ -1380,7 +1448,7 @@ function TeamDetailLive() {
       padding: "4px 2px 8px",
       lineHeight: 1.5
     }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u043E\u043D\u0430 \u0441\u0442\u0430\u043D\u0435\u0442 \u044F\u043A\u043E\u0440\u0435\u043C \u043A\u043E\u043C\u0430\u043D\u0434\u044B."), teamHabits.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u043E\u043D\u0430 \u0441\u0442\u0430\u043D\u0435\u0442 \u044F\u043A\u043E\u0440\u0435\u043C \u0446\u0435\u043B\u0438."), teamHabits.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -1552,7 +1620,7 @@ function TeamDetailLive() {
       fontSize: 14,
       fontWeight: 500
     }
-  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u043A\u043E\u043C\u0430\u043D\u0434\u044B")), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
+  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0446\u0435\u043B\u0438")), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
     people: mainProg.map(m => ({
       name: m.me ? "Ты" : m.name,
       initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
@@ -1728,7 +1796,7 @@ function TeamDetailLive() {
         color: "var(--text-4)",
         marginTop: 2
       }
-    }, m.role === "owner" ? "Создатель команды" : "Участник"))));
+    }, m.role === "owner" ? "Создатель" : "Участник"))));
   })), /*#__PURE__*/React.createElement("button", {
     onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
       team: t
@@ -1778,5 +1846,5 @@ function TeamDetailLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Logout, {
     size: 17
-  }), " \u041F\u043E\u043A\u0438\u043D\u0443\u0442\u044C \u043A\u0440\u0443\u0433"));
+  }), " \u041F\u043E\u043A\u0438\u043D\u0443\u0442\u044C \u0446\u0435\u043B\u044C"));
 }

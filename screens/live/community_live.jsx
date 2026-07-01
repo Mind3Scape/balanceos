@@ -66,7 +66,7 @@ function LiveTeamCard({ t, navigate }) {
           <span style={chipS}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
-          <span>{t.target ? "К цели" : "Прогресс команды"}</span>
+          <span>{t.target ? "К цели" : "Прогресс цели"}</span>
           <span style={{ color: "var(--text)" }}>{t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : Math.round(gp * 100) + "%"}</span>
         </div>
         <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
@@ -497,7 +497,7 @@ function TeamDetailLive() {
   const inFlowToday = (Array.isArray(members) ? members : []).filter((m) => flowSet[m.id]).length;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="Команда" onBack={() => navigate(from)} right={
+      <PageHeader title="Цель" onBack={() => navigate(from)} right={
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {/* Правка НА МЕСТЕ — карандаш открывает шторку правки прямо над комнатой (не уводит
               на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. «Поделиться»
@@ -507,8 +507,30 @@ function TeamDetailLive() {
       }/>
       <div style={{ background: `linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%), linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)", transform: "translateZ(0)" }}>
         <div style={{ position: "relative" }}>
-          {/* Орбита круга — общая звезда в центре, люди-планеты загораются за сегодня */}
-          <TeamOrbitLive emblem={t.emblem} accent={accent} faces={orbitFaces} isDark={isDark} />
+          {/* Hero комнаты цели: ОРБИТА (люди-планеты за сегодня) или КОЛЬЦО прогресса — по тому же
+              тумблеру «Орбиты» стиля целей (David: симметрия с личной целью — там тоже орбита↔кольцо). */}
+          {(() => {
+            const gStyle = (typeof bosLoadGoalStyle === "function") ? bosLoadGoalStyle() : { orbits: true };
+            if (gStyle.orbits) return <TeamOrbitLive emblem={t.emblem} accent={accent} faces={orbitFaces} isDark={isDark} />;
+            const _t = (goalProg && goalProg.target) || t.target || 0;
+            const _c = goalProg ? goalProg.current : (t.current != null ? t.current : Math.round((t.progress || 0) * _t));
+            const hp = _t > 0 ? Math.min(1, _c / _t) : (t.progress || 0);
+            const CC = 2 * Math.PI * 54;
+            return (
+              <div style={{ width: 190, height: 190, margin: "0 auto 2px", position: "relative" }}>
+                <svg width="190" height="190" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"} strokeWidth="13" />
+                  {hp > 0 && <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "#e6e6ea" : "#0a0a0a"} strokeWidth="13" strokeLinecap="round" strokeDasharray={CC} strokeDashoffset={CC * (1 - hp)} style={{ transition: "stroke-dashoffset 0.6s ease" }} />}
+                </svg>
+                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 34, lineHeight: 1 }}>{bosIcon(t.emblem || "🎯", 32, null)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px", color: "var(--text)" }}>{Math.round(hp * 100)}%</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", textAlign: "center", marginTop: 2 }}>{t.name}</div>
           <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500, textAlign: "center" }}>🎯 {t.goal}</div>
           <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2, textAlign: "center" }}>{t.date}</div>
@@ -600,7 +622,7 @@ function TeamDetailLive() {
           мне нравилась — просто под главной карточкой и крупнее»). Тот же стеклянный стиль, что
           «Позвать в круг», только больше; счётчик непрочитанных остаётся. */}
       <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 18, padding: "15px 12px", fontSize: 15, fontWeight: 600, color: "var(--text-2)" }}>
-        <span style={{ fontSize: 18, lineHeight: 1 }}>💬</span> Чат команды
+        <span style={{ fontSize: 18, lineHeight: 1 }}>💬</span> Чат цели
         {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: 9, right: 14, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", display: "grid", placeItems: "center" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
       </button>
 
@@ -612,15 +634,15 @@ function TeamDetailLive() {
         { l: "Сегодня", v: _rosterLoading ? 0 : inFlowToday, suf: "", icon: <I.Flame size={14} color="var(--text-4)" /> },
       ]} />
 
-      {/* Привычки команды — якорь + остальные ОДНОЙ зоной (David: «якорь и привычки команды рядом,
+      {/* Привычки цели — якорь + остальные ОДНОЙ зоной (David: «якорь и привычки команды рядом,
           не в разных частях экрана»). Календарь «кто отметил» уехал ПОД зону. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Привычки команды{teamHabits.length ? " · " + teamHabits.length : ""}</div>
+      <div className="section-label" style={{ marginTop: 22 }}>Привычки цели{teamHabits.length ? " · " + teamHabits.length : ""}</div>
       {/* Якорь больше НЕ отдельная геро-карточка (David: «якорь тоже плиткой») — он первой плиткой в
           общей сетке ниже (с бейджем «● Якорь»). Лица «кто отметил сегодня» живут в календаре под сеткой. */}
 
       <div style={{ marginTop: 8 }}>
         {teamHabits.length === 0 && (
-          <div style={{ fontSize: 13, color: "var(--text-4)", padding: "4px 2px 8px", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем команды.</div>
+          <div style={{ fontSize: 13, color: "var(--text-4)", padding: "4px 2px 8px", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем цели.</div>
         )}
         {/* Командные привычки = ТЕ ЖЕ квадратные плитки, что на стр. Привычки (David: «не выдумывать
             третий способ отметки — единый язык»). Галочка отмечает ПРЯМО В КОМАНДЕ (toggleMyTeamHabit),
@@ -660,7 +682,7 @@ function TeamDetailLive() {
           </div>
         )}
         <button onClick={openAddHabit} className="tap" style={{ marginTop: 12, width: "100%", background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 22, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
-          + Добавить привычку команды
+          + Добавить привычку цели
         </button>
       </div>
 
@@ -710,7 +732,7 @@ function TeamDetailLive() {
               <BuddyFaceLive avatar={m.avatar} name={m.name} size={40} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{m.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{m.role === "owner" ? "Создатель команды" : "Участник"}</div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{m.role === "owner" ? "Создатель" : "Участник"}</div>
               </div>
             </div>
           </div>
@@ -728,7 +750,7 @@ function TeamDetailLive() {
       {!_isOwner && (
         <button onClick={() => bosConfirmExitTeam({ app, team: t, isOwner: false, navigate, openSheet, returnTo: from })} className="tap"
           style={{ width: "100%", marginTop: 26, background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-          <I.Logout size={17}/> Покинуть круг
+          <I.Logout size={17}/> Покинуть цель
         </button>
       )}
     </div>

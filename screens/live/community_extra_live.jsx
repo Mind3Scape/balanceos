@@ -362,7 +362,7 @@ function TeamSettingsLive() {
   ];
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="Настройки команды" onBack={() => navigate("team-detail", { team })} />
+      <PageHeader title="Настройки цели" onBack={() => navigate("team-detail", { team })} />
 
       {/* IDENTITY — the SAME gradient card as «Создать команду» (David: создание и редактирование =
           одна логика/вид). Name + emblem + glassy colour picker in one card (без подписи блока). */}
@@ -481,10 +481,10 @@ function TeamSettingsLive() {
           deep-link (t.me/<bot>?startapp=team_<cloudId>) — тот же, что у TeamShareSheetLive. */}
       {team.cloudId && (<>
         <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-          <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginBottom: 12 }}>Пришли ссылку — друг откроет команду в Telegram и присоединится к общей цели. За совместные привычки больше XP.</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginBottom: 12 }}>Пришли ссылку — друг откроет цель в Telegram и присоединится к общей цели. За совместные привычки больше XP.</div>
           <button onClick={() => {
             var link = (typeof bosTeamInviteLink === "function") ? bosTeamInviteLink(team.cloudId) : ("https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId);
-            var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team.name || "") + "» в BalanceOS";
+            var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Присоединяйся к цели «" + (team.name || "") + "» в BalanceOS";
             if (window.bosShare) window.bosShare(link, text);
             else { try { navigator.clipboard.writeText(link); } catch (e) {} }
             if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
@@ -496,7 +496,7 @@ function TeamSettingsLive() {
 
       <button className="bos-btn" disabled={saving} style={{ marginTop: 20, opacity: saving ? 0.65 : 1 }} onClick={save}>{saving ? "Сохраняем…" : "Сохранить"}</button>
       <button onClick={del} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-        <I.Trash size={17}/> Удалить команду
+        <I.Trash size={17}/> Удалить цель
       </button>
     </div>
   );
@@ -620,7 +620,7 @@ function TeamQuickEditSheetLive({ team, navigate }) {
       <button className="bos-btn" disabled={saving} style={{ marginTop: 18, opacity: saving ? 0.65 : 1 }} onClick={save}>{saving ? "Сохраняем…" : "Сохранить"}</button>
       <button onClick={() => { close(); navigate("team-settings", { team }); }} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 4, fontSize: 13.5, fontWeight: 600 }}>Все настройки и участники →</button>
       {/* УДАЛИТЬ КРУГ — здесь, на правке (карандаш), а не на главной круга (David). Шторка правки = owner-only. */}
-      <button onClick={() => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet })} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: "12px", marginTop: 2, fontSize: 13.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Trash size={16}/> Удалить круг</button>
+      <button onClick={() => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet })} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: "12px", marginTop: 2, fontSize: 13.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Trash size={16}/> Удалить цель</button>
     </div>
   );
 }

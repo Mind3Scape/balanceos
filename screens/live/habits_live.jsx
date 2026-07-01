@@ -393,7 +393,7 @@ function HabitsLive() {
     const progBar = goalStyle.progress ? (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: sk.lbl, textTransform: "uppercase", letterSpacing: 0.7 }}>Команда</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: sk.lbl, textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
           <span style={{ fontSize: 11, fontWeight: 600, color: sk.val, fontVariantNumeric: "tabular-nums" }}>{valTxt}</span>
         </div>
         <div style={{ height: 7, borderRadius: 999, background: sk.track, overflow: "hidden" }}>
@@ -411,7 +411,7 @@ function HabitsLive() {
               {icon}
               <div style={{ flex: 1, minWidth: 0 }}>
                 {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
-                <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>Команда{members.length ? " · " + members.length : ""}</div>
+                <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>Вместе{members.length ? " · " + members.length : ""}</div>
               </div>
               {!orbit && (faces || pctEl)}
             </div>

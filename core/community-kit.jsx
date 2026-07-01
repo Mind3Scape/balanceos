@@ -347,11 +347,11 @@ function bosConfirmExitTeam({ app, team, isOwner, navigate, openSheet, returnTo 
   openSheet(
     <ConfirmActionSheet
       emoji={isOwner ? "🗑️" : "👋"}
-      title={isOwner ? "Удалить команду?" : "Покинуть команду?"}
+      title={isOwner ? "Удалить цель?" : "Покинуть цель?"}
       message={isOwner
-        ? "Команда «" + (team?.name || "") + "» и весь её прогресс исчезнут у всех участников. Это не отменить."
+        ? "Цель «" + (team?.name || "") + "» и весь её прогресс исчезнут у всех участников. Это не отменить."
         : "Ты выйдешь из «" + (team?.name || "") + "». Снова войти можно будет только по приглашению."}
-      confirmLabel={isOwner ? "Удалить команду" : "Покинуть"}
+      confirmLabel={isOwner ? "Удалить цель" : "Покинуть"}
       confirmIcon={isOwner ? I.Trash : I.Logout}
       // returnTo = откуда открыли круг (Привычки/Найти). Дефолт "community" сохраняет прежнее поведение.
       onConfirm={async () => { await bosExitTeam({ app, team, isOwner }); navigate(returnTo || "community"); }}
