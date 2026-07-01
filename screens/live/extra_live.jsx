@@ -226,9 +226,12 @@ function GoalDetailLive() {
   const isDark = app?.themeOverride === "dark";
   const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
 
-  const pct = g.target ? Math.min(1, (g.current || 0) / g.target) : 0;
-  const remaining = Math.max(0, (g.target || 0) - (g.current || 0));
-  const done = pct >= 1;
+  // Прогресс цели = из её привычек (если привязаны), иначе ручной current. Единый движок bosGoalProgress.
+  const prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, app?.habits || []) : { pct: g.target ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0, done: (g.current || 0) >= (g.target || 0), fromHabits: false };
+  const cur = prog.current;
+  const pct = prog.pct;
+  const remaining = Math.max(0, (g.target || 0) - cur);
+  const done = prog.done;
   const linked = (app?.habits || []).filter((h) => (g.habitIds || []).includes(h.id));
 
   const card = isDark
@@ -260,14 +263,14 @@ function GoalDetailLive() {
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginTop: 14, letterSpacing: "-0.4px" }}>{g.name}</div>
         <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
-          <Count value={g.current || 0} /> из {g.target} {g.unit} · до {g.deadline}
+          <Count value={cur} /> из {g.target} {g.unit} · до {g.deadline}
         </div>
       </div>
 
       {/* Stat row — shared native row (StatTrioLive), same rhythm as the habit page */}
       <StatTrioLive isDark={isDark} card={card} items={[
         { l: "Осталось", v: remaining, icon: <I.Target size={16} strokeWidth={2} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
-        { l: "Сделано", v: g.current || 0, icon: <I.Check size={16} strokeWidth={2.4} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
+        { l: "Сделано", v: cur, icon: <I.Check size={16} strokeWidth={2.4} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
         { l: "Срок", text: g.deadline, icon: <I.Calendar size={16} strokeWidth={2} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /> },
       ]} />
 
@@ -308,10 +311,21 @@ function GoalDetailLive() {
         </div>
       </div>
 
-      {/* Action — nudge progress; ring + % update live */}
-      <button onClick={() => { if (!done && app?.updateGoal) app.updateGoal(g.id, { current: Math.min(g.target, (g.current || 0) + 1) }); }} className="bos-btn" style={{ marginTop: 22, background: done ? (isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)") : undefined, color: done ? "var(--text-2)" : undefined }}>
-        {done ? "✓ Цель достигнута" : "+1 к прогрессу"}
-      </button>
+      {/* Действие. Цель С ПРИВЫЧКАМИ наполняется сама (отмечаешь привычки → кольцо растёт) — тут не
+          ручной «+1», а мягкая подпись, чтобы не было двойного смысла (David: «+1 ничего не значит»).
+          Цель БЕЗ привычек (голая) сохраняет ручной «+1». Достигнута → статичная плашка. */}
+      {done ? (
+        <button className="bos-btn" style={{ marginTop: 22, background: isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)", color: "var(--text-2)" }}>✓ Цель достигнута</button>
+      ) : prog.fromHabits ? (
+        <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22, display: "flex", alignItems: "center", gap: 10 }}>
+          <I.Check size={18} strokeWidth={2.4} color={g.color || (isDark ? "#fff" : "#0a0a0a")} />
+          <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.45 }}>Кольцо растёт само — отмечай привычки выше, каждая отметка приближает к цели.</div>
+        </div>
+      ) : (
+        <button onClick={() => { if (app?.updateGoal) app.updateGoal(g.id, { current: Math.min(g.target, (g.current || 0) + 1) }); }} className="bos-btn" style={{ marginTop: 22 }}>
+          +1 к прогрессу
+        </button>
+      )}
     </div>
   );
 }

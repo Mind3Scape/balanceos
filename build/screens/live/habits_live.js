@@ -667,7 +667,13 @@ function HabitsLive() {
   // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
   var goalTile = (g, ctx) => {
     var rect = cardStyle.form === "rect";
-    var pct = g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0;
+    // Прогресс = из привычек цели, если они есть (bosGoalProgress), иначе ручной current.
+    var gp = typeof bosGoalProgress === "function" ? bosGoalProgress(g, habits) : {
+      pct: g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0,
+      current: g.current || 0
+    };
+    var pct = gp.pct;
+    var curVal = gp.current;
     var gc = g.color || "#0a0a0a";
     var onOpen = ctx.mode ? undefined : () => navigate("goal-detail", {
       goal: g,
@@ -719,7 +725,7 @@ function HabitsLive() {
         color: "var(--text-3)",
         fontVariantNumeric: "tabular-nums"
       }
-    }, g.current || 0, " / ", g.target, " ", g.unit || "")), /*#__PURE__*/React.createElement("div", {
+    }, curVal, " / ", g.target, " ", g.unit || "")), /*#__PURE__*/React.createElement("div", {
       style: {
         height: 7,
         borderRadius: 999,

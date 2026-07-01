@@ -2286,6 +2286,40 @@ function PeopleStackLive({
   }, "+", extra));
 }
 
+// ── ЦЕЛЬ, НАПОЛНЯЕМАЯ ПРИВЫЧКАМИ ────────────────────────────────────────────
+// Единый движок прогресса цели (David: «цель раскладывается на привычки, ведёшь их → растёт цель»,
+// как в командной цели). Если к цели привязаны привычки (goal.habitIds) — кольцо НАПОЛНЯЕТСЯ их
+// отметками (сумма = общий счёт, зеркало collective-режима команды), считается ЛОКАЛЬНО из h.log →
+// работает офлайн. Нет привязки → падаем на ручной goal.current (старые «голые» цели живут как раньше).
+function bosGoalMarks(h) {
+  try {
+    return h && h.log ? Object.keys(h.log).length : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+function bosGoalProgress(goal, habits) {
+  var target = goal && goal.target || 0;
+  var ids = goal && goal.habitIds || [];
+  var linked = ids.length ? (habits || []).filter(function (h) {
+    return ids.indexOf(h.id) >= 0;
+  }) : [];
+  var fromHabits = linked.length > 0;
+  var raw = fromHabits ? linked.reduce(function (a, h) {
+    return a + bosGoalMarks(h);
+  }, 0) : goal && goal.current || 0;
+  var current = target > 0 ? Math.min(raw, target) : raw; // кольцо не переполняем
+  var pct = target > 0 ? Math.min(1, current / target) : 0;
+  return {
+    current: current,
+    target: target,
+    pct: pct,
+    done: target > 0 && current >= target,
+    fromHabits: fromHabits,
+    linked: linked
+  };
+}
+
 // Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,
 // those were fake seed personas). Delegates to PeopleStackLive so cards + teams share one logic.
 function HabitBuddyAvatarsLive({

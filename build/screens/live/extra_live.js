@@ -400,9 +400,18 @@ function GoalDetailLive() {
   var Count = typeof CountUp !== "undefined" ? CountUp : ({
     value
   }) => value;
-  var pct = g.target ? Math.min(1, (g.current || 0) / g.target) : 0;
-  var remaining = Math.max(0, (g.target || 0) - (g.current || 0));
-  var done = pct >= 1;
+
+  // Прогресс цели = из её привычек (если привязаны), иначе ручной current. Единый движок bosGoalProgress.
+  var prog = typeof bosGoalProgress === "function" ? bosGoalProgress(g, app?.habits || []) : {
+    pct: g.target ? Math.min(1, (g.current || 0) / g.target) : 0,
+    current: g.current || 0,
+    done: (g.current || 0) >= (g.target || 0),
+    fromHabits: false
+  };
+  var cur = prog.current;
+  var pct = prog.pct;
+  var remaining = Math.max(0, (g.target || 0) - cur);
+  var done = prog.done;
   var linked = (app?.habits || []).filter(h => (g.habitIds || []).includes(h.id));
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
@@ -509,7 +518,7 @@ function GoalDetailLive() {
       marginTop: 3
     }
   }, /*#__PURE__*/React.createElement(Count, {
-    value: g.current || 0
+    value: cur
   }), " \u0438\u0437 ", g.target, " ", g.unit, " \xB7 \u0434\u043E ", g.deadline)), /*#__PURE__*/React.createElement(StatTrioLive, {
     isDark: isDark,
     card: card,
@@ -523,7 +532,7 @@ function GoalDetailLive() {
       })
     }, {
       l: "Сделано",
-      v: g.current || 0,
+      v: cur,
       icon: /*#__PURE__*/React.createElement(I.Check, {
         size: 16,
         strokeWidth: 2.4,
@@ -629,19 +638,45 @@ function GoalDetailLive() {
       color: "var(--text-2)",
       lineHeight: 1.5
     }
-  }, done ? `Цель достигнута 🎉 «${g.name}» закрыта — можно поставить новую планку.` : pct >= 0.8 ? `Финишная прямая — осталось ${remaining} ${g.unit}. Не сбавляй до ${g.deadline}.` : pct >= 0.5 ? `Больше половины пути. ${linked[0] ? `Главный двигатель — «${linked[0].name}»: не разрывай серию.` : "Держи темп."}` : `${linked[0] ? `Каждая отметка «${linked[0].name}» приближает к цели. ` : "Начало положено. "}Осталось ${remaining} ${g.unit} до ${g.deadline}.`)), /*#__PURE__*/React.createElement("button", {
+  }, done ? `Цель достигнута 🎉 «${g.name}» закрыта — можно поставить новую планку.` : pct >= 0.8 ? `Финишная прямая — осталось ${remaining} ${g.unit}. Не сбавляй до ${g.deadline}.` : pct >= 0.5 ? `Больше половины пути. ${linked[0] ? `Главный двигатель — «${linked[0].name}»: не разрывай серию.` : "Держи темп."}` : `${linked[0] ? `Каждая отметка «${linked[0].name}» приближает к цели. ` : "Начало положено. "}Осталось ${remaining} ${g.unit} до ${g.deadline}.`)), done ? /*#__PURE__*/React.createElement("button", {
+    className: "bos-btn",
+    style: {
+      marginTop: 22,
+      background: isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)",
+      color: "var(--text-2)"
+    }
+  }, "\u2713 \u0426\u0435\u043B\u044C \u0434\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442\u0430") : prog.fromHabits ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card,
+      borderRadius: 22,
+      padding: 14,
+      marginTop: 22,
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement(I.Check, {
+    size: 18,
+    strokeWidth: 2.4,
+    color: g.color || (isDark ? "#fff" : "#0a0a0a")
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      fontSize: 13,
+      color: "var(--text-2)",
+      lineHeight: 1.45
+    }
+  }, "\u041A\u043E\u043B\u044C\u0446\u043E \u0440\u0430\u0441\u0442\u0451\u0442 \u0441\u0430\u043C\u043E \u2014 \u043E\u0442\u043C\u0435\u0447\u0430\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0432\u044B\u0448\u0435, \u043A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0430\u0435\u0442 \u043A \u0446\u0435\u043B\u0438.")) : /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      if (!done && app?.updateGoal) app.updateGoal(g.id, {
+      if (app?.updateGoal) app.updateGoal(g.id, {
         current: Math.min(g.target, (g.current || 0) + 1)
       });
     },
     className: "bos-btn",
     style: {
-      marginTop: 22,
-      background: done ? isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)" : undefined,
-      color: done ? "var(--text-2)" : undefined
+      marginTop: 22
     }
-  }, done ? "✓ Цель достигнута" : "+1 к прогрессу"));
+  }, "+1 \u043A \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441\u0443"));
 }
 
 /* MOOD CHECK-IN — LIVE. Fullscreen state pulse; the check-in ALWAYS keys by the REAL

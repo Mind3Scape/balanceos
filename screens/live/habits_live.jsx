@@ -276,7 +276,10 @@ function HabitsLive() {
   // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
   const goalTile = (g, ctx) => {
     const rect = cardStyle.form === "rect";
-    const pct = g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0;
+    // Прогресс = из привычек цели, если они есть (bosGoalProgress), иначе ручной current.
+    const gp = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, habits) : { pct: g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0 };
+    const pct = gp.pct;
+    const curVal = gp.current;
     const gc = g.color || "#0a0a0a";
     const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
     const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={g} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={g} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
@@ -285,7 +288,7 @@ function HabitsLive() {
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{(g.current || 0)} / {g.target} {g.unit || ""}</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{curVal} / {g.target} {g.unit || ""}</span>
         </div>
         <div style={{ height: 7, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
           <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc }} />

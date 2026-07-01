@@ -732,11 +732,13 @@ function GoalSettingsLive() {
   // «Гонка» временно скрыта (David: «может вернём позже») — вернуть = раскомментировать.
   // { id: "race",    e: "🏁", t: "Гонка",           d: "Первый до цели побеждает, остальные получают часть XP." },
   ];
-  // REAL — the user's own habits, none pre-selected.
+  // REAL — the user's own habits. Несём id (нужно, чтобы сохранить связь цель↔привычка). При
+  // редактировании — заранее отмечаем уже привязанные (g0.habitIds). Эти отметки двигают кольцо цели.
   var [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map(h => ({
+    id: h.id,
     e: h.emoji || "✨",
     n: h.name,
-    on: false
+    on: !!(g0 && (g0.habitIds || []).includes(h.id))
   })));
   var toggleLinked = i => setLinkedHabits(hs => hs.map((h, j) => j === i ? {
     ...h,
@@ -1304,7 +1306,9 @@ function GoalSettingsLive() {
         })); // офлайн/превью → круг живёт локально, шторка открывается сразу
         return;
       }
-      // КРУГ ВЫКЛ → личная цель, как раньше.
+      // КРУГ ВЫКЛ → личная цель. Теперь несёт habitIds — привязанные привычки НАПОЛНЯЮТ её кольцо
+      // (отметил привычку → цель подросла), а ручной «+1» остаётся только для целей без привычек.
+      var habitIds = linkHabit ? linkedHabits.filter(h => h.on).map(h => h.id) : [];
       var data = {
         emoji: iconPick,
         color,
@@ -1312,7 +1316,8 @@ function GoalSettingsLive() {
         target: tgt,
         unit,
         deadline,
-        circle: false
+        circle: false,
+        habitIds
       };
       if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
       if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
