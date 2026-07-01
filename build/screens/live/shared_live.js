@@ -2475,6 +2475,12 @@ function GoalOrbitMini({
   };
   var hSz = Math.max(16, Math.round(size * 0.16));
   var pSz = Math.max(16, Math.round(size * 0.155));
+  // ЕДИНЫЙ серый глянцевый диск — тот же язык, что у OrbitField на «Я»/настройках (#eef1f6→#dadfe7 +
+  // BOS_TILE_SHEEN). David: «кружочки должны быть стандартизированы как на странице настроек», без
+  // разнобоя (то цветной-прозрачный, то белый). И привычки, и центр = один диск.
+  var sheen = typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "";
+  var discBg = sheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, #eef1f6, #dadfe7)");
+  var discShadow = typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)";
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
@@ -2489,19 +2495,17 @@ function GoalOrbitMini({
         width: "100%",
         height: "100%",
         borderRadius: "50%",
-        background: h.color ? h.color + "22" : dark ? "rgba(255,255,255,0.10)" : "#fff",
-        boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)",
+        background: discBg,
+        boxShadow: discShadow,
         display: "grid",
-        placeItems: "center",
-        fontSize: Math.round(hSz * 0.6)
+        placeItems: "center"
       }
-    }, typeof bosIcon === "function" ? bosIcon(h.emoji, Math.round(hSz * 0.62), h.color) : h.emoji || "✨");
+    }, typeof bosIcon === "function" ? bosIcon(h.emoji, Math.round(hSz * 0.62), null) : h.emoji || "✨");
   }), place(pp, r2, pSz, 0.32, function (p) {
     return /*#__PURE__*/React.createElement("span", {
       style: {
         display: "block",
-        borderRadius: "50%",
-        boxShadow: "0 0 0 2px var(--card, #fff)"
+        borderRadius: "50%"
       }
     }, typeof BuddyFaceLive === "function" ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
       avatar: p.avatar,
@@ -2516,12 +2520,12 @@ function GoalOrbitMini({
       width: cR * 2,
       height: cR * 2,
       borderRadius: "50%",
-      background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (centerColor ? centerColor + "26" : dark ? "rgba(255,255,255,0.12)" : "#fff"),
-      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 2px 8px rgba(0,0,0,0.14)",
+      background: discBg,
+      boxShadow: discShadow,
       display: "grid",
       placeItems: "center"
     }
-  }, typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", Math.round(cR * 1.1), accent) : centerEmoji || "🎯"));
+  }, typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", Math.round(cR * 1.05), null) : centerEmoji || "🎯"));
 }
 
 // Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,

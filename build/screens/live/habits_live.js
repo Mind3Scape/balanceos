@@ -699,6 +699,38 @@ function HabitsLive() {
 
   // ПЛИТКА ЦЕЛИ — та же логика форм/тоглов. «Отметки» у цели = полоска прогресса (показываем пока
   // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
+  // ЕДИНЫЙ «СКИН» карточки цели/команды (David: дефолт = БЕЛЫЙ/светло-серый; ЦВЕТ, если задан, заливает
+  // карточку КАК КАРТОЧКИ ПАРТНЁРОВ — насыщенный accent + белый градиент-блик + тёмный текст). Чёрный
+  // (#0a0a0a, старый дефолт) считаем НЕйтральным → белая карточка. Один источник вида для goalTile+teamTile.
+  var goalSkin = color => {
+    var accent = color && ("" + color).toLowerCase() !== "#0a0a0a" ? color : null;
+    if (!accent) return {
+      hasColor: false,
+      accent: isDark ? "#e8e8ea" : "#0a0a0a",
+      bg: rowBg,
+      shadow: cardShadow,
+      txt: "var(--text)",
+      sub: "var(--text-4)",
+      lbl: "var(--text-4)",
+      val: "var(--text-3)",
+      track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)",
+      fill: isDark ? "#e6e6ea" : "#0a0a0a",
+      iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg
+    };
+    return {
+      hasColor: true,
+      accent,
+      bg: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + accent,
+      shadow: "0 4px 14px rgba(40,30,15,0.13), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
+      txt: "#1b1b1f",
+      sub: "rgba(27,27,31,0.6)",
+      lbl: "rgba(27,27,31,0.5)",
+      val: "rgba(27,27,31,0.72)",
+      track: "rgba(255,255,255,0.42)",
+      fill: "rgba(27,27,31,0.82)",
+      iconBg: "linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.55))"
+    };
+  };
   var goalTile = (g, ctx) => {
     var banner = goalStyle.form === "banner";
     // Прогресс = из привычек цели, если они есть (bosGoalProgress), иначе ручной current.
@@ -708,7 +740,7 @@ function HabitsLive() {
     };
     var pct = gp.pct;
     var curVal = gp.current;
-    var gc = g.color || "#0a0a0a";
+    var sk = goalSkin(g.color);
     var onOpen = ctx.mode ? undefined : () => navigate("goal-detail", {
       goal: g,
       from: "habits"
@@ -723,7 +755,7 @@ function HabitsLive() {
       style: {
         fontSize: 13,
         fontWeight: 800,
-        color: gc,
+        color: sk.hasColor ? "#1b1b1f" : sk.accent,
         fontVariantNumeric: "tabular-nums",
         flexShrink: 0
       }
@@ -733,14 +765,14 @@ function HabitsLive() {
         width: 40,
         height: 40,
         borderRadius: 13,
-        background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "2e" : TH.iconBg),
+        background: sk.iconBg,
         boxShadow: bosTileGlass(isDark),
         display: "grid",
         placeItems: "center",
         fontSize: 20,
         flexShrink: 0
       }
-    }, bosIcon(g.emoji || "🎯", 22, g.color));
+    }, bosIcon(g.emoji || "🎯", 22, sk.hasColor ? null : g.color));
     var progBar = goalStyle.progress ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
@@ -752,7 +784,7 @@ function HabitsLive() {
       style: {
         fontSize: 10,
         fontWeight: 700,
-        color: "var(--text-4)",
+        color: sk.lbl,
         textTransform: "uppercase",
         letterSpacing: 0.7
       }
@@ -760,14 +792,14 @@ function HabitsLive() {
       style: {
         fontSize: 11,
         fontWeight: 600,
-        color: "var(--text-3)",
+        color: sk.val,
         fontVariantNumeric: "tabular-nums"
       }
     }, curVal, " / ", g.target, " ", g.unit || "")), /*#__PURE__*/React.createElement("div", {
       style: {
         height: 7,
         borderRadius: 999,
-        background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)",
+        background: sk.track,
         overflow: "hidden"
       }
     }, /*#__PURE__*/React.createElement("span", {
@@ -776,20 +808,19 @@ function HabitsLive() {
         height: "100%",
         width: pct * 100 + "%",
         borderRadius: 999,
-        background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + gc
+        background: sk.hasColor ? sk.fill : "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + sk.accent
       }
     }))) : null;
 
-    // БАННЕР — высокий полноширинный, тонированный ЦВЕТОМ ЦЕЛИ (чтобы визуально ОТЛИЧАТЬСЯ от белых
-    // карточек привычек, David). Слева иконка+имя+срок+прогресс, справа орбита (если включена).
+    // БАННЕР — высокий полноширинный. Нейтральный = белый; ЦВЕТНОЙ = заливка партнёрского вида.
     if (banner) {
       return /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",
         onClick: onOpen,
         style: {
-          background: "linear-gradient(125deg, " + gc + "26 0%, " + gc + "0d 46%, " + rowBg + " 100%), " + rowBg,
+          background: sk.bg,
           borderRadius: 22,
-          boxShadow: cardShadow,
+          boxShadow: sk.shadow,
           padding: 16,
           display: "flex",
           alignItems: "center",
@@ -821,7 +852,7 @@ function HabitsLive() {
         style: {
           fontSize: 16,
           fontWeight: 700,
-          color: "var(--text)",
+          color: sk.txt,
           letterSpacing: "-0.3px",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -830,21 +861,20 @@ function HabitsLive() {
       }, g.name), g.deadline && /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 11.5,
-          color: "var(--text-4)",
+          color: sk.sub,
           marginTop: 1
         }
       }, "\u0434\u043E ", g.deadline)), !orbit && pctEl), progBar), orbit);
     }
 
-    // КВАДРАТ — минимал. С орбитами: орбита-герой + имя + доля (David: «чуть ли не только орбиты и
-    // надпись, или даже без надписи»). Без орбит: иконка + имя + прогресс.
+    // КВАДРАТ — минимал. С орбитами: орбита-герой + имя + доля. Без орбит: иконка + имя + прогресс.
     return /*#__PURE__*/React.createElement("div", {
       className: ctx.mode ? "" : "tap",
       onClick: onOpen,
       style: {
-        background: rowBg,
+        background: sk.bg,
         borderRadius: 22,
-        boxShadow: cardShadow,
+        boxShadow: sk.shadow,
         padding: "13px 13px 12px",
         minHeight: 146,
         display: "flex",
@@ -860,7 +890,7 @@ function HabitsLive() {
         marginTop: 10,
         fontSize: 14,
         fontWeight: 600,
-        color: "var(--text)",
+        color: sk.txt,
         letterSpacing: "-0.2px",
         lineHeight: 1.2,
         maxWidth: "100%",
@@ -873,7 +903,7 @@ function HabitsLive() {
         marginTop: goalStyle.name ? 3 : 8,
         fontSize: 12.5,
         fontWeight: 800,
-        color: gc,
+        color: sk.hasColor ? "#1b1b1f" : sk.accent,
         fontVariantNumeric: "tabular-nums"
       }
     }, Math.round(pct * 100), "%")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -888,7 +918,7 @@ function HabitsLive() {
         marginTop: 10,
         fontSize: 15,
         fontWeight: 600,
-        color: "var(--text)",
+        color: sk.txt,
         letterSpacing: "-0.2px",
         lineHeight: 1.25,
         display: "-webkit-box",
@@ -914,7 +944,7 @@ function HabitsLive() {
     var tgt = t.target || 0;
     var cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
     var pct = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
-    var gc = t.accent || t.color || "#0a0a0a";
+    var sk = goalSkin(t.accent || t.color);
     var onOpen = ctx.mode ? undefined : () => navigate("team-detail", {
       team: t,
       from: "habits"
@@ -922,7 +952,7 @@ function HabitsLive() {
     var members = t.members || [];
     var orbit = goalStyle.orbits && typeof GoalOrbitMini === "function" ? /*#__PURE__*/React.createElement(GoalOrbitMini, {
       centerEmoji: t.emblem || "👥",
-      centerColor: gc,
+      centerColor: t.accent || t.color,
       habits: (t.habits || []).map(h => ({
         emoji: h.emoji
       })),
@@ -938,14 +968,14 @@ function HabitsLive() {
       }
     }, /*#__PURE__*/React.createElement(PeopleStackLive, {
       people: members,
-      size: banner ? 20 : 20,
+      size: 20,
       max: 3
     })) : null;
     var pctEl = /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 13,
         fontWeight: 800,
-        color: gc,
+        color: sk.hasColor ? "#1b1b1f" : sk.accent,
         fontVariantNumeric: "tabular-nums",
         flexShrink: 0
       }
@@ -962,7 +992,7 @@ function HabitsLive() {
       style: {
         fontSize: 10,
         fontWeight: 700,
-        color: "var(--text-4)",
+        color: sk.lbl,
         textTransform: "uppercase",
         letterSpacing: 0.7
       }
@@ -970,14 +1000,14 @@ function HabitsLive() {
       style: {
         fontSize: 11,
         fontWeight: 600,
-        color: "var(--text-3)",
+        color: sk.val,
         fontVariantNumeric: "tabular-nums"
       }
     }, valTxt)), /*#__PURE__*/React.createElement("div", {
       style: {
         height: 7,
         borderRadius: 999,
-        background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)",
+        background: sk.track,
         overflow: "hidden"
       }
     }, /*#__PURE__*/React.createElement("span", {
@@ -986,7 +1016,7 @@ function HabitsLive() {
         height: "100%",
         width: pct * 100 + "%",
         borderRadius: 999,
-        background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + gc
+        background: sk.hasColor ? sk.fill : "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + sk.accent
       }
     }))) : null;
     var icon = /*#__PURE__*/React.createElement("span", {
@@ -994,22 +1024,22 @@ function HabitsLive() {
         width: 40,
         height: 40,
         borderRadius: 13,
-        background: BOS_TILE_SHEEN + ", " + (gc + "2e"),
+        background: sk.iconBg,
         boxShadow: bosTileGlass(isDark),
         display: "grid",
         placeItems: "center",
         fontSize: 20,
         flexShrink: 0
       }
-    }, bosIcon(t.emblem || "👥", 22, gc));
+    }, bosIcon(t.emblem || "👥", 22, sk.hasColor ? null : t.accent || t.color));
     if (banner) {
       return /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",
         onClick: onOpen,
         style: {
-          background: "linear-gradient(125deg, " + gc + "26 0%, " + gc + "0d 46%, " + rowBg + " 100%), " + rowBg,
+          background: sk.bg,
           borderRadius: 22,
-          boxShadow: cardShadow,
+          boxShadow: sk.shadow,
           padding: 16,
           display: "flex",
           alignItems: "center",
@@ -1041,7 +1071,7 @@ function HabitsLive() {
         style: {
           fontSize: 16,
           fontWeight: 700,
-          color: "var(--text)",
+          color: sk.txt,
           letterSpacing: "-0.3px",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -1050,7 +1080,7 @@ function HabitsLive() {
       }, t.name), /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 11.5,
-          color: "var(--text-4)",
+          color: sk.sub,
           marginTop: 1
         }
       }, "\u041A\u043E\u043C\u0430\u043D\u0434\u0430", members.length ? " · " + members.length : "")), !orbit && (faces || pctEl)), progBar), orbit);
@@ -1059,9 +1089,9 @@ function HabitsLive() {
       className: ctx.mode ? "" : "tap",
       onClick: onOpen,
       style: {
-        background: rowBg,
+        background: sk.bg,
         borderRadius: 22,
-        boxShadow: cardShadow,
+        boxShadow: sk.shadow,
         padding: "13px 13px 12px",
         minHeight: 146,
         display: "flex",
@@ -1077,7 +1107,7 @@ function HabitsLive() {
         marginTop: 10,
         fontSize: 14,
         fontWeight: 600,
-        color: "var(--text)",
+        color: sk.txt,
         letterSpacing: "-0.2px",
         lineHeight: 1.2,
         maxWidth: "100%",
@@ -1090,7 +1120,7 @@ function HabitsLive() {
         marginTop: goalStyle.name ? 3 : 8,
         fontSize: 12.5,
         fontWeight: 800,
-        color: gc,
+        color: sk.hasColor ? "#1b1b1f" : sk.accent,
         fontVariantNumeric: "tabular-nums"
       }
     }, Math.round(pct * 100), "%")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -1112,7 +1142,7 @@ function HabitsLive() {
         marginTop: 10,
         fontSize: 15,
         fontWeight: 600,
-        color: "var(--text)",
+        color: sk.txt,
         letterSpacing: "-0.2px",
         lineHeight: 1.25,
         display: "-webkit-box",

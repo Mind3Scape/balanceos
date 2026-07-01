@@ -405,6 +405,12 @@ function GoalDetailLive() {
   var Count = typeof CountUp !== "undefined" ? CountUp : ({
     value
   }) => value;
+  // Стиль целей: если включены ОРБИТЫ — hero детали = орбита (как в комнате круга), иначе кольцо
+  // (David: «личная цель — кольцо, командная — орбиты; дай тумблер»). buddies = люди цели для орбиты.
+  var gStyle = typeof bosLoadGoalStyle === "function" ? bosLoadGoalStyle() : {
+    orbits: false
+  };
+  var buddies = typeof useBuddyMembersLive === "function" ? useBuddyMembersLive(g.shareCode) : null;
 
   // Прогресс цели = из её привычек (если привязаны), иначе ручной current. Единый движок bosGoalProgress.
   var prog = typeof bosGoalProgress === "function" ? bosGoalProgress(g, app?.habits || []) : {
@@ -418,6 +424,11 @@ function GoalDetailLive() {
   var remaining = Math.max(0, (g.target || 0) - cur);
   var done = prog.done;
   var linked = (app?.habits || []).filter(h => (g.habitIds || []).includes(h.id));
+  var orbitPeople = (buddies || []).filter(m => m && !m.me).map(m => ({
+    avatar: m.avatar,
+    name: m.name
+  }));
+  var orbitsHero = gStyle.orbits && typeof GoalOrbitMini === "function";
   var card = isDark ? {
     background: "rgba(255,255,255,0.05)",
     border: "1px solid rgba(255,255,255,0.08)"
@@ -450,7 +461,34 @@ function GoalDetailLive() {
       textAlign: "center",
       padding: "6px 0 18px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, orbitsHero ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 190,
+      height: 190,
+      margin: "0 auto",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(GoalOrbitMini, {
+    centerEmoji: g.emoji,
+    centerColor: g.color,
+    habits: linked.map(h => ({
+      emoji: h.emoji
+    })),
+    people: orbitPeople,
+    size: 190,
+    dark: isDark
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 30,
+      fontWeight: 800,
+      marginTop: 12,
+      letterSpacing: "-0.5px",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement(Count, {
+    value: Math.round(pct * 100)
+  }), "%")) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       width: 170,

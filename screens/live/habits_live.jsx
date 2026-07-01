@@ -287,40 +287,60 @@ function HabitsLive() {
 
   // ПЛИТКА ЦЕЛИ — та же логика форм/тоглов. «Отметки» у цели = полоска прогресса (показываем пока
   // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
+  // ЕДИНЫЙ «СКИН» карточки цели/команды (David: дефолт = БЕЛЫЙ/светло-серый; ЦВЕТ, если задан, заливает
+  // карточку КАК КАРТОЧКИ ПАРТНЁРОВ — насыщенный accent + белый градиент-блик + тёмный текст). Чёрный
+  // (#0a0a0a, старый дефолт) считаем НЕйтральным → белая карточка. Один источник вида для goalTile+teamTile.
+  const goalSkin = (color) => {
+    const accent = (color && ("" + color).toLowerCase() !== "#0a0a0a") ? color : null;
+    if (!accent) return {
+      hasColor: false, accent: isDark ? "#e8e8ea" : "#0a0a0a", bg: rowBg, shadow: cardShadow,
+      txt: "var(--text)", sub: "var(--text-4)", lbl: "var(--text-4)", val: "var(--text-3)",
+      track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", fill: isDark ? "#e6e6ea" : "#0a0a0a",
+      iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg,
+    };
+    return {
+      hasColor: true, accent,
+      bg: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + accent,
+      shadow: "0 4px 14px rgba(40,30,15,0.13), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
+      txt: "#1b1b1f", sub: "rgba(27,27,31,0.6)", lbl: "rgba(27,27,31,0.5)", val: "rgba(27,27,31,0.72)",
+      track: "rgba(255,255,255,0.42)", fill: "rgba(27,27,31,0.82)",
+      iconBg: "linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.55))",
+    };
+  };
+
   const goalTile = (g, ctx) => {
     const banner = goalStyle.form === "banner";
     // Прогресс = из привычек цели, если они есть (bosGoalProgress), иначе ручной current.
     const gp = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, habits) : { pct: g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0 };
     const pct = gp.pct;
     const curVal = gp.current;
-    const gc = g.color || "#0a0a0a";
+    const sk = goalSkin(g.color);
     const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
     const orbit = goalStyle.orbits ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 104 : 116} dark={isDark} /> : null;
-    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: gc, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
-    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "2e" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, g.color)}</span>;
+    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
+    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? null : g.color)}</span>;
     const progBar = goalStyle.progress ? (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{curVal} / {g.target} {g.unit || ""}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: sk.lbl, textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: sk.val, fontVariantNumeric: "tabular-nums" }}>{curVal} / {g.target} {g.unit || ""}</span>
         </div>
-        <div style={{ height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + gc }} />
+        <div style={{ height: 7, borderRadius: 999, background: sk.track, overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: sk.hasColor ? sk.fill : ("linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + sk.accent) }} />
         </div>
       </div>
     ) : null;
 
-    // БАННЕР — высокий полноширинный, тонированный ЦВЕТОМ ЦЕЛИ (чтобы визуально ОТЛИЧАТЬСЯ от белых
-    // карточек привычек, David). Слева иконка+имя+срок+прогресс, справа орбита (если включена).
+    // БАННЕР — высокий полноширинный. Нейтральный = белый; ЦВЕТНОЙ = заливка партнёрского вида.
     if (banner) {
       return (
-        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: "linear-gradient(125deg, " + gc + "26 0%, " + gc + "0d 46%, " + rowBg + " 100%), " + rowBg, borderRadius: 22, boxShadow: cardShadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {icon}
               <div style={{ flex: 1, minWidth: 0 }}>
-                {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
-                {g.deadline && <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>до {g.deadline}</div>}
+                {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
+                {g.deadline && <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>до {g.deadline}</div>}
               </div>
               {!orbit && pctEl}
             </div>
@@ -331,20 +351,19 @@ function HabitsLive() {
       );
     }
 
-    // КВАДРАТ — минимал. С орбитами: орбита-герой + имя + доля (David: «чуть ли не только орбиты и
-    // надпись, или даже без надписи»). Без орбит: иконка + имя + прогресс.
+    // КВАДРАТ — минимал. С орбитами: орбита-герой + имя + доля. Без орбит: иконка + имя + прогресс.
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 146, display: "flex", flexDirection: "column", alignItems: orbit ? "center" : "stretch", justifyContent: orbit ? "center" : "flex-start", textAlign: orbit ? "center" : "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", minHeight: 146, display: "flex", flexDirection: "column", alignItems: orbit ? "center" : "stretch", justifyContent: orbit ? "center" : "flex-start", textAlign: orbit ? "center" : "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {orbit ? (
           <>
             {orbit}
-            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
-            {goalStyle.progress && <div style={{ marginTop: goalStyle.name ? 3 : 8, fontSize: 12.5, fontWeight: 800, color: gc, fontVariantNumeric: "tabular-nums" }}>{Math.round(pct * 100)}%</div>}
+            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
+            {goalStyle.progress && <div style={{ marginTop: goalStyle.name ? 3 : 8, fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums" }}>{Math.round(pct * 100)}%</div>}
           </>
         ) : (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>{icon}{pctEl}</div>
-            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>}
+            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>}
             {progBar && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progBar}</div>}
           </>
         )}
@@ -362,37 +381,37 @@ function HabitsLive() {
     const tgt = t.target || 0;
     const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
     const pct = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
-    const gc = t.accent || t.color || "#0a0a0a";
+    const sk = goalSkin(t.accent || t.color);
     const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t, from: "habits" });
     const members = t.members || [];
     const orbit = goalStyle.orbits && typeof GoalOrbitMini === "function"
-      ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={gc} habits={(t.habits || []).map((h) => ({ emoji: h.emoji }))} people={members} size={banner ? 104 : 116} dark={isDark} />
+      ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={(t.habits || []).map((h) => ({ emoji: h.emoji }))} people={members} size={banner ? 104 : 116} dark={isDark} />
       : null;
-    const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={banner ? 20 : 20} max={3} /></span> : null;
-    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: gc, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
+    const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={20} max={3} /></span> : null;
+    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
     const valTxt = t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : (Math.round(pct * 100) + "%");
     const progBar = goalStyle.progress ? (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Команда</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{valTxt}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: sk.lbl, textTransform: "uppercase", letterSpacing: 0.7 }}>Команда</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: sk.val, fontVariantNumeric: "tabular-nums" }}>{valTxt}</span>
         </div>
-        <div style={{ height: 7, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + gc }} />
+        <div style={{ height: 7, borderRadius: 999, background: sk.track, overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: sk.hasColor ? sk.fill : ("linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + sk.accent) }} />
         </div>
       </div>
     ) : null;
-    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (gc + "2e"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 22, gc)}</span>;
+    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 22, sk.hasColor ? null : (t.accent || t.color))}</span>;
 
     if (banner) {
       return (
-        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: "linear-gradient(125deg, " + gc + "26 0%, " + gc + "0d 46%, " + rowBg + " 100%), " + rowBg, borderRadius: 22, boxShadow: cardShadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {icon}
               <div style={{ flex: 1, minWidth: 0 }}>
-                {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
-                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>Команда{members.length ? " · " + members.length : ""}</div>
+                {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
+                <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>Команда{members.length ? " · " + members.length : ""}</div>
               </div>
               {!orbit && (faces || pctEl)}
             </div>
@@ -403,17 +422,17 @@ function HabitsLive() {
       );
     }
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 146, display: "flex", flexDirection: "column", alignItems: orbit ? "center" : "stretch", justifyContent: orbit ? "center" : "flex-start", textAlign: orbit ? "center" : "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", minHeight: 146, display: "flex", flexDirection: "column", alignItems: orbit ? "center" : "stretch", justifyContent: orbit ? "center" : "flex-start", textAlign: orbit ? "center" : "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {orbit ? (
           <>
             {orbit}
-            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
-            {goalStyle.progress && <div style={{ marginTop: goalStyle.name ? 3 : 8, fontSize: 12.5, fontWeight: 800, color: gc, fontVariantNumeric: "tabular-nums" }}>{Math.round(pct * 100)}%</div>}
+            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
+            {goalStyle.progress && <div style={{ marginTop: goalStyle.name ? 3 : 8, fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums" }}>{Math.round(pct * 100)}%</div>}
           </>
         ) : (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>{icon}<div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{pctEl}</div></div>
-            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</div>}
+            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{t.name}</div>}
             {progBar && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progBar}</div>}
           </>
         )}

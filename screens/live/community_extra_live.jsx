@@ -554,7 +554,7 @@ function TeamQuickEditSheetLive({ team, navigate }) {
   }
   return (
     <div style={{ padding: "2px 18px 20px", maxHeight: "80vh", overflowY: "auto" }}>
-      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 6 }}>Изменить круг</div>
+      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 6 }}>Изменить цель</div>
 
       {/* Идентичность — тот же градиентный вид, что в создании/настройках */}
       <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, borderRadius: 22, padding: 16, marginTop: 6, position: "relative", overflow: "hidden", boxShadow: "var(--card-shadow)" }}>

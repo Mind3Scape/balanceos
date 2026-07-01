@@ -226,6 +226,10 @@ function GoalDetailLive() {
   const g = (app?.goals && app.goals.find((x) => x.id === seed.id)) || seed;
   const isDark = app?.themeOverride === "dark";
   const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
+  // Стиль целей: если включены ОРБИТЫ — hero детали = орбита (как в комнате круга), иначе кольцо
+  // (David: «личная цель — кольцо, командная — орбиты; дай тумблер»). buddies = люди цели для орбиты.
+  const gStyle = (typeof bosLoadGoalStyle === "function") ? bosLoadGoalStyle() : { orbits: false };
+  const buddies = (typeof useBuddyMembersLive === "function") ? useBuddyMembersLive(g.shareCode) : null;
 
   // Прогресс цели = из её привычек (если привязаны), иначе ручной current. Единый движок bosGoalProgress.
   const prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, app?.habits || []) : { pct: g.target ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0, done: (g.current || 0) >= (g.target || 0), fromHabits: false };
@@ -234,6 +238,8 @@ function GoalDetailLive() {
   const remaining = Math.max(0, (g.target || 0) - cur);
   const done = prog.done;
   const linked = (app?.habits || []).filter((h) => (g.habitIds || []).includes(h.id));
+  const orbitPeople = (buddies || []).filter((m) => m && !m.me).map((m) => ({ avatar: m.avatar, name: m.name }));
+  const orbitsHero = gStyle.orbits && typeof GoalOrbitMini === "function";
 
   const card = isDark
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
@@ -248,20 +254,30 @@ function GoalDetailLive() {
         <EditGlassButtonLive onClick={() => navigate("goal-settings", { mode: "edit", goal: g })} />
       } />
 
-      {/* Hero — progress ring (Apple-Watch style), % counts up on open */}
+      {/* Hero — ОРБИТА (если включена в стиле целей) или кольцо (Apple-Watch). Орбита = цель в центре,
+          вокруг её привычки + люди — единый вид с комнатой круга. % показываем под ней. */}
       <div style={{ textAlign: "center", padding: "6px 0 18px" }}>
-        <div style={{ position: "relative", width: 170, height: 170, margin: "0 auto" }}>
-          <svg width="170" height="170" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
-            <circle cx="70" cy="70" r={R} fill="none" stroke={ringTrack} strokeWidth="13" />
-            {pct > 0 && <circle cx="70" cy="70" r={R} fill="none" stroke={goalColor} strokeWidth="13" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - pct)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(done ? { filter: "drop-shadow(0 0 6px " + goalColor + "80)" } : {}) }} />}
-          </svg>
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-            <div>
-              <div style={{ fontSize: 34, lineHeight: 1 }}>{bosIcon(g.emoji, 32, g.color)}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px" }}><Count value={Math.round(pct * 100)} />%</div>
+        {orbitsHero ? (
+          <>
+            <div style={{ width: 190, height: 190, margin: "0 auto", display: "grid", placeItems: "center" }}>
+              <GoalOrbitMini centerEmoji={g.emoji} centerColor={g.color} habits={linked.map((h) => ({ emoji: h.emoji }))} people={orbitPeople} size={190} dark={isDark} />
+            </div>
+            <div style={{ fontSize: 30, fontWeight: 800, marginTop: 12, letterSpacing: "-0.5px", color: "var(--text)" }}><Count value={Math.round(pct * 100)} />%</div>
+          </>
+        ) : (
+          <div style={{ position: "relative", width: 170, height: 170, margin: "0 auto" }}>
+            <svg width="170" height="170" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="70" cy="70" r={R} fill="none" stroke={ringTrack} strokeWidth="13" />
+              {pct > 0 && <circle cx="70" cy="70" r={R} fill="none" stroke={goalColor} strokeWidth="13" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - pct)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(done ? { filter: "drop-shadow(0 0 6px " + goalColor + "80)" } : {}) }} />}
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 34, lineHeight: 1 }}>{bosIcon(g.emoji, 32, g.color)}</div>
+                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px" }}><Count value={Math.round(pct * 100)} />%</div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginTop: 14, letterSpacing: "-0.4px" }}>{g.name}</div>
         <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
           <Count value={cur} /> из {g.target} {g.unit}{g.deadline ? " · до " + g.deadline : ""}

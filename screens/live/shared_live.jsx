@@ -1068,19 +1068,25 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   };
   var hSz = Math.max(16, Math.round(size * 0.16));
   var pSz = Math.max(16, Math.round(size * 0.155));
+  // ЕДИНЫЙ серый глянцевый диск — тот же язык, что у OrbitField на «Я»/настройках (#eef1f6→#dadfe7 +
+  // BOS_TILE_SHEEN). David: «кружочки должны быть стандартизированы как на странице настроек», без
+  // разнобоя (то цветной-прозрачный, то белый). И привычки, и центр = один диск.
+  var sheen = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "");
+  var discBg = sheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, #eef1f6, #dadfe7)");
+  var discShadow = (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)");
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} aria-hidden>
       {ring(r1)}{ring(r2)}
-      {/* привычки — стеклянные диски с эмодзи (внутреннее кольцо) */}
+      {/* привычки — СТАНДАРТНЫЙ серый глянцевый диск с эмодзи (внутреннее кольцо) */}
       {place(hb, r1, hSz, 0, function (h) {
-        return <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: (h.color ? h.color + "22" : (dark ? "rgba(255,255,255,0.10)" : "#fff")), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)"), display: "grid", placeItems: "center", fontSize: Math.round(hSz * 0.6) }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, Math.round(hSz * 0.62), h.color) : (h.emoji || "✨")}</span>;
+        return <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center" }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, Math.round(hSz * 0.62), null) : (h.emoji || "✨")}</span>;
       })}
-      {/* люди — реальные лица (внешнее кольцо) */}
+      {/* люди — реальные лица BuddyFaceLive (тот же серый диск-язык), внешнее кольцо */}
       {place(pp, r2, pSz, 0.32, function (p) {
-        return <span style={{ display: "block", borderRadius: "50%", boxShadow: "0 0 0 2px var(--card, #fff)" }}>{typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={p.avatar} name={p.name} size={pSz} /> : null}</span>;
+        return <span style={{ display: "block", borderRadius: "50%" }}>{typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={p.avatar} name={p.name} size={pSz} /> : null}</span>;
       })}
-      {/* центр — значок цели на стеклянном диске */}
-      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (centerColor ? centerColor + "26" : (dark ? "rgba(255,255,255,0.12)" : "#fff")), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 2px 8px rgba(0,0,0,0.14)"), display: "grid", placeItems: "center" }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", Math.round(cR * 1.1), accent) : (centerEmoji || "🎯")}</span>
+      {/* центр = значок цели на ТОМ ЖЕ сером диске (чуть крупнее) */}
+      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center" }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", Math.round(cR * 1.05), null) : (centerEmoji || "🎯")}</span>
     </div>
   );
 }

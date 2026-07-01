@@ -1462,7 +1462,7 @@ function TeamQuickEditSheetLive({
       letterSpacing: "-0.3px",
       marginBottom: 6
     }
-  }, "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
       borderRadius: 22,

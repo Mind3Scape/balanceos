@@ -340,7 +340,9 @@ function GoalSettingsLive() {
   const [iconPick, setIconPick] = useHS(g0?.emoji || preset?.i || "🎯");
   // Goals carry a colour exactly like habits — default BLACK (the app's b&w base); the
   // chosen colour fills the goal's progress bar + detail ring (David: «всё один в один»).
-  const [color, setColor] = useHS(g0?.color ?? preset?.color ?? "#0a0a0a");
+  // Дефолт цвета ЦЕЛИ = НЕЙТРАЛЬНЫЙ (null → белая/светло-серая карточка, David). Цвет появляется
+  // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
+  const [color, setColor] = useHS(g0?.color ?? preset?.color ?? null);
   const [target, setTarget] = useHS(g0?.target || preset?.target || 22);
   const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "недель");
   const [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
