@@ -3171,6 +3171,7 @@ function HabitTimerCheck({ habit, app, xp = 10 }) {
   const [running, setRunning] = React.useState(false);
   const [elapsed, setElapsed] = React.useState(0);
   const [tick, setTick] = React.useState(0);
+  const [showTime, setShowTime] = React.useState(false); // David: старт → ⏸ пару секунд → потом ТИКАЮЩЕЕ время
   const btnRef = React.useRef(null);
   const done = isDone || (total > 0 && elapsed >= total);
   const frac = isDone ? 1 : Math.min(1, elapsed / total);
@@ -3188,6 +3189,14 @@ function HabitTimerCheck({ habit, app, xp = 10 }) {
       } else setElapsed(e);
     }, 200);
     return () => clearInterval(id);
+  }, [running]);
+
+  // Пошёл таймер → сначала ⏸ (видно, что можно остановить), через 2.5с диск переключается на тикающее
+  // оставшееся время. Пауза/сброс → обратно к значку. (David: «полосочки stop, потом тикает время».)
+  React.useEffect(() => {
+    if (!running) { setShowTime(false); return; }
+    const t = setTimeout(() => setShowTime(true), 2500);
+    return () => clearTimeout(t);
   }, [running]);
 
   const onClick = (e) => {
@@ -3223,11 +3232,18 @@ function HabitTimerCheck({ habit, app, xp = 10 }) {
     if (f > 0.001) ringEls.push(<path key={"f" + i} d={arc(a0, a0 + (a1 - a0) * f)} fill="none" stroke={accent} strokeWidth={sw} strokeLinecap="round" style={{ transition: "d 0.2s linear" }} />);
   }
 
-  // Диск = тот же 30px .check-btn. DONE → стандартное стекло + ✓. Иначе — серое стекло с ▶ (пауза) / ⏸ (идёт).
+  // Оставшееся время m:ss (округляем вверх, чтобы «0:00» показалось только в самом конце).
+  const remain = Math.max(0, Math.ceil(total - elapsed));
+  const mmss = Math.floor(remain / 60) + ":" + (remain % 60 < 10 ? "0" : "") + (remain % 60);
+  // Диск = тот же 30px .check-btn. DONE → ✓. Идёт: первые ~2.5с ⏸, потом ТИКАЮЩЕЕ время. Иначе ▶ (старт/пауза).
   const disc = done
     ? <span className="check-btn" style={{ width: 30, height: 30 }}><I.Check size={16} strokeWidth={2.8} color="#fff" /></span>
     : <span className="check-btn unchecked" style={{ width: 30, height: 30, color: accent }}>
-        {running ? <I.Pause size={13} /> : <span style={{ display: "grid", placeItems: "center", transform: "translateX(0.5px)" }}><I.Play size={12} /></span>}
+        {running
+          ? (showTime
+              ? <span style={{ fontSize: mmss.length > 4 ? 8 : 9.5, fontWeight: 800, letterSpacing: "-0.6px", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{mmss}</span>
+              : <I.Pause size={13} />)
+          : <span style={{ display: "grid", placeItems: "center", transform: "translateX(0.5px)" }}><I.Play size={12} /></span>}
       </span>;
 
   return (

@@ -8260,6 +8260,7 @@ function HabitTimerCheck({
   var [running, setRunning] = React.useState(false);
   var [elapsed, setElapsed] = React.useState(0);
   var [tick, setTick] = React.useState(0);
+  var [showTime, setShowTime] = React.useState(false); // David: старт → ⏸ пару секунд → потом ТИКАЮЩЕЕ время
   var btnRef = React.useRef(null);
   var done = isDone || total > 0 && elapsed >= total;
   var frac = isDone ? 1 : Math.min(1, elapsed / total);
@@ -8284,6 +8285,17 @@ function HabitTimerCheck({
       } else setElapsed(e);
     }, 200);
     return () => clearInterval(id);
+  }, [running]);
+
+  // Пошёл таймер → сначала ⏸ (видно, что можно остановить), через 2.5с диск переключается на тикающее
+  // оставшееся время. Пауза/сброс → обратно к значку. (David: «полосочки stop, потом тикает время».)
+  React.useEffect(() => {
+    if (!running) {
+      setShowTime(false);
+      return;
+    }
+    var t = setTimeout(() => setShowTime(true), 2500);
+    return () => clearTimeout(t);
   }, [running]);
   var onClick = e => {
     e.stopPropagation();
@@ -8358,7 +8370,10 @@ function HabitTimerCheck({
     }));
   }
 
-  // Диск = тот же 30px .check-btn. DONE → стандартное стекло + ✓. Иначе — серое стекло с ▶ (пауза) / ⏸ (идёт).
+  // Оставшееся время m:ss (округляем вверх, чтобы «0:00» показалось только в самом конце).
+  var remain = Math.max(0, Math.ceil(total - elapsed));
+  var mmss = Math.floor(remain / 60) + ":" + (remain % 60 < 10 ? "0" : "") + remain % 60;
+  // Диск = тот же 30px .check-btn. DONE → ✓. Идёт: первые ~2.5с ⏸, потом ТИКАЮЩЕЕ время. Иначе ▶ (старт/пауза).
   var disc = done ? /*#__PURE__*/React.createElement("span", {
     className: "check-btn",
     style: {
@@ -8376,7 +8391,15 @@ function HabitTimerCheck({
       height: 30,
       color: accent
     }
-  }, running ? /*#__PURE__*/React.createElement(I.Pause, {
+  }, running ? showTime ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: mmss.length > 4 ? 8 : 9.5,
+      fontWeight: 800,
+      letterSpacing: "-0.6px",
+      fontVariantNumeric: "tabular-nums",
+      lineHeight: 1
+    }
+  }, mmss) : /*#__PURE__*/React.createElement(I.Pause, {
     size: 13
   }) : /*#__PURE__*/React.createElement("span", {
     style: {
