@@ -517,11 +517,11 @@ function HabitsLive() {
       }
     }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
       habit: h,
-      size: rect ? 16 : 18,
+      size: rect ? 16 : 20,
       max: rect ? 5 : 3
     }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
       habit: h,
-      size: rect ? 16 : 18,
+      size: rect ? 16 : 20,
       max: rect ? 5 : 3
     })) : null;
     var sq = cardStyle.cells === "square";
@@ -600,7 +600,7 @@ function HabitsLive() {
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "space-between",
         gap: 8
       }
@@ -608,7 +608,7 @@ function HabitsLive() {
       style: {
         display: "flex",
         alignItems: "center",
-        gap: 6,
+        gap: 10,
         flexShrink: 0
       }
     }, faces, ctrl)), cardStyle.name && /*#__PURE__*/React.createElement("div", {
@@ -650,11 +650,11 @@ function HabitsLive() {
       }
     }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
       habit: g,
-      size: rect ? 16 : 18,
+      size: rect ? 16 : 20,
       max: rect ? 5 : 3
     }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
       habit: g,
-      size: rect ? 16 : 18,
+      size: rect ? 16 : 20,
       max: rect ? 5 : 3
     })) : null;
     var pctEl = /*#__PURE__*/React.createElement("span", {
@@ -663,8 +663,7 @@ function HabitsLive() {
         fontWeight: 700,
         color: "var(--text-3)",
         fontVariantNumeric: "tabular-nums",
-        flexShrink: 0,
-        paddingTop: rect ? 0 : 2
+        flexShrink: 0
       }
     }, Math.round(pct * 100), "%");
     var progress = cardStyle.marks !== "none" ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -772,7 +771,7 @@ function HabitsLive() {
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "space-between",
         gap: 8
       }
@@ -780,7 +779,7 @@ function HabitsLive() {
       style: {
         display: "flex",
         alignItems: "center",
-        gap: 6,
+        gap: 10,
         flexShrink: 0
       }
     }, faces, pctEl)), cardStyle.name && /*#__PURE__*/React.createElement("div", {

@@ -222,7 +222,7 @@ function HabitsLive() {
       : h.goalPerDay > 1 ? <HabitCountCheck habit={h} app={app} xp={10} />
       : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />;
     const ctrl = <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{control}</span>;
-    const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 18} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 18} max={rect ? 5 : 3} />}</span> : null;
+    const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
     const sq = cardStyle.cells === "square";
     const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
     const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
@@ -241,9 +241,11 @@ function HabitsLive() {
     const compact = cardStyle.marks === "none";
     return (
       <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        {/* center — чтобы 30px-кружок-чек шёл ВРОВЕНЬ с 38px-иконкой (David: центры совпадают). gap 10 —
+            чтобы кольцо/секции контрола (выступают ~7px) не задевали лица. */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           {icon}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{faces}{ctrl}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{ctrl}</div>
         </div>
         {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>}
         {marks && <div style={{ marginTop: "auto", paddingTop: 12 }}>{marks}</div>}
@@ -258,8 +260,8 @@ function HabitsLive() {
     const pct = g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0;
     const gc = g.color || "#0a0a0a";
     const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
-    const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={g} size={rect ? 16 : 18} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={g} size={rect ? 16 : 18} max={rect ? 5 : 3} />}</span> : null;
-    const pctEl = <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", flexShrink: 0, paddingTop: rect ? 0 : 2 }}>{Math.round(pct * 100)}%</span>;
+    const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={g} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={g} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
+    const pctEl = <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
     const progress = cardStyle.marks !== "none" ? (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
@@ -287,9 +289,9 @@ function HabitsLive() {
     const compact = cardStyle.marks === "none";
     return (
       <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           {icon}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{faces}{pctEl}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{pctEl}</div>
         </div>
         {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>}
         {progress && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progress}</div>}
