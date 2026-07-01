@@ -680,6 +680,9 @@ function TeamDetailLive() {
     progress: 0,
     members: []
   };
+  // Откуда пришли в комнату круга — «Назад» и выход возвращают ИМЕННО туда (David: «после выхода
+  // из команды кидает не обратно, а на Найти»). Дефолт "community" сохраняет прежнее поведение.
+  var from = params?.from || "community";
   // Read the LIVE team from the store so a just-added habit appears immediately.
   var t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   // ЦВЕТА ПОКА ВЫКЛ (David): единое ЕДВА-серое СТЕКЛО для комнаты круга; включим позже.
@@ -1038,7 +1041,7 @@ function TeamDetailLive() {
     }
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430",
-    onBack: () => navigate("community"),
+    onBack: () => navigate(from),
     right: /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
@@ -1755,7 +1758,8 @@ function TeamDetailLive() {
       team: t,
       isOwner: false,
       navigate,
-      openSheet
+      openSheet,
+      returnTo: from
     }),
     className: "tap",
     style: {

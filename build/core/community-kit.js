@@ -831,21 +831,24 @@ function bosConfirmExitTeam({
   team,
   isOwner,
   navigate,
-  openSheet
+  openSheet,
+  returnTo
 }) {
   openSheet(/*#__PURE__*/React.createElement(ConfirmActionSheet, {
     emoji: isOwner ? "🗑️" : "👋",
     title: isOwner ? "Удалить команду?" : "Покинуть команду?",
     message: isOwner ? "Команда «" + (team?.name || "") + "» и весь её прогресс исчезнут у всех участников. Это не отменить." : "Ты выйдешь из «" + (team?.name || "") + "». Снова войти можно будет только по приглашению.",
     confirmLabel: isOwner ? "Удалить команду" : "Покинуть",
-    confirmIcon: isOwner ? I.Trash : I.Logout,
+    confirmIcon: isOwner ? I.Trash : I.Logout
+    // returnTo = откуда открыли круг (Привычки/Найти). Дефолт "community" сохраняет прежнее поведение.
+    ,
     onConfirm: async () => {
       await bosExitTeam({
         app,
         team,
         isOwner
       });
-      navigate("community");
+      navigate(returnTo || "community");
     }
   }));
 }

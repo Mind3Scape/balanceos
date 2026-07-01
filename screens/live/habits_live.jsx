@@ -327,7 +327,7 @@ function HabitsLive() {
     const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
     const pct = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
     const gc = t.accent || t.color || "#0a0a0a";
-    const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t });
+    const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t, from: "habits" });
     const members = t.members || [];
     const faces = cardStyle.faces && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={rect ? 16 : 20} max={rect ? 5 : 3} /></span> : null;
     const pctEl = <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;

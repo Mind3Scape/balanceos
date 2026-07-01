@@ -343,7 +343,7 @@ const TEAM_EMBLEMS = [
   "❤️","🤝","🫶","🌟","🎵","🎨","🌍","⚓",
 ];
 
-function bosConfirmExitTeam({ app, team, isOwner, navigate, openSheet }) {
+function bosConfirmExitTeam({ app, team, isOwner, navigate, openSheet, returnTo }) {
   openSheet(
     <ConfirmActionSheet
       emoji={isOwner ? "🗑️" : "👋"}
@@ -353,7 +353,8 @@ function bosConfirmExitTeam({ app, team, isOwner, navigate, openSheet }) {
         : "Ты выйдешь из «" + (team?.name || "") + "». Снова войти можно будет только по приглашению."}
       confirmLabel={isOwner ? "Удалить команду" : "Покинуть"}
       confirmIcon={isOwner ? I.Trash : I.Logout}
-      onConfirm={async () => { await bosExitTeam({ app, team, isOwner }); navigate("community"); }}
+      // returnTo = откуда открыли круг (Привычки/Найти). Дефолт "community" сохраняет прежнее поведение.
+      onConfirm={async () => { await bosExitTeam({ app, team, isOwner }); navigate(returnTo || "community"); }}
     />
   );
 }

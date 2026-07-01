@@ -844,7 +844,8 @@ function HabitsLive() {
     var pct = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
     var gc = t.accent || t.color || "#0a0a0a";
     var onOpen = ctx.mode ? undefined : () => navigate("team-detail", {
-      team: t
+      team: t,
+      from: "habits"
     });
     var members = t.members || [];
     var faces = cardStyle.faces && members.length ? /*#__PURE__*/React.createElement("span", {

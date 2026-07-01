@@ -300,6 +300,9 @@ function TeamDetailLive() {
   const app = useApp();
   const { open: openSheet } = useSheet();
   const passed = params?.team || { _id: "seed-1", name: "Команда создателей", emblem: "✨", accent: "#fef3c7", goal: "50 добрых дел за месяц", date: "1 — 31 дек", progress: 0, members: [] };
+  // Откуда пришли в комнату круга — «Назад» и выход возвращают ИМЕННО туда (David: «после выхода
+  // из команды кидает не обратно, а на Найти»). Дефолт "community" сохраняет прежнее поведение.
+  const from = params?.from || "community";
   // Read the LIVE team from the store so a just-added habit appears immediately.
   const t = (app?.teams || []).find(x => x._id === passed._id) || passed;
   // ЦВЕТА ПОКА ВЫКЛ (David): единое ЕДВА-серое СТЕКЛО для комнаты круга; включим позже.
@@ -494,7 +497,7 @@ function TeamDetailLive() {
   const inFlowToday = (Array.isArray(members) ? members : []).filter((m) => flowSet[m.id]).length;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="Команда" onBack={() => navigate("community")} right={
+      <PageHeader title="Команда" onBack={() => navigate(from)} right={
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {/* Правка НА МЕСТЕ — карандаш открывает шторку правки прямо над комнатой (не уводит
               на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. «Поделиться»
@@ -723,7 +726,7 @@ function TeamDetailLive() {
       {/* ПОКИНУТЬ — только участник (у него нет карандаша). Владелец УДАЛЯЕТ круг со шторки правки
           (карандаш) — David: «удалить никчему на главной внутри круга». */}
       {!_isOwner && (
-        <button onClick={() => bosConfirmExitTeam({ app, team: t, isOwner: false, navigate, openSheet })} className="tap"
+        <button onClick={() => bosConfirmExitTeam({ app, team: t, isOwner: false, navigate, openSheet, returnTo: from })} className="tap"
           style={{ width: "100%", marginTop: 26, background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, fontSize: 15, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
           <I.Logout size={17}/> Покинуть круг
         </button>
