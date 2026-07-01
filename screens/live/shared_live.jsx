@@ -2191,34 +2191,35 @@ function bosLoadRedeemedPartners() { try { return JSON.parse(localStorage.getIte
 // пастельном accent'е, название, что получишь, цена «🪙 N XP» и «Получить». Тап → шторка PartnerSheetLive.
 function PartnersShowcaseLive({ app, navigate }) {
   const { open: openSheet } = useSheet();
-  const isDark = app?.themeOverride === "dark";
   const [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
   const openPartner = (p) => {
     if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
     openSheet(<PartnerSheetLive partner={p} app={app} redeemed={!!redeemed[p.id]} onRedeemed={(id) => setRedeemed((m) => { const n = Object.assign({}, m, { [id]: true }); try { localStorage.setItem("bos:redeemedPartners", JSON.stringify(n)); } catch (e) {} return n; })} />);
   };
-  // ЗОЛОТАЯ ПОЛКА — чтобы блок «трат» НЕ сливался с нейтральными челленджами/кругами (David). Тёплый
-  // кремовый фон + золотой заголовок = зона награды. Белые карточки внутри «всплывают» на тинте.
+  // Карточки НАМЕРЕННО другого вида, чем привычки/челленджи (David: «партнёры — это НЕ привычки, что-то
+  // другое»). Привычка/челлендж = белая карточка + серый значок-тайл. Партнёр = ЦВЕТНАЯ карточка целиком
+  // (accent-заливка + белый блик + КРУПНЫЙ эмодзи, без серого тайла) → читается как «впечатление/награда».
+  // Обычная секция (без полки) → выравнивание как у остальных, ничего не «вылазит» слева.
   return (
-    <div style={{ background: isDark ? "rgba(254,222,52,0.07)" : "linear-gradient(180deg,#FFF6E2,#FFFCF4)", borderRadius: 24, padding: "14px 0 8px", border: isDark ? "1px solid rgba(254,222,52,0.14)" : "1px solid rgba(239,159,20,0.13)" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 16px 11px" }}>
-        <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: isDark ? "#F2C64B" : "#C8880C" }}>🎁 Потратить XP</span>
-        <span style={{ fontSize: 11.5, fontWeight: 500, color: isDark ? "rgba(242,198,75,0.6)" : "#B8891F" }}>живое от партнёров →</span>
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🎁 Потратить XP</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>живое от партнёров →</span>
       </div>
-      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "0 16px 4px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
+      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "0 0 4px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
         {BOS_PARTNERS.map((p) => {
           const got = !!redeemed[p.id];
           return (
-            <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 168, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "0 4px 14px rgba(120,90,10,0.10)", cursor: "pointer", display: "flex", flexDirection: "column" }}>
-              <span style={{ width: 44, height: 44, borderRadius: 14, background: p.accent, display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{p.emblem}</span>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{p.name}</div>
-              <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
-              <div style={{ flex: 1, minHeight: 10 }} />
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#0a0a0a", color: "#FEDE34", fontWeight: 700, fontSize: 11, letterSpacing: "0.2px", borderRadius: 999, padding: "3px 9px" }}>🪙 {p.cost} XP</span>
-                <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>бесплатно</span>
+            <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 170, scrollSnapAlign: "start", borderRadius: 22, padding: 15, background: p.accent, boxShadow: "0 7px 18px rgba(35,28,15,0.13), inset 0 0 0 0.5px rgba(255,255,255,0.5)", cursor: "pointer", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -34, right: -34, width: 120, height: 120, background: "radial-gradient(circle, rgba(255,255,255,0.6), transparent 68%)", pointerEvents: "none" }} />
+              <span style={{ position: "relative", fontSize: 36, lineHeight: 1 }}>{p.emblem}</span>
+              <div style={{ position: "relative", fontSize: 15.5, fontWeight: 700, color: "#1b1b1f", marginTop: 12, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
+              <div style={{ position: "relative", fontSize: 11.5, color: "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
+              <div style={{ flex: 1, minHeight: 12 }} />
+              <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.8)", color: "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? "#1E8E4E" : "#0a0a0a", display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Получить <I.ChevronRight size={13}/></>}</span>
               </div>
-              <span style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, color: got ? "#1E8E4E" : "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 3 }}>{got ? <><I.Check size={13} strokeWidth={3}/> Получено</> : <>Получить <I.ChevronRight size={14}/></>}</span>
             </div>
           );
         })}

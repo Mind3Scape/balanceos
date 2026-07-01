@@ -5365,7 +5365,6 @@ function PartnersShowcaseLive({
   var {
     open: openSheet
   } = useSheet();
-  var isDark = app?.themeOverride === "dark";
   var [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
   var openPartner = p => {
     if (window.tgHaptic) {
@@ -5388,35 +5387,29 @@ function PartnersShowcaseLive({
       })
     }));
   };
-  // ЗОЛОТАЯ ПОЛКА — чтобы блок «трат» НЕ сливался с нейтральными челленджами/кругами (David). Тёплый
-  // кремовый фон + золотой заголовок = зона награды. Белые карточки внутри «всплывают» на тинте.
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: isDark ? "rgba(254,222,52,0.07)" : "linear-gradient(180deg,#FFF6E2,#FFFCF4)",
-      borderRadius: 24,
-      padding: "14px 0 8px",
-      border: isDark ? "1px solid rgba(254,222,52,0.14)" : "1px solid rgba(239,159,20,0.13)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
+  // Карточки НАМЕРЕННО другого вида, чем привычки/челленджи (David: «партнёры — это НЕ привычки, что-то
+  // другое»). Привычка/челлендж = белая карточка + серый значок-тайл. Партнёр = ЦВЕТНАЯ карточка целиком
+  // (accent-заливка + белый блик + КРУПНЫЙ эмодзи, без серого тайла) → читается как «впечатление/награда».
+  // Обычная секция (без полки) → выравнивание как у остальных, ничего не «вылазит» слева.
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "baseline",
       justifyContent: "space-between",
-      padding: "0 16px 11px"
+      padding: "4px 4px 10px"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11.5,
-      fontWeight: 800,
-      letterSpacing: 0.6,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
       textTransform: "uppercase",
-      color: isDark ? "#F2C64B" : "#C8880C"
+      color: "var(--text-4)"
     }
   }, "\uD83C\uDF81 \u041F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C XP"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11.5,
-      fontWeight: 500,
-      color: isDark ? "rgba(242,198,75,0.6)" : "#B8891F"
+      color: "var(--text-4)"
     }
   }, "\u0436\u0438\u0432\u043E\u0435 \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 \u2192")), /*#__PURE__*/React.createElement("div", {
     className: "bos-hscroll",
@@ -5424,7 +5417,7 @@ function PartnersShowcaseLive({
       display: "flex",
       gap: 11,
       overflowX: "auto",
-      padding: "0 16px 4px",
+      padding: "0 0 4px",
       scrollSnapType: "x proximity",
       WebkitOverflowScrolling: "touch"
     }
@@ -5436,40 +5429,49 @@ function PartnersShowcaseLive({
       onClick: () => openPartner(p),
       style: {
         flex: "0 0 auto",
-        width: 168,
+        width: 170,
         scrollSnapAlign: "start",
-        background: "var(--card)",
-        borderRadius: 20,
-        padding: 14,
-        boxShadow: "0 4px 14px rgba(120,90,10,0.10)",
+        borderRadius: 22,
+        padding: 15,
+        background: p.accent,
+        boxShadow: "0 7px 18px rgba(35,28,15,0.13), inset 0 0 0 0.5px rgba(255,255,255,0.5)",
         cursor: "pointer",
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
+        position: "relative",
+        overflow: "hidden"
       }
-    }, /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        background: p.accent,
-        display: "grid",
-        placeItems: "center",
-        fontSize: 23,
-        flexShrink: 0
+        position: "absolute",
+        top: -34,
+        right: -34,
+        width: 120,
+        height: 120,
+        background: "radial-gradient(circle, rgba(255,255,255,0.6), transparent 68%)",
+        pointerEvents: "none"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "relative",
+        fontSize: 36,
+        lineHeight: 1
       }
     }, p.emblem), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 15,
-        fontWeight: 600,
-        color: "var(--text)",
+        position: "relative",
+        fontSize: 15.5,
+        fontWeight: 700,
+        color: "#1b1b1f",
+        marginTop: 12,
         letterSpacing: "-0.2px",
-        marginTop: 11,
-        lineHeight: 1.25
+        lineHeight: 1.2
       }
     }, p.name), /*#__PURE__*/React.createElement("div", {
       style: {
+        position: "relative",
         fontSize: 11.5,
-        color: "var(--text-4)",
+        color: "rgba(27,27,31,0.62)",
         marginTop: 3,
         lineHeight: 1.35,
         display: "-webkit-box",
@@ -5481,50 +5483,42 @@ function PartnersShowcaseLive({
     }, p.what), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
-        minHeight: 10
+        minHeight: 12
       }
     }), /*#__PURE__*/React.createElement("div", {
       style: {
-        display: "inline-flex",
+        position: "relative",
+        display: "flex",
         alignItems: "center",
-        gap: 6,
-        alignSelf: "flex-start"
+        justifyContent: "space-between"
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        background: "#0a0a0a",
-        color: "#FEDE34",
-        fontWeight: 700,
-        fontSize: 11,
-        letterSpacing: "0.2px",
+        background: "rgba(255,255,255,0.8)",
+        color: "#0a0a0a",
+        fontWeight: 800,
+        fontSize: 11.5,
         borderRadius: 999,
-        padding: "3px 9px"
+        padding: "4px 10px"
       }
-    }, "\uD83E\uDE99 ", p.cost, " XP"), /*#__PURE__*/React.createElement("span", {
+    }, "\uD83E\uDE99 ", p.cost), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 10.5,
-        color: "var(--text-4)",
-        fontWeight: 600
-      }
-    }, "\u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E")), /*#__PURE__*/React.createElement("span", {
-      style: {
-        marginTop: 9,
         fontSize: 12.5,
-        fontWeight: 600,
-        color: got ? "#1E8E4E" : "var(--text-2)",
+        fontWeight: 700,
+        color: got ? "#1E8E4E" : "#0a0a0a",
         display: "inline-flex",
         alignItems: "center",
-        gap: 3
+        gap: 2
       }
-    }, got ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(I.Check, {
-      size: 13,
+    }, got ? /*#__PURE__*/React.createElement(I.Check, {
+      size: 14,
       strokeWidth: 3
-    }), " \u041F\u043E\u043B\u0443\u0447\u0435\u043D\u043E") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
-      size: 14
-    }))));
+    }) : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+      size: 13
+    })))));
   })));
 }
 
