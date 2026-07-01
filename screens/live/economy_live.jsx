@@ -80,24 +80,15 @@ function bosLiveXPLive(app) {
     + (typeof bosTeamGoalXPLive === "function" ? bosTeamGoalXPLive(app) : 0)
     + (typeof bosChallengeBonusXPLive === "function" ? bosChallengeBonusXPLive(app) : 0);
 }
-// XP-бонус за ЗАВЕРШЕНИЕ курируемого челленджа (David: «бонус в конце, когда закрыл срок, не на старте»).
-// Привычка/цель/команда, созданная из челленджа, несёт метку challenge {key,bonus,days}. Начисляем бонус
-// УНИКАЛЬНОГО ключа ТОЛЬКО когда челлендж закрыт: привычка — набрано `days` отметок (устойчиво к пропуску,
-// не как current-серия); цель/команда — достигнут target. Дедуп по key (нельзя нафармить пересозданием).
-// Derived, как весь XP — но пока срок не закрыт, бонуса нет. Значения задаёт CHALLENGE_STARTERS.
+// XP-бонус за ЗАВЕРШЁННЫЕ челленджи = сумма ПОСТОЯННОЙ копилки app.claimedChallenges {key:bonus} (David:
+// «заработал бонус — он навсегда в копилке, дальше хоть пропусти день, хоть удали привычку»). Фиксация
+// происходит в AppProvider (shell.jsx): как только серия привычки достигла срока `days` (или цель/команда
+// достигла target), ключ кладётся в claimedChallenges НАВСЕГДА. Здесь просто суммируем — не пересчитываем
+// из текущего состояния, поэтому бонус не отбирается при обрыве серии/удалении.
 function bosChallengeBonusXPLive(app) {
-  if (!app) return 0;
-  var byKey = {};
-  function note(c, done) { if (!c || !c.key) return; if (!byKey[c.key]) byKey[c.key] = { bonus: c.bonus | 0, done: false }; if (done) byKey[c.key].done = true; }
-  (app.habits || []).forEach(function (h) {
-    var c = h && h.challenge; if (!c) return;
-    var need = c.days | 0, got = 0, log = h.log || {};
-    for (var d in log) { if (log[d]) got++; }
-    note(c, need > 0 ? (got >= need) : !!h.done);
-  });
-  (app.goals || []).forEach(function (g) { var c = g && g.challenge; note(c, !!(c && g.target > 0 && (g.current || 0) >= g.target)); });
-  (app.teams || []).forEach(function (t) { var c = t && t.challenge; note(c, !!(c && t.target > 0 && (t.current || 0) >= t.target)); });
-  var sum = 0; for (var k in byKey) { if (byKey[k].done) sum += byKey[k].bonus; }
+  if (!app || !app.claimedChallenges) return 0;
+  var sum = 0, c = app.claimedChallenges;
+  for (var k in c) { if (Object.prototype.hasOwnProperty.call(c, k)) sum += (c[k] | 0); }
   return sum;
 }
 // XP → level. Each level costs a little more than the last (100, 150, 200…): a gentle curve

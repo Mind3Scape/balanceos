@@ -1000,6 +1000,23 @@ function AppProvider({ children }) {
   }));
   const removeTeamHabit = (teamId, habitId) => setTeams(ts => ts.map(t => t._id === teamId ? { ...t, habits: (t.habits || []).filter(h => h.id !== habitId) } : t));
 
+  // ── Заработанные бонусы челленджей = ПОСТОЯННАЯ копилка (David) ──────────────
+  // Бонус челленджа уходит в XP НАВСЕГДА: достиг — заработал, дальше хоть пропусти день, хоть удали
+  // привычку — бонус твой. Поэтому НЕ derived-из-текущего-состояния, а ЗАФИКСИРОВАННЫЙ набор {key:bonus}.
+  // Критерий = СЕРИЯ ПОДРЯД (David: челлендж = продержаться N дней подряд, чтобы заходить каждый день):
+  // как только серия привычки достигает `days` (или цель/команда достигает target) — фиксируем бонус ОДИН
+  // раз по key. Хранится в localStorage → переживает перезагрузку и удаление привычки. bosLiveXPLive
+  // читает app.claimedChallenges и прибавляет сумму к XP.
+  const [claimedChallenges, setClaimedChallenges] = useState(() => { try { return JSON.parse(localStorage.getItem("bos:claimedXP") || "{}") || {}; } catch (e) { return {}; } });
+  useEffect(() => {
+    if (mode !== "live") return;
+    var add = null;
+    (habits || []).forEach(function (h) { var c = h && h.challenge; if (!c || !c.key || claimedChallenges[c.key]) return; var need = c.days | 0; if (need > 0 && bosStreak(h.log) >= need) { add = add || {}; add[c.key] = c.bonus | 0; } });
+    (goals || []).forEach(function (g) { var c = g && g.challenge; if (!c || !c.key || claimedChallenges[c.key]) return; if (g.target > 0 && (g.current || 0) >= g.target) { add = add || {}; add[c.key] = c.bonus | 0; } });
+    (teams || []).forEach(function (t) { var c = t && t.challenge; if (!c || !c.key || claimedChallenges[c.key]) return; if (t.target > 0 && (t.current || 0) >= t.target) { add = add || {}; add[c.key] = c.bonus | 0; } });
+    if (add) { var merged = Object.assign({}, claimedChallenges, add); setClaimedChallenges(merged); try { localStorage.setItem("bos:claimedXP", JSON.stringify(merged)); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }
+  }, [habits, goals, teams]);
+
   // ── Local-first persistence (the spine) ────────────────────────────
   // A real user's life is saved under their profile id; the demo (id = null) is
   // intentionally NEVER persisted, so a reload always reseeds Павел's showcase.
@@ -1391,6 +1408,7 @@ function AppProvider({ children }) {
     themeOverride, setThemeOverride,
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
     aiBrief, invitedCount, teamGoalXP, refreshTeamGoalXP,
+    claimedChallenges,
     pendingAch, clearPendingAch,
     pendingJoinWelcome, clearPendingJoinWelcome,
     tourStep, setTourStep, startTour, endTour, tourMode,
