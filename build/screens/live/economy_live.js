@@ -103,21 +103,44 @@ function bosTeamGoalXPLive(app) {
 function bosLiveXPLive(app) {
   return bosBaseXPLive(app) + (typeof bosAchievementBonusXPLive === "function" ? bosAchievementBonusXPLive(app) : 0) + (typeof bosReferralXPLive === "function" ? bosReferralXPLive(app) : 0) + (typeof bosTeamGoalXPLive === "function" ? bosTeamGoalXPLive(app) : 0) + (typeof bosChallengeBonusXPLive === "function" ? bosChallengeBonusXPLive(app) : 0);
 }
-// Разовый XP-бонус за старт курируемого челленджа со стр. Привычки. Привычка/цель/команда, созданная
-// из челленджа, несёт метку challenge {key,bonus}; суммируем бонусы УНИКАЛЬНЫХ ключей среди habits+
-// goals+teams (дедуп → нельзя нафармить пересозданием). Derived, как весь XP — удалил привычку, ушёл и
-// бонус (честно). Значения бонусов задаёт CHALLENGE_STARTERS (habits_live.jsx).
+// XP-бонус за ЗАВЕРШЕНИЕ курируемого челленджа (David: «бонус в конце, когда закрыл срок, не на старте»).
+// Привычка/цель/команда, созданная из челленджа, несёт метку challenge {key,bonus,days}. Начисляем бонус
+// УНИКАЛЬНОГО ключа ТОЛЬКО когда челлендж закрыт: привычка — набрано `days` отметок (устойчиво к пропуску,
+// не как current-серия); цель/команда — достигнут target. Дедуп по key (нельзя нафармить пересозданием).
+// Derived, как весь XP — но пока срок не закрыт, бонуса нет. Значения задаёт CHALLENGE_STARTERS.
 function bosChallengeBonusXPLive(app) {
   if (!app) return 0;
-  var seen = {},
-    sum = 0;
-  var items = (app.habits || []).concat(app.goals || []).concat(app.teams || []);
-  for (var i = 0; i < items.length; i++) {
-    var c = items[i] && items[i].challenge;
-    if (c && c.key && !seen[c.key]) {
-      seen[c.key] = 1;
-      sum += c.bonus | 0;
+  var byKey = {};
+  function note(c, done) {
+    if (!c || !c.key) return;
+    if (!byKey[c.key]) byKey[c.key] = {
+      bonus: c.bonus | 0,
+      done: false
+    };
+    if (done) byKey[c.key].done = true;
+  }
+  (app.habits || []).forEach(function (h) {
+    var c = h && h.challenge;
+    if (!c) return;
+    var need = c.days | 0,
+      got = 0,
+      log = h.log || {};
+    for (var d in log) {
+      if (log[d]) got++;
     }
+    note(c, need > 0 ? got >= need : !!h.done);
+  });
+  (app.goals || []).forEach(function (g) {
+    var c = g && g.challenge;
+    note(c, !!(c && g.target > 0 && (g.current || 0) >= g.target));
+  });
+  (app.teams || []).forEach(function (t) {
+    var c = t && t.challenge;
+    note(c, !!(c && t.target > 0 && (t.current || 0) >= t.target));
+  });
+  var sum = 0;
+  for (var k in byKey) {
+    if (byKey[k].done) sum += byKey[k].bonus;
   }
   return sum;
 }

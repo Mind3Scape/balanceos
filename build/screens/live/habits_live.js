@@ -17,9 +17,10 @@
 
 // «ЧЕЛЛЕНДЖИ» — витрина-лента наверху стр. Привычки (David: «не голые пресеты, а самые ПОПУЛЯРНЫЕ
 // привычки/цели/„вместе"-челленджи, у каждой виден XP-БОНУС — быстрое добавление ЧЕЛЛЕНДЖЕЙ»). Тап →
-// создание заполнено пресетом. `bonus` = РЕАЛЬНЫЙ разовый XP за старт челленджа: создание помечает
-// привычку/цель/команду ключом `challenge {key,bonus}`, а bosChallengeBonusXPLive выводит бонус (дедуп
-// по key — не фармится повтором, честно как весь XP: derived, не рисуется). kind: habit | goal | together
+// создание заполнено пресетом. `bonus` = РЕАЛЬНЫЙ XP за ЗАВЕРШЕНИЕ челленджа (David: «в конце, когда
+// закрыл срок, не на старте»): создание помечает привычку/цель/команду ключом `challenge {key,bonus,days}`,
+// а bosChallengeBonusXPLive начисляет бонус ТОЛЬКО когда закрыт срок — привычка: набрано `days` отметок;
+// цель/команда: достигнут target (дедуп по key, derived — честно, не рисуется). kind: habit | goal | together
 // (together = цель с тумблером «Идти к цели вместе»). preset-поля совпадают с тем, что читает создание.
 var CHALLENGE_STARTERS = [{
   i: "🔥",
@@ -27,6 +28,7 @@ var CHALLENGE_STARTERS = [{
   kind: "habit",
   key: "cold",
   bonus: 50,
+  days: 30,
   color: "#0a0a0a"
 }, {
   i: "💪",
@@ -42,6 +44,7 @@ var CHALLENGE_STARTERS = [{
   kind: "habit",
   key: "water",
   bonus: 30,
+  days: 21,
   color: "#34C759"
 }, {
   i: "📚",
@@ -66,6 +69,7 @@ var CHALLENGE_STARTERS = [{
   kind: "habit",
   key: "silence",
   bonus: 30,
+  days: 21,
   color: "#AF52DE"
 }, {
   i: "🌅",
@@ -73,6 +77,7 @@ var CHALLENGE_STARTERS = [{
   kind: "habit",
   key: "wake",
   bonus: 40,
+  days: 21,
   color: "#FF9500"
 }, {
   i: "🚭",
@@ -80,6 +85,7 @@ var CHALLENGE_STARTERS = [{
   kind: "habit",
   key: "nosugar",
   bonus: 50,
+  days: 30,
   color: "#FF2D55"
 }];
 
@@ -399,11 +405,13 @@ function HabitsLive() {
         window.tgHaptic("light");
       } catch (e) {}
     }
-    // challenge {key,bonus} едет в пресет → создание кладёт его на привычку/цель/команду → реальный
-    // разовый XP-бонус выводится (дедуп по key). Тап без создания не начисляет — только реальное сохранение.
+    // challenge {key,bonus,days} едет в пресет → создание кладёт его на привычку/цель/команду. Бонус
+    // выводится ТОЛЬКО когда челлендж ЗАВЕРШЁН (David: «бонус в конце, когда закрыл срок, не на старте»):
+    // привычка — набрано days отметок; цель/команда — достигнут target. Дедуп по key.
     var ch = {
       key: c.key,
-      bonus: c.bonus
+      bonus: c.bonus,
+      days: c.days
     };
     if (c.kind === "habit") {
       navigate("habit-settings", {

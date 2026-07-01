@@ -17,19 +17,20 @@
 
 // «ЧЕЛЛЕНДЖИ» — витрина-лента наверху стр. Привычки (David: «не голые пресеты, а самые ПОПУЛЯРНЫЕ
 // привычки/цели/„вместе"-челленджи, у каждой виден XP-БОНУС — быстрое добавление ЧЕЛЛЕНДЖЕЙ»). Тап →
-// создание заполнено пресетом. `bonus` = РЕАЛЬНЫЙ разовый XP за старт челленджа: создание помечает
-// привычку/цель/команду ключом `challenge {key,bonus}`, а bosChallengeBonusXPLive выводит бонус (дедуп
-// по key — не фармится повтором, честно как весь XP: derived, не рисуется). kind: habit | goal | together
+// создание заполнено пресетом. `bonus` = РЕАЛЬНЫЙ XP за ЗАВЕРШЕНИЕ челленджа (David: «в конце, когда
+// закрыл срок, не на старте»): создание помечает привычку/цель/команду ключом `challenge {key,bonus,days}`,
+// а bosChallengeBonusXPLive начисляет бонус ТОЛЬКО когда закрыт срок — привычка: набрано `days` отметок;
+// цель/команда: достигнут target (дедуп по key, derived — честно, не рисуется). kind: habit | goal | together
 // (together = цель с тумблером «Идти к цели вместе»). preset-поля совпадают с тем, что читает создание.
 const CHALLENGE_STARTERS = [
-  { i: "🔥", t: "Холодный душ",    kind: "habit",    key: "cold",    bonus: 50, color: "#0a0a0a" },
+  { i: "🔥", t: "Холодный душ",    kind: "habit",    key: "cold",    bonus: 50, days: 30, color: "#0a0a0a" },
   { i: "💪", t: "30 дней спорта",   kind: "together", key: "sport30", bonus: 75, target: 30, unit: "дней" },
-  { i: "💧", t: "Вода каждый день", kind: "habit",    key: "water",   bonus: 30, color: "#34C759" },
+  { i: "💧", t: "Вода каждый день", kind: "habit",    key: "water",   bonus: 30, days: 21, color: "#34C759" },
   { i: "📚", t: "Книга за месяц",   kind: "goal",     key: "book",    bonus: 40, target: 1, unit: "книга", deadline: "Месяц" },
   { i: "🏃", t: "Бег вместе",       kind: "together", key: "runtog",  bonus: 75, target: 30, unit: "км" },
-  { i: "🧘", t: "10 минут тишины",  kind: "habit",    key: "silence", bonus: 30, color: "#AF52DE" },
-  { i: "🌅", t: "Ранний подъём",    kind: "habit",    key: "wake",    bonus: 40, color: "#FF9500" },
-  { i: "🚭", t: "Без сахара",       kind: "habit",    key: "nosugar", bonus: 50, color: "#FF2D55" },
+  { i: "🧘", t: "10 минут тишины",  kind: "habit",    key: "silence", bonus: 30, days: 21, color: "#AF52DE" },
+  { i: "🌅", t: "Ранний подъём",    kind: "habit",    key: "wake",    bonus: 40, days: 21, color: "#FF9500" },
+  { i: "🚭", t: "Без сахара",       kind: "habit",    key: "nosugar", bonus: 50, days: 30, color: "#FF2D55" },
 ];
 
 /* Long-press menu for a habit TILE (David: квадратные плитки 2-в-ряд → горизонтальный свайп
@@ -178,9 +179,10 @@ function HabitsLive() {
   // together → цель с включённым «Идти к цели вместе» (можно сразу звать людей).
   const startChallenge = (c) => {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-    // challenge {key,bonus} едет в пресет → создание кладёт его на привычку/цель/команду → реальный
-    // разовый XP-бонус выводится (дедуп по key). Тап без создания не начисляет — только реальное сохранение.
-    const ch = { key: c.key, bonus: c.bonus };
+    // challenge {key,bonus,days} едет в пресет → создание кладёт его на привычку/цель/команду. Бонус
+    // выводится ТОЛЬКО когда челлендж ЗАВЕРШЁН (David: «бонус в конце, когда закрыл срок, не на старте»):
+    // привычка — набрано days отметок; цель/команда — достигнут target. Дедуп по key.
+    const ch = { key: c.key, bonus: c.bonus, days: c.days };
     if (c.kind === "habit") {
       navigate("habit-settings", { mode: "create", preset: { i: c.i, t: c.t, color: c.color, challenge: ch } });
     } else {
