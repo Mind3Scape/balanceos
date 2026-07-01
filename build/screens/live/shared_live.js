@@ -5294,6 +5294,415 @@ function SeedCirclesShowcaseLive({
   })));
 }
 
+/* ПАРТНЁРЫ — «на что потратить XP». David: не скидки (как в старом демо), а ЖИВЫЕ БЕСПЛАТНЫЕ вещи
+   (медитация, бачата, бокс…), которые стоят XP из копилки. Нужно, чтобы человек СРАЗУ видел, ради чего
+   копит: «о, на это я мог бы потратить экспу». Доступно СРАЗУ (в отличие от Нетворка — тот с 10 уровня).
+   Партнёрская выдача пока плейсхолдер (как курсы): забрал → «покажи на входе». Отмеченное живёт в
+   localStorage (bos:redeemedPartners), трата (spentXP) — в копилке через app.spendXP. */
+var BOS_PARTNERS = [{
+  id: "medit",
+  name: "Открытая медитация",
+  emblem: "🧘",
+  accent: "#dbe9ff",
+  what: "Час осознанности с гидом в студии",
+  cost: 250,
+  tags: ["Ум", "Покой"]
+}, {
+  id: "bachata",
+  name: "Урок бачаты",
+  emblem: "💃",
+  accent: "#ffe0ec",
+  what: "Первое занятие в танцевальной студии",
+  cost: 350,
+  tags: ["Танец", "Тело"]
+}, {
+  id: "box",
+  name: "Пробный бокс",
+  emblem: "🥊",
+  accent: "#ffe1c8",
+  what: "Тренировка с личным тренером",
+  cost: 400,
+  tags: ["Сила", "Энергия"]
+}, {
+  id: "yoga",
+  name: "Йога на рассвете",
+  emblem: "🧘‍♀️",
+  accent: "#d6f3df",
+  what: "Утренняя практика в парке",
+  cost: 250,
+  tags: ["Тело", "Гибкость"]
+}, {
+  id: "coffee",
+  name: "Кофе-встреча",
+  emblem: "☕",
+  accent: "#efe3d2",
+  what: "Чашка в партнёрской кофейне",
+  cost: 150,
+  tags: ["Отдых", "Люди"]
+}, {
+  id: "art",
+  name: "Арт-вечер",
+  emblem: "🎨",
+  accent: "#e9ddff",
+  what: "Живопись с нуля, без опыта",
+  cost: 300,
+  tags: ["Творчество", "Поток"]
+}];
+function bosLoadRedeemedPartners() {
+  try {
+    return JSON.parse(localStorage.getItem("bos:redeemedPartners") || "{}") || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+// Горизонтальная лента партнёров — тот же язык, что «Челленджи», но про ТРАТУ: серо-стеклянный герб на
+// пастельном accent'е, название, что получишь, цена «🪙 N XP» и «Получить». Тап → шторка PartnerSheetLive.
+function PartnersShowcaseLive({
+  app,
+  navigate,
+  compact = false
+}) {
+  var {
+    open: openSheet
+  } = useSheet();
+  var [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
+  var openPartner = p => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("selection");
+      } catch (e) {}
+    }
+    openSheet(/*#__PURE__*/React.createElement(PartnerSheetLive, {
+      partner: p,
+      app: app,
+      redeemed: !!redeemed[p.id],
+      onRedeemed: id => setRedeemed(m => {
+        var n = Object.assign({}, m, {
+          [id]: true
+        });
+        try {
+          localStorage.setItem("bos:redeemedPartners", JSON.stringify(n));
+        } catch (e) {}
+        return n;
+      })
+    }));
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      padding: "4px 4px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)"
+    }
+  }, "\uD83C\uDF81 \u041F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C XP"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)"
+    }
+  }, "\u0436\u0438\u0432\u043E\u0435 \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 \u2192")), /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
+    style: {
+      display: "flex",
+      gap: 11,
+      overflowX: "auto",
+      padding: "0 0 4px",
+      scrollSnapType: "x proximity",
+      WebkitOverflowScrolling: "touch"
+    }
+  }, BOS_PARTNERS.map(p => {
+    var got = !!redeemed[p.id];
+    return /*#__PURE__*/React.createElement("div", {
+      key: p.id,
+      className: "tap",
+      onClick: () => openPartner(p),
+      style: {
+        flex: "0 0 auto",
+        width: 168,
+        scrollSnapAlign: "start",
+        background: "var(--card)",
+        borderRadius: 22,
+        padding: 14,
+        boxShadow: "var(--card-shadow)",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        background: p.accent,
+        display: "grid",
+        placeItems: "center",
+        fontSize: 23,
+        flexShrink: 0
+      }
+    }, p.emblem), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15,
+        fontWeight: 600,
+        color: "var(--text)",
+        letterSpacing: "-0.2px",
+        marginTop: 11,
+        lineHeight: 1.25
+      }
+    }, p.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-4)",
+        marginTop: 3,
+        lineHeight: 1.35,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+        minHeight: 31
+      }
+    }, p.what), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minHeight: 10
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        alignSelf: "flex-start"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        background: "#0a0a0a",
+        color: "#FEDE34",
+        fontWeight: 700,
+        fontSize: 11,
+        letterSpacing: "0.2px",
+        borderRadius: 999,
+        padding: "3px 9px"
+      }
+    }, "\uD83E\uDE99 ", p.cost, " XP"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-4)",
+        fontWeight: 600
+      }
+    }, "\u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E")), /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginTop: 9,
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: got ? "#1E8E4E" : "var(--text-2)",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3
+      }
+    }, got ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(I.Check, {
+      size: 13,
+      strokeWidth: 3
+    }), " \u041F\u043E\u043B\u0443\u0447\u0435\u043D\u043E") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+      size: 14
+    }))));
+  })));
+}
+
+// Шторка партнёра — детали + «Получить за N XP». Списывает копилку (app.spendXP), помечает получённым.
+// «Бесплатно, платишь только XP» — суть, которой David хотел отличить это от старых скидок.
+function PartnerSheetLive({
+  partner,
+  app,
+  onRedeemed,
+  redeemed = false
+}) {
+  var {
+    close
+  } = useSheet();
+  var [got, setGot] = React.useState(!!redeemed);
+  var balance = typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : 0;
+  var afford = balance >= partner.cost;
+  var redeem = () => {
+    if (got || !afford) return;
+    if (app && typeof app.spendXP === "function" && app.spendXP(partner.cost)) {
+      setGot(true);
+      if (onRedeemed) onRedeemed(partner.id);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("success");
+        } catch (e) {}
+      }
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 6px",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 68,
+      height: 68,
+      borderRadius: 20,
+      margin: "0 auto 12px",
+      background: partner.accent,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 34
+    }
+  }, partner.emblem), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 21,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, partner.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text-3)",
+      marginTop: 4,
+      lineHeight: 1.4
+    }
+  }, partner.what), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      justifyContent: "center",
+      marginTop: 10,
+      flexWrap: "wrap"
+    }
+  }, partner.tags.map((t, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      background: "var(--card-2)",
+      borderRadius: 999,
+      padding: "4px 11px",
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      fontWeight: 500
+    }
+  }, t)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      background: "var(--surface-3)",
+      borderRadius: 16,
+      padding: "13px 16px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600
+    }
+  }, "\u0411\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E \xB7 \u043F\u043B\u0430\u0442\u0438\u0448\u044C XP"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      marginTop: 3,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, "\uD83E\uDE99 ", partner.cost, " XP")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)"
+    }
+  }, "\u0442\u0432\u043E\u044F \u043A\u043E\u043F\u0438\u043B\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      marginTop: 2,
+      color: afford || got ? "var(--text)" : "var(--accent-red)"
+    }
+  }, balance.toLocaleString(), " XP"))), got ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "rgba(52,199,89,0.12)",
+      color: "#1E8E4E",
+      borderRadius: 16,
+      padding: 16,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 16,
+      fontWeight: 700
+    }
+  }, /*#__PURE__*/React.createElement(I.Check, {
+    size: 18,
+    strokeWidth: 3
+  }), " \u041F\u043E\u043B\u0443\u0447\u0435\u043D\u043E"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 500,
+      color: "var(--text-3)",
+      textAlign: "center"
+    }
+  }, "\u041F\u043E\u043A\u0430\u0436\u0438 \u044D\u0442\u043E\u0442 \u044D\u043A\u0440\u0430\u043D \u043D\u0430 \u0432\u0445\u043E\u0434\u0435 \u043A \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u0443")), /*#__PURE__*/React.createElement("button", {
+    onClick: close,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 12,
+      background: "var(--surface-3)",
+      color: "var(--text)",
+      border: 0,
+      borderRadius: 999,
+      padding: 14,
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E")) : /*#__PURE__*/React.createElement("button", {
+    onClick: redeem,
+    disabled: !afford,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 16,
+      background: afford ? "#0a0a0a" : "var(--surface-3)",
+      color: afford ? "#fff" : "var(--text-4)",
+      border: 0,
+      borderRadius: 999,
+      padding: 15,
+      fontSize: 15.5,
+      fontWeight: 600
+    }
+  }, afford ? "Получить за " + partner.cost + " XP" : "Нужно ещё " + (partner.cost - balance) + " XP"));
+}
+
 /* «Собери свой круг» — пресеты СОЗДАНИЯ кругов под темы жизни (David: «пресеты кругов для семьи,
    тренингов и т.д. — их место во вкладке НАЙТИ, не на странице привычек»). Раньше были чипами в
    «Быстром добавлении» на Целях (терялись в конце ленты) → переехали сюда заметными карточками,

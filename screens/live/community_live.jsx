@@ -164,6 +164,9 @@ function CommunityLive() {
           </div>
           {/* Челленджи — срочные, с призом за финиш. */}
           {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
+          {/* Партнёры — «на что потратить XP»: живые бесплатные вещи (медитация/бачата/бокс) за копилку.
+              Стоит сразу под челленджами (заработал → потратил); доступно с 1 уровня (Нетворк — с 10). */}
+          {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
           {/* Собери свой круг — пресеты создания (семья/тренинги/рост), переехали сюда из Целей (David). */}
           {typeof CircleStartersShowcaseLive === "function" && <CircleStartersShowcaseLive navigate={navigate} />}
           {/* Живые круги — витрина с лицами + активностью («иллюзия жизни»); тап → создать похожий. */}
