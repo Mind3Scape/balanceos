@@ -93,27 +93,17 @@ function TeamCreateLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Создать команду" onBack={() => navigate("community")} />
 
-      {/* IDENTITY — team name + emblem + accent (без подписи блока). */}
-      <div style={{
-        background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
-        borderRadius: 22, padding: 18, marginTop: 8, boxShadow: "var(--card-shadow)",
-        position: "relative", overflow: "hidden",
-      }}>
-        <div aria-hidden style={{
-          position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1,
-          opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)",
-          transform: "rotate(8deg)",
-        }}>{bosIcon(emblem, 92, accent)}</div>
-        {/* Иконка + название в ОДНОМ блоке-идентичности (David: «иконка и название в одном красивом
-            блоке, не отдельно»). Тап по иконке → выбор эмодзи. Тот же паттерн, что в форме привычки. */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
+      {/* IDENTITY — как в привычках/целях: БЕЛАЯ карточка + СТЕКЛО-плитка, КРАСЯЩАЯСЯ выбранным тоном,
+          + единый цвет-пикер (David: «в миссии тоже меняй цвет стекла под иконкой, как в привычках»).
+          Дефолт-серый/чёрный → нейтральная плитка; выбрал Apple-цвет → плитка заливается им. */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
-            style={{ width: 52, height: 52, borderRadius: 15, background: "rgba(255,255,255,0.8)", border: 0, display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}>{bosIcon(emblem, 28, accent)}</button>
+            style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название команды"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
-        {/* ONE shared colour picker — same as habits/goals (glassy circles, grey+black+Apple). */}
-        {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
+        {typeof BosColorPickerLive === "function" && <BosColorPickerLive value={accent} onChange={setAccent} />}
       </div>
 
       {/* SHARED GOAL — без подписи (карточки режима сами объясняют). */}
@@ -364,22 +354,16 @@ function TeamSettingsLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Настройки цели" onBack={() => navigate("team-detail", { team })} />
 
-      {/* IDENTITY — the SAME gradient card as «Создать команду» (David: создание и редактирование =
-          одна логика/вид). Name + emblem + glassy colour picker in one card (без подписи блока). */}
-      <div style={{
-        background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
-        borderRadius: 22, padding: 18, marginTop: 8, boxShadow: "var(--card-shadow)",
-        position: "relative", overflow: "hidden",
-      }}>
-        <div aria-hidden style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, opacity: 0.28, pointerEvents: "none", filter: "saturate(0.9)", transform: "rotate(8deg)" }}>{bosIcon(emblem, 92, accent)}</div>
-        {/* Иконка + название в ОДНОМ блоке-идентичности (David). Тап по иконке → выбор эмодзи. */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
+      {/* IDENTITY — тот же вид, что «Создать команду»: БЕЛАЯ карточка + СТЕКЛО-плитка, красящаяся тоном,
+          + единый цвет-пикер (David: создание и редактирование = одна логика; «как в привычках»). */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
-            style={{ width: 52, height: 52, borderRadius: 15, background: "rgba(255,255,255,0.8)", border: 0, display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)" }}>{bosIcon(emblem, 28, accent)}</button>
+            style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название команды"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
-        {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
+        {typeof BosColorPickerLive === "function" && <BosColorPickerLive value={accent} onChange={setAccent} />}
       </div>
 
       {/* GOAL — режим + цель, ТА ЖЕ логика и вид, что в «Создать команду» (David: связать создание↔настройки). */}
@@ -556,16 +540,15 @@ function TeamQuickEditSheetLive({ team, navigate }) {
     <div style={{ padding: "2px 18px 20px", maxHeight: "80vh", overflowY: "auto" }}>
       <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 6 }}>Изменить цель</div>
 
-      {/* Идентичность — тот же градиентный вид, что в создании/настройках */}
-      <div style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, borderRadius: 22, padding: 16, marginTop: 6, position: "relative", overflow: "hidden", boxShadow: "var(--card-shadow)" }}>
-        {/* Иконка + название в ОДНОМ блоке-идентичности (David). Тап по иконке → выбор эмодзи. */}
+      {/* Идентичность — тот же вид, что в создании/настройках: белая карточка + красящаяся плитка + пикер. */}
+      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 6, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap" aria-label="Сменить иконку"
-            style={{ width: 50, height: 50, borderRadius: 15, background: "rgba(255,255,255,0.8)", border: 0, display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>{bosIcon(emblem, 26, accent)}</button>
+            style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название круга"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
-        {/* Цвет-пикер круга временно убран — цвета ВЫКЛ (David): единое светло-серое стекло; включим позже. */}
+        {typeof BosColorPickerLive === "function" && <BosColorPickerLive value={accent} onChange={setAccent} />}
       </div>
 
       {/* Режим общей цели — без подписи. */}

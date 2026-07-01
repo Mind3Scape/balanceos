@@ -133,30 +133,14 @@ function TeamCreateLive() {
     onBack: () => navigate("community")
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
+      background: "#fff",
       borderRadius: 22,
-      padding: 18,
+      padding: 14,
       marginTop: 8,
-      boxShadow: "var(--card-shadow)",
-      position: "relative",
-      overflow: "hidden"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
     style: {
-      position: "absolute",
-      top: -10,
-      right: -6,
-      fontSize: 110,
-      lineHeight: 1,
-      opacity: 0.28,
-      pointerEvents: "none",
-      filter: "saturate(0.9)",
-      transform: "rotate(8deg)"
-    }
-  }, bosIcon(emblem, 92, accent)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
       display: "flex",
       alignItems: "center",
       gap: 12
@@ -172,19 +156,17 @@ function TeamCreateLive() {
     className: "tap",
     "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443",
     style: {
-      width: 52,
-      height: 52,
-      borderRadius: 15,
-      background: "rgba(255,255,255,0.8)",
-      border: 0,
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      background: accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a" ? accent + "26" : "var(--surface-3)",
       display: "grid",
       placeItems: "center",
-      fontSize: 26,
+      fontSize: 28,
       flexShrink: 0,
+      border: 0,
       cursor: "pointer",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-      WebkitBackdropFilter: "blur(8px)",
-      backdropFilter: "blur(8px)"
+      transition: "background 0.2s"
     }
   }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("input", {
     value: name,
@@ -202,7 +184,10 @@ function TeamCreateLive() {
       padding: 0,
       letterSpacing: "-0.4px"
     }
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), typeof BosColorPickerLive === "function" && /*#__PURE__*/React.createElement(BosColorPickerLive, {
+    value: accent,
+    onChange: setAccent
+  })), /*#__PURE__*/React.createElement("div", {
     "data-tour": "team-modes",
     style: {
       display: "flex",
@@ -850,30 +835,14 @@ function TeamSettingsLive() {
     })
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
+      background: "#fff",
       borderRadius: 22,
-      padding: 18,
+      padding: 14,
       marginTop: 8,
-      boxShadow: "var(--card-shadow)",
-      position: "relative",
-      overflow: "hidden"
+      boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
     style: {
-      position: "absolute",
-      top: -10,
-      right: -6,
-      fontSize: 110,
-      lineHeight: 1,
-      opacity: 0.28,
-      pointerEvents: "none",
-      filter: "saturate(0.9)",
-      transform: "rotate(8deg)"
-    }
-  }, bosIcon(emblem, 92, accent)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
       display: "flex",
       alignItems: "center",
       gap: 12
@@ -889,19 +858,17 @@ function TeamSettingsLive() {
     className: "tap",
     "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443",
     style: {
-      width: 52,
-      height: 52,
-      borderRadius: 15,
-      background: "rgba(255,255,255,0.8)",
-      border: 0,
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      background: accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a" ? accent + "26" : "var(--surface-3)",
       display: "grid",
       placeItems: "center",
-      fontSize: 26,
+      fontSize: 28,
       flexShrink: 0,
+      border: 0,
       cursor: "pointer",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-      WebkitBackdropFilter: "blur(8px)",
-      backdropFilter: "blur(8px)"
+      transition: "background 0.2s"
     }
   }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("input", {
     value: name,
@@ -919,7 +886,10 @@ function TeamSettingsLive() {
       padding: 0,
       letterSpacing: "-0.4px"
     }
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), typeof BosColorPickerLive === "function" && /*#__PURE__*/React.createElement(BosColorPickerLive, {
+    value: accent,
+    onChange: setAccent
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1464,12 +1434,10 @@ function TeamQuickEditSheetLive({
     }
   }, "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: `linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
+      background: "#fff",
       borderRadius: 22,
-      padding: 16,
+      padding: 14,
       marginTop: 6,
-      position: "relative",
-      overflow: "hidden",
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1485,19 +1453,19 @@ function TeamQuickEditSheetLive({
     className: "tap",
     "aria-label": "\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443",
     style: {
-      width: 50,
-      height: 50,
-      borderRadius: 15,
-      background: "rgba(255,255,255,0.8)",
-      border: 0,
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      background: accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a" ? accent + "26" : "var(--surface-3)",
       display: "grid",
       placeItems: "center",
-      fontSize: 24,
+      fontSize: 28,
       flexShrink: 0,
+      border: 0,
       cursor: "pointer",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+      transition: "background 0.2s"
     }
-  }, bosIcon(emblem, 26, accent)), /*#__PURE__*/React.createElement("input", {
+  }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
     placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u0440\u0443\u0433\u0430",
@@ -1513,7 +1481,10 @@ function TeamQuickEditSheetLive({
       padding: 0,
       letterSpacing: "-0.4px"
     }
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), typeof BosColorPickerLive === "function" && /*#__PURE__*/React.createElement(BosColorPickerLive, {
+    value: accent,
+    onChange: setAccent
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

@@ -364,8 +364,16 @@ function bosLightenHex(hx, amt) {
 // Стеклянное кольцо «СЕГОДНЯ» — ЕДИНОЕ внутри (календарь) и снаружи (страйп на карточке), David:
 // «текущий день выделен одинаково, кольцом стекла, без плюсика». Светлый внутр. блик + тонкий контур
 // + мягкая тень = вид стеклянного чекбокса; читается и на белом, и на цветной клетке.
-function bosTodayRing(isDark) {
-  return isDark ? "inset 0 0 0 1.5px rgba(255,255,255,0.44), 0 1px 2px rgba(0,0,0,0.30)" : "inset 0 0 0 1.5px rgba(255,255,255,0.95), 0 0 0 1.3px rgba(10,10,10,0.17), 0 1px 2.5px rgba(0,0,0,0.10)";
+function bosTodayRing(isDark, accent) {
+  // Контур кольца окрашивается в ТОН привычки (David: «должно подстраиваться под выбранный тон, а не
+  // оставаться серым»). Реальный цвет → контур в этот цвет; нейтральный (чёрный/серый/нет) → мягкий графит.
+  var real = accent && accent[0] === "#" && accent.length === 7 && ("" + accent).toLowerCase() !== "#0a0a0a" && accent !== "#8E8E93";
+  if (isDark) {
+    var dr = real ? ", 0 0 0 1.4px " + accent + "b3" : "";
+    return "inset 0 0 0 1.5px rgba(255,255,255,0.44)" + dr + ", 0 1px 2px rgba(0,0,0,0.30)";
+  }
+  var ring = real ? accent + "a6" : "rgba(10,10,10,0.17)";
+  return "inset 0 0 0 1.5px rgba(255,255,255,0.95), 0 0 0 1.4px " + ring + ", 0 1px 2.5px rgba(0,0,0,0.10)";
 }
 function bosCellEmpty(accent, isDark, mul) {
   mul = mul == null ? 1 : mul; // 1=пустой день (~19-23%); <1 = слабее (будущее/соседний месяц)
@@ -784,8 +792,8 @@ function PeopleMonthCalendarLive({
     var filled = !fut && pct > 0;
     var done = !fut && pct >= 1;
     var bg = fut ? bosCellEmpty(hx, isDark, 0.42) : pct <= 0 ? itx ? bosCellFill(hx, 0.14) : bosCellEmpty(hx, isDark) : bosCellFill(hx, pct);
-    // Сегодня = единое стеклянное кольцо (bosTodayRing), как снаружи; без «+».
-    var sh = [filled ? bosCellGlass(isDark) : "", wd.isToday ? bosTodayRing(isDark) : ""].filter(Boolean).join(", ") || "none";
+    // Сегодня = единое стеклянное кольцо (bosTodayRing) в ТОНЕ привычки, как снаружи; без «+».
+    var sh = [filled ? bosCellGlass(isDark) : "", wd.isToday ? bosTodayRing(isDark, hx) : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("button", {
       key: i,
       onClick: itx ? fireToday : undefined,
@@ -916,7 +924,7 @@ function PeopleMonthCalendarLive({
     var todayGlow = itx && filled ? "0 0.5px 1.5px rgba(0,0,0,0.55)" : "none";
     // Сегодня = единое СТЕКЛЯННОЕ кольцо (bosTodayRing) — как на внешнем страйпе (David); выбранный
     // день (не сегодня) — тонкая обводка selRing. Без accent-зелёного/серого разнобоя.
-    var shadow = [filled ? bosCellGlass(isDark) : "", isToday ? bosTodayRing(isDark) : !compact && isSel ? "0 0 0 1.6px " + selRing : ""].filter(Boolean).join(", ") || "none";
+    var shadow = [filled ? bosCellGlass(isDark) : "", isToday ? bosTodayRing(isDark, hx) : !compact && isSel ? "0 0 0 1.6px " + selRing : ""].filter(Boolean).join(", ") || "none";
     var onClick = itx ? fireToday : compact ? undefined : () => setSelDay(c.d);
     return /*#__PURE__*/React.createElement("button", _extends({
       key: c.key
@@ -7838,8 +7846,8 @@ function HabitWeekStrip({
     }
   }, keys.map(function (k, i) {
     var fl = !!log[k];
-    // Сегодня = единое СТЕКЛЯННОЕ кольцо (то же, что в календаре); заполненный день — своя стекло-заливка.
-    var sh = [fl ? bosCellGlass(isDark) : "", k === todayK ? bosTodayRing(isDark) : ""].filter(Boolean).join(", ") || "none";
+    // Сегодня = единое СТЕКЛЯННОЕ кольцо (то же, что в календаре) в ТОНЕ привычки; заполненный день — своя стекло-заливка.
+    var sh = [fl ? bosCellGlass(isDark) : "", k === todayK ? bosTodayRing(isDark, accent) : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("span", {
       key: i,
       style: {
