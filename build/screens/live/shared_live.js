@@ -4001,7 +4001,8 @@ var BOS_CARD_STYLE_DEFAULT = {
   form: "square",
   name: true,
   marks: "week",
-  faces: true
+  faces: true,
+  cells: "round"
 };
 function bosLoadCardStyle() {
   try {
@@ -4022,7 +4023,8 @@ function bosSaveCardStyle(s) {
 // Месячная «грядка» для превью карточки — последние 5 недель (35 клеток) хитмапом по логу привычки.
 // Тот же язык клеток, что у недельной полоски и календаря (bosCellFill/bosCellGlass) → континуити.
 function HabitMonthMini({
-  habit
+  habit,
+  square = false
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
   var isDark = app && app.themeOverride === "dark";
@@ -4038,6 +4040,7 @@ function HabitMonthMini({
   }
   var doneFill = bosCellFill(accent, 1);
   var empty = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)";
+  var radius = square ? 4 : "50%"; // David: везде КРУЖКИ по умолчанию; квадраты — по тоглу
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
@@ -4052,7 +4055,7 @@ function HabitMonthMini({
       key: i,
       style: {
         aspectRatio: "1/1",
-        borderRadius: 4,
+        borderRadius: radius,
         background: fl ? doneFill : empty,
         boxShadow: fl ? bosCellGlass(isDark) : "none"
       }
@@ -4151,6 +4154,34 @@ function CardStyleMenuLive({
       color: "#0a0a0a"
     }
   }, label));
+  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в 256px → «Месяц» вылезал за край).
+  var seg = (val, opts, onPick) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      background: "rgba(10,10,10,0.05)",
+      borderRadius: 12,
+      padding: 4
+    }
+  }, opts.map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.v,
+    onClick: () => onPick(o.v),
+    className: "tap",
+    style: {
+      flex: 1,
+      minWidth: 0,
+      border: 0,
+      borderRadius: 9,
+      padding: "7px 4px",
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+      background: val === o.v ? "#fff" : "transparent",
+      color: val === o.v ? "#0a0a0a" : "rgba(10,10,10,0.5)",
+      boxShadow: val === o.v ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
+    }
+  }, o.l)));
   var toggleRow = (label, on, onCh) => /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -4183,10 +4214,10 @@ function CardStyleMenuLive({
       top: pos.top,
       transformOrigin: "top right",
       animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
-      width: 256,
+      width: 258,
       padding: 14,
       borderRadius: 22,
-      background: "rgba(255,255,255,0.84)",
+      background: "rgba(255,255,255,0.86)",
       WebkitBackdropFilter: "blur(34px) saturate(180%)",
       backdropFilter: "blur(34px) saturate(180%)",
       border: "0.5px solid rgba(255,255,255,0.7)",
@@ -4220,24 +4251,32 @@ function CardStyleMenuLive({
       marginBottom: 8,
       color: "rgba(10,10,10,0.5)"
     }
-  }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0438"), /*#__PURE__*/React.createElement(Segmented, {
-    value: st.marks,
-    onChange: v => set({
-      marks: v
-    }),
-    options: [{
-      value: "none",
-      label: "Нет"
-    }, {
-      value: "week",
-      label: "Неделя"
-    }, {
-      value: "month",
-      label: "Месяц"
-    }]
-  }), /*#__PURE__*/React.createElement("div", {
+  }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0438"), seg(st.marks, [{
+    v: "none",
+    l: "Нет"
+  }, {
+    v: "week",
+    l: "Неделя"
+  }, {
+    v: "month",
+    l: "Месяц"
+  }], v => set({
+    marks: v
+  })), st.marks !== "none" && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 4
+      marginTop: 8
+    }
+  }, seg(st.cells || "round", [{
+    v: "round",
+    l: "Кружки"
+  }, {
+    v: "square",
+    l: "Квадраты"
+  }], v => set({
+    cells: v
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6
     }
   }, toggleRow("Лица друзей", st.faces, v => set({
     faces: v
@@ -7363,7 +7402,8 @@ function bosHabitColor(habit) {
 // only added noise. Display-only; reads the REAL date-log (same source as the streak).
 function HabitWeekStrip({
   habit,
-  fill = true
+  fill = true,
+  square = false
 }) {
   // Same cell language as the month calendar (continuity): circle, glossy accent when done,
   // neutral track when empty, a subtle ring on today — карточка ↔ деталь = один кружок-день.
@@ -7435,7 +7475,7 @@ function HabitWeekStrip({
       key: i,
       style: {
         ...cell,
-        borderRadius: "50%",
+        borderRadius: square ? 5 : "50%",
         background: fl ? doneFill : empty,
         boxShadow: sh
       }

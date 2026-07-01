@@ -524,11 +524,14 @@ function HabitsLive() {
       size: rect ? 16 : 18,
       max: rect ? 5 : 3
     })) : null;
+    var sq = cardStyle.cells === "square";
     var marks = cardStyle.marks === "week" ? /*#__PURE__*/React.createElement(HabitWeekStrip, {
       habit: h,
-      fill: true
+      fill: true,
+      square: sq
     }) : cardStyle.marks === "month" ? /*#__PURE__*/React.createElement(HabitMonthMini, {
-      habit: h
+      habit: h,
+      square: sq
     }) : null;
     var icon = /*#__PURE__*/React.createElement("span", {
       style: {
@@ -893,36 +896,6 @@ function HabitsLive() {
       }
     }, "+", xp, " XP"));
   })), /*#__PURE__*/React.createElement("button", {
-    ref: gearBtnRef,
-    onClick: () => {
-      setStyleOpen(true);
-      if (window.tgHaptic) {
-        try {
-          window.tgHaptic("light");
-        } catch (e) {}
-      }
-    },
-    className: "tap",
-    title: "\u0421\u0442\u0438\u043B\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A",
-    "aria-haspopup": "menu",
-    "aria-expanded": styleOpen,
-    style: {
-      flexShrink: 0,
-      width: 44,
-      height: 44,
-      borderRadius: 999,
-      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
-        background: TH.chipBg
-      }),
-      color: isDark ? "#fff" : "var(--text)",
-      border: 0,
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.Settings, {
-    size: 19,
-    strokeWidth: 2
-  })), /*#__PURE__*/React.createElement("button", {
     ref: addBtnRef,
     "data-tour": "add",
     onClick: () => {
@@ -957,6 +930,36 @@ function HabitsLive() {
       transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)",
       transform: createOpen ? "rotate(45deg)" : "none"
     }
+  })), /*#__PURE__*/React.createElement("button", {
+    ref: gearBtnRef,
+    onClick: () => {
+      setStyleOpen(true);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
+      }
+    },
+    className: "tap",
+    title: "\u0421\u0442\u0438\u043B\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A",
+    "aria-haspopup": "menu",
+    "aria-expanded": styleOpen,
+    style: {
+      flexShrink: 0,
+      width: 44,
+      height: 44,
+      borderRadius: 999,
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+        background: TH.chipBg
+      }),
+      color: isDark ? "#fff" : "var(--text)",
+      border: 0,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(I.Settings, {
+    size: 19,
+    strokeWidth: 2
   }))), entries.length === 0 ? /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {

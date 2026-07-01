@@ -1722,13 +1722,13 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
 // ─── СТИЛЬ КАРТОЧЕК страницы «Привычки» ───────────────────────────────────────────────────────────
 // David: «формы + тоглы внутри». Дефолт = ТЕКУЩИЙ вид (квадрат, неделя, имя+лица) — не меняем, человек
 // сам покрутит. Запоминается в localStorage; смена шлёт событие → список перерисовывается вживую.
-var BOS_CARD_STYLE_DEFAULT = { form: "square", name: true, marks: "week", faces: true };
+var BOS_CARD_STYLE_DEFAULT = { form: "square", name: true, marks: "week", faces: true, cells: "round" };
 function bosLoadCardStyle() { try { var s = JSON.parse(localStorage.getItem("bos:cardStyle") || "null"); if (s && typeof s === "object") return Object.assign({}, BOS_CARD_STYLE_DEFAULT, s); } catch (e) {} return Object.assign({}, BOS_CARD_STYLE_DEFAULT); }
 function bosSaveCardStyle(s) { try { localStorage.setItem("bos:cardStyle", JSON.stringify(s)); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
 
 // Месячная «грядка» для превью карточки — последние 5 недель (35 клеток) хитмапом по логу привычки.
 // Тот же язык клеток, что у недельной полоски и календаря (bosCellFill/bosCellGlass) → континуити.
-function HabitMonthMini({ habit }) {
+function HabitMonthMini({ habit, square = false }) {
   var app = (typeof useApp === "function") ? useApp() : null;
   var isDark = app && app.themeOverride === "dark";
   if (!habit) return null;
@@ -1738,9 +1738,10 @@ function HabitMonthMini({ habit }) {
   for (var i = 34; i >= 0; i--) { var d = new Date(base.getTime()); d.setDate(d.getDate() - i); keys.push(d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2)); }
   var doneFill = bosCellFill(accent, 1);
   var empty = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)";
+  var radius = square ? 4 : "50%"; // David: везде КРУЖКИ по умолчанию; квадраты — по тоглу
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, width: "100%", maxWidth: 154 }}>
-      {keys.map(function (k, i) { var fl = !!log[k]; return <span key={i} style={{ aspectRatio: "1/1", borderRadius: 4, background: fl ? doneFill : empty, boxShadow: fl ? bosCellGlass(isDark) : "none" }} />; })}
+      {keys.map(function (k, i) { var fl = !!log[k]; return <span key={i} style={{ aspectRatio: "1/1", borderRadius: radius, background: fl ? doneFill : empty, boxShadow: fl ? bosCellGlass(isDark) : "none" }} />; })}
     </div>
   );
 }
@@ -1763,6 +1764,14 @@ function CardStyleMenuLive({ open, onClose, anchorRef, value, onChange }) {
       {icon}<span style={{ fontSize: 12, fontWeight: 600, color: "#0a0a0a" }}>{label}</span>
     </button>
   );
+  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в 256px → «Месяц» вылезал за край).
+  const seg = (val, opts, onPick) => (
+    <div style={{ display: "flex", gap: 4, background: "rgba(10,10,10,0.05)", borderRadius: 12, padding: 4 }}>
+      {opts.map((o) => (
+        <button key={o.v} onClick={() => onPick(o.v)} className="tap" style={{ flex: 1, minWidth: 0, border: 0, borderRadius: 9, padding: "7px 4px", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", background: val === o.v ? "#fff" : "transparent", color: val === o.v ? "#0a0a0a" : "rgba(10,10,10,0.5)", boxShadow: val === o.v ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{o.l}</button>
+      ))}
+    </div>
+  );
   const toggleRow = (label, on, onCh) => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 2px", fontSize: 14.5, fontWeight: 500, color: "#0a0a0a" }}>
       <span>{label}</span><Switch on={on} onChange={onCh} />
@@ -1770,13 +1779,14 @@ function CardStyleMenuLive({ open, onClose, anchorRef, value, onChange }) {
   );
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
-      <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right", animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 256, padding: 14, borderRadius: 22, background: "rgba(255,255,255,0.84)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
+      <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right", animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 258, padding: 14, borderRadius: 22, background: "rgba(255,255,255,0.86)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(10,10,10,0.42)", marginBottom: 10 }}>Стиль карточек</div>
         <div style={{ display: "flex", gap: 8 }}>{formBtn("square", "Квадрат", SQ)}{formBtn("rect", "Строка", RC)}</div>
         <div style={{ height: 1, background: "rgba(10,10,10,0.08)", margin: "13px 0 10px" }} />
         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
-        <Segmented value={st.marks} onChange={(v) => set({ marks: v })} options={[{ value: "none", label: "Нет" }, { value: "week", label: "Неделя" }, { value: "month", label: "Месяц" }]} />
-        <div style={{ marginTop: 4 }}>
+        {seg(st.marks, [{ v: "none", l: "Нет" }, { v: "week", l: "Неделя" }, { v: "month", l: "Месяц" }], (v) => set({ marks: v }))}
+        {st.marks !== "none" && <div style={{ marginTop: 8 }}>{seg(st.cells || "round", [{ v: "round", l: "Кружки" }, { v: "square", l: "Квадраты" }], (v) => set({ cells: v }))}</div>}
+        <div style={{ marginTop: 6 }}>
           {toggleRow("Лица друзей", st.faces, (v) => set({ faces: v }))}
           {st.form === "square" && toggleRow("Название", st.name, (v) => set({ name: v }))}
         </div>
@@ -2796,7 +2806,7 @@ function bosHabitColor(habit) {
 // closed that day; faint same-hue tint = not closed — so the whole row stays ONE colour
 // family (David). NO «today» marker on purpose: the current day is already obvious, a ring
 // only added noise. Display-only; reads the REAL date-log (same source as the streak).
-function HabitWeekStrip({ habit, fill = true }) {
+function HabitWeekStrip({ habit, fill = true, square = false }) {
   // Same cell language as the month calendar (continuity): circle, glossy accent when done,
   // neutral track when empty, a subtle ring on today — карточка ↔ деталь = один кружок-день.
   // fill=true (карточка) → клетки тянутся во всю ширину (крупнее, карточка плотнее/квадратнее).
@@ -2833,7 +2843,7 @@ function HabitWeekStrip({ habit, fill = true }) {
       {keys.map(function (k, i) {
         var fl = !!log[k];
         var sh = [fl ? bosCellGlass(isDark) : "", (k === todayK) ? ("0 0 0 1.5px " + ringC) : ""].filter(Boolean).join(", ") || "none";
-        return <span key={i} style={{ ...cell, borderRadius: "50%", background: fl ? doneFill : empty, boxShadow: sh }} />;
+        return <span key={i} style={{ ...cell, borderRadius: square ? 5 : "50%", background: fl ? doneFill : empty, boxShadow: sh }} />;
       })}
     </div>
   );

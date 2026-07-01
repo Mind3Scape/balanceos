@@ -223,7 +223,8 @@ function HabitsLive() {
       : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />;
     const ctrl = <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{control}</span>;
     const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 18} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 18} max={rect ? 5 : 3} />}</span> : null;
-    const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} /> : null;
+    const sq = cardStyle.cells === "square";
+    const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
     const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
     if (rect) {
       return (
@@ -322,16 +323,16 @@ function HabitsLive() {
             );
           })}
         </div>
-        {/* Шестерёнка — стиль карточек (форма + тоглы). Слева от «+», то же стекло, не перегружает. */}
-        <button ref={gearBtnRef} onClick={() => { setStyleOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
-          title="Стиль карточек" aria-haspopup="menu" aria-expanded={styleOpen}
-          style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center" }}>
-          <I.Settings size={19} strokeWidth={2} />
-        </button>
+        {/* «+» слева, шестерёнка справа (David: «намного логичнее — плюсик слева, шестерёнка справа»). */}
         <button ref={addBtnRef} data-tour="add" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
           title="Создать" aria-haspopup="menu" aria-expanded={createOpen}
           style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center" }}>
           <I.Plus size={20} strokeWidth={2.2} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }}/>
+        </button>
+        <button ref={gearBtnRef} onClick={() => { setStyleOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
+          title="Стиль карточек" aria-haspopup="menu" aria-expanded={styleOpen}
+          style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center" }}>
+          <I.Settings size={19} strokeWidth={2} />
         </button>
       </div>
 
