@@ -103,6 +103,30 @@ function ChallengeIntroSheet({ c, dark, onStart }) {
   );
 }
 
+/* Колечко-прогресс челленджа на карточке привычки (David, Этап 2: «аккуратное колечко где-то —
+   понимание, сколько дней до окончания челленджа»). Только для привычки-челленджа (h.challenge.days):
+   кольцо заполняется серией (серия/days), текст = сколько дней ПОДРЯД осталось до XP-приза. Золотое —
+   под цвет награды, чтобы челлендж читался среди обычных привычек. Прошёл (серия ≥ days) → исчезает
+   (челлендж завершён, привычка становится обычной). marginTop внутри — чтобы null не оставлял пустоту. */
+function ChallengeProgressChip({ habit }) {
+  var ch = habit && habit.challenge;
+  if (!ch || !ch.days) return null;
+  var streak = (typeof bosStreak === "function") ? bosStreak(habit.log || []) : 0;
+  var remaining = ch.days - streak;
+  if (remaining <= 0) return null;                        // приз забран → чистая карточка
+  var pct = Math.max(0.06, Math.min(1, streak / ch.days)); // чуть-чуть даже на нуле, чтобы кольцо жило
+  var size = 15, sw = 2.4, r = (size - sw) / 2, circ = 2 * Math.PI * r, cc = size / 2;
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(245,180,30,0.14)", borderRadius: 999, padding: "3px 9px 3px 4px", marginTop: 8, alignSelf: "flex-start", maxWidth: "100%" }}>
+      <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ transform: "rotate(-90deg)", flexShrink: 0 }}>
+        <circle cx={cc} cy={cc} r={r} fill="none" stroke="rgba(245,180,30,0.30)" strokeWidth={sw} />
+        <circle cx={cc} cy={cc} r={r} fill="none" stroke="#E8A200" strokeWidth={sw} strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} />
+      </svg>
+      <span style={{ fontSize: 11, fontWeight: 700, color: "#9a6800", letterSpacing: "-0.1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{remaining} {bosDaysWord(remaining)} до +{ch.bonus} XP</span>
+    </div>
+  );
+}
+
 /* Long-press menu for a habit TILE (David: квадратные плитки 2-в-ряд → горизонтальный свайп
    конфликтует с сеткой, поэтому действия живут в шторке-меню). One sheet, three rows: Поделиться /
    Переставить плитки (entering the grid jiggle-mode) / Удалить. «swap» actions open their own sheet
@@ -344,6 +368,7 @@ function HabitsLive() {
           {icon}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
+            <ChallengeProgressChip habit={h} />
             {marks && <div style={{ marginTop: 8 }}>{marks}</div>}
           </div>
           {faces}{ctrl}
@@ -360,6 +385,7 @@ function HabitsLive() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{ctrl}</div>
         </div>
         {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>}
+        <ChallengeProgressChip habit={h} />
         {marks && <div style={{ marginTop: "auto", paddingTop: 12 }}>{marks}</div>}
       </div>
     );
