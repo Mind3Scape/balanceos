@@ -351,6 +351,16 @@ function HabitsLive() {
   var [createOpen, setCreateOpen] = React.useState(false);
   var addBtnRef = React.useRef(null);
 
+  // Стиль карточек (форма + тоглы) — шестерёнка слева от «+». Дефолт = текущий вид; запоминается.
+  var [cardStyle, setCardStyle] = React.useState(bosLoadCardStyle);
+  var [styleOpen, setStyleOpen] = React.useState(false);
+  var gearBtnRef = React.useRef(null);
+  React.useEffect(() => {
+    var h = () => setCardStyle(bosLoadCardStyle());
+    window.addEventListener("bos:cardStyleChanged", h);
+    return () => window.removeEventListener("bos:cardStyleChanged", h);
+  }, []);
+
   // Habit TILES (2-per-row grid) — long-press opens the tile menu (Поделиться / Переставить / Удалить);
   // «Переставить» flips the grid into jiggle/drag-reorder via this controller ref (set by BosReorderGrid).
   var gridCtl = React.useRef(null);
@@ -467,120 +477,118 @@ function HabitsLive() {
     return all;
   }, [habits, goals, orderTick]);
 
-  // ПЛИТКА ПРИВЫЧКИ — сверху иконка + галочка/кольцо/счётчик, имя, лица круга, снизу недельная полоска.
-  var habitTile = (h, ctx) => /*#__PURE__*/React.createElement("div", {
-    className: ctx.mode ? "" : "tap",
-    onClick: ctx.mode ? undefined : () => navigate("habit-detail", {
+  // ПЛИТКА ПРИВЫЧКИ — форма+тоглы из cardStyle. ЛИЦА переехали в ВЕРХНИЙ ряд к контролу (David: убрать
+  // пустое место внизу — все плитки одной высоты). marks: неделя / месяц-грядка / нет. rect = строка.
+  var habitTile = (h, ctx) => {
+    var rect = cardStyle.form === "rect";
+    var onOpen = ctx.mode ? undefined : () => navigate("habit-detail", {
       habit: h,
       from: "habits"
-    }),
-    style: {
-      background: rowBg,
-      borderRadius: 22,
-      boxShadow: cardShadow,
-      padding: "13px 13px 12px",
-      minHeight: 158,
-      display: "flex",
-      flexDirection: "column",
-      pointerEvents: ctx.mode ? "none" : "auto",
-      overflow: "hidden"
+    });
+    var control = h.duration > 0 && !(h.goalPerDay > 1) ? /*#__PURE__*/React.createElement(HabitTimerCheck, {
+      habit: h,
+      app: app,
+      xp: 10
+    }) : h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+      habit: h,
+      app: app,
+      xp: 10
+    }) : /*#__PURE__*/React.createElement(HabitCheck, {
+      done: h.done,
+      onToggle: () => toggle(h.id),
+      xp: 10,
+      float: true
+    });
+    var ctrl = /*#__PURE__*/React.createElement("span", {
+      onPointerDown: e => e.stopPropagation(),
+      onClick: e => e.stopPropagation(),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flexShrink: 0
+      }
+    }, control);
+    var faces = cardStyle.faces ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+      habit: h,
+      size: rect ? 16 : 18,
+      max: rect ? 5 : 3
+    }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
+      habit: h,
+      size: rect ? 16 : 18,
+      max: rect ? 5 : 3
+    })) : null;
+    var marks = cardStyle.marks === "week" ? /*#__PURE__*/React.createElement(HabitWeekStrip, {
+      habit: h,
+      fill: true
+    }) : cardStyle.marks === "month" ? /*#__PURE__*/React.createElement(HabitMonthMini, {
+      habit: h
+    }) : null;
+    var icon = /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
+        boxShadow: bosTileGlass(isDark),
+        display: "grid",
+        placeItems: "center",
+        fontSize: 19,
+        flexShrink: 0
+      }
+    }, bosIcon(h.emoji, 21, h.color));
+    if (rect) {
+      return /*#__PURE__*/React.createElement("div", {
+        className: ctx.mode ? "" : "tap",
+        onClick: onOpen,
+        style: {
+          background: rowBg,
+          borderRadius: 18,
+          boxShadow: cardShadow,
+          padding: "11px 14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 13,
+          pointerEvents: ctx.mode ? "none" : "auto",
+          overflow: "hidden"
+        }
+      }, icon, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 15.5,
+          fontWeight: 600,
+          color: "var(--text)",
+          letterSpacing: "-0.2px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
+      }, h.name), marks && /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 8
+        }
+      }, marks)), faces, ctrl);
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 13,
-      background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg),
-      boxShadow: bosTileGlass(isDark),
-      display: "grid",
-      placeItems: "center",
-      fontSize: 19,
-      flexShrink: 0
-    }
-  }, bosIcon(h.emoji, 21, h.color)), /*#__PURE__*/React.createElement("span", {
-    onPointerDown: e => e.stopPropagation(),
-    onClick: e => e.stopPropagation(),
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      flexShrink: 0
-    }
-  }, h.duration > 0 && !(h.goalPerDay > 1) ? /*#__PURE__*/React.createElement(HabitTimerCheck, {
-    habit: h,
-    app: app,
-    xp: 10
-  }) : h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
-    habit: h,
-    app: app,
-    xp: 10
-  }) : /*#__PURE__*/React.createElement(HabitCheck, {
-    done: h.done,
-    onToggle: () => toggle(h.id),
-    xp: 10,
-    float: true
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)",
-      letterSpacing: "-0.2px",
-      lineHeight: 1.25,
-      display: "-webkit-box",
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: "vertical",
-      overflow: "hidden"
-    }
-  }, h.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 7,
-      display: "flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
-    habit: h,
-    size: 19,
-    max: 4
-  }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
-    habit: h,
-    size: 19,
-    max: 4
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: "auto",
-      paddingTop: 12
-    }
-  }, /*#__PURE__*/React.createElement(HabitWeekStrip, {
-    habit: h,
-    fill: true
-  })));
-
-  // ПЛИТКА ЦЕЛИ — та же квадратная плитка (David: «цели тоже плитками, единый вид»). Сверху иконка +
-  // процент, имя, лица круга (если цель — круг), СНИЗУ — полоска прогресса к цели (зеркало недельной).
-  var goalTile = (g, ctx) => {
-    var pct = g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0;
-    var gc = g.color || "#0a0a0a";
+    var compact = cardStyle.marks === "none";
     return /*#__PURE__*/React.createElement("div", {
       className: ctx.mode ? "" : "tap",
-      onClick: ctx.mode ? undefined : () => navigate("goal-detail", {
-        goal: g,
-        from: "habits"
-      }),
+      onClick: onOpen,
       style: {
         background: rowBg,
         borderRadius: 22,
         boxShadow: cardShadow,
         padding: "13px 13px 12px",
-        minHeight: 158,
+        minHeight: compact ? undefined : 146,
         display: "flex",
         flexDirection: "column",
         pointerEvents: ctx.mode ? "none" : "auto",
@@ -593,27 +601,14 @@ function HabitsLive() {
         justifyContent: "space-between",
         gap: 8
       }
-    }, /*#__PURE__*/React.createElement("span", {
+    }, icon, /*#__PURE__*/React.createElement("div", {
       style: {
-        width: 38,
-        height: 38,
-        borderRadius: 13,
-        background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg),
-        boxShadow: bosTileGlass(isDark),
-        display: "grid",
-        placeItems: "center",
-        fontSize: 19,
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
         flexShrink: 0
       }
-    }, bosIcon(g.emoji || "🎯", 21, g.color)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 700,
-        color: "var(--text-3)",
-        fontVariantNumeric: "tabular-nums",
-        paddingTop: 2
-      }
-    }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {
+    }, faces, ctrl)), cardStyle.name && /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 10,
         fontSize: 15,
@@ -626,27 +621,50 @@ function HabitsLive() {
         WebkitBoxOrient: "vertical",
         overflow: "hidden"
       }
-    }, g.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 7,
-        display: "flex",
-        alignItems: "center",
-        gap: 6
-      }
-    }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
-      habit: g,
-      size: 19,
-      max: 4
-    }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
-      habit: g,
-      size: 19,
-      max: 4
-    })), /*#__PURE__*/React.createElement("div", {
+    }, h.name), marks && /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: "auto",
         paddingTop: 12
       }
-    }, /*#__PURE__*/React.createElement("div", {
+    }, marks));
+  };
+
+  // ПЛИТКА ЦЕЛИ — та же логика форм/тоглов. «Отметки» у цели = полоска прогресса (показываем пока
+  // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
+  var goalTile = (g, ctx) => {
+    var rect = cardStyle.form === "rect";
+    var pct = g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0;
+    var gc = g.color || "#0a0a0a";
+    var onOpen = ctx.mode ? undefined : () => navigate("goal-detail", {
+      goal: g,
+      from: "habits"
+    });
+    var faces = cardStyle.faces ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+      habit: g,
+      size: rect ? 16 : 18,
+      max: rect ? 5 : 3
+    }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
+      habit: g,
+      size: rect ? 16 : 18,
+      max: rect ? 5 : 3
+    })) : null;
+    var pctEl = /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-3)",
+        fontVariantNumeric: "tabular-nums",
+        flexShrink: 0,
+        paddingTop: rect ? 0 : 2
+      }
+    }, Math.round(pct * 100), "%");
+    var progress = cardStyle.marks !== "none" ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
@@ -683,7 +701,104 @@ function HabitsLive() {
         borderRadius: 999,
         background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc
       }
-    }))));
+    }))) : null;
+    var icon = /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg),
+        boxShadow: bosTileGlass(isDark),
+        display: "grid",
+        placeItems: "center",
+        fontSize: 19,
+        flexShrink: 0
+      }
+    }, bosIcon(g.emoji || "🎯", 21, g.color));
+    if (rect) {
+      return /*#__PURE__*/React.createElement("div", {
+        className: ctx.mode ? "" : "tap",
+        onClick: onOpen,
+        style: {
+          background: rowBg,
+          borderRadius: 18,
+          boxShadow: cardShadow,
+          padding: "11px 14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 13,
+          pointerEvents: ctx.mode ? "none" : "auto",
+          overflow: "hidden"
+        }
+      }, icon, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 15.5,
+          fontWeight: 600,
+          color: "var(--text)",
+          letterSpacing: "-0.2px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
+      }, g.name), progress && /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 8
+        }
+      }, progress)), faces, pctEl);
+    }
+    var compact = cardStyle.marks === "none";
+    return /*#__PURE__*/React.createElement("div", {
+      className: ctx.mode ? "" : "tap",
+      onClick: onOpen,
+      style: {
+        background: rowBg,
+        borderRadius: 22,
+        boxShadow: cardShadow,
+        padding: "13px 13px 12px",
+        minHeight: compact ? undefined : 146,
+        display: "flex",
+        flexDirection: "column",
+        pointerEvents: ctx.mode ? "none" : "auto",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, icon, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flexShrink: 0
+      }
+    }, faces, pctEl)), cardStyle.name && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        fontSize: 15,
+        fontWeight: 600,
+        color: "var(--text)",
+        letterSpacing: "-0.2px",
+        lineHeight: 1.25,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden"
+      }
+    }, g.name), progress && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "auto",
+        paddingTop: 12
+      }
+    }, progress));
   };
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
@@ -696,6 +811,15 @@ function HabitsLive() {
     onClose: () => setCreateOpen(false),
     anchorRef: addBtnRef,
     navigate: navigate
+  }), typeof CardStyleMenuLive === "function" && /*#__PURE__*/React.createElement(CardStyleMenuLive, {
+    open: styleOpen,
+    onClose: () => setStyleOpen(false),
+    anchorRef: gearBtnRef,
+    value: cardStyle,
+    onChange: s => {
+      bosSaveCardStyle(s);
+      setCardStyle(s);
+    }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -768,6 +892,36 @@ function HabitsLive() {
         lineHeight: 1.3
       }
     }, "+", xp, " XP"));
+  })), /*#__PURE__*/React.createElement("button", {
+    ref: gearBtnRef,
+    onClick: () => {
+      setStyleOpen(true);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
+      }
+    },
+    className: "tap",
+    title: "\u0421\u0442\u0438\u043B\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A",
+    "aria-haspopup": "menu",
+    "aria-expanded": styleOpen,
+    style: {
+      flexShrink: 0,
+      width: 44,
+      height: 44,
+      borderRadius: 999,
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+        background: TH.chipBg
+      }),
+      color: isDark ? "#fff" : "var(--text)",
+      border: 0,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(I.Settings, {
+    size: 19,
+    strokeWidth: 2
   })), /*#__PURE__*/React.createElement("button", {
     ref: addBtnRef,
     "data-tour": "add",
@@ -857,7 +1011,7 @@ function HabitsLive() {
     },
     onLongPress: onTileLongPress,
     ctlRef: gridCtl,
-    cols: 2,
+    cols: cardStyle.form === "rect" ? 1 : 2,
     gap: 12,
     renderItem: (k, ctx) => {
       var e = entries.find(x => x.k === k);

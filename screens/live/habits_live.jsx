@@ -150,6 +150,12 @@ function HabitsLive() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const addBtnRef = React.useRef(null);
 
+  // Стиль карточек (форма + тоглы) — шестерёнка слева от «+». Дефолт = текущий вид; запоминается.
+  const [cardStyle, setCardStyle] = React.useState(bosLoadCardStyle);
+  const [styleOpen, setStyleOpen] = React.useState(false);
+  const gearBtnRef = React.useRef(null);
+  React.useEffect(() => { const h = () => setCardStyle(bosLoadCardStyle()); window.addEventListener("bos:cardStyleChanged", h); return () => window.removeEventListener("bos:cardStyleChanged", h); }, []);
+
   // Habit TILES (2-per-row grid) — long-press opens the tile menu (Поделиться / Переставить / Удалить);
   // «Переставить» flips the grid into jiggle/drag-reorder via this controller ref (set by BosReorderGrid).
   const gridCtl = React.useRef(null);
@@ -206,58 +212,86 @@ function HabitsLive() {
     return all;
   }, [habits, goals, orderTick]);
 
-  // ПЛИТКА ПРИВЫЧКИ — сверху иконка + галочка/кольцо/счётчик, имя, лица круга, снизу недельная полоска.
-  const habitTile = (h, ctx) => (
-    <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" })}
-      style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 158, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
-        <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          {/* ОДИН контрол: таймер (▶ + секции) ИЛИ счётчик (кольцо) ИЛИ галочка — не два рядом. */}
-          {h.duration > 0 && !(h.goalPerDay > 1)
-            ? <HabitTimerCheck habit={h} app={app} xp={10} />
-            : h.goalPerDay > 1
-              ? <HabitCountCheck habit={h} app={app} xp={10} />
-              : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
-        </span>
+  // ПЛИТКА ПРИВЫЧКИ — форма+тоглы из cardStyle. ЛИЦА переехали в ВЕРХНИЙ ряд к контролу (David: убрать
+  // пустое место внизу — все плитки одной высоты). marks: неделя / месяц-грядка / нет. rect = строка.
+  const habitTile = (h, ctx) => {
+    const rect = cardStyle.form === "rect";
+    const onOpen = ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" });
+    const control = h.duration > 0 && !(h.goalPerDay > 1)
+      ? <HabitTimerCheck habit={h} app={app} xp={10} />
+      : h.goalPerDay > 1 ? <HabitCountCheck habit={h} app={app} xp={10} />
+      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />;
+    const ctrl = <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{control}</span>;
+    const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 18} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 18} max={rect ? 5 : 3} />}</span> : null;
+    const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} /> : null;
+    const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
+    if (rect) {
+      return (
+        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 18, boxShadow: cardShadow, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+          {icon}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
+            {marks && <div style={{ marginTop: 8 }}>{marks}</div>}
+          </div>
+          {faces}{ctrl}
+        </div>
+      );
+    }
+    const compact = cardStyle.marks === "none";
+    return (
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+          {icon}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{faces}{ctrl}</div>
+        </div>
+        {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>}
+        {marks && <div style={{ marginTop: "auto", paddingTop: 12 }}>{marks}</div>}
       </div>
-      <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
-      <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
-        <HabitBuddyAvatarsLive habit={h} size={19} max={4} />
-        {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={19} max={4} />}
-      </div>
-      <div style={{ marginTop: "auto", paddingTop: 12 }}>
-        <HabitWeekStrip habit={h} fill />
-      </div>
-    </div>
-  );
+    );
+  };
 
-  // ПЛИТКА ЦЕЛИ — та же квадратная плитка (David: «цели тоже плитками, единый вид»). Сверху иконка +
-  // процент, имя, лица круга (если цель — круг), СНИЗУ — полоска прогресса к цели (зеркало недельной).
+  // ПЛИТКА ЦЕЛИ — та же логика форм/тоглов. «Отметки» у цели = полоска прогресса (показываем пока
+  // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
   const goalTile = (g, ctx) => {
+    const rect = cardStyle.form === "rect";
     const pct = g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0;
     const gc = g.color || "#0a0a0a";
+    const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
+    const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={g} size={rect ? 16 : 18} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={g} size={rect ? 16 : 18} max={rect ? 5 : 3} />}</span> : null;
+    const pctEl = <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", flexShrink: 0, paddingTop: rect ? 0 : 2 }}>{Math.round(pct * 100)}%</span>;
+    const progress = cardStyle.marks !== "none" ? (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{(g.current || 0)} / {g.target} {g.unit || ""}</span>
+        </div>
+        <div style={{ height: 7, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc }} />
+        </div>
+      </div>
+    ) : null;
+    const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 21, g.color)}</span>;
+    if (rect) {
+      return (
+        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 18, boxShadow: cardShadow, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+          {icon}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
+            {progress && <div style={{ marginTop: 8 }}>{progress}</div>}
+          </div>
+          {faces}{pctEl}
+        </div>
+      );
+    }
+    const compact = cardStyle.marks === "none";
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" })}
-        style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: 158, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-          <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 21, g.color)}</span>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", paddingTop: 2 }}>{Math.round(pct * 100)}%</span>
+          {icon}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{faces}{pctEl}</div>
         </div>
-        <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>
-        <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 6 }}>
-          <HabitBuddyAvatarsLive habit={g} size={19} max={4} />
-          {typeof CircleFacesLive === "function" && <CircleFacesLive habit={g} size={19} max={4} />}
-        </div>
-        <div style={{ marginTop: "auto", paddingTop: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{(g.current || 0)} / {g.target} {g.unit || ""}</span>
-          </div>
-          <div style={{ height: 7, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
-            <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + gc }} />
-          </div>
-        </div>
+        {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>}
+        {progress && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progress}</div>}
       </div>
     );
   };
@@ -265,6 +299,7 @@ function HabitsLive() {
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
+      {typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleOpen} onClose={() => setStyleOpen(false)} anchorRef={gearBtnRef} value={cardStyle} onChange={(s) => { bosSaveCardStyle(s); setCardStyle(s); }} />}
 
       {/* Шапка: ЛЕНТА ЧЕЛЛЕНДЖЕЙ (горизонтальный скролл, уходит за край) + «+» закреплён справа (David:
           «верни пилюли наверх рядом с „+", переработай в челленджи с XP-бонусом»). Тап пилюли → создание
@@ -287,6 +322,12 @@ function HabitsLive() {
             );
           })}
         </div>
+        {/* Шестерёнка — стиль карточек (форма + тоглы). Слева от «+», то же стекло, не перегружает. */}
+        <button ref={gearBtnRef} onClick={() => { setStyleOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
+          title="Стиль карточек" aria-haspopup="menu" aria-expanded={styleOpen}
+          style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center" }}>
+          <I.Settings size={19} strokeWidth={2} />
+        </button>
         <button ref={addBtnRef} data-tour="add" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap"
           title="Создать" aria-haspopup="menu" aria-expanded={createOpen}
           style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: TH.chipBg }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center" }}>
@@ -303,7 +344,7 @@ function HabitsLive() {
         </button>
       ) : (
         <BosReorderGrid ids={entries.map((e) => e.k)} onReorder={(keys) => { bosSavePracticeOrder(keys); setOrderTick((t) => t + 1); }}
-          onLongPress={onTileLongPress} ctlRef={gridCtl} cols={2} gap={12}
+          onLongPress={onTileLongPress} ctlRef={gridCtl} cols={cardStyle.form === "rect" ? 1 : 2} gap={12}
           renderItem={(k, ctx) => { const e = entries.find((x) => x.k === k); if (!e) return null; return e.type === "g" ? goalTile(e.item, ctx) : habitTile(e.item, ctx); }} />
       )}
 

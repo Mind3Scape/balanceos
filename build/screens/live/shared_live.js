@@ -3994,6 +3994,258 @@ function CreateMenuLive({
   })), it.label)))), document.body);
 }
 
+// ─── СТИЛЬ КАРТОЧЕК страницы «Привычки» ───────────────────────────────────────────────────────────
+// David: «формы + тоглы внутри». Дефолт = ТЕКУЩИЙ вид (квадрат, неделя, имя+лица) — не меняем, человек
+// сам покрутит. Запоминается в localStorage; смена шлёт событие → список перерисовывается вживую.
+var BOS_CARD_STYLE_DEFAULT = {
+  form: "square",
+  name: true,
+  marks: "week",
+  faces: true
+};
+function bosLoadCardStyle() {
+  try {
+    var s = JSON.parse(localStorage.getItem("bos:cardStyle") || "null");
+    if (s && typeof s === "object") return Object.assign({}, BOS_CARD_STYLE_DEFAULT, s);
+  } catch (e) {}
+  return Object.assign({}, BOS_CARD_STYLE_DEFAULT);
+}
+function bosSaveCardStyle(s) {
+  try {
+    localStorage.setItem("bos:cardStyle", JSON.stringify(s));
+  } catch (e) {}
+  try {
+    window.dispatchEvent(new Event("bos:cardStyleChanged"));
+  } catch (e) {}
+}
+
+// Месячная «грядка» для превью карточки — последние 5 недель (35 клеток) хитмапом по логу привычки.
+// Тот же язык клеток, что у недельной полоски и календаря (bosCellFill/bosCellGlass) → континуити.
+function HabitMonthMini({
+  habit
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isDark = app && app.themeOverride === "dark";
+  if (!habit) return null;
+  var accent = bosHabitColor(habit);
+  var log = habit.log || {};
+  var keys = [],
+    base = new Date();
+  for (var i = 34; i >= 0; i--) {
+    var d = new Date(base.getTime());
+    d.setDate(d.getDate() - i);
+    keys.push(d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2));
+  }
+  var doneFill = bosCellFill(accent, 1);
+  var empty = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, 1fr)",
+      gap: 3,
+      width: "100%",
+      maxWidth: 154
+    }
+  }, keys.map(function (k, i) {
+    var fl = !!log[k];
+    return /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        aspectRatio: "1/1",
+        borderRadius: 4,
+        background: fl ? doneFill : empty,
+        boxShadow: fl ? bosCellGlass(isDark) : "none"
+      }
+    });
+  }));
+}
+
+// Меню «Стиль карточек» — всплывашка у шестерёнки (как CreateMenuLive у «+»): выбор ФОРМЫ (квадрат/строка)
+// SVG-иконками + ТОГЛЫ (отметки нет/неделя/месяц, лица, название). Название — тогл только для квадрата
+// (строке ярлык нужен всегда). Правки применяются сразу (onChange → save → перерисовка).
+function CardStyleMenuLive({
+  open,
+  onClose,
+  anchorRef,
+  value,
+  onChange
+}) {
+  var [pos, setPos] = React.useState(null);
+  var st = value || bosLoadCardStyle();
+  React.useEffect(() => {
+    if (open && anchorRef && anchorRef.current) {
+      var r = anchorRef.current.getBoundingClientRect();
+      setPos({
+        right: Math.round(window.innerWidth - r.right),
+        top: Math.round(r.bottom + 10)
+      });
+    }
+  }, [open]);
+  if (!open || !pos) return null;
+  var set = patch => onChange(Object.assign({}, st, patch));
+  var SQ = /*#__PURE__*/React.createElement("svg", {
+    width: "34",
+    height: "20",
+    viewBox: "0 0 34 20",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "2",
+    y: "3",
+    width: "13",
+    height: "14",
+    rx: "3",
+    stroke: "#0a0a0a",
+    strokeWidth: "1.6"
+  }), /*#__PURE__*/React.createElement("rect", {
+    x: "19",
+    y: "3",
+    width: "13",
+    height: "14",
+    rx: "3",
+    stroke: "#0a0a0a",
+    strokeWidth: "1.6"
+  }));
+  var RC = /*#__PURE__*/React.createElement("svg", {
+    width: "34",
+    height: "20",
+    viewBox: "0 0 34 20",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "2",
+    y: "2.5",
+    width: "30",
+    height: "6.5",
+    rx: "2.5",
+    stroke: "#0a0a0a",
+    strokeWidth: "1.6"
+  }), /*#__PURE__*/React.createElement("rect", {
+    x: "2",
+    y: "11",
+    width: "30",
+    height: "6.5",
+    rx: "2.5",
+    stroke: "#0a0a0a",
+    strokeWidth: "1.6"
+  }));
+  var formBtn = (key, label, icon) => /*#__PURE__*/React.createElement("button", {
+    onClick: () => set({
+      form: key
+    }),
+    className: "tap",
+    style: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 7,
+      padding: "13px 6px",
+      borderRadius: 14,
+      border: st.form === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)",
+      background: st.form === key ? "rgba(10,10,10,0.05)" : "transparent",
+      cursor: "pointer"
+    }
+  }, icon, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: "#0a0a0a"
+    }
+  }, label));
+  var toggleRow = (label, on, onCh) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "9px 2px",
+      fontSize: 14.5,
+      fontWeight: 500,
+      color: "#0a0a0a"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, label), /*#__PURE__*/React.createElement(Switch, {
+    on: on,
+    onChange: onCh
+  }));
+  return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 8000,
+      background: "rgba(18,22,38,0.16)",
+      animation: "dimIn 0.18s ease both"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    role: "menu",
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "fixed",
+      right: pos.right,
+      top: pos.top,
+      transformOrigin: "top right",
+      animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
+      width: 256,
+      padding: 14,
+      borderRadius: 22,
+      background: "rgba(255,255,255,0.84)",
+      WebkitBackdropFilter: "blur(34px) saturate(180%)",
+      backdropFilter: "blur(34px) saturate(180%)",
+      border: "0.5px solid rgba(255,255,255,0.7)",
+      boxShadow: "0 16px 44px rgba(20,30,60,0.26)",
+      color: "#0a0a0a"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 0.8,
+      textTransform: "uppercase",
+      color: "rgba(10,10,10,0.42)",
+      marginBottom: 10
+    }
+  }, "\u0421\u0442\u0438\u043B\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, formBtn("square", "Квадрат", SQ), formBtn("rect", "Строка", RC)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: "rgba(10,10,10,0.08)",
+      margin: "13px 0 10px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      marginBottom: 8,
+      color: "rgba(10,10,10,0.5)"
+    }
+  }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0438"), /*#__PURE__*/React.createElement(Segmented, {
+    value: st.marks,
+    onChange: v => set({
+      marks: v
+    }),
+    options: [{
+      value: "none",
+      label: "Нет"
+    }, {
+      value: "week",
+      label: "Неделя"
+    }, {
+      value: "month",
+      label: "Месяц"
+    }]
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4
+    }
+  }, toggleRow("Лица друзей", st.faces, v => set({
+    faces: v
+  })), st.form === "square" && toggleRow("Название", st.name, v => set({
+    name: v
+  }))))), document.body);
+}
+
 // LIVE share-a-goal sheet — the goal twin of ShareHabitSheetLive, kept minimal: share
 // the app by your referral link with a line about the goal (goals aren't team-joined
 // like habits, so no "do together" roster here).
