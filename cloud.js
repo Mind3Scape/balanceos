@@ -78,13 +78,19 @@
   // published (no habit NAMES) — the orbit shows icons, so names never leave the device.
   async function savePublicStats(s) {
     var c = client(); var id = await uid(); if (!c || !id || !s) return false;
+    // МЕРЖ с последней опубликованной витриной: pub_orbit пишем ТОЛЬКО мы сами, так что локальная
+    // копия авторитетна. Коллер, не знающий поля (Главная не знает `people`), НЕ затирает нулём то,
+    // что опубликовал экран «Я» — иначе каждый заход на Главную стирал бы планеты у друзей.
+    var last = {}; try { last = JSON.parse(localStorage.getItem("bos:pubOrbit:last") || "{}") || {}; } catch (e) {}
+    var hb = Array.isArray(s.habits) ? s.habits : (Array.isArray(last.habits) ? last.habits : []);
     var blob = {
-      level: s.level | 0,
-      lvlPct: s.lvlPct | 0,
-      goals: s.goals | 0,
-      people: s.people | 0,
-      habits: (Array.isArray(s.habits) ? s.habits : []).slice(0, 12).map(function (h) { return { e: ("" + ((h && h.e) || "✨")).slice(0, 8), c: (h && h.c) || null }; }),
+      level: (s.level == null ? last.level : s.level) | 0,
+      lvlPct: (s.lvlPct == null ? last.lvlPct : s.lvlPct) | 0,
+      goals: (s.goals == null ? last.goals : s.goals) | 0,
+      people: (s.people == null ? last.people : s.people) | 0,
+      habits: hb.slice(0, 12).map(function (h) { return { e: ("" + ((h && h.e) || "✨")).slice(0, 8), c: (h && h.c) || null }; }),
     };
+    try { localStorage.setItem("bos:pubOrbit:last", JSON.stringify(blob)); } catch (e) {}
     try { var r = await c.from("profiles").update({ pub_orbit: blob }).eq("id", id); return !r.error; }
     catch (e) { return false; }
   }

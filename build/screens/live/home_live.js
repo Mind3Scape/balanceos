@@ -92,16 +92,21 @@ function HomeLive() {
   var _lvl = bosLevelInfoLive(_liveXP);
   var dayStreak = bosMaxStreak(habits);
   // Витрина для «Вселенной»: при каждом заходе на Главную (открывается каждую сессию) пишем свой
-  // ПУБЛИЧНЫЙ уровень + размер системы → у друзей в их Вселенной светятся твои РЕАЛЬНЫЕ данные, а не
-  // дефолт. Тот же расчёт уровня, что на «Я»; без колонок pub_* — cloud.js тихо no-op'ит. (Профиль «Я»
-  // пишет то же при заходе туда; запись идемпотентна — повтор тем же значением безвреден.)
+  // ПУБЛИЧНЫЙ уровень + ЗНАЧКИ привычек (эмодзи+цвет, БЕЗ названий) → у друзей в их Вселенной
+  // светятся твои РЕАЛЬНЫЕ планеты. `people` НЕ шлём — его знает экран «Я» (invitedPeople), а
+  // cloud.js мержит с последней витриной, так что оно не затрётся. habits обязан быть МАССИВОМ
+  // объектов {e,c}: число (как было) склад молча превращал в пустую орбиту и стирал витрину «Я».
   React.useEffect(() => {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats)) return;
     var t = setTimeout(() => {
       try {
         window.bosCloud.savePublicStats({
           level: _lvl.level,
-          habits: (app?.habits || []).length,
+          lvlPct: _lvl.pct,
+          habits: (app?.habits || []).map(h => ({
+            e: h.emoji,
+            c: h.color
+          })),
           goals: (app?.goals || []).length
         });
       } catch (e) {}
