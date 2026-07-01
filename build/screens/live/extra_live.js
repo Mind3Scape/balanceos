@@ -385,6 +385,11 @@ function GoalDetailLive() {
     params
   } = useNav();
   var app = typeof useApp === "function" ? useApp() : null;
+  var {
+    open: openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
   var back = params?.from || "habits";
   var seed = params?.goal || {
     id: 0,
@@ -701,7 +706,79 @@ function GoalDetailLive() {
       fontSize: 14.5,
       fontWeight: 600
     }
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0446\u0435\u043B\u0438"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0446\u0435\u043B\u0438"))), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: () => {
+      var go = () => {
+        if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, {
+          navigate,
+          from: back,
+          onShare: t => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+            team: t
+          }))
+        });
+      };
+      if (typeof ConfirmActionSheet === "function") {
+        openSheet(/*#__PURE__*/React.createElement(ConfirmActionSheet, {
+          emoji: "\uD83D\uDC65",
+          title: "\u0412\u0435\u0441\u0442\u0438 \u0446\u0435\u043B\u044C \u0432\u043C\u0435\u0441\u0442\u0435?",
+          message: "«" + g.name + "» станет общим кругом: твои привычки перейдут в него, и ты позовёшь людей. Отмечаешь у себя — идёт в общий счёт.",
+          confirmLabel: "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439",
+          confirmIcon: I.Users,
+          onConfirm: go
+        }));
+      } else {
+        go();
+      }
+    },
+    style: {
+      ...card,
+      borderRadius: 22,
+      padding: 14,
+      marginTop: 22,
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      border: 0,
+      textAlign: "left",
+      cursor: "pointer",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 13,
+      background: g.color ? g.color + "22" : isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Users, {
+    size: 19,
+    color: g.color || (isDark ? "#fff" : "#0a0a0a")
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, "\u0418\u0434\u0442\u0438 \u043A \u0446\u0435\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 1,
+      lineHeight: 1.4
+    }
+  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u043C \u043A\u0440\u0443\u0433\u043E\u043C.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 17,
+    color: "var(--text-4)"
+  })), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22

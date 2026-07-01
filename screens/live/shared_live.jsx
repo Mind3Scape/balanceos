@@ -999,6 +999,53 @@ function bosGoalProgress(goal, habits) {
   return { current: current, target: target, pct: pct, done: target > 0 && current >= target, fromHabits: fromHabits, linked: linked };
 }
 
+// ПРЕВРАЩЕНИЕ ЦЕЛИ В КРУГ «НА МЕСТЕ» (David: «тумблер соло↔вместе на той же цели, без пересоздания»).
+// Цель СТАНОВИТСЯ кругом, ПЕРЕНОСЯ всё: имя/значок/цель/срок + СВОИ ПРИВЫЧКИ (они уходят в круг как
+// командные, а личные копии линкуются teamId/teamHabitId → отметка у себя миррорится в командный счёт,
+// тот же механизм, что у команд тренера). Переиспользует проверенный путь createTeam/addTeamHabit.
+// goalLike = { id, name, emoji, color, target, unit, deadline, habitIds, challenge }. opts = { navigate,
+// from, onShare(team) }. Локально работает офлайн (addTeam кладёт привычки в t.habits); облако — если включено.
+function bosPromoteGoalToCircle(app, goalLike, opts) {
+  opts = opts || {};
+  if (!app || !goalLike) return null;
+  var vis = opts.vis || "private", type = opts.type || "collective", stake = Math.max(0, opts.stake || 0);
+  var linked = (app.habits || []).filter(function (h) { return (goalLike.habitIds || []).indexOf(h.id) >= 0; });
+  var teamObj = {
+    name: goalLike.name || "Цель", emblem: goalLike.emoji || "🎯", accent: goalLike.color || "#0a0a0a", vis: vis,
+    goal: (goalLike.target || 0) + " " + (goalLike.unit || ""), type: type,
+    target: goalLike.target || 0, current: 0, unit: goalLike.unit || "", stake: stake,
+    date: goalLike.deadline || "Этот месяц", progress: 0, members: [],
+    habits: linked.map(function (h, i) { return { name: h.name, emoji: h.emoji, isMain: i === 0 }; }),
+  };
+  if (goalLike.challenge) teamObj.challenge = goalLike.challenge;
+  var nt = app.addTeam(teamObj);
+  // Личные привычки цели теперь принадлежат кругу: teamId связывает, goalOnly снимаем (пусть видно),
+  // goalId чистим (цели больше нет). teamHabitId долетит из облака (миррор отметок в командный лог).
+  linked.forEach(function (h) { app.updateHabit(h.id, { teamId: nt._id, goalId: null, goalOnly: false }); });
+  if (goalLike.id != null && app.removeGoal) app.removeGoal(goalLike.id); // цель → круг (не остаётся дублем)
+  if (opts.navigate) opts.navigate("team-detail", { team: nt, from: opts.from || "habits" });
+  (async function () {
+    try {
+      if (window.bosCloud && window.bosCloud.enabled()) {
+        var row = await window.bosCloud.createTeam({ name: nt.name, emblem: teamObj.emblem, vis: vis, goalKind: nt.goal, goalTarget: nt.target, goal: { type: type, target: nt.target, unit: nt.unit, title: nt.name, stake: stake } });
+        if (row && row.id) {
+          if (app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id });
+          for (var i = 0; i < linked.length; i++) {
+            var th = await window.bosCloud.addTeamHabit(row.id, { name: linked[i].name, emoji: linked[i].emoji, isMain: i === 0, goalPerDay: linked[i].goalPerDay });
+            if (th && th.id && app.updateHabit) app.updateHabit(linked[i].id, { teamId: row.id, teamHabitId: th.id });
+          }
+          if (opts.onShare) opts.onShare(Object.assign({}, nt, { cloudId: row.id }));
+          return;
+        }
+      }
+    } catch (e) {}
+    // офлайн/превью → круг живёт локально, шторка приглашения всё равно. setTimeout — чтобы открыться
+    // ПОСЛЕ возможного close() подтверждающей шторки (иначе синхронный onShare закрылся бы сразу).
+    if (opts.onShare) setTimeout(function () { opts.onShare(nt); }, 0);
+  })();
+  return nt;
+}
+
 // Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,
 // those were fake seed personas). Delegates to PeopleStackLive so cards + teams share one logic.
 function HabitBuddyAvatarsLive({ habit, size = 22, max = 5 }) {

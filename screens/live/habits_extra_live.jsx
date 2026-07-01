@@ -527,28 +527,17 @@ function GoalSettingsLive() {
         // режимы, вступление по ссылке team_<cloudId>). «Цель+круг» и «команда» теперь одно и то же.
         // Зеркало TeamCreateLive.save: app.addTeam (локально → круг сразу в «Целях», работает офлайн)
         // → cloud.createTeam (для cloudId) → комната-орбита + шторка приглашения.
+        // КРУГ ВКЛ → ОДИН путь bosPromoteGoalToCircle (shared_live): создаёт круг, ПЕРЕНОСЯ выбранные
+        // привычки (linkedHabits.on) как командные + линкуя личные копии. При редактировании существующая
+        // цель превращается на месте (helper снимет её по goalLike.id). Режим/ставка/видимость — из формы.
         if (circleOn) {
-          if (editing && g0) app?.removeGoal(g0.id); // конверсия цели в круг: не оставляем дубль-цель рядом
           const _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
-          const teamObj = {
-            name: nm, emblem: iconPick, accent: color, vis: circleVis,
-            goal: tgt + " " + (unit || ""),          // строка-заголовок карточки (LiveTeamCard рендерит t.goal как текст)
-            type: goalType, target: tgt, current: 0, unit,
-            stake: _stake, date: "Этот месяц", progress: 0, members: [],
-          };
-          if (preset && preset.challenge) teamObj.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
-          const nt = app?.addTeam(teamObj);
-          navigate("team-detail", { team: nt });     // комната-орбита (читает живой круг из store по _id → cloudId долетит)
-          let opened = false;
-          try {
-            if (nt && window.bosCloud && window.bosCloud.enabled()) {
-              window.bosCloud.createTeam({ name: nt.name, emblem: iconPick, vis: circleVis, goalKind: nt.goal, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: nm, stake: _stake } })
-                .then((row) => { if (row && row.id && app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id }); openSheet(<TeamShareSheetLive team={{ ...nt, cloudId: row && row.id }} />); })
-                .catch(() => openSheet(<TeamShareSheetLive team={nt} />));
-              opened = true;
-            }
-          } catch (e) {}
-          if (!opened) openSheet(<TeamShareSheetLive team={nt} />); // офлайн/превью → круг живёт локально, шторка открывается сразу
+          const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
+          const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, color, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
+          if (preset && preset.challenge) goalLike.challenge = preset.challenge;
+          if (typeof bosPromoteGoalToCircle === "function") {
+            bosPromoteGoalToCircle(app, goalLike, { navigate, from: "habits", vis: circleVis, type: goalType, stake: _stake, onShare: (t) => openSheet(<TeamShareSheetLive team={t} />) });
+          }
           return;
         }
         // КРУГ ВЫКЛ → личная цель. Теперь несёт habitIds — привязанные привычки НАПОЛНЯЮТ её кольцо

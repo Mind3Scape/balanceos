@@ -220,6 +220,7 @@ function HabitDetailLive() {
 function GoalDetailLive() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const back = params?.from || "habits";
   const seed = params?.goal || { id: 0, emoji: "🎯", name: "Цель", current: 0, target: 1, unit: "", deadline: "" };
   const g = (app?.goals && app.goals.find((x) => x.id === seed.id)) || seed;
@@ -306,6 +307,23 @@ function GoalDetailLive() {
           <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
         </button>
       </div>
+
+      {/* ИДТИ К ЦЕЛИ ВМЕСТЕ — превращает ЭТУ цель в общий круг НА МЕСТЕ (David): переносит привычки,
+          зовёшь людей. Тап → лёгкое подтверждение → bosPromoteGoalToCircle. */}
+      <button className="tap" onClick={() => {
+        const go = () => { if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, { navigate, from: back, onShare: (t) => openSheet(<TeamShareSheetLive team={t} />) }); };
+        if (typeof ConfirmActionSheet === "function") {
+          openSheet(<ConfirmActionSheet emoji="👥" title="Вести цель вместе?" message={"«" + g.name + "» станет общим кругом: твои привычки перейдут в него, и ты позовёшь людей. Отмечаешь у себя — идёт в общий счёт."} confirmLabel="Позвать людей" confirmIcon={I.Users} onConfirm={go} />);
+        } else { go(); }
+      }}
+        style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22, width: "100%", display: "flex", alignItems: "center", gap: 12, border: 0, textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
+        <span style={{ width: 38, height: 38, borderRadius: 13, background: g.color ? g.color + "22" : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>Идти к цели вместе</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1, lineHeight: 1.4 }}>Позвать людей — цель станет общим кругом.</div>
+        </div>
+        <I.ChevronRight size={17} color="var(--text-4)" />
+      </button>
 
       {/* Pace hint — срок опускаем, если его нет (не «до undefined»). */}
       <div className="section-label" style={{ marginTop: 22 }}>Подсказка</div>
