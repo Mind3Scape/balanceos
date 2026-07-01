@@ -33,6 +33,12 @@ function HabitSettingsLive() {
   // habits resolve to their stable bosHabitColor when edited.
   const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a")) : (preset?.color ?? "#0a0a0a"));
   const [goal, setGoal] = useHS(editing ? (params.habit.goalPerDay || 1) : 1);
+  const [duration, setDuration] = useHS(editing ? (params.habit.duration || 0) : 0); // минуты; 0 = без таймера
+  // Как отмечать привычку — ОДИН из трёх ВЗАИМОИСКЛЮЧАЮЩИХ режимов (David: «не выдумывай третий способ,
+  // сделай едино»): «Галочка» (одно касание), «Счётчик» (N раз в день), «Таймер» (отсчёт минут). pickMode
+  // держит goal/duration согласованными, чтобы в привычку никогда не попали и счётчик, и таймер сразу.
+  const [markMode, setMarkMode] = useHS(editing ? ((params.habit.duration > 0) ? "timer" : ((params.habit.goalPerDay > 1) ? "count" : "check")) : "check");
+  const pickMode = (m) => { setMarkMode(m); if (m === "check") { setGoal(1); setDuration(0); } else if (m === "count") { setGoal(goal > 1 ? goal : 2); setDuration(0); } else { setDuration(duration > 0 ? duration : 15); setGoal(1); } };
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
   const [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7
     ? params.habit.days.slice()
@@ -127,16 +133,35 @@ function HabitSettingsLive() {
 
       {/* Goal — без внешней подписи (David: подписи блоков не несут нагрузки, суть ясна изнутри). */}
       <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 600 }}>{goal} {goal === 1 ? "раз" : "раз(а)"}</div>
-            <div style={{ fontSize: 13, color: "var(--text-4)" }}>или больше в день</div>
+        {/* Как отмечать — ОДИН выбор из трёх (взаимоисключающие). Нужный «шаговик» появляется ниже. */}
+        <Segmented value={markMode} onChange={pickMode} options={[{ value: "check", label: "Галочка" }, { value: "count", label: "Счётчик" }, { value: "timer", label: "Таймер" }]} />
+        {markMode === "check" && (
+          <div style={{ marginTop: 12, fontSize: 13, color: "var(--text-4)", lineHeight: 1.4 }}>Одно касание, когда сделал.</div>
+        )}
+        {markMode === "count" && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 600 }}>{goal} раз(а)</div>
+              <div style={{ fontSize: 13, color: "var(--text-4)" }}>или больше в день</div>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setGoal(Math.max(2, goal - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4}/></button>
+              <button onClick={() => setGoal(Math.min(20, goal + 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4}/></button>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setGoal(Math.max(1, goal - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4}/></button>
-            <button onClick={() => setGoal(goal + 1)} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4}/></button>
+        )}
+        {markMode === "timer" && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 600 }}>{duration} мин</div>
+              <div style={{ fontSize: 13, color: "var(--text-4)" }}>отсчёт времени на выполнение</div>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setDuration(Math.max(5, duration - 5))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4}/></button>
+              <button onClick={() => setDuration(Math.min(180, duration + 5))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4}/></button>
+            </div>
           </div>
-        </div>
+        )}
         {/* Days-of-week — tap a circle to toggle that day. All on = «каждый день». */}
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -242,7 +267,8 @@ function HabitSettingsLive() {
         const base = {
           emoji: iconPick, name: nm, color,
           days: days.slice(),                                  // 7-long Пн..Вс mask
-          goalPerDay: goal,
+          goalPerDay: markMode === "count" ? Math.max(2, goal) : 1,   // счётчик только в режиме «Счётчик»
+          duration: markMode === "timer" ? Math.max(1, duration) : 0, // таймер только в режиме «Таймер»
           reminder: { on: reminderOn, time: reminderTime },
         };
         if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)

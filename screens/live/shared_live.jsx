@@ -2989,6 +2989,91 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   );
 }
 
+// TIMER-привычка — тот же ЯЗЫК, что у количественной (HabitCountCheck): 30px стеклянный диск в центре +
+// 44px кольцо-оверлей, НО вместо счётчика внутри — кнопка ▶/⏸, а вместо колец-долей — СЕКЦИИ, которые
+// наполняются по мере хода времени (David: «плей и секции внутри нашего кружочка, вместо кольца»). Тап по
+// диску = старт/пауза; секции заливаются accent'ом в реальном времени; дошёл до конца → done + XP + ✓
+// (кольцо исчезает, остаётся стандартная галочка, как у всех). Тап по готовому = снять отметку и сбросить.
+function HabitTimerCheck({ habit, app, xp = 10 }) {
+  const total = Math.max(1, Math.round(habit.duration || 1)) * 60; // секунды
+  const isDone = !!habit.done;
+  const accent = bosHabitColor(habit);
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  const [running, setRunning] = React.useState(false);
+  const [elapsed, setElapsed] = React.useState(0);
+  const [tick, setTick] = React.useState(0);
+  const btnRef = React.useRef(null);
+  const done = isDone || (total > 0 && elapsed >= total);
+  const frac = isDone ? 1 : Math.min(1, elapsed / total);
+
+  // Тикаем по МЕТКАМ ВРЕМЕНИ (не по счёту тиков) → нет дрейфа, даже если вкладка «спит».
+  React.useEffect(() => {
+    if (!running) return;
+    const base = elapsed, start = Date.now();
+    const id = setInterval(() => {
+      const e = base + (Date.now() - start) / 1000;
+      if (e >= total) {
+        setElapsed(total); setRunning(false); setTick((t) => t + 1);
+        if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (_) {} }
+        if (!habit.done && app && app.toggleHabit) app.toggleHabit(habit.id); // flips done + XP
+      } else setElapsed(e);
+    }, 200);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const onClick = (e) => {
+    e.stopPropagation();
+    if (done) { // тап по готовому → снять отметку и обнулить таймер (как счётчик: done → 0)
+      if (isDone && app && app.toggleHabit) app.toggleHabit(habit.id);
+      setElapsed(0); setRunning(false);
+      if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} }
+      return;
+    }
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} }
+    setRunning((r) => !r);
+  };
+
+  // Та же геометрия, что у HabitCountCheck (44px кольцо-оверлей над 30px-боксом → диск не съезжает).
+  const SIZE = 44, CX = SIZE / 2, R = 19.5, sw = 3;
+  const track = isDark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)";
+  // Секции: число ~ по длительности (5..12), как в прежнем таймере. База — тускло, поверх — accent ровно
+  // на пройденную долю (целые секции + ЧАСТИЧНАЯ текущая), поэтому реально видно, как оно наполняется.
+  const SEG = Math.min(12, Math.max(5, Math.round(habit.duration || 6)));
+  const pitch = 360 / SEG, gap = Math.min(22, pitch * 0.34);
+  const pt = (deg) => { const a = deg * Math.PI / 180; return [(CX + R * Math.cos(a)).toFixed(2), (CX + R * Math.sin(a)).toFixed(2)]; };
+  const arc = (a0, a1) => { const p0 = pt(a0), p1 = pt(a1); return "M " + p0[0] + " " + p0[1] + " A " + R + " " + R + " 0 " + ((a1 - a0 > 180) ? 1 : 0) + " 1 " + p1[0] + " " + p1[1]; };
+  const pos = frac * SEG;
+  const ringEls = [];
+  for (let i = 0; i < SEG; i++) {
+    const a0 = -90 + i * pitch + gap / 2, a1 = -90 + (i + 1) * pitch - gap / 2;
+    ringEls.push(<path key={"b" + i} d={arc(a0, a1)} fill="none" stroke={track} strokeWidth={sw} strokeLinecap="round" />);
+  }
+  for (let i = 0; i < SEG; i++) {
+    const a0 = -90 + i * pitch + gap / 2, a1 = -90 + (i + 1) * pitch - gap / 2;
+    const f = Math.max(0, Math.min(1, pos - i));
+    if (f > 0.001) ringEls.push(<path key={"f" + i} d={arc(a0, a0 + (a1 - a0) * f)} fill="none" stroke={accent} strokeWidth={sw} strokeLinecap="round" style={{ transition: "d 0.2s linear" }} />);
+  }
+
+  // Диск = тот же 30px .check-btn. DONE → стандартное стекло + ✓. Иначе — серое стекло с ▶ (пауза) / ⏸ (идёт).
+  const disc = done
+    ? <span className="check-btn" style={{ width: 30, height: 30 }}><I.Check size={16} strokeWidth={2.8} color="#fff" /></span>
+    : <span className="check-btn unchecked" style={{ width: 30, height: 30, color: accent }}>
+        {running ? <I.Pause size={13} /> : <span style={{ display: "grid", placeItems: "center", transform: "translateX(0.5px)" }}><I.Play size={12} /></span>}
+      </span>;
+
+  return (
+    <div style={{ position: "relative", flexShrink: 0, width: 30, height: 30, display: "grid", placeItems: "center" }}>
+      <XpFloat tick={tick} xp={xp} anchorRef={btnRef} />
+      <button ref={btnRef} className="tap hit44" data-no-haptic onClick={onClick}
+        aria-label={running ? "Пауза таймера" : (done ? "Готово, снять отметку" : "Старт таймера " + Math.round(total / 60) + " минут")}
+        style={{ position: "relative", border: 0, background: "transparent", padding: 0, width: 30, height: 30, display: "grid", placeItems: "center", cursor: "pointer", overflow: "visible" }}>
+        {!done && <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none", overflow: "visible" }}>{ringEls}</svg>}
+        {disc}
+      </button>
+    </div>
+  );
+}
+
 /* Edit affordance — a ROUND glass pencil icon (NOT a text pill), the iOS way (David: «зачем
    писать „Изменить" — сделай иконку-карандаш в кружочке с тем же отражением, что у главной
    иконки привычки; стандартизировать по всему приложению»). One button for habit / goal / team

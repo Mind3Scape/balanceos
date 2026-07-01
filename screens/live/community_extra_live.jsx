@@ -754,7 +754,16 @@ function LevelsLive() {
   const xp = _xpLive;
   const next = _li.next;
   const pctBar = _li.pct;
-  const credits = _xpLive; // spendable balance = earned XP for live
+  // Кошелёк = заработано − потрачено. Уровень выше (hero) считается от ПОЛНОГО _xpLive и трата его НЕ
+  // трогает (David: «трата не обнуляет уровень»). Копилка синхронизируется в облаке через AppProvider.
+  const credits = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : _xpLive;
+  const [claimed, setClaimed] = React.useState({}); // купленные в этой сессии награды → строка «Получено»
+  const buyReward = (r, idx) => {
+    if (!r || claimed[idx] || credits < r.c) return;
+    if (app && typeof app.spendXP === "function" && app.spendXP(r.c)) {
+      setClaimed((m) => Object.assign({}, m, { [idx]: true }));
+    }
+  };
   const rUnlocked = (r) => lvl >= r.lvl;
   const rewards = [
     { i: "🎁", t: "Коробка-сюрприз", c: 200, lvl: 5, unlocked: true },
@@ -903,8 +912,8 @@ function LevelsLive() {
                 {rUnlocked(r) ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`}
               </div>
             </div>
-            <button disabled={!rUnlocked(r) || credits < r.c} className="tap" style={{ background: rUnlocked(r) && credits >= r.c ? "#FEDE34" : "var(--surface-3)", color: rUnlocked(r) && credits >= r.c ? "#0a0a0a" : "var(--text-4)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>
-              {rUnlocked(r) ? (credits >= r.c ? "Получить" : "Нужно больше") : "🔒"}
+            <button onClick={() => buyReward(r, i)} disabled={!rUnlocked(r) || !!claimed[i] || credits < r.c} className="tap" style={{ background: (rUnlocked(r) && credits >= r.c && !claimed[i]) ? "#FEDE34" : "var(--surface-3)", color: (rUnlocked(r) && credits >= r.c && !claimed[i]) ? "#0a0a0a" : "var(--text-4)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              {claimed[i] ? "✓ Получено" : rUnlocked(r) ? (credits >= r.c ? "Получить" : "Нужно больше") : "🔒"}
             </button>
           </SysCard>
         ))}

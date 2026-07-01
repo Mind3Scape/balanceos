@@ -38,6 +38,24 @@ function HabitSettingsLive() {
   // habits resolve to their stable bosHabitColor when edited.
   var [color, setColor] = useHS(editing ? params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a") : preset?.color ?? "#0a0a0a");
   var [goal, setGoal] = useHS(editing ? params.habit.goalPerDay || 1 : 1);
+  var [duration, setDuration] = useHS(editing ? params.habit.duration || 0 : 0); // минуты; 0 = без таймера
+  // Как отмечать привычку — ОДИН из трёх ВЗАИМОИСКЛЮЧАЮЩИХ режимов (David: «не выдумывай третий способ,
+  // сделай едино»): «Галочка» (одно касание), «Счётчик» (N раз в день), «Таймер» (отсчёт минут). pickMode
+  // держит goal/duration согласованными, чтобы в привычку никогда не попали и счётчик, и таймер сразу.
+  var [markMode, setMarkMode] = useHS(editing ? params.habit.duration > 0 ? "timer" : params.habit.goalPerDay > 1 ? "count" : "check" : "check");
+  var pickMode = m => {
+    setMarkMode(m);
+    if (m === "check") {
+      setGoal(1);
+      setDuration(0);
+    } else if (m === "count") {
+      setGoal(goal > 1 ? goal : 2);
+      setDuration(0);
+    } else {
+      setDuration(duration > 0 ? duration : 15);
+      setGoal(1);
+    }
+  };
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
   var [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7 ? params.habit.days.slice() : preset && Array.isArray(preset.days) && preset.days.length === 7 ? preset.days.slice() : [1, 1, 1, 1, 1, 1, 1]);
   var toggleDay = i => setDays(d => d.map((v, j) => j === i ? v ? 0 : 1 : v));
@@ -209,18 +227,39 @@ function HabitSettingsLive() {
       marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(Segmented, {
+    value: markMode,
+    onChange: pickMode,
+    options: [{
+      value: "check",
+      label: "Галочка"
+    }, {
+      value: "count",
+      label: "Счётчик"
+    }, {
+      value: "timer",
+      label: "Таймер"
+    }]
+  }), markMode === "check" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 13,
+      color: "var(--text-4)",
+      lineHeight: 1.4
+    }
+  }, "\u041E\u0434\u043D\u043E \u043A\u0430\u0441\u0430\u043D\u0438\u0435, \u043A\u043E\u0433\u0434\u0430 \u0441\u0434\u0435\u043B\u0430\u043B."), markMode === "count" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center"
+      alignItems: "center",
+      marginTop: 14
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 22,
       fontWeight: 600
     }
-  }, goal, " ", goal === 1 ? "раз" : "раз(а)"), /*#__PURE__*/React.createElement("div", {
+  }, goal, " \u0440\u0430\u0437(\u0430)"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       color: "var(--text-4)"
@@ -231,7 +270,7 @@ function HabitSettingsLive() {
       gap: 6
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setGoal(Math.max(1, goal - 1)),
+    onClick: () => setGoal(Math.max(2, goal - 1)),
     className: "tap hit44",
     style: {
       width: 32,
@@ -247,7 +286,61 @@ function HabitSettingsLive() {
     size: 16,
     strokeWidth: 2.4
   })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setGoal(goal + 1),
+    onClick: () => setGoal(Math.min(20, goal + 1)),
+    className: "tap hit44",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 999,
+      background: "var(--surface-3)",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 16,
+    strokeWidth: 2.4
+  })))), markMode === "timer" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 600
+    }
+  }, duration, " \u043C\u0438\u043D"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, "\u043E\u0442\u0441\u0447\u0451\u0442 \u0432\u0440\u0435\u043C\u0435\u043D\u0438 \u043D\u0430 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setDuration(Math.max(5, duration - 5)),
+    className: "tap hit44",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 999,
+      background: "var(--surface-3)",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Minus, {
+    size: 16,
+    strokeWidth: 2.4
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setDuration(Math.min(180, duration + 5)),
     className: "tap hit44",
     style: {
       width: 32,
@@ -544,7 +637,10 @@ function HabitSettingsLive() {
         color,
         days: days.slice(),
         // 7-long Пн..Вс mask
-        goalPerDay: goal,
+        goalPerDay: markMode === "count" ? Math.max(2, goal) : 1,
+        // счётчик только в режиме «Счётчик»
+        duration: markMode === "timer" ? Math.max(1, duration) : 0,
+        // таймер только в режиме «Таймер»
         reminder: {
           on: reminderOn,
           time: reminderTime

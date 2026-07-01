@@ -2136,7 +2136,18 @@ function LevelsLive() {
   var xp = _xpLive;
   var next = _li.next;
   var pctBar = _li.pct;
-  var credits = _xpLive; // spendable balance = earned XP for live
+  // Кошелёк = заработано − потрачено. Уровень выше (hero) считается от ПОЛНОГО _xpLive и трата его НЕ
+  // трогает (David: «трата не обнуляет уровень»). Копилка синхронизируется в облаке через AppProvider.
+  var credits = typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : _xpLive;
+  var [claimed, setClaimed] = React.useState({}); // купленные в этой сессии награды → строка «Получено»
+  var buyReward = (r, idx) => {
+    if (!r || claimed[idx] || credits < r.c) return;
+    if (app && typeof app.spendXP === "function" && app.spendXP(r.c)) {
+      setClaimed(m => Object.assign({}, m, {
+        [idx]: true
+      }));
+    }
+  };
   var rUnlocked = r => lvl >= r.lvl;
   var rewards = [{
     i: "🎁",
@@ -2670,18 +2681,22 @@ function LevelsLive() {
       marginTop: 2
     }
   }, rUnlocked(r) ? `${r.c} XP` : `Откроется на уровне ${r.lvl}`)), /*#__PURE__*/React.createElement("button", {
-    disabled: !rUnlocked(r) || credits < r.c,
+    onClick: () => buyReward(r, i),
+    disabled: !rUnlocked(r) || !!claimed[i] || credits < r.c,
     className: "tap",
     style: {
-      background: rUnlocked(r) && credits >= r.c ? "#FEDE34" : "var(--surface-3)",
-      color: rUnlocked(r) && credits >= r.c ? "#0a0a0a" : "var(--text-4)",
+      background: rUnlocked(r) && credits >= r.c && !claimed[i] ? "#FEDE34" : "var(--surface-3)",
+      color: rUnlocked(r) && credits >= r.c && !claimed[i] ? "#0a0a0a" : "var(--text-4)",
       border: 0,
       borderRadius: 999,
       padding: "8px 14px",
       fontSize: 12,
-      fontWeight: 600
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
     }
-  }, rUnlocked(r) ? credits >= r.c ? "Получить" : "Нужно больше" : "🔒")))));
+  }, claimed[i] ? "✓ Получено" : rUnlocked(r) ? credits >= r.c ? "Получить" : "Нужно больше" : "🔒")))));
 }
 
 /* ─── COURSE DETAIL — full programme description. No demo branches; faithful fork. ─── */

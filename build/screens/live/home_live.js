@@ -741,13 +741,11 @@ function HomeLive() {
         habit: h,
         size: 16,
         max: 5
-      }))), h.duration > 0 && !h.done && !(h.goalPerDay > 1) && /*#__PURE__*/React.createElement(HabitRing, {
+      }))), h.duration > 0 && !(h.goalPerDay > 1) ? /*#__PURE__*/React.createElement(HabitTimerCheck, {
         habit: h,
-        dark: isDark,
-        onComplete: () => {
-          if (!h.done) toggle(h.id);
-        }
-      }), h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
+        app: app,
+        xp: XP_PER_HABIT
+      }) : h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
         habit: h,
         app: app,
         xp: XP_PER_HABIT

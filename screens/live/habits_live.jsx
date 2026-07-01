@@ -213,12 +213,12 @@ function HabitsLive() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
         <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
-            <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
-          )}
-          {h.goalPerDay > 1
-            ? <HabitCountCheck habit={h} app={app} xp={10} />
-            : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
+          {/* ОДИН контрол: таймер (▶ + секции) ИЛИ счётчик (кольцо) ИЛИ галочка — не два рядом. */}
+          {h.duration > 0 && !(h.goalPerDay > 1)
+            ? <HabitTimerCheck habit={h} app={app} xp={10} />
+            : h.goalPerDay > 1
+              ? <HabitCountCheck habit={h} app={app} xp={10} />
+              : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />}
         </span>
       </div>
       <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>

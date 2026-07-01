@@ -2285,6 +2285,37 @@ function AppProvider({
     }
   }, [habits, goals, teams]);
 
+  // ── XP-КОШЕЛЁК (копилка) ────────────────────────────────────────────
+  // Две РАЗНЫЕ величины (David: «из копилки тратим, но трата НЕ обнуляет уровень»):
+  //   • УРОВЕНЬ = всё, что заработано за всё время (bosLiveXPLive) — только растёт, трата его не касается.
+  //   • КОШЕЛЁК = заработано − потрачено = сколько сейчас можно потратить.
+  // spentXP = сумма всего потраченного (только растёт). Живёт в localStorage И в облачном блобе, поэтому
+  // копилка едет за пользователем на другое устройство. spendXP(n) списывает n из кошелька.
+  var [spentXP, setSpentXP] = useState(() => {
+    try {
+      return parseInt(localStorage.getItem("bos:spentXP") || "0", 10) || 0;
+    } catch (e) {
+      return 0;
+    }
+  });
+  var spendXP = amount => {
+    var a = Math.max(0, amount | 0);
+    if (!a) return false;
+    setSpentXP(function (prev) {
+      var next = (prev | 0) + a;
+      try {
+        localStorage.setItem("bos:spentXP", String(next));
+      } catch (e) {}
+      return next;
+    });
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+    return true;
+  };
+
   // ── Local-first persistence (the spine) ────────────────────────────
   // A real user's life is saved under their profile id; the demo (id = null) is
   // intentionally NEVER persisted, so a reload always reseeds Павел's showcase.
@@ -2307,6 +2338,7 @@ function AppProvider({
   // re-upserted user_state + profiles → wasted writes + table bloat. localStorage still saves every time.
   var lastCloudBlobRef = useRef(null);
   var lastCloudProfRef = useRef(null);
+  var lastPubRef = useRef(null); // подпись последней опубликованной «орбиты» (Вселенная) — дедуп записей
   // True while a live login is hydrating from the cloud — blocks the autosave below so
   // empty/just-defaulted local state can't race ahead and overwrite real cloud data.
   var hydratingRef = useRef(false);
@@ -2323,7 +2355,9 @@ function AppProvider({
     dayMoods,
     dayNotes,
     widgets,
-    wheelSpheres
+    wheelSpheres,
+    claimedChallenges,
+    spentXP
   };
   useEffect(() => {
     if (!persistId || !window.bosStore) return;
@@ -2362,7 +2396,9 @@ function AppProvider({
             dayMoods,
             dayNotes,
             widgets,
-            wheelSpheres
+            wheelSpheres,
+            claimedChallenges,
+            spentXP
           });
           if (_blobStr !== lastCloudBlobRef.current) {
             window.bosCloud.saveSnapshot({
@@ -2370,7 +2406,9 @@ function AppProvider({
               dayMoods,
               dayNotes,
               widgets,
-              wheelSpheres
+              wheelSpheres,
+              claimedChallenges,
+              spentXP
             });
             lastCloudBlobRef.current = _blobStr;
           }
@@ -2380,7 +2418,7 @@ function AppProvider({
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres]);
+  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres, claimedChallenges, spentXP]);
 
   // Flush synchronously when the app is backgrounded/closed: the 400 ms debounce above
   // would otherwise lose the very last check-in if the user swipes the app away. localStorage
@@ -2409,7 +2447,9 @@ function AppProvider({
             dayMoods: s.dayMoods,
             dayNotes: s.dayNotes,
             widgets: s.widgets,
-            wheelSpheres: s.wheelSpheres
+            wheelSpheres: s.wheelSpheres,
+            claimedChallenges: s.claimedChallenges,
+            spentXP: s.spentXP
           });
           if (_blobStr !== lastCloudBlobRef.current) {
             window.bosCloud.saveSnapshot({
@@ -2417,7 +2457,9 @@ function AppProvider({
               dayMoods: s.dayMoods,
               dayNotes: s.dayNotes,
               widgets: s.widgets,
-              wheelSpheres: s.wheelSpheres
+              wheelSpheres: s.wheelSpheres,
+              claimedChallenges: s.claimedChallenges,
+              spentXP: s.spentXP
             });
             lastCloudBlobRef.current = _blobStr;
           }
@@ -2434,6 +2476,56 @@ function AppProvider({
       document.removeEventListener("visibilitychange", onVis);
     };
   }, []);
+
+  // ── Публичная «орбита» для Вселенной ────────────────────────────────
+  // Каждый пользователь публикует свою орбиту (уровень + ЗНАЧКИ привычек {эмодзи,цвет} + числа целей/людей),
+  // чтобы друзья видели её у себя во «Вселенной». Раньше это делалось ТОЛЬКО на экране «Я» (ProfileLive),
+  // поэтому друг, ни разу не открывший профиль, оставался пустым (без привычек на орбите). Публикуем на
+  // уровне провайдера — при любом заходе и изменении привычек/уровня орбита в облаке остаётся свежей.
+  // Дедуп по подписи → лишних записей нет. Пусто/дефолт-пользователь не публикуется (нет persistId).
+  useEffect(() => {
+    if (mode !== "live" || !persistId || hydratingRef.current) return;
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats)) return;
+    var appLike = {
+      habits,
+      goals,
+      teams,
+      dayMoods,
+      dayNotes,
+      claimedChallenges,
+      spentXP,
+      invitedCount,
+      teamGoalXP
+    };
+    var _xp = typeof bosLiveXPLive === "function" ? bosLiveXPLive(appLike) : 0;
+    var _li = typeof bosLevelInfoLive === "function" ? bosLevelInfoLive(_xp) : {
+      level: 1,
+      pct: 2
+    };
+    var pubHabits = (habits || []).map(function (h) {
+      return {
+        e: h.emoji,
+        c: h.color
+      };
+    });
+    var sig = JSON.stringify(pubHabits) + "|" + _li.level + "|" + _li.pct + "|" + (goals || []).length + "|" + (invitedCount | 0);
+    if (sig === lastPubRef.current) return;
+    var t = setTimeout(function () {
+      try {
+        window.bosCloud.savePublicStats({
+          level: _li.level,
+          lvlPct: _li.pct,
+          habits: pubHabits,
+          goals: (goals || []).length,
+          people: invitedCount | 0
+        });
+        lastPubRef.current = sig;
+      } catch (e) {}
+    }, 600);
+    return function () {
+      clearTimeout(t);
+    };
+  }, [mode, persistId, habits, goals, invitedCount, teamGoalXP, claimedChallenges, spentXP, dayMoods]);
 
   // L1 — the home AI line refreshes on REAL game events, not on every app-open: a NEW DAY,
   // or after you actually played (checked habits / logged state). Same day + same game
@@ -2672,6 +2764,24 @@ function AppProvider({
             var _localNotes = saved && saved.dayNotes || {};
             var _cloudMoods = snap && snap.data && snap.data.dayMoods || {};
             var _cloudNotes = snap && snap.data && snap.data.dayNotes || {};
+            // XP-КОШЕЛЁК между устройствами: заработанные бонусы (claimedChallenges) СЛИВАЕМ (объединение —
+            // никогда не теряем заработанное, поэтому уровень не падает при входе с другого телефона);
+            // потрачено (spentXP) берём МАКСИМУМ (трата только копится, «возврата» при переходе быть не может).
+            // Старые снимки без этих полей → облачная часть пустая → берётся локальная копия (регресса нет).
+            var _mClaimed = Object.assign({}, snap && snap.data && snap.data.claimedChallenges || {}, claimedChallenges || {});
+            if (Object.keys(_mClaimed).length !== Object.keys(claimedChallenges || {}).length) {
+              setClaimedChallenges(_mClaimed);
+              try {
+                localStorage.setItem("bos:claimedXP", JSON.stringify(_mClaimed));
+              } catch (e) {}
+            }
+            var _mSpent = Math.max(snap && snap.data && snap.data.spentXP | 0 || 0, spentXP | 0);
+            if (_mSpent !== (spentXP | 0)) {
+              setSpentXP(_mSpent);
+              try {
+                localStorage.setItem("bos:spentXP", String(_mSpent));
+              } catch (e) {}
+            }
             if (snap && snap.data && cloudAt >= localAt) {
               var d = snap.data;
               // habits/goals are NO LONGER in the blob — they're loaded from rows below.
@@ -2695,7 +2805,9 @@ function AppProvider({
                   dayMoods: _mMoods,
                   dayNotes: _mNotes,
                   wheelSpheres: d.wheelSpheres,
-                  widgets: d.widgets
+                  widgets: d.widgets,
+                  claimedChallenges: _mClaimed,
+                  spentXP: _mSpent
                 });
               }
             } else {
@@ -2709,7 +2821,9 @@ function AppProvider({
                 dayMoods: _mMoods2,
                 dayNotes: _mNotes2,
                 wheelSpheres: src.wheelSpheres,
-                widgets: src.widgets
+                widgets: src.widgets,
+                claimedChallenges: _mClaimed,
+                spentXP: _mSpent
               });
             }
             // Reconciliation done → allow autosave again (the join below should persist).
@@ -3041,6 +3155,8 @@ function AppProvider({
       teamGoalXP,
       refreshTeamGoalXP,
       claimedChallenges,
+      spentXP,
+      spendXP,
       pendingAch,
       clearPendingAch,
       pendingJoinWelcome,

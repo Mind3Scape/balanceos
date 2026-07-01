@@ -91,6 +91,12 @@ function bosChallengeBonusXPLive(app) {
   for (var k in c) { if (Object.prototype.hasOwnProperty.call(c, k)) sum += (c[k] | 0); }
   return sum;
 }
+// XP-КОШЕЛЁК (сколько можно потратить) = ВСЁ заработанное − уже потрачено. Отдельно от уровня: уровень
+// считается от bosLiveXPLive (всё заработанное) и трата его НЕ трогает (David: «трата не обнуляет уровень»).
+// Никогда не отрицательный. spentXP приходит из AppProvider и синхронизируется в облаке вместе с копилкой.
+function bosLiveSpendableXPLive(app) {
+  return Math.max(0, bosLiveXPLive(app) - ((app && app.spentXP) | 0));
+}
 // XP → level. Each level costs a little more than the last (100, 150, 200…): a gentle curve
 // so the first wins come fast and later levels feel earned.
 function bosLevelInfoLive(xp) {

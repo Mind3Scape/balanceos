@@ -321,12 +321,12 @@ function HomeLive() {
                           </div>
                         )}
                       </div>
-                      {h.duration > 0 && !h.done && !(h.goalPerDay > 1) && (
-                        <HabitRing habit={h} dark={isDark} onComplete={() => { if (!h.done) toggle(h.id); }} />
-                      )}
-                      {h.goalPerDay > 1
-                        ? <HabitCountCheck habit={h} app={app} xp={XP_PER_HABIT} />
-                        : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} float />}
+                      {/* ОДИН контрол: таймер (▶ + секции) ИЛИ счётчик (кольцо) ИЛИ галочка — не два рядом. */}
+                      {h.duration > 0 && !(h.goalPerDay > 1)
+                        ? <HabitTimerCheck habit={h} app={app} xp={XP_PER_HABIT} />
+                        : h.goalPerDay > 1
+                          ? <HabitCountCheck habit={h} app={app} xp={XP_PER_HABIT} />
+                          : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} float />}
                     </div>
                   </SwipeRow>
                 </div>
