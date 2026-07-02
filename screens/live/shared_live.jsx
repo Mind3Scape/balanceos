@@ -1078,10 +1078,11 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   return nt;
 }
 
-// СТАТИЧНАЯ МИНИ-ОРБИТА для карточки цели/круга (David: «превью — вокруг чего цель, а не просто
-// смайлик; орбиты наполняются привычками и людьми; пусть статично»). Центр = значок цели, вокруг —
-// её привычки (эмодзи) на внутреннем кольце и люди (лица) на внешнем. Ничего не крутится (перф на
-// многих карточках + спокойствие). Лёгкий CSS, БЕЗ useOrbClock. habits=[{emoji,color}], people=[{avatar,name}].
+// МИНИ-ОРБИТА для карточки цели/круга (David: «превью — вокруг чего цель, а не просто смайлик;
+// орбиты наполняются привычками и людьми»). Центр = значок цели, вокруг — её привычки (эмодзи) на
+// внутреннем кольце и люди (лица) на внешнем. МЕДЛЕННО КРУТИТСЯ (David передумал «пусть статично» →
+// «не крутятся»): CSS bosSpin/bosSpinR, кольца в разные стороны, диски counter-rotate = прямые.
+// Дёшево (только transform, GPU). habits=[{emoji,color}], people=[{avatar,name}].
 function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], size = 128, dark = false }) {
   var C = size / 2;
   var cR = Math.round(size * 0.19);            // центр-диск (радиус)
@@ -1091,34 +1092,45 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   var ringLine = dark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.09)";
   var accent = centerColor || (dark ? "#fff" : "#0a0a0a");
   var ring = function (R) { return <span aria-hidden style={{ position: "absolute", left: C - R, top: C - R, width: R * 2, height: R * 2, borderRadius: "50%", border: "1px solid " + ringLine }} />; };
-  var place = function (items, R, sz, off, render) {
+  var place = function (items, R, sz, off, render, spin) {
     return items.map(function (it, i) {
       var ang = (i / Math.max(1, items.length)) * Math.PI * 2 - Math.PI / 2 + off;
       var x = C + Math.cos(ang) * R, y = C + Math.sin(ang) * R;
-      return <span key={i} style={{ position: "absolute", left: Math.round(x - sz / 2), top: Math.round(y - sz / 2), width: sz, height: sz }}>{render(it)}</span>;
+      return <span key={i} style={{ position: "absolute", left: Math.round(x - sz / 2), top: Math.round(y - sz / 2), width: sz, height: sz, animation: spin || undefined }}>{render(it)}</span>;
     });
   };
   var hSz = Math.max(16, Math.round(size * 0.16));
   var pSz = Math.max(16, Math.round(size * 0.155));
+  // РАЗМЕР эмодзи задаём ЯВНО через fontSize на диске: bosIcon для эмодзи (не sf-символов) игнорит
+  // size и возвращает голую строку → иначе эмодзи наследует крупный шрифт карточки и ВЫЛЕЗАЕТ за
+  // кружок (баг David). Для sf-символов bosIcon отдаёт SVG нужного размера — fontSize им не мешает.
+  var hIcon = Math.round(hSz * 0.62), cIcon = Math.round(cR * 1.05);
   // ЕДИНЫЙ серый глянцевый диск — тот же язык, что у OrbitField на «Я»/настройках (#eef1f6→#dadfe7 +
   // BOS_TILE_SHEEN). David: «кружочки должны быть стандартизированы как на странице настроек», без
   // разнобоя (то цветной-прозрачный, то белый). И привычки, и центр = один диск.
   var sheen = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "");
   var discBg = sheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, #eef1f6, #dadfe7)");
   var discShadow = (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)");
+  // ОРБИТА КРУТИТСЯ (David: «не крутятся»): кольцо привычек — по часовой, кольцо людей — против,
+  // МЕДЛЕННО (спокойно). Диски counter-rotate на ту же длительность → эмодзи/лица стоят прямо.
+  // bosSpin/bosSpinR — готовые keyframes (mobile.css); willChange → GPU-слой, дёшево на карточках.
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} aria-hidden>
       {ring(r1)}{ring(r2)}
-      {/* привычки — СТАНДАРТНЫЙ серый глянцевый диск с эмодзи (внутреннее кольцо) */}
-      {place(hb, r1, hSz, 0, function (h) {
-        return <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center" }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, Math.round(hSz * 0.62), null) : (h.emoji || "✨")}</span>;
-      })}
-      {/* люди — реальные лица BuddyFaceLive (тот же серый диск-язык), внешнее кольцо */}
-      {place(pp, r2, pSz, 0.32, function (p) {
-        return <span style={{ display: "block", borderRadius: "50%" }}>{typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={p.avatar} name={p.name} size={pSz} /> : null}</span>;
-      })}
-      {/* центр = значок цели на ТОМ ЖЕ сером диске (чуть крупнее) */}
-      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center" }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", Math.round(cR * 1.05), null) : (centerEmoji || "🎯")}</span>
+      {/* привычки — внутреннее кольцо, по часовой */}
+      <div style={{ position: "absolute", inset: 0, animation: "bosSpin 40s linear infinite", willChange: "transform" }}>
+        {place(hb, r1, hSz, 0, function (h) {
+          return <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: hIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, hIcon, null) : (h.emoji || "✨")}</span>;
+        }, "bosSpinR 40s linear infinite")}
+      </div>
+      {/* люди — реальные лица BuddyFaceLive (тот же серый диск-язык), внешнее кольцо, против часовой */}
+      <div style={{ position: "absolute", inset: 0, animation: "bosSpinR 52s linear infinite", willChange: "transform" }}>
+        {place(pp, r2, pSz, 0.32, function (p) {
+          return <span style={{ display: "block", borderRadius: "50%" }}>{typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={p.avatar} name={p.name} size={pSz} /> : null}</span>;
+        }, "bosSpin 52s linear infinite")}
+      </div>
+      {/* центр = значок цели на ТОМ ЖЕ сером диске (чуть крупнее), СТАТИЧНЫЙ по центру */}
+      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: cIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, null) : (centerEmoji || "🎯")}</span>
     </div>
   );
 }
