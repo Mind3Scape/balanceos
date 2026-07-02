@@ -1,33 +1,30 @@
 /* HABIT / GOAL / INFO — LIVE-only forks (real Telegram user, app.mode === "live"
-   is ALWAYS true here). These three screens get dedicated live copies so the two
-   demos (demo & fresh) stay FROZEN on the originals in screens/habits.jsx. In each
-   fork the `_isLive` / `app?.mode === "live"` checks collapse to their TRUE branch
-   and the demo/fresh branches are deleted — DeadlineCalendarLive always uses the
-   real "today", the share/invite flow always runs the REAL cloud
-   path (createTeam → addTeamHabit → share sheet), and the friend chips start from
-   the user's REAL invited circle (no sample faces, no demo cycle-pool). The
-   iOS-Headline typography polish is applied: the habit/goal name preview title and
-   the «Далее» card title now render at fontWeight 600 + color var(--text) instead
-   of the thin 500. Everything else reuses the shared core/ toolkit
-   (HabitInviteShareSheet, HABIT_ICONS, HABIT_COLORS, HABIT_COLOR_NAMES,
-   WEEKDAY_LABELS, daysSummary, INFO_TOPICS) + the DeadlineCalendarLive fork
-   (shared_live.jsx) + framework (PageHeader, Switch, Segmented, I, hooks useApp/useNav/useSheet,
-   window.bosCloud, window.tgHaptic). The ONLY new top-level declarations in this
-   file are exactly: const INFO_TOPICS_LIVE, function HabitSettingsLive,
-   function GoalSettingsLive and function InfoLive. INFO_TOPICS_LIVE is a deepened fork
-   of core INFO_TOPICS (teams guide added, reading-time removed) so the живые гайды grow
-   while the DEMO reader stays frozen on the core originals. */
+   is ALWAYS true here). These screens get dedicated live copies so the two
+   demos (demo & fresh) stay FROZEN on the originals in screens/habits.jsx.
+   СОЗДАНИЕ/ПРАВКА привычки и цели = ШТОРКИ (David: «всё такое — всплывающими
+   шторками снизу вверх, унифицировано»): HabitFormSheetLive / GoalFormSheetLive
+   открываются через openSheet ПОВЕРХ текущего экрана (правка на месте, как
+   TeamQuickEditSheetLive), создание и правка — ОДНА и та же шторка. Эмодзи-пикер и
+   «Пригласить» — вторые вью ВНУТРИ той же шторки (one-sheet host, без вложенных).
+   navigate приходит ПРОПОМ (шторки рендерятся вне NavCtx). Старые роуты
+   habit-settings / goal-settings остались ФОЛБЭКОМ: редиректят на «Привычки» и
+   поднимают шторку — ни один старый вход не ломается. Everything else reuses the
+   shared core/ toolkit (WEEKDAY_LABELS, daysSummary) + the DeadlineCalendarLive fork
+   (shared_live.jsx) + framework (Switch, Segmented, I, hooks useApp/useNav/useSheet,
+   window.bosCloud, window.tgHaptic). Top-level declarations in this file:
+   const INFO_TOPICS_LIVE, function HabitFormSheetLive, function GoalFormSheetLive,
+   function HabitSettingsLive, function GoalSettingsLive, function InfoLive. */
 
-function HabitSettingsLive() {
-  const { navigate, params } = useNav();
-  const { open: openSheet } = useSheet();
+function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goalFor: goalForProp = null, navigate }) {
+  const { open: openSheet, close } = useSheet();
   const app = useApp();
-  const editing = params?.mode === "edit";
-  const preset = params?.preset; // quick-add chip → {i: emoji, t: label}
+  const editing = mode === "edit" && !!habit;
+  const params = { habit: habit }; // локальный шим: тело формы исторически читает params.habit
   // Создаём привычку ДЛЯ конкретной цели → после сохранения привяжем её к цели (habitIds) и вернёмся
   // в цель. goalOnly = «вести только внутри цели» (не показывать в общем списке привычек) — David: «час
   // рояля не хочу выводить на личную». (Существующая привычка тоже помнит goalOnly при редактировании.)
-  const goalFor = params?.goalFor || null;
+  const goalFor = goalForProp || null;
+  const [view, setView] = useHS("form"); // form | picker | share — вторые вью внутри ОДНОЙ шторки
   const [goalOnly, setGoalOnly] = useHS(editing ? !!params.habit.goalOnly : false);
   const [name, setName] = useHS(editing ? params.habit.name : (preset?.t || "Прогулка"));
   const [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : (preset?.i || "👟"));
@@ -84,14 +81,12 @@ function HabitSettingsLive() {
       return null;
     }
   };
-  // Invite-now (the «Пригласить» button): build the shared team and open the real
-  // share sheet. Falls back to a plain referral link if the team step fails.
-  // Invite = the gamified ShareHabitSheetLive (real t.me/<bot>?startapp=ref_<uid> referral
-  // link via bosInviteLink — NOT the old github.io/?team= link, which can't open the Mini
-  // App from Telegram). No phantom mini-team is created (h.shared/teamId were unused).
+  // Invite-now (the «Пригласить» button): the gamified ShareHabitSheetLive (real referral
+  // link via bosInviteLink) — теперь ВТОРОЙ ВЬЮ внутри этой же шторки (не openSheet, который
+  // заменил бы форму и потерял введённое). «Назад» возвращает к форме.
   const inviteFriend = () => {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-    openSheet(<ShareHabitSheetLive habit={{ name: name.trim() || "Новая привычка", emoji: iconPick, color }} />);
+    setView("share");
   };
   // Soft pastel palette so each real friend chip still gets a pleasant colour.
   const _FCOLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
@@ -113,16 +108,36 @@ function HabitSettingsLive() {
   }, []);
   const [type, setType] = useHS("build");
 
+  // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (как в TeamQuickEditSheetLive) —
+  // вложенный openSheet заменил бы форму и потерял ввод.
+  if (view === "picker") {
+    return (
+      <div style={{ padding: "2px 16px 18px" }}>
+        <EmojiPickerLive embedded current={iconPick} accent={color} onPick={(e) => { setIconPick(e); setView("form"); }} />
+        <button onClick={() => setView("form")} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Назад</button>
+      </div>
+    );
+  }
+  // ВТОРОЙ ВЬЮ: «Пригласить» — реальный шаринг, с возвратом к форме.
+  if (view === "share") {
+    return (
+      <div style={{ padding: "2px 0 18px" }}>
+        <ShareHabitSheetLive habit={{ name: name.trim() || "Новая привычка", emoji: iconPick, color }} />
+        <button onClick={() => setView("form")} className="tap" style={{ width: "calc(100% - 40px)", margin: "10px 20px 0", background: "transparent", border: 0, padding: "10px", fontSize: 13.5, fontWeight: 600, color: "var(--text-3)" }}>← Назад к привычке</button>
+      </div>
+    );
+  }
+
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title={editing ? "Изменить привычку" : "Новая привычка"} onBack={() => navigate("habits")} />
+    <div style={{ padding: "2px 16px 20px", maxHeight: "80vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить привычку" : "Новая привычка"}</div>
       {/* Identity — icon (tap → emoji panel), name (tap → type) and colour all in ONE card;
           no separate «Название» field, no preset row (the emoji panel already has every
           emoji). David: «зачем целое отдельное поле… сделай целостно». */}
       <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* Tap the tile → emoji PANEL (opens straight on emojis, no ABC keyboard). */}
-          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} current={iconPick} accent={color} />)}
+          {/* Tap the tile → emoji PANEL — второй вью этой же шторки. */}
+          <button type="button" data-haptic="selection" onClick={() => setView("picker")}
             style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 28, color)}
           </button>
@@ -298,26 +313,26 @@ function HabitSettingsLive() {
           const g = (app?.goals || []).find((x) => x.id === goalFor.id);
           const ids = (((g && g.habitIds) || [])).concat(nh.id);
           app?.updateGoal(goalFor.id, { habitIds: ids });
-          navigate("goal-detail", { goal: Object.assign({}, g || goalFor, { habitIds: ids }), from: "habits" });
+          // Шторка открыта ПОВЕРХ деталей цели — та читает app.goals живьём, кольцо
+          // подрастёт само. Никуда не уводим, просто закрываемся.
           return true;
         };
-        // SHARED habit: if sharing is on, spin up the mini-team + team-habit and open
-        // the share sheet. Guarded — if anything fails, the habit is still saved.
+        // SHARED habit: if sharing is on, save + swap this sheet for the share sheet
+        // (one-sheet host: содержимое шторки меняется, форма уже сохранена).
         if (shareOn && !goalFor) {
           if (editing) app?.updateHabit(params.habit.id, base);
           else app?.addHabit(base);
-          navigate("habits"); // the sheet lives above the router, so it stays open over the list
           openSheet(<ShareHabitSheetLive habit={{ name: nm, emoji: iconPick, color }} />);
           return;
         }
         if (editing) { app?.updateHabit(params.habit.id, base); }
-        else { const nh = app?.addHabit(base); if (linkToGoal(nh)) return; }
-        navigate("habits");
+        else { const nh = app?.addHabit(base); if (linkToGoal(nh)) { close(); return; } }
+        close();
       }}>
         {editing ? "Сохранить" : goalFor ? "Добавить в цель" : "Добавить привычку"}
       </button>
       {editing && (
-        <button className="tap" onClick={() => { app?.removeHabit(params.habit.id); navigate("habits"); }}
+        <button className="tap" onClick={() => { app?.removeHabit(params.habit.id); close(); if (typeof navigate === "function") navigate("habits"); }}
           style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
           Удалить привычку
         </button>
@@ -326,16 +341,28 @@ function HabitSettingsLive() {
   );
 }
 
-/* ─── GOAL SETTINGS — create / edit a goal (LIVE) ──────────────── */
-function GoalSettingsLive() {
+/* Фолбэк-роут: любой оставшийся navigate("habit-settings", …) приводит на «Привычки»
+   и поднимает ту же шторку — старые входы не ломаются. */
+function HabitSettingsLive() {
   const { navigate, params } = useNav();
+  const { open } = useSheet();
+  React.useEffect(() => {
+    navigate("habits");
+    open(<HabitFormSheetLive mode={params?.mode || "create"} habit={params?.habit || null} preset={params?.preset || null} goalFor={params?.goalFor || null} navigate={navigate} />);
+  }, []); // eslint-disable-line
+  return null;
+}
+
+/* ─── GOAL FORM — create / edit a goal, ШТОРКА (LIVE) ──────────────── */
+function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: presetProp = null, circleOn: circleOnProp = false, navigate }) {
   const app = useApp();
-  const { open: openSheet } = useSheet();
-  const editing = params?.mode === "edit";
-  const g0 = editing ? params.goal : null;
+  const { open: openSheet, close } = useSheet();
+  const editing = mode === "edit" && !!goalProp;
+  const g0 = editing ? goalProp : null;
+  const [view, setView] = useHS("form"); // form | picker — пикер = второй вью этой же шторки
   // Quick-add goal preset (from the Цели tab chip) → {i,t,target,unit,deadline}. Seeds the form so
   // tapping «Пробежать марафон» lands you on a pre-filled goal, same as habit quick-add presets.
-  const preset = (!editing && params?.preset) ? params.preset : null;
+  const preset = (!editing && presetProp) ? presetProp : null;
   const [name, setName] = useHS(g0?.name || preset?.t || "Пробежать марафон");
   const [iconPick, setIconPick] = useHS(g0?.emoji || preset?.i || "🎯");
   // Goals carry a colour exactly like habits — default BLACK (the app's b&w base); the
@@ -351,8 +378,8 @@ function GoalSettingsLive() {
   // КРУГ — «цель + круг = команда»: включаешь круг → цель становится КОМАНДОЙ (один движок —
   // комната-орбита, режимы, вступление по ссылке team_<cloudId>). Тумблер только переключает путь
   // сохранения ниже: вкл → app.addTeam (а не addGoal). David: один механизм, без второго «лёгкого» круга.
-  // КРУГ — тумблер «вести вместе». Можно предвключить через params.circleOn (входы «Собери круг» / чипы-круги).
-  const [circleOn, setCircleOn] = useHS(g0?.circle === true || params?.circleOn === true);
+  // КРУГ — тумблер «вести вместе». Можно предвключить пропом circleOn (входы «Собери круг» / чипы-круги).
+  const [circleOn, setCircleOn] = useHS(g0?.circle === true || circleOnProp === true);
   // Полные КРУГ-настройки (раскрываются при тумблере) — режим/видимость/XP-ставка. Раньше жили в
   // отдельной форме «Создать команду»; теперь это одна форма (David: «круг = цель + тумблер»).
   const [goalType, setGoalType] = useHS(g0?.type || preset?.goalType || "collective"); // collective | streak | race
@@ -372,15 +399,25 @@ function GoalSettingsLive() {
   const QUICK_TERMS = ["Неделя", "Месяц", "1 год"];
   const svoyActive = showCal || (!!deadline && !QUICK_TERMS.includes(deadline)); // custom date/range → highlight «Свой срок»
 
+  // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (единая логика с формой привычки).
+  if (view === "picker") {
+    return (
+      <div style={{ padding: "2px 16px 18px" }}>
+        <EmojiPickerLive embedded current={iconPick} accent={color} onPick={(e) => { setIconPick(e); setView("form"); }} />
+        <button onClick={() => setView("form")} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Назад</button>
+      </div>
+    );
+  }
+
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title={editing ? "Изменить цель" : "Новая цель"} onBack={() => navigate("habits")} />
+    <div style={{ padding: "2px 16px 20px", maxHeight: "80vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить цель" : "Новая цель"}</div>
 
       {/* Identity — icon (tap → emoji panel) + inline name in ONE card, same logic as the
           habit create screen (David: «модифицируй создание целей в той же логике»). */}
       <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setIconPick} current={iconPick} accent={color} />)}
+          <button type="button" data-haptic="selection" onClick={() => setView("picker")}
             style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 28, color)}
           </button>
@@ -456,7 +493,7 @@ function GoalSettingsLive() {
                 {h.on && <I.Check size={12} strokeWidth={3}/>}
               </button>
             ))}
-            <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{
+            <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />)} style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "5px 11px", borderRadius: 999,
               background: "transparent", border: "1px dashed rgba(0,0,0,0.18)",
@@ -541,6 +578,7 @@ function GoalSettingsLive() {
           const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
           const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, color, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
           if (preset && preset.challenge) goalLike.challenge = preset.challenge;
+          close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
           if (typeof bosPromoteGoalToCircle === "function") {
             bosPromoteGoalToCircle(app, goalLike, { navigate, from: "habits", vis: circleVis, type: goalType, stake: _stake, onShare: (t) => openSheet(<TeamShareSheetLive team={t} />) });
           }
@@ -553,18 +591,30 @@ function GoalSettingsLive() {
         if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
         if (editing) app?.updateGoal(g0.id, data);
         else app?.addGoal(data);
-        navigate("habits");
+        close();
       }}>
         {editing ? "Сохранить" : "Создать цель"}
       </button>
       {editing && (
-        <button className="tap" onClick={() => { app?.removeGoal(g0.id); navigate("habits"); }}
+        <button className="tap" onClick={() => { app?.removeGoal(g0.id); close(); if (typeof navigate === "function") navigate("habits"); }}
           style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
           Удалить цель
         </button>
       )}
     </div>
   );
+}
+
+/* Фолбэк-роут: любой оставшийся navigate("goal-settings", …) приводит на «Привычки»
+   и поднимает ту же шторку — старые входы не ломаются. */
+function GoalSettingsLive() {
+  const { navigate, params } = useNav();
+  const { open } = useSheet();
+  React.useEffect(() => {
+    navigate("habits");
+    open(<GoalFormSheetLive mode={params?.mode || "create"} goal={params?.goal || null} preset={params?.preset || null} circleOn={params?.circleOn === true} navigate={navigate} />);
+  }, []); // eslint-disable-line
+  return null;
 }
 
 /* LIVE knowledge guides — a deepened fork of core INFO_TOPICS. Each topic carries an accent
@@ -623,12 +673,13 @@ const INFO_TOPICS_LIVE = {
 /* ─── INFO SCREEN — knowledge articles (LIVE) ──────────────────── */
 function InfoLive() {
   const { navigate, params } = useNav();
+  const { open: openSheet } = useSheet();
   const topic = INFO_TOPICS_LIVE[params?.topic] || INFO_TOPICS_LIVE["habits-basics"];
   const accent = topic.accent || "#0a0a0a";
   const goCta = () => {
     if (params?.topic === "teams-101") return navigate("community");
-    if (params?.topic === "goals-101") return navigate("goal-settings", { mode: "create" });
-    return navigate("habit-settings", { mode: "create" });
+    if (params?.topic === "goals-101") return openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />);
+    return openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />);
   };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>

@@ -298,10 +298,11 @@ function HabitDetailLive() {
       size: 16,
       strokeWidth: 2
     })), /*#__PURE__*/React.createElement(EditGlassButtonLive, {
-      onClick: () => navigate("habit-settings", {
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
         mode: "edit",
-        habit: h
-      })
+        habit: h,
+        navigate: navigate
+      }))
     }))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -451,10 +452,11 @@ function GoalDetailLive() {
     title: "",
     onBack: () => navigate(back),
     right: /*#__PURE__*/React.createElement(EditGlassButtonLive, {
-      onClick: () => navigate("goal-settings", {
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
         mode: "edit",
-        goal: g
-      })
+        goal: g,
+        navigate: navigate
+      }))
     })
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -706,13 +708,14 @@ function GoalDetailLive() {
     }
   }, "\u0426\u0435\u043B\u044C \u043D\u0430\u043F\u043E\u043B\u043D\u044F\u044E\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u0432\u0435\u0434\u0443\u0449\u0438\u0435 \u043A \u043D\u0435\u0439. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u0438 \u043A\u043E\u043B\u044C\u0446\u043E \u043D\u0430\u0447\u043D\u0451\u0442 \u0440\u0430\u0441\u0442\u0438 \u0441\u0430\u043C\u043E."), /*#__PURE__*/React.createElement("button", {
     className: "tap",
-    onClick: () => navigate("habit-settings", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
       mode: "create",
       goalFor: {
         id: g.id,
         name: g.name
-      }
-    }),
+      },
+      navigate: navigate
+    })),
     style: {
       width: "100%",
       display: "flex",
@@ -1519,6 +1522,11 @@ function AIChatLive() {
     navigate,
     params
   } = useNav();
+  var {
+    open: openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
   var app = typeof useApp === "function" ? useApp() : null;
   // The mentor's avatar = the orb of your CURRENT state (mood-tinted). Your own
   // avatar sits up top (it's your conversation). Your messages carry no avatar.
@@ -1917,15 +1925,16 @@ function AIChatLive() {
         }
       }, /*#__PURE__*/React.createElement("button", {
         className: "tap",
-        onClick: () => navigate("habit-settings", {
+        onClick: () => openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
           mode: "create",
           preset: {
             i: a.emoji || "✨",
             t: a.name,
             color: a.color || null,
             time: a.time || null
-          }
-        }),
+          },
+          navigate: navigate
+        })),
         style: {
           flex: 1,
           background: TH.primary,

@@ -597,9 +597,10 @@ function HomeLive() {
         }
       }, doneCount, " \u0438\u0437 ", totalCount)), habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
         className: "tap",
-        onClick: () => navigate("habit-settings", {
-          mode: "create"
-        }),
+        onClick: () => openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+          mode: "create",
+          navigate: navigate
+        })),
         style: {
           width: "100%",
           background: "transparent",
@@ -794,9 +795,10 @@ function HomeLive() {
         }
       }, goals.length)), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
         className: "tap",
-        onClick: () => navigate("goal-settings", {
-          mode: "create"
-        }),
+        onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+          mode: "create",
+          navigate: navigate
+        })),
         style: {
           width: "100%",
           background: "transparent",

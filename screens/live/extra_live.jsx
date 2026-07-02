@@ -166,7 +166,8 @@ function HabitDetailLive() {
             style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark) }}>
             <I.Share size={16} strokeWidth={2} />
           </button>
-          <EditGlassButtonLive onClick={() => navigate("habit-settings", { mode: "edit", habit: h })} />
+          {/* Правка НА МЕСТЕ — шторка над деталью (единый паттерн с правкой круга). */}
+          <EditGlassButtonLive onClick={() => openSheet(<HabitFormSheetLive mode="edit" habit={h} navigate={navigate} />)} />
         </div>
       } />
 
@@ -253,7 +254,7 @@ function GoalDetailLive() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
-        <EditGlassButtonLive onClick={() => navigate("goal-settings", { mode: "edit", goal: g })} />
+        <EditGlassButtonLive onClick={() => openSheet(<GoalFormSheetLive mode="edit" goal={g} navigate={navigate} />)} />
       } />
 
       {/* Hero — ОРБИТА (если включена в стиле целей) или кольцо (Apple-Watch). Орбита = цель в центре,
@@ -319,7 +320,7 @@ function GoalDetailLive() {
         {linked.length === 0 && (
           <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>Цель наполняют привычки, ведущие к ней. Добавь первую — и кольцо начнёт расти само.</div>
         )}
-        <button className="tap" onClick={() => navigate("habit-settings", { mode: "create", goalFor: { id: g.id, name: g.name } })}
+        <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" goalFor={{ id: g.id, name: g.name }} navigate={navigate} />)}
           style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: linked.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0, background: "transparent", border: 0, color: "var(--text-2)", cursor: "pointer" }}>
           <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
           <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
@@ -655,6 +656,7 @@ function JournalLive() {
    live chat persists on-device (private). Drops the scripted demo seed + demo time. */
 function AIChatLive() {
   const { navigate, params } = useNav();
+  const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const app = (typeof useApp === "function") ? useApp() : null;
   // The mentor's avatar = the orb of your CURRENT state (mood-tinted). Your own
   // avatar sits up top (it's your conversation). Your messages carry no avatar.
@@ -833,7 +835,7 @@ function AIChatLive() {
             )}
             {a.why && <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 10, color: TH.muted }}>{a.why}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <button className="tap" onClick={() => navigate("habit-settings", { mode: "create", preset: { i: a.emoji || "✨", t: a.name, color: a.color || null, time: a.time || null } })} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 14, padding: "11px 14px", fontSize: 14, fontWeight: 600 }}>Создать привычку</button>
+              <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" preset={{ i: a.emoji || "✨", t: a.name, color: a.color || null, time: a.time || null }} navigate={navigate} />)} style={{ flex: 1, background: TH.primary, color: TH.primaryFg, border: 0, borderRadius: 14, padding: "11px 14px", fontSize: 14, fontWeight: 600 }}>Создать привычку</button>
               <button className="tap" data-no-haptic onClick={() => setMsgs((mm) => mm.filter((x) => x.aid !== m.aid))} style={{ background: TH.skipBg, color: TH.text, border: TH.skipBorder, borderRadius: 14, padding: "11px 14px", fontSize: 14 }}>Не сейчас</button>
             </div>
           </div>

@@ -555,6 +555,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
 /* NetworkLocked → live-only: the REAL ways to climb (habits / state / team). No demo
    premium-course showcase, no dev "instant unlock" bypass. */
 function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft }) {
+  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const xpPct = Math.max(0, Math.min(1, xp / xpMax));
   const ruLvl = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "уровень" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "уровня" : "уровней"; };
   const progPct = ((10 - levelsLeft - 1 + xpPct) / 10 * 100).toFixed(1);
@@ -576,7 +577,7 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft }) {
     {
       i: "🤝", t: "Делайте вместе",
       d: "Общие цели и привычки с друзьями тоже идут в твой опыт — и так веселее.",
-      cta: "Цель вместе", action: () => navigate("goal-settings", { mode: "create", circleOn: true }),
+      cta: "Цель вместе", action: () => _openSheet(<GoalFormSheetLive mode="create" circleOn={true} navigate={navigate} />),
       meta: "Вместе с друзьями",
       accent: "#85e3a8",
     },
@@ -1882,6 +1883,7 @@ function AddWidgetSheetLive({ defs = [], dark = false }) {
 }
 
 function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
+  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const [pos, setPos] = React.useState(null);
   React.useEffect(() => {
     if (open && anchorRef && anchorRef.current) {
@@ -1894,8 +1896,8 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   // «Идти к цели вместе» ВНУТРИ создания цели). Монохромные SVG-иконки в стекле: огонёк-серия =
   // привычка, флажок-вершина = цель. Тот же компонент на главной И на стр. Привычки → меню одинаковое.
   const items = [
-    { icon: I.Flame, label: "Привычку", go: () => navigate("habit-settings", { mode: "create" }) },
-    { icon: I.Flag,  label: "Цель",     go: () => navigate("goal-settings", { mode: "create" }) },
+    { icon: I.Flame, label: "Привычку", go: () => _openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />) },
+    { icon: I.Flag,  label: "Цель",     go: () => _openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />) },
   ];
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
@@ -2219,6 +2221,7 @@ function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark, l
    wheel / orbit 2nd page was removed). newbie (no habits) → "С чего начать" hints; else →
    AI-brief summary + action pills. The account avatar (XP ring) lives here — the main AI block. */
 function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark }) {
+  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const [ringShown, setRingShown] = React.useState(0);
   React.useEffect(() => { const t = setTimeout(() => setRingShown(ringPct), 80); return () => clearTimeout(t); }, [ringPct]);
   const heroApp = useApp ? useApp() : null;
@@ -2267,7 +2270,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
           { i: "🙋", t: "Рассказать о себе", go: () => navigate("ai-chat", { prompt: "Я хочу рассказать о себе — задай мне пару коротких вопросов и подскажи, с каких привычек начать." }) },
-          { i: "➕", t: "Создать привычку",  go: () => navigate("habit-settings", { mode: "create" }) },
+          { i: "➕", t: "Создать привычку",  go: () => _openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />) },
           { i: "🧭", t: "Как всё устроено",  go: () => navigate("guide") },
           { i: "✨", t: "Спросить ИИ",        go: () => navigate("ai-chat") },
         ].map((c, i) => (
@@ -2670,6 +2673,7 @@ const CIRCLE_STARTERS = [
   { i: "📖", t: "Книжный клуб",       goalType: "collective", goalTitle: "Прочитано глав",    target: 100,  unit: "глав",  hook: "Читаем и обсуждаем вместе" },
 ];
 function CircleStartersShowcaseLive({ navigate }) {
+  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
@@ -2678,7 +2682,7 @@ function CircleStartersShowcaseLive({ navigate }) {
       </div>
       <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "0 0 4px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
         {CIRCLE_STARTERS.map((s) => (
-          <div key={s.t} className="tap" onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("goal-settings", { mode: "create", circleOn: true, preset: s }); }}
+          <div key={s.t} className="tap" onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<GoalFormSheetLive mode="create" circleOn={true} preset={s} navigate={navigate} />); }}
             style={{ flex: "0 0 auto", width: 162, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", cursor: "pointer", display: "flex", flexDirection: "column" }}>
             <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{bosIcon(s.i, 23, null)}</span>
             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.t}</div>

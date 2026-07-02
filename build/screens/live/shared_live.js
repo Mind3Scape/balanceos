@@ -1094,6 +1094,11 @@ function NetworkLockedLive({
   xpMax,
   levelsLeft
 }) {
+  var {
+    open: _openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
   var xpPct = Math.max(0, Math.min(1, xp / xpMax));
   var ruLvl = n => {
     var m = n % 10,
@@ -1122,10 +1127,11 @@ function NetworkLockedLive({
     t: "Делайте вместе",
     d: "Общие цели и привычки с друзьями тоже идут в твой опыт — и так веселее.",
     cta: "Цель вместе",
-    action: () => navigate("goal-settings", {
+    action: () => _openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
       mode: "create",
-      circleOn: true
-    }),
+      circleOn: true,
+      navigate: navigate
+    })),
     meta: "Вместе с друзьями",
     accent: "#85e3a8"
   }];
@@ -4275,6 +4281,11 @@ function CreateMenuLive({
   anchorRef,
   navigate
 }) {
+  var {
+    open: _openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
   var [pos, setPos] = React.useState(null);
   React.useEffect(() => {
     if (open && anchorRef && anchorRef.current) {
@@ -4292,15 +4303,17 @@ function CreateMenuLive({
   var items = [{
     icon: I.Flame,
     label: "Привычку",
-    go: () => navigate("habit-settings", {
-      mode: "create"
-    })
+    go: () => _openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+      mode: "create",
+      navigate: navigate
+    }))
   }, {
     icon: I.Flag,
     label: "Цель",
-    go: () => navigate("goal-settings", {
-      mode: "create"
-    })
+    go: () => _openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+      mode: "create",
+      navigate: navigate
+    }))
   }];
   return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     onClick: onClose,
@@ -5244,6 +5257,11 @@ function HomeHeroSwipeLive({
   ringPct,
   isDark
 }) {
+  var {
+    open: _openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
   var [ringShown, setRingShown] = React.useState(0);
   React.useEffect(() => {
     var t = setTimeout(() => setRingShown(ringPct), 80);
@@ -5342,9 +5360,10 @@ function HomeHeroSwipeLive({
   }, {
     i: "➕",
     t: "Создать привычку",
-    go: () => navigate("habit-settings", {
-      mode: "create"
-    })
+    go: () => _openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+      mode: "create",
+      navigate: navigate
+    }))
   }, {
     i: "🧭",
     t: "Как всё устроено",
@@ -6679,6 +6698,11 @@ var CIRCLE_STARTERS = [{
 function CircleStartersShowcaseLive({
   navigate
 }) {
+  var {
+    open: _openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -6718,11 +6742,12 @@ function CircleStartersShowcaseLive({
           window.tgHaptic("selection");
         } catch (e) {}
       }
-      navigate("goal-settings", {
+      _openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
         mode: "create",
         circleOn: true,
-        preset: s
-      });
+        preset: s,
+        navigate: navigate
+      }));
     },
     style: {
       flex: "0 0 auto",

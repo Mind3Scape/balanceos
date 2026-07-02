@@ -296,7 +296,7 @@ function HomeLive() {
             {habits.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{doneCount} из {totalCount}</span>}
           </div>
           {habits.length === 0 ? (
-            <button className="tap" onClick={() => navigate("habit-settings", { mode: "create" })} style={{ width: "100%", background: "transparent", border: 0, padding: "6px 20px 26px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />)} style={{ width: "100%", background: "transparent", border: 0, padding: "6px 20px 26px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
               <div style={{ fontSize: 15, fontWeight: 600 }}>Здесь будут твои привычки</div>
               <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
@@ -347,7 +347,7 @@ function HomeLive() {
             {goals.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{goals.length}</span>}
           </div>
           {goals.length === 0 ? (
-            <button className="tap" onClick={() => navigate("goal-settings", { mode: "create" })} style={{ width: "100%", background: "transparent", border: 0, padding: "6px 20px 26px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <button className="tap" onClick={() => openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />)} style={{ width: "100%", background: "transparent", border: 0, padding: "6px 20px 26px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
               <div style={{ fontSize: 15, fontWeight: 600 }}>Пока нет целей</div>
               <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
