@@ -1071,10 +1071,13 @@ function HomeLive() {
   var savedOrder = (Array.isArray(widgets.order) ? widgets.order : []).filter(id => DEFAULT_ORDER.includes(id));
   var fullOrder = [...savedOrder, ...DEFAULT_ORDER.filter(id => !savedOrder.includes(id))];
   var nodes = {};
+  // Предохранитель: упавший виджет просто не показывается — остальная главная живёт.
   fullOrder.forEach(id => {
     if (isWidgetOn(id)) {
-      var n = nodeOf(id);
-      if (n != null) nodes[id] = n;
+      try {
+        var n = nodeOf(id);
+        if (n != null) nodes[id] = n;
+      } catch (e) {}
     }
   });
   var visibleIds = fullOrder.filter(id => nodes[id] != null);
