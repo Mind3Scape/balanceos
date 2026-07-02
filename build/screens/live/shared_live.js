@@ -6973,16 +6973,30 @@ function CircleFriendsStripLive({
 }
 
 /* «Живые круги» — витрина населённого приложения (David: «хочу увидеть живые круги чисто чтоб
-   создавать иллюзию... сама жизнь должна быть по-настоящему»). Это ПРИМЕРЫ: настоящие лица-мемоджи
-   + живой счёт «N отметились сегодня» дают ощущение, что круги идут прямо сейчас. Тап НЕ обманывает
-   фейковым «вступить» — ведёт в форму создания ПРЕД-ЗАПОЛНЕННУЮ (собери такой же круг). */
+   создавать иллюзию... сама жизнь должна быть по-настоящему»). Это ПРИМЕРЫ КУРИРУЕМЫХ публичных
+   кругов: настоящие лица-мемоджи + живой счёт «N отметились сегодня». Тап → ШТОРКА круга
+   (LivingCircleSheetLive): орбита с привычками и людьми (как на карточках целей), описание,
+   привычки круга и кнопка «Постучаться» — заявка «будет рассмотрена» (David: тап НЕ должен
+   уводить в создание такой же командной цели). habits кормят орбиту и чипы. */
 var LIVING_CIRCLES = [{
+  id: "lc-run",
   i: "🏃",
   t: "Утренние пробежки",
   hook: "Выходят на рассвете — вместе проще не проспать",
+  about: "Круг тех, кто начинает день с пробежки. Дистанция любая — важно выйти. Отметки складываются в общую серию, а по воскресеньям делятся маршрутами.",
   faces: ["m3", "m7", "m11", "m2", "m15"],
   total: 18,
   today: 9,
+  habits: [{
+    emoji: "🏃",
+    name: "Пробежка"
+  }, {
+    emoji: "🌅",
+    name: "Ранний подъём"
+  }, {
+    emoji: "🧦",
+    name: "Разминка"
+  }],
   preset: {
     i: "🏃",
     t: "Утренние пробежки",
@@ -6993,12 +7007,21 @@ var LIVING_CIRCLES = [{
     unit: "дней"
   }
 }, {
+  id: "lc-calm",
   i: "🧘",
   t: "Тишина по утрам",
   hook: "5 минут медитации — никто не сходит с дистанции",
+  about: "Спокойный круг: пять минут тишины до телефона и новостей. Здесь не соревнуются — просто держат ритм вместе и делятся, что помогает не съезжать.",
   faces: ["m8", "m4", "m12", "m6", "m17", "m10"],
   total: 24,
   today: 13,
+  habits: [{
+    emoji: "🧘",
+    name: "Медитация"
+  }, {
+    emoji: "📓",
+    name: "Дневник"
+  }],
   preset: {
     i: "🧘",
     t: "Тишина по утрам",
@@ -7009,12 +7032,21 @@ var LIVING_CIRCLES = [{
     unit: "дней"
   }
 }, {
+  id: "lc-book",
   i: "📚",
   t: "Книжный клуб",
   hook: "Глава в день и живое обсуждение в чате круга",
+  about: "Читают по главе в день — за месяц выходит целая книга. Раз в неделю голосуют за следующую и обсуждают прочитанное. Отставать не страшно: догоняют вместе.",
   faces: ["m5", "m9", "m1", "m14"],
   total: 11,
   today: 4,
+  habits: [{
+    emoji: "📖",
+    name: "Глава в день"
+  }, {
+    emoji: "✍️",
+    name: "Заметка о прочитанном"
+  }],
   preset: {
     i: "📚",
     t: "Книжный клуб",
@@ -7025,12 +7057,18 @@ var LIVING_CIRCLES = [{
     unit: "книг"
   }
 }, {
+  id: "lc-water",
   i: "💧",
   t: "Восемь стаканов",
   hook: "Пьют воду и держат друг друга в тонусе",
+  about: "Самый простой круг: восемь стаканов воды в день. Идеален как первый общий ритуал — лёгкий, но каждый день видно, кто в строю.",
   faces: ["m13", "m16", "m2", "m7"],
   total: 9,
   today: 6,
+  habits: [{
+    emoji: "💧",
+    name: "Стакан воды"
+  }],
   preset: {
     i: "💧",
     t: "Восемь стаканов",
@@ -7041,6 +7079,216 @@ var LIVING_CIRCLES = [{
     unit: "дней"
   }
 }];
+
+// «Постучаться» — заявки живут локально (bos:knockedCircles), чтобы кнопка честно помнила
+// «Заявка отправлена» между входами. Публичные круги курируются — реальный approve появится
+// вместе с настоящими публичными кругами; пока это витрина-пример.
+function bosLoadKnockedCircles() {
+  try {
+    return JSON.parse(localStorage.getItem("bos:knockedCircles") || "{}") || {};
+  } catch (e) {
+    return {};
+  }
+}
+function bosMarkKnockedCircle(id) {
+  var n = Object.assign({}, bosLoadKnockedCircles(), {
+    [id]: true
+  });
+  try {
+    localStorage.setItem("bos:knockedCircles", JSON.stringify(n));
+  } catch (e) {}
+  try {
+    window.dispatchEvent(new Event("bos:circlesKnocked"));
+  } catch (e) {}
+  return n;
+}
+
+/* ШТОРКА живого круга — «заглянуть внутрь»: орбита (привычки круга + лица на кольцах — тот же
+   GoalOrbitMini, что на карточках целей), о чём круг, чипы привычек и «Постучаться в круг».
+   Тап по «Постучаться» → «Заявка отправлена — её рассмотрят». Внизу тихая ссылка «Собрать
+   похожий круг» (прежнее действие карточки) — для тех, кто хочет свой. */
+function LivingCircleSheetLive({
+  circle: s,
+  navigate
+}) {
+  var {
+    open: openSheet,
+    close
+  } = useSheet();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isDark = app && app.themeOverride === "dark";
+  var [knocked, setKnocked] = React.useState(function () {
+    return !!bosLoadKnockedCircles()[s.id];
+  });
+  var knock = () => {
+    if (knocked) return;
+    bosMarkKnockedCircle(s.id);
+    setKnocked(true);
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+  };
+  var people = (s.faces || []).map(function (a) {
+    return {
+      avatar: a,
+      name: ""
+    };
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 20px 20px",
+      maxHeight: "82vh",
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 190,
+      height: 190,
+      margin: "2px auto 0",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, typeof GoalOrbitMini === "function" ? /*#__PURE__*/React.createElement(GoalOrbitMini, {
+    centerEmoji: s.i,
+    centerColor: null,
+    habits: s.habits || [],
+    people: people,
+    size: 190,
+    dark: isDark
+  }) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 56
+    }
+  }, s.i)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 21,
+      fontWeight: 700,
+      letterSpacing: "-0.4px",
+      color: "var(--text)",
+      marginTop: 10
+    }
+  }, s.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 5,
+      fontWeight: 500
+    }
+  }, s.total, " \u0432 \u043A\u0440\u0443\u0433\u0435 \xB7 ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-2)",
+      fontWeight: 700
+    }
+  }, s.today), " \u043E\u0442\u043C\u0435\u0442\u0438\u043B\u0438\u0441\u044C \u0441\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text-3)",
+      lineHeight: 1.5,
+      marginTop: 12,
+      textAlign: "left"
+    }
+  }, s.about || s.hook), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      marginTop: 14,
+      flexWrap: "wrap",
+      justifyContent: "flex-start"
+    }
+  }, (s.habits || []).map(function (h, i) {
+    return /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        ...bosChipGlass(isDark),
+        padding: "6px 12px 6px 8px",
+        borderRadius: 999,
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "var(--text-2)"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14
+      }
+    }, bosIcon(h.emoji, 14, null)), h.name);
+  })), knocked ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      background: "rgba(52,199,89,0.14)",
+      color: "#1E8E4E",
+      borderRadius: 16,
+      padding: "13px",
+      fontWeight: 700,
+      display: "flex",
+      flexDirection: "column",
+      gap: 2
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      fontSize: 15
+    }
+  }, /*#__PURE__*/React.createElement(I.Check, {
+    size: 17,
+    strokeWidth: 3
+  }), " \u0417\u0430\u044F\u0432\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0430"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 500,
+      color: "var(--text-3)"
+    }
+  }, "\u041A\u0440\u0443\u0433 \u0435\u0451 \u0440\u0430\u0441\u0441\u043C\u043E\u0442\u0440\u0438\u0442 \u2014 \u043E\u0442\u0432\u0435\u0442 \u043F\u0440\u0438\u0434\u0451\u0442 \u0441\u044E\u0434\u0430.")) : /*#__PURE__*/React.createElement("button", {
+    onClick: knock,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 18,
+      background: "#0a0a0a",
+      color: "#fff",
+      border: 0,
+      borderRadius: 999,
+      padding: 15,
+      fontSize: 15.5,
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(I.Users, {
+    size: 17
+  }), " \u041F\u043E\u0441\u0442\u0443\u0447\u0430\u0442\u044C\u0441\u044F \u0432 \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("button", {
+    onClick: function () {
+      openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+        mode: "create",
+        circleOn: true,
+        preset: s.preset,
+        navigate: navigate
+      }));
+    },
+    className: "tap",
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--text-3)",
+      padding: "12px",
+      marginTop: 6,
+      fontSize: 13.5,
+      fontWeight: 600
+    }
+  }, "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u043F\u043E\u0445\u043E\u0436\u0438\u0439 \u043A\u0440\u0443\u0433 \u2192"));
+}
 
 // Overlapping memoji faces — the visual «жизнь» of a circle. Each face gets a card-coloured ring
 // so the stack reads cleanly; «+N» disc closes the overflow up to the circle's total.
@@ -7089,6 +7337,23 @@ function LivingCircleFaces({
 function LivingCirclesShowcaseLive({
   navigate
 }) {
+  var {
+    open: _openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
+  var [knockedMap, setKnockedMap] = React.useState(bosLoadKnockedCircles);
+  React.useEffect(function () {
+    // «Постучался» в шторке → карточка под ней сразу показывает «Заявка отправлена»
+    // (то же событие-зеркало, что у партнёров bos:partnersChanged).
+    var h = function () {
+      setKnockedMap(bosLoadKnockedCircles());
+    };
+    window.addEventListener("bos:circlesKnocked", h);
+    return function () {
+      window.removeEventListener("bos:circlesKnocked", h);
+    };
+  }, []);
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -7119,11 +7384,15 @@ function LivingCirclesShowcaseLive({
     return /*#__PURE__*/React.createElement("button", {
       key: s.t,
       onClick: function () {
-        navigate("goal-settings", {
-          mode: "create",
-          preset: s.preset,
-          circleOn: true
-        });
+        if (window.tgHaptic) {
+          try {
+            window.tgHaptic("selection");
+          } catch (e) {}
+        }
+        _openSheet(/*#__PURE__*/React.createElement(LivingCircleSheetLive, {
+          circle: s,
+          navigate: navigate
+        }));
       },
       className: "tap",
       style: {
@@ -7216,14 +7485,17 @@ function LivingCirclesShowcaseLive({
       style: {
         fontSize: 12.5,
         fontWeight: 600,
-        color: "var(--text-2)",
+        color: knockedMap[s.id] ? "#1E8E4E" : "var(--text-2)",
         display: "inline-flex",
         alignItems: "center",
-        gap: 2
+        gap: 3
       }
-    }, "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0430\u043A\u043E\u0439 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    }, knockedMap[s.id] ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(I.Check, {
+      size: 13,
+      strokeWidth: 3
+    }), " \u0417\u0430\u044F\u0432\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0430") : /*#__PURE__*/React.createElement(React.Fragment, null, "\u0417\u0430\u0433\u043B\u044F\u043D\u0443\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
       size: 14
-    }))));
+    })))));
   })));
 }
 
