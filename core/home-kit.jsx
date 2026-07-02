@@ -42,9 +42,12 @@ function XpFloat({ tick, xp, anchorRef }) {
     document.body
   );
 }
-function HabitCheck({ done, onToggle, xp = 10, float = false }) {
+function HabitCheck({ done, onToggle, xp = 10, float = false, color = null }) {
   const [tick, setTick] = React.useState(0);
   const btnRef = React.useRef(null);
+  // Цвет привычки красит отмеченный кружок (David: «зелёная привычка → зелёный чекбокс»).
+  // Нейтральные (нет цвета / чёрный / системный серый) → дефолтный --check-color темы.
+  const realColor = (typeof color === "string" && color[0] === "#" && color.toLowerCase() !== "#0a0a0a" && color !== "#8E8E93") ? color : null;
   const onClick = (e) => {
     e.stopPropagation();
     const willComplete = !done;
@@ -62,7 +65,8 @@ function HabitCheck({ done, onToggle, xp = 10, float = false }) {
         </span>
       )}
       {float && <XpFloat tick={tick} xp={xp} anchorRef={btnRef} />}
-      <button ref={btnRef} className={"check-btn hit44 " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}>
+      <button ref={btnRef} className={"check-btn hit44 " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}
+        style={realColor ? { "--check-color": realColor } : undefined}>
         {done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
       </button>
     </div>

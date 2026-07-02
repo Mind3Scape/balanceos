@@ -27,6 +27,7 @@ function HabitFormSheetLive({
     close
   } = useSheet();
   var app = useApp();
+  var isDark = app?.themeOverride === "dark"; // тёмная тема: инверсия активных пилюль (чёрное→белое)
   var editing = mode === "edit" && !!habit;
   var params = {
     habit: habit
@@ -298,7 +299,7 @@ function HabitFormSheetLive({
     }
   }, editing ? "Изменить привычку" : "Новая привычка"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 14,
       boxShadow: "var(--card-shadow)",
@@ -351,7 +352,7 @@ function HabitFormSheetLive({
     style: {
       marginTop: 12,
       paddingTop: 12,
-      borderTop: "1px solid rgba(0,0,0,0.06)"
+      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))"
     }
   }, /*#__PURE__*/React.createElement(Segmented, {
     small: true,
@@ -366,7 +367,7 @@ function HabitFormSheetLive({
     }]
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 16,
       marginTop: 14,
@@ -415,8 +416,8 @@ function HabitFormSheetLive({
         border: 0,
         cursor: "pointer",
         transition: "background 0.15s, color 0.15s",
-        background: on ? "#0a0a0a" : "var(--surface-3)",
-        color: on ? "#fff" : "var(--text-2)"
+        background: on ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
+        color: on ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)"
       }
     }, /*#__PURE__*/React.createElement(Ic, {
       size: 13,
@@ -541,7 +542,7 @@ function HabitFormSheetLive({
     style: {
       marginTop: 16,
       paddingTop: 14,
-      borderTop: "1px solid rgba(0,0,0,0.06)"
+      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -585,9 +586,9 @@ function HabitFormSheetLive({
         fontSize: 11.5,
         fontWeight: 600,
         letterSpacing: "-0.2px",
-        background: on ? "#0a0a0a" : "var(--surface-3)",
+        background: on ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
         // neutral graphite, NOT the habit colour (David: «нафига в днях недели цвет — лишнее»)
-        color: on ? "#fff" : "var(--text-4)",
+        color: on ? isDark ? "#0a0a0a" : "#fff" : "var(--text-4)",
         boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none",
         transform: on ? "scale(1.04)" : "none",
         transition: "transform 0.12s, background 0.12s, color 0.12s"
@@ -595,7 +596,7 @@ function HabitFormSheetLive({
     }, w);
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 16,
       marginTop: 14,
@@ -632,7 +633,7 @@ function HabitFormSheetLive({
       gap: 10,
       marginTop: 14,
       paddingTop: 14,
-      borderTop: "1px solid rgba(0,0,0,0.06)"
+      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -671,7 +672,7 @@ function HabitFormSheetLive({
   }))), /*#__PURE__*/React.createElement("div", {
     "data-tour": "invite-friend",
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 16,
       marginTop: 14,
@@ -705,7 +706,7 @@ function HabitFormSheetLive({
       marginTop: 12,
       borderRadius: 14,
       padding: "11px 12px",
-      background: "#edfaf0",
+      background: isDark ? "rgba(52,199,89,0.13)" : "#edfaf0",
       display: "flex",
       alignItems: "center",
       gap: 10
@@ -715,7 +716,7 @@ function HabitFormSheetLive({
       width: 30,
       height: 30,
       borderRadius: "50%",
-      background: "#d6f3df",
+      background: isDark ? "rgba(52,199,89,0.2)" : "#d6f3df",
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
@@ -724,7 +725,7 @@ function HabitFormSheetLive({
   }, "\uD83E\uDD1D"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: "#1a7a3a",
+      color: isDark ? "#7dd89b" : "#1a7a3a",
       lineHeight: 1.4
     }
   }, /*#__PURE__*/React.createElement("b", null, "+75 XP"), ", \u043A\u043E\u0433\u0434\u0430 \u0434\u0440\u0443\u0433 \u043F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0441\u044F. \u0410 \u0432\u0435\u0434\u0451\u0442\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 \u2014 \u043A\u0430\u0436\u0434\u044B\u0439 \u0448\u0430\u0433 ", /*#__PURE__*/React.createElement("b", null, "+15"), " \u0432\u043C\u0435\u0441\u0442\u043E +10.")), shareOn && /*#__PURE__*/React.createElement("div", {
@@ -754,8 +755,8 @@ function HabitFormSheetLive({
       gap: 6,
       padding: "5px 11px 5px 5px",
       borderRadius: 999,
-      background: p.on ? "#0a0a0a" : "var(--surface-3)",
-      color: p.on ? "#fff" : "var(--text-3)",
+      background: p.on ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
+      color: p.on ? isDark ? "#0a0a0a" : "#fff" : "var(--text-3)",
       border: 0,
       fontSize: 12,
       fontWeight: 500
@@ -794,7 +795,7 @@ function HabitFormSheetLive({
     }
   }, inviteNote)), goalFor && /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 16,
       marginTop: 14,
@@ -877,6 +878,7 @@ function GoalFormSheetLive({
   navigate
 }) {
   var app = useApp();
+  var isDark = app?.themeOverride === "dark"; // тёмная тема: инверсия активных пилюль
   var {
     open: openSheet,
     close
@@ -1059,7 +1061,7 @@ function GoalFormSheetLive({
     }
   }, "\u0438\u043B\u0438 \u0432\u044B\u0431\u0435\u0440\u0438 \u0433\u043E\u0442\u043E\u0432\u044B\u0439 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436 \u2192"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 14,
       boxShadow: "var(--card-shadow)",
@@ -1110,7 +1112,7 @@ function GoalFormSheetLive({
     onChange: setColor
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 16,
       marginTop: 14,
@@ -1167,7 +1169,7 @@ function GoalFormSheetLive({
     }
   }, "\u041E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u0447\u0438\u0442\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 14,
       marginTop: 14,
@@ -1215,8 +1217,8 @@ function GoalFormSheetLive({
       fontSize: 12.5,
       whiteSpace: "nowrap",
       border: 0,
-      background: svoyActive ? "#0a0a0a" : "var(--surface-3)",
-      color: svoyActive ? "#fff" : "var(--text-2)"
+      background: svoyActive ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
+      color: svoyActive ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)"
     }
   }, /*#__PURE__*/React.createElement(I.Calendar, {
     size: 12
@@ -1238,8 +1240,8 @@ function GoalFormSheetLive({
         whiteSpace: "nowrap",
         textAlign: "center",
         border: 0,
-        background: active ? "#0a0a0a" : "var(--surface-3)",
-        color: active ? "#fff" : "var(--text-2)"
+        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
+        color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)"
       }
     }, q);
   })), showCal && /*#__PURE__*/React.createElement(DeadlineCalendarLive, {
@@ -1249,7 +1251,7 @@ function GoalFormSheetLive({
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 16,
       marginTop: 14,
@@ -1306,8 +1308,8 @@ function GoalFormSheetLive({
       gap: 6,
       padding: "5px 11px 5px 5px",
       borderRadius: 999,
-      background: h.on ? "#0a0a0a" : "#e8e8e8",
-      color: h.on ? "#fff" : "var(--text-3)",
+      background: h.on ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3, #e8e8e8)",
+      color: h.on ? isDark ? "#0a0a0a" : "#fff" : "var(--text-3)",
       border: 0,
       fontSize: 12,
       fontWeight: 500,
@@ -1348,7 +1350,7 @@ function GoalFormSheetLive({
     size: 12
   }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 16,
       marginTop: 14,
@@ -1392,8 +1394,8 @@ function GoalFormSheetLive({
       onClick: () => setGoalType(m.id),
       className: "tap",
       style: {
-        background: "#fff",
-        border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)",
+        background: "var(--card, #fff)",
+        border: active ? "2px solid " + (isDark ? "#f2f2f5" : "#0a0a0a") : "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
         borderRadius: 22,
         padding: 14,
         display: "flex",
@@ -1407,8 +1409,8 @@ function GoalFormSheetLive({
         width: 38,
         height: 38,
         borderRadius: "50%",
-        background: active ? "#0a0a0a" : "#e8e8e8",
-        color: active ? "#fff" : "var(--text)",
+        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3, #e8e8e8)",
+        color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text)",
         display: "grid",
         placeItems: "center",
         fontSize: 18,
@@ -1437,7 +1439,7 @@ function GoalFormSheetLive({
         width: 18,
         height: 18,
         borderRadius: "50%",
-        background: active ? "#0a0a0a" : "transparent",
+        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "transparent",
         border: active ? "0" : "1.5px solid var(--text-5)",
         flexShrink: 0,
         display: "grid",
@@ -1445,7 +1447,7 @@ function GoalFormSheetLive({
       }
     }, active && /*#__PURE__*/React.createElement(I.Check, {
       size: 11,
-      color: "#fff",
+      color: isDark ? "#0a0a0a" : "#fff",
       strokeWidth: 3
     })));
   })), /*#__PURE__*/React.createElement("div", {
@@ -1465,7 +1467,7 @@ function GoalFormSheetLive({
     }]
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 16,
       marginTop: 14,
@@ -1534,7 +1536,7 @@ function GoalFormSheetLive({
       marginTop: 14,
       borderRadius: 14,
       padding: "11px 12px",
-      background: "#eef4ff",
+      background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff",
       display: "flex",
       alignItems: "center",
       gap: 10
@@ -1544,7 +1546,7 @@ function GoalFormSheetLive({
       width: 30,
       height: 30,
       borderRadius: "50%",
-      background: "#dde9ff",
+      background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff",
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
@@ -1553,7 +1555,7 @@ function GoalFormSheetLive({
   }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
-      color: "#2b5cb8",
+      color: isDark ? "#9db8ff" : "#2b5cb8",
       lineHeight: 1.4
     }
   }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), editing && /*#__PURE__*/React.createElement("button", {

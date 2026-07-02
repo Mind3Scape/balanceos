@@ -146,7 +146,7 @@ function DeadlineCalendarLive({ onPick }) {
       style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "var(--surface-3)", opacity: (dir < 0 ? m <= TODAY_M : m >= 11) ? 0.3 : 1, display: "grid", placeItems: "center" }}><I.ChevronRight size={16} style={dir < 0 ? { transform: "rotate(180deg)" } : undefined} /></button>
   );
   return (
-    <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
+    <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         {pager(-1)}
         <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{MON_TITLE[m]} {YEAR}</div>
@@ -1189,6 +1189,9 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   var cReal = typeof centerColor === "string" && centerColor[0] === "#" && centerColor.length === 7 && centerColor.toLowerCase() !== "#0a0a0a" && centerColor !== BOS_GREY;
   var centerBg = cReal ? (sheen + ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.25) : centerColor)) : discBg;
   var centerInk = cReal ? "#fff" : null;
+  // Цвет цели красит и КРУЖОЧКИ ПРИВЫЧЕК на орбитах — светлым тоном того же цвета (David:
+  // «пикер применяет цвет во всём блоке, включая кружочки с иконками»). Лица людей не трогаем.
+  var hDiscBg = cReal ? (sheen + ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.62) : centerColor)) : discBg;
   // ОРБИТА КРУТИТСЯ: соседние кольца — в РАЗНЫЕ стороны, внешние медленнее (спокойно). Диски
   // counter-rotate на ту же длительность → эмодзи/лица стоят прямо. bosSpin/bosSpinR — keyframes
   // (mobile.css). БЕЗ radial-маски: лишнее просто обрезается карточкой (David: «просто обрезалось»).
@@ -1201,7 +1204,7 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
           {place(items, R, dSz, k * 0.35, function (it) {
             return isPeople
               ? <span style={{ display: "block", borderRadius: "50%" }}>{typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={it.avatar} name={it.name} size={dSz} /> : null}</span>
-              : <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: iconSz, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(it.emoji, iconSz, null) : (it.emoji || "✨")}</span>;
+              : <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: hDiscBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: iconSz, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(it.emoji, iconSz, null) : (it.emoji || "✨")}</span>;
           }, rev + " " + dur + " linear infinite")}
         </div>
       </React.Fragment>
@@ -1919,6 +1922,8 @@ function AddWidgetSheetLive({ defs = [], dark = false }) {
    (CreatePickerSheetLive custom={false} — без верхних строк «своё», они уже здесь). */
 function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+  const _app = (typeof useApp === "function") ? useApp() : null;
+  const isDark = _app?.themeOverride === "dark"; // тёмная тема: тёмное стекло вместо белого
   const [pos, setPos] = React.useState(null);
   React.useEffect(() => {
     if (open && anchorRef && anchorRef.current) {
@@ -1938,18 +1943,18 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
         position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right",
         animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
         minWidth: 212, padding: 7, borderRadius: 22,
-        background: "rgba(255,255,255,0.74)",
+        background: isDark ? "rgba(38,40,46,0.78)" : "rgba(255,255,255,0.74)",
         WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)",
-        border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)",
+        border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.7)"), boxShadow: "0 16px 44px rgba(0,0,0," + (isDark ? "0.5" : "0.26") + ")",
       }}>
         {items.map((it, i) => (
           <button key={i} role="menuitem" data-haptic="selection" onClick={() => { onClose(); it.go(); }} className="tap" style={{
             display: "flex", alignItems: "center", gap: 13, width: "100%",
             padding: "12px 14px", border: 0, background: "transparent", borderRadius: 16,
-            borderTop: i === 2 ? "0.5px solid rgba(10,10,10,0.08)" : 0, // тонкая черта отделяет «готовое» от «своего»
-            fontSize: 16, fontWeight: 600, color: "#0a0a0a", cursor: "pointer", textAlign: "left",
+            borderTop: i === 2 ? ("0.5px solid " + (isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.08)")) : 0, // тонкая черта отделяет «готовое» от «своего»
+            fontSize: 16, fontWeight: 600, color: isDark ? "#f2f2f5" : "#0a0a0a", cursor: "pointer", textAlign: "left",
           }}>
-            <span aria-hidden style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(it.icon, { size: 18, color: "#0a0a0a", strokeWidth: 1.9 })}</span>
+            <span aria-hidden style={{ width: 30, height: 30, borderRadius: 9, background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(it.icon, { size: 18, color: isDark ? "#f2f2f5" : "#0a0a0a", strokeWidth: 1.9 })}</span>
             {it.label}
           </button>
         ))}
@@ -1962,7 +1967,14 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
 /* Серый фон ШТОРКИ (David: «подложки белые, а бэкграунд слегка серенький — как на всех
    страницах»): абсолютный слой под содержимым, за ручкой-गрэбом (zIndex -1). */
 function SheetGreyBgLive() {
-  return <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: -1, background: "var(--bg, #f2f2f4)", borderRadius: "24px 24px 0 0" }} />;
+  // data-sheet-grey = маркер: CSS-правило .bos-sheet:has([data-sheet-grey]) красит СAMУ панель
+  // шторки в серый — тогда серый доходит до скруглённого верха (ручки) и не кончается при
+  // прокрутке (старый absolute-слой ехал вместе с контентом → белые полосы, баг David).
+  // Сам слой остаётся фолбэком для старых webview без :has(). В тёмной теме var(--bg) НЕ
+  // переключается (.theme-dark задаёт фон напрямую) — тёмный цвет задаём сами.
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const dark = app?.themeOverride === "dark";
+  return <div aria-hidden data-sheet-grey style={{ position: "absolute", inset: 0, zIndex: -1, background: dark ? "#151517" : "var(--bg, #f2f2f4)", borderRadius: "24px 24px 0 0" }} />;
 }
 
 /* Шапка ШТОРКИ-ФОРМЫ (iOS-модалка): слева круглая стеклянная «✕» (закрыть), справа «✓»

@@ -759,7 +759,8 @@ function HomeLive() {
         done: h.done,
         onToggle: () => toggle(h.id),
         xp: XP_PER_HABIT,
-        float: true
+        float: true,
+        color: h.color
       })))))));
     }
     if (id === "goals") {

@@ -850,7 +850,10 @@ function AppProvider({ children }) {
   // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere. Stays "auto"
   // (= light, DARK_ROUTES is empty) by default — we polish the LIGHT theme end-to-end first,
   // THEN revisit dark (David's call). Dark is still reachable via the Settings toggle.
-  const [themeOverride, setThemeOverride] = useState("auto");
+  // ЗАПОМИНАЕТСЯ: выбор темы переживает перезапуск (localStorage) — иначе тумблер «Тёмная
+  // тема» тихо сбрасывался при каждом открытии мини-аппа.
+  const [themeOverride, setThemeOverride] = useState(() => { try { return localStorage.getItem("bos:theme") || "auto"; } catch (e) { return "auto"; } });
+  useEffect(() => { try { localStorage.setItem("bos:theme", themeOverride); } catch (e) {} }, [themeOverride]);
 
   // Demo vs. fresh-start experience. Default = demo (a reload always lands on the
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.

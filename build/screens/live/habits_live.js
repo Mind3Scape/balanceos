@@ -1260,7 +1260,8 @@ function HabitsLive() {
       done: h.done,
       onToggle: () => toggle(h.id),
       xp: 10,
-      float: true
+      float: true,
+      color: h.color
     });
     var ctrl = /*#__PURE__*/React.createElement("span", {
       onPointerDown: e => e.stopPropagation(),
@@ -1579,7 +1580,9 @@ function HabitsLive() {
       }, "\u0434\u043E ", g.deadline)), !orbit && pctEl), progBar), orbit);
     }
 
-    // КВАДРАТ — минимал. С орбитами: орбита-герой + имя + доля. Без орбит: иконка + имя + прогресс.
+    // КВАДРАТ — минимал. С орбитами: карточка ТОЙ ЖЕ высоты, что у привычек (146) — орбита
+    // абсолютным слоем по центру, лишние кольца просто обрезаются (David: «одинаковый размер,
+    // что выпирает — обрезается»); имя слева и % справа внизу поверх. Без орбит: иконка+имя+прогресс.
     return /*#__PURE__*/React.createElement("div", {
       className: ctx.mode ? "" : "tap",
       onClick: onOpen,
@@ -1588,37 +1591,58 @@ function HabitsLive() {
         borderRadius: 22,
         boxShadow: sk.shadow,
         padding: "13px 13px 12px",
+        height: orbit ? 146 : undefined,
         minHeight: 146,
+        boxSizing: "border-box",
+        position: "relative",
         display: "flex",
         flexDirection: "column",
-        alignItems: orbit ? "center" : "stretch",
-        justifyContent: orbit ? "center" : "flex-start",
-        textAlign: orbit ? "center" : "left",
+        alignItems: "stretch",
+        justifyContent: "flex-start",
+        textAlign: "left",
         pointerEvents: ctx.mode ? "none" : "auto",
         overflow: "hidden"
       }
-    }, orbit ? /*#__PURE__*/React.createElement(React.Fragment, null, orbit, goalStyle.name && /*#__PURE__*/React.createElement("div", {
+    }, orbit ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      "aria-hidden": true,
       style: {
-        marginTop: 10,
+        position: "absolute",
+        left: "50%",
+        top: "44%",
+        transform: "translate(-50%, -50%)",
+        pointerEvents: "none"
+      }
+    }, orbit), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "auto",
+        position: "relative",
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, goalStyle.name ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0,
         fontSize: 14,
         fontWeight: 600,
         color: sk.txt,
         letterSpacing: "-0.2px",
         lineHeight: 1.2,
-        maxWidth: "100%",
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap"
       }
-    }, g.name), goalStyle.progress && /*#__PURE__*/React.createElement("div", {
+    }, g.name) : /*#__PURE__*/React.createElement("span", null), goalStyle.progress && /*#__PURE__*/React.createElement("div", {
       style: {
-        marginTop: goalStyle.name ? 3 : 8,
         fontSize: 12.5,
         fontWeight: 800,
         color: sk.hasColor ? "#1b1b1f" : sk.accent,
-        fontVariantNumeric: "tabular-nums"
+        fontVariantNumeric: "tabular-nums",
+        flexShrink: 0
       }
-    }, Math.round(pct * 100), "%")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    }, Math.round(pct * 100), "%"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
@@ -1806,37 +1830,58 @@ function HabitsLive() {
         borderRadius: 22,
         boxShadow: sk.shadow,
         padding: "13px 13px 12px",
+        height: orbit ? 146 : undefined,
         minHeight: 146,
+        boxSizing: "border-box",
+        position: "relative",
         display: "flex",
         flexDirection: "column",
-        alignItems: orbit ? "center" : "stretch",
-        justifyContent: orbit ? "center" : "flex-start",
-        textAlign: orbit ? "center" : "left",
+        alignItems: "stretch",
+        justifyContent: "flex-start",
+        textAlign: "left",
         pointerEvents: ctx.mode ? "none" : "auto",
         overflow: "hidden"
       }
-    }, orbit ? /*#__PURE__*/React.createElement(React.Fragment, null, orbit, goalStyle.name && /*#__PURE__*/React.createElement("div", {
+    }, orbit ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      "aria-hidden": true,
       style: {
-        marginTop: 10,
+        position: "absolute",
+        left: "50%",
+        top: "44%",
+        transform: "translate(-50%, -50%)",
+        pointerEvents: "none"
+      }
+    }, orbit), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: "auto",
+        position: "relative",
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, goalStyle.name ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0,
         fontSize: 14,
         fontWeight: 600,
         color: sk.txt,
         letterSpacing: "-0.2px",
         lineHeight: 1.2,
-        maxWidth: "100%",
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap"
       }
-    }, t.name), goalStyle.progress && /*#__PURE__*/React.createElement("div", {
+    }, t.name) : /*#__PURE__*/React.createElement("span", null), goalStyle.progress && /*#__PURE__*/React.createElement("div", {
       style: {
-        marginTop: goalStyle.name ? 3 : 8,
         fontSize: 12.5,
         fontWeight: 800,
         color: sk.hasColor ? "#1b1b1f" : sk.accent,
-        fontVariantNumeric: "tabular-nums"
+        fontVariantNumeric: "tabular-nums",
+        flexShrink: 0
       }
-    }, Math.round(pct * 100), "%")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    }, Math.round(pct * 100), "%"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",

@@ -327,7 +327,7 @@ function HomeLive() {
                         ? <HabitTimerCheck habit={h} app={app} xp={XP_PER_HABIT} />
                         : h.goalPerDay > 1
                           ? <HabitCountCheck habit={h} app={app} xp={XP_PER_HABIT} />
-                          : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} float />}
+                          : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} float color={h.color} />}
                     </div>
                   </SwipeRow>
                 </div>

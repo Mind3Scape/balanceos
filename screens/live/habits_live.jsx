@@ -471,7 +471,7 @@ function HabitsLive() {
     const control = h.duration > 0 && !(h.goalPerDay > 1)
       ? <HabitTimerCheck habit={h} app={app} xp={10} />
       : h.goalPerDay > 1 ? <HabitCountCheck habit={h} app={app} xp={10} />
-      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float />;
+      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float color={h.color} />;
     const ctrl = <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{control}</span>;
     const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
     const sq = cardStyle.cells === "square";
@@ -581,14 +581,18 @@ function HabitsLive() {
       );
     }
 
-    // КВАДРАТ — минимал. С орбитами: орбита-герой + имя + доля. Без орбит: иконка + имя + прогресс.
+    // КВАДРАТ — минимал. С орбитами: карточка ТОЙ ЖЕ высоты, что у привычек (146) — орбита
+    // абсолютным слоем по центру, лишние кольца просто обрезаются (David: «одинаковый размер,
+    // что выпирает — обрезается»); имя слева и % справа внизу поверх. Без орбит: иконка+имя+прогресс.
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", minHeight: 146, display: "flex", flexDirection: "column", alignItems: orbit ? "center" : "stretch", justifyContent: orbit ? "center" : "flex-start", textAlign: orbit ? "center" : "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {orbit ? (
           <>
-            {orbit}
-            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
-            {goalStyle.progress && <div style={{ marginTop: goalStyle.name ? 3 : 8, fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums" }}>{Math.round(pct * 100)}%</div>}
+            <div aria-hidden style={{ position: "absolute", left: "50%", top: "44%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
+            <div style={{ marginTop: "auto", position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+              {goalStyle.name ? <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div> : <span />}
+              {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
+            </div>
           </>
         ) : (
           <>
@@ -652,12 +656,14 @@ function HabitsLive() {
       );
     }
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", minHeight: 146, display: "flex", flexDirection: "column", alignItems: orbit ? "center" : "stretch", justifyContent: orbit ? "center" : "flex-start", textAlign: orbit ? "center" : "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {orbit ? (
           <>
-            {orbit}
-            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
-            {goalStyle.progress && <div style={{ marginTop: goalStyle.name ? 3 : 8, fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums" }}>{Math.round(pct * 100)}%</div>}
+            <div aria-hidden style={{ position: "absolute", left: "50%", top: "44%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
+            <div style={{ marginTop: "auto", position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+              {goalStyle.name ? <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div> : <span />}
+              {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
+            </div>
           </>
         ) : (
           <>

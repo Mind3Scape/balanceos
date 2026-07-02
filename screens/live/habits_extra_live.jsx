@@ -18,6 +18,7 @@
 function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goalFor: goalForProp = null, navigate }) {
   const { open: openSheet, close } = useSheet();
   const app = useApp();
+  const isDark = app?.themeOverride === "dark"; // тёмная тема: инверсия активных пилюль (чёрное→белое)
   const editing = mode === "edit" && !!habit;
   const params = { habit: habit }; // локальный шим: тело формы исторически читает params.habit
   // Создаём привычку ДЛЯ конкретной цели → после сохранения привяжем её к цели (habitIds) и вернёмся
@@ -175,7 +176,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       {/* Identity — icon (tap → emoji panel), name (tap → type) and colour all in ONE card;
           no separate «Название» field, no preset row (the emoji panel already has every
           emoji). David: «зачем целое отдельное поле… сделай целостно». */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {/* Tap the tile → emoji PANEL — второй вью этой же шторки. */}
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
@@ -192,13 +193,13 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         <BosColorPickerLive value={color} onChange={setColor} />
         {/* Развивать/Бросить — суть привычки, живёт в главном блоке НАВЕРХУ (David: «в самом
             низу его практически не видно, это важно»). Тонкий сегмент, не полноразмерный. */}
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
           <Segmented small value={type} onChange={setType} options={[{ value: "build", label: "Развивать" }, { value: "quit", label: "Бросить" }]} />
         </div>
       </div>
 
       {/* Goal — без внешней подписи (David: подписи блоков не несут нагрузки, суть ясна изнутри). */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         {/* Как отмечать — ОДИН выбор из трёх (взаимоисключающие). Тонкие пилюли с иконками —
             НЕ второй сегмент (David: «две одинаковые типовые менюшки — некрасиво»), тот же
             язык, что ряд сроков в форме цели. Нужный «шаговик» появляется ниже. */}
@@ -208,7 +209,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
             return (
               <button key={v} onClick={() => pickMode(v)} className="tap" data-no-haptic aria-pressed={on}
                 style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, borderRadius: 999, padding: "8px 4px", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", border: 0, cursor: "pointer", transition: "background 0.15s, color 0.15s",
-                  background: on ? "#0a0a0a" : "var(--surface-3)", color: on ? "#fff" : "var(--text-2)" }}>
+                  background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>
                 <Ic size={13} strokeWidth={2.2} /> {l}
               </button>
             );
@@ -242,7 +243,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
           </div>
         )}
         {/* Days-of-week — tap a circle to toggle that day. All on = «каждый день». */}
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <span style={{ fontSize: 13, color: "var(--text-3)" }}>Дни недели</span>
             <span style={{ fontSize: 13, color: "var(--text-2)", fontWeight: 600 }}>{daysSummary(days)}</span>
@@ -254,8 +255,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
                 <button key={i} className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
                   style={{ flex: 1, aspectRatio: "1/1", maxWidth: 34, borderRadius: "50%", border: 0, cursor: "pointer",
                     fontSize: 11.5, fontWeight: 600, letterSpacing: "-0.2px",
-                    background: on ? "#0a0a0a" : "var(--surface-3)",   // neutral graphite, NOT the habit colour (David: «нафига в днях недели цвет — лишнее»)
-                    color: on ? "#fff" : "var(--text-4)",
+                    background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)",   // neutral graphite, NOT the habit colour (David: «нафига в днях недели цвет — лишнее»)
+                    color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)",
                     boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none",
                     transform: on ? "scale(1.04)" : "none", transition: "transform 0.12s, background 0.12s, color 0.12s" }}>
                   {w}
@@ -267,7 +268,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       </div>
 
       {/* Reminders — подпись убрана, внутри блока «Напоминать каждый день». */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Напоминать каждый день
@@ -276,7 +277,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
           <Switch small on={reminderOn} onChange={setReminderOn} />
         </div>
         {reminderOn && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 14, color: "var(--text-2)" }}><I.Clock size={16} color="var(--text-3)" /> Время</span>
             {/* Native iOS time wheel, styled to read as one of the app's pills. Тонкая пилюля,
                 цифры не жирные и по центру высоты (David: «жирное, большое, не центрировано»). */}
@@ -291,7 +292,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
 
       {/* Share with friend — the most natural referral moment: invite anyone into
           your habit. They join → you earn XP and they're in the app. */}
-      <div data-tour="invite-friend" style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      <div data-tour="invite-friend" style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Делать это вместе
@@ -299,9 +300,9 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
           </div>
           <Switch small on={shareOn} onChange={setShareOn} />
         </div>
-        <div style={{ marginTop: 12, borderRadius: 14, padding: "11px 12px", background: "#edfaf0", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#d6f3df", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🤝</span>
-          <div style={{ fontSize: 12.5, color: "#1a7a3a", lineHeight: 1.4 }}><b>+75 XP</b>, когда друг присоединится. А ведёте вместе — каждый шаг <b>+15</b> вместо +10.</div>
+        <div style={{ marginTop: 12, borderRadius: 14, padding: "11px 12px", background: isDark ? "rgba(52,199,89,0.13)" : "#edfaf0", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(52,199,89,0.2)" : "#d6f3df", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🤝</span>
+          <div style={{ fontSize: 12.5, color: isDark ? "#7dd89b" : "#1a7a3a", lineHeight: 1.4 }}><b>+75 XP</b>, когда друг присоединится. А ведёте вместе — каждый шаг <b>+15</b> вместо +10.</div>
         </div>
         {shareOn && <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
           {shareFriends.length === 0 && (
@@ -311,8 +312,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
             <button key={i} onClick={() => setShareFriends(fs => fs.map((x, j) => j === i ? { ...x, on: !x.on } : x))} className="tap" style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "5px 11px 5px 5px", borderRadius: 999,
-              background: p.on ? "#0a0a0a" : "var(--surface-3)",
-              color: p.on ? "#fff" : "var(--text-3)",
+              background: p.on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)",
+              color: p.on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
               border: 0, fontSize: 12, fontWeight: 500,
             }}>
               <BuddyFaceLive avatar={p.avatar} name={p.name} size={22} />
@@ -336,7 +337,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
 
       {/* Привычка ДЛЯ цели — тумблер «вести только внутри цели» (скрыть из общего списка). David: рояль. */}
       {goalFor && (
-        <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>Вести только внутри цели</div>
@@ -373,6 +374,7 @@ function HabitSettingsLive() {
 /* ─── GOAL FORM — create / edit a goal, ШТОРКА (LIVE) ──────────────── */
 function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: presetProp = null, circleOn: circleOnProp = false, navigate }) {
   const app = useApp();
+  const isDark = app?.themeOverride === "dark"; // тёмная тема: инверсия активных пилюль
   const { open: openSheet, close } = useSheet();
   const editing = mode === "edit" && !!goalProp;
   const g0 = editing ? goalProp : null;
@@ -470,7 +472,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
 
       {/* Identity — icon (tap → emoji panel) + inline name in ONE card, same logic as the
           habit create screen (David: «модифицируй создание целей в той же логике»). */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
             style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
@@ -484,7 +486,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         {typeof BosColorPickerLive === "function" && <BosColorPickerLive value={color} onChange={setColor} />}
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
           <input type="text" inputMode="numeric" pattern="[0-9]*" value={target}
             onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
@@ -498,7 +500,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
 
       {/* Срок — ВСЁ в ОДНОМ блоке (David: «не всё в блоках»): поле + кнопки сроков + календарь;
           кнопки на сером стекле, не обводкой (David: «блоки не обводочкой»). */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 2px 0" }}>
           <I.Calendar size={18} color="var(--text-3)"/>
           <input value={deadline} onChange={e => setDeadline(e.target.value)} placeholder="напр. 14 окт"
@@ -507,7 +509,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
           <button onClick={() => setShowCal(v => !v)} className="tap" data-no-haptic
             style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 999, padding: "9px 4px", fontSize: 12.5, whiteSpace: "nowrap", border: 0,
-              background: svoyActive ? "#0a0a0a" : "var(--surface-3)", color: svoyActive ? "#fff" : "var(--text-2)" }}>
+              background: svoyActive ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: svoyActive ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>
             <I.Calendar size={12}/> Свой срок
           </button>
           {QUICK_TERMS.map((q) => {
@@ -515,14 +517,14 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
             return (
               <button key={q} onClick={() => { setDeadline(q); setShowCal(false); }} className="tap" data-no-haptic
                 style={{ flex: 1, borderRadius: 999, padding: "9px 4px", fontSize: 12.5, whiteSpace: "nowrap", textAlign: "center", border: 0,
-                  background: active ? "#0a0a0a" : "var(--surface-3)", color: active ? "#fff" : "var(--text-2)" }}>{q}</button>
+                  background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{q}</button>
             );
           })}
         </div>
         {showCal && <DeadlineCalendarLive onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>Подкрепи эту цель ежедневной привычкой</div>
@@ -539,8 +541,8 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
               <button key={i} className="tap" data-no-haptic onClick={() => toggleLinked(i)} style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "5px 11px 5px 5px", borderRadius: 999,
-                background: h.on ? "#0a0a0a" : "#e8e8e8",
-                color: h.on ? "#fff" : "var(--text-3)",
+                background: h.on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3, #e8e8e8)",
+                color: h.on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
                 border: 0, fontSize: 12, fontWeight: 500, transition: "background 0.15s, color 0.15s",
               }}>
                 <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", fontSize: 13 }}>{bosIcon(h.e, 14, null)}</span>
@@ -560,7 +562,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
 
       {/* КРУГ — «делать вместе»: цель с надетым кругом = «команда». Один тумблер (David). Тот же
           смысл, что у привычки «Поделиться»; вкл → можно позвать людей, цель станет общей. */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Идти к цели вместе
@@ -579,13 +581,13 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
             const active = goalType === m.id;
             return (
               <button key={m.id} type="button" onClick={() => setGoalType(m.id)} className="tap"
-                style={{ background: "#fff", border: active ? "2px solid #0a0a0a" : "1px solid rgba(0,0,0,0.05)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
-                <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? "#0a0a0a" : "#e8e8e8", color: active ? "#fff" : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{m.e}</div>
+                style={{ background: "var(--card, #fff)", border: active ? ("2px solid " + (isDark ? "#f2f2f5" : "#0a0a0a")) : ("1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)")), borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
+                <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3, #e8e8e8)", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{m.e}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{m.t}</div>
                   <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{m.d}</div>
                 </div>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? "#0a0a0a" : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color="#fff" strokeWidth={3} />}</div>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color={isDark ? "#0a0a0a" : "#fff"} strokeWidth={3} />}</div>
               </button>
             );
           })}
@@ -595,7 +597,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           <Segmented small value={circleVis} onChange={setCircleVis} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Открытая" }]} />
         </div>
 
-        <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Поставить XP на финиш</div>
@@ -612,9 +614,9 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           )}
         </div>
 
-        <div style={{ marginTop: 14, borderRadius: 14, padding: "11px 12px", background: "#eef4ff", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🪐</span>
-          <div style={{ fontSize: 12.5, color: "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — цель станет общей, и сразу позовёшь людей по ссылке.</div>
+        <div style={{ marginTop: 14, borderRadius: 14, padding: "11px 12px", background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🪐</span>
+          <div style={{ fontSize: 12.5, color: isDark ? "#9db8ff" : "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — цель станет общей, и сразу позовёшь людей по ссылке.</div>
         </div>
       </>)}
 

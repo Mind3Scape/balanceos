@@ -96,7 +96,7 @@ function TeamCreateLive() {
       {/* IDENTITY — как в привычках/целях: БЕЛАЯ карточка + СТЕКЛО-плитка, КРАСЯЩАЯСЯ выбранным тоном,
           + единый цвет-пикер (David: «в миссии тоже меняй цвет стекла под иконкой, как в привычках»).
           Дефолт-серый/чёрный → нейтральная плитка; выбрал Apple-цвет → плитка заливается им. */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
             style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
@@ -343,7 +343,7 @@ function TeamSettingsLive() {
   // This screen is owner-only (gated by the gear), so deleting goes through the cloud
   // deleteTeam + a confirm sheet (was a silent local-only removeTeam).
   const del = () => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet });
-  const card = { background: "#fff", borderRadius: 22, marginTop: 8, boxShadow: "var(--card-shadow)" };
+  const card = { background: "var(--card, #fff)", borderRadius: 22, marginTop: 8, boxShadow: "var(--card-shadow)" };
   const goalTypes = [
     { id: "collective", e: "🌊", t: "Общий счёт", d: "Отметки всех складываются в одно число." },
     { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — команда проходит, только если прошли все." },
@@ -356,7 +356,7 @@ function TeamSettingsLive() {
 
       {/* IDENTITY — тот же вид, что «Создать команду»: БЕЛАЯ карточка + СТЕКЛО-плитка, красящаяся тоном,
           + единый цвет-пикер (David: создание и редактирование = одна логика; «как в привычках»). */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
             style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
@@ -545,7 +545,7 @@ function TeamQuickEditSheetLive({ team, navigate }) {
         : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 6 }}>Изменить цель</div>}
 
       {/* Идентичность — тот же вид, что в создании/настройках: белая карточка + красящаяся плитка + пикер. */}
-      <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 6, boxShadow: "var(--card-shadow)" }}>
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 6, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")} className="tap" aria-label="Сменить иконку"
             style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>

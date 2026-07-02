@@ -133,7 +133,7 @@ function TeamCreateLive() {
     onBack: () => navigate("community")
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 14,
       marginTop: 8,
@@ -804,7 +804,7 @@ function TeamSettingsLive() {
     openSheet
   });
   var card = {
-    background: "#fff",
+    background: "var(--card, #fff)",
     borderRadius: 22,
     marginTop: 8,
     boxShadow: "var(--card-shadow)"
@@ -835,7 +835,7 @@ function TeamSettingsLive() {
     })
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 14,
       marginTop: 8,
@@ -1438,7 +1438,7 @@ function TeamQuickEditSheetLive({
     }
   }, "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#fff",
+      background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 14,
       marginTop: 6,

@@ -183,6 +183,7 @@ function AILive() {
   // ── LIVE user: a REAL coach hub, driven by live data + the AI login-brief ──
   // Everything below is computed from THIS person's own habits, state, XP and the
   // brief the AI generated for them at login. No scripted "Павел" insights.
+  const isDarkAI = app.themeOverride === "dark"; // тёмная тема: тёмное стекло кнопки/чипов
   const brief = app.aiBrief || null;
   const liveHabits = app.habits || [];
   const doneToday = liveHabits.filter((h) => h && h.done).length;
@@ -247,8 +248,8 @@ function AILive() {
             (David: «чёрная выбивается — у нас уже всё в стекле»). */}
         <button data-tour="ai-chat-btn" onClick={() => navigate("ai-chat")} className="tap" aria-label="Чат"
           style={{ width: 38, height: 38, borderRadius: "50%", border: 0, cursor: "pointer",
-            background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + "#fff",
-            boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(false) : "var(--card-shadow)",
+            background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.10)" : "#fff"),
+            boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "var(--card-shadow)",
             color: "var(--text-2)", display: "grid", placeItems: "center" }}>
           <I.MessageCircle size={17} strokeWidth={2}/>
         </button>
@@ -301,7 +302,7 @@ function AILive() {
             onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
             style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "8px 4px" }}/>
           <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap hit44" aria-label="Спросить"
-            style={{ width: 34, height: 34, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            style={{ width: 34, height: 34, borderRadius: "50%", background: isDarkAI ? "#f2f2f5" : "#0a0a0a", border: 0, color: isDarkAI ? "#0a0a0a" : "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <I.Send size={13}/>
           </button>
         </div>
@@ -312,8 +313,8 @@ function AILive() {
         <div className="bos-hscroll" style={{ display: "flex", gap: 6, marginTop: 10, overflowX: "auto", padding: "2px 2px 4px" }}>
           {pills.map((p, i) => (
             <button key={i} onClick={() => goPill(p)} className="tap" data-no-haptic
-              style={{ flexShrink: 0, background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + "#fff",
-                boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(false) : "var(--card-shadow)",
+              style={{ flexShrink: 0, background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "#fff"),
+                boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "var(--card-shadow)",
                 border: 0, borderRadius: 999, padding: "7px 12px", fontSize: 12, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
               <span>{(p && p.i) || "✨"}</span> {pillLabel(p)}
             </button>
