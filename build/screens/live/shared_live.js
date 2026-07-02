@@ -7931,7 +7931,8 @@ function UniverseFieldLive({
       editable: false,
       levelBadge: sp.level,
       open: openV,
-      minimal: true
+      minimal: true,
+      frozen: true
     }) : null));
   }))), /*#__PURE__*/React.createElement("div", {
     style: {

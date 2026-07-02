@@ -3053,7 +3053,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
             return (
               <div key={nd.you ? "you" : ("o" + i)} style={wrap}>
                 <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px" }}>
-                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={true} editable={false} levelBadge={sp.level} open={openV} minimal={true} /> : null}
+                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={true} editable={false} levelBadge={sp.level} open={openV} minimal={true} frozen={true} /> : null}
                 </div>
               </div>
             );
