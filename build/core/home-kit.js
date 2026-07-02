@@ -71,7 +71,8 @@ function HabitCheck({
   onToggle,
   xp = 10,
   float = false,
-  color = null
+  color = null,
+  dark = false
 }) {
   var [tick, setTick] = React.useState(0);
   var btnRef = React.useRef(null);
@@ -122,8 +123,13 @@ function HabitCheck({
     onClick: onClick,
     style: realColor ? done ? {
       "--check-color": realColor
+    } : dark ? {
+      // ТЁМНАЯ: глубокий тон цвета, блик почти погашен (David: «чекбоксы перезасвечены»).
+      "--check-color": realColor,
+      background: "linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 60%), " + (typeof bosMixHex === "function" ? bosMixHex(realColor, "#15171c", 0.62) : realColor + "33"),
+      boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.08), inset 0 0 0 0.7px " + realColor + "40"
     } : {
-      // НЕвыполненный тоже дышит цветом привычки — нежная пастель, не «серенький» (David).
+      // СВЕТЛАЯ: нежная пастель цвета привычки, не «серенький» (David).
       "--check-color": realColor,
       background: "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.06) 60%), " + realColor + "2b",
       boxShadow: "inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -2px 3px rgba(0,0,0,0.05), inset 0 0 0 0.7px " + realColor + "59"

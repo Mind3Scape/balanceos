@@ -887,16 +887,16 @@ function BuddyFaceLive({ avatar, name, size }) {
   size = size || 24;
   var a = "" + (avatar || "");
   var disc = { width: size, height: size, borderRadius: "50%", flexShrink: 0,
-    background: "linear-gradient(150deg, #eef1f6, #dadfe7)",
+    background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
     boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.07)" };
-  if (/^m\d+$/.test(a)) return <div style={Object.assign({}, disc, { background: "url(./assets/people/" + a + ".png) center/cover no-repeat, linear-gradient(150deg,#eef1f6,#dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
+  if (/^m\d+$/.test(a)) return <div style={Object.assign({}, disc, { background: "url(./assets/people/" + a + ".png) center/cover no-repeat, linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.10)" })} />;
   if (a.indexOf("emoji:") === 0) return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", fontSize: Math.round(size * 0.54), lineHeight: 1 })}>{a.slice(6)}</div>;
   // No custom avatar → the person's first initial on the SAME grey disc, so it's never a blank
   // circle (David: «густой серый кружочек неприкольно — пиши первый инициал ника»). A real avatar
   // always wins above; this is only the fallback. Muted slate ink, one letter — NOT colourful.
   var initial = ("" + (name || "")).trim().charAt(0).toUpperCase();
   if (!initial) return <div style={disc} />;
-  return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", color: "#5b6473", fontWeight: 600, fontSize: Math.round(size * 0.44), letterSpacing: "-0.2px", lineHeight: 1, fontFamily: "-apple-system, system-ui, sans-serif" })}>{initial}</div>;
+  return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", color: "var(--disc-ink, #5b6473)", fontWeight: 600, fontSize: Math.round(size * 0.44), letterSpacing: "-0.2px", lineHeight: 1, fontFamily: "-apple-system, system-ui, sans-serif" })}>{initial}</div>;
 }
 
 function HabitInviteBannerLive({ amount = 75, habit }) {
@@ -1201,7 +1201,7 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   // BOS_TILE_SHEEN). David: «кружочки должны быть стандартизированы как на странице настроек», без
   // разнобоя (то цветной-прозрачный, то белый). И привычки, и центр = один диск.
   var sheen = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "");
-  var discBg = sheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, #eef1f6, #dadfe7)");
+  var discBg = sheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))");
   var discShadow = (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)");
   // Центр = ПОДЛОЖКА ИКОНКИ ЦЕЛИ → красится в НАСЫЩЕННЫЙ тон цвета цели (David: «цвет должен влиять на
   // подложку иконки цели»). Реальный цвет → тон + белый глиф; нейтральный → тот же серый диск. Привычки/
@@ -1975,9 +1975,9 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
         position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right",
         animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
         minWidth: 212, padding: 7, borderRadius: 22,
-        background: isDark ? "rgba(38,40,46,0.78)" : "rgba(255,255,255,0.74)",
-        WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)",
-        border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.7)"), boxShadow: "0 16px 44px rgba(0,0,0," + (isDark ? "0.5" : "0.26") + ")",
+        background: isDark ? "rgba(22,23,27,0.86)" : "rgba(255,255,255,0.74)",
+        WebkitBackdropFilter: "blur(34px) saturate(160%)", backdropFilter: "blur(34px) saturate(160%)",
+        border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.7)"), boxShadow: "0 16px 44px rgba(0,0,0," + (isDark ? "0.55" : "0.26") + ")",
       }}>
         {items.map((it, i) => (
           <button key={i} role="menuitem" data-haptic="selection" onClick={() => { onClose(); it.go(); }} className="tap" style={{
@@ -2270,7 +2270,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
 function HeroAvatarGlassLive({ avatar, inset = 6, size = 60 }) {
   return (
     <div style={{ position: "absolute", inset, borderRadius: "50%", overflow: "hidden",
-      background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "0 2px 7px rgba(0,0,0,0.12)" }}>
+      background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "0 2px 7px rgba(0,0,0,0.12)" }}>
       <BosAvatar avatar={avatar} size={size} style={{ position: "absolute", inset: 0, borderRadius: "50%" }} />
       <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", pointerEvents: "none",
         background: BOS_TILE_SHEEN,
@@ -2484,12 +2484,12 @@ function CloudTeamsDiscoverLive({ app }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {list.map((t) => (
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-            <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, null)}</span>
+            <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, null)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
               <div style={{ marginTop: 5 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(false), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span></div>
             </div>
-            <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "#0a0a0a", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "#fff", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
+            <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "var(--cta, #0a0a0a)", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
           </div>
         ))}
       </div>
@@ -2565,7 +2565,7 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
           const joined = (app?.teams || []).some((t) => t.seedId === s.id);
           return (
             <div key={s.id} className="tap" onClick={() => start(s)} style={{ flex: "0 0 auto", width: 162, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", cursor: "pointer", display: "flex", flexDirection: "column" }}>
-              <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{bosIcon(s.emblem, 23, null)}</span>
+              <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{bosIcon(s.emblem, 23, null)}</span>
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
               <div style={{ flex: 1, minHeight: 10 }} />
@@ -2630,6 +2630,7 @@ function bosMarkPartnerRedeemed(id) { var n = Object.assign({}, bosLoadRedeemedP
 // Горизонтальная лента партнёров про ТРАТУ XP. Цветные карточки-впечатления (см. ниже). Тап по карточке →
 // нативная страница партнёра PartnerDetailLive (описание, адрес, даты, кнопка «Получить»).
 function PartnersShowcaseLive({ app, navigate, from = "community" }) {
+  const isDarkP = app?.themeOverride === "dark"; // тёмная: глубокие тона карточек (David)
   const [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
   React.useEffect(function () {
     var h = function () { setRedeemed(bosLoadRedeemedPartners()); };
@@ -2655,19 +2656,24 @@ function PartnersShowcaseLive({ app, navigate, from = "community" }) {
         {BOS_PARTNERS.map((p) => {
           const got = !!redeemed[p.id];
           return (
-            <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 170, scrollSnapAlign: "start", borderRadius: 22, padding: 15, background: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent, boxShadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)", cursor: "pointer", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 170, scrollSnapAlign: "start", borderRadius: 22, padding: 15,
+              background: isDarkP
+                ? "linear-gradient(158deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 58%), " + ((typeof bosMixHex === "function") ? bosMixHex(p.accent, "#101014", 0.52) : p.accent)
+                : "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent,
+              boxShadow: isDarkP ? "0 4px 12px rgba(0,0,0,0.4), inset 0 0 0 0.5px rgba(255,255,255,0.09)" : "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
+              cursor: "pointer", display: "flex", flexDirection: "column", overflow: "hidden" }}>
               {/* Человечек-счётчик — В ВЕРХНЕМ углу, не в нижнем ряду (David: там он ужимал
                   пилюлю цены и сам не читался). Тихий, но на свободном воздухе — считывается. */}
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 36, lineHeight: 1 }}>{p.emblem}</span>
-                {p.used > 0 && <span title={p.used + " человек посетили"} style={{ display: "inline-flex", alignItems: "center", gap: 3.5, fontSize: 11, fontWeight: 600, color: "rgba(27,27,31,0.48)", paddingTop: 3, whiteSpace: "nowrap" }}><I.Users size={11.5} strokeWidth={2.2} /> посетили {p.used}</span>}
+                {p.used > 0 && <span title={p.used + " человек посетили"} style={{ display: "inline-flex", alignItems: "center", gap: 3.5, fontSize: 11, fontWeight: 600, color: isDarkP ? "rgba(255,255,255,0.5)" : "rgba(27,27,31,0.48)", paddingTop: 3, whiteSpace: "nowrap" }}><I.Users size={11.5} strokeWidth={2.2} /> посетили {p.used}</span>}
               </div>
-              <div style={{ fontSize: 15.5, fontWeight: 700, color: "#1b1b1f", marginTop: 12, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
-              <div style={{ fontSize: 11.5, color: "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: isDarkP ? "#fff" : "#1b1b1f", marginTop: 12, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
+              <div style={{ fontSize: 11.5, color: isDarkP ? "rgba(255,255,255,0.66)" : "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
               <div style={{ flex: 1, minHeight: 12 }} />
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.82)", color: "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? "#1E8E4E" : "#0a0a0a", display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Открыть <I.ChevronRight size={13}/></>}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: isDarkP ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.82)", color: isDarkP ? "#fff" : "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? (isDarkP ? "#7dd89b" : "#1E8E4E") : (isDarkP ? "#fff" : "#0a0a0a"), display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Открыть <I.ChevronRight size={13}/></>}</span>
               </div>
             </div>
           );
@@ -2708,22 +2714,24 @@ function PartnerDetailLive() {
       {/* HERO — цвет партнёра, крупный эмодзи; круглая полупрозрачная «назад» поверх. */}
       {/* FULL-BLEED: цвет тянется до самого верха (перекрывает 60px safe-area .bos-page отрицательным
           margin'ом), поэтому НЕТ белой полосы сверху; квадратный верх теперь у самого края экрана. */}
-      <div style={{ position: "relative", background: "linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0) 44%), " + p.accent, marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))", padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 14px) 22px 30px", borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
-        <button onClick={() => navigate(back)} className="tap" aria-label="Назад" style={{ width: 38, height: 38, borderRadius: "50%", border: 0, background: "rgba(255,255,255,0.55)", display: "grid", placeItems: "center", cursor: "pointer", color: "#1b1b1f" }}>
+      <div style={{ position: "relative", background: (isDark
+          ? "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 44%), " + ((typeof bosMixHex === "function") ? bosMixHex(p.accent, "#101014", 0.48) : p.accent)
+          : "linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0) 44%), " + p.accent), marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))", padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 14px) 22px 30px", borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
+        <button onClick={() => navigate(back)} className="tap" aria-label="Назад" style={{ width: 38, height: 38, borderRadius: "50%", border: 0, background: isDark ? "rgba(0,0,0,0.32)" : "rgba(255,255,255,0.55)", display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "#1b1b1f" }}>
           <I.ChevronLeft size={20} strokeWidth={2.4} />
         </button>
         <div style={{ fontSize: 60, lineHeight: 1, marginTop: 18 }}>{p.emblem}</div>
-        <div style={{ fontSize: 27, fontWeight: 800, color: "#161619", letterSpacing: "-0.6px", marginTop: 14, lineHeight: 1.05 }}>{p.name}</div>
-        <div style={{ fontSize: 14.5, color: "rgba(22,22,25,0.62)", marginTop: 5, lineHeight: 1.4 }}>{p.what}</div>
+        <div style={{ fontSize: 27, fontWeight: 800, color: isDark ? "#fff" : "#161619", letterSpacing: "-0.6px", marginTop: 14, lineHeight: 1.05 }}>{p.name}</div>
+        <div style={{ fontSize: 14.5, color: isDark ? "rgba(255,255,255,0.7)" : "rgba(22,22,25,0.62)", marginTop: 5, lineHeight: 1.4 }}>{p.what}</div>
         {/* Чипы = «характеристики» (David: хочу больше и по делу): что развивает (Ум/Покой), ограничение
             мест (👥 exclusivity/urgency), НАГРАДА в приложении (🏅 ачивка) и социальное доказательство
             (серый человечек — сколько людей уже потратили тут свою XP). */}
         <div style={{ display: "flex", gap: 6, marginTop: 13, flexWrap: "wrap" }}>
-          {p.tags.map((t, i) => <span key={i} style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600 }}>{t}</span>)}
+          {p.tags.map((t, i) => <span key={i} style={{ background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: isDark ? "rgba(255,255,255,0.9)" : "#2a2a30", fontWeight: 600 }}>{t}</span>)}
           {/* «посетили N» — понятное слово вместо «уже N» (David: «уже 150 — вообще непонятно»). */}
-          {p.used > 0 && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "rgba(42,42,48,0.72)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}><I.Users size={12} strokeWidth={2.2} /> посетили {p.used}</span>}
-          {p.limit && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>👥 {p.limit}</span>}
-          {p.perk && <span style={{ background: "rgba(255,255,255,0.92)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#0a0a0a", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}>🏅 {p.perk}</span>}
+          {p.used > 0 && <span style={{ background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: isDark ? "rgba(255,255,255,0.72)" : "rgba(42,42,48,0.72)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}><I.Users size={12} strokeWidth={2.2} /> посетили {p.used}</span>}
+          {p.limit && <span style={{ background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: isDark ? "rgba(255,255,255,0.9)" : "#2a2a30", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>👥 {p.limit}</span>}
+          {p.perk && <span style={{ background: isDark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.92)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: isDark ? "#fff" : "#0a0a0a", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}>🏅 {p.perk}</span>}
         </div>
       </div>
 
@@ -2793,7 +2801,7 @@ function CircleStartersShowcaseLive({ navigate }) {
         {CIRCLE_STARTERS.map((s) => (
           <div key={s.t} className="tap" onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<GoalFormSheetLive mode="create" circleOn={true} preset={s} navigate={navigate} />); }}
             style={{ flex: "0 0 auto", width: 162, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", cursor: "pointer", display: "flex", flexDirection: "column" }}>
-            <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{bosIcon(s.i, 23, null)}</span>
+            <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 23, flexShrink: 0 }}>{bosIcon(s.i, 23, null)}</span>
             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.t}</div>
             <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
             <div style={{ flex: 1, minHeight: 10 }} />
@@ -2997,7 +3005,7 @@ function LivingCirclesShowcaseLive({ navigate }) {
             <button key={s.t} onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} className="tap"
               style={{ textAlign: "left", width: "100%", background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, cursor: "pointer", display: "flex", flexDirection: "column", gap: 11, color: "var(--text)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(150deg, #eef1f6, #dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(s.i, 24, null)}</span>
+                <span style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(s.i, 24, null)}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{s.t}</div>
                   <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{s.hook}</div>
@@ -3066,7 +3074,7 @@ function UniDiscLive({ avatar, level, lvlPct, size, dark }) {
   var av = "" + (avatar || "");
   var isMemoji = /^m\d+$/.test(av), isEmoji = av.indexOf("emoji:") === 0;
   var SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
-  var bg = SHEEN + ", " + (isMemoji ? "url(./assets/people/" + av + ".png) center/cover no-repeat, " : (!isEmoji ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg,#eef1f6,#dadfe7)";
+  var bg = SHEEN + ", " + (isMemoji ? "url(./assets/people/" + av + ".png) center/cover no-repeat, " : (!isEmoji ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))";
   var badge = size * 0.34;
   // Кольцо-прогресс уровня УБРАНО (David: «перегружает») — остаётся только цифра уровня.
   // Inset 0.12 сохранён → размер лица и стык с раскрытой орбитой не изменились.
@@ -3153,7 +3161,8 @@ function UniverseFieldLive({ app, people, from, onClose }) {
     return function () { on = false; };
   }, []);
   var list = Array.isArray(friends) ? friends : [];
-  var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #1b2336 0%, #0e1422 52%, #070b14 100%)" : "radial-gradient(125% 95% at 50% 42%, #fbfcff 0%, #eef1f8 52%, #e4e9f2 100%)";
+  // Тёмная Вселенная = почти ЧЁРНЫЙ космос (David), с еле заметной глубиной к центру.
+  var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #14161d 0%, #0a0b10 52%, #030304 100%)" : "radial-gradient(125% 95% at 50% 42%, #fbfcff 0%, #eef1f8 52%, #e4e9f2 100%)";
   var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
 

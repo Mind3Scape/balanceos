@@ -489,7 +489,7 @@ function HomeLive() {
           width: 32,
           height: 32,
           borderRadius: "50%",
-          background: "linear-gradient(150deg,#eef1f6,#dadfe7)",
+          background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
           boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), 0 0 0 2px " + (isDark ? "#0a0a0a" : "#fff"),
           marginLeft: i ? -9 : 0,
           display: "grid",
@@ -760,7 +760,8 @@ function HomeLive() {
         onToggle: () => toggle(h.id),
         xp: XP_PER_HABIT,
         float: true,
-        color: h.color
+        color: h.color,
+        dark: isDark
       })))))));
     }
     if (id === "goals") {

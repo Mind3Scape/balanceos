@@ -398,6 +398,7 @@ function MoodLive() {
 
   const cur = picked >= 0 ? moods[picked] : null;
   const tint = cur ? cur.c : "#6a7a92";
+  const isDarkM = app?.themeOverride === "dark"; // тёмная тема: тёмная атмосфера вместо белой
 
   const moodTags = cur ? (MOOD_TAGS[cur.t] || []) : [];
   const toggleTag = (tg) => setTags(ts => ts.includes(tg) ? ts.filter(x => x !== tg) : [...ts, tg]);
@@ -414,7 +415,7 @@ function MoodLive() {
   return (
     <div className="mood-fullscreen" style={{
       position: "absolute", inset: 0, color: "var(--text)", overflow: "hidden",
-      background: "linear-gradient(180deg, #ffffff 0%, #f2f3f6 100%)",
+      background: isDarkM ? "linear-gradient(180deg, #111218 0%, #0a0b0e 100%)" : "linear-gradient(180deg, #ffffff 0%, #f2f3f6 100%)",
       display: "flex", flexDirection: "column",
       ["--mood-tint"]: tint,
     }}>
@@ -427,7 +428,7 @@ function MoodLive() {
       {/* Subtle film grain via noise gradient bands — keeps black areas alive */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        background: "linear-gradient(180deg, #ffffff 0%, transparent 18%, transparent 82%, #f2f3f6 100%)",
+        background: isDarkM ? "linear-gradient(180deg, #111218 0%, transparent 18%, transparent 82%, #0a0b0e 100%)" : "linear-gradient(180deg, #ffffff 0%, transparent 18%, transparent 82%, #f2f3f6 100%)",
       }}/>
 
       {/* Header — sits over the status bar room */}
@@ -437,7 +438,7 @@ function MoodLive() {
             the title centred. PWA/browser keeps the chevron. (Same guard as PageHeader.) */}
         {!(typeof window !== "undefined" && window.__TG) ? (
           <button onClick={() => navigate("home")} className="tap"
-            style={{ width: 40, height: 40, borderRadius: 999, background: "rgba(0,0,0,0.05)", border: 0, color: "var(--text)", display: "grid", placeItems: "center", padding: 0 }}>
+            style={{ width: 40, height: 40, borderRadius: 999, background: isDarkM ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", border: 0, color: "var(--text)", display: "grid", placeItems: "center", padding: 0 }}>
             <I.ChevronLeft size={18}/>
           </button>
         ) : <span style={{ width: 40 }}/>}
@@ -515,7 +516,7 @@ function MoodLive() {
             return (
               <button key={tg} onClick={() => toggleTag(tg)} className="tap" data-no-haptic style={{
                 padding: "8px 13px", borderRadius: 999, fontSize: 13, fontWeight: 500, border: 0, cursor: "pointer",
-                background: on ? "#0a0a0a" : "var(--surface-3)", color: on ? "#fff" : "var(--text-3)",
+                background: on ? "var(--cta, #0a0a0a)" : "var(--surface-3)", color: on ? "var(--cta-ink, #fff)" : "var(--text-3)",
                 display: "inline-flex", alignItems: "center", gap: 5, transition: "background 0.18s, color 0.18s",
               }}>
                 {on && <span style={{ width: 7, height: 7, borderRadius: "50%", background: tint }} />}

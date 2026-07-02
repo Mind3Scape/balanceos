@@ -300,20 +300,22 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           <filter id="orbShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="2.2" floodColor="#000" floodOpacity="0.16" /></filter>
           {/* glass for the orbiting discs — SAME tile-glass vocabulary as the pencil button
               (BOS_TILE_SHEEN directional sheen + a bright top edge), not a soft radial blob. */}
+          {/* Тема-зависимые стопы (тёмная гасит белые блики и темнит диск через CSS-переменные;
+              светлая живёт на фолбэках — David: «кружки вселенной/аватара пересвечены»). */}
           <linearGradient id="orbGlass" x1="0.12" y1="0" x2="0.6" y2="1">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0.55" />
-            <stop offset="0.46" stopColor="#ffffff" stopOpacity="0.12" />
+            <stop offset="0" stopColor="#ffffff" style={{ stopOpacity: "var(--orbglass-a, 0.55)" }} />
+            <stop offset="0.46" stopColor="#ffffff" style={{ stopOpacity: "var(--orbglass-b, 0.12)" }} />
             <stop offset="0.72" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="orbEdge" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0.95" />
-            <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.18" />
+            <stop offset="0" stopColor="#ffffff" style={{ stopOpacity: "var(--orbedge-a, 0.95)" }} />
+            <stop offset="0.5" stopColor="#ffffff" style={{ stopOpacity: "var(--orbedge-b, 0.18)" }} />
             <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
           {/* disc base = the SAME grey as the centre avatar (#eef1f6→#dadfe7) so everything matches */}
           <linearGradient id="orbDiscBg" x1="0.2" y1="0" x2="0.7" y2="1">
-            <stop offset="0" stopColor="#eef1f6" />
-            <stop offset="1" stopColor="#dadfe7" />
+            <stop offset="0" style={{ stopColor: "var(--disc-a, #eef1f6)" }} />
+            <stop offset="1" style={{ stopColor: "var(--disc-b, #dadfe7)" }} />
           </linearGradient>
         </defs>
 
@@ -345,7 +347,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           </svg>
         )}
         <div aria-hidden style={{ position: "absolute", inset: levelBadge > 0 ? 7 : 0, borderRadius: "50%",
-          background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg,#eef1f6,#dadfe7)",
+          background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : (!avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
           boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
           display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, color: "#5b6473", fontWeight: 600 }}>
           {avIsEmoji ? avStr.slice(6) : (!avIsMemoji ? (centreInitial || null) : null)}

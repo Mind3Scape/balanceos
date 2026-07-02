@@ -772,7 +772,7 @@ function LevelsLive() {
           (David: «человек понимал, что тратит экспу не чтобы уровень качать, а реально на вещи»). */}
       <SysCard style={{ padding: 18, marginTop: 16, borderRadius: 22 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 26, background: "linear-gradient(150deg,#eef1f6,#dadfe7)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)" }}>🪙</span>
+          <span style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 26, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)" }}>🪙</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="bos-sys-text-3" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Копилка</div>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, marginTop: 3 }}>{credits.toLocaleString()} <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-4)" }}>XP</span></div>

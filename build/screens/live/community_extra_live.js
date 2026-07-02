@@ -2213,7 +2213,7 @@ function LevelsLive() {
       display: "grid",
       placeItems: "center",
       fontSize: 26,
-      background: "linear-gradient(150deg,#eef1f6,#dadfe7)",
+      background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
       boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)"
     }
   }, "\uD83E\uDE99"), /*#__PURE__*/React.createElement("div", {

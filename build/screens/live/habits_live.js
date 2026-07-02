@@ -355,7 +355,7 @@ function CreatePickerSheetLive({
   var app = typeof useApp === "function" ? useApp() : null;
   var isDark = app?.themeOverride === "dark";
   var sheen = typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "";
-  var discBg = sheen + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)");
+  var discBg = sheen + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))");
   var line = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
   // БЕЛЫЕ карточки + card-shadow — язык наших форм-шторок (David: серый var(--surface-2)
   // был грубым, серое-на-сером не читалось и выпадало из палитры приложения).
@@ -1261,7 +1261,8 @@ function HabitsLive() {
       onToggle: () => toggle(h.id),
       xp: 10,
       float: true,
-      color: h.color
+      color: h.color,
+      dark: isDark
     });
     var ctrl = /*#__PURE__*/React.createElement("span", {
       onPointerDown: e => e.stopPropagation(),
@@ -1428,7 +1429,7 @@ function HabitsLive() {
     if (isDark) return {
       hasColor: true,
       accent,
-      bg: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 62%), " + (typeof bosMixHex === "function" ? bosMixHex(accent, "#101014", 0.30) : accent),
+      bg: "linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0) 62%), " + (typeof bosMixHex === "function" ? bosMixHex(accent, "#0d0f14", 0.24) : accent),
       shadow: "0 4px 12px rgba(0,0,0,0.45), inset 0 0 0 0.5px rgba(255,255,255,0.10)",
       txt: "#fff",
       sub: "rgba(255,255,255,0.72)",

@@ -906,6 +906,8 @@ function MoodLive() {
   var pulse = 1 + Math.sin(t * 1.3) * 0.06;
   var cur = picked >= 0 ? moods[picked] : null;
   var tint = cur ? cur.c : "#6a7a92";
+  var isDarkM = app?.themeOverride === "dark"; // тёмная тема: тёмная атмосфера вместо белой
+
   var moodTags = cur ? MOOD_TAGS[cur.t] || [] : [];
   var toggleTag = tg => setTags(ts => ts.includes(tg) ? ts.filter(x => x !== tg) : [...ts, tg]);
   var onSave = () => {
@@ -936,7 +938,7 @@ function MoodLive() {
       inset: 0,
       color: "var(--text)",
       overflow: "hidden",
-      background: "linear-gradient(180deg, #ffffff 0%, #f2f3f6 100%)",
+      background: isDarkM ? "linear-gradient(180deg, #111218 0%, #0a0b0e 100%)" : "linear-gradient(180deg, #ffffff 0%, #f2f3f6 100%)",
       display: "flex",
       flexDirection: "column",
       ["--mood-tint"]: tint
@@ -956,7 +958,7 @@ function MoodLive() {
       position: "absolute",
       inset: 0,
       pointerEvents: "none",
-      background: "linear-gradient(180deg, #ffffff 0%, transparent 18%, transparent 82%, #f2f3f6 100%)"
+      background: isDarkM ? "linear-gradient(180deg, #111218 0%, transparent 18%, transparent 82%, #0a0b0e 100%)" : "linear-gradient(180deg, #ffffff 0%, transparent 18%, transparent 82%, #f2f3f6 100%)"
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -973,7 +975,7 @@ function MoodLive() {
       width: 40,
       height: 40,
       borderRadius: 999,
-      background: "rgba(0,0,0,0.05)",
+      background: isDarkM ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
       border: 0,
       color: "var(--text)",
       display: "grid",
@@ -1169,8 +1171,8 @@ function MoodLive() {
         fontWeight: 500,
         border: 0,
         cursor: "pointer",
-        background: on ? "#0a0a0a" : "var(--surface-3)",
-        color: on ? "#fff" : "var(--text-3)",
+        background: on ? "var(--cta, #0a0a0a)" : "var(--surface-3)",
+        color: on ? "var(--cta-ink, #fff)" : "var(--text-3)",
         display: "inline-flex",
         alignItems: "center",
         gap: 5,

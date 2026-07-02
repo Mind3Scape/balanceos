@@ -769,11 +769,15 @@ function OrbitField({
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0",
     stopColor: "#ffffff",
-    stopOpacity: "0.55"
+    style: {
+      stopOpacity: "var(--orbglass-a, 0.55)"
+    }
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "0.46",
     stopColor: "#ffffff",
-    stopOpacity: "0.12"
+    style: {
+      stopOpacity: "var(--orbglass-b, 0.12)"
+    }
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "0.72",
     stopColor: "#ffffff",
@@ -787,11 +791,15 @@ function OrbitField({
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0",
     stopColor: "#ffffff",
-    stopOpacity: "0.95"
+    style: {
+      stopOpacity: "var(--orbedge-a, 0.95)"
+    }
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "0.5",
     stopColor: "#ffffff",
-    stopOpacity: "0.18"
+    style: {
+      stopOpacity: "var(--orbedge-b, 0.18)"
+    }
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "1",
     stopColor: "#ffffff",
@@ -804,10 +812,14 @@ function OrbitField({
     y2: "1"
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0",
-    stopColor: "#eef1f6"
+    style: {
+      stopColor: "var(--disc-a, #eef1f6)"
+    }
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "1",
-    stopColor: "#dadfe7"
+    style: {
+      stopColor: "var(--disc-b, #dadfe7)"
+    }
   }))), !uniShell && beltLayer), uniShell && /*#__PURE__*/React.createElement("svg", {
     viewBox: "-160 -160 320 320",
     width: "100%",
@@ -889,7 +901,7 @@ function OrbitField({
       position: "absolute",
       inset: levelBadge > 0 ? 7 : 0,
       borderRadius: "50%",
-      background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : !avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "") + "linear-gradient(150deg,#eef1f6,#dadfe7)",
+      background: TILE_SHEEN + ", " + (avIsMemoji ? "url(./assets/people/" + avStr + ".png) center/cover no-repeat, " : !avIsEmoji && !centreInitial ? "url(./assets/sphere.png) center/cover no-repeat, " : "") + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
       boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
       display: "grid",
       placeItems: "center",

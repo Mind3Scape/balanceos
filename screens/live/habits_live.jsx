@@ -112,7 +112,7 @@ function CreatePickerSheetLive({ navigate, custom = true }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const sheen = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "");
-  const discBg = sheen + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)");
+  const discBg = sheen + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))");
   const line = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
   // БЕЛЫЕ карточки + card-shadow — язык наших форм-шторок (David: серый var(--surface-2)
   // был грубым, серое-на-сером не читалось и выпадало из палитры приложения).
@@ -471,7 +471,7 @@ function HabitsLive() {
     const control = h.duration > 0 && !(h.goalPerDay > 1)
       ? <HabitTimerCheck habit={h} app={app} xp={10} />
       : h.goalPerDay > 1 ? <HabitCountCheck habit={h} app={app} xp={10} />
-      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float color={h.color} />;
+      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float color={h.color} dark={isDark} />;
     const ctrl = <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{control}</span>;
     const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
     const sq = cardStyle.cells === "square";
@@ -526,7 +526,7 @@ function HabitsLive() {
     // того же оттенка + белый текст — как цветные виджеты тёмного iOS.
     if (isDark) return {
       hasColor: true, accent,
-      bg: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 62%), " + ((typeof bosMixHex === "function") ? bosMixHex(accent, "#101014", 0.30) : accent),
+      bg: "linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0) 62%), " + ((typeof bosMixHex === "function") ? bosMixHex(accent, "#0d0f14", 0.24) : accent),
       shadow: "0 4px 12px rgba(0,0,0,0.45), inset 0 0 0 0.5px rgba(255,255,255,0.10)",
       txt: "#fff", sub: "rgba(255,255,255,0.72)", lbl: "rgba(255,255,255,0.6)", val: "rgba(255,255,255,0.85)",
       track: "rgba(0,0,0,0.35)", fill: (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.18) : accent,

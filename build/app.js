@@ -31,6 +31,12 @@ var ROOT_BG = {
   mood: "#f2f3f6",
   "ai-chat": "#fafafa"
 };
+// В ТЁМНОЙ теме светлые подложки выше НЕЛЬЗЯ применять — html/body/шапка Telegram на миг
+// красились белым при переходе («белое мигание», David). Тёмные аналоги:
+var ROOT_BG_DARK = {
+  "ai-chat": "#0f0f12",
+  mood: "#0a0b0e"
+};
 var SCREENS = {
   home: () => HomeScreen,
   habits: () => HabitsScreen,
@@ -187,7 +193,7 @@ var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && windo
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-var APP_VERSION = "v495";
+var APP_VERSION = "v496";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -1805,7 +1811,7 @@ function PhoneApp() {
   // Keep the iOS status-bar tint + the root background in sync with the screen,
   // so the home-indicator safe area never shows a stray black bar.
   useEffect(() => {
-    var bg = ROOT_BG[top.route] || (topDark ? "#0a0a0a" : "#f1f1f1");
+    var bg = topDark ? ROOT_BG_DARK[top.route] || "#0a0a0a" : ROOT_BG[top.route] || "#f1f1f1";
     var m = document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute("content", bg);
     document.documentElement.style.background = bg;
