@@ -7352,66 +7352,76 @@ function UniverseFieldLive({
       return;
     }
     (async function () {
-      // Облачный фетч по id-ключам (без seed → без дублей). Собираем приглашённых + участников кругов.
-      var seen = {},
-        out = [],
+      var out = [],
         myId = null;
       try {
         myId = await window.bosCloud.uid();
       } catch (e) {}
+      // ВСЕ пользователи вселенной: каждый с опубликованной витриной орбиты, АНОНИМНО (аватар+уровень+
+      // значки привычек, без имён/связи — David: «показываем всех всем, супер-анонимно»).
       try {
-        if (window.bosCloud.invitedPeople) {
-          var inv = await window.bosCloud.invitedPeople();
-          (inv || []).forEach(function (p) {
-            if (!p) return;
-            var id = p.id || p.user_id;
-            if (id && id !== myId && !seen[id]) {
-              seen[id] = 1;
-              out.push({
-                id: id,
-                avatar: p.avatar,
-                name: p.username || p.name || ""
-              });
-            }
+        if (window.bosCloud.allPublic) {
+          var all = await window.bosCloud.allPublic(240);
+          (all || []).forEach(function (p) {
+            if (p && p.id && p.id !== myId) out.push(p);
           });
         }
       } catch (e) {}
-      try {
-        var teams = (app && app.teams || []).filter(function (t) {
-          return t.cloudId;
-        });
-        for (var i = 0; i < teams.length; i++) {
-          var mem = await window.bosCloud.teamMembers(teams[i].cloudId);
-          (mem || []).forEach(function (m) {
-            if (m && m.id && m.id !== myId && !seen[m.id]) {
-              seen[m.id] = 1;
-              out.push({
-                id: m.id,
-                avatar: m.avatar,
-                name: m.name || ""
-              });
-            }
+      // Фолбэк (нет allPublic / пусто — напр. старый кэш): показать хотя бы своих (приглашённые + круги),
+      // тоже анонимно. Дотягиваем их публичные орбиты по id.
+      if (!out.length) {
+        var seen = {};
+        try {
+          if (window.bosCloud.invitedPeople) {
+            var inv = await window.bosCloud.invitedPeople();
+            (inv || []).forEach(function (p) {
+              if (!p) return;
+              var id = p.id || p.user_id;
+              if (id && id !== myId && !seen[id]) {
+                seen[id] = 1;
+                out.push({
+                  id: id,
+                  avatar: p.avatar,
+                  name: ""
+                });
+              }
+            });
+          }
+        } catch (e) {}
+        try {
+          var teams = (app && app.teams || []).filter(function (t) {
+            return t.cloudId;
           });
-        }
-      } catch (e) {}
-      // РЕАЛЬНАЯ орбита каждого: уровень + ЗНАЧКИ привычек + число людей (David: «их орбиты с привычками
-      // и вовлечёнными, как у меня»). Тянем публичную орбиту; нет колонки pub_orbit → пусто (системы
-      // дефолт-мелкие до ALTER от David).
-      try {
-        if (window.bosCloud.profilesPublic && out.length) {
-          var st = (await window.bosCloud.profilesPublic(out.map(function (o) {
-            return o.id;
-          }))) || {};
-          out.forEach(function (o) {
-            var s = st[o.id] || {};
-            o.level = s.level || 0;
-            o.lvlPct = s.lvlPct || 2;
-            o.habits = Array.isArray(s.habits) ? s.habits : [];
-            o.goals = s.goals || 0;
-            o.people = s.people || 0;
-          });
-        }
-      } catch (e) {}
+          for (var i = 0; i < teams.length; i++) {
+            var mem = await window.bosCloud.teamMembers(teams[i].cloudId);
+            (mem || []).forEach(function (m) {
+              if (m && m.id && m.id !== myId && !seen[m.id]) {
+                seen[m.id] = 1;
+                out.push({
+                  id: m.id,
+                  avatar: m.avatar,
+                  name: ""
+                });
+              }
+            });
+          }
+        } catch (e) {}
+        try {
+          if (window.bosCloud.profilesPublic && out.length) {
+            var st = (await window.bosCloud.profilesPublic(out.map(function (o) {
+              return o.id;
+            }))) || {};
+            out.forEach(function (o) {
+              var s = st[o.id] || {};
+              o.level = s.level || 0;
+              o.lvlPct = s.lvlPct || 2;
+              o.habits = Array.isArray(s.habits) ? s.habits : [];
+              o.goals = s.goals || 0;
+              o.people = s.people || 0;
+            });
+          }
+        } catch (e) {}
+      }
       if (on) {
         _bosUniverseCache = out;
         setFriends(out);
@@ -7475,65 +7485,66 @@ function UniverseFieldLive({
   // ТОМ ЖЕ месте. Fallback (не из «Я»): ширина страницы × 300 (как в OrbitField).
   var W = typeof window !== "undefined" && window.innerWidth || 390;
   var H = typeof window !== "undefined" && window.innerHeight || 780;
-  // Layout: ТЫ — в ЦЕНТРЕ вселенной (layout.cx/cy). Остальные — вокруг по спирали наружу, БЕЗ
-  // наложений и не касаясь твоей системы; больше объём → ближе к тебе. Экранный размер каждой задаёт
-  // уже линза центра (_focC ниже), а не позиция — здесь только раскладываем точки без пересечений.
+  // Layout: ТЫ — в ЦЕНТРЕ вселенной (layout.cx/cy). Остальные — «золотой угол» (филлотаксис, как
+  // семечки подсолнуха): органично, без сетки, равномерно ЗАПОЛНЯЯ вытянутый экран телефона (эллипс
+  // выше, чем шире). Пока людей мало — заполняют экран; станет много — эллипс растёт, дальние уходят
+  // за край (их проявишь движением). Размер/раскрытие каждой задаёт линза (_focScale/_focOpen ниже).
   var layout = React.useMemo(function () {
-    var youFp = 208 * 0.42 + 14; // твоя система теперь стандартного размера
+    var youFp = 208 * 0.42 + 14;
     var cx = W / 2,
-      cy = from ? from.cy : H * 0.44;
-    var others = list.slice(0, 60).map(function (f) {
+      cy = H * 0.5; // центр экрана → низ/верх заполнены поровну
+    var arr = list.slice(0, 240).map(function (f) {
       return buildSystem(f);
     }).sort(function (a, b) {
-      return b.footprint - a.footprint;
+      return b.weight - a.weight;
     });
-    var GAP = 9,
-      placed = [],
-      overflow = 0,
-      RMAX = Math.max(W, H) * 1.15;
-    function fits(x, y, fp) {
-      if (x < fp + 2 || x > W - fp - 2 || y < 52 + fp || y > H - 44 - fp) return false;
-      var ddx = x - cx,
-        ddy = y - cy;
-      if (Math.sqrt(ddx * ddx + ddy * ddy) < youFp + fp + GAP) return false;
-      for (var j = 0; j < placed.length; j++) {
-        var dx = x - placed[j].x,
-          dy = y - placed[j].y;
-        if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + GAP) return false;
-      }
-      return true;
-    }
-    others.forEach(function (sp, i) {
-      var fp = sp.footprint,
-        done = false;
-      for (var r = youFp + fp + GAP; r < RMAX && !done; r += 7) {
-        var steps = Math.max(8, Math.round(2 * Math.PI * r / 20)),
-          a0 = _bosHashU(sp.s.name || "" + i) % steps;
-        for (var k = 0; k < steps && !done; k++) {
-          var ang = (k + a0) / steps * 2 * Math.PI,
-            x = cx + Math.cos(ang) * r,
-            y = cy + Math.sin(ang) * r;
-          if (fits(x, y, fp)) {
-            placed.push({
-              sp: sp,
-              x: x,
-              y: y,
-              fp: fp
-            });
-            done = true;
-          }
+    var n = arr.length,
+      S = 0.82; // дефолт-зум: раскидываем под него
+    var minAx = W / S * 0.40,
+      minAy = H / S * 0.44; // экранный эллипс, вертикально вытянут
+    var grow = Math.sqrt(n / 7);
+    if (grow < 1) grow = 1; // мало людей → в экран; много → шире
+    var ax = minAx * grow,
+      ay = minAy * grow;
+    var GA = 2.399963229728653,
+      placed = []; // золотой угол ≈ 137.5°
+    arr.forEach(function (sp, i) {
+      var fp = sp.footprint;
+      var rN = Math.sqrt((i + 0.5) / Math.max(n, 1)) * 0.94 + 0.06; // маленькая «дырка» под твою систему
+      var ang = i * GA,
+        x = cx + Math.cos(ang) * rN * ax,
+        y = cy + Math.sin(ang) * rN * ay;
+      // лёгкая релаксация: наезжает на твою или уже поставленную — толкаем наружу вдоль луча
+      for (var t = 0; t < 36; t++) {
+        var ok = true,
+          ddx = x - cx,
+          ddy = y - cy,
+          L = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+        if (L < youFp + fp + 10) ok = false;
+        for (var j = 0; ok && j < placed.length; j++) {
+          var dx = x - placed[j].x,
+            dy = y - placed[j].y;
+          if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + 12) ok = false;
         }
+        if (ok) break;
+        x += ddx / L * 18;
+        y += ddy / L * 18;
       }
-      if (!done) overflow++;
+      placed.push({
+        sp: sp,
+        x: x,
+        y: y,
+        fp: fp
+      });
     });
     return {
       placed: placed,
-      overflow: overflow,
+      overflow: 0,
       cx: cx,
       cy: cy,
       youFp: youFp
     };
-  }, [friends, from]);
+  }, [friends]);
 
   // СОТА-КАМЕРА (как главное меню Apple Watch): двигаешь пальцем — системы, входящие в ЦЕНТР
   // экрана, крупнеют и раскрывают кольца; уходящие к краю — мельчают и сворачиваются в точку-аватар.

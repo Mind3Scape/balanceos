@@ -104,6 +104,21 @@
       var out = {}; r.data.forEach(function (p) { var o = p.pub_orbit || {}; out[p.id] = { level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0 }; }); return out;
     } catch (e) { return {}; }
   }
+  // ВСЕ пользователи для «Вселенной»: каждый, кто опубликовал витрину орбиты (pub_orbit not null).
+  // Анонимно — отдаём аватар-глиф + уровень + значки привычек + число людей, БЕЗ имени/ника (David:
+  // показываем всех всем, анонимно). Кап на всякий случай; порядок не важен — раскладка сама разбросает.
+  async function allPublic(limit) {
+    var c = client(); if (!c) return [];
+    var me = null; try { me = await uid(); } catch (e) {}
+    try {
+      var r = await c.from("profiles").select("id,avatar,pub_orbit").not("pub_orbit", "is", null).limit(limit || 240);
+      if (r.error || !r.data) return [];
+      return r.data.filter(function (p) { return p && p.id && p.id !== me; }).map(function (p) {
+        var o = p.pub_orbit || {};
+        return { id: p.id, avatar: p.avatar || "default", name: "", level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0 };
+      });
+    } catch (e) { return []; }
+  }
   // My short, pretty referral code (profiles.ref_code). Null if the column/code isn't there
   // yet (before patch_ref_codes.sql is run) — callers fall back to the raw uid via inviteCode().
   var _refCode = null;
@@ -663,7 +678,7 @@
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, currentUser: currentUser,
     loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople, refCode: refCode, inviteCode: inviteCode,
-    savePublicStats: savePublicStats, profilesPublic: profilesPublic,
+    savePublicStats: savePublicStats, profilesPublic: profilesPublic, allPublic: allPublic,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,

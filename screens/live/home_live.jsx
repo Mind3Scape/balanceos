@@ -424,7 +424,8 @@ function HomeLive() {
   const savedOrder = (Array.isArray(widgets.order) ? widgets.order : []).filter((id) => DEFAULT_ORDER.includes(id));
   const fullOrder = [...savedOrder, ...DEFAULT_ORDER.filter((id) => !savedOrder.includes(id))];
   const nodes = {};
-  fullOrder.forEach((id) => { if (isWidgetOn(id)) { const n = nodeOf(id); if (n != null) nodes[id] = n; } });
+  // Предохранитель: упавший виджет просто не показывается — остальная главная живёт.
+  fullOrder.forEach((id) => { if (isWidgetOn(id)) { try { const n = nodeOf(id); if (n != null) nodes[id] = n; } catch (e) {} } });
   const visibleIds = fullOrder.filter((id) => nodes[id] != null);
 
   // Reorder commits the new VISIBLE order back into the full order, keeping any hidden ids in
