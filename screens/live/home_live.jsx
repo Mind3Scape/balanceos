@@ -451,11 +451,10 @@ function HomeLive() {
           style={{ width: 40, height: 40, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
           <I.Plus size={20} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
         </button>
-        {/* Notifications — a BARE iOS-nav glyph (no grey tile: David «квадратик ему не подходит»),
-            a touch bolder for presence, optically centred with the greeting; the red dot rides the
-            bell's top-right. hit44 keeps the tap target ≥44px. */}
+        {/* Notifications — СТЕКЛЯННЫЙ КРУГ, симметрично «+» слева (David: «колокольчик тоже
+            в кружочек»). Красная точка едет на верхнем правом крае колокольчика. */}
         <button onClick={() => navigate("notifications", { from: "home" })} className="tap hit44" aria-label="Уведомления"
-          style={{ width: 40, height: 40, background: "transparent", border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+          style={{ width: 40, height: 40, borderRadius: 999, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
           <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
             <I.Bell size={20} strokeWidth={2} color={bellIcon}/>
             {showBellDot && (

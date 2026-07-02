@@ -499,9 +499,11 @@ function HabitsLive() {
           {icon}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{ctrl}</div>
         </div>
-        {cardStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>}
+        {/* Челлендж-чип живёт в СЕРЕДИННОМ пространстве, а имя — ВНИЗУ у точек недели
+            (David: «название логичнее сдвинуть к точечкам, а белое место — под челленджи»). */}
         <ChallengeProgressChip habit={h} />
-        {marks && <div style={{ marginTop: "auto", paddingTop: 12 }}>{marks}</div>}
+        {cardStyle.name && <div style={{ marginTop: "auto", paddingTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>}
+        {marks && <div style={{ marginTop: cardStyle.name ? 7 : "auto", paddingTop: cardStyle.name ? 0 : 12 }}>{marks}</div>}
       </div>
     );
   };

@@ -1376,9 +1376,12 @@ function HabitsLive() {
         gap: 10,
         flexShrink: 0
       }
-    }, faces, ctrl)), cardStyle.name && /*#__PURE__*/React.createElement("div", {
+    }, faces, ctrl)), /*#__PURE__*/React.createElement(ChallengeProgressChip, {
+      habit: h
+    }), cardStyle.name && /*#__PURE__*/React.createElement("div", {
       style: {
-        marginTop: 10,
+        marginTop: "auto",
+        paddingTop: 10,
         fontSize: 15,
         fontWeight: 600,
         color: "var(--text)",
@@ -1389,12 +1392,10 @@ function HabitsLive() {
         WebkitBoxOrient: "vertical",
         overflow: "hidden"
       }
-    }, h.name), /*#__PURE__*/React.createElement(ChallengeProgressChip, {
-      habit: h
-    }), marks && /*#__PURE__*/React.createElement("div", {
+    }, h.name), marks && /*#__PURE__*/React.createElement("div", {
       style: {
-        marginTop: "auto",
-        paddingTop: 12
+        marginTop: cardStyle.name ? 7 : "auto",
+        paddingTop: cardStyle.name ? 0 : 12
       }
     }, marks));
   };

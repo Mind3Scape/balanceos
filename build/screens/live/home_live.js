@@ -1175,7 +1175,10 @@ function HomeLive() {
     style: {
       width: 40,
       height: 40,
-      background: "transparent",
+      borderRadius: 999,
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+        background: "var(--surface-3)"
+      }),
       border: 0,
       padding: 0,
       display: "grid",
