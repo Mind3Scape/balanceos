@@ -2952,9 +2952,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // поэтому боксы кладём с перекрытием (шаг = PACK×диаметр, PACK<0.5) → сами орбиты впритык, минимум
   // белого (соты). Магнификация мягкая (орбиты не расползаются): центр MC, край ME.
   var SIZB = 178 * cam.z * introK;                    // диаметр орбиты (px) при mag=1
-  var PACK = 0.72;                                    // шаг = PACK×диаметр — раздвиг ячеек (меньше наезда орбит)
+  var PACK = 0.8;                                     // шаг = PACK×диаметр — раздвиг ячеек (меньше наезда орбит)
   var SPB = SIZB * PACK;
-  var SIG = 190 * cam.z * introK;                     // радиус «лупы» (px) — шире, чтобы ближние оставались раскрытыми
+  var SIG = 210 * cam.z * introK;                     // радиус «лупы» (px) — шире, чтобы ближние оставались раскрытыми
   var MC = 1.85, ME = 0.72;                           // магнификация: центр / край
   function fish(fx, fy) {
     var vx = fx - cam.x, vy = fy - cam.y, rf = Math.sqrt(vx * vx + vy * vy), rpx = rf * SPB;
@@ -2973,7 +2973,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   function uMove(e) {
     var g = vp.current; if (!g.pts[e.pointerId]) return; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
     if (g.mode === "pinch" && ids.length >= 2) { var a = g.pts[ids[0]], b = g.pts[ids[1]]; var nz = _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd)); setCam(function (v) { return { x: v.x, y: v.y, z: nz, anim: false }; }); }
-    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * 0.72 * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); setCam(function (v) { return { x: g.ox - dx / ps, y: g.oy - dy / ps, z: v.z, anim: false }; }); }
+    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * 0.8 * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); setCam(function (v) { return { x: g.ox - dx / ps, y: g.oy - dy / ps, z: v.z, anim: false }; }); }
   }
   function uUp(e) {
     var g = vp.current; var tap = (g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1);
@@ -3012,7 +3012,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
             return (
               <div key={nd.you ? "you" : ("o" + i)} style={{ position: "absolute", left: f.sx.toFixed(1) + "px", top: f.sy.toFixed(1) + "px", pointerEvents: "none", zIndex: Math.round(f.mag * 100) }}>
                 <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px" }}>
-                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={!!nd.you} editable={false} levelBadge={sp.level} open={openV} /> : null}
+                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={true} editable={false} levelBadge={sp.level} open={openV} /> : null}
                 </div>
               </div>
             );
