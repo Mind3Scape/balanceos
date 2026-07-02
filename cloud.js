@@ -33,7 +33,7 @@
   // Sign in (idempotent). referredBy = id of the person whose invite link brought you.
   async function signIn(referredBy) {
     var c = client(); if (!c) return null;
-    var existing = await currentUser(); if (existing) { _uid = existing.id; try { flushQueue(); } catch (e) {} return existing; }
+    var existing = await currentUser(); if (existing) { _uid = existing.id; try { flushQueue(); flushLedgerBacklog(); } catch (e) {} return existing; }
     if (inTelegram()) {
       try {
         var resp = await fetch(URL + "/functions/v1/tg-auth", {

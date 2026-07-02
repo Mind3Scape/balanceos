@@ -118,6 +118,14 @@ function bosAid() { _bosAidN += 1; return "a" + Date.now() + "_" + _bosAidN; }
 // падали на «нет кредитов»/«unavailable for free»). NB: stealth-модели временные — если исчезнет,
 // пополни ключ OpenRouter и поставь платную (deepseek/deepseek-chat-v3-0324 и др. в FALLBACK_MODELS).
 const BOS_AI_MODEL = "openrouter/owl-alpha";
+// КАСКАД моделей на день наплыва (100 человек разом): легла/исчезла основная — тихо пробуем
+// запасные по очереди, только потом фолбэк-текст. Платная deepseek — копеечная и включится
+// сама, как только на ключе OpenRouter появится баланс; :free — на случай, если их откроют.
+const BOS_AI_MODELS = [
+  BOS_AI_MODEL,
+  "deepseek/deepseek-chat-v3-0324",
+  "meta-llama/llama-3.3-70b-instruct:free",
+];
 
 const AI_SYSTEM = [
   "Ты — тихий внутренний наставник внутри приложения для баланса, состояния и привычек.",
@@ -176,18 +184,22 @@ async function aiRaw(messages) {
   const sbUrl = (W.SUPABASE_URL || "").replace(/\/$/, "");
   const sbKey = W.SUPABASE_ANON_KEY || "";
   if (!sbUrl || !sbKey) return null;
-  // Two attempts: a free/stealth model can occasionally hiccup (slow or empty) — one quiet retry
-  // turns most transient «Связь с ИИ» into a real answer. The proxy ALSO retries server-side.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await aiFetch(sbUrl + "/functions/v1/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sbKey, "apikey": sbKey },
-        body: JSON.stringify({ messages, model: BOS_AI_MODEL }),
-      });
-      if (res.ok) { const data = await res.json(); const t = data && data.reply; if (t && t.trim()) return t.trim(); }
-    } catch (e) { /* fall through to retry */ }
-    if (attempt === 0) await new Promise((s) => setTimeout(s, 600));
+  // КАСКАД: основная модель — две попытки (стелс изредка икает), каждая запасная — по одной.
+  // Любой живой ответ — сразу наружу; все легли → null (эвристика/фолбэк-текст выше по стеку).
+  const models = (typeof BOS_AI_MODELS !== "undefined" && BOS_AI_MODELS.length) ? BOS_AI_MODELS : [BOS_AI_MODEL];
+  for (let mi = 0; mi < models.length; mi++) {
+    const tries = mi === 0 ? 2 : 1;
+    for (let attempt = 0; attempt < tries; attempt++) {
+      try {
+        const res = await aiFetch(sbUrl + "/functions/v1/ai-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sbKey, "apikey": sbKey },
+          body: JSON.stringify({ messages, model: models[mi] }),
+        });
+        if (res.ok) { const data = await res.json(); const t = data && data.reply; if (t && t.trim()) return t.trim(); }
+      } catch (e) { /* fall through */ }
+      if (mi === 0 && attempt === 0) await new Promise((s) => setTimeout(s, 600));
+    }
   }
   // No client-direct fallback. The old one (a) shipped the OpenRouter key to every browser
   // and (b) fired a SECOND OpenRouter request whenever the proxy returned an empty reply —

@@ -14,6 +14,14 @@
    per-id flag (widgets[id] !== false); removing just flips it to false and the widget
    reappears in the «+» sheet — nothing is ever deleted. The ONLY new top-level declaration
    in this file is `function HomeLive`. */
+/* Один упавший виджет НЕ роняет всю главную (день наплыва): тихо схлопывается. */
+class WidgetBoundaryLive extends React.Component {
+  constructor(p) { super(p); this.state = { dead: false }; }
+  static getDerivedStateFromError() { return { dead: true }; }
+  componentDidCatch(e) { try { console.error("widget crash:", this.props.wid, e); } catch (e2) {} }
+  render() { return this.state.dead ? null : this.props.children; }
+}
+
 function HomeLive() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
@@ -471,7 +479,7 @@ function HomeLive() {
           карточку «Создай первую привычку» убрал — она дублировала пилюлю и занимала пол-экрана
           (David: «нету смысла показывать на пол-экрана, в пилюлях уже есть»). Доска — с первой привычкой. */}
       {trulyNew ? (
-        nodes["hero"] || null
+        <WidgetBoundaryLive wid="hero">{nodes["hero"] || null}</WidgetBoundaryLive>
       ) : visibleIds.length > 0 ? (
         <BosReorderList
           ids={visibleIds}
@@ -481,7 +489,7 @@ function HomeLive() {
           addLabel="Добавить виджет"
           renderItem={(id, { mode }) => (
             <div style={{ position: "relative" }}>
-              <div style={{ pointerEvents: mode ? "none" : "auto" }}>{nodes[id]}</div>
+              <div style={{ pointerEvents: mode ? "none" : "auto" }}><WidgetBoundaryLive wid={id}>{nodes[id]}</WidgetBoundaryLive></div>
               {mode && <WidgetMinusLive onRemove={() => hideWidget(id)} />}
             </div>
           )}

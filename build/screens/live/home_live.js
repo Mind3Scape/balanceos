@@ -14,6 +14,28 @@
    per-id flag (widgets[id] !== false); removing just flips it to false and the widget
    reappears in the «+» sheet — nothing is ever deleted. The ONLY new top-level declaration
    in this file is `function HomeLive`. */
+/* Один упавший виджет НЕ роняет всю главную (день наплыва): тихо схлопывается. */
+class WidgetBoundaryLive extends React.Component {
+  constructor(p) {
+    super(p);
+    this.state = {
+      dead: false
+    };
+  }
+  static getDerivedStateFromError() {
+    return {
+      dead: true
+    };
+  }
+  componentDidCatch(e) {
+    try {
+      console.error("widget crash:", this.props.wid, e);
+    } catch (e2) {}
+  }
+  render() {
+    return this.state.dead ? null : this.props.children;
+  }
+}
 function HomeLive() {
   var {
     navigate
@@ -1214,7 +1236,9 @@ function HomeLive() {
     onClose: () => setCreateOpen(false),
     anchorRef: addBtnRef,
     navigate: navigate
-  }), trulyNew ? nodes["hero"] || null : visibleIds.length > 0 ? /*#__PURE__*/React.createElement(BosReorderList, {
+  }), trulyNew ? /*#__PURE__*/React.createElement(WidgetBoundaryLive, {
+    wid: "hero"
+  }, nodes["hero"] || null) : visibleIds.length > 0 ? /*#__PURE__*/React.createElement(BosReorderList, {
     ids: visibleIds,
     gap: 12,
     onReorder: onReorderWidgets,
@@ -1230,7 +1254,9 @@ function HomeLive() {
       style: {
         pointerEvents: mode ? "none" : "auto"
       }
-    }, nodes[id]), mode && /*#__PURE__*/React.createElement(WidgetMinusLive, {
+    }, /*#__PURE__*/React.createElement(WidgetBoundaryLive, {
+      wid: id
+    }, nodes[id])), mode && /*#__PURE__*/React.createElement(WidgetMinusLive, {
       onRemove: () => hideWidget(id)
     }))
   }) : /*#__PURE__*/React.createElement("button", {
