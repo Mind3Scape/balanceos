@@ -16,7 +16,8 @@
    HabitWeekStrip, BosReorderGrid, bosConfirmDelete, bosTileGlass/BOS_TILE_SHEEN, HabitBuddyAvatarsLive,
    CircleFacesLive) + community_live.jsx (LiveTeamCard) + framework (HabitCheck/HabitCountCheck/
    HabitRing, I, hooks). Top-level names here: HabitTileMenuLive, HabitsLive, bosLoadPracticeOrder,
-   bosSavePracticeOrder, CHALLENGE_STARTERS. */
+   bosSavePracticeOrder, CHALLENGE_STARTERS, bosDaysWord, ChallengeIntroSheet, ChallengeProgressChip,
+   bosCommitChallenge, BOS_CREATE_CATS, CreatePickerSheetLive, GoalCardOrbit. */
 
 // «ЧЕЛЛЕНДЖИ» — витрина-лента наверху стр. Привычки (David: «не голые пресеты, а самые ПОПУЛЯРНЫЕ
 // привычки/цели/„вместе"-челленджи, у каждой виден XP-БОНУС — быстрое добавление ЧЕЛЛЕНДЖЕЙ»). Тап →
@@ -109,6 +110,436 @@ function bosDaysWord(n) {
   if (d10 === 1 && d100 !== 11) return "день";
   if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return "дня";
   return "дней";
+}
+
+/* СОГЛАСИЛСЯ на челлендж → создаём сразу, БЕЗ формы (David: «подписался — и она сама создаётся,
+   редактировать можно потом карандашиком»). ЕДИНЫЙ путь для ленты челленджей на Привычках И
+   шторки-каталога «+» (CreatePickerSheetLive) — challenge {key,bonus,days} едет на привычку/цель/круг,
+   бонус фиксируется в копилку (shell.jsx), когда челлендж ЗАВЕРШЁН. */
+function bosCommitChallenge(app, c, {
+  navigate,
+  openSheet
+}) {
+  var ch = {
+    key: c.key,
+    bonus: c.bonus,
+    days: c.days
+  };
+  if (c.kind === "habit") {
+    // Идентична карточке, которую собрала бы форма: все 7 дней, напоминание вкл в 9:00 (дефолт формы).
+    app?.addHabit({
+      emoji: c.i,
+      name: c.t,
+      color: c.color || "#0a0a0a",
+      days: [1, 1, 1, 1, 1, 1, 1],
+      goalPerDay: 1,
+      duration: 0,
+      reminder: {
+        on: true,
+        time: "09:00"
+      },
+      challenge: ch
+    });
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+  } else if (c.kind === "goal") {
+    app?.addGoal({
+      emoji: c.i,
+      color: c.color || "#0a0a0a",
+      name: c.t,
+      target: c.target || 1,
+      unit: c.unit || "",
+      deadline: c.deadline || "Этот месяц",
+      circle: false,
+      habitIds: [],
+      challenge: ch
+    });
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+  } else {
+    // «Вместе» → сразу настоящий круг + шторка приглашения (тот же проверенный путь, что у формы).
+    var goalLike = {
+      name: c.t,
+      emoji: c.i,
+      color: c.color || "#0a0a0a",
+      target: c.target || 1,
+      unit: c.unit || "",
+      deadline: c.deadline || "Этот месяц",
+      habitIds: [],
+      challenge: ch
+    };
+    if (typeof bosPromoteGoalToCircle === "function") {
+      bosPromoteGoalToCircle(app, goalLike, {
+        navigate,
+        from: "habits",
+        vis: "private",
+        type: "collective",
+        stake: 0,
+        onShare: t => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+          team: t
+        }))
+      });
+    }
+  }
+}
+
+/* КАТАЛОГ «+» — пресеты ПО КАТЕГОРИЯМ для шторки создания (David: «сначала шторка с пресетами,
+   и все уже настроены под челленджи — не просто объект „медитация", а сколько-то продержаться»;
+   референс — категории в стороннем трекере). Пересекающиеся пункты НЕСУТ ТЕ ЖЕ key, что лента
+   CHALLENGE_STARTERS → копилка claimedChallenges видит их как один челлендж. Категория «Вместе» =
+   kind:"together" (цель+круг одним тумблером — наш единый механизм). */
+var BOS_CREATE_CATS = [{
+  t: "🌿 Здоровье",
+  items: [{
+    i: "💧",
+    t: "Вода каждый день",
+    kind: "habit",
+    key: "water",
+    bonus: 30,
+    days: 21,
+    color: "#34C759",
+    desc: "Стакан за стаканом — приучи себя пить достаточно воды каждый день."
+  }, {
+    i: "🚭",
+    t: "Без сахара",
+    kind: "habit",
+    key: "nosugar",
+    bonus: 50,
+    days: 30,
+    color: "#FF2D55",
+    desc: "Месяц без добавленного сахара — тело скажет спасибо."
+  }, {
+    i: "😴",
+    t: "Сон до полуночи",
+    kind: "habit",
+    key: "sleep",
+    bonus: 30,
+    days: 14,
+    color: "#5E5CE6",
+    desc: "Две недели ложиться до 00:00 — утро перестанет быть врагом."
+  }]
+}, {
+  t: "💪 Тело",
+  items: [{
+    i: "🔥",
+    t: "Холодный душ",
+    kind: "habit",
+    key: "cold",
+    bonus: 50,
+    days: 30,
+    color: "#0a0a0a",
+    desc: "Каждое утро — холодный душ. Взбадривает тело и закаляет характер."
+  }, {
+    i: "🌅",
+    t: "Ранний подъём",
+    kind: "habit",
+    key: "wake",
+    bonus: 40,
+    days: 21,
+    color: "#FF9500",
+    desc: "Вставай раньше и выигрывай утро, пока все ещё спят."
+  }, {
+    i: "👟",
+    t: "10 000 шагов",
+    kind: "habit",
+    key: "steps",
+    bonus: 30,
+    days: 14,
+    color: "#0A84FF",
+    desc: "Две недели по десять тысяч шагов — тело скажет спасибо за движение."
+  }]
+}, {
+  t: "🧠 Разум",
+  items: [{
+    i: "🧘",
+    t: "10 минут тишины",
+    kind: "habit",
+    key: "silence",
+    bonus: 30,
+    days: 21,
+    color: "#AF52DE",
+    desc: "Десять минут покоя в день — место, где мысли оседают."
+  }, {
+    i: "📖",
+    t: "Чтение каждый день",
+    kind: "habit",
+    key: "read21",
+    bonus: 40,
+    days: 21,
+    color: "#FF9F0A",
+    desc: "Хотя бы несколько страниц в день — три недели, и книга сама тебя ждёт."
+  }, {
+    i: "✍️",
+    t: "Дневник перед сном",
+    kind: "habit",
+    key: "journal",
+    bonus: 30,
+    days: 14,
+    color: "#64D2FF",
+    desc: "Пара строк о дне перед сном — голова легче, сон спокойнее."
+  }]
+}, {
+  t: "🎯 Цели",
+  items: [{
+    i: "📚",
+    t: "Книга за месяц",
+    kind: "goal",
+    key: "book",
+    bonus: 40,
+    target: 1,
+    unit: "книга",
+    deadline: "Месяц",
+    desc: "Одна книга до конца месяца — маленькими шагами каждый день."
+  }, {
+    i: "🏃",
+    t: "50 км за месяц",
+    kind: "goal",
+    key: "run50",
+    bonus: 50,
+    target: 50,
+    unit: "км",
+    deadline: "Месяц",
+    desc: "Пятьдесят километров бега или ходьбы за месяц — в своём темпе."
+  }]
+}, {
+  t: "🤝 Вместе",
+  items: [{
+    i: "💪",
+    t: "30 дней спорта",
+    kind: "together",
+    key: "sport30",
+    bonus: 75,
+    target: 30,
+    unit: "дней",
+    desc: "Месяц движения без пропусков. Вместе с друзьями держать ритм легче."
+  }, {
+    i: "🏃",
+    t: "Бег вместе",
+    kind: "together",
+    key: "runtog",
+    bonus: 75,
+    target: 30,
+    unit: "км",
+    desc: "Набегайте общий километраж командой — вклад каждого виден всем."
+  }, {
+    i: "🧘",
+    t: "Тишина вместе",
+    kind: "together",
+    key: "medtog",
+    bonus: 75,
+    target: 21,
+    unit: "дней",
+    desc: "Три недели медитации всем кругом — никто не сходит с дистанции."
+  }]
+}];
+
+/* ШТОРКА «+» — первый экран создания (David: «кликаю плюсик — сначала шторка с пресетами по
+   категориям, всё уже настроено под челленджи»). Сверху «Своя привычка / Своя цель» (формы с нуля —
+   наши шторки), ниже категории готовых челленджей; тап по пресету → ChallengeIntroSheet (правила +
+   «Начать») → bosCommitChallenge. Всё в one-sheet host: содержимое шторки меняется, без вложенных. */
+function CreatePickerSheetLive({
+  navigate
+}) {
+  var {
+    open: openSheet
+  } = useSheet();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var isDark = app?.themeOverride === "dark";
+  var sheen = typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "";
+  var discBg = sheen + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)");
+  var line = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  var tile = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-2)";
+  var pick = c => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    openSheet(/*#__PURE__*/React.createElement(ChallengeIntroSheet, {
+      c: c,
+      dark: isDark,
+      onStart: () => bosCommitChallenge(app, c, {
+        navigate,
+        openSheet
+      })
+    }));
+  };
+  var custom = node => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("light");
+      } catch (e) {}
+    }
+    openSheet(node);
+  };
+  var sub = c => c.kind === "habit" ? c.days + " " + bosDaysWord(c.days) + " подряд · +" + c.bonus + " XP" : c.target + " " + (c.unit || "") + " · +" + c.bonus + " XP";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 16px 20px",
+      maxHeight: "84vh",
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      fontSize: 18,
+      fontWeight: 700,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 3,
+      lineHeight: 1.4
+    }
+  }, "\u0413\u043E\u0442\u043E\u0432\u044B\u0439 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436 \u0441 \u043D\u0430\u0433\u0440\u0430\u0434\u043E\u0439 \u2014 \u0438\u043B\u0438 \u0441\u0432\u043E\u0451 \u0441 \u043D\u0443\u043B\u044F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: tile,
+      borderRadius: 18,
+      marginTop: 14,
+      overflow: "hidden"
+    }
+  }, [{
+    icon: I.Flame,
+    t: "Своя привычка",
+    d: "форма с нуля — как хочешь",
+    go: () => custom(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+      mode: "create",
+      navigate: navigate
+    }))
+  }, {
+    icon: I.Flag,
+    t: "Своя цель",
+    d: "число, срок и привычки к ней",
+    go: () => custom(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+      mode: "create",
+      navigate: navigate
+    }))
+  }].map((r, i) => /*#__PURE__*/React.createElement("button", {
+    key: r.t,
+    onClick: r.go,
+    className: "tap",
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      background: "transparent",
+      border: 0,
+      borderTop: i ? "0.5px solid " + line : 0,
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "12px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      background: discBg,
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(r.icon, {
+    size: 18,
+    color: "var(--text)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, r.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, r.d)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    color: "var(--text-4)"
+  })))), BOS_CREATE_CATS.map(cat => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: cat.t
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "16px 4px 7px"
+    }
+  }, cat.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: tile,
+      borderRadius: 18,
+      overflow: "hidden"
+    }
+  }, cat.items.map((c, i) => /*#__PURE__*/React.createElement("button", {
+    key: c.key,
+    onClick: () => pick(c),
+    className: "tap",
+    "data-no-haptic": true,
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      background: "transparent",
+      border: 0,
+      borderTop: i ? "0.5px solid " + line : 0,
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "11px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      background: discBg,
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 19,
+      flexShrink: 0
+    }
+  }, bosIcon(c.i, 19, null)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, c.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, sub(c))), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    color: "var(--text-4)"
+  })))))));
 }
 
 /* Шторка-ЗНАКОМСТВО перед стартом челленджа (David: «нелогично, что тап сразу создаёт привычку —
@@ -750,82 +1181,8 @@ function HabitsLive() {
     }));
   };
 
-  // СОГЛАСИЛСЯ на челлендж → создаём сразу, БЕЗ формы (David: «подписался — и она сама создаётся,
-  // редактировать можно потом карандашиком»). challenge {key,bonus,days} едет на привычку/цель/круг;
-  // бонус фиксируется в копилку (shell.jsx) только когда челлендж ЗАВЕРШЁН: привычка — серия `days`
-  // ПОДРЯД; цель/круг — достигнут target. Заработанный бонус остаётся навсегда (David).
-  var commitChallenge = c => {
-    var ch = {
-      key: c.key,
-      bonus: c.bonus,
-      days: c.days
-    };
-    if (c.kind === "habit") {
-      // Идентична карточке, которую собрала бы форма: все 7 дней, напоминание вкл в 9:00 (дефолт формы).
-      app?.addHabit({
-        emoji: c.i,
-        name: c.t,
-        color: c.color || "#0a0a0a",
-        days: [1, 1, 1, 1, 1, 1, 1],
-        goalPerDay: 1,
-        duration: 0,
-        reminder: {
-          on: true,
-          time: "09:00"
-        },
-        challenge: ch
-      });
-      if (window.tgHaptic) {
-        try {
-          window.tgHaptic("success");
-        } catch (e) {}
-      }
-      // остаёмся на «Привычки» — новая карточка появляется в сетке
-    } else if (c.kind === "goal") {
-      app?.addGoal({
-        emoji: c.i,
-        color: c.color || "#0a0a0a",
-        name: c.t,
-        target: c.target || 1,
-        unit: c.unit || "",
-        deadline: c.deadline || "Этот месяц",
-        circle: false,
-        habitIds: [],
-        challenge: ch
-      });
-      if (window.tgHaptic) {
-        try {
-          window.tgHaptic("success");
-        } catch (e) {}
-      }
-    } else {
-      // «Вместе» → сразу настоящий круг + шторка приглашения (тот же проверенный путь, что у формы).
-      var goalLike = {
-        name: c.t,
-        emoji: c.i,
-        color: c.color || "#0a0a0a",
-        target: c.target || 1,
-        unit: c.unit || "",
-        deadline: c.deadline || "Этот месяц",
-        habitIds: [],
-        challenge: ch
-      };
-      if (typeof bosPromoteGoalToCircle === "function") {
-        bosPromoteGoalToCircle(app, goalLike, {
-          navigate,
-          from: "habits",
-          vis: "private",
-          type: "collective",
-          stake: 0,
-          onShare: t => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
-            team: t
-          }))
-        });
-      }
-    }
-  };
-
-  // Тап по пилюле-челленджу → сначала шторка-знакомство с правилами, и только после согласия — создание.
+  // Тап по пилюле-челленджу → сначала шторка-знакомство с правилами, и только после согласия —
+  // создание через ЕДИНЫЙ bosCommitChallenge (тот же путь, что у шторки-каталога «+»).
   var startChallenge = c => {
     if (window.tgHaptic) {
       try {
@@ -835,7 +1192,10 @@ function HabitsLive() {
     openSheet(/*#__PURE__*/React.createElement(ChallengeIntroSheet, {
       c: c,
       dark: isDark,
-      onStart: () => commitChallenge(c)
+      onStart: () => bosCommitChallenge(app, c, {
+        navigate,
+        openSheet
+      })
     }));
   };
 

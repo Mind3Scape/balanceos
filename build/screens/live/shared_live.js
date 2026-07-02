@@ -4275,6 +4275,11 @@ function AddWidgetSheetLive({
     }));
   })));
 }
+
+/* «+» (Главная и Привычки) — БЫЛ поповер «Привычку / Цель», ТЕПЕРЬ сразу шторка-каталог
+   CreatePickerSheetLive (David: «сначала шторка с пресетами по категориям, всё уже настроено
+   под челленджи»; «Своя привычка / Своя цель» — первые строки каталога). Компонент оставлен
+   на прежних местах и с прежним API (open/onClose/anchorRef) — он лишь транслирует open → шторку. */
 function CreateMenuLive({
   open,
   onClose,
@@ -4286,102 +4291,17 @@ function CreateMenuLive({
   } = typeof useSheet === "function" ? useSheet() : {
     open: () => {}
   };
-  var [pos, setPos] = React.useState(null);
   React.useEffect(() => {
-    if (open && anchorRef && anchorRef.current) {
-      var r = anchorRef.current.getBoundingClientRect();
-      setPos({
-        right: Math.round(window.innerWidth - r.right),
-        top: Math.round(r.bottom + 10)
-      });
-    }
-  }, [open]);
-  if (!open || !pos) return null;
-  // «+» = создать ПРИВЫЧКУ или ЦЕЛЬ (David: «Цель» понятнее новичку, чем «Круг»; круг = тумблер
-  // «Идти к цели вместе» ВНУТРИ создания цели). Монохромные SVG-иконки в стекле: огонёк-серия =
-  // привычка, флажок-вершина = цель. Тот же компонент на главной И на стр. Привычки → меню одинаковое.
-  var items = [{
-    icon: I.Flame,
-    label: "Привычку",
-    go: () => _openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+    if (!open) return;
+    if (typeof CreatePickerSheetLive === "function") _openSheet(/*#__PURE__*/React.createElement(CreatePickerSheetLive, {
+      navigate: navigate
+    }));else _openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
       mode: "create",
       navigate: navigate
-    }))
-  }, {
-    icon: I.Flag,
-    label: "Цель",
-    go: () => _openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
-      mode: "create",
-      navigate: navigate
-    }))
-  }];
-  return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
-    onClick: onClose,
-    style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 8000,
-      background: "rgba(18,22,38,0.16)",
-      animation: "dimIn 0.18s ease both"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    role: "menu",
-    onClick: e => e.stopPropagation(),
-    style: {
-      position: "fixed",
-      right: pos.right,
-      top: pos.top,
-      transformOrigin: "top right",
-      animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
-      minWidth: 212,
-      padding: 7,
-      borderRadius: 22,
-      background: "rgba(255,255,255,0.74)",
-      WebkitBackdropFilter: "blur(34px) saturate(180%)",
-      backdropFilter: "blur(34px) saturate(180%)",
-      border: "0.5px solid rgba(255,255,255,0.7)",
-      boxShadow: "0 16px 44px rgba(20,30,60,0.26)"
-    }
-  }, items.map((it, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    role: "menuitem",
-    "data-haptic": "selection",
-    onClick: () => {
-      onClose();
-      it.go();
-    },
-    className: "tap",
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      width: "100%",
-      padding: "12px 14px",
-      border: 0,
-      background: "transparent",
-      borderRadius: 16,
-      fontSize: 16,
-      fontWeight: 600,
-      color: "#0a0a0a",
-      cursor: "pointer",
-      textAlign: "left"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    "aria-hidden": true,
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 9,
-      background: "rgba(10,10,10,0.05)",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, React.createElement(it.icon, {
-    size: 18,
-    color: "#0a0a0a",
-    strokeWidth: 1.9
-  })), it.label)))), document.body);
+    }));
+    if (onClose) onClose(); // «+» не остаётся «нажатым» — шторка живёт своей жизнью
+  }, [open]); // eslint-disable-line
+  return null;
 }
 
 // ─── СТИЛЬ КАРТОЧЕК страницы «Привычки» ───────────────────────────────────────────────────────────
