@@ -3128,7 +3128,7 @@ function bosColorSwatch(hx, selected) {
   var ring = isGrey ? "#c2c7d2" : raw;
   return {
     background: sheen + ", " + tone,
-    boxShadow: (selected ? "0 0 0 2px #fff, 0 0 0 3px " + ring + ", " : "") + glass,
+    boxShadow: (selected ? "0 0 0 2px #fff, 0 0 0 4px " + ring + ", " : "") + glass, // кольцо 2px (как у колеса), не 1px «кривое»
   };
 }
 /* THE colour picker — ONE component for привычки / цели / команды so the choice is pixel-identical
@@ -3141,7 +3141,7 @@ function BosColorPickerLive({ value, onChange }) {
   const glass = (typeof bosTileGlass === "function") ? bosTileGlass(false) : "inset 0 1px 1px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.1)";
   const base = { width: 32, height: 32, borderRadius: "50%", border: 0, flexShrink: 0, cursor: "pointer", transition: "box-shadow 0.15s" };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "6px 6px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "10px 8px" }}>
       <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer",
         background: sheen + ", conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)",
         boxShadow: (custom ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3), " : "") + glass }}>

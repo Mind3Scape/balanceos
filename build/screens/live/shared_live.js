@@ -8057,7 +8057,7 @@ function bosColorSwatch(hx, selected) {
   var ring = isGrey ? "#c2c7d2" : raw;
   return {
     background: sheen + ", " + tone,
-    boxShadow: (selected ? "0 0 0 2px #fff, 0 0 0 3px " + ring + ", " : "") + glass
+    boxShadow: (selected ? "0 0 0 2px #fff, 0 0 0 4px " + ring + ", " : "") + glass // кольцо 2px (как у колеса), не 1px «кривое»
   };
 }
 /* THE colour picker — ONE component for привычки / цели / команды so the choice is pixel-identical
@@ -8085,11 +8085,12 @@ function BosColorPickerLive({
       display: "flex",
       alignItems: "center",
       gap: 10,
-      marginTop: 12,
+      marginTop: 8,
       overflowX: "auto",
+      overflowY: "hidden",
       scrollbarWidth: "none",
       WebkitOverflowScrolling: "touch",
-      padding: "6px 6px"
+      padding: "10px 8px"
     }
   }, /*#__PURE__*/React.createElement("label", {
     className: "tap",
