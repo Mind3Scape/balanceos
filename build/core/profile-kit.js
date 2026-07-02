@@ -334,17 +334,18 @@ function OrbitField({
   settled = false,
   open,
   minimal = false,
-  frozen = false
+  spinT
 }) {
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
   // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
   // levelBadge>0 → wrap the centre avatar in the HOME treatment: a gold XP ring (levelPct) + the
   // level-number badge at 45° (David: «на «Я» — такой же кружочек уровня, как на главной»).
-  // frozen=true (Вселенная) → НЕ подписываемся на общие 30fps-часы: планеты не крутятся, но и НЕТ
-  // постоянных перерисовок в покое (главная оптимизация — во Вселенной десятки орбит). frozen задаётся
-  // КОНСТАНТОЙ на инстанс (Вселенная всегда true, профиль всегда false) → порядок хуков стабилен.
-  var t = frozen ? 0 : useOrbClock();
+  // spinT (число, Вселенная) → берём вращение из ПЕРЕДАННОГО медленного времени, НЕ подписываясь на
+  // общие 30fps-часы: своя неспешная скорость + перерисовка только когда меняется spinT (а не 30 раз/с).
+  // Профиль spinT не передаёт → крутится от общих часов, как раньше. Наличие spinT КОНСТАНТНО на инстанс
+  // (Вселенная всегда число, профиль всегда undefined) → порядок хуков стабилен.
+  var t = typeof spinT === "number" ? spinT : useOrbClock();
   var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
   var lerp = (a, b, k) => a + (b - a) * k;
   var smooth = x => {

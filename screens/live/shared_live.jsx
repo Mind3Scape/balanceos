@@ -2875,6 +2875,17 @@ function UniDiscLive({ avatar, level, lvlPct, size, dark }) {
     </div>
   );
 }
+// Мемоизированные обёртки для Вселенной. Смысл: при ПАНЕ позиция+размер системы идут через transform
+// её ОБЁРТКИ (дёшево, GPU), а тяжёлая графика (OrbitField / диск) НЕ перерисовывается, пока не изменились
+// её реальные пропы (open квантуется до ступеней, spinT тикает медленно ~7fps). Это и убирает «лаг линзы»
+// при перетаскивании — раньше все орбиты перерисовывали всю графику на КАЖДЫЙ кадр пана.
+function _uniOrbitEq(a, b) {
+  return a.avatar === b.avatar && a.habits === b.habits && a.people === b.people && a.levelPct === b.levelPct
+    && a.moodC === b.moodC && a.dark === b.dark && a.levelBadge === b.levelBadge && a.open === b.open
+    && a.spinT === b.spinT && a.minimal === b.minimal && a.hideLevelArc === b.hideLevelArc;
+}
+var UniOrbitMemo = (typeof OrbitField === "function" && React.memo) ? React.memo(OrbitField, _uniOrbitEq) : OrbitField;
+var UniDiscMemo = React.memo ? React.memo(UniDiscLive) : UniDiscLive;
 function UniverseFieldLive({ app, people, from, onClose }) {
   var isDark = app && app.themeOverride === "dark";
   var [friends, setFriends] = React.useState(_bosUniverseCache);
@@ -2964,15 +2975,19 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // пальцем — под лупу въезжает другая система, раздувается, соседи липнут к ней. cam = точка поля под
   // центром экрана (норм. единицы); z = зум. Открытие — мягкий зум-ин (shown). Тач/мышь; тап = закрыть.
   var [cam, setCam] = React.useState({ x: 0, y: 0, z: 1, anim: true });
-  var [shown, setShown] = React.useState(false);
+  var [intro, setIntro] = React.useState(0);         // 0→1: плавный вход — камера ОТЪЕЗЖАЕТ от твоей системы
+  var [spin, setSpin] = React.useState(0);           // МЕДЛЕННОЕ время вращения (своё, ~7fps, спокойное)
   React.useEffect(function () {
-    var a = requestAnimationFrame(function () { var b = requestAnimationFrame(function () { setShown(true); }); vp.current._raf2 = b; });
-    var tm = setTimeout(function () { setShown(true); }, 80); // фолбэк: rAF бывает throttled (фон/headless)
-    return function () { cancelAnimationFrame(a); if (vp.current._raf2) cancelAnimationFrame(vp.current._raf2); clearTimeout(tm); };
+    var rafI, rafS, t0 = null, sLast = 0;
+    function stepIntro(now) { if (t0 == null) t0 = now; var p = (now - t0) / 820; if (p > 1) p = 1; setIntro(p); if (p < 1) rafI = requestAnimationFrame(stepIntro); }
+    function stepSpin(now) { rafS = requestAnimationFrame(stepSpin); if (now - sLast < 145) return; sLast = now; setSpin((now / 1000) * 0.4); }  // 0.4 = очень неспешно
+    rafI = requestAnimationFrame(stepIntro); rafS = requestAnimationFrame(stepSpin);
+    var tm = setTimeout(function () { setIntro(1); }, 1100);   // фолбэк если rAF throttled
+    return function () { cancelAnimationFrame(rafI); cancelAnimationFrame(rafS); clearTimeout(tm); };
   }, []);
   var vp = React.useRef({ pts: {}, mode: null, sd: 1, ox: 0, oy: 0, oz: 1, sx: 0, sy: 0, moved: 0 });
   function _cZ(z) { return z < 0.55 ? 0.55 : z > 3 ? 3 : z; }
-  var introK = shown ? 1 : 0.9;
+  var introK = _bosLp(1.34, 1, _bosSm(intro));       // зум-аут: старт ×1.34 (ты крупно, остальные за краем) → ×1
   // ШАГ между центрами и ДИАМЕТР орбиты — РАЗНЫЕ: видимый кластер планет заметно меньше 300-бокса,
   // поэтому боксы кладём с перекрытием (шаг = PACK×диаметр, PACK<0.5) → сами орбиты впритык, минимум
   // белого (соты). Магнификация мягкая (орбиты не расползаются): центр MC, край ME.
@@ -3019,12 +3034,13 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // привычки читаются; дальше меньше; совсем далеко — иконки»). Плавно от центра (mag высок → 1) к
   // краю (→ 0). Широкий диапазон 0.9 → тает через несколько колец, а не резко.
   function openMag(mag) { return _bosSm((mag - 0.98) / 0.9); }
-  // Твоя система — с РЕАЛЬНЫМИ привычками/людьми/уровнем; стоит в центре поля (fx=fy=0).
+  // Твоя система — с РЕАЛЬНЫМИ привычками/людьми/уровнем; стоит в центре поля (fx=fy=0). Мемоизируем,
+  // чтобы ссылки на habits/people/sp были СТАБИЛЬНЫ между кадрами → мемо-обёртка не перерисовывает.
   var _bs = (typeof bosStreak === "function") ? bosStreak : function () { return 0; };
-  var youHabits = ((app && app.habits) || []).slice(0, 12).map(function (h) { return { emoji: h.emoji || "✨", color: h.color, streak: _bs(h.log), id: h.id }; });
-  var youPeople = Array.isArray(people) ? people.slice(0, 10) : [];
-  var youSp = { s: { avatar: app && app.avatar, name: (app && app.userName) || "" }, level: lvlNum, lvlPct: lvlPct, habits: youHabits, people: youPeople };
-  var allNodes = [{ sp: youSp, fx: 0, fy: 0, you: true, ring: 0 }].concat(layout.nodes);
+  var youHabits = React.useMemo(function () { return ((app && app.habits) || []).slice(0, 12).map(function (h) { return { emoji: h.emoji || "✨", color: h.color, streak: _bs(h.log), id: h.id }; }); }, [app]);
+  var youPeople = React.useMemo(function () { return Array.isArray(people) ? people.slice(0, 10) : []; }, [people]);
+  var youSp = React.useMemo(function () { return { s: { avatar: app && app.avatar, name: (app && app.userName) || "" }, level: lvlNum, lvlPct: lvlPct, habits: youHabits, people: youPeople }; }, [app, lvlNum, lvlPct, youHabits, youPeople]);
+  var allNodes = React.useMemo(function () { return [{ sp: youSp, fx: 0, fy: 0, you: true, ring: 0 }].concat(layout.nodes); }, [youSp, layout]);
   var node = (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
       <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}"}</style>
@@ -3038,22 +3054,30 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           {allNodes.map(function (nd, i) {
             var f = fish(nd.fx, nd.fy);
             if (f.sx < -f.size || f.sx > W + f.size || f.sy < -f.size || f.sy > H + f.size) return null;
-            var sp = nd.sp, openV = openMag(f.mag), delay = Math.min((nd.ring || 0) * 0.045, 0.4);
-            var wrap = { position: "absolute", left: f.sx.toFixed(1) + "px", top: f.sy.toFixed(1) + "px", pointerEvents: "none", zIndex: Math.round(f.mag * 100), animation: "bosSysPop 0.44s cubic-bezier(0.34,1.35,0.5,1) " + delay.toFixed(2) + "s both" };
+            var sp = nd.sp, openV = openMag(f.mag), key = nd.you ? "you" : ("o" + i);
+            var delay = Math.min((nd.ring || 0) * 0.1, 0.6);               // стаггер: ты — 0, кольца позже (каскад)
+            var pop = "bosSysPop 0.5s cubic-bezier(0.34,1.35,0.5,1) " + delay.toFixed(2) + "s both";
+            // ВНЕШНЯЯ обёртка = позиция+размер (transform, дёшево, меняется на КАЖДЫЙ кадр пана).
+            // СРЕДНЯЯ = появление (bosSysPop, один раз). ВНУТРЕННЯЯ = тяжёлая графика в МЕМО (пан её не трогает).
             if (openV < 0.12) {
+              var dsc = (f.size * 0.52) / 110;
               return (
-                <div key={nd.you ? "you" : ("o" + i)} style={wrap}>
-                  <div style={{ position: "absolute", transform: "translate(-50%,-50%)" }}>
-                    {(typeof UniDiscLive === "function") ? <UniDiscLive avatar={sp.s && sp.s.avatar} level={sp.level} lvlPct={sp.lvlPct} size={f.size * 0.52} dark={isDark} /> : null}
+                <div key={key} style={{ position: "absolute", left: 0, top: 0, transform: "translate(" + f.sx.toFixed(1) + "px," + f.sy.toFixed(1) + "px) scale(" + dsc.toFixed(3) + ")", transformOrigin: "0px 0px", zIndex: Math.round(f.mag * 100), pointerEvents: "none" }}>
+                  <div style={{ transformOrigin: "0px 0px", animation: pop }}>
+                    <div style={{ position: "absolute", left: -55, top: -55 }}>
+                      {UniDiscMemo ? <UniDiscMemo avatar={sp.s && sp.s.avatar} level={sp.level} lvlPct={sp.lvlPct} size={110} dark={isDark} /> : null}
+                    </div>
                   </div>
                 </div>
               );
             }
-            var k = f.size / 300;
+            var openQ = Math.round(openV * 6) / 6;                         // квант раскрытия → мемо не дёргается на каждый пиксель
             return (
-              <div key={nd.you ? "you" : ("o" + i)} style={wrap}>
-                <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px" }}>
-                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={true} editable={false} levelBadge={sp.level} open={openV} minimal={true} frozen={true} /> : null}
+              <div key={key} style={{ position: "absolute", left: 0, top: 0, transform: "translate(" + f.sx.toFixed(1) + "px," + f.sy.toFixed(1) + "px) scale(" + (f.size / 300).toFixed(3) + ")", transformOrigin: "0px 0px", zIndex: Math.round(f.mag * 100), pointerEvents: "none" }}>
+                <div style={{ transformOrigin: "0px 0px", animation: pop }}>
+                  <div style={{ position: "absolute", left: -150, top: -150, width: 300, height: 300 }}>
+                    {UniOrbitMemo ? <UniOrbitMemo avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={true} editable={false} levelBadge={sp.level} open={openQ} minimal={true} spinT={openV > 0.45 ? spin : 0} /> : null}
+                  </div>
                 </div>
               </div>
             );
