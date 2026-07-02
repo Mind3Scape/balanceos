@@ -497,100 +497,11 @@ function OrbitField({
   var avIsEmoji = avStr.indexOf("emoji:") === 0;
   var centreInitial = ("" + (name || "")).trim().charAt(0).toUpperCase();
   var TILE_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      width: "100%",
-      height: 300,
-      margin: "0 auto",
-      overflow: "visible"
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    viewBox: "-160 -160 320 320",
-    width: "100%",
-    height: "100%",
-    preserveAspectRatio: "xMidYMid meet",
-    style: {
-      position: "absolute",
-      inset: 0,
-      display: "block",
-      pointerEvents: "none",
-      overflow: "visible"
-    }
-  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
-    id: "orbAvClip"
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "0",
-    cy: "0",
-    r: "16"
-  })), /*#__PURE__*/React.createElement("filter", {
-    id: "orbShadow",
-    x: "-40%",
-    y: "-40%",
-    width: "180%",
-    height: "180%"
-  }, /*#__PURE__*/React.createElement("feDropShadow", {
-    dx: "0",
-    dy: "2",
-    stdDeviation: "2.2",
-    floodColor: "#000",
-    floodOpacity: "0.16"
-  })), /*#__PURE__*/React.createElement("linearGradient", {
-    id: "orbGlass",
-    x1: "0.12",
-    y1: "0",
-    x2: "0.6",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "#ffffff",
-    stopOpacity: "0.55"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "0.46",
-    stopColor: "#ffffff",
-    stopOpacity: "0.12"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "0.72",
-    stopColor: "#ffffff",
-    stopOpacity: "0"
-  })), /*#__PURE__*/React.createElement("linearGradient", {
-    id: "orbEdge",
-    x1: "0",
-    y1: "0",
-    x2: "0",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "#ffffff",
-    stopOpacity: "0.95"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "0.5",
-    stopColor: "#ffffff",
-    stopOpacity: "0.18"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "1",
-    stopColor: "#ffffff",
-    stopOpacity: "0"
-  })), /*#__PURE__*/React.createElement("linearGradient", {
-    id: "orbDiscBg",
-    x1: "0.2",
-    y1: "0",
-    x2: "0.7",
-    y2: "1"
-  }, /*#__PURE__*/React.createElement("stop", {
-    offset: "0",
-    stopColor: "#eef1f6"
-  }), /*#__PURE__*/React.createElement("stop", {
-    offset: "1",
-    stopColor: "#dadfe7"
-  }))), /*#__PURE__*/React.createElement("g", {
-    style: uniShell ? {
-      transform: "scale(var(--uK," + lerp(0.3, 1, eo).toFixed(4) + "))",
-      transformOrigin: "50% 50%",
-      transformBox: "view-box",
-      opacity: "var(--uO," + clamp(eo, 0, 1).toFixed(3) + ")"
-    } : undefined
-  }, drawRings.map(r => {
+  // ПОЯС (кольца + пылинки + арка + планеты) — один JSX, рендерится либо прямо в основном svg
+  // (все экраны), либо во ВТОРОМ svg-слое (uniShell/Вселенная), который целиком масштабируется
+  // CSS'ом как обычный элемент. Урок: CSS-transform на <g> с transform-box:view-box Chrome/WebKit
+  // считают от УГЛА вьюбокса → кольца съезжали от портрета (баг David «портреты не в центре орбит»).
+  var beltLayer = /*#__PURE__*/React.createElement(React.Fragment, null, drawRings.map(r => {
     var R = radius(r),
       op = ((dark ? 0.20 : 0.17) - r * 0.035) * geoEo * fadeAt(R);
     return op <= 0.004 ? null : /*#__PURE__*/React.createElement("circle", {
@@ -810,7 +721,109 @@ function OrbitField({
       strokeLinecap: "round",
       strokeLinejoin: "round"
     })));
-  }))), /*#__PURE__*/React.createElement("button", {
+  }));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: "100%",
+      height: 300,
+      margin: "0 auto",
+      overflow: "visible"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "-160 -160 320 320",
+    width: "100%",
+    height: "100%",
+    preserveAspectRatio: "xMidYMid meet",
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "block",
+      pointerEvents: "none",
+      overflow: "visible"
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {
+    id: "orbAvClip"
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: "16"
+  })), /*#__PURE__*/React.createElement("filter", {
+    id: "orbShadow",
+    x: "-40%",
+    y: "-40%",
+    width: "180%",
+    height: "180%"
+  }, /*#__PURE__*/React.createElement("feDropShadow", {
+    dx: "0",
+    dy: "2",
+    stdDeviation: "2.2",
+    floodColor: "#000",
+    floodOpacity: "0.16"
+  })), /*#__PURE__*/React.createElement("linearGradient", {
+    id: "orbGlass",
+    x1: "0.12",
+    y1: "0",
+    x2: "0.6",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#ffffff",
+    stopOpacity: "0.55"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.46",
+    stopColor: "#ffffff",
+    stopOpacity: "0.12"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.72",
+    stopColor: "#ffffff",
+    stopOpacity: "0"
+  })), /*#__PURE__*/React.createElement("linearGradient", {
+    id: "orbEdge",
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#ffffff",
+    stopOpacity: "0.95"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.5",
+    stopColor: "#ffffff",
+    stopOpacity: "0.18"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#ffffff",
+    stopOpacity: "0"
+  })), /*#__PURE__*/React.createElement("linearGradient", {
+    id: "orbDiscBg",
+    x1: "0.2",
+    y1: "0",
+    x2: "0.7",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#eef1f6"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#dadfe7"
+  }))), !uniShell && beltLayer), uniShell && /*#__PURE__*/React.createElement("svg", {
+    viewBox: "-160 -160 320 320",
+    width: "100%",
+    height: "100%",
+    preserveAspectRatio: "xMidYMid meet",
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "block",
+      pointerEvents: "none",
+      overflow: "visible",
+      transform: "scale(var(--uK," + lerp(0.3, 1, eo).toFixed(4) + "))",
+      transformOrigin: "50% 50%",
+      opacity: "var(--uO," + clamp(eo, 0, 1).toFixed(3) + ")"
+    }
+  }, beltLayer), /*#__PURE__*/React.createElement("button", {
     onClick: onTap,
     className: "tap",
     "aria-label": editable ? "Сменить аватар" : name || "Круг",

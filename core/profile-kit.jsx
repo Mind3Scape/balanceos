@@ -194,6 +194,104 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
   const avIsEmoji = avStr.indexOf("emoji:") === 0;
   const centreInitial = ("" + (name || "")).trim().charAt(0).toUpperCase();
   const TILE_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
+  // ПОЯС (кольца + пылинки + арка + планеты) — один JSX, рендерится либо прямо в основном svg
+  // (все экраны), либо во ВТОРОМ svg-слое (uniShell/Вселенная), который целиком масштабируется
+  // CSS'ом как обычный элемент. Урок: CSS-transform на <g> с transform-box:view-box Chrome/WebKit
+  // считают от УГЛА вьюбокса → кольца съезжали от портрета (баг David «портреты не в центре орбит»).
+  const beltLayer = (
+    <>
+      {/* concentric orbits */}
+      {drawRings.map((r) => {
+        const R = radius(r), op = ((dark ? 0.20 : 0.17) - r * 0.035) * geoEo * fadeAt(R);
+        return op <= 0.004 ? null :
+          <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(" + PAL.ring + "," + op.toFixed(3) + ")"} strokeWidth="1" />;
+      })}
+
+      {/* small living dots drifting along the orbits — echoes the onboarding cosmos.
+          minimal=true (Вселенная) СКИПАЕТ их: десятки лишних SVG-элементов на каждую орбиту ×
+          много систем ре-рендерились на 30fps → главный источник лагов вселенной. */}
+      {!minimal && drawRings.map((r) => {
+        const R = radius(r), baseOp = clamp(eo * fadeAt(R), 0, 1);
+        if (baseOp <= 0.02) return null;
+        const ds = ((r % 2) ? -1 : 1) * 0.05 / (1 + r * 0.15);
+        return [0, 1, 2].map((k) => {
+          const ang = (k / 3) * Math.PI * 2 + r * 1.3 + 0.5 + t * ds;
+          const x = (Math.cos(ang) * R).toFixed(1), y = (Math.sin(ang) * R).toFixed(1);
+          const rad = lerp(1.7, 1.05, clamp(r / 4, 0, 1));
+          return (
+            <g key={"dot" + r + "_" + k} opacity={(baseOp * 0.9).toFixed(2)}>
+              <circle cx={x} cy={y} r={(rad * 2.4).toFixed(2)} fill={glow} opacity="0.16" style={{ filter: "blur(2.5px)" }} />
+              <circle cx={x} cy={y} r={rad.toFixed(2)} fill={glow} opacity={dark ? "0.85" : "0.6"} />
+            </g>
+          );
+        });
+      })}
+
+      {/* gold level arc — hidden in live (David: «жёлтое кольцо не нужно»; level lives in the
+          stat plaque). Demo keeps it (it passes no hideLevelArc). */}
+      {!hideLevelArc && (
+      <g transform="rotate(-90)" opacity={eo}>
+        <circle cx="0" cy="0" r={lr} fill="none" stroke={PAL.lvlTrack} strokeWidth="4" />
+        <circle cx="0" cy="0" r={lr} fill="none" stroke="#FEDE34" strokeWidth="4" strokeLinecap="round"
+          strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - Math.max(0.02, (levelPct || 2) / 100))} />
+      </g>
+      )}
+
+      {/* planets — habits (glass discs w/ emoji) + people (memoji discs) */}
+      {nodes.map((n) => {
+        const R = radius(n.ring), ang = n.baseAng + t * spin(n.ring);
+        const x = Math.cos(ang) * R, y = Math.sin(ang) * R;
+        const op = clamp(geoEo, 0, 1); if (op <= 0.02) return null; // faces stay crisp (onboarding-style)
+        // Size by belt (inner = bigger). Capped ≤15 with 32px belt spacing → adjacent belts
+        // never overlap (the thing David disliked on onboarding). Meaning survives: strongest
+        // habits sit on the inner belt, so they read biggest.
+        const sz = n.kind === "more" ? 13 : lerp(15, 11, clamp(n.ring / 2, 0, 1));
+        const pop = (settled || openMode) ? 1 : smooth((t - n.ring * 0.08) / 0.5);      // inner rings settle first
+        const gs = ((sz / 16) * pop).toFixed(3);            // canonical r=16, scaled per ring
+        if (n.kind === "more") {
+          return (
+            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+              <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
+              <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
+              <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
+              <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="600" style={{ fill: dark ? "#cfe0ff" : "#5b6473" }}>+{n.count}</text>
+            </g>
+          );
+        }
+        if (n.kind === "h") {
+          return (
+            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+              {dark && <circle cx="0" cy="0" r="19" fill={glow} opacity="0.18" style={{ filter: "blur(5px)" }} />}
+              <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
+              <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
+              <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
+              <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{n.emoji}</text>
+            </g>
+          );
+        }
+        const av = n.avatar, isEmoji = av && ("" + av).indexOf("emoji:") === 0, isMemoji = /^m\d+$/.test(av || "");
+        const href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
+        const pOp = (n.lit === false ? 0.5 : 1) * op; // dim members not active today (lit opt-in; profile passes none → full)
+        return (
+          <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={pOp.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+            {dark && <circle cx="0" cy="0" r="18.5" fill={glow} opacity="0.16" style={{ filter: "blur(5px)" }} />}
+            <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
+            {isEmoji
+              ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
+              : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
+            <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
+            <circle cx="0" cy="0" r="16.6" fill="none" stroke="url(#orbEdge)" strokeWidth="1.4" />
+            {n.lit === true && (
+              <g transform="translate(11 11)">
+                <circle cx="0" cy="0" r="6.6" fill="#0a0a0a" stroke={dark ? "#0a0a0a" : "#ffffff"} strokeWidth="1.5" />
+                <path d="M -2.7 0.2 L -0.8 2.1 L 2.9 -2.1" fill="none" stroke="#ffffff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </g>
+            )}
+          </g>
+        );
+      })}
+    </>
+  );
   return (
     <div style={{ position: "relative", width: "100%", height: 300, margin: "0 auto", overflow: "visible" }}>
       <svg viewBox="-160 -160 320 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none", overflow: "visible" }}>
@@ -219,105 +317,18 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           </linearGradient>
         </defs>
 
-        {/* Вселенная (uniShell): кольца+планеты в ОДНОЙ группе — раскрытие = scale/opacity группы
-            через CSS-переменные (пишет родитель напрямую в DOM). Прочие экраны: группа без стиля. */}
-        <g style={uniShell ? {
-          transform: "scale(var(--uK," + lerp(0.3, 1, eo).toFixed(4) + "))",
-          transformOrigin: "50% 50%", transformBox: "view-box",
-          opacity: "var(--uO," + clamp(eo, 0, 1).toFixed(3) + ")",
-        } : undefined}>
-        {/* concentric orbits */}
-        {drawRings.map((r) => {
-          const R = radius(r), op = ((dark ? 0.20 : 0.17) - r * 0.035) * geoEo * fadeAt(R);
-          return op <= 0.004 ? null :
-            <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(" + PAL.ring + "," + op.toFixed(3) + ")"} strokeWidth="1" />;
-        })}
-
-        {/* small living dots drifting along the orbits — echoes the onboarding cosmos.
-            minimal=true (Вселенная) СКИПАЕТ их: десятки лишних SVG-элементов на каждую орбиту ×
-            много систем ре-рендерились на 30fps → главный источник лагов вселенной. */}
-        {!minimal && drawRings.map((r) => {
-          const R = radius(r), baseOp = clamp(eo * fadeAt(R), 0, 1);
-          if (baseOp <= 0.02) return null;
-          const ds = ((r % 2) ? -1 : 1) * 0.05 / (1 + r * 0.15);
-          return [0, 1, 2].map((k) => {
-            const ang = (k / 3) * Math.PI * 2 + r * 1.3 + 0.5 + t * ds;
-            const x = (Math.cos(ang) * R).toFixed(1), y = (Math.sin(ang) * R).toFixed(1);
-            const rad = lerp(1.7, 1.05, clamp(r / 4, 0, 1));
-            return (
-              <g key={"dot" + r + "_" + k} opacity={(baseOp * 0.9).toFixed(2)}>
-                <circle cx={x} cy={y} r={(rad * 2.4).toFixed(2)} fill={glow} opacity="0.16" style={{ filter: "blur(2.5px)" }} />
-                <circle cx={x} cy={y} r={rad.toFixed(2)} fill={glow} opacity={dark ? "0.85" : "0.6"} />
-              </g>
-            );
-          });
-        })}
-
-        {/* gold level arc — hidden in live (David: «жёлтое кольцо не нужно»; level lives in the
-            stat plaque). Demo keeps it (it passes no hideLevelArc). */}
-        {!hideLevelArc && (
-        <g transform="rotate(-90)" opacity={eo}>
-          <circle cx="0" cy="0" r={lr} fill="none" stroke={PAL.lvlTrack} strokeWidth="4" />
-          <circle cx="0" cy="0" r={lr} fill="none" stroke="#FEDE34" strokeWidth="4" strokeLinecap="round"
-            strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - Math.max(0.02, (levelPct || 2) / 100))} />
-        </g>
-        )}
-
-        {/* planets — habits (glass discs w/ emoji) + people (memoji discs) */}
-        {nodes.map((n) => {
-          const R = radius(n.ring), ang = n.baseAng + t * spin(n.ring);
-          const x = Math.cos(ang) * R, y = Math.sin(ang) * R;
-          const op = clamp(geoEo, 0, 1); if (op <= 0.02) return null; // faces stay crisp (onboarding-style)
-          // Size by belt (inner = bigger). Capped ≤15 with 32px belt spacing → adjacent belts
-          // never overlap (the thing David disliked on onboarding). Meaning survives: strongest
-          // habits sit on the inner belt, so they read biggest.
-          const sz = n.kind === "more" ? 13 : lerp(15, 11, clamp(n.ring / 2, 0, 1));
-          const pop = (settled || openMode) ? 1 : smooth((t - n.ring * 0.08) / 0.5);      // inner rings settle first
-          const gs = ((sz / 16) * pop).toFixed(3);            // canonical r=16, scaled per ring
-          if (n.kind === "more") {
-            return (
-              <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
-                <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
-                <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
-                <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
-                <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="600" style={{ fill: dark ? "#cfe0ff" : "#5b6473" }}>+{n.count}</text>
-              </g>
-            );
-          }
-          if (n.kind === "h") {
-            return (
-              <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
-                {dark && <circle cx="0" cy="0" r="19" fill={glow} opacity="0.18" style={{ filter: "blur(5px)" }} />}
-                <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
-                <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
-                <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
-                <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{n.emoji}</text>
-              </g>
-            );
-          }
-          const av = n.avatar, isEmoji = av && ("" + av).indexOf("emoji:") === 0, isMemoji = /^m\d+$/.test(av || "");
-          const href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
-          const pOp = (n.lit === false ? 0.5 : 1) * op; // dim members not active today (lit opt-in; profile passes none → full)
-          return (
-            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={pOp.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
-              {dark && <circle cx="0" cy="0" r="18.5" fill={glow} opacity="0.16" style={{ filter: "blur(5px)" }} />}
-              <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
-              {isEmoji
-                ? <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17">{("" + av).slice(6)}</text>
-                : <image href={href} x="-16" y="-16" width="32" height="32" preserveAspectRatio="xMidYMid slice" clipPath="url(#orbAvClip)" />}
-              <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
-              <circle cx="0" cy="0" r="16.6" fill="none" stroke="url(#orbEdge)" strokeWidth="1.4" />
-              {n.lit === true && (
-                <g transform="translate(11 11)">
-                  <circle cx="0" cy="0" r="6.6" fill="#0a0a0a" stroke={dark ? "#0a0a0a" : "#ffffff"} strokeWidth="1.5" />
-                  <path d="M -2.7 0.2 L -0.8 2.1 L 2.9 -2.1" fill="none" stroke="#ffffff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                </g>
-              )}
-            </g>
-          );
-        })}
-        </g>
+        {/* Пояс (кольца+планеты): все экраны — прямо здесь; Вселенная — во втором svg-слое ниже,
+            который надёжно масштабируется CSS'ом от своего центра (фикс «портреты не в центре»). */}
+        {!uniShell && beltLayer}
       </svg>
+      {uniShell && (
+        <svg viewBox="-160 -160 320 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
+          style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none", overflow: "visible",
+            transform: "scale(var(--uK," + lerp(0.3, 1, eo).toFixed(4) + "))", transformOrigin: "50% 50%",
+            opacity: "var(--uO," + clamp(eo, 0, 1).toFixed(3) + ")" }}>
+          {beltLayer}
+        </svg>
+      )}
 
       {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
           with your avatar nested inside it. tap to change avatar. open<1 (Вселенная): кольца свёрнуты,
