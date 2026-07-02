@@ -588,7 +588,7 @@ function HabitsLive() {
       <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {orbit ? (
           <>
-            <div aria-hidden style={{ position: "absolute", left: "50%", top: "44%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
+            <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
             <div style={{ marginTop: "auto", position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
               {goalStyle.name ? <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div> : <span />}
               {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
@@ -659,7 +659,7 @@ function HabitsLive() {
       <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {orbit ? (
           <>
-            <div aria-hidden style={{ position: "absolute", left: "50%", top: "44%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
+            <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
             <div style={{ marginTop: "auto", position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
               {goalStyle.name ? <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div> : <span />}
               {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}

@@ -781,7 +781,11 @@ function ShareAppSheetLive({ dark = false }) {
    members[] per shareCode; a component seeds its state FROM the cache synchronously (no
    null→data pop-in), then revalidates in the background and re-renders ONLY if the data
    actually changed (no poll churn, no flicker). */
-var _bosBuddyCache = {};
+/* Кэш лиц ПЕРЕЖИВАЕТ перезапуск (localStorage): при входе кружочки людей на карточках
+   встают МГНОВЕННО из последнего известного состава, облако тихо освежает следом
+   (David: «секундная подгрузка людей бросается в глаза»). */
+var _bosBuddyCache = (function () { try { return JSON.parse(localStorage.getItem("bos:cache:buddies") || "{}") || {}; } catch (e) { return {}; } })();
+function _bosBuddyCachePersist() { try { localStorage.setItem("bos:cache:buddies", JSON.stringify(_bosBuddyCache)); } catch (e) {} }
 function _bosBuddySig(ms) {
   if (!ms) return "";
   try { return ms.map(function (m) { return m.id + ":" + (m.avatar || "") + ":" + (m.name || "") + ":" + (m.value != null ? m.value : "") + ":" + Object.keys(m.days || {}).length; }).join("|"); }
@@ -800,7 +804,7 @@ function useBuddyMembersLive(code) {
         if (!on || !d || !d.members) return;
         var changed = _bosBuddySig(_bosBuddyCache[code]) !== _bosBuddySig(d.members);
         _bosBuddyCache[code] = d.members;
-        if (changed) setMembers(d.members);  // swap ONLY when something really changed
+        if (changed) { setMembers(d.members); _bosBuddyCachePersist(); }  // swap ONLY when something really changed
       }).catch(function () {});
     };
     load();
@@ -813,7 +817,8 @@ function useBuddyMembersLive(code) {
 /* Circle (team) members for a personal habit linked to a circle via teamId. Cache-backed like
    useBuddyMembersLive — instant, no flash. Powers the unified FACES marker on personal cards that
    REPLACES the old grey «Командная» бейдж (David: маркёр круга = ЛИЦА, не бейдж). */
-var _bosCircleCache = {};
+var _bosCircleCache = (function () { try { return JSON.parse(localStorage.getItem("bos:cache:circles") || "{}") || {}; } catch (e) { return {}; } })();
+function _bosCircleCachePersist() { try { localStorage.setItem("bos:cache:circles", JSON.stringify(_bosCircleCache)); } catch (e) {} }
 function useCircleMembersLive(teamId) {
   var st = React.useState(function () { return (teamId && _bosCircleCache[teamId]) || null; });
   var members = st[0], setMembers = st[1];
@@ -828,7 +833,7 @@ function useCircleMembersLive(teamId) {
         if (!on || !Array.isArray(mem)) return;
         var changed = sig(_bosCircleCache[teamId]) !== sig(mem);
         _bosCircleCache[teamId] = mem;
-        if (changed) setMembers(mem); // swap only on real change
+        if (changed) { setMembers(mem); _bosCircleCachePersist(); } // swap only on real change
       }).catch(function () {});
     };
     load();
@@ -1196,7 +1201,8 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   // counter-rotate на ту же длительность → эмодзи/лица стоят прямо. bosSpin/bosSpinR — keyframes
   // (mobile.css). БЕЗ radial-маски: лишнее просто обрезается карточкой (David: «просто обрезалось»).
   var renderRing = function (R, k, items, dSz, iconSz, isPeople) {
-    var cw = (k % 2 === 0), dir = cw ? "bosSpin" : "bosSpinR", rev = cw ? "bosSpinR" : "bosSpin", dur = (34 + k * 7) + "s";
+    // Темп «галактики» замедлен ~на 30% (David: «слишком быстро крутится»).
+    var cw = (k % 2 === 0), dir = cw ? "bosSpin" : "bosSpinR", rev = cw ? "bosSpinR" : "bosSpin", dur = (44 + k * 9) + "s";
     return (
       <React.Fragment key={(isPeople ? "p" : "h") + k}>
         {ring(R)}

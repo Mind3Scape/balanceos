@@ -66,7 +66,12 @@ function HabitCheck({ done, onToggle, xp = 10, float = false, color = null }) {
       )}
       {float && <XpFloat tick={tick} xp={xp} anchorRef={btnRef} />}
       <button ref={btnRef} className={"check-btn hit44 " + (done ? "" : "unchecked")} data-no-haptic onClick={onClick}
-        style={realColor ? { "--check-color": realColor } : undefined}>
+        style={realColor ? (done ? { "--check-color": realColor } : {
+          // НЕвыполненный тоже дышит цветом привычки — нежная пастель, не «серенький» (David).
+          "--check-color": realColor,
+          background: "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.06) 60%), " + realColor + "2b",
+          boxShadow: "inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -2px 3px rgba(0,0,0,0.05), inset 0 0 0 0.7px " + realColor + "59",
+        }) : undefined}>
         {done && <I.Check size={18} strokeWidth={2.5} color="#fff" />}
       </button>
     </div>

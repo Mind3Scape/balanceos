@@ -1608,7 +1608,7 @@ function HabitsLive() {
       style: {
         position: "absolute",
         left: "50%",
-        top: "44%",
+        top: "50%",
         transform: "translate(-50%, -50%)",
         pointerEvents: "none"
       }
@@ -1847,7 +1847,7 @@ function HabitsLive() {
       style: {
         position: "absolute",
         left: "50%",
-        top: "44%",
+        top: "50%",
         transform: "translate(-50%, -50%)",
         pointerEvents: "none"
       }

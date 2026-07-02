@@ -1429,7 +1429,12 @@ function AppProvider({ children }) {
   useEffect(() => {
     if (mode !== "live" || !persistId || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.invitedPeople)) { setInvitedCount(0); return; }
     var on = true;
-    window.bosCloud.invitedPeople().then(function (list) { if (on && Array.isArray(list)) setInvitedCount(list.length); }).catch(function () {});
+    // МГНОВЕННО из кэша (иначе уровень/кольцо XP на секунду показывают меньшее и «прыгают» —
+    // David: «подгружает какой-то другой уровень»); облако тихо подтверждает следом.
+    try { var c = parseInt(localStorage.getItem("bos:cache:inv:" + persistId) || "", 10); if (isFinite(c) && c > 0) setInvitedCount(c); } catch (e) {}
+    window.bosCloud.invitedPeople().then(function (list) {
+      if (on && Array.isArray(list)) { setInvitedCount(list.length); try { localStorage.setItem("bos:cache:inv:" + persistId, "" + list.length); } catch (e) {} }
+    }).catch(function () {});
     return function () { on = false; };
   }, [mode, persistId, teams]);
 
@@ -1438,7 +1443,12 @@ function AppProvider({ children }) {
   // detail can re-pull the moment a goal settles. Refreshes on login + whenever teams change.
   const refreshTeamGoalXP = function () {
     if (mode !== "live" || !persistId || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.myTeamGoalXP)) { setTeamGoalXP(0); return; }
-    window.bosCloud.myTeamGoalXP().then(function (xp) { setTeamGoalXP(xp || 0); }).catch(function () {});
+    // Кэш → мгновенно; облако → тихое обновление (без «прыжка» уровня при входе).
+    try { var c = parseInt(localStorage.getItem("bos:cache:tgxp:" + persistId) || "", 10); if (isFinite(c) && c > 0) setTeamGoalXP(c); } catch (e) {}
+    window.bosCloud.myTeamGoalXP().then(function (xp) {
+      setTeamGoalXP(xp || 0);
+      try { localStorage.setItem("bos:cache:tgxp:" + persistId, "" + (xp || 0)); } catch (e) {}
+    }).catch(function () {});
   };
   useEffect(function () { refreshTeamGoalXP(); }, [mode, persistId, teams]);
 
