@@ -1124,11 +1124,23 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   };
   var hSz = Math.max(16, Math.round(size * 0.16));
   var pSz = Math.max(16, Math.round(size * 0.155));
-  // Показываем СТОЛЬКО, СКОЛЬКО ВЛЕЗАЕТ на кольцо (David: «сколько помещается — столько и показываем,
-  // остальное красиво обрезается/уходит в opacity»). Лимит = длина кольца / размер диска. Лишнее не
-  // рисуем (не наезжает), а край орбиты мягко гаснет fade-маской.
-  var hb = hbAll.slice(0, Math.max(1, Math.floor((2 * Math.PI * r1) / (hSz * 1.18))));
-  var pp = ppAll.slice(0, Math.max(1, Math.floor((2 * Math.PI * r2) / (pSz * 1.12))));
+  // МУЛЬТИ-КОЛЬЦА: колец СТОЛЬКО, сколько нужно реальному числу элементов (David: «количество колец
+  // реальное; 10 привычек → 3-4 кольца, не 2»). Привычки заполняют кольца от центра наружу, люди — на
+  // кольцах дальше. Каждое кольцо вмещает сколько влезает по окружности; ВНЕШНИЕ кольца выходят за бокс —
+  // их просто обрежет карточка (overflow:hidden). Размер/шаг колец НЕ меняем (David: «размер устраивает»).
+  var ringStep = size * 0.14, r0 = size * 0.315;
+  var buildRings = function (items, startK, dSz) {
+    var out = [], k = startK, idx = 0;
+    while (idx < items.length && k < 9) {
+      var R = r0 + k * ringStep;
+      var cap = Math.max(1, Math.floor((2 * Math.PI * R) / (dSz * 3.0))); // разреженно (David: 4→1 кольцо, 10→3-4 кольца)
+      out.push({ R: R, k: k, items: items.slice(idx, idx + cap) });
+      idx += cap; k++;
+    }
+    return { rings: out, nextK: k };
+  };
+  var hRings = buildRings(hbAll, 0, hSz);
+  var pRings = buildRings(ppAll, hRings.nextK, pSz);
   // РАЗМЕР эмодзи задаём ЯВНО через fontSize на диске: bosIcon для эмодзи (не sf-символов) игнорит
   // size и возвращает голую строку → иначе эмодзи наследует крупный шрифт карточки и ВЫЛЕЗАЕТ за
   // кружок (баг David). Для sf-символов bosIcon отдаёт SVG нужного размера — fontSize им не мешает.
@@ -1145,26 +1157,29 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   var cReal = typeof centerColor === "string" && centerColor[0] === "#" && centerColor.length === 7 && centerColor.toLowerCase() !== "#0a0a0a" && centerColor !== BOS_GREY;
   var centerBg = cReal ? (sheen + ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.25) : centerColor)) : discBg;
   var centerInk = cReal ? "#fff" : null;
-  // ОРБИТА КРУТИТСЯ (David: «не крутятся»): кольцо привычек — по часовой, кольцо людей — против,
-  // МЕДЛЕННО (спокойно). Диски counter-rotate на ту же длительность → эмодзи/лица стоят прямо.
-  // bosSpin/bosSpinR — готовые keyframes (mobile.css); willChange → GPU-слой, дёшево на карточках.
-  var fadeMask = fade ? "radial-gradient(circle at center, #000 58%, rgba(0,0,0,0.55) 82%, transparent 99%)" : undefined;
+  // ОРБИТА КРУТИТСЯ: соседние кольца — в РАЗНЫЕ стороны, внешние медленнее (спокойно). Диски
+  // counter-rotate на ту же длительность → эмодзи/лица стоят прямо. bosSpin/bosSpinR — keyframes
+  // (mobile.css). БЕЗ radial-маски: лишнее просто обрезается карточкой (David: «просто обрезалось»).
+  var renderRing = function (R, k, items, dSz, iconSz, isPeople) {
+    var cw = (k % 2 === 0), dir = cw ? "bosSpin" : "bosSpinR", rev = cw ? "bosSpinR" : "bosSpin", dur = (34 + k * 7) + "s";
+    return (
+      <React.Fragment key={(isPeople ? "p" : "h") + k}>
+        {ring(R)}
+        <div style={{ position: "absolute", inset: 0, animation: dir + " " + dur + " linear infinite", willChange: "transform" }}>
+          {place(items, R, dSz, k * 0.35, function (it) {
+            return isPeople
+              ? <span style={{ display: "block", borderRadius: "50%" }}>{typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={it.avatar} name={it.name} size={dSz} /> : null}</span>
+              : <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: iconSz, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(it.emoji, iconSz, null) : (it.emoji || "✨")}</span>;
+          }, rev + " " + dur + " linear infinite")}
+        </div>
+      </React.Fragment>
+    );
+  };
   return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0, WebkitMaskImage: fadeMask, maskImage: fadeMask }} aria-hidden>
-      {ring(r1)}{ring(r2)}
-      {/* привычки — внутреннее кольцо, по часовой */}
-      <div style={{ position: "absolute", inset: 0, animation: "bosSpin 40s linear infinite", willChange: "transform" }}>
-        {place(hb, r1, hSz, 0, function (h) {
-          return <span style={{ width: "100%", height: "100%", borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: hIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, hIcon, null) : (h.emoji || "✨")}</span>;
-        }, "bosSpinR 40s linear infinite")}
-      </div>
-      {/* люди — реальные лица BuddyFaceLive (тот же серый диск-язык), внешнее кольцо, против часовой */}
-      <div style={{ position: "absolute", inset: 0, animation: "bosSpinR 52s linear infinite", willChange: "transform" }}>
-        {place(pp, r2, pSz, 0.32, function (p) {
-          return <span style={{ display: "block", borderRadius: "50%" }}>{typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={p.avatar} name={p.name} size={pSz} /> : null}</span>;
-        }, "bosSpin 52s linear infinite")}
-      </div>
-      {/* центр = значок цели на ТОМ ЖЕ сером диске (чуть крупнее), СТАТИЧНЫЙ по центру */}
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} aria-hidden>
+      {hRings.rings.map(function (rg) { return renderRing(rg.R, rg.k, rg.items, hSz, hIcon, false); })}
+      {pRings.rings.map(function (rg) { return renderRing(rg.R, rg.k, rg.items, pSz, hIcon, true); })}
+      {/* центр = значок цели, СТАТИЧНЫЙ по центру */}
       <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: centerBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: cIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, centerInk) : (centerEmoji || "🎯")}</span>
     </div>
   );
@@ -3158,7 +3173,7 @@ function bosColorSwatch(hx, selected) {
   var isBlack = raw.toLowerCase() === "#0a0a0a";
   var isGrey = raw === BOS_GREY;
   var tone = isBlack ? "#3b3f47" : (isGrey ? "#e9ebf0" : ((typeof bosLightenHex === "function") ? bosLightenHex(raw, 0.42) : raw));
-  var sheen = "linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.12) 52%, rgba(255,255,255,0) 78%)";
+  var sheen = "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)";
   var glass = (typeof bosTileGlass === "function") ? bosTileGlass(false) : "inset 0 1px 1px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.1)";
   var ring = isGrey ? "#c2c7d2" : raw;
   return {
@@ -3172,7 +3187,7 @@ function bosColorSwatch(hx, selected) {
 function BosColorPickerLive({ value, onChange }) {
   const isHex = typeof value === "string" && value[0] === "#";
   const custom = isHex && value !== "#0a0a0a" && value !== BOS_GREY && !BOS_APPLE_COLORS.includes(value);
-  const sheen = "linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.12) 52%, rgba(255,255,255,0) 78%)"; // верт. стекло, не шар (David)
+  const sheen = "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)"; // верт. стекло, не шар (David)
   const glass = (typeof bosTileGlass === "function") ? bosTileGlass(false) : "inset 0 1px 1px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.1)";
   const base = { width: 32, height: 32, borderRadius: "50%", border: 0, flexShrink: 0, cursor: "pointer", transition: "box-shadow 0.15s" };
   return (
