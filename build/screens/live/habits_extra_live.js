@@ -157,6 +157,68 @@ function HabitFormSheetLive({
   }, []);
   var [type, setType] = useHS("build");
 
+  // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки (David: «галочка справа
+  // вверху, чтобы не листать до низа»).
+  var saveHabit = () => {
+    var nm = name.trim() || "Новая привычка";
+    // Persist the full schedule + reminder on the habit. These extra fields ride
+    // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
+    var base = {
+      emoji: iconPick,
+      name: nm,
+      color,
+      days: days.slice(),
+      // 7-long Пн..Вс mask
+      goalPerDay: markMode === "count" ? Math.max(2, goal) : 1,
+      // счётчик только в режиме «Счётчик»
+      duration: markMode === "timer" ? Math.max(1, duration) : 0,
+      // таймер только в режиме «Таймер»
+      reminder: {
+        on: reminderOn,
+        time: reminderTime
+      }
+    };
+    if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
+    // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
+    // привязываем её к цели (habitIds) — деталь цели под шторкой обновится сама.
+    if (goalFor) {
+      base.goalId = goalFor.id;
+      base.goalOnly = goalOnly;
+    }
+    var linkToGoal = nh => {
+      if (!goalFor || !nh) return false;
+      var g = (app?.goals || []).find(x => x.id === goalFor.id);
+      var ids = (g && g.habitIds || []).concat(nh.id);
+      app?.updateGoal(goalFor.id, {
+        habitIds: ids
+      });
+      return true;
+    };
+    // SHARED habit: if sharing is on, save + swap this sheet for the share sheet
+    // (one-sheet host: содержимое шторки меняется, форма уже сохранена).
+    if (shareOn && !goalFor) {
+      if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);
+      openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+        habit: {
+          name: nm,
+          emoji: iconPick,
+          color
+        }
+      }));
+      return;
+    }
+    if (editing) {
+      app?.updateHabit(params.habit.id, base);
+    } else {
+      var nh = app?.addHabit(base);
+      if (linkToGoal(nh)) {
+        close();
+        return;
+      }
+    }
+    close();
+  };
+
   // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (как в TeamQuickEditSheetLive) —
   // вложенный openSheet заменил бы форму и потерял ввод.
   if (view === "picker") {
@@ -222,7 +284,11 @@ function HabitFormSheetLive({
       overflowY: "auto",
       WebkitOverflowScrolling: "touch"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
+    title: editing ? "Изменить привычку" : "Новая привычка",
+    onClose: close,
+    onDone: saveHabit
+  }) : /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       fontSize: 18,
@@ -722,67 +788,7 @@ function HabitFormSheetLive({
     style: {
       marginTop: 20
     },
-    onClick: async () => {
-      var nm = name.trim() || "Новая привычка";
-      // Persist the full schedule + reminder on the habit. These extra fields ride
-      // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
-      var base = {
-        emoji: iconPick,
-        name: nm,
-        color,
-        days: days.slice(),
-        // 7-long Пн..Вс mask
-        goalPerDay: markMode === "count" ? Math.max(2, goal) : 1,
-        // счётчик только в режиме «Счётчик»
-        duration: markMode === "timer" ? Math.max(1, duration) : 0,
-        // таймер только в режиме «Таймер»
-        reminder: {
-          on: reminderOn,
-          time: reminderTime
-        }
-      };
-      if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
-      // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
-      // привязываем её к цели (habitIds) и возвращаемся в цель — кольцо начнёт расти от её отметок.
-      if (goalFor) {
-        base.goalId = goalFor.id;
-        base.goalOnly = goalOnly;
-      }
-      var linkToGoal = nh => {
-        if (!goalFor || !nh) return false;
-        var g = (app?.goals || []).find(x => x.id === goalFor.id);
-        var ids = (g && g.habitIds || []).concat(nh.id);
-        app?.updateGoal(goalFor.id, {
-          habitIds: ids
-        });
-        // Шторка открыта ПОВЕРХ деталей цели — та читает app.goals живьём, кольцо
-        // подрастёт само. Никуда не уводим, просто закрываемся.
-        return true;
-      };
-      // SHARED habit: if sharing is on, save + swap this sheet for the share sheet
-      // (one-sheet host: содержимое шторки меняется, форма уже сохранена).
-      if (shareOn && !goalFor) {
-        if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);
-        openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
-          habit: {
-            name: nm,
-            emoji: iconPick,
-            color
-          }
-        }));
-        return;
-      }
-      if (editing) {
-        app?.updateHabit(params.habit.id, base);
-      } else {
-        var nh = app?.addHabit(base);
-        if (linkToGoal(nh)) {
-          close();
-          return;
-        }
-      }
-      close();
-    }
+    onClick: saveHabit
   }, editing ? "Сохранить" : goalFor ? "Добавить в цель" : "Добавить привычку"), editing && /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {
@@ -896,6 +902,58 @@ function GoalFormSheetLive({
   var QUICK_TERMS = ["Неделя", "Месяц", "1 год"];
   var svoyActive = showCal || !!deadline && !QUICK_TERMS.includes(deadline); // custom date/range → highlight «Свой срок»
 
+  // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки.
+  var saveGoal = () => {
+    var nm = name.trim() || "Новая цель";
+    var tgt = Math.max(1, target);
+    // КРУГ ВКЛ → ОДИН путь bosPromoteGoalToCircle (shared_live): создаёт настоящий круг, ПЕРЕНОСЯ
+    // выбранные привычки как командные; при редактировании цель превращается на месте.
+    if (circleOn) {
+      var _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
+      var _habitIds = linkHabit ? linkedHabits.filter(h => h.on).map(h => h.id) : [];
+      var goalLike = {
+        id: editing && g0 ? g0.id : undefined,
+        name: nm,
+        emoji: iconPick,
+        color,
+        target: tgt,
+        unit,
+        deadline: deadline || "Этот месяц",
+        habitIds: _habitIds
+      };
+      if (preset && preset.challenge) goalLike.challenge = preset.challenge;
+      close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
+      if (typeof bosPromoteGoalToCircle === "function") {
+        bosPromoteGoalToCircle(app, goalLike, {
+          navigate,
+          from: "habits",
+          vis: circleVis,
+          type: goalType,
+          stake: _stake,
+          onShare: t => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+            team: t
+          }))
+        });
+      }
+      return;
+    }
+    // КРУГ ВЫКЛ → личная цель; habitIds наполняют её кольцо.
+    var habitIds = linkHabit ? linkedHabits.filter(h => h.on).map(h => h.id) : [];
+    var data = {
+      emoji: iconPick,
+      color,
+      name: nm,
+      target: tgt,
+      unit,
+      deadline,
+      circle: false,
+      habitIds
+    };
+    if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
+    if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
+    close();
+  };
+
   // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (единая логика с формой привычки).
   if (view === "picker") {
     return /*#__PURE__*/React.createElement("div", {
@@ -933,7 +991,11 @@ function GoalFormSheetLive({
       overflowY: "auto",
       WebkitOverflowScrolling: "touch"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
+    title: editing ? "Изменить цель" : "Новая цель",
+    onClose: close,
+    onDone: saveGoal
+  }) : /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       fontSize: 18,
@@ -941,7 +1003,24 @@ function GoalFormSheetLive({
       letterSpacing: "-0.3px",
       marginBottom: 2
     }
-  }, editing ? "Изменить цель" : "Новая цель"), /*#__PURE__*/React.createElement("div", {
+  }, editing ? "Изменить цель" : "Новая цель"), !editing && typeof CreatePickerSheetLive === "function" && /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(CreatePickerSheetLive, {
+      navigate: navigate,
+      custom: false
+    })),
+    className: "tap",
+    style: {
+      display: "block",
+      margin: "2px auto 0",
+      background: "transparent",
+      border: 0,
+      padding: "4px 10px",
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      cursor: "pointer"
+    }
+  }, "\u0438\u043B\u0438 \u0432\u044B\u0431\u0435\u0440\u0438 \u0433\u043E\u0442\u043E\u0432\u044B\u0439 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436 \u2192"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
@@ -1441,62 +1520,7 @@ function GoalFormSheetLive({
     style: {
       marginTop: 20
     },
-    onClick: () => {
-      var nm = name.trim() || "Новая цель";
-      var tgt = Math.max(1, target);
-      // КРУГ ВКЛ → ОДИН механизм: создаём настоящую КОМАНДУ (богатый круг — комната-орбита,
-      // режимы, вступление по ссылке team_<cloudId>). «Цель+круг» и «команда» теперь одно и то же.
-      // Зеркало TeamCreateLive.save: app.addTeam (локально → круг сразу в «Целях», работает офлайн)
-      // → cloud.createTeam (для cloudId) → комната-орбита + шторка приглашения.
-      // КРУГ ВКЛ → ОДИН путь bosPromoteGoalToCircle (shared_live): создаёт круг, ПЕРЕНОСЯ выбранные
-      // привычки (linkedHabits.on) как командные + линкуя личные копии. При редактировании существующая
-      // цель превращается на месте (helper снимет её по goalLike.id). Режим/ставка/видимость — из формы.
-      if (circleOn) {
-        var _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
-        var _habitIds = linkHabit ? linkedHabits.filter(h => h.on).map(h => h.id) : [];
-        var goalLike = {
-          id: editing && g0 ? g0.id : undefined,
-          name: nm,
-          emoji: iconPick,
-          color,
-          target: tgt,
-          unit,
-          deadline: deadline || "Этот месяц",
-          habitIds: _habitIds
-        };
-        if (preset && preset.challenge) goalLike.challenge = preset.challenge;
-        close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
-        if (typeof bosPromoteGoalToCircle === "function") {
-          bosPromoteGoalToCircle(app, goalLike, {
-            navigate,
-            from: "habits",
-            vis: circleVis,
-            type: goalType,
-            stake: _stake,
-            onShare: t => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
-              team: t
-            }))
-          });
-        }
-        return;
-      }
-      // КРУГ ВЫКЛ → личная цель. Теперь несёт habitIds — привязанные привычки НАПОЛНЯЮТ её кольцо
-      // (отметил привычку → цель подросла), а ручной «+1» остаётся только для целей без привычек.
-      var habitIds = linkHabit ? linkedHabits.filter(h => h.on).map(h => h.id) : [];
-      var data = {
-        emoji: iconPick,
-        color,
-        name: nm,
-        target: tgt,
-        unit,
-        deadline,
-        circle: false,
-        habitIds
-      };
-      if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
-      if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
-      close();
-    }
+    onClick: saveGoal
   }, editing ? "Сохранить" : "Создать цель"), editing && /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {

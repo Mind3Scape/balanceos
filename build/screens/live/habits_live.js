@@ -344,8 +344,11 @@ var BOS_CREATE_CATS = [{
    наши шторки), ниже категории готовых челленджей; тап по пресету → ChallengeIntroSheet (правила +
    «Начать») → bosCommitChallenge. Всё в one-sheet host: содержимое шторки меняется, без вложенных. */
 function CreatePickerSheetLive({
-  navigate
+  navigate,
+  custom = true
 }) {
+  // custom=false — открытие из стеклянного поповера «+» (там «Привычку/Цель» уже есть) или
+  // из формы цели: показываем ТОЛЬКО готовые челленджи, без верхних строк «своё».
   var {
     open: openSheet
   } = useSheet();
@@ -373,7 +376,7 @@ function CreatePickerSheetLive({
       })
     }));
   };
-  var custom = node => {
+  var pickCustom = node => {
     if (window.tgHaptic) {
       try {
         window.tgHaptic("light");
@@ -390,14 +393,14 @@ function CreatePickerSheetLive({
       WebkitOverflowScrolling: "touch",
       color: "var(--text)"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       fontSize: 18,
       fontWeight: 700,
       letterSpacing: "-0.3px"
     }
-  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
+  }, custom ? "Создать" : "Готовые челленджи"), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       fontSize: 12.5,
@@ -405,7 +408,7 @@ function CreatePickerSheetLive({
       marginTop: 3,
       lineHeight: 1.4
     }
-  }, "\u0413\u043E\u0442\u043E\u0432\u044B\u0439 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436 \u0441 \u043D\u0430\u0433\u0440\u0430\u0434\u043E\u0439 \u2014 \u0438\u043B\u0438 \u0441\u0432\u043E\u0451 \u0441 \u043D\u0443\u043B\u044F"), /*#__PURE__*/React.createElement("div", {
+  }, custom ? "Готовый челлендж с наградой — или своё с нуля" : "Продержись срок — забери награду"), custom && /*#__PURE__*/React.createElement("div", {
     style: {
       background: tile,
       borderRadius: 18,
@@ -417,7 +420,7 @@ function CreatePickerSheetLive({
     icon: I.Flame,
     t: "Своя привычка",
     d: "форма с нуля — как хочешь",
-    go: () => custom(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+    go: () => pickCustom(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
       mode: "create",
       navigate: navigate
     }))
@@ -425,7 +428,7 @@ function CreatePickerSheetLive({
     icon: I.Flag,
     t: "Своя цель",
     d: "число, срок и привычки к ней",
-    go: () => custom(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+    go: () => pickCustom(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
       mode: "create",
       navigate: navigate
     }))

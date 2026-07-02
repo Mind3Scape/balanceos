@@ -108,6 +108,43 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   }, []);
   const [type, setType] = useHS("build");
 
+  // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки (David: «галочка справа
+  // вверху, чтобы не листать до низа»).
+  const saveHabit = () => {
+    const nm = name.trim() || "Новая привычка";
+    // Persist the full schedule + reminder on the habit. These extra fields ride
+    // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
+    const base = {
+      emoji: iconPick, name: nm, color,
+      days: days.slice(),                                  // 7-long Пн..Вс mask
+      goalPerDay: markMode === "count" ? Math.max(2, goal) : 1,   // счётчик только в режиме «Счётчик»
+      duration: markMode === "timer" ? Math.max(1, duration) : 0, // таймер только в режиме «Таймер»
+      reminder: { on: reminderOn, time: reminderTime },
+    };
+    if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
+    // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
+    // привязываем её к цели (habitIds) — деталь цели под шторкой обновится сама.
+    if (goalFor) { base.goalId = goalFor.id; base.goalOnly = goalOnly; }
+    const linkToGoal = (nh) => {
+      if (!goalFor || !nh) return false;
+      const g = (app?.goals || []).find((x) => x.id === goalFor.id);
+      const ids = (((g && g.habitIds) || [])).concat(nh.id);
+      app?.updateGoal(goalFor.id, { habitIds: ids });
+      return true;
+    };
+    // SHARED habit: if sharing is on, save + swap this sheet for the share sheet
+    // (one-sheet host: содержимое шторки меняется, форма уже сохранена).
+    if (shareOn && !goalFor) {
+      if (editing) app?.updateHabit(params.habit.id, base);
+      else app?.addHabit(base);
+      openSheet(<ShareHabitSheetLive habit={{ name: nm, emoji: iconPick, color }} />);
+      return;
+    }
+    if (editing) { app?.updateHabit(params.habit.id, base); }
+    else { const nh = app?.addHabit(base); if (linkToGoal(nh)) { close(); return; } }
+    close();
+  };
+
   // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (как в TeamQuickEditSheetLive) —
   // вложенный openSheet заменил бы форму и потерял ввод.
   if (view === "picker") {
@@ -130,7 +167,11 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
 
   return (
     <div style={{ padding: "2px 16px 20px", maxHeight: "80vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить привычку" : "Новая привычка"}</div>
+      {/* Серый фон шторки + белые карточки — как страницы приложения (David). */}
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      {typeof SheetFormHeadLive === "function"
+        ? <SheetFormHeadLive title={editing ? "Изменить привычку" : "Новая привычка"} onClose={close} onDone={saveHabit} />
+        : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить привычку" : "Новая привычка"}</div>}
       {/* Identity — icon (tap → emoji panel), name (tap → type) and colour all in ONE card;
           no separate «Название» field, no preset row (the emoji panel already has every
           emoji). David: «зачем целое отдельное поле… сделай целостно». */}
@@ -292,43 +333,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         </div>
       )}
 
-      {/* Add */}
-      <button className="bos-btn" style={{ marginTop: 20 }} onClick={async () => {
-        const nm = name.trim() || "Новая привычка";
-        // Persist the full schedule + reminder on the habit. These extra fields ride
-        // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
-        const base = {
-          emoji: iconPick, name: nm, color,
-          days: days.slice(),                                  // 7-long Пн..Вс mask
-          goalPerDay: markMode === "count" ? Math.max(2, goal) : 1,   // счётчик только в режиме «Счётчик»
-          duration: markMode === "timer" ? Math.max(1, duration) : 0, // таймер только в режиме «Таймер»
-          reminder: { on: reminderOn, time: reminderTime },
-        };
-        if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
-        // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
-        // привязываем её к цели (habitIds) и возвращаемся в цель — кольцо начнёт расти от её отметок.
-        if (goalFor) { base.goalId = goalFor.id; base.goalOnly = goalOnly; }
-        const linkToGoal = (nh) => {
-          if (!goalFor || !nh) return false;
-          const g = (app?.goals || []).find((x) => x.id === goalFor.id);
-          const ids = (((g && g.habitIds) || [])).concat(nh.id);
-          app?.updateGoal(goalFor.id, { habitIds: ids });
-          // Шторка открыта ПОВЕРХ деталей цели — та читает app.goals живьём, кольцо
-          // подрастёт само. Никуда не уводим, просто закрываемся.
-          return true;
-        };
-        // SHARED habit: if sharing is on, save + swap this sheet for the share sheet
-        // (one-sheet host: содержимое шторки меняется, форма уже сохранена).
-        if (shareOn && !goalFor) {
-          if (editing) app?.updateHabit(params.habit.id, base);
-          else app?.addHabit(base);
-          openSheet(<ShareHabitSheetLive habit={{ name: nm, emoji: iconPick, color }} />);
-          return;
-        }
-        if (editing) { app?.updateHabit(params.habit.id, base); }
-        else { const nh = app?.addHabit(base); if (linkToGoal(nh)) { close(); return; } }
-        close();
-      }}>
+      {/* Add — дублирует «✓» в шапке для тех, кто долистал до конца. */}
+      <button className="bos-btn" style={{ marginTop: 20 }} onClick={saveHabit}>
         {editing ? "Сохранить" : goalFor ? "Добавить в цель" : "Добавить привычку"}
       </button>
       {editing && (
@@ -399,6 +405,32 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   const QUICK_TERMS = ["Неделя", "Месяц", "1 год"];
   const svoyActive = showCal || (!!deadline && !QUICK_TERMS.includes(deadline)); // custom date/range → highlight «Свой срок»
 
+  // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки.
+  const saveGoal = () => {
+    const nm = name.trim() || "Новая цель";
+    const tgt = Math.max(1, target);
+    // КРУГ ВКЛ → ОДИН путь bosPromoteGoalToCircle (shared_live): создаёт настоящий круг, ПЕРЕНОСЯ
+    // выбранные привычки как командные; при редактировании цель превращается на месте.
+    if (circleOn) {
+      const _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
+      const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
+      const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, color, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
+      if (preset && preset.challenge) goalLike.challenge = preset.challenge;
+      close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
+      if (typeof bosPromoteGoalToCircle === "function") {
+        bosPromoteGoalToCircle(app, goalLike, { navigate, from: "habits", vis: circleVis, type: goalType, stake: _stake, onShare: (t) => openSheet(<TeamShareSheetLive team={t} />) });
+      }
+      return;
+    }
+    // КРУГ ВЫКЛ → личная цель; habitIds наполняют её кольцо.
+    const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
+    const data = { emoji: iconPick, color, name: nm, target: tgt, unit, deadline, circle: false, habitIds };
+    if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
+    if (editing) app?.updateGoal(g0.id, data);
+    else app?.addGoal(data);
+    close();
+  };
+
   // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (единая логика с формой привычки).
   if (view === "picker") {
     return (
@@ -411,7 +443,19 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
 
   return (
     <div style={{ padding: "2px 16px 20px", maxHeight: "80vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить цель" : "Новая цель"}</div>
+      {/* Серый фон шторки + белые карточки — как страницы приложения (David). */}
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      {typeof SheetFormHeadLive === "function"
+        ? <SheetFormHeadLive title={editing ? "Изменить цель" : "Новая цель"} onClose={close} onDone={saveGoal} />
+        : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить цель" : "Новая цель"}</div>}
+      {/* Тихая дорога к ГОТОВЫМ пресетам-челленджам (David: «предложить внутри создания цели,
+          не перегружая») — только на создании. */}
+      {!editing && typeof CreatePickerSheetLive === "function" && (
+        <button onClick={() => openSheet(<CreatePickerSheetLive navigate={navigate} custom={false} />)} className="tap"
+          style={{ display: "block", margin: "2px auto 0", background: "transparent", border: 0, padding: "4px 10px", fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", cursor: "pointer" }}>
+          или выбери готовый челлендж →
+        </button>
+      )}
 
       {/* Identity — icon (tap → emoji panel) + inline name in ONE card, same logic as the
           habit create screen (David: «модифицируй создание целей в той же логике»). */}
@@ -563,36 +607,8 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         </div>
       </>)}
 
-      <button className="bos-btn" style={{ marginTop: 20 }} onClick={() => {
-        const nm = name.trim() || "Новая цель";
-        const tgt = Math.max(1, target);
-        // КРУГ ВКЛ → ОДИН механизм: создаём настоящую КОМАНДУ (богатый круг — комната-орбита,
-        // режимы, вступление по ссылке team_<cloudId>). «Цель+круг» и «команда» теперь одно и то же.
-        // Зеркало TeamCreateLive.save: app.addTeam (локально → круг сразу в «Целях», работает офлайн)
-        // → cloud.createTeam (для cloudId) → комната-орбита + шторка приглашения.
-        // КРУГ ВКЛ → ОДИН путь bosPromoteGoalToCircle (shared_live): создаёт круг, ПЕРЕНОСЯ выбранные
-        // привычки (linkedHabits.on) как командные + линкуя личные копии. При редактировании существующая
-        // цель превращается на месте (helper снимет её по goalLike.id). Режим/ставка/видимость — из формы.
-        if (circleOn) {
-          const _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
-          const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
-          const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, color, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
-          if (preset && preset.challenge) goalLike.challenge = preset.challenge;
-          close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
-          if (typeof bosPromoteGoalToCircle === "function") {
-            bosPromoteGoalToCircle(app, goalLike, { navigate, from: "habits", vis: circleVis, type: goalType, stake: _stake, onShare: (t) => openSheet(<TeamShareSheetLive team={t} />) });
-          }
-          return;
-        }
-        // КРУГ ВЫКЛ → личная цель. Теперь несёт habitIds — привязанные привычки НАПОЛНЯЮТ её кольцо
-        // (отметил привычку → цель подросла), а ручной «+1» остаётся только для целей без привычек.
-        const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
-        const data = { emoji: iconPick, color, name: nm, target: tgt, unit, deadline, circle: false, habitIds };
-        if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
-        if (editing) app?.updateGoal(g0.id, data);
-        else app?.addGoal(data);
-        close();
-      }}>
+      {/* Дублирует «✓» в шапке для тех, кто долистал до конца. */}
+      <button className="bos-btn" style={{ marginTop: 20 }} onClick={saveGoal}>
         {editing ? "Сохранить" : "Создать цель"}
       </button>
       {editing && (

@@ -105,7 +105,9 @@ const BOS_CREATE_CATS = [
    категориям, всё уже настроено под челленджи»). Сверху «Своя привычка / Своя цель» (формы с нуля —
    наши шторки), ниже категории готовых челленджей; тап по пресету → ChallengeIntroSheet (правила +
    «Начать») → bosCommitChallenge. Всё в one-sheet host: содержимое шторки меняется, без вложенных. */
-function CreatePickerSheetLive({ navigate }) {
+function CreatePickerSheetLive({ navigate, custom = true }) {
+  // custom=false — открытие из стеклянного поповера «+» (там «Привычку/Цель» уже есть) или
+  // из формы цели: показываем ТОЛЬКО готовые челленджи, без верхних строк «своё».
   const { open: openSheet } = useSheet();
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
@@ -120,7 +122,7 @@ function CreatePickerSheetLive({ navigate }) {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
     openSheet(<ChallengeIntroSheet c={c} dark={isDark} onStart={() => bosCommitChallenge(app, c, { navigate, openSheet })} />);
   };
-  const custom = (node) => {
+  const pickCustom = (node) => {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
     openSheet(node);
   };
@@ -129,14 +131,17 @@ function CreatePickerSheetLive({ navigate }) {
     : (c.target + " " + (c.unit || "") + " · +" + c.bonus + " XP");
   return (
     <div style={{ padding: "2px 16px 20px", maxHeight: "84vh", overflowY: "auto", WebkitOverflowScrolling: "touch", color: "var(--text)" }}>
-      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px" }}>Создать</div>
-      <div style={{ textAlign: "center", fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>Готовый челлендж с наградой — или своё с нуля</div>
+      {/* Серый фон + белые карточки — язык страниц приложения (David: «бэкграунд слегка серенький»). */}
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px" }}>{custom ? "Создать" : "Готовые челленджи"}</div>
+      <div style={{ textAlign: "center", fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>{custom ? "Готовый челлендж с наградой — или своё с нуля" : "Продержись срок — забери награду"}</div>
 
-      {/* Своё — формы с нуля (те же шторки создания). */}
+      {/* Своё — формы с нуля (те же шторки создания); скрыто при custom=false. */}
+      {custom && (
       <div style={{ background: tile, borderRadius: 18, marginTop: 14, overflow: "hidden", boxShadow: tileShadow }}>
         {[
-          { icon: I.Flame, t: "Своя привычка", d: "форма с нуля — как хочешь", go: () => custom(<HabitFormSheetLive mode="create" navigate={navigate} />) },
-          { icon: I.Flag,  t: "Своя цель",     d: "число, срок и привычки к ней", go: () => custom(<GoalFormSheetLive mode="create" navigate={navigate} />) },
+          { icon: I.Flame, t: "Своя привычка", d: "форма с нуля — как хочешь", go: () => pickCustom(<HabitFormSheetLive mode="create" navigate={navigate} />) },
+          { icon: I.Flag,  t: "Своя цель",     d: "число, срок и привычки к ней", go: () => pickCustom(<GoalFormSheetLive mode="create" navigate={navigate} />) },
         ].map((r, i) => (
           <button key={r.t} onClick={r.go} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, background: "transparent", border: 0, borderTop: i ? "0.5px solid " + line : 0, cursor: "pointer", textAlign: "left", padding: "12px 14px" }}>
             <span style={{ width: 38, height: 38, borderRadius: 12, background: discBg, boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none"), display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(r.icon, { size: 18, color: "var(--text)" })}</span>
@@ -148,6 +153,7 @@ function CreatePickerSheetLive({ navigate }) {
           </button>
         ))}
       </div>
+      )}
 
       {/* Категории готовых челленджей. */}
       {BOS_CREATE_CATS.map((cat) => (

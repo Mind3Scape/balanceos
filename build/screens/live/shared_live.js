@@ -4276,10 +4276,10 @@ function AddWidgetSheetLive({
   })));
 }
 
-/* «+» (Главная и Привычки) — БЫЛ поповер «Привычку / Цель», ТЕПЕРЬ сразу шторка-каталог
-   CreatePickerSheetLive (David: «сначала шторка с пресетами по категориям, всё уже настроено
-   под челленджи»; «Своя привычка / Своя цель» — первые строки каталога). Компонент оставлен
-   на прежних местах и с прежним API (open/onClose/anchorRef) — он лишь транслирует open → шторку. */
+/* «+» (Главная и Привычки) — КЛАССИЧЕСКИЙ стеклянный поповер (David: «нравилась небольшая
+   стеклянная менюшка — привычку или цель, не перегружало; верни»). Три пункта: Привычку / Цель
+   (наши формы-шторки) + тихий третий «Готовый челлендж» → шторка-каталог пресетов по категориям
+   (CreatePickerSheetLive custom={false} — без верхних строк «своё», они уже здесь). */
 function CreateMenuLive({
   open,
   onClose,
@@ -4291,17 +4291,190 @@ function CreateMenuLive({
   } = typeof useSheet === "function" ? useSheet() : {
     open: () => {}
   };
+  var [pos, setPos] = React.useState(null);
   React.useEffect(() => {
-    if (!open) return;
-    if (typeof CreatePickerSheetLive === "function") _openSheet(/*#__PURE__*/React.createElement(CreatePickerSheetLive, {
-      navigate: navigate
-    }));else _openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+    if (open && anchorRef && anchorRef.current) {
+      var r = anchorRef.current.getBoundingClientRect();
+      setPos({
+        right: Math.round(window.innerWidth - r.right),
+        top: Math.round(r.bottom + 10)
+      });
+    }
+  }, [open]);
+  if (!open || !pos) return null;
+  var items = [{
+    icon: I.Flame,
+    label: "Привычку",
+    go: () => _openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
       mode: "create",
       navigate: navigate
-    }));
-    if (onClose) onClose(); // «+» не остаётся «нажатым» — шторка живёт своей жизнью
-  }, [open]); // eslint-disable-line
-  return null;
+    }))
+  }, {
+    icon: I.Flag,
+    label: "Цель",
+    go: () => _openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+      mode: "create",
+      navigate: navigate
+    }))
+  }, {
+    icon: I.Bolt,
+    label: "Готовый челлендж",
+    go: () => {
+      if (typeof CreatePickerSheetLive === "function") _openSheet(/*#__PURE__*/React.createElement(CreatePickerSheetLive, {
+        navigate: navigate,
+        custom: false
+      }));
+    }
+  }];
+  return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 8000,
+      background: "rgba(18,22,38,0.16)",
+      animation: "dimIn 0.18s ease both"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    role: "menu",
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: "fixed",
+      right: pos.right,
+      top: pos.top,
+      transformOrigin: "top right",
+      animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
+      minWidth: 212,
+      padding: 7,
+      borderRadius: 22,
+      background: "rgba(255,255,255,0.74)",
+      WebkitBackdropFilter: "blur(34px) saturate(180%)",
+      backdropFilter: "blur(34px) saturate(180%)",
+      border: "0.5px solid rgba(255,255,255,0.7)",
+      boxShadow: "0 16px 44px rgba(20,30,60,0.26)"
+    }
+  }, items.map((it, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    role: "menuitem",
+    "data-haptic": "selection",
+    onClick: () => {
+      onClose();
+      it.go();
+    },
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      width: "100%",
+      padding: "12px 14px",
+      border: 0,
+      background: "transparent",
+      borderRadius: 16,
+      borderTop: i === 2 ? "0.5px solid rgba(10,10,10,0.08)" : 0,
+      // тонкая черта отделяет «готовое» от «своего»
+      fontSize: 16,
+      fontWeight: 600,
+      color: "#0a0a0a",
+      cursor: "pointer",
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+      background: "rgba(10,10,10,0.05)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(it.icon, {
+    size: 18,
+    color: "#0a0a0a",
+    strokeWidth: 1.9
+  })), it.label)))), document.body);
+}
+
+/* Серый фон ШТОРКИ (David: «подложки белые, а бэкграунд слегка серенький — как на всех
+   страницах»): абсолютный слой под содержимым, за ручкой-गрэбом (zIndex -1). */
+function SheetGreyBgLive() {
+  return /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: 0,
+      zIndex: -1,
+      background: "var(--bg, #f2f2f4)",
+      borderRadius: "24px 24px 0 0"
+    }
+  });
+}
+
+/* Шапка ШТОРКИ-ФОРМЫ (iOS-модалка): слева круглая стеклянная «✕» (закрыть), справа «✓»
+   (сохранить) — не нужно листать до низа (David). Единая для привычки И цели. */
+function SheetFormHeadLive({
+  title,
+  onClose,
+  onDone
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var dark = app?.themeOverride === "dark";
+  var glass = {
+    width: 38,
+    height: 38,
+    borderRadius: "50%",
+    border: 0,
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+    flexShrink: 0,
+    color: dark ? "#fff" : "var(--text)",
+    background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.10)" : "#fff"),
+    boxShadow: bosTileGlass(dark)
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "2px 0 4px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onClose,
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+    style: glass
+  }, /*#__PURE__*/React.createElement(I.X, {
+    size: 17,
+    strokeWidth: 2.2
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      textAlign: "center",
+      fontSize: 18,
+      fontWeight: 700,
+      letterSpacing: "-0.3px",
+      color: "var(--text)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, title), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onDone,
+    className: "tap",
+    "data-haptic": "light",
+    "aria-label": "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
+    style: glass
+  }, /*#__PURE__*/React.createElement(I.Check, {
+    size: 18,
+    strokeWidth: 2.5
+  })));
 }
 
 // ─── СТИЛЬ КАРТОЧЕК страницы «Привычки» ───────────────────────────────────────────────────────────
