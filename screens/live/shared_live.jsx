@@ -2911,16 +2911,25 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // ТОМ ЖЕ месте. Fallback (не из «Я»): ширина страницы × 300 (как в OrbitField).
   var W = (typeof window !== "undefined" && window.innerWidth) || 390;
   var H = (typeof window !== "undefined" && window.innerHeight) || 780;
-  // РАСКЛАДКА для линзы (fisheye): системы кладём в НОРМИРОВАННОЕ «плоское» поле тесной золотой
-  // спиралью (филлотаксис) — соседи ~на расстоянии 1, БЕЗ щелей (как соты). Ты — в центре поля (0,0),
-  // остальные по спирали наружу. Экранные координаты и размер даёт линза fish() ниже: теснота
-  // сохраняется, а кто под центром экрана — раздувается (Apple-Watch). Зависит от набора людей.
+  // РАСКЛАДКА = ЧЕСТНАЯ HONEYCOMB-СЕТКА (как главное меню Apple Watch): гексагональные кольца вокруг
+  // центра (ты — в центре, index 0; далее кольца по 6, 12, 18…), идеально СИММЕТРИЧНО, каждая система
+  // в своей ячейке (спейсинг ровно 1). Линза fish() ниже раздувает центр, сохраняя симметрию.
   var layout = React.useMemo(function () {
     var others = list.slice(0, 240).map(function (f) { return buildSystem(f); }).sort(function (a, b) { return b.weight - a.weight; });
-    var GA = 2.399963229728653;                                      // золотой угол ≈ 137.5°
+    var AX = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];   // 6 направлений гекс-соседей
+    function hexAt(index) {                                          // index 0 = центр, далее по кольцам
+      if (index <= 0) return { q: 0, r: 0 };
+      var k = 1; while (index > 3 * k * (k + 1)) k++;                // номер кольца
+      var idxInRing = index - (3 * (k - 1) * k + 1);                 // позиция внутри кольца (0..6k-1)
+      var q = AX[4][0] * k, r = AX[4][1] * k;                        // старт кольца — угол
+      var side = Math.floor(idxInRing / k), step = idxInRing % k;
+      for (var s = 0; s < side; s++) { q += AX[s][0] * k; r += AX[s][1] * k; }
+      q += AX[side][0] * step; r += AX[side][1] * step;
+      return { q: q, r: r };
+    }
     var nodes = others.map(function (sp, j) {
-      var idx = j + 1, r = Math.sqrt(idx), a = idx * GA;             // 0 занята твоей; соседи ~на расстоянии 1
-      return { sp: sp, fx: Math.cos(a) * r, fy: Math.sin(a) * r };
+      var h = hexAt(j + 1);                                          // axial → плоскость, спейсинг ровно 1
+      return { sp: sp, fx: h.q + h.r * 0.5, fy: h.r * 0.8660254 };
     });
     return { nodes: nodes };
   }, [friends]);
