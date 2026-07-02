@@ -2911,115 +2911,97 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // ТОМ ЖЕ месте. Fallback (не из «Я»): ширина страницы × 300 (как в OrbitField).
   var W = (typeof window !== "undefined" && window.innerWidth) || 390;
   var H = (typeof window !== "undefined" && window.innerHeight) || 780;
-  // Layout: ТЫ — в ЦЕНТРЕ вселенной (layout.cx/cy). Остальные — «золотой угол» (филлотаксис, как
-  // семечки подсолнуха): органично, без сетки, равномерно ЗАПОЛНЯЯ вытянутый экран телефона (эллипс
-  // выше, чем шире). Пока людей мало — заполняют экран; станет много — эллипс растёт, дальние уходят
-  // за край (их проявишь движением). Размер/раскрытие каждой задаёт линза (_focScale/_focOpen ниже).
+  // РАСКЛАДКА для линзы (fisheye): системы кладём в НОРМИРОВАННОЕ «плоское» поле тесной золотой
+  // спиралью (филлотаксис) — соседи ~на расстоянии 1, БЕЗ щелей (как соты). Ты — в центре поля (0,0),
+  // остальные по спирали наружу. Экранные координаты и размер даёт линза fish() ниже: теснота
+  // сохраняется, а кто под центром экрана — раздувается (Apple-Watch). Зависит от набора людей.
   var layout = React.useMemo(function () {
-    var youFp = 208 * 0.42 + 14;
-    var cx = W / 2, cy = H * 0.5;                                    // центр экрана → низ/верх заполнены поровну
-    var arr = list.slice(0, 240).map(function (f) { return buildSystem(f); }).sort(function (a, b) { return b.weight - a.weight; });
-    var n = arr.length, S = 0.82;                                    // дефолт-зум: раскидываем под него
-    var minAx = (W / S) * 0.40, minAy = (H / S) * 0.44;             // экранный эллипс, вертикально вытянут
-    var grow = Math.sqrt(n / 7); if (grow < 1) grow = 1;            // мало людей → в экран; много → шире
-    var ax = minAx * grow, ay = minAy * grow;
-    var GA = 2.399963229728653, placed = [];                        // золотой угол ≈ 137.5°
-    arr.forEach(function (sp, i) {
-      var fp = sp.footprint;
-      var rN = Math.sqrt((i + 0.5) / Math.max(n, 1)) * 0.94 + 0.06; // маленькая «дырка» под твою систему
-      var ang = i * GA, x = cx + Math.cos(ang) * rN * ax, y = cy + Math.sin(ang) * rN * ay;
-      // лёгкая релаксация: наезжает на твою или уже поставленную — толкаем наружу вдоль луча
-      for (var t = 0; t < 36; t++) {
-        var ok = true, ddx = x - cx, ddy = y - cy, L = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-        if (L < youFp + fp + 10) ok = false;
-        for (var j = 0; ok && j < placed.length; j++) { var dx = x - placed[j].x, dy = y - placed[j].y; if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + 12) ok = false; }
-        if (ok) break;
-        x += (ddx / L) * 18; y += (ddy / L) * 18;
-      }
-      placed.push({ sp: sp, x: x, y: y, fp: fp });
+    var others = list.slice(0, 240).map(function (f) { return buildSystem(f); }).sort(function (a, b) { return b.weight - a.weight; });
+    var GA = 2.399963229728653;                                      // золотой угол ≈ 137.5°
+    var nodes = others.map(function (sp, j) {
+      var idx = j + 1, r = Math.sqrt(idx), a = idx * GA;             // 0 занята твоей; соседи ~на расстоянии 1
+      return { sp: sp, fx: Math.cos(a) * r, fy: Math.sin(a) * r };
     });
-    return { placed: placed, overflow: 0, cx: cx, cy: cy, youFp: youFp };
+    return { nodes: nodes };
   }, [friends]);
 
-  // СОТА-КАМЕРА (как главное меню Apple Watch): двигаешь пальцем — системы, входящие в ЦЕНТР
-  // экрана, крупнеют и раскрывают кольца; уходящие к краю — мельчают и сворачиваются в точку-аватар.
-  // Никто не «король»: большой = тот, кто сейчас в центре. Pointer Events = и мышь, и тач; 2 пальца
-  // = пинч; чистый тап = закрыть. Открытие — мягкий зум-ин + проявление (shown).
-  var [view, setView] = React.useState({ s: 0.82, x: 0, y: 0, anim: true });
+  // ЛИНЗА (fisheye, как главное меню Apple Watch): поле тесно упаковано, а в центре экрана — «лупа».
+  // Кто под ней — раздут и с раскрытыми кольцами; вокруг всё жмётся плотно (минимум белого). Двигаешь
+  // пальцем — под лупу въезжает другая система, раздувается, соседи липнут к ней. cam = точка поля под
+  // центром экрана (норм. единицы); z = зум. Открытие — мягкий зум-ин (shown). Тач/мышь; тап = закрыть.
+  var [cam, setCam] = React.useState({ x: 0, y: 0, z: 1, anim: true });
   var [shown, setShown] = React.useState(false);
   React.useEffect(function () {
     var a = requestAnimationFrame(function () { var b = requestAnimationFrame(function () { setShown(true); }); vp.current._raf2 = b; });
     var tm = setTimeout(function () { setShown(true); }, 80); // фолбэк: rAF бывает throttled (фон/headless)
     return function () { cancelAnimationFrame(a); if (vp.current._raf2) cancelAnimationFrame(vp.current._raf2); clearTimeout(tm); };
   }, []);
-  var vp = React.useRef({ pts: {}, mode: null, sd: 1, ss: 1, sx: 0, sy: 0, ox: 0, oy: 0, moved: 0 });
-  function _cS(s) { return s < 0.32 ? 0.32 : s > 4 ? 4 : s; }
+  var vp = React.useRef({ pts: {}, mode: null, sd: 1, ox: 0, oy: 0, oz: 1, sx: 0, sy: 0, moved: 0 });
+  function _cZ(z) { return z < 0.55 ? 0.55 : z > 3 ? 3 : z; }
+  var introK = shown ? 1 : 0.9;
+  // ШАГ между центрами и ДИАМЕТР орбиты — РАЗНЫЕ: видимый кластер планет заметно меньше 300-бокса,
+  // поэтому боксы кладём с перекрытием (шаг = PACK×диаметр, PACK<0.5) → сами орбиты впритык, минимум
+  // белого (соты). Магнификация мягкая (орбиты не расползаются): центр MC, край ME.
+  var SIZB = 178 * cam.z * introK;                    // диаметр орбиты (px) при mag=1
+  var PACK = 0.5;                                     // шаг = PACK×диаметр — теснота упаковки
+  var SPB = SIZB * PACK;
+  var SIG = 150 * cam.z * introK;                     // радиус «лупы» (px)
+  var MC = 1.7, ME = 0.72;                            // магнификация: центр / край
+  function fish(fx, fy) {
+    var vx = fx - cam.x, vy = fy - cam.y, rf = Math.sqrt(vx * vx + vy * vy), rpx = rf * SPB;
+    var q = rpx / SIG, mag = ME + (MC - ME) / (1 + q * q);
+    var R = ME * rpx + (MC - ME) * SIG * Math.atan(q);           // радиальное отображение «лупы»
+    var ux = rf > 0.001 ? vx / rf : 0, uy = rf > 0.001 ? vy / rf : 0;
+    return { sx: W / 2 + ux * R, sy: H / 2 + uy * R, size: SIZB * mag, mag: mag };
+  }
   function uDown(e) {
     var g = vp.current; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
-    if (ids.length === 1) { g.mode = "pan"; g.sx = e.clientX; g.sy = e.clientY; g.ox = view.x; g.oy = view.y; g.moved = 0; }
-    else if (ids.length >= 2) { g.mode = "pinch"; var a = g.pts[ids[0]], b = g.pts[ids[1]]; g.sd = Math.hypot(a.x - b.x, a.y - b.y) || 1; g.ss = view.s; }
-    setView(function (v) { return { s: v.s, x: v.x, y: v.y, anim: false }; });
+    if (ids.length === 1) { g.mode = "pan"; g.sx = e.clientX; g.sy = e.clientY; g.ox = cam.x; g.oy = cam.y; g.moved = 0; }
+    else if (ids.length >= 2) { g.mode = "pinch"; var a = g.pts[ids[0]], b = g.pts[ids[1]]; g.sd = Math.hypot(a.x - b.x, a.y - b.y) || 1; g.oz = cam.z; }
+    setCam(function (v) { return { x: v.x, y: v.y, z: v.z, anim: false }; });
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
   }
   function uMove(e) {
     var g = vp.current; if (!g.pts[e.pointerId]) return; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
-    if (g.mode === "pinch" && ids.length >= 2) { var a = g.pts[ids[0]], b = g.pts[ids[1]]; var ns = _cS(g.ss * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd)); setView(function (v) { return { s: ns, x: v.x, y: v.y, anim: false }; }); }
-    else if (g.mode === "pan" && ids.length === 1) { var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); setView(function (v) { return { s: v.s, x: g.ox + dx, y: g.oy + dy, anim: false }; }); }
+    if (g.mode === "pinch" && ids.length >= 2) { var a = g.pts[ids[0]], b = g.pts[ids[1]]; var nz = _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd)); setCam(function (v) { return { x: v.x, y: v.y, z: nz, anim: false }; }); }
+    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * 0.5 * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); setCam(function (v) { return { x: g.ox - dx / ps, y: g.oy - dy / ps, z: v.z, anim: false }; }); }
   }
   function uUp(e) {
     var g = vp.current; var tap = (g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1);
     delete g.pts[e.pointerId]; if (!Object.keys(g.pts).length) g.mode = null;
-    setView(function (v) { return { s: v.s, x: v.x, y: v.y, anim: true }; });
+    setCam(function (v) { return { x: v.x, y: v.y, z: v.z, anim: true }; });
     if (tap) { try { onClose && onClose(); } catch (_) {} }
   }
-  function uWheel(e) { var ns = _cS(view.s * (1 - (e.deltaY || 0) * 0.0012)); setView(function (v) { return { s: ns, x: v.x, y: v.y, anim: false }; }); }
-
+  function uWheel(e) { var nz = _cZ(cam.z * (1 - (e.deltaY || 0) * 0.0012)); setCam(function (v) { return { x: v.x, y: v.y, z: nz, anim: false }; }); }
 
   var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
-  // ЛИНЗА ЦЕНТРА: для каждой системы считаем, насколько её экранная точка близко к середине экрана
-  // (1 — ровно в центре, 0 — далеко). Эта величина задаёт и размер (focal), и раскрытие колец (open).
-  var introK = shown ? 1 : 0.9;                        // мягкий зум-ин на открытии
-  // РАЗМЕР — по близости к центру (мягкий Apple-Watch фокус: центр крупнее, но соседи на экране
-  // остаются целостными, не крошечными). Широкий радиус → на экране размеры близкие.
-  var SZR = Math.min(W, H) * 0.95;
-  function _focScale(gx, gy) {
-    var dx = (gx - layout.cx) * view.s + view.x, dy = (gy - layout.cy) * view.s + view.y;
-    var d = Math.sqrt(dx * dx + dy * dy) / SZR;
-    return _bosLp(0.72, 1.26, 1 - _bosSm(d > 1 ? 1 : d));
-  }
-  // РАСКРЫТИЕ КОЛЕЦ — по тому, насколько система В ПРЕДЕЛАХ ЭКРАНА (David: «те, что помещаются —
-  // раскрыты; полностью сворачиваются, ТОЛЬКО уходя ЗА экран»). edge = расстояние до ближайшего края:
-  // внутри → раскрыто, у самого края → полу-раскрыто, за экраном → свёрнуто в точку-аватар.
-  function _focOpen(gx, gy) {
-    var sx = layout.cx + (gx - layout.cx) * view.s + view.x, sy = layout.cy + (gy - layout.cy) * view.s + view.y;
-    var edge = Math.min(sx, W - sx, sy, H - sy);
-    return _bosSm((edge + 55) / 110);
-  }
-  // Твоя система — ТАКАЯ ЖЕ, как у всех (не гигант): крупной её делает только центр экрана. Кормим
-  // её твоими РЕАЛЬНЫМИ привычками/людьми/уровнем, и ставим в центр вселенной (layout.cx/cy).
+  // РАСКРЫТИЕ колец — раскрыто, пока система В экране; сворачивается только у края/за краем.
+  function openAt(sx, sy) { var edge = Math.min(sx, W - sx, sy, H - sy); return _bosSm((edge + 55) / 110); }
+  // Твоя система — с РЕАЛЬНЫМИ привычками/людьми/уровнем; стоит в центре поля (fx=fy=0).
   var _bs = (typeof bosStreak === "function") ? bosStreak : function () { return 0; };
   var youHabits = ((app && app.habits) || []).slice(0, 12).map(function (h) { return { emoji: h.emoji || "✨", color: h.color, streak: _bs(h.log), id: h.id }; });
   var youPeople = Array.isArray(people) ? people.slice(0, 10) : [];
-  var youSp = { s: { avatar: app && app.avatar, name: (app && app.userName) || "" }, size: 208, level: lvlNum, lvlPct: lvlPct, habits: youHabits, people: youPeople };
-  var allSys = [{ sp: youSp, x: layout.cx, y: layout.cy, you: true }].concat(layout.placed);
-  var galStyle = { position: "absolute", inset: 0, transform: "translate(" + view.x.toFixed(1) + "px," + view.y.toFixed(1) + "px) scale(" + (view.s * introK).toFixed(3) + ")", transformOrigin: layout.cx + "px " + layout.cy + "px", transition: view.anim ? "transform 0.55s cubic-bezier(0.4,0,0.2,1)" : "none", willChange: "transform", pointerEvents: "none" };
+  var youSp = { s: { avatar: app && app.avatar, name: (app && app.userName) || "" }, level: lvlNum, lvlPct: lvlPct, habits: youHabits, people: youPeople };
+  var allNodes = [{ sp: youSp, fx: 0, fy: 0, you: true }].concat(layout.nodes);
   var node = (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
       <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSpinCW{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosSpinFaceCW{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes bosSpinFaceCCW{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
       {/* Жесты: пинч-зум + перетаскивание + колесо; чистый тап (без сдвига) закрывает. */}
       <div onPointerDown={uDown} onPointerMove={uMove} onPointerUp={uUp} onPointerCancel={uUp} onWheel={uWheel} style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "grab" }}>
-        <div style={galStyle}>
-          {/* Все системы (ты + остальные) — одной сеткой. Каждая = ТОТ ЖЕ OrbitField. РАЗМЕР =
-              _focScale (близость к центру), РАСКРЫТИЕ колец = _focOpen (в пределах ли экрана): на
-              экране раскрыты, за краем свёрнуты в точку-аватар. Твоя (you) — с золотым кольцом уровня,
-              без жёлтой дуги (hideLevelArc), центр вселенной. zIndex по размеру — центр всегда сверху. */}
-          {allSys.map(function (pl, i) {
-            var sp = pl.sp, fsc = _focScale(pl.x, pl.y), openV = _focOpen(pl.x, pl.y), k = (sp.size / 300) * fsc;
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          {/* Каждая система: экранная позиция и размер — из линзы fish() (теснота + раздутие центра).
+              Кольца раскрыты, пока система НА экране (openAt); дальние за краем НЕ рисуем (отсечение,
+              экономит). Твоя (you) — с золотым кольцом уровня, без жёлтой дуги. zIndex по размеру —
+              кто под лупой, тот сверху. */}
+          {allNodes.map(function (nd, i) {
+            var f = fish(nd.fx, nd.fy);
+            if (f.sx < -f.size || f.sx > W + f.size || f.sy < -f.size || f.sy > H + f.size) return null;
+            var sp = nd.sp, k = f.size / 300, openV = openAt(f.sx, f.sy);
             return (
-              <div key={pl.you ? "you" : ("o" + i)} style={{ position: "absolute", left: pl.x.toFixed(1) + "px", top: pl.y.toFixed(1) + "px", pointerEvents: "none", zIndex: Math.round(fsc * 100) }}>
-                <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px", transition: view.anim ? "transform 0.3s ease" : "none" }}>
-                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={pl.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={!!pl.you} editable={false} levelBadge={sp.level} open={openV} /> : null}
+              <div key={nd.you ? "you" : ("o" + i)} style={{ position: "absolute", left: f.sx.toFixed(1) + "px", top: f.sy.toFixed(1) + "px", pointerEvents: "none", zIndex: Math.round(f.mag * 100) }}>
+                <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px" }}>
+                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={!!nd.you} editable={false} levelBadge={sp.level} open={openV} /> : null}
                 </div>
               </div>
             );
@@ -3029,7 +3011,6 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: titleC }}>Вселенная</div>
         {sub ? <div style={{ fontSize: 13, color: subC, marginTop: 3 }}>{sub}</div> : null}
-        {layout.overflow > 0 ? <div style={{ fontSize: 11.5, color: subC, marginTop: 2, opacity: 0.8 }}>+{layout.overflow} ещё где-то в космосе</div> : null}
       </div>
       {friends != null && list.length === 0 && (
         <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 96px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none" }}>Позови первых — и рядом с твоей появятся их солнечные системы.</div>

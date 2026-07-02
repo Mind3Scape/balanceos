@@ -7485,75 +7485,40 @@ function UniverseFieldLive({
   // ТОМ ЖЕ месте. Fallback (не из «Я»): ширина страницы × 300 (как в OrbitField).
   var W = typeof window !== "undefined" && window.innerWidth || 390;
   var H = typeof window !== "undefined" && window.innerHeight || 780;
-  // Layout: ТЫ — в ЦЕНТРЕ вселенной (layout.cx/cy). Остальные — «золотой угол» (филлотаксис, как
-  // семечки подсолнуха): органично, без сетки, равномерно ЗАПОЛНЯЯ вытянутый экран телефона (эллипс
-  // выше, чем шире). Пока людей мало — заполняют экран; станет много — эллипс растёт, дальние уходят
-  // за край (их проявишь движением). Размер/раскрытие каждой задаёт линза (_focScale/_focOpen ниже).
+  // РАСКЛАДКА для линзы (fisheye): системы кладём в НОРМИРОВАННОЕ «плоское» поле тесной золотой
+  // спиралью (филлотаксис) — соседи ~на расстоянии 1, БЕЗ щелей (как соты). Ты — в центре поля (0,0),
+  // остальные по спирали наружу. Экранные координаты и размер даёт линза fish() ниже: теснота
+  // сохраняется, а кто под центром экрана — раздувается (Apple-Watch). Зависит от набора людей.
   var layout = React.useMemo(function () {
-    var youFp = 208 * 0.42 + 14;
-    var cx = W / 2,
-      cy = H * 0.5; // центр экрана → низ/верх заполнены поровну
-    var arr = list.slice(0, 240).map(function (f) {
+    var others = list.slice(0, 240).map(function (f) {
       return buildSystem(f);
     }).sort(function (a, b) {
       return b.weight - a.weight;
     });
-    var n = arr.length,
-      S = 0.82; // дефолт-зум: раскидываем под него
-    var minAx = W / S * 0.40,
-      minAy = H / S * 0.44; // экранный эллипс, вертикально вытянут
-    var grow = Math.sqrt(n / 7);
-    if (grow < 1) grow = 1; // мало людей → в экран; много → шире
-    var ax = minAx * grow,
-      ay = minAy * grow;
-    var GA = 2.399963229728653,
-      placed = []; // золотой угол ≈ 137.5°
-    arr.forEach(function (sp, i) {
-      var fp = sp.footprint;
-      var rN = Math.sqrt((i + 0.5) / Math.max(n, 1)) * 0.94 + 0.06; // маленькая «дырка» под твою систему
-      var ang = i * GA,
-        x = cx + Math.cos(ang) * rN * ax,
-        y = cy + Math.sin(ang) * rN * ay;
-      // лёгкая релаксация: наезжает на твою или уже поставленную — толкаем наружу вдоль луча
-      for (var t = 0; t < 36; t++) {
-        var ok = true,
-          ddx = x - cx,
-          ddy = y - cy,
-          L = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-        if (L < youFp + fp + 10) ok = false;
-        for (var j = 0; ok && j < placed.length; j++) {
-          var dx = x - placed[j].x,
-            dy = y - placed[j].y;
-          if (Math.sqrt(dx * dx + dy * dy) < fp + placed[j].fp + 12) ok = false;
-        }
-        if (ok) break;
-        x += ddx / L * 18;
-        y += ddy / L * 18;
-      }
-      placed.push({
+    var GA = 2.399963229728653; // золотой угол ≈ 137.5°
+    var nodes = others.map(function (sp, j) {
+      var idx = j + 1,
+        r = Math.sqrt(idx),
+        a = idx * GA; // 0 занята твоей; соседи ~на расстоянии 1
+      return {
         sp: sp,
-        x: x,
-        y: y,
-        fp: fp
-      });
+        fx: Math.cos(a) * r,
+        fy: Math.sin(a) * r
+      };
     });
     return {
-      placed: placed,
-      overflow: 0,
-      cx: cx,
-      cy: cy,
-      youFp: youFp
+      nodes: nodes
     };
   }, [friends]);
 
-  // СОТА-КАМЕРА (как главное меню Apple Watch): двигаешь пальцем — системы, входящие в ЦЕНТР
-  // экрана, крупнеют и раскрывают кольца; уходящие к краю — мельчают и сворачиваются в точку-аватар.
-  // Никто не «король»: большой = тот, кто сейчас в центре. Pointer Events = и мышь, и тач; 2 пальца
-  // = пинч; чистый тап = закрыть. Открытие — мягкий зум-ин + проявление (shown).
-  var [view, setView] = React.useState({
-    s: 0.82,
+  // ЛИНЗА (fisheye, как главное меню Apple Watch): поле тесно упаковано, а в центре экрана — «лупа».
+  // Кто под ней — раздут и с раскрытыми кольцами; вокруг всё жмётся плотно (минимум белого). Двигаешь
+  // пальцем — под лупу въезжает другая система, раздувается, соседи липнут к ней. cam = точка поля под
+  // центром экрана (норм. единицы); z = зум. Открытие — мягкий зум-ин (shown). Тач/мышь; тап = закрыть.
+  var [cam, setCam] = React.useState({
     x: 0,
     y: 0,
+    z: 1,
     anim: true
   });
   var [shown, setShown] = React.useState(false);
@@ -7577,15 +7542,42 @@ function UniverseFieldLive({
     pts: {},
     mode: null,
     sd: 1,
-    ss: 1,
-    sx: 0,
-    sy: 0,
     ox: 0,
     oy: 0,
+    oz: 1,
+    sx: 0,
+    sy: 0,
     moved: 0
   });
-  function _cS(s) {
-    return s < 0.32 ? 0.32 : s > 4 ? 4 : s;
+  function _cZ(z) {
+    return z < 0.55 ? 0.55 : z > 3 ? 3 : z;
+  }
+  var introK = shown ? 1 : 0.9;
+  // ШАГ между центрами и ДИАМЕТР орбиты — РАЗНЫЕ: видимый кластер планет заметно меньше 300-бокса,
+  // поэтому боксы кладём с перекрытием (шаг = PACK×диаметр, PACK<0.5) → сами орбиты впритык, минимум
+  // белого (соты). Магнификация мягкая (орбиты не расползаются): центр MC, край ME.
+  var SIZB = 178 * cam.z * introK; // диаметр орбиты (px) при mag=1
+  var PACK = 0.5; // шаг = PACK×диаметр — теснота упаковки
+  var SPB = SIZB * PACK;
+  var SIG = 150 * cam.z * introK; // радиус «лупы» (px)
+  var MC = 1.7,
+    ME = 0.72; // магнификация: центр / край
+  function fish(fx, fy) {
+    var vx = fx - cam.x,
+      vy = fy - cam.y,
+      rf = Math.sqrt(vx * vx + vy * vy),
+      rpx = rf * SPB;
+    var q = rpx / SIG,
+      mag = ME + (MC - ME) / (1 + q * q);
+    var R = ME * rpx + (MC - ME) * SIG * Math.atan(q); // радиальное отображение «лупы»
+    var ux = rf > 0.001 ? vx / rf : 0,
+      uy = rf > 0.001 ? vy / rf : 0;
+    return {
+      sx: W / 2 + ux * R,
+      sy: H / 2 + uy * R,
+      size: SIZB * mag,
+      mag: mag
+    };
   }
   function uDown(e) {
     var g = vp.current;
@@ -7598,21 +7590,21 @@ function UniverseFieldLive({
       g.mode = "pan";
       g.sx = e.clientX;
       g.sy = e.clientY;
-      g.ox = view.x;
-      g.oy = view.y;
+      g.ox = cam.x;
+      g.oy = cam.y;
       g.moved = 0;
     } else if (ids.length >= 2) {
       g.mode = "pinch";
       var a = g.pts[ids[0]],
         b = g.pts[ids[1]];
       g.sd = Math.hypot(a.x - b.x, a.y - b.y) || 1;
-      g.ss = view.s;
+      g.oz = cam.z;
     }
-    setView(function (v) {
+    setCam(function (v) {
       return {
-        s: v.s,
         x: v.x,
         y: v.y,
+        z: v.z,
         anim: false
       };
     });
@@ -7631,24 +7623,25 @@ function UniverseFieldLive({
     if (g.mode === "pinch" && ids.length >= 2) {
       var a = g.pts[ids[0]],
         b = g.pts[ids[1]];
-      var ns = _cS(g.ss * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd));
-      setView(function (v) {
+      var nz = _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd));
+      setCam(function (v) {
         return {
-          s: ns,
           x: v.x,
           y: v.y,
+          z: nz,
           anim: false
         };
       });
     } else if (g.mode === "pan" && ids.length === 1) {
+      var ps = 178 * 0.5 * g.oz;
       var dx = e.clientX - g.sx,
         dy = e.clientY - g.sy;
       g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy));
-      setView(function (v) {
+      setCam(function (v) {
         return {
-          s: v.s,
-          x: g.ox + dx,
-          y: g.oy + dy,
+          x: g.ox - dx / ps,
+          y: g.oy - dy / ps,
+          z: v.z,
           anim: false
         };
       });
@@ -7659,11 +7652,11 @@ function UniverseFieldLive({
     var tap = g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1;
     delete g.pts[e.pointerId];
     if (!Object.keys(g.pts).length) g.mode = null;
-    setView(function (v) {
+    setCam(function (v) {
       return {
-        s: v.s,
         x: v.x,
         y: v.y,
+        z: v.z,
         anim: true
       };
     });
@@ -7674,41 +7667,24 @@ function UniverseFieldLive({
     }
   }
   function uWheel(e) {
-    var ns = _cS(view.s * (1 - (e.deltaY || 0) * 0.0012));
-    setView(function (v) {
+    var nz = _cZ(cam.z * (1 - (e.deltaY || 0) * 0.0012));
+    setCam(function (v) {
       return {
-        s: ns,
         x: v.x,
         y: v.y,
+        z: nz,
         anim: false
       };
     });
   }
   var plural = list.length === 1 ? "система" : list.length >= 2 && list.length <= 4 ? "системы" : "систем";
   var sub = friends == null ? "" : list.length ? list.length + " " + plural + " рядом — у каждого своя орбита" : "пока только твоя система — позови своих";
-  // ЛИНЗА ЦЕНТРА: для каждой системы считаем, насколько её экранная точка близко к середине экрана
-  // (1 — ровно в центре, 0 — далеко). Эта величина задаёт и размер (focal), и раскрытие колец (open).
-  var introK = shown ? 1 : 0.9; // мягкий зум-ин на открытии
-  // РАЗМЕР — по близости к центру (мягкий Apple-Watch фокус: центр крупнее, но соседи на экране
-  // остаются целостными, не крошечными). Широкий радиус → на экране размеры близкие.
-  var SZR = Math.min(W, H) * 0.95;
-  function _focScale(gx, gy) {
-    var dx = (gx - layout.cx) * view.s + view.x,
-      dy = (gy - layout.cy) * view.s + view.y;
-    var d = Math.sqrt(dx * dx + dy * dy) / SZR;
-    return _bosLp(0.72, 1.26, 1 - _bosSm(d > 1 ? 1 : d));
-  }
-  // РАСКРЫТИЕ КОЛЕЦ — по тому, насколько система В ПРЕДЕЛАХ ЭКРАНА (David: «те, что помещаются —
-  // раскрыты; полностью сворачиваются, ТОЛЬКО уходя ЗА экран»). edge = расстояние до ближайшего края:
-  // внутри → раскрыто, у самого края → полу-раскрыто, за экраном → свёрнуто в точку-аватар.
-  function _focOpen(gx, gy) {
-    var sx = layout.cx + (gx - layout.cx) * view.s + view.x,
-      sy = layout.cy + (gy - layout.cy) * view.s + view.y;
+  // РАСКРЫТИЕ колец — раскрыто, пока система В экране; сворачивается только у края/за краем.
+  function openAt(sx, sy) {
     var edge = Math.min(sx, W - sx, sy, H - sy);
     return _bosSm((edge + 55) / 110);
   }
-  // Твоя система — ТАКАЯ ЖЕ, как у всех (не гигант): крупной её делает только центр экрана. Кормим
-  // её твоими РЕАЛЬНЫМИ привычками/людьми/уровнем, и ставим в центр вселенной (layout.cx/cy).
+  // Твоя система — с РЕАЛЬНЫМИ привычками/людьми/уровнем; стоит в центре поля (fx=fy=0).
   var _bs = typeof bosStreak === "function" ? bosStreak : function () {
     return 0;
   };
@@ -7726,27 +7702,17 @@ function UniverseFieldLive({
       avatar: app && app.avatar,
       name: app && app.userName || ""
     },
-    size: 208,
     level: lvlNum,
     lvlPct: lvlPct,
     habits: youHabits,
     people: youPeople
   };
-  var allSys = [{
+  var allNodes = [{
     sp: youSp,
-    x: layout.cx,
-    y: layout.cy,
+    fx: 0,
+    fy: 0,
     you: true
-  }].concat(layout.placed);
-  var galStyle = {
-    position: "absolute",
-    inset: 0,
-    transform: "translate(" + view.x.toFixed(1) + "px," + view.y.toFixed(1) + "px) scale(" + (view.s * introK).toFixed(3) + ")",
-    transformOrigin: layout.cx + "px " + layout.cy + "px",
-    transition: view.anim ? "transform 0.55s cubic-bezier(0.4,0,0.2,1)" : "none",
-    willChange: "transform",
-    pointerEvents: "none"
-  };
+  }].concat(layout.nodes);
   var node = /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
@@ -7769,20 +7735,25 @@ function UniverseFieldLive({
       cursor: "grab"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: galStyle
-  }, allSys.map(function (pl, i) {
-    var sp = pl.sp,
-      fsc = _focScale(pl.x, pl.y),
-      openV = _focOpen(pl.x, pl.y),
-      k = sp.size / 300 * fsc;
+    style: {
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none"
+    }
+  }, allNodes.map(function (nd, i) {
+    var f = fish(nd.fx, nd.fy);
+    if (f.sx < -f.size || f.sx > W + f.size || f.sy < -f.size || f.sy > H + f.size) return null;
+    var sp = nd.sp,
+      k = f.size / 300,
+      openV = openAt(f.sx, f.sy);
     return /*#__PURE__*/React.createElement("div", {
-      key: pl.you ? "you" : "o" + i,
+      key: nd.you ? "you" : "o" + i,
       style: {
         position: "absolute",
-        left: pl.x.toFixed(1) + "px",
-        top: pl.y.toFixed(1) + "px",
+        left: f.sx.toFixed(1) + "px",
+        top: f.sy.toFixed(1) + "px",
         pointerEvents: "none",
-        zIndex: Math.round(fsc * 100)
+        zIndex: Math.round(f.mag * 100)
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -7792,8 +7763,7 @@ function UniverseFieldLive({
         left: -150,
         top: -150,
         transform: "scale(" + k.toFixed(3) + ")",
-        transformOrigin: "150px 150px",
-        transition: view.anim ? "transform 0.3s ease" : "none"
+        transformOrigin: "150px 150px"
       }
     }, typeof OrbitField === "function" ? /*#__PURE__*/React.createElement(OrbitField, {
       avatar: sp.s && sp.s.avatar,
@@ -7801,9 +7771,9 @@ function UniverseFieldLive({
       habits: sp.habits,
       people: sp.people,
       levelPct: sp.lvlPct,
-      moodC: pl.you ? app && app.mood && app.mood.c : undefined,
+      moodC: nd.you ? app && app.mood && app.mood.c : undefined,
       dark: isDark,
-      hideLevelArc: !!pl.you,
+      hideLevelArc: !!nd.you,
       editable: false,
       levelBadge: sp.level,
       open: openV
@@ -7831,14 +7801,7 @@ function UniverseFieldLive({
       color: subC,
       marginTop: 3
     }
-  }, sub) : null, layout.overflow > 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: subC,
-      marginTop: 2,
-      opacity: 0.8
-    }
-  }, "+", layout.overflow, " \u0435\u0449\u0451 \u0433\u0434\u0435-\u0442\u043E \u0432 \u043A\u043E\u0441\u043C\u043E\u0441\u0435") : null), friends != null && list.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, sub) : null), friends != null && list.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: 0,
