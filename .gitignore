@@ -1,4 +1,4 @@
-node_modules/
-.DS_Store
-frames/
-palette.png
+# Локальные документы — НЕ публиковать (репо/Pages публичны)
+FOUNDATION.md
+VISION.md
+.claude/
