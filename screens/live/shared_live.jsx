@@ -2496,28 +2496,30 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
    localStorage (bos:redeemedPartners), трата (spentXP) — в копилке через app.spendXP. */
 // accent = НАСЫЩЕННЫЙ пастель (не блёклый — David: карточки читались серовато). about/address/dates/duration
 // кормят детальную страницу партнёра. Адреса/даты — ПЛЕЙСХОЛДЕР (David: «потенциальный адрес/даты»).
+// used = СКОЛЬКО ЛЮДЕЙ уже потратили XP у этого партнёра (David: «серенький человечек + число,
+// незаметненько, но чтобы считывалось») — социальное доказательство на карточке и чипом в детали.
 var BOS_PARTNERS = [
-  { id: "medit",   name: "Открытая медитация", emblem: "🧘", accent: "#B9D4FF", cost: 250, tags: ["Ум", "Покой"],
+  { id: "medit",   name: "Открытая медитация", emblem: "🧘", accent: "#B9D4FF", cost: 250, used: 150, tags: ["Ум", "Покой"],
     what: "Час осознанности с гидом в студии",
     about: "Спокойная групповая практика: дыхание, сканирование тела и тишина под руководством гида. Новичкам — самое то, опыт не нужен.",
     address: "Студия «Тишина» · ул. Пушкина, 12", dates: "Пн и Чт · 19:00", duration: "60 мин", limit: "до 12 мест", perk: "Ачивка «Тихий ум»" },
-  { id: "bachata", name: "Урок бачаты",        emblem: "💃", accent: "#FFC7DD", cost: 350, tags: ["Танец", "Тело"],
+  { id: "bachata", name: "Урок бачаты",        emblem: "💃", accent: "#FFC7DD", cost: 350, used: 350, tags: ["Танец", "Тело"],
     what: "Первое занятие в танцевальной студии",
     about: "Базовые шаги и связки бачаты в лёгкой атмосфере. Партнёр не нужен — распределят на месте, менять можно свободно.",
     address: "Танцстудия «Ритмо» · пр. Мира, 8", dates: "Вт и Сб · 20:00", duration: "75 мин", limit: "до 20 пар", perk: "Ачивка «Первый танец»" },
-  { id: "box",     name: "Пробный бокс",       emblem: "🥊", accent: "#FFCFAD", cost: 400, tags: ["Сила", "Энергия"],
+  { id: "box",     name: "Пробный бокс",       emblem: "🥊", accent: "#FFCFAD", cost: 400, used: 70, tags: ["Сила", "Энергия"],
     what: "Тренировка с личным тренером",
     about: "Постановка техники, работа на лапах и мешке под присмотром тренера. Бинты и перчатки выдают на месте.",
     address: "Зал «Ринг» · ул. Лесная, 3", dates: "По будням · 18:00–21:00", duration: "60 мин", limit: "до 8 мест", perk: "Ачивка «Первый раунд»" },
-  { id: "yoga",    name: "Йога на рассвете",   emblem: "🧘‍♀️", accent: "#BFEECF", cost: 250, tags: ["Тело", "Гибкость"],
+  { id: "yoga",    name: "Йога на рассвете",   emblem: "🧘‍♀️", accent: "#BFEECF", cost: 250, used: 210, tags: ["Тело", "Гибкость"],
     what: "Утренняя практика в парке",
     about: "Мягкая виньяса на свежем воздухе — встречаем рассвет и бережно тянемся. Коврик можно взять на месте.",
     address: "Парк Горького · южный вход", dates: "Сб и Вс · 7:30", duration: "50 мин", limit: "до 30 мест", perk: "Ачивка «Рассвет»" },
-  { id: "coffee",  name: "Кофе-встреча",       emblem: "☕", accent: "#F0DCB0", cost: 150, tags: ["Отдых", "Люди"],
+  { id: "coffee",  name: "Кофе-встреча",       emblem: "☕", accent: "#F0DCB0", cost: 150, used: 480, tags: ["Отдых", "Люди"],
     what: "Чашка в партнёрской кофейне",
     about: "Спешелти-кофе и тёплое знакомство с людьми из твоего круга. Приходи один — уйдёшь не один.",
     address: "Кофейня «Зерно» · ул. Кофейная, 1", dates: "Каждый день · 9:00–20:00", duration: "—", limit: "до 6 гостей", perk: "Ачивка «Свой круг»" },
-  { id: "art",     name: "Арт-вечер",          emblem: "🎨", accent: "#D8C4FF", cost: 300, tags: ["Творчество", "Поток"],
+  { id: "art",     name: "Арт-вечер",          emblem: "🎨", accent: "#D8C4FF", cost: 300, used: 50, tags: ["Творчество", "Поток"],
     what: "Живопись с нуля, без опыта",
     about: "Вечер интуитивной живописи: холст, краски и никакого «правильно». Всё для работы выдают на месте.",
     address: "Арт-пространство «Мазок» · ул. Радужная, 5", dates: "Пт · 19:00", duration: "120 мин", limit: "до 15 мест", perk: "Ачивка «Первый мазок»" },
@@ -2560,7 +2562,11 @@ function PartnersShowcaseLive({ app, navigate, from = "community" }) {
               <div style={{ fontSize: 11.5, color: "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
               <div style={{ flex: 1, minHeight: 12 }} />
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.82)", color: "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.82)", color: "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
+                  {/* Едва заметный человечек + число: столько людей уже оставили тут свою XP. */}
+                  {p.used > 0 && <span title={p.used + " человек уже воспользовались"} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700, color: "rgba(27,27,31,0.42)", whiteSpace: "nowrap" }}><I.Users size={11} strokeWidth={2.2} /> {p.used}</span>}
+                </span>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? "#1E8E4E" : "#0a0a0a", display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Открыть <I.ChevronRight size={13}/></>}</span>
               </div>
             </div>
@@ -2610,9 +2616,11 @@ function PartnerDetailLive() {
         <div style={{ fontSize: 27, fontWeight: 800, color: "#161619", letterSpacing: "-0.6px", marginTop: 14, lineHeight: 1.05 }}>{p.name}</div>
         <div style={{ fontSize: 14.5, color: "rgba(22,22,25,0.62)", marginTop: 5, lineHeight: 1.4 }}>{p.what}</div>
         {/* Чипы = «характеристики» (David: хочу больше и по делу): что развивает (Ум/Покой), ограничение
-            мест (👥 exclusivity/urgency) и НАГРАДА в приложении (🏅 ачивка — «получишь что-то»). */}
+            мест (👥 exclusivity/urgency), НАГРАДА в приложении (🏅 ачивка) и социальное доказательство
+            (серый человечек — сколько людей уже потратили тут свою XP). */}
         <div style={{ display: "flex", gap: 6, marginTop: 13, flexWrap: "wrap" }}>
           {p.tags.map((t, i) => <span key={i} style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600 }}>{t}</span>)}
+          {p.used > 0 && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "rgba(42,42,48,0.72)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}><I.Users size={12} strokeWidth={2.2} /> {p.used} уже были</span>}
           {p.limit && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>👥 {p.limit}</span>}
           {p.perk && <span style={{ background: "rgba(255,255,255,0.92)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#0a0a0a", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}>🏅 {p.perk}</span>}
         </div>

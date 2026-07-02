@@ -6093,12 +6093,15 @@ function SeedCirclesShowcaseLive({
    localStorage (bos:redeemedPartners), трата (spentXP) — в копилке через app.spendXP. */
 // accent = НАСЫЩЕННЫЙ пастель (не блёклый — David: карточки читались серовато). about/address/dates/duration
 // кормят детальную страницу партнёра. Адреса/даты — ПЛЕЙСХОЛДЕР (David: «потенциальный адрес/даты»).
+// used = СКОЛЬКО ЛЮДЕЙ уже потратили XP у этого партнёра (David: «серенький человечек + число,
+// незаметненько, но чтобы считывалось») — социальное доказательство на карточке и чипом в детали.
 var BOS_PARTNERS = [{
   id: "medit",
   name: "Открытая медитация",
   emblem: "🧘",
   accent: "#B9D4FF",
   cost: 250,
+  used: 150,
   tags: ["Ум", "Покой"],
   what: "Час осознанности с гидом в студии",
   about: "Спокойная групповая практика: дыхание, сканирование тела и тишина под руководством гида. Новичкам — самое то, опыт не нужен.",
@@ -6113,6 +6116,7 @@ var BOS_PARTNERS = [{
   emblem: "💃",
   accent: "#FFC7DD",
   cost: 350,
+  used: 350,
   tags: ["Танец", "Тело"],
   what: "Первое занятие в танцевальной студии",
   about: "Базовые шаги и связки бачаты в лёгкой атмосфере. Партнёр не нужен — распределят на месте, менять можно свободно.",
@@ -6127,6 +6131,7 @@ var BOS_PARTNERS = [{
   emblem: "🥊",
   accent: "#FFCFAD",
   cost: 400,
+  used: 70,
   tags: ["Сила", "Энергия"],
   what: "Тренировка с личным тренером",
   about: "Постановка техники, работа на лапах и мешке под присмотром тренера. Бинты и перчатки выдают на месте.",
@@ -6141,6 +6146,7 @@ var BOS_PARTNERS = [{
   emblem: "🧘‍♀️",
   accent: "#BFEECF",
   cost: 250,
+  used: 210,
   tags: ["Тело", "Гибкость"],
   what: "Утренняя практика в парке",
   about: "Мягкая виньяса на свежем воздухе — встречаем рассвет и бережно тянемся. Коврик можно взять на месте.",
@@ -6155,6 +6161,7 @@ var BOS_PARTNERS = [{
   emblem: "☕",
   accent: "#F0DCB0",
   cost: 150,
+  used: 480,
   tags: ["Отдых", "Люди"],
   what: "Чашка в партнёрской кофейне",
   about: "Спешелти-кофе и тёплое знакомство с людьми из твоего круга. Приходи один — уйдёшь не один.",
@@ -6169,6 +6176,7 @@ var BOS_PARTNERS = [{
   emblem: "🎨",
   accent: "#D8C4FF",
   cost: 300,
+  used: 50,
   tags: ["Творчество", "Поток"],
   what: "Живопись с нуля, без опыта",
   about: "Вечер интуитивной живописи: холст, краски и никакого «правильно». Всё для работы выдают на месте.",
@@ -6320,6 +6328,13 @@ function PartnersShowcaseLive({
       style: {
         display: "inline-flex",
         alignItems: "center",
+        gap: 6,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
         gap: 4,
         background: "rgba(255,255,255,0.82)",
         color: "#0a0a0a",
@@ -6328,7 +6343,21 @@ function PartnersShowcaseLive({
         borderRadius: 999,
         padding: "4px 10px"
       }
-    }, "\uD83E\uDE99 ", p.cost), /*#__PURE__*/React.createElement("span", {
+    }, "\uD83E\uDE99 ", p.cost), p.used > 0 && /*#__PURE__*/React.createElement("span", {
+      title: p.used + " человек уже воспользовались",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "rgba(27,27,31,0.42)",
+        whiteSpace: "nowrap"
+      }
+    }, /*#__PURE__*/React.createElement(I.Users, {
+      size: 11,
+      strokeWidth: 2.2
+    }), " ", p.used)), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
         fontWeight: 700,
@@ -6470,7 +6499,22 @@ function PartnerDetailLive() {
       color: "#2a2a30",
       fontWeight: 600
     }
-  }, t)), p.limit && /*#__PURE__*/React.createElement("span", {
+  }, t)), p.used > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "rgba(255,255,255,0.6)",
+      borderRadius: 999,
+      padding: "4px 11px",
+      fontSize: 11.5,
+      color: "rgba(42,42,48,0.72)",
+      fontWeight: 600,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement(I.Users, {
+    size: 12,
+    strokeWidth: 2.2
+  }), " ", p.used, " \u0443\u0436\u0435 \u0431\u044B\u043B\u0438"), p.limit && /*#__PURE__*/React.createElement("span", {
     style: {
       background: "rgba(255,255,255,0.6)",
       borderRadius: 999,
