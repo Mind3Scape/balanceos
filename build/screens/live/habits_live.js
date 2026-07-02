@@ -1038,7 +1038,8 @@ function HabitsLive() {
       val: "var(--text-3)",
       track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)",
       fill: isDark ? "#e6e6ea" : "#0a0a0a",
-      iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg
+      iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg,
+      iconInk: null
     };
     // Заливка = МЯГКАЯ ПАСТЕЛЬ (цвет осветлён к белому) + белый блик — ровно язык карточек партнёров
     // «Потратить XP», а не сырой насыщенный цвет (David: «убого»). Прогресс/иконка — на полном цвете для контраста.
@@ -1054,7 +1055,10 @@ function HabitsLive() {
       val: "rgba(27,27,31,0.72)",
       track: "rgba(255,255,255,0.55)",
       fill: accent,
-      iconBg: "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.62))"
+      // Подложка иконки = НАСЫЩЕННЫЙ тон цвета цели (David: «цвет должен влиять на подложку иконки»),
+      // заметно глубже светлой заливки карточки → иконка сидит на своём цвете. Глиф-символ белый.
+      iconBg: BOS_TILE_SHEEN + ", " + (typeof bosLightenHex === "function" ? bosLightenHex(accent, 0.25) : accent),
+      iconInk: "#fff"
     };
   };
   var goalTile = (g, ctx) => {
@@ -1098,7 +1102,7 @@ function HabitsLive() {
         fontSize: 20,
         flexShrink: 0
       }
-    }, bosIcon(g.emoji || "🎯", 22, sk.hasColor ? null : g.color));
+    }, bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color));
     var progBar = goalStyle.progress ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
@@ -1357,7 +1361,7 @@ function HabitsLive() {
         fontSize: 20,
         flexShrink: 0
       }
-    }, bosIcon(t.emblem || "👥", 22, sk.hasColor ? null : t.accent || t.color));
+    }, bosIcon(t.emblem || "👥", 22, sk.hasColor ? sk.iconInk : t.accent || t.color));
     if (banner) {
       return /*#__PURE__*/React.createElement("div", {
         className: ctx.mode ? "" : "tap",

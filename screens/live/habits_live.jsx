@@ -403,7 +403,7 @@ function HabitsLive() {
       hasColor: false, accent: isDark ? "#e8e8ea" : "#0a0a0a", bg: rowBg, shadow: cardShadow,
       txt: "var(--text)", sub: "var(--text-4)", lbl: "var(--text-4)", val: "var(--text-3)",
       track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", fill: isDark ? "#e6e6ea" : "#0a0a0a",
-      iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg,
+      iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg, iconInk: null,
     };
     // Заливка = МЯГКАЯ ПАСТЕЛЬ (цвет осветлён к белому) + белый блик — ровно язык карточек партнёров
     // «Потратить XP», а не сырой насыщенный цвет (David: «убого»). Прогресс/иконка — на полном цвете для контраста.
@@ -414,7 +414,10 @@ function HabitsLive() {
       shadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
       txt: "#1b1b1f", sub: "rgba(27,27,31,0.58)", lbl: "rgba(27,27,31,0.5)", val: "rgba(27,27,31,0.72)",
       track: "rgba(255,255,255,0.55)", fill: accent,
-      iconBg: "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.62))",
+      // Подложка иконки = НАСЫЩЕННЫЙ тон цвета цели (David: «цвет должен влиять на подложку иконки»),
+      // заметно глубже светлой заливки карточки → иконка сидит на своём цвете. Глиф-символ белый.
+      iconBg: BOS_TILE_SHEEN + ", " + ((typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.25) : accent),
+      iconInk: "#fff",
     };
   };
 
@@ -428,7 +431,7 @@ function HabitsLive() {
     const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
     const orbit = goalStyle.orbits ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 104 : 116} dark={isDark} /> : null;
     const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
-    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? null : g.color)}</span>;
+    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color)}</span>;
     const progBar = goalStyle.progress ? (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
@@ -511,7 +514,7 @@ function HabitsLive() {
         </div>
       </div>
     ) : null;
-    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 22, sk.hasColor ? null : (t.accent || t.color))}</span>;
+    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 22, sk.hasColor ? sk.iconInk : (t.accent || t.color))}</span>;
 
     if (banner) {
       return (

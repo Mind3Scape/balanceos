@@ -2516,6 +2516,12 @@ function GoalOrbitMini({
   var sheen = typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "";
   var discBg = sheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, #eef1f6, #dadfe7)");
   var discShadow = typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)";
+  // Центр = ПОДЛОЖКА ИКОНКИ ЦЕЛИ → красится в НАСЫЩЕННЫЙ тон цвета цели (David: «цвет должен влиять на
+  // подложку иконки цели»). Реальный цвет → тон + белый глиф; нейтральный → тот же серый диск. Привычки/
+  // люди на кольцах остаются серыми (они не цель).
+  var cReal = typeof centerColor === "string" && centerColor[0] === "#" && centerColor.length === 7 && centerColor.toLowerCase() !== "#0a0a0a" && centerColor !== BOS_GREY;
+  var centerBg = cReal ? sheen + (typeof bosLightenHex === "function" ? bosLightenHex(centerColor, 0.25) : centerColor) : discBg;
+  var centerInk = cReal ? "#fff" : null;
   // ОРБИТА КРУТИТСЯ (David: «не крутятся»): кольцо привычек — по часовой, кольцо людей — против,
   // МЕДЛЕННО (спокойно). Диски counter-rotate на ту же длительность → эмодзи/лица стоят прямо.
   // bosSpin/bosSpinR — готовые keyframes (mobile.css); willChange → GPU-слой, дёшево на карточках.
@@ -2574,14 +2580,14 @@ function GoalOrbitMini({
       width: cR * 2,
       height: cR * 2,
       borderRadius: "50%",
-      background: discBg,
+      background: centerBg,
       boxShadow: discShadow,
       display: "grid",
       placeItems: "center",
       fontSize: cIcon,
       lineHeight: 1
     }
-  }, typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, null) : centerEmoji || "🎯"));
+  }, typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, centerInk) : centerEmoji || "🎯"));
 }
 
 // Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,

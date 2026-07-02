@@ -1111,6 +1111,12 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   var sheen = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "");
   var discBg = sheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, #eef1f6, #dadfe7)");
   var discShadow = (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)");
+  // Центр = ПОДЛОЖКА ИКОНКИ ЦЕЛИ → красится в НАСЫЩЕННЫЙ тон цвета цели (David: «цвет должен влиять на
+  // подложку иконки цели»). Реальный цвет → тон + белый глиф; нейтральный → тот же серый диск. Привычки/
+  // люди на кольцах остаются серыми (они не цель).
+  var cReal = typeof centerColor === "string" && centerColor[0] === "#" && centerColor.length === 7 && centerColor.toLowerCase() !== "#0a0a0a" && centerColor !== BOS_GREY;
+  var centerBg = cReal ? (sheen + ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.25) : centerColor)) : discBg;
+  var centerInk = cReal ? "#fff" : null;
   // ОРБИТА КРУТИТСЯ (David: «не крутятся»): кольцо привычек — по часовой, кольцо людей — против,
   // МЕДЛЕННО (спокойно). Диски counter-rotate на ту же длительность → эмодзи/лица стоят прямо.
   // bosSpin/bosSpinR — готовые keyframes (mobile.css); willChange → GPU-слой, дёшево на карточках.
@@ -1130,7 +1136,7 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
         }, "bosSpin 52s linear infinite")}
       </div>
       {/* центр = значок цели на ТОМ ЖЕ сером диске (чуть крупнее), СТАТИЧНЫЙ по центру */}
-      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: discBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: cIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, null) : (centerEmoji || "🎯")}</span>
+      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: centerBg, boxShadow: discShadow, display: "grid", placeItems: "center", fontSize: cIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, centerInk) : (centerEmoji || "🎯")}</span>
     </div>
   );
 }
