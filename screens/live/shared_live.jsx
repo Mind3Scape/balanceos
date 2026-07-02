@@ -2952,7 +2952,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // поэтому боксы кладём с перекрытием (шаг = PACK×диаметр, PACK<0.5) → сами орбиты впритык, минимум
   // белого (соты). Магнификация мягкая (орбиты не расползаются): центр MC, край ME.
   var SIZB = 178 * cam.z * introK;                    // диаметр орбиты (px) при mag=1
-  var PACK = 0.5;                                     // шаг = PACK×диаметр — теснота упаковки
+  var PACK = 0.55;                                    // шаг = PACK×диаметр — теснота упаковки
   var SPB = SIZB * PACK;
   var SIG = 150 * cam.z * introK;                     // радиус «лупы» (px)
   var MC = 1.85, ME = 0.72;                           // магнификация: центр / край
@@ -2973,7 +2973,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   function uMove(e) {
     var g = vp.current; if (!g.pts[e.pointerId]) return; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
     if (g.mode === "pinch" && ids.length >= 2) { var a = g.pts[ids[0]], b = g.pts[ids[1]]; var nz = _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd)); setCam(function (v) { return { x: v.x, y: v.y, z: nz, anim: false }; }); }
-    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * 0.5 * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); setCam(function (v) { return { x: g.ox - dx / ps, y: g.oy - dy / ps, z: v.z, anim: false }; }); }
+    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * 0.55 * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); setCam(function (v) { return { x: g.ox - dx / ps, y: g.oy - dy / ps, z: v.z, anim: false }; }); }
   }
   function uUp(e) {
     var g = vp.current; var tap = (g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1);
