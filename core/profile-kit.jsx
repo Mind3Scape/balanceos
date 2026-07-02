@@ -145,7 +145,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
   // Proportions mirror the onboarding cosmos: rings 72/104/136, spacing 32 (icons ≤15 → never
   // overlap across belts), all in-frame so nothing clips at the edge.
   const RBASE = 72, RSTEP = 32;
-  const radius = (ring) => (RBASE + ring * RSTEP) * lerp(openMode ? 0.3 : 0.86, openMode ? 0.7 : 1, eo);
+  const radius = (ring) => (RBASE + ring * RSTEP) * lerp(openMode ? 0.3 : 0.86, 1, eo);
   const spin = (ring) => ((ring % 2) ? -1 : 1) * 0.06 / (1 + ring * 0.18);
   // Like onboarding: the faces/planets stay FULL opacity; only the thin ring lines + dust
   // whisper a little outward. fadeAt is mild and used ONLY for those, never the icons.
