@@ -502,8 +502,8 @@ function HomeLive() {
           width: 30,
           height: 30,
           borderRadius: "50%",
-          background: "#0a0a0a",
-          color: "#fff",
+          background: "var(--cta, #0a0a0a)",
+          color: "var(--cta-ink, #fff)",
           display: "grid",
           placeItems: "center",
           flexShrink: 0
@@ -856,7 +856,7 @@ function HomeLive() {
           flexDirection: "column"
         }
       }, goals.map((g, gi) => {
-        var pct = g.target ? g.current / g.target : 0;
+        var pct = g.target ? (g.current || 0) / g.target : 0; // ||0 — цель без current не должна давать NaN%
         return /*#__PURE__*/React.createElement("div", {
           key: g.id,
           style: {
@@ -930,7 +930,7 @@ function HomeLive() {
             fontSize: 11,
             color: "var(--text-4)"
           }
-        }, g.current, " / ", g.target, " ", g.unit)), /*#__PURE__*/React.createElement("span", {
+        }, g.current || 0, " / ", g.target, " ", g.unit)), /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 14,
             fontWeight: 700,

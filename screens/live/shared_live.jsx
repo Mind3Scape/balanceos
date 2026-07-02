@@ -2908,7 +2908,7 @@ function LivingCircleSheetLive({ circle: s, navigate }) {
           <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-3)" }}>Круг её рассмотрит — ответ придёт сюда.</span>
         </div>
       ) : (
-        <button onClick={knock} className="tap" style={{ width: "100%", marginTop: 18, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <button onClick={knock} className="tap" style={{ width: "100%", marginTop: 18, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: 15, fontSize: 15.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <I.Users size={17} /> Постучаться в круг
         </button>
       )}

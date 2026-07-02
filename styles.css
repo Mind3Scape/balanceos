@@ -382,6 +382,8 @@ button { font: inherit; cursor: pointer; }
    без ручных isDark-проверок. Дублируем на .bos-sheet.is-dark, чтобы шторки темнели даже
    когда рендерятся вне .theme-dark-обёртки. */
 .theme-dark, .bos-sheet.is-dark {
+  --cta: #f2f2f5;
+  --cta-ink: #0a0a0a;
   --bg: #0f0f12;
   --surface: #1c1c1f;
   --surface-2: #26262a;
@@ -426,6 +428,9 @@ button { font: inherit; cursor: pointer; }
 .theme-dark .bos-input:focus { border-color: #fff; }
 .theme-dark .bos-input::placeholder { color: rgba(255,255,255,0.35); }
 .theme-dark .bos-btn { background: #fff; color: var(--ink); }
+/* Шторки рендерятся вне .theme-dark — большая CTA внутри тёмной шторки тоже белеет. */
+.bos-sheet.is-dark .bos-btn { background: #fff; color: #0a0a0a; }
+.bos-sheet.is-dark .bos-btn.outline { background: transparent; border: 1px solid rgba(255,255,255,0.16); color: #fff; }
 .theme-dark .bos-btn.outline {
   background: transparent;
   border: 1px solid rgba(255,255,255,0.16);

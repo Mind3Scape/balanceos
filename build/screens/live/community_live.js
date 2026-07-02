@@ -594,8 +594,8 @@ function CommunityLive() {
     }
   }, c.price)), /*#__PURE__*/React.createElement("span", {
     style: {
-      background: "#0a0a0a",
-      color: "#fff",
+      background: "var(--cta, #0a0a0a)",
+      color: "var(--cta-ink, #fff)",
       borderRadius: 999,
       padding: "10px 18px",
       display: "inline-flex",
@@ -1679,8 +1679,8 @@ function TeamDetailLive() {
     className: "tap",
     style: {
       flexShrink: 0,
-      background: "#0a0a0a",
-      color: "#fff",
+      background: "var(--cta, #0a0a0a)",
+      color: "var(--cta-ink, #fff)",
       border: 0,
       borderRadius: 999,
       padding: "8px 14px",

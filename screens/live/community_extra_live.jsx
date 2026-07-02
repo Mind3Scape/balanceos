@@ -472,7 +472,7 @@ function TeamSettingsLive() {
             if (window.bosShare) window.bosShare(link, text);
             else { try { navigator.clipboard.writeText(link); } catch (e) {} }
             if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-          }} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13.5, fontWeight: 600 }}>
+          }} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 999, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", border: 0, fontSize: 13.5, fontWeight: 600 }}>
             <I.Share size={15}/> Пригласить по ссылке
           </button>
         </div>
@@ -797,7 +797,7 @@ function LevelsLive() {
             {netLeft > 0 ? <>Живые созвоны и менторы за XP. Ещё <b style={{ color: "var(--text-2)" }}>{netLeft} {ruPpl(netLeft, ["уровень", "уровня", "уровней"])}</b>.</> : "Открыт — живые созвоны и менторы за XP."}
           </div>
         </div>
-        {netLeft <= 0 && <button onClick={() => { app?.setCommunityView?.({ section: "community", commTab: "network" }); navigate("community"); }} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "9px 15px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>Открыть</button>}
+        {netLeft <= 0 && <button onClick={() => { app?.setCommunityView?.({ section: "community", commTab: "network" }); navigate("community"); }} className="tap" style={{ background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 15px", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>Открыть</button>}
       </SysCard>
 
       {/* КАК РАСТЁТ УРОВЕНЬ — один компактный справочник (без дублей) + позвать друга. */}
@@ -1309,7 +1309,7 @@ function ContactDetailLive() {
                   {!locked && (booked[j] ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 700, color: "#1E8E4E", background: "rgba(52,199,89,0.14)", borderRadius: 999, padding: "4px 10px" }}><I.Check size={11} strokeWidth={3}/> Записан</span>
                   ) : (
-                    <button onClick={() => setBooked(b => ({ ...b, [j]: true }))} className="tap" style={{ marginTop: 4, fontSize: 11, fontWeight: 600, color: "#fff", background: "#0a0a0a", border: 0, borderRadius: 999, padding: "4px 12px" }}>Записаться</button>
+                    <button onClick={() => setBooked(b => ({ ...b, [j]: true }))} className="tap" style={{ marginTop: 4, fontSize: 11, fontWeight: 600, color: "var(--cta-ink, #fff)", background: "var(--cta, #0a0a0a)", border: 0, borderRadius: 999, padding: "4px 12px" }}>Записаться</button>
                   ))}
                 </div>
               </div>

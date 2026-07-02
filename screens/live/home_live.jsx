@@ -257,7 +257,7 @@ function HomeLive() {
               ))}
             </div>
           ) : (
-            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#0a0a0a", color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Plus size={16}/></span>
+            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Plus size={16}/></span>
           )}
         </button>
       );
@@ -356,7 +356,7 @@ function HomeLive() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
               {goals.map((g, gi) => {
-                const pct = g.target ? g.current / g.target : 0;
+                const pct = g.target ? ((g.current || 0) / g.target) : 0; // ||0 — цель без current не должна давать NaN%
                 return (
                   <div key={g.id} style={{ borderTop: gi ? "1px solid " + dividerLn : "0" }}>
                     <SwipeRow rowBg={rowBg} dark={isDark} actions={[
@@ -368,7 +368,7 @@ function HomeLive() {
                           <span style={{ width: 36, height: 36, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 18 }}>{bosIcon(g.emoji, 20, g.color)}</span>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
-                            <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current} / {g.target} {g.unit}</div>
+                            <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current || 0} / {g.target} {g.unit}</div>
                           </div>
                           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
                         </div>

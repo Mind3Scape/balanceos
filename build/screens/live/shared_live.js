@@ -7465,8 +7465,8 @@ function LivingCircleSheetLive({
     style: {
       width: "100%",
       marginTop: 18,
-      background: "#0a0a0a",
-      color: "#fff",
+      background: "var(--cta, #0a0a0a)",
+      color: "var(--cta-ink, #fff)",
       border: 0,
       borderRadius: 999,
       padding: 15,

@@ -1267,8 +1267,8 @@ function TeamSettingsLive() {
       gap: 7,
       padding: "10px 16px",
       borderRadius: 999,
-      background: "#0a0a0a",
-      color: "#fff",
+      background: "var(--cta, #0a0a0a)",
+      color: "var(--cta-ink, #fff)",
       border: 0,
       fontSize: 13.5,
       fontWeight: 600
@@ -2316,8 +2316,8 @@ function LevelsLive() {
     },
     className: "tap",
     style: {
-      background: "#0a0a0a",
-      color: "#fff",
+      background: "var(--cta, #0a0a0a)",
+      color: "var(--cta-ink, #fff)",
       border: 0,
       borderRadius: 999,
       padding: "9px 15px",
@@ -3918,8 +3918,8 @@ function ContactDetailLive() {
         marginTop: 4,
         fontSize: 11,
         fontWeight: 600,
-        color: "#fff",
-        background: "#0a0a0a",
+        color: "var(--cta-ink, #fff)",
+        background: "var(--cta, #0a0a0a)",
         border: 0,
         borderRadius: 999,
         padding: "4px 12px"
