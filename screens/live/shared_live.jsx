@@ -2848,6 +2848,8 @@ function InviteFriendsCardLive({ isDark }) {
    расстояний). Кольца медленно крутятся, аватары/эмодзи контр-вращаются (ровные). Портал в body. */
 var _bosUniverseCache = null;
 function _bosHashU(s) { s = "" + (s || "x"); var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; } return h; }
+function _bosSm(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }   // smoothstep 0..1
+function _bosLp(a, b, k) { return a + (b - a) * k; }
 function UniverseFieldLive({ app, people, from, onClose }) {
   var isDark = app && app.themeOverride === "dark";
   var [friends, setFriends] = React.useState(_bosUniverseCache);
@@ -2900,15 +2902,13 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // ТОМ ЖЕ месте. Fallback (не из «Я»): ширина страницы × 300 (как в OrbitField).
   var W = (typeof window !== "undefined" && window.innerWidth) || 390;
   var H = (typeof window !== "undefined" && window.innerHeight) || 780;
-  var youW = (from && from.w) ? from.w : (W - 32);
-  var youH = (from && from.h) ? from.h : 300;
-  // Layout: ТЫ — в ЦЕНТРЕ (настоящий OrbitField). Остальные — вокруг по спирали наружу, БЕЗ наложений
-  // и не касаясь твоей системы; больше всего → ближе и крупнее. Многие садятся ЗА краем при scale 1 и
-  // проявляются на ОТЪЕЗДЕ камеры (один цельный зум от твоей орбиты к вселенной).
+  // Layout: ТЫ — в ЦЕНТРЕ вселенной (layout.cx/cy). Остальные — вокруг по спирали наружу, БЕЗ
+  // наложений и не касаясь твоей системы; больше объём → ближе к тебе. Экранный размер каждой задаёт
+  // уже линза центра (_focC ниже), а не позиция — здесь только раскладываем точки без пересечений.
   var layout = React.useMemo(function () {
-    var youFp = Math.min(youW, youH) / 2 + 14;                       // радиус твоей системы на экране (native)
+    var youFp = 208 * 0.42 + 14;                                     // твоя система теперь стандартного размера
     var cx = W / 2, cy = from ? from.cy : H * 0.44;
-    var others = list.slice(0, 18).map(function (f) { return buildSystem(f); }).sort(function (a, b) { return b.footprint - a.footprint; });
+    var others = list.slice(0, 60).map(function (f) { return buildSystem(f); }).sort(function (a, b) { return b.footprint - a.footprint; });
     var GAP = 9, placed = [], overflow = 0, RMAX = Math.max(W, H) * 1.15;
     function fits(x, y, fp) {
       if (x < fp + 2 || x > W - fp - 2 || y < 52 + fp || y > H - 44 - fp) return false;
@@ -2925,17 +2925,17 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       if (!done) overflow++;
     });
     return { placed: placed, overflow: overflow, cx: cx, cy: cy, youFp: youFp };
-  }, [friends, from, youW, youH]);
+  }, [friends, from]);
 
-  // ЕДИНЫЙ ПОЛЁТ: открываемся РОВНО на твоей орбите (scale 1, её место со стр. «Я») и плавно
-  // ОТЪЕЗЖАЕМ к вселенной (scale↓ + центр к середине). Дальше — ПАЛЬЦАМИ: пинч-зум + перетаскивание
-  // (David). Pointer Events = и мышь (превью), и тач (телефон); 2 пальца = пинч; чистый тап = закрыть.
-  var SETTLE = 0.6;                                                  // насколько отъезжаем (твоя система остаётся главной)
-  var [view, setView] = React.useState({ s: SETTLE, x: 0, y: from ? (H * 0.44 - from.cy) : 0, anim: true });
-  var [entered, setEntered] = React.useState(false); // false → стоим РОВНО на твоей орбите; →true = отъезд к вселенной
+  // СОТА-КАМЕРА (как главное меню Apple Watch): двигаешь пальцем — системы, входящие в ЦЕНТР
+  // экрана, крупнеют и раскрывают кольца; уходящие к краю — мельчают и сворачиваются в точку-аватар.
+  // Никто не «король»: большой = тот, кто сейчас в центре. Pointer Events = и мышь, и тач; 2 пальца
+  // = пинч; чистый тап = закрыть. Открытие — мягкий зум-ин + проявление (shown).
+  var [view, setView] = React.useState({ s: 0.96, x: 0, y: 0, anim: true });
+  var [shown, setShown] = React.useState(false);
   React.useEffect(function () {
-    var a = requestAnimationFrame(function () { var b = requestAnimationFrame(function () { setEntered(true); }); vp.current._raf2 = b; });
-    var tm = setTimeout(function () { setEntered(true); }, 80); // фолбэк: rAF бывает throttled (фон/headless) — отъезд всё равно стартует
+    var a = requestAnimationFrame(function () { var b = requestAnimationFrame(function () { setShown(true); }); vp.current._raf2 = b; });
+    var tm = setTimeout(function () { setShown(true); }, 80); // фолбэк: rAF бывает throttled (фон/headless)
     return function () { cancelAnimationFrame(a); if (vp.current._raf2) cancelAnimationFrame(vp.current._raf2); clearTimeout(tm); };
   }, []);
   var vp = React.useRef({ pts: {}, mode: null, sd: 1, ss: 1, sx: 0, sy: 0, ox: 0, oy: 0, moved: 0 });
@@ -2963,36 +2963,39 @@ function UniverseFieldLive({ app, people, from, onClose }) {
 
   var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
-  // !entered — галактика стоит РОВНО на твоей орбите (scale 1, центр = её место со стр. «Я»), затем
-  // плавно ОТЪЕЗЖАЕТ к вселенной (entered→view: scale↓, центр к середине). Origin = твой центр →
-  // твоя система не «прыгает», просто уменьшается на месте, а вокруг проявляются другие.
-  var ease = "transform 0.95s cubic-bezier(0.4,0,0.2,1)";
-  var s0 = from ? 1 : 1.9;
-  var tx0 = from ? (from.cx - layout.cx) : 0, ty0 = from ? (from.cy - layout.cy) : 0;
-  var galStyle = entered
-    ? { transform: "translate(" + view.x.toFixed(1) + "px," + view.y.toFixed(1) + "px) scale(" + view.s.toFixed(3) + ")", transition: view.anim ? ease : "none" }
-    : { transform: "translate(" + tx0.toFixed(1) + "px," + ty0.toFixed(1) + "px) scale(" + s0.toFixed(3) + ")", transition: ease };
-  galStyle.position = "absolute"; galStyle.inset = 0; galStyle.transformOrigin = layout.cx + "px " + layout.cy + "px"; galStyle.willChange = "transform"; galStyle.pointerEvents = "none";
+  // ЛИНЗА ЦЕНТРА: для каждой системы считаем, насколько её экранная точка близко к середине экрана
+  // (1 — ровно в центре, 0 — далеко). Эта величина задаёт и размер (focal), и раскрытие колец (open).
+  var FOCR = Math.min(W, H) * 0.6;                     // радиус зоны увеличения
+  var introK = shown ? 1 : 0.9;                        // мягкий зум-ин на открытии
+  function _focC(gx, gy) {
+    var dx = (gx - layout.cx) * view.s + view.x, dy = (gy - layout.cy) * view.s + view.y;
+    var d = Math.sqrt(dx * dx + dy * dy) / FOCR;
+    return 1 - _bosSm(d > 1 ? 1 : d);
+  }
+  // Твоя система — ТАКАЯ ЖЕ, как у всех (не гигант): крупной её делает только центр экрана. Кормим
+  // её твоими РЕАЛЬНЫМИ привычками/людьми/уровнем, и ставим в центр вселенной (layout.cx/cy).
+  var _bs = (typeof bosStreak === "function") ? bosStreak : function () { return 0; };
+  var youHabits = ((app && app.habits) || []).slice(0, 12).map(function (h) { return { emoji: h.emoji || "✨", color: h.color, streak: _bs(h.log), id: h.id }; });
+  var youPeople = Array.isArray(people) ? people.slice(0, 10) : [];
+  var youSp = { s: { avatar: app && app.avatar, name: (app && app.userName) || "" }, size: 208, level: lvlNum, lvlPct: lvlPct, habits: youHabits, people: youPeople };
+  var allSys = [{ sp: youSp, x: layout.cx, y: layout.cy, you: true }].concat(layout.placed);
+  var galStyle = { position: "absolute", inset: 0, transform: "translate(" + view.x.toFixed(1) + "px," + view.y.toFixed(1) + "px) scale(" + (view.s * introK).toFixed(3) + ")", transformOrigin: layout.cx + "px " + layout.cy + "px", transition: view.anim ? "transform 0.55s cubic-bezier(0.4,0,0.2,1)" : "none", willChange: "transform", pointerEvents: "none" };
   var node = (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
       <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSpinCW{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosSpinFaceCW{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes bosSpinFaceCCW{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"}</style>
       {/* Жесты: пинч-зум + перетаскивание + колесо; чистый тап (без сдвига) закрывает. */}
       <div onPointerDown={uDown} onPointerMove={uMove} onPointerUp={uUp} onPointerCancel={uUp} onWheel={uWheel} style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "grab" }}>
         <div style={galStyle}>
-          {/* ТЫ — НАСТОЯЩАЯ орбита (идентична стр. «Я»), settled (без ре-анимации). Стартует РОВНО на
-              месте страничной (та же позиция и размер) и отъезжает — один цельный зум, без подмены. */}
-          <div style={{ position: "absolute", left: layout.cx + "px", top: layout.cy + "px", width: youW + "px", height: youH + "px", transform: "translate(-50%,-50%)" }}>
-            {(typeof OrbitField === "function") ? <OrbitField avatar={app && app.avatar} name={(app && app.userName) || ""} habits={(app && app.habits) || []} people={Array.isArray(people) ? people : []} levelPct={lvlPct} moodC={app && app.mood && app.mood.c} dark={isDark} hideLevelArc editable={false} levelBadge={lvlNum} settled /> : null}
-          </div>
-          {/* Другие солнечные системы = ТОТ ЖЕ OrbitField, что у тебя, только уменьшенный (David: «прямо
-              такие же, как у них на „Я", сейчас иконки криво»). Центр = их аватар с золотым кольцом+
-              уровнем, вокруг — их значки привычек и лица вовлечённых. Проявляются на отъезде (fade-in). */}
-          {entered && layout.placed.map(function (pl, i) {
-            var sp = pl.sp, k = sp.size / 300;
+          {/* Все системы (ты + остальные) — одной сеткой. Каждая = ТОТ ЖЕ OrbitField, размер и
+              раскрытие колец берём из линзы центра (_focC): к центру → крупнее и кольца раскрыты, к
+              краю → мельче и свёрнуты в точку-аватар. Твоя (you) — с золотым кольцом уровня, без
+              жёлтой дуги (hideLevelArc), центр вселенной. zIndex по близости — центр всегда сверху. */}
+          {allSys.map(function (pl, i) {
+            var sp = pl.sp, c = _focC(pl.x, pl.y), fsc = _bosLp(0.5, 1.16, c), openV = _bosSm((c - 0.2) / 0.55), k = (sp.size / 300) * fsc;
             return (
-              <div key={i} style={{ position: "absolute", left: pl.x.toFixed(1) + "px", top: pl.y.toFixed(1) + "px", pointerEvents: "none" }}>
-                <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px", animation: "bosUniFade 0.55s ease " + (0.05 + 0.045 * i).toFixed(2) + "s both" }}>
-                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} dark={isDark} hideLevelArc={false} editable={false} levelBadge={sp.level} settled /> : null}
+              <div key={pl.you ? "you" : ("o" + i)} style={{ position: "absolute", left: pl.x.toFixed(1) + "px", top: pl.y.toFixed(1) + "px", pointerEvents: "none", zIndex: Math.round(c * 100) }}>
+                <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px", transition: view.anim ? "transform 0.3s ease" : "none" }}>
+                  {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={pl.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={!!pl.you} editable={false} levelBadge={sp.level} open={openV} /> : null}
                 </div>
               </div>
             );

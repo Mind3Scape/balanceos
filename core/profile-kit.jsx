@@ -94,7 +94,7 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
-function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false }) {
+function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open }) {
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
   // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
@@ -106,7 +106,10 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
   const smooth = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
   // settled=true → render ALREADY bloomed (eo=1, no re-grow). Used by the Вселенная overlay so its
   // copy of your orbit picks up EXACTLY where the settled page orbit sits → one seamless zoom, no swap.
-  const eo = settled ? 1 : smooth(t / 0.85); // gentle bloom-in on open
+  // open (0..1) → the СОТА lens drives the bloom directly by distance-to-centre: 1 = rings fully
+  // open, 0 = rings folded into the avatar (a bare "star"). Overrides the time-bloom + settled.
+  const openMode = typeof open === "number";
+  const eo = openMode ? clamp(open, 0, 1) : (settled ? 1 : smooth(t / 0.85)); // gentle bloom-in on open
 
   // Ring STRUCTURE (sort by streak, build nodes, assign even angular spread, ring set)
   // depends ONLY on [habits, people] — memo it so it isn't rebuilt on every animation frame;
@@ -142,7 +145,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
   // Proportions mirror the onboarding cosmos: rings 72/104/136, spacing 32 (icons ≤15 → never
   // overlap across belts), all in-frame so nothing clips at the edge.
   const RBASE = 72, RSTEP = 32;
-  const radius = (ring) => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
+  const radius = (ring) => (RBASE + ring * RSTEP) * lerp(openMode ? 0.3 : 0.86, 1, eo);
   const spin = (ring) => ((ring % 2) ? -1 : 1) * 0.06 / (1 + ring * 0.18);
   // Like onboarding: the faces/planets stay FULL opacity; only the thin ring lines + dust
   // whisper a little outward. fadeAt is mild and used ONLY for those, never the icons.
@@ -245,7 +248,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           // never overlap (the thing David disliked on onboarding). Meaning survives: strongest
           // habits sit on the inner belt, so they read biggest.
           const sz = n.kind === "more" ? 13 : lerp(15, 11, clamp(n.ring / 2, 0, 1));
-          const pop = settled ? 1 : smooth((t - n.ring * 0.08) / 0.5);      // inner rings settle first
+          const pop = (settled || openMode) ? 1 : smooth((t - n.ring * 0.08) / 0.5);      // inner rings settle first
           const gs = ((sz / 16) * pop).toFixed(3);            // canonical r=16, scaled per ring
           if (n.kind === "more") {
             return (
@@ -293,7 +296,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
 
       {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
           with your avatar nested inside it. tap to change avatar */}
-      <button onClick={onTap} className="tap" aria-label={editable ? "Сменить аватар" : (name || "Круг")} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: onTap ? "pointer" : "default", opacity: eo }}>
+      <button onClick={onTap} className="tap" aria-label={editable ? "Сменить аватар" : (name || "Круг")} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: onTap ? "pointer" : "default", opacity: openMode ? 1 : eo }}>
         {/* Gold XP ring around the centre (same as the home avatar) when a level badge is requested. */}
         {levelBadge > 0 && (
           <svg width="60" height="60" viewBox="0 0 60 60" aria-hidden style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>

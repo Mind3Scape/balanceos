@@ -331,7 +331,8 @@ function OrbitField({
   hideLevelArc = false,
   editable = true,
   levelBadge = 0,
-  settled = false
+  settled = false,
+  open
 }) {
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
@@ -347,7 +348,10 @@ function OrbitField({
   };
   // settled=true → render ALREADY bloomed (eo=1, no re-grow). Used by the Вселенная overlay so its
   // copy of your orbit picks up EXACTLY where the settled page orbit sits → one seamless zoom, no swap.
-  var eo = settled ? 1 : smooth(t / 0.85); // gentle bloom-in on open
+  // open (0..1) → the СОТА lens drives the bloom directly by distance-to-centre: 1 = rings fully
+  // open, 0 = rings folded into the avatar (a bare "star"). Overrides the time-bloom + settled.
+  var openMode = typeof open === "number";
+  var eo = openMode ? clamp(open, 0, 1) : settled ? 1 : smooth(t / 0.85); // gentle bloom-in on open
 
   // Ring STRUCTURE (sort by streak, build nodes, assign even angular spread, ring set)
   // depends ONLY on [habits, people] — memo it so it isn't rebuilt on every animation frame;
@@ -429,7 +433,7 @@ function OrbitField({
   // overlap across belts), all in-frame so nothing clips at the edge.
   var RBASE = 72,
     RSTEP = 32;
-  var radius = ring => (RBASE + ring * RSTEP) * lerp(0.86, 1, eo);
+  var radius = ring => (RBASE + ring * RSTEP) * lerp(openMode ? 0.3 : 0.86, 1, eo);
   var spin = ring => (ring % 2 ? -1 : 1) * 0.06 / (1 + ring * 0.18);
   // Like onboarding: the faces/planets stay FULL opacity; only the thin ring lines + dust
   // whisper a little outward. fadeAt is mild and used ONLY for those, never the icons.
@@ -634,7 +638,7 @@ function OrbitField({
     // never overlap (the thing David disliked on onboarding). Meaning survives: strongest
     // habits sit on the inner belt, so they read biggest.
     var sz = n.kind === "more" ? 13 : lerp(15, 11, clamp(n.ring / 2, 0, 1));
-    var pop = settled ? 1 : smooth((t - n.ring * 0.08) / 0.5); // inner rings settle first
+    var pop = settled || openMode ? 1 : smooth((t - n.ring * 0.08) / 0.5); // inner rings settle first
     var gs = (sz / 16 * pop).toFixed(3); // canonical r=16, scaled per ring
     if (n.kind === "more") {
       return /*#__PURE__*/React.createElement("g", {
@@ -797,7 +801,7 @@ function OrbitField({
       padding: 0,
       background: "transparent",
       cursor: onTap ? "pointer" : "default",
-      opacity: eo
+      opacity: openMode ? 1 : eo
     }
   }, levelBadge > 0 && /*#__PURE__*/React.createElement("svg", {
     width: "60",
