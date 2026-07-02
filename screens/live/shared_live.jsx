@@ -204,6 +204,18 @@ function bosLightenHex(hx, amt) {
   var mk = function (c) { return Math.round(c + (255 - c) * k).toString(16).padStart(2, "0"); };
   return "#" + mk(r) + mk(g) + mk(b);
 }
+/* Смесь двух hex-цветов: hx→to на t (0..1). ФУНДАМЕНТ тема-зависимой тонировки (David:
+   «цвета с пикера должны чуть отличаться в тёмной»): светлая тема осветляет к белому
+   (bosLightenHex), тёмная — углубляет к тёмной подложке (bosMixHex к #101014 и т.п.),
+   сохраняя оттенок насыщенным, без «засветки» пастелью. */
+function bosMixHex(hx, to, t) {
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) return hx || "#333";
+  if (!(to && to[0] === "#" && to.length >= 7)) return hx;
+  var k = Math.max(0, Math.min(1, t));
+  var pr = function (s, i) { return parseInt(s.slice(i, i + 2), 16); };
+  var mk = function (a, b) { return Math.round(a + (b - a) * k).toString(16).padStart(2, "0"); };
+  return "#" + mk(pr(hx, 1), pr(to, 1)) + mk(pr(hx, 3), pr(to, 3)) + mk(pr(hx, 5), pr(to, 5));
+}
 // Пустая клетка календаря = МЯГКИЙ тон цвета привычки (David: «пустые дни должны стать мягко-
 // зелёными/любой цвет, а не серыми»). Цвет на низкой альфе → еле-еле в тон; фолбэк серый.
 // Стеклянное кольцо «СЕГОДНЯ» — ЕДИНОЕ внутри (календарь) и снаружи (страйп на карточке), David:
@@ -241,19 +253,22 @@ function bosCellGlass(isDark) {
 // day-cell glass (David: «на главной иконке привычки стекло еле видно — чуть светлее и заметнее, и
 // так ВЕЗДЕ где привычки видны»). Pair with BOS_TILE_SHEEN on the background.
 function bosTileGlass(isDark) {
+  // Тёмный блик приглушён (0.22→0.12) — David: «стекло слишком ярко засвечено».
   return isDark
-    ? "inset 0 1.5px 0.5px rgba(255,255,255,0.22), inset 0 0 0 0.7px rgba(255,255,255,0.07), 0 1px 2px rgba(0,0,0,0.18)"
+    ? "inset 0 1px 0.5px rgba(255,255,255,0.12), inset 0 0 0 0.7px rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.18)"
     : "inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05)";
 }
-const BOS_TILE_SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
+// Блик тема-зависимый: в тёмной CSS-переменные гасят белый градиент (David: «пересвечено»),
+// в светлой фолбэки держат прежний вид. ОДНО место — все плитки/чипы/кнопки сразу.
+const BOS_TILE_SHEEN = "linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.55)), var(--sheen-b, rgba(255,255,255,0.12)) 46%, rgba(255,255,255,0) 72%)";
 // Grey GLASS pill — the «Быстрое добавление» chip look (grey base) + a soft glass sheen + bright
 // top edge. ONE source so the home hero pills and the Habits quick-add chips stay identical
 // (David: стекло на пилюли + континьюити). Spread into a chip's inline style; pair with border:0.
 function bosChipGlass(isDark) {
   return {
-    background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.08)" : "#F1F1F5"),
+    background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.07)" : "#F1F1F5"),
     boxShadow: isDark
-      ? "inset 0 0.5px 0.5px rgba(255,255,255,0.12), inset 0 0 0 0.5px rgba(255,255,255,0.05)"
+      ? "inset 0 0.5px 0.5px rgba(255,255,255,0.08), inset 0 0 0 0.5px rgba(255,255,255,0.04)"
       : "inset 0 1px 0.5px rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(0,0,0,0.05)",
   };
 }
@@ -1192,11 +1207,22 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   // подложку иконки цели»). Реальный цвет → тон + белый глиф; нейтральный → тот же серый диск. Привычки/
   // люди на кольцах остаются серыми (они не цель).
   var cReal = typeof centerColor === "string" && centerColor[0] === "#" && centerColor.length === 7 && centerColor.toLowerCase() !== "#0a0a0a" && centerColor !== BOS_GREY;
-  var centerBg = cReal ? (sheen + ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.25) : centerColor)) : discBg;
+  // ТЕМА-ЗАВИСИМАЯ тонировка (David: «цвета с пикера в тёмной должны чуть отличаться»):
+  // светлая — осветляем к белому (пастель), тёмная — углубляем к тёмной подложке
+  // (насыщенный глубокий тон, без «засветки»).
+  var centerBg = cReal
+    ? (sheen + (dark
+        ? ((typeof bosMixHex === "function") ? bosMixHex(centerColor, "#101014", 0.22) : centerColor)
+        : ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.25) : centerColor)))
+    : discBg;
   var centerInk = cReal ? "#fff" : null;
-  // Цвет цели красит и КРУЖОЧКИ ПРИВЫЧЕК на орбитах — светлым тоном того же цвета (David:
-  // «пикер применяет цвет во всём блоке, включая кружочки с иконками»). Лица людей не трогаем.
-  var hDiscBg = cReal ? (sheen + ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.62) : centerColor)) : discBg;
+  // Цвет цели красит и КРУЖОЧКИ ПРИВЫЧЕК на орбитах (David: «пикер применяет цвет во всём
+  // блоке»). Светлая: светлый тон; тёмная: тёмный тон того же оттенка. Лица людей не трогаем.
+  var hDiscBg = cReal
+    ? (sheen + (dark
+        ? ((typeof bosMixHex === "function") ? bosMixHex(centerColor, "#17181d", 0.62) : centerColor)
+        : ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.62) : centerColor)))
+    : discBg;
   // ОРБИТА КРУТИТСЯ: соседние кольца — в РАЗНЫЕ стороны, внешние медленнее (спокойно). Диски
   // counter-rotate на ту же длительность → эмодзи/лица стоят прямо. bosSpin/bosSpinR — keyframes
   // (mobile.css). БЕЗ radial-маски: лишнее просто обрезается карточкой (David: «просто обрезалось»).

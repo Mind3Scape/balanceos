@@ -1423,8 +1423,24 @@ function HabitsLive() {
       iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg,
       iconInk: null
     };
-    // Заливка = МЯГКАЯ ПАСТЕЛЬ (цвет осветлён к белому) + белый блик — ровно язык карточек партнёров
-    // «Потратить XP», а не сырой насыщенный цвет (David: «убого»). Прогресс/иконка — на полном цвете для контраста.
+    // ТЁМНАЯ тема: не пастель (она «светится» на тёмном — David), а ГЛУБОКИЙ насыщенный тон
+    // того же оттенка + белый текст — как цветные виджеты тёмного iOS.
+    if (isDark) return {
+      hasColor: true,
+      accent,
+      bg: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 62%), " + (typeof bosMixHex === "function" ? bosMixHex(accent, "#101014", 0.30) : accent),
+      shadow: "0 4px 12px rgba(0,0,0,0.45), inset 0 0 0 0.5px rgba(255,255,255,0.10)",
+      txt: "#fff",
+      sub: "rgba(255,255,255,0.72)",
+      lbl: "rgba(255,255,255,0.6)",
+      val: "rgba(255,255,255,0.85)",
+      track: "rgba(0,0,0,0.35)",
+      fill: typeof bosLightenHex === "function" ? bosLightenHex(accent, 0.18) : accent,
+      iconBg: BOS_TILE_SHEEN + ", " + accent,
+      iconInk: "#fff"
+    };
+    // СВЕТЛАЯ: заливка = МЯГКАЯ ПАСТЕЛЬ (цвет осветлён к белому) + белый блик — ровно язык карточек
+    // партнёров «Потратить XP», а не сырой насыщенный цвет (David: «убого»). Прогресс/иконка — на полном цвете.
     var soft = typeof bosLightenHex === "function" ? bosLightenHex(accent, 0.52) : accent;
     return {
       hasColor: true,
@@ -1468,7 +1484,7 @@ function HabitsLive() {
       style: {
         fontSize: 13,
         fontWeight: 800,
-        color: sk.hasColor ? "#1b1b1f" : sk.accent,
+        color: sk.hasColor ? sk.txt : sk.accent,
         fontVariantNumeric: "tabular-nums",
         flexShrink: 0
       }
@@ -1638,7 +1654,7 @@ function HabitsLive() {
       style: {
         fontSize: 12.5,
         fontWeight: 800,
-        color: sk.hasColor ? "#1b1b1f" : sk.accent,
+        color: sk.hasColor ? sk.txt : sk.accent,
         fontVariantNumeric: "tabular-nums",
         flexShrink: 0
       }
@@ -1712,7 +1728,7 @@ function HabitsLive() {
       style: {
         fontSize: 13,
         fontWeight: 800,
-        color: sk.hasColor ? "#1b1b1f" : sk.accent,
+        color: sk.hasColor ? sk.txt : sk.accent,
         fontVariantNumeric: "tabular-nums",
         flexShrink: 0
       }
@@ -1877,7 +1893,7 @@ function HabitsLive() {
       style: {
         fontSize: 12.5,
         fontWeight: 800,
-        color: sk.hasColor ? "#1b1b1f" : sk.accent,
+        color: sk.hasColor ? sk.txt : sk.accent,
         fontVariantNumeric: "tabular-nums",
         flexShrink: 0
       }

@@ -384,6 +384,9 @@ button { font: inherit; cursor: pointer; }
 .theme-dark, .bos-sheet.is-dark {
   --cta: #f2f2f5;
   --cta-ink: #0a0a0a;
+  /* Стеклянный блик в тёмной — МЯГКИЙ (David: «пересвечено»): белый градиент почти гаснет. */
+  --sheen-a: rgba(255,255,255,0.09);
+  --sheen-b: rgba(255,255,255,0.025);
   --bg: #0f0f12;
   --surface: #1c1c1f;
   --surface-2: #26262a;

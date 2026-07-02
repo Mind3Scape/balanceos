@@ -522,8 +522,19 @@ function HabitsLive() {
       track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", fill: isDark ? "#e6e6ea" : "#0a0a0a",
       iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg, iconInk: null,
     };
-    // Заливка = МЯГКАЯ ПАСТЕЛЬ (цвет осветлён к белому) + белый блик — ровно язык карточек партнёров
-    // «Потратить XP», а не сырой насыщенный цвет (David: «убого»). Прогресс/иконка — на полном цвете для контраста.
+    // ТЁМНАЯ тема: не пастель (она «светится» на тёмном — David), а ГЛУБОКИЙ насыщенный тон
+    // того же оттенка + белый текст — как цветные виджеты тёмного iOS.
+    if (isDark) return {
+      hasColor: true, accent,
+      bg: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 62%), " + ((typeof bosMixHex === "function") ? bosMixHex(accent, "#101014", 0.30) : accent),
+      shadow: "0 4px 12px rgba(0,0,0,0.45), inset 0 0 0 0.5px rgba(255,255,255,0.10)",
+      txt: "#fff", sub: "rgba(255,255,255,0.72)", lbl: "rgba(255,255,255,0.6)", val: "rgba(255,255,255,0.85)",
+      track: "rgba(0,0,0,0.35)", fill: (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.18) : accent,
+      iconBg: BOS_TILE_SHEEN + ", " + accent,
+      iconInk: "#fff",
+    };
+    // СВЕТЛАЯ: заливка = МЯГКАЯ ПАСТЕЛЬ (цвет осветлён к белому) + белый блик — ровно язык карточек
+    // партнёров «Потратить XP», а не сырой насыщенный цвет (David: «убого»). Прогресс/иконка — на полном цвете.
     const soft = (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.52) : accent;
     return {
       hasColor: true, accent,
@@ -547,7 +558,7 @@ function HabitsLive() {
     const sk = goalSkin(g.color);
     const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
     const orbit = goalStyle.orbits ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 132 : 152} dark={isDark} fade /> : null;
-    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
+    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
     const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color)}</span>;
     const progBar = goalStyle.progress ? (
       <div>
@@ -591,7 +602,7 @@ function HabitsLive() {
             <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
             <div style={{ marginTop: "auto", position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
               {goalStyle.name ? <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div> : <span />}
-              {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
+              {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
             </div>
           </>
         ) : (
@@ -622,7 +633,7 @@ function HabitsLive() {
       ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={(t.habits || []).map((h) => ({ emoji: h.emoji }))} people={members} size={banner ? 132 : 152} dark={isDark} fade />
       : null;
     const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={20} max={3} /></span> : null;
-    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
+    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
     const valTxt = t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : (Math.round(pct * 100) + "%");
     const progBar = goalStyle.progress ? (
       <div>
@@ -662,7 +673,7 @@ function HabitsLive() {
             <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
             <div style={{ marginTop: "auto", position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
               {goalStyle.name ? <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div> : <span />}
-              {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? "#1b1b1f" : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
+              {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
             </div>
           </>
         ) : (
