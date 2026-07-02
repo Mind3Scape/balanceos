@@ -2946,7 +2946,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var PACK = 0.5;                                     // шаг = PACK×диаметр — теснота упаковки
   var SPB = SIZB * PACK;
   var SIG = 150 * cam.z * introK;                     // радиус «лупы» (px)
-  var MC = 1.7, ME = 0.72;                            // магнификация: центр / край
+  var MC = 1.85, ME = 0.72;                           // магнификация: центр / край
   function fish(fx, fy) {
     var vx = fx - cam.x, vy = fy - cam.y, rf = Math.sqrt(vx * vx + vy * vy), rpx = rf * SPB;
     var q = rpx / SIG, mag = ME + (MC - ME) / (1 + q * q);
@@ -2976,8 +2976,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
 
   var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
-  // РАСКРЫТИЕ колец — раскрыто, пока система В экране; сворачивается только у края/за краем.
-  function openAt(sx, sy) { var edge = Math.min(sx, W - sx, sy, H - sy); return _bosSm((edge + 55) / 110); }
+  // РАСКРЫТИЕ колец — по близости к центру ЛИНЗЫ (David: «дальние — точки, центр раскрыт»). Кто под
+  // лупой (mag высок) → полная орбита с привычками; дальше → сворачивается в плотный диск-аватар.
+  function openMag(mag) { return _bosSm((mag - 1.45) / 0.3); }
   // Твоя система — с РЕАЛЬНЫМИ привычками/людьми/уровнем; стоит в центре поля (fx=fy=0).
   var _bs = (typeof bosStreak === "function") ? bosStreak : function () { return 0; };
   var youHabits = ((app && app.habits) || []).slice(0, 12).map(function (h) { return { emoji: h.emoji || "✨", color: h.color, streak: _bs(h.log), id: h.id }; });
@@ -2997,7 +2998,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           {allNodes.map(function (nd, i) {
             var f = fish(nd.fx, nd.fy);
             if (f.sx < -f.size || f.sx > W + f.size || f.sy < -f.size || f.sy > H + f.size) return null;
-            var sp = nd.sp, k = f.size / 300, openV = openAt(f.sx, f.sy);
+            var sp = nd.sp, k = f.size / 300, openV = openMag(f.mag);
             return (
               <div key={nd.you ? "you" : ("o" + i)} style={{ position: "absolute", left: f.sx.toFixed(1) + "px", top: f.sy.toFixed(1) + "px", pointerEvents: "none", zIndex: Math.round(f.mag * 100) }}>
                 <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px" }}>
