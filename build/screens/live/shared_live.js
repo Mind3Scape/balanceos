@@ -7668,10 +7668,10 @@ function UniverseFieldLive({
     }
     function stepSpin(now) {
       rafS = requestAnimationFrame(stepSpin);
-      if (now - sLast < 145) return;
+      if (now - sLast < 90) return;
       sLast = now;
-      setSpin(now / 1000 * 0.4);
-    } // 0.4 = очень неспешно
+      setSpin(now / 1000 * 0.7);
+    } // 0.7 = как на странице привычек, но на ~30% медленнее
     rafI = requestAnimationFrame(stepIntro);
     rafS = requestAnimationFrame(stepSpin);
     var tm = setTimeout(function () {
@@ -7917,7 +7917,7 @@ function UniverseFieldLive({
     // ВНЕШНЯЯ обёртка = позиция+размер (transform, дёшево, меняется на КАЖДЫЙ кадр пана).
     // СРЕДНЯЯ = появление (bosSysPop, один раз). ВНУТРЕННЯЯ = тяжёлая графика в МЕМО (пан её не трогает).
     if (openV < 0.12) {
-      var dsc = f.size * 0.52 / 110;
+      var dsc = f.size * 0.484 / 110; // = размер аватара орбиты при open≈0.12 → стык без скачка
       return /*#__PURE__*/React.createElement("div", {
         key: key,
         style: {
@@ -7948,7 +7948,7 @@ function UniverseFieldLive({
         dark: isDark
       }) : null)));
     }
-    var openQ = Math.round(openV * 6) / 6; // квант раскрытия → мемо не дёргается на каждый пиксель
+    var openQ = Math.round(openV * 32) / 32; // МЕЛКАЯ нарезка (32 ступени ≈ плавно, скачков не видно), но мемо всё ещё не дёргается на каждый пиксель
     return /*#__PURE__*/React.createElement("div", {
       key: key,
       style: {

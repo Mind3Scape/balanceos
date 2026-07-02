@@ -2980,7 +2980,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   React.useEffect(function () {
     var rafI, rafS, t0 = null, sLast = 0;
     function stepIntro(now) { if (t0 == null) t0 = now; var p = (now - t0) / 820; if (p > 1) p = 1; setIntro(p); if (p < 1) rafI = requestAnimationFrame(stepIntro); }
-    function stepSpin(now) { rafS = requestAnimationFrame(stepSpin); if (now - sLast < 145) return; sLast = now; setSpin((now / 1000) * 0.4); }  // 0.4 = очень неспешно
+    function stepSpin(now) { rafS = requestAnimationFrame(stepSpin); if (now - sLast < 90) return; sLast = now; setSpin((now / 1000) * 0.7); }  // 0.7 = как на странице привычек, но на ~30% медленнее
     rafI = requestAnimationFrame(stepIntro); rafS = requestAnimationFrame(stepSpin);
     var tm = setTimeout(function () { setIntro(1); }, 1100);   // фолбэк если rAF throttled
     return function () { cancelAnimationFrame(rafI); cancelAnimationFrame(rafS); clearTimeout(tm); };
@@ -3060,7 +3060,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
             // ВНЕШНЯЯ обёртка = позиция+размер (transform, дёшево, меняется на КАЖДЫЙ кадр пана).
             // СРЕДНЯЯ = появление (bosSysPop, один раз). ВНУТРЕННЯЯ = тяжёлая графика в МЕМО (пан её не трогает).
             if (openV < 0.12) {
-              var dsc = (f.size * 0.52) / 110;
+              var dsc = (f.size * 0.484) / 110;      // = размер аватара орбиты при open≈0.12 → стык без скачка
               return (
                 <div key={key} style={{ position: "absolute", left: 0, top: 0, transform: "translate(" + f.sx.toFixed(1) + "px," + f.sy.toFixed(1) + "px) scale(" + dsc.toFixed(3) + ")", transformOrigin: "0px 0px", zIndex: Math.round(f.mag * 100), pointerEvents: "none" }}>
                   <div style={{ transformOrigin: "0px 0px", animation: pop }}>
@@ -3071,7 +3071,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
                 </div>
               );
             }
-            var openQ = Math.round(openV * 6) / 6;                         // квант раскрытия → мемо не дёргается на каждый пиксель
+            var openQ = Math.round(openV * 32) / 32;                       // МЕЛКАЯ нарезка (32 ступени ≈ плавно, скачков не видно), но мемо всё ещё не дёргается на каждый пиксель
             return (
               <div key={key} style={{ position: "absolute", left: 0, top: 0, transform: "translate(" + f.sx.toFixed(1) + "px," + f.sy.toFixed(1) + "px) scale(" + (f.size / 300).toFixed(3) + ")", transformOrigin: "0px 0px", zIndex: Math.round(f.mag * 100), pointerEvents: "none" }}>
                 <div style={{ transformOrigin: "0px 0px", animation: pop }}>
