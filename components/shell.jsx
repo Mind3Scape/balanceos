@@ -299,21 +299,22 @@ function PageHeader({ title, onBack, right, dark }) {
   );
 }
 
-// Toggle switch
-function Switch({ on, onChange, dark = false }) {
+// Toggle switch. `small` — тонкий вариант для форм-шторок (David: «тоненькие тоглы, поаккуратнее»).
+function Switch({ on, onChange, dark = false, small = false }) {
+  const W = small ? 42 : 50, H = small ? 26 : 30, K = small ? 20 : 24;
   return (
     <button onClick={() => onChange(!on)} className="tap hit44" data-haptic="selection" style={{
-      width: 50, height: 30, borderRadius: 999,
+      width: W, height: H, borderRadius: 999, flexShrink: 0,
       background: on ? "#0a0a0a" : (dark ? "#3f3f46" : "#d4d4d4"),
       border: 0, position: "relative", padding: 0,
       transition: "background 0.18s",
     }}>
       <span style={{
         position: "absolute", top: 3, left: 3,
-        width: 24, height: 24, borderRadius: "50%",
+        width: K, height: K, borderRadius: "50%",
         background: "#fff",
         // GPU transform (was animating non-composited `left`) with an iOS-spring settle.
-        transform: on ? "translateX(20px)" : "translateX(0)",
+        transform: on ? "translateX(" + (W - K - 6) + "px)" : "translateX(0)",
         transition: "transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
         willChange: "transform",
@@ -322,10 +323,10 @@ function Switch({ on, onChange, dark = false }) {
   );
 }
 
-// Segmented (Build / Quit etc)
-function Segmented({ options, value, onChange }) {
+// Segmented (Build / Quit etc). `small` → компактный .tab-pill-sm (тонкие менюшки в шторках).
+function Segmented({ options, value, onChange, small = false }) {
   return (
-    <div className="tab-pill">
+    <div className={"tab-pill" + (small ? " tab-pill-sm" : "")}>
       {options.map(o => (
         <button key={o.value} className={"tap " + (value === o.value ? "active" : "")}
           onClick={() => onChange(o.value)}>

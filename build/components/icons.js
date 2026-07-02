@@ -92,6 +92,9 @@ var I = {
   Check: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
     d: "M5 12l5 5 9-11"
   })),
+  Hash: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+    d: "M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"
+  })),
   Share: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
     d: "M12 15V4"
   }), /*#__PURE__*/React.createElement("path", {

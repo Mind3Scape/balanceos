@@ -219,6 +219,8 @@ function AILive() {
   // Fallback to context-aware prompts so a returning user never sees an empty list.
   let pills = (brief && Array.isArray(brief.pills) && brief.pills.length) ? brief.pills.slice(0, 4) : [];
   if (!pills.length && !isBlank && typeof buildQuickPrompts === "function") pills = buildQuickPrompts(app).slice(0, 4);
+  // МИКС гарантирован (David): 1-2 чипа → реальный функционал, 1-2 → чат.
+  if (!isBlank && typeof bosMixPillsLive === "function") pills = bosMixPillsLive(pills, app);
 
   const planPrompt = "Помоги составить простой план на сегодня по моим привычкам.";
 
@@ -241,61 +243,83 @@ function AILive() {
           <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
         </div>
-        <button data-tour="ai-chat-btn" onClick={() => navigate("ai-chat")} className="tap"
-          style={{ height: 36, padding: "0 14px", borderRadius: 999, background: "#0a0a0a", color: "#fff", border: 0, fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <I.MessageCircle size={14}/> Чат
+        {/* Чат — круглая СТЕКЛЯННАЯ кнопка, как все угловые кнопки приложения
+            (David: «чёрная выбивается — у нас уже всё в стекле»). */}
+        <button data-tour="ai-chat-btn" onClick={() => navigate("ai-chat")} className="tap" aria-label="Чат"
+          style={{ width: 38, height: 38, borderRadius: "50%", border: 0, cursor: "pointer",
+            background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + "#fff",
+            boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(false) : "var(--card-shadow)",
+            color: "var(--text-2)", display: "grid", placeItems: "center" }}>
+          <I.MessageCircle size={17} strokeWidth={2}/>
         </button>
       </div>
 
-      {/* Warm hero — the user's own state orb + ONE real line about them today */}
+      {/* Warm hero — КОМПАКТНЫЙ (David: «баннер нравится, но меньше; внутри — красивые чипы»).
+          Орб + одна честная строка + два чипа. Виджеты «сегодня/серия/уровень» убраны —
+          они дублировали главную и читались как бутафория. */}
       <div data-tour="ai-hero" style={{
         position: "relative", overflow: "hidden",
         background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
-        borderRadius: 22, padding: "22px 22px 24px", color: "#fff",
+        borderRadius: 22, padding: "14px 16px 14px", color: "#fff",
       }}>
         <div aria-hidden style={{ position: "absolute", inset: 0, background:
           "radial-gradient(circle at 80% 20%, rgba(180,210,255,0.18) 0%, transparent 40%), radial-gradient(circle at 10% 90%, rgba(120,160,210,0.15) 0%, transparent 40%)" }} />
 
-        <div style={{ display: "flex", gap: 16, alignItems: "center", position: "relative" }}>
-          <div style={{ flexShrink: 0, width: 112, height: 112, display: "grid", placeItems: "center" }}>
-            <svg viewBox="-80 -80 160 160" width="112" height="112" style={{ overflow: "visible" }}>
-              <SiriOrb r={42} tint={liveTint} t={t} intensity={1}/>
+        <div style={{ display: "flex", gap: 13, alignItems: "center", position: "relative" }}>
+          <div style={{ flexShrink: 0, width: 74, height: 74, display: "grid", placeItems: "center" }}>
+            <svg viewBox="-80 -80 160 160" width="74" height="74" style={{ overflow: "visible" }}>
+              <SiriOrb r={46} tint={liveTint} t={t} intensity={1}/>
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: "rgba(180,210,255,0.85)", fontWeight: 600, letterSpacing: 1.4, textTransform: "uppercase" }}>
+            <div style={{ fontSize: 10.5, color: "rgba(180,210,255,0.85)", fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase" }}>
               {moodName ? "Сейчас · " + (moodIcon ? moodIcon + " " : "") + moodName : "Сегодня"}
             </div>
-            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 19, lineHeight: 1.28, marginTop: 6, letterSpacing: "-0.3px" }}>{headline}</div>
-            {hint && <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", marginTop: 8, lineHeight: 1.5 }}>{hint}</div>}
+            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 15, lineHeight: 1.34, marginTop: 4, letterSpacing: "-0.2px" }}>{headline}</div>
+            {hint && <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.65)", marginTop: 5, lineHeight: 1.45 }}>{hint}</div>}
           </div>
         </div>
 
-        {/* Live stat row — only when there's something real to show */}
-        {!isBlank && (
-          <div style={{ display: "flex", gap: 6, marginTop: 16, position: "relative" }}>
-            {[["Сегодня", liveHabits.length ? (doneToday + "/" + liveHabits.length) : "—"], ["Серия", maxStreak ? (maxStreak + " дн") : "—"], ["Уровень", lvl.level]].map((s, i) => (
-              <div key={i} style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{s[1]}</div>
-                <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.6)", marginTop: 2, letterSpacing: 0.4 }}>{s[0]}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Primary CTA — «Построить план» → opens the chat primed with a real plan ask.
-            Secondary — just talk → opens a free conversation. */}
-        <div style={{ display: "flex", gap: 8, marginTop: 16, position: "relative" }}>
+        {/* Чипы-CTA — лёгкие, вместо двух крупных кнопок. */}
+        <div style={{ display: "flex", gap: 6, marginTop: 11, position: "relative" }}>
           <button onClick={() => navigate("ai-chat", { prompt: planPrompt })} className="tap"
-            style={{ flex: 1, background: "var(--card)", color: "#0a1424", border: 0, borderRadius: 999, padding: "12px 14px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <I.Sparkles size={15}/> Построить план
+            style={{ background: "#fff", color: "#0a1424", border: 0, borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <I.Sparkles size={13}/> План на сегодня
           </button>
           <button onClick={() => navigate("ai-chat")} className="tap"
-            style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 999, padding: "12px 16px", fontSize: 14, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <I.MessageCircle size={14}/> Поговорить
+            style={{ background: "rgba(255,255,255,0.12)", color: "#fff", border: 0, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.16)", borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <I.MessageCircle size={13}/> Поговорить
           </button>
         </div>
       </div>
+
+      {/* «Спроси что угодно» — главный вход в разговор, СРАЗУ под баннером (David: кнопка
+          чата была скромной — вход в чат теперь на видном месте). */}
+      <div style={{ background: "var(--card)", borderRadius: 22, padding: 10, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 2px 0 8px" }}>
+          <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
+            onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
+            style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "8px 4px" }}/>
+          <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap hit44" aria-label="Спросить"
+            style={{ width: 34, height: 34, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <I.Send size={13}/>
+          </button>
+        </div>
+      </div>
+
+      {/* Чипы-подсказки — тот же язык, что в чате и на главной; микс «действие/разговор». */}
+      {!isBlank && pills.length > 0 && (
+        <div className="bos-hscroll" style={{ display: "flex", gap: 6, marginTop: 10, overflowX: "auto", padding: "2px 2px 4px" }}>
+          {pills.map((p, i) => (
+            <button key={i} onClick={() => goPill(p)} className="tap" data-no-haptic
+              style={{ flexShrink: 0, background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + "#fff",
+                boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(false) : "var(--card-shadow)",
+                border: 0, borderRadius: 999, padding: "7px 12px", fontSize: 12, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span>{(p && p.i) || "✨"}</span> {pillLabel(p)}
+            </button>
+          ))}
+        </div>
+      )}
 
       {isBlank ? (
         /* HONEST empty state for a brand-new live user — no fake recommendations.
@@ -323,44 +347,26 @@ function AILive() {
             Подсказки появятся здесь, как только наберётся немного твоих данных.
           </div>
         </>
-      ) : (
-        /* Real next-step suggestions — the AI brief pills as tappable cards.
-           Tap → open the chat already primed with that step. */
-        pills.length > 0 && (
-          <>
-            <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Следующие шаги</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-              {pills.map((p, i) => {
-                const isChat = !p || typeof p === "string" || p.kind !== "action";
-                return (
-                <button key={i} onClick={() => goPill(p)} className="tap"
-                  style={{ width: "100%", background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", border: 0, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{(p && p.i) || "✨"}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{pillLabel(p)}</div>
-                    <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{isChat ? "Обсудить с помощником →" : "Открыть →"}</div>
-                  </div>
-                  <I.ChevronRight size={18} color="var(--text-4)" style={{ flexShrink: 0 }}/>
-                </button>
-                );
-              })}
-            </div>
-          </>
-        )
-      )}
+      ) : null}
 
-      {/* Free conversation — always available, even with no data yet */}
-      <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Спроси что угодно</div>
-      <div style={{ background: "var(--card)", borderRadius: 22, padding: 14, marginTop: 8, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 6px" }}>
-          <input value={ask} onChange={e => setAsk(e.target.value)} placeholder="Спросить Balance AI…"
-            onKeyDown={e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? { prompt: ask } : {})}
-            style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--text)", fontSize: 14, padding: "10px 6px" }}/>
-          <button onClick={() => navigate("ai-chat", ask.trim() ? { prompt: ask } : {})} className="tap hit44"
-            style={{ width: 36, height: 36, borderRadius: "50%", background: "#0a0a0a", border: 0, color: "#fff", display: "grid", placeItems: "center" }}>
-            <I.Send size={14}/>
-          </button>
-        </div>
+      {/* ЧЕСТНЫЕ тизеры того, что впереди (идея David): реальный уровень пользователя
+          против порога открытия. Никакой бутафории — только правда о прогрессе. */}
+      <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Скоро в Balance AI</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+        {[
+          { i: "📊", t: "Аналитика", need: 10, d: "Твои закономерности: что качает, а что мешает." },
+          { i: "🧠", t: "Наставник", need: 15, d: "Личная программа и разбор недели." },
+        ].map((f) => (
+          <div key={f.t} style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 19 }}>{f.i}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "4px 9px" }}><I.Lock size={10} strokeWidth={2.2}/> {f.need} ур.</span>
+            </div>
+            <div style={{ fontSize: 14.5, fontWeight: 600, marginTop: 10, color: "var(--text)" }}>{f.t}</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>{f.d}</div>
+            <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 8 }}>{lvl.level >= f.need ? "Готовим к запуску ✨" : "Твой уровень — " + lvl.level + " из " + f.need}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

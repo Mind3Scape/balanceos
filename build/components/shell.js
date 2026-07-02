@@ -583,20 +583,25 @@ function PageHeader({
   }));
 }
 
-// Toggle switch
+// Toggle switch. `small` — тонкий вариант для форм-шторок (David: «тоненькие тоглы, поаккуратнее»).
 function Switch({
   on,
   onChange,
-  dark = false
+  dark = false,
+  small = false
 }) {
+  var W = small ? 42 : 50,
+    H = small ? 26 : 30,
+    K = small ? 20 : 24;
   return /*#__PURE__*/React.createElement("button", {
     onClick: () => onChange(!on),
     className: "tap hit44",
     "data-haptic": "selection",
     style: {
-      width: 50,
-      height: 30,
+      width: W,
+      height: H,
       borderRadius: 999,
+      flexShrink: 0,
       background: on ? "#0a0a0a" : dark ? "#3f3f46" : "#d4d4d4",
       border: 0,
       position: "relative",
@@ -608,12 +613,12 @@ function Switch({
       position: "absolute",
       top: 3,
       left: 3,
-      width: 24,
-      height: 24,
+      width: K,
+      height: K,
       borderRadius: "50%",
       background: "#fff",
       // GPU transform (was animating non-composited `left`) with an iOS-spring settle.
-      transform: on ? "translateX(20px)" : "translateX(0)",
+      transform: on ? "translateX(" + (W - K - 6) + "px)" : "translateX(0)",
       transition: "transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1)",
       boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
       willChange: "transform"
@@ -621,14 +626,15 @@ function Switch({
   }));
 }
 
-// Segmented (Build / Quit etc)
+// Segmented (Build / Quit etc). `small` → компактный .tab-pill-sm (тонкие менюшки в шторках).
 function Segmented({
   options,
   value,
-  onChange
+  onChange,
+  small = false
 }) {
   return /*#__PURE__*/React.createElement("div", {
-    className: "tab-pill"
+    className: "tab-pill" + (small ? " tab-pill-sm" : "")
   }, options.map(o => /*#__PURE__*/React.createElement("button", {
     key: o.value,
     className: "tap " + (value === o.value ? "active" : ""),

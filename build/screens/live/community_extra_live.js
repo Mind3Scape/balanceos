@@ -1424,7 +1424,11 @@ function TeamQuickEditSheetLive({
       maxHeight: "80vh",
       overflowY: "auto"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
+    title: "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0446\u0435\u043B\u044C",
+    onClose: close,
+    onDone: save
+  }) : /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       fontSize: 18,
@@ -1610,6 +1614,7 @@ function TeamQuickEditSheetLive({
       marginTop: 14
     }
   }, /*#__PURE__*/React.createElement(Segmented, {
+    small: true,
     value: priv ? "private" : "public",
     onChange: v => setPriv(v === "private"),
     options: [{
@@ -1649,6 +1654,7 @@ function TeamQuickEditSheetLive({
       fontWeight: 400
     }
   }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u2014 \u0431\u0430\u043D\u043A \u0440\u0430\u0441\u043A\u0440\u043E\u0435\u0442\u0441\u044F. \u041E\u043F\u0446\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: stakes,
     onChange: setStakes
   })), stakes && /*#__PURE__*/React.createElement("div", {
@@ -1682,14 +1688,6 @@ function TeamQuickEditSheetLive({
       color: "var(--text-4)"
     }
   }, "XP \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E"))), /*#__PURE__*/React.createElement("button", {
-    className: "bos-btn",
-    disabled: saving,
-    style: {
-      marginTop: 18,
-      opacity: saving ? 0.65 : 1
-    },
-    onClick: save
-  }, saving ? "Сохраняем…" : "Сохранить"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       close();
       navigate("team-settings", {
@@ -1703,7 +1701,7 @@ function TeamQuickEditSheetLive({
       border: 0,
       color: "var(--text-3)",
       padding: "12px",
-      marginTop: 4,
+      marginTop: 14,
       fontSize: 13.5,
       fontWeight: 600
     }
@@ -1808,23 +1806,25 @@ function TeamHabitSheetLive({
       padding: "2px 20px 8px",
       color: "var(--text)"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
+    title: "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u044B",
+    onClose: close,
+    onDone: save
+  }) : /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
+      textAlign: "center",
       fontSize: 20,
       fontWeight: 700,
       letterSpacing: "-0.3px"
     }
   }, "\u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
     style: {
+      textAlign: "center",
       fontSize: 13.5,
       color: "var(--text-3)",
-      marginTop: 3
+      marginTop: 2
     }
-  }, "\u041E\u0431\u0449\u0430\u044F \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0432 \xAB", team?.name || "команде", "\xBB")), /*#__PURE__*/React.createElement("div", {
+  }, "\u041E\u0431\u0449\u0430\u044F \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0432 \xAB", team?.name || "команде", "\xBB"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       display: "flex",
@@ -2003,6 +2003,7 @@ function TeamHabitSheetLive({
       marginTop: 1
     }
   }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0430 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0430 = +1 \u043A \u043E\u0431\u0449\u0435\u0439 \u0446\u0435\u043B\u0438")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: movesGoal,
     onChange: setMovesGoal
   })), /*#__PURE__*/React.createElement("div", {
@@ -2032,16 +2033,10 @@ function TeamHabitSheetLive({
       marginTop: 1
     }
   }, "\u0421\u0442\u0430\u043D\u0435\u0442 \xAB\u044F\u043A\u043E\u0440\u0435\u043C\xBB \u043A\u043E\u043C\u0430\u043D\u0434\u044B")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: isMain,
     onChange: setIsMain
-  }))), /*#__PURE__*/React.createElement("button", {
-    className: "bos-btn",
-    style: {
-      marginTop: 20,
-      marginBottom: 2
-    },
-    onClick: save
-  }, "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443"));
+  }))));
 }
 
 /* LEVELS / CREDITS — gamification (theme-aware). LIVE: every number comes from the

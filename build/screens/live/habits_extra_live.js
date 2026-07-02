@@ -347,7 +347,24 @@ function HabitFormSheetLive({
   })), /*#__PURE__*/React.createElement(BosColorPickerLive, {
     value: color,
     onChange: setColor
-  })), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTop: "1px solid rgba(0,0,0,0.06)"
+    }
+  }, /*#__PURE__*/React.createElement(Segmented, {
+    small: true,
+    value: type,
+    onChange: setType,
+    options: [{
+      value: "build",
+      label: "Развивать"
+    }, {
+      value: "quit",
+      label: "Бросить"
+    }]
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
@@ -355,20 +372,57 @@ function HabitFormSheetLive({
       marginTop: 14,
       boxShadow: "var(--card-shadow)"
     }
-  }, /*#__PURE__*/React.createElement(Segmented, {
-    value: markMode,
-    onChange: pickMode,
-    options: [{
-      value: "check",
-      label: "Галочка"
-    }, {
-      value: "count",
-      label: "Счётчик"
-    }, {
-      value: "timer",
-      label: "Таймер"
-    }]
-  }), markMode === "check" && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, [{
+    v: "check",
+    l: "Галочка",
+    Ic: I.Check
+  }, {
+    v: "count",
+    l: "Счётчик",
+    Ic: I.Hash
+  }, {
+    v: "timer",
+    l: "Таймер",
+    Ic: I.Clock
+  }].map(({
+    v,
+    l,
+    Ic
+  }) => {
+    var on = markMode === v;
+    return /*#__PURE__*/React.createElement("button", {
+      key: v,
+      onClick: () => pickMode(v),
+      className: "tap",
+      "data-no-haptic": true,
+      "aria-pressed": on,
+      style: {
+        flex: 1,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 5,
+        borderRadius: 999,
+        padding: "8px 4px",
+        fontSize: 12.5,
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+        border: 0,
+        cursor: "pointer",
+        transition: "background 0.15s, color 0.15s",
+        background: on ? "#0a0a0a" : "var(--surface-3)",
+        color: on ? "#fff" : "var(--text-2)"
+      }
+    }, /*#__PURE__*/React.createElement(Ic, {
+      size: 13,
+      strokeWidth: 2.2
+    }), " ", l);
+  })), markMode === "check" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
       fontSize: 13,
@@ -524,11 +578,11 @@ function HabitFormSheetLive({
       style: {
         flex: 1,
         aspectRatio: "1/1",
-        maxWidth: 40,
+        maxWidth: 34,
         borderRadius: "50%",
         border: 0,
         cursor: "pointer",
-        fontSize: 12.5,
+        fontSize: 11.5,
         fontWeight: 600,
         letterSpacing: "-0.2px",
         background: on ? "#0a0a0a" : "var(--surface-3)",
@@ -567,6 +621,7 @@ function HabitFormSheetLive({
       marginTop: 2
     }
   }, reminderOn ? "Тихий пуш в выбранное время." : "Без напоминаний — отмечай когда удобно.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: reminderOn,
     onChange: setReminderOn
   })), reminderOn && /*#__PURE__*/React.createElement("div", {
@@ -599,9 +654,13 @@ function HabitFormSheetLive({
       outline: 0,
       background: "var(--surface-3)",
       borderRadius: 999,
-      padding: "8px 14px",
-      fontSize: 16,
-      fontWeight: 600,
+      padding: "0 12px",
+      height: 30,
+      lineHeight: "30px",
+      display: "inline-flex",
+      alignItems: "center",
+      fontSize: 14.5,
+      fontWeight: 500,
       color: "var(--text)",
       fontVariantNumeric: "tabular-nums",
       letterSpacing: "-0.2px",
@@ -638,6 +697,7 @@ function HabitFormSheetLive({
       marginTop: 2
     }
   }, "\u0414\u0440\u0443\u0437\u044C\u044F \u0432\u0438\u0434\u044F\u0442, \u043A\u043E\u0433\u0434\u0430 \u0442\u044B \u043E\u0442\u043C\u0435\u0447\u0430\u0435\u0448\u044C\u0441\u044F. \u041E\u043D\u0438 \u043C\u043E\u0433\u0443\u0442 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u0438\u043B\u0438 \u043F\u043E\u0434\u0442\u043E\u043B\u043A\u043D\u0443\u0442\u044C.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: shareOn,
     onChange: setShareOn
   })), /*#__PURE__*/React.createElement("div", {
@@ -732,25 +792,7 @@ function HabitFormSheetLive({
       lineHeight: 1.4,
       padding: "0 2px"
     }
-  }, inviteNote)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "#fff",
-      borderRadius: 22,
-      padding: 14,
-      marginTop: 14,
-      boxShadow: "var(--card-shadow)"
-    }
-  }, /*#__PURE__*/React.createElement(Segmented, {
-    value: type,
-    onChange: setType,
-    options: [{
-      value: "build",
-      label: "Развивать"
-    }, {
-      value: "quit",
-      label: "Бросить"
-    }]
-  })), goalFor && /*#__PURE__*/React.createElement("div", {
+  }, inviteNote)), goalFor && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 22,
@@ -781,15 +823,10 @@ function HabitFormSheetLive({
       marginTop: 2
     }
   }, "\u041D\u0435 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0432 \u043E\u0431\u0449\u0435\u043C \u0441\u043F\u0438\u0441\u043A\u0435 \u2014 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0436\u0438\u0432\u0451\u0442 \u0432\u043D\u0443\u0442\u0440\u0438 \xAB", goalFor.name, "\xBB.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: goalOnly,
     onChange: setGoalOnly
-  }))), /*#__PURE__*/React.createElement("button", {
-    className: "bos-btn",
-    style: {
-      marginTop: 20
-    },
-    onClick: saveHabit
-  }, editing ? "Сохранить" : goalFor ? "Добавить в цель" : "Добавить привычку"), editing && /*#__PURE__*/React.createElement("button", {
+  }))), editing && /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {
       app?.removeHabit(params.habit.id);
@@ -1241,6 +1278,7 @@ function GoalFormSheetLive({
       marginTop: 2
     }
   }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0430\u0435\u0442 \u043A \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: linkHabit,
     onChange: setLinkHabit
   })), linkHabit && /*#__PURE__*/React.createElement("div", {
@@ -1336,6 +1374,7 @@ function GoalFormSheetLive({
       marginTop: 2
     }
   }, "\u0412\u043A\u043B\u044E\u0447\u0438 \u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: circleOn,
     onChange: setCircleOn
   }))), circleOn && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -1414,6 +1453,7 @@ function GoalFormSheetLive({
       marginTop: 14
     }
   }, /*#__PURE__*/React.createElement(Segmented, {
+    small: true,
     value: circleVis,
     onChange: setCircleVis,
     options: [{
@@ -1455,6 +1495,7 @@ function GoalFormSheetLive({
       lineHeight: 1.5
     }
   }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u0434\u043E \u0446\u0435\u043B\u0438 \u2014 \u0431\u0430\u043D\u043A \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u043A\u0430\u0436\u0434\u043E\u043C\u0443. \u041D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E, \u043D\u043E \u0430\u0437\u0430\u0440\u0442\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: stakeOn,
     onChange: setStakeOn
   })), stakeOn && /*#__PURE__*/React.createElement("div", {
@@ -1515,13 +1556,7 @@ function GoalFormSheetLive({
       color: "#2b5cb8",
       lineHeight: 1.4
     }
-  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), /*#__PURE__*/React.createElement("button", {
-    className: "bos-btn",
-    style: {
-      marginTop: 20
-    },
-    onClick: saveGoal
-  }, editing ? "Сохранить" : "Создать цель"), editing && /*#__PURE__*/React.createElement("button", {
+  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), editing && /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {
       app?.removeGoal(g0.id);

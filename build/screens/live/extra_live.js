@@ -1591,22 +1591,25 @@ function AIChatLive() {
     primary: "#fff",
     primaryFg: "#0a0a0a",
     meBubble: "#0a0a0a",
-    meText: "#fff"
+    meText: "#fff",
+    bubbleShadow: "none"
   } : {
-    bg: "#fafafa",
+    // Цветогамма приложения (David): лёгкий СЕРЫЙ фон страницы + БЕЛЫЕ «стеклянные»
+    // пузыри с мягкой тенью вместо обводок — как карточки на остальных экранах.
+    bg: "var(--bg, #f2f2f4)",
     text: "var(--text)",
     muted: "var(--text-4)",
     dim: "var(--text-5)",
     border: "var(--line)",
     aiBubble: "#fff",
-    aiBubbleBorder: "1px solid var(--line)",
+    aiBubbleBorder: "0",
     aiCard: "#fff",
-    aiCardBorder: "1px solid var(--line)",
+    aiCardBorder: "0",
     cardDivider: "1px solid var(--line)",
     chip: "#fff",
-    chipBorder: "1px solid var(--line)",
+    chipBorder: "0",
     composer: "#fff",
-    composerBorder: "1px solid var(--line)",
+    composerBorder: "0",
     iconBtn: "#fff",
     iconBtnBorder: "1px solid var(--line)",
     skipBg: "var(--surface-3)",
@@ -1618,7 +1621,8 @@ function AIChatLive() {
     primary: "#0a0a0a",
     primaryFg: "#fff",
     meBubble: "#0a0a0a",
-    meText: "#fff"
+    meText: "#fff",
+    bubbleShadow: "var(--card-shadow)"
   };
 
   // Each message: { who, kind, t, ...cardData }. Live chats persist LOCALLY on the
@@ -1758,6 +1762,7 @@ function AIChatLive() {
         style: {
           background: TH.aiBubble,
           border: TH.aiBubbleBorder,
+          boxShadow: TH.bubbleShadow,
           borderRadius: 22,
           borderBottomLeftRadius: 4,
           padding: "10px 14px",
@@ -1783,6 +1788,7 @@ function AIChatLive() {
           maxWidth: "78%",
           background: TH.aiBubble,
           border: TH.aiBubbleBorder,
+          boxShadow: TH.bubbleShadow,
           borderRadius: 22,
           borderBottomLeftRadius: 4,
           padding: "10px 14px",
@@ -1815,6 +1821,7 @@ function AIChatLive() {
             textAlign: "left",
             background: TH.aiCard,
             border: TH.aiCardBorder,
+            boxShadow: TH.bubbleShadow,
             borderRadius: 22,
             borderTopLeftRadius: 4,
             padding: "13px 16px",
@@ -1853,6 +1860,7 @@ function AIChatLive() {
           maxWidth: "85%",
           background: TH.aiCard,
           border: TH.aiCardBorder,
+          boxShadow: TH.bubbleShadow,
           borderRadius: 22,
           borderTopLeftRadius: 4,
           padding: 14,
@@ -1978,6 +1986,7 @@ function AIChatLive() {
         flex: 1,
         background: TH.aiCard,
         border: TH.aiCardBorder,
+        boxShadow: TH.bubbleShadow,
         borderRadius: 22,
         borderTopLeftRadius: 4,
         padding: 14,
@@ -2202,6 +2211,7 @@ function AIChatLive() {
     style: {
       background: TH.aiBubble,
       border: TH.aiBubbleBorder,
+      boxShadow: TH.bubbleShadow,
       borderRadius: 22,
       borderBottomLeftRadius: 4,
       padding: "12px 14px",
@@ -2233,13 +2243,17 @@ function AIChatLive() {
       animation: "typingDot 1.2s 0.4s ease-in-out infinite"
     }
   })))), /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
     style: {
-      padding: "0 14px 8px",
+      padding: "2px 14px 8px",
       display: "flex",
       gap: 6,
       overflowX: "auto"
     }
-  }, (app && app.aiBrief && Array.isArray(app.aiBrief.pills) && app.aiBrief.pills.length ? app.aiBrief.pills.slice(0, 4) : buildQuickPrompts(app)).map((s, i) => /*#__PURE__*/React.createElement("button", {
+  }, function () {
+    var raw = app && app.aiBrief && Array.isArray(app.aiBrief.pills) && app.aiBrief.pills.length ? app.aiBrief.pills.slice(0, 4) : buildQuickPrompts(app);
+    return typeof bosMixPillsLive === "function" ? bosMixPillsLive(raw, app) : raw;
+  }().map((s, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: () => tapPill(s),
     className: "tap",
@@ -2248,6 +2262,7 @@ function AIChatLive() {
       flexShrink: 0,
       background: TH.chip,
       border: TH.chipBorder,
+      boxShadow: TH.bubbleShadow,
       borderRadius: 999,
       padding: "8px 14px",
       fontSize: 12,
@@ -2268,6 +2283,7 @@ function AIChatLive() {
       flex: 1,
       background: TH.composer,
       border: TH.composerBorder,
+      boxShadow: TH.bubbleShadow,
       borderRadius: 999,
       padding: "10px 16px",
       display: "flex",

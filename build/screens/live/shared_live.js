@@ -23,6 +23,68 @@ async function aiReplyLive(history, ctx) {
   return AI_LIVE_FALLBACK;
 }
 
+/* Гарантия МИКСА чипов-подсказок (David): среди четырёх всегда 1-2 «действия»
+   (kind:"action" → реальный экран: состояние / создать привычку / цель) и 1-2
+   «разговора» (открывают чат). ИИ-чипы без kind считаются чатом; недостающие
+   действия добираются из реального состояния пользователя — никакой бутафории.
+   Используют: экран ИИ, чипы в чате, ИИ-сводка на главной. */
+function bosMixPillsLive(pills, app) {
+  var isAct = p => p && p.kind === "action" && p.route;
+  var src = Array.isArray(pills) ? pills.filter(Boolean) : [];
+  var fill = [];
+  try {
+    var tk = typeof bosTodayKey === "function" ? bosTodayKey() : "";
+    var moodSet = !!(app && app.dayMoods && app.dayMoods[tk] != null);
+    var nHabits = (app && app.habits || []).length;
+    if (!moodSet) fill.push({
+      kind: "action",
+      i: "🧭",
+      label: "Отметить состояние",
+      t: "Отметить состояние",
+      route: "mood",
+      params: null
+    });
+    var hLbl = nHabits ? "Ещё привычка" : "Создать привычку";
+    fill.push({
+      kind: "action",
+      i: "➕",
+      label: hLbl,
+      t: hLbl,
+      route: "habit-settings",
+      params: {
+        mode: "create"
+      }
+    });
+    fill.push({
+      kind: "action",
+      i: "🌟",
+      label: "Поставить цель",
+      t: "Поставить цель",
+      route: "goal-settings",
+      params: {
+        mode: "create"
+      }
+    });
+  } catch (e) {}
+  var seen = {};
+  var key = p => (p && (p.label || p.t || p.prompt) || "") + "";
+  var uniq = arr => arr.filter(p => {
+    var k = key(p);
+    return p && k && !seen[k] && (seen[k] = 1);
+  });
+  var chats = uniq(src.filter(p => !isAct(p)));
+  var acts = uniq(src.filter(isAct).concat(fill));
+  // Переплетаем: разговор, действие, разговор, действие; хвост — из остатков.
+  var out = [];
+  for (var k = 0; k < 2; k++) {
+    if (chats[k]) out.push(chats[k]);
+    if (acts[k]) out.push(acts[k]);
+  }
+  var rest = chats.slice(2).concat(acts.slice(2));
+  for (var _k = 0; out.length < 4 && _k < rest.length; _k++) out.push(rest[_k]);
+  return out.slice(0, 4);
+}
+
 /* Learning-cards visibility (Habits → «Обучение»). One persisted flag: hide once read,
    restore from Settings → Предпочтения. Synced across screens via a window event so the
    habits screen reacts the moment Settings flips it (David: «прочитал — хочу убрать»). */
@@ -5381,7 +5443,7 @@ function HomeHeroSwipeLive({
   // For LIVE the summary + pills come from the AI login brief (heuristic fallback if absent).
   var _liveBrief = heroApp?.aiBrief || null;
   var _homeSummary = _liveBrief && _liveBrief.summary || aiBrief;
-  var _livePills = _liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length ? _liveBrief.pills.slice(0, 4) : null;
+  var _livePills = _liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length ? typeof bosMixPillsLive === "function" ? bosMixPillsLive(_liveBrief.pills.slice(0, 4), heroApp) : _liveBrief.pills.slice(0, 4) : null;
   var _pillsKey = _livePills ? _livePills.map(bosPillLabel).join("|") : "live";
   // XP-to-next-level percent for the minimalist avatar ring (today's progress lives in the
   // «Привычки» card + «Эта неделя», so the ring is freed for level progress — David's call).
@@ -5548,7 +5610,7 @@ function HomeHeroSwipeLive({
       gap: 6,
       marginTop: 14
     }
-  }, (_livePills || [{
+  }, (_livePills || (typeof bosMixPillsLive === "function" ? bosMixPillsLive : x => x)([{
     i: "✨",
     t: "ИИ: спланируй день"
   }, {
@@ -5560,7 +5622,7 @@ function HomeHeroSwipeLive({
   }, {
     i: "📖",
     t: "Открыть дневник"
-  }]).map((c, i) => /*#__PURE__*/React.createElement("button", {
+  }], heroApp)).map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: () => bosRoutePill(navigate, c),
     className: "tap",
@@ -6392,20 +6454,21 @@ function PartnersShowcaseLive({
         lineHeight: 1
       }
     }, p.emblem), p.used > 0 && /*#__PURE__*/React.createElement("span", {
-      title: p.used + " человек уже воспользовались",
+      title: p.used + " человек посетили",
       style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 3.5,
-        fontSize: 11.5,
-        fontWeight: 700,
+        fontSize: 11,
+        fontWeight: 600,
         color: "rgba(27,27,31,0.48)",
-        paddingTop: 3
+        paddingTop: 3,
+        whiteSpace: "nowrap"
       }
     }, /*#__PURE__*/React.createElement(I.Users, {
-      size: 12,
+      size: 11.5,
       strokeWidth: 2.2
-    }), " ", p.used)), /*#__PURE__*/React.createElement("div", {
+    }), " \u043F\u043E\u0441\u0435\u0442\u0438\u043B\u0438 ", p.used)), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 15.5,
         fontWeight: 700,
@@ -6606,7 +6669,7 @@ function PartnerDetailLive() {
   }, /*#__PURE__*/React.createElement(I.Users, {
     size: 12,
     strokeWidth: 2.2
-  }), " \u0443\u0436\u0435 ", p.used), p.limit && /*#__PURE__*/React.createElement("span", {
+  }), " \u043F\u043E\u0441\u0435\u0442\u0438\u043B\u0438 ", p.used), p.limit && /*#__PURE__*/React.createElement("span", {
     style: {
       background: "rgba(255,255,255,0.6)",
       borderRadius: 999,

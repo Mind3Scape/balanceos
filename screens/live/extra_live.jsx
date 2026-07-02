@@ -699,15 +699,18 @@ function AIChatLive() {
     statValue: "#fff",
     primary: "#fff", primaryFg: "#0a0a0a",
     meBubble: "#0a0a0a", meText: "#fff",
+    bubbleShadow: "none",
   } : {
-    bg: "#fafafa",
+    // Цветогамма приложения (David): лёгкий СЕРЫЙ фон страницы + БЕЛЫЕ «стеклянные»
+    // пузыри с мягкой тенью вместо обводок — как карточки на остальных экранах.
+    bg: "var(--bg, #f2f2f4)",
     text: "var(--text)", muted: "var(--text-4)", dim: "var(--text-5)",
     border: "var(--line)",
-    aiBubble: "#fff", aiBubbleBorder: "1px solid var(--line)",
-    aiCard: "#fff", aiCardBorder: "1px solid var(--line)",
+    aiBubble: "#fff", aiBubbleBorder: "0",
+    aiCard: "#fff", aiCardBorder: "0",
     cardDivider: "1px solid var(--line)",
-    chip: "#fff", chipBorder: "1px solid var(--line)",
-    composer: "#fff", composerBorder: "1px solid var(--line)",
+    chip: "#fff", chipBorder: "0",
+    composer: "#fff", composerBorder: "0",
     iconBtn: "#fff", iconBtnBorder: "1px solid var(--line)",
     skipBg: "var(--surface-3)", skipBorder: 0,
     typingDot: "rgba(0,0,0,0.45)",
@@ -715,6 +718,7 @@ function AIChatLive() {
     statValue: "var(--text)",
     primary: "#0a0a0a", primaryFg: "#fff",
     meBubble: "#0a0a0a", meText: "#fff",
+    bubbleShadow: "var(--card-shadow)",
   };
 
   // Each message: { who, kind, t, ...cardData }. Live chats persist LOCALLY on the
@@ -794,7 +798,7 @@ function AIChatLive() {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
           <StateChatOrb size={28} tint={stateTint}/>
-          <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 22, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text }}>{m.t}</div>
+          <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text }}>{m.t}</div>
         </div>
       );
     }
@@ -802,7 +806,7 @@ function AIChatLive() {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
           <StateChatOrb size={28} tint={stateTint}/>
-          <div style={{ maxWidth: "78%", background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 22, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text, lineHeight: 1.45 }}>{m.t}</div>
+          <div style={{ maxWidth: "78%", background: TH.aiBubble, border: TH.aiBubbleBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderBottomLeftRadius: 4, padding: "10px 14px", fontSize: 14, color: TH.text, lineHeight: 1.45 }}>{m.t}</div>
         </div>
       );
     }
@@ -812,7 +816,7 @@ function AIChatLive() {
         return (
           <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
             <StateChatOrb size={28} tint={stateTint}/>
-            <button className="tap" onClick={() => navigate(a.route)} style={{ flex: 1, maxWidth: "85%", textAlign: "left", background: TH.aiCard, border: TH.aiCardBorder, borderRadius: 22, borderTopLeftRadius: 4, padding: "13px 16px", color: TH.text, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <button className="tap" onClick={() => navigate(a.route)} style={{ flex: 1, maxWidth: "85%", textAlign: "left", background: TH.aiCard, border: TH.aiCardBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderTopLeftRadius: 4, padding: "13px 16px", color: TH.text, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <span style={{ fontSize: 14, fontWeight: 600 }}>{a.label || "Открыть"}</span>
               <span style={{ fontSize: 17, color: TH.muted }}>→</span>
             </button>
@@ -822,7 +826,7 @@ function AIChatLive() {
       return (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
           <StateChatOrb size={28} tint={stateTint}/>
-          <div style={{ flex: 1, maxWidth: "85%", background: TH.aiCard, border: TH.aiCardBorder, borderRadius: 22, borderTopLeftRadius: 4, padding: 14, color: TH.text }}>
+          <div style={{ flex: 1, maxWidth: "85%", background: TH.aiCard, border: TH.aiCardBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderTopLeftRadius: 4, padding: 14, color: TH.text }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ width: 40, height: 40, borderRadius: 14, background: a.color ? a.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{a.emoji || "✨"}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -849,7 +853,7 @@ function AIChatLive() {
       <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", animation: "msgIn 0.4s ease both" }}>
         <StateChatOrb size={28} tint={stateTint}/>
         <div style={{
-          flex: 1, background: TH.aiCard, border: TH.aiCardBorder,
+          flex: 1, background: TH.aiCard, border: TH.aiCardBorder, boxShadow: TH.bubbleShadow,
           borderRadius: 22, borderTopLeftRadius: 4,
           padding: 14, color: TH.text, maxWidth: "85%",
           backdropFilter: "blur(20px)",
@@ -919,7 +923,7 @@ function AIChatLive() {
         {typing && (
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end", animation: "msgIn 0.4s ease both" }}>
             <StateChatOrb size={28} tint={stateTint}/>
-            <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, borderRadius: 22, borderBottomLeftRadius: 4, padding: "12px 14px", display: "flex", gap: 4 }}>
+            <div style={{ background: TH.aiBubble, border: TH.aiBubbleBorder, boxShadow: TH.bubbleShadow, borderRadius: 22, borderBottomLeftRadius: 4, padding: "12px 14px", display: "flex", gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0s ease-in-out infinite" }}/>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0.2s ease-in-out infinite" }}/>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: TH.typingDot, animation: "typingDot 1.2s 0.4s ease-in-out infinite" }}/>
@@ -929,10 +933,13 @@ function AIChatLive() {
       </div>
 
       {/* Quick prompts — the AI login-brief pills (personal) when present, otherwise the
-          context-aware heuristic set. */}
-      <div style={{ padding: "0 14px 8px", display: "flex", gap: 6, overflowX: "auto" }}>
-        {((app && app.aiBrief && Array.isArray(app.aiBrief.pills) && app.aiBrief.pills.length) ? app.aiBrief.pills.slice(0, 4) : buildQuickPrompts(app)).map((s, i) => (
-          <button key={i} onClick={() => tapPill(s)} className="tap" data-no-haptic style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          context-aware heuristic set. Микс гарантирован: 1-2 действия + 1-2 разговора. */}
+      <div className="bos-hscroll" style={{ padding: "2px 14px 8px", display: "flex", gap: 6, overflowX: "auto" }}>
+        {(function () {
+          const raw = (app && app.aiBrief && Array.isArray(app.aiBrief.pills) && app.aiBrief.pills.length) ? app.aiBrief.pills.slice(0, 4) : buildQuickPrompts(app);
+          return (typeof bosMixPillsLive === "function") ? bosMixPillsLive(raw, app) : raw;
+        })().map((s, i) => (
+          <button key={i} onClick={() => tapPill(s)} className="tap" data-no-haptic style={{ flexShrink: 0, background: TH.chip, border: TH.chipBorder, boxShadow: TH.bubbleShadow, borderRadius: 999, padding: "8px 14px", fontSize: 12, color: TH.text, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span>{s.i}</span> {s.label || s.t}
           </button>
         ))}
@@ -940,7 +947,7 @@ function AIChatLive() {
 
       {/* Composer — flush, no border line */}
       <div style={{ padding: "10px 14px 16px", display: "flex", gap: 8, alignItems: "center" }}>
-        <div style={{ flex: 1, background: TH.composer, border: TH.composerBorder, borderRadius: 999, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ flex: 1, background: TH.composer, border: TH.composerBorder, boxShadow: TH.bubbleShadow, borderRadius: 999, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
           <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Напиши сообщение…" style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: TH.text, fontSize: 16 }}/>
         </div>
         <button onClick={() => send()} className="tap" style={{ width: 44, height: 44, borderRadius: "50%", background: TH.primary, border: 0, display: "grid", placeItems: "center" }}>

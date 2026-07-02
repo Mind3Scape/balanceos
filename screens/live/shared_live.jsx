@@ -18,6 +18,37 @@ async function aiReplyLive(history, ctx) {
   return AI_LIVE_FALLBACK;
 }
 
+/* Гарантия МИКСА чипов-подсказок (David): среди четырёх всегда 1-2 «действия»
+   (kind:"action" → реальный экран: состояние / создать привычку / цель) и 1-2
+   «разговора» (открывают чат). ИИ-чипы без kind считаются чатом; недостающие
+   действия добираются из реального состояния пользователя — никакой бутафории.
+   Используют: экран ИИ, чипы в чате, ИИ-сводка на главной. */
+function bosMixPillsLive(pills, app) {
+  const isAct = (p) => p && p.kind === "action" && p.route;
+  const src = Array.isArray(pills) ? pills.filter(Boolean) : [];
+  const fill = [];
+  try {
+    const tk = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+    const moodSet = !!(app && app.dayMoods && app.dayMoods[tk] != null);
+    const nHabits = ((app && app.habits) || []).length;
+    if (!moodSet) fill.push({ kind: "action", i: "🧭", label: "Отметить состояние", t: "Отметить состояние", route: "mood", params: null });
+    const hLbl = nHabits ? "Ещё привычка" : "Создать привычку";
+    fill.push({ kind: "action", i: "➕", label: hLbl, t: hLbl, route: "habit-settings", params: { mode: "create" } });
+    fill.push({ kind: "action", i: "🌟", label: "Поставить цель", t: "Поставить цель", route: "goal-settings", params: { mode: "create" } });
+  } catch (e) {}
+  const seen = {};
+  const key = (p) => ((p && (p.label || p.t || p.prompt)) || "") + "";
+  const uniq = (arr) => arr.filter((p) => { const k = key(p); return p && k && !seen[k] && (seen[k] = 1); });
+  const chats = uniq(src.filter((p) => !isAct(p)));
+  const acts = uniq(src.filter(isAct).concat(fill));
+  // Переплетаем: разговор, действие, разговор, действие; хвост — из остатков.
+  const out = [];
+  for (let k = 0; k < 2; k++) { if (chats[k]) out.push(chats[k]); if (acts[k]) out.push(acts[k]); }
+  const rest = chats.slice(2).concat(acts.slice(2));
+  for (let k = 0; out.length < 4 && k < rest.length; k++) out.push(rest[k]);
+  return out.slice(0, 4);
+}
+
 /* Learning-cards visibility (Habits → «Обучение»). One persisted flag: hide once read,
    restore from Settings → Предпочтения. Synced across screens via a window event so the
    habits screen reacts the moment Settings flips it (David: «прочитал — хочу убрать»). */
@@ -2274,7 +2305,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
   const _liveBrief = heroApp?.aiBrief || null;
   const _homeSummary = (_liveBrief && _liveBrief.summary) || aiBrief;
   const _livePills = (_liveBrief && Array.isArray(_liveBrief.pills) && _liveBrief.pills.length)
-    ? _liveBrief.pills.slice(0, 4) : null;
+    ? ((typeof bosMixPillsLive === "function") ? bosMixPillsLive(_liveBrief.pills.slice(0, 4), heroApp) : _liveBrief.pills.slice(0, 4)) : null;
   const _pillsKey = _livePills ? _livePills.map(bosPillLabel).join("|") : "live";
   // XP-to-next-level percent for the minimalist avatar ring (today's progress lives in the
   // «Привычки» card + «Эта неделя», so the ring is freed for level progress — David's call).
@@ -2317,12 +2348,12 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
         <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={64} isDark={isDark} />
       </div>
       <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
-        {(_livePills || [
+        {(_livePills || ((typeof bosMixPillsLive === "function") ? bosMixPillsLive : (x) => x)([
           { i: "✨", t: "ИИ: спланируй день" },
           { i: "🔮", t: "Познай себя" },
           { i: "🧘🏼‍♀️", t: "Медитация 5 мин" },
           { i: "📖", t: "Открыть дневник" },
-        ]).map((c, i) => (
+        ], heroApp)).map((c, i) => (
           <button key={i} onClick={() => bosRoutePill(navigate, c)} className="tap" style={{
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
             ...bosChipGlass(isDark), border: 0, minWidth: 0, maxWidth: "calc(50% - 3px)",
@@ -2585,7 +2616,7 @@ function PartnersShowcaseLive({ app, navigate, from = "community" }) {
                   пилюлю цены и сам не читался). Тихий, но на свободном воздухе — считывается. */}
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 36, lineHeight: 1 }}>{p.emblem}</span>
-                {p.used > 0 && <span title={p.used + " человек уже воспользовались"} style={{ display: "inline-flex", alignItems: "center", gap: 3.5, fontSize: 11.5, fontWeight: 700, color: "rgba(27,27,31,0.48)", paddingTop: 3 }}><I.Users size={12} strokeWidth={2.2} /> {p.used}</span>}
+                {p.used > 0 && <span title={p.used + " человек посетили"} style={{ display: "inline-flex", alignItems: "center", gap: 3.5, fontSize: 11, fontWeight: 600, color: "rgba(27,27,31,0.48)", paddingTop: 3, whiteSpace: "nowrap" }}><I.Users size={11.5} strokeWidth={2.2} /> посетили {p.used}</span>}
               </div>
               <div style={{ fontSize: 15.5, fontWeight: 700, color: "#1b1b1f", marginTop: 12, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
               <div style={{ fontSize: 11.5, color: "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
@@ -2645,8 +2676,8 @@ function PartnerDetailLive() {
             (серый человечек — сколько людей уже потратили тут свою XP). */}
         <div style={{ display: "flex", gap: 6, marginTop: 13, flexWrap: "wrap" }}>
           {p.tags.map((t, i) => <span key={i} style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600 }}>{t}</span>)}
-          {/* Лаконично: человечек + «уже N» (David: «N человек уже было» — некрасиво). */}
-          {p.used > 0 && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "rgba(42,42,48,0.72)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}><I.Users size={12} strokeWidth={2.2} /> уже {p.used}</span>}
+          {/* «посетили N» — понятное слово вместо «уже N» (David: «уже 150 — вообще непонятно»). */}
+          {p.used > 0 && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "rgba(42,42,48,0.72)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}><I.Users size={12} strokeWidth={2.2} /> посетили {p.used}</span>}
           {p.limit && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>👥 {p.limit}</span>}
           {p.perk && <span style={{ background: "rgba(255,255,255,0.92)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#0a0a0a", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}>🏅 {p.perk}</span>}
         </div>

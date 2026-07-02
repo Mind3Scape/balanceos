@@ -513,6 +513,8 @@ function AILive() {
   // Fallback to context-aware prompts so a returning user never sees an empty list.
   var pills = brief && Array.isArray(brief.pills) && brief.pills.length ? brief.pills.slice(0, 4) : [];
   if (!pills.length && !isBlank && typeof buildQuickPrompts === "function") pills = buildQuickPrompts(app).slice(0, 4);
+  // МИКС гарантирован (David): 1-2 чипа → реальный функционал, 1-2 → чат.
+  if (!isBlank && typeof bosMixPillsLive === "function") pills = bosMixPillsLive(pills, app);
   var planPrompt = "Помоги составить простой план на сегодня по моим привычкам.";
 
   // «Следующие шаги» route to REAL features, not always the chat. New pills carry
@@ -559,29 +561,30 @@ function AILive() {
     "data-tour": "ai-chat-btn",
     onClick: () => navigate("ai-chat"),
     className: "tap",
+    "aria-label": "\u0427\u0430\u0442",
     style: {
-      height: 36,
-      padding: "0 14px",
-      borderRadius: 999,
-      background: "#0a0a0a",
-      color: "#fff",
+      width: 38,
+      height: 38,
+      borderRadius: "50%",
       border: 0,
-      fontSize: 13,
-      fontWeight: 500,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6
+      cursor: "pointer",
+      background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + "#fff",
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(false) : "var(--card-shadow)",
+      color: "var(--text-2)",
+      display: "grid",
+      placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement(I.MessageCircle, {
-    size: 14
-  }), " \u0427\u0430\u0442")), /*#__PURE__*/React.createElement("div", {
+    size: 17,
+    strokeWidth: 2
+  }))), /*#__PURE__*/React.createElement("div", {
     "data-tour": "ai-hero",
     style: {
       position: "relative",
       overflow: "hidden",
       background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
       borderRadius: 22,
-      padding: "22px 22px 24px",
+      padding: "14px 16px 14px",
       color: "#fff"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -594,27 +597,27 @@ function AILive() {
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 16,
+      gap: 13,
       alignItems: "center",
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       flexShrink: 0,
-      width: 112,
-      height: 112,
+      width: 74,
+      height: 74,
       display: "grid",
       placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement("svg", {
     viewBox: "-80 -80 160 160",
-    width: "112",
-    height: "112",
+    width: "74",
+    height: "74",
     style: {
       overflow: "visible"
     }
   }, /*#__PURE__*/React.createElement(SiriOrb, {
-    r: 42,
+    r: 46,
     tint: liveTint,
     t: t,
     intensity: 1
@@ -625,62 +628,32 @@ function AILive() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 10.5,
       color: "rgba(180,210,255,0.85)",
       fontWeight: 600,
-      letterSpacing: 1.4,
+      letterSpacing: 1.3,
       textTransform: "uppercase"
     }
   }, moodName ? "Сейчас · " + (moodIcon ? moodIcon + " " : "") + moodName : "Сегодня"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",
-      fontSize: 19,
-      lineHeight: 1.28,
-      marginTop: 6,
-      letterSpacing: "-0.3px"
+      fontSize: 15,
+      lineHeight: 1.34,
+      marginTop: 4,
+      letterSpacing: "-0.2px"
     }
   }, headline), hint && /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      color: "rgba(255,255,255,0.7)",
-      marginTop: 8,
-      lineHeight: 1.5
+      fontSize: 11.5,
+      color: "rgba(255,255,255,0.65)",
+      marginTop: 5,
+      lineHeight: 1.45
     }
-  }, hint))), !isBlank && /*#__PURE__*/React.createElement("div", {
+  }, hint))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
-      marginTop: 16,
-      position: "relative"
-    }
-  }, [["Сегодня", liveHabits.length ? doneToday + "/" + liveHabits.length : "—"], ["Серия", maxStreak ? maxStreak + " дн" : "—"], ["Уровень", lvl.level]].map((s, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      flex: 1,
-      background: "rgba(255,255,255,0.08)",
-      border: "1px solid rgba(255,255,255,0.12)",
-      borderRadius: 14,
-      padding: "10px 8px",
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 17,
-      fontWeight: 700,
-      letterSpacing: "-0.3px"
-    }
-  }, s[1]), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "rgba(255,255,255,0.6)",
-      marginTop: 2,
-      letterSpacing: 0.4
-    }
-  }, s[0])))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginTop: 16,
+      marginTop: 11,
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement("button", {
@@ -689,39 +662,115 @@ function AILive() {
     }),
     className: "tap",
     style: {
-      flex: 1,
-      background: "var(--card)",
+      background: "#fff",
       color: "#0a1424",
       border: 0,
       borderRadius: 999,
-      padding: "12px 14px",
-      fontSize: 14,
+      padding: "7px 13px",
+      fontSize: 12.5,
       fontWeight: 600,
       display: "inline-flex",
       alignItems: "center",
-      justifyContent: "center",
-      gap: 6
+      gap: 5
     }
   }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 15
-  }), " \u041F\u043E\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u043F\u043B\u0430\u043D"), /*#__PURE__*/React.createElement("button", {
+    size: 13
+  }), " \u041F\u043B\u0430\u043D \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("button", {
     onClick: () => navigate("ai-chat"),
     className: "tap",
     style: {
-      background: "rgba(255,255,255,0.1)",
+      background: "rgba(255,255,255,0.12)",
       color: "#fff",
-      border: "1px solid rgba(255,255,255,0.15)",
+      border: 0,
+      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.16)",
       borderRadius: 999,
-      padding: "12px 16px",
-      fontSize: 14,
+      padding: "7px 13px",
+      fontSize: 12.5,
       fontWeight: 500,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement(I.MessageCircle, {
+    size: 13
+  }), " \u041F\u043E\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 10,
+      marginTop: 10,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "0 2px 0 8px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: ask,
+    onChange: e => setAsk(e.target.value),
+    placeholder: "\u0421\u043F\u0440\u043E\u0441\u0438\u0442\u044C Balance AI\u2026",
+    onKeyDown: e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? {
+      prompt: ask
+    } : {}),
+    style: {
+      flex: 1,
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      color: "var(--text)",
+      fontSize: 14,
+      padding: "8px 4px"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate("ai-chat", ask.trim() ? {
+      prompt: ask
+    } : {}),
+    className: "tap hit44",
+    "aria-label": "\u0421\u043F\u0440\u043E\u0441\u0438\u0442\u044C",
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: "50%",
+      background: "#0a0a0a",
+      border: 0,
+      color: "#fff",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Send, {
+    size: 13
+  })))), !isBlank && pills.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 10,
+      overflowX: "auto",
+      padding: "2px 2px 4px"
+    }
+  }, pills.map((p, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => goPill(p),
+    className: "tap",
+    "data-no-haptic": true,
+    style: {
+      flexShrink: 0,
+      background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + "#fff",
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(false) : "var(--card-shadow)",
+      border: 0,
+      borderRadius: 999,
+      padding: "7px 12px",
+      fontSize: 12,
+      color: "var(--text-2)",
       display: "inline-flex",
       alignItems: "center",
       gap: 6
     }
-  }, /*#__PURE__*/React.createElement(I.MessageCircle, {
-    size: 14
-  }), " \u041F\u043E\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C"))), isBlank ?
+  }, /*#__PURE__*/React.createElement("span", null, p && p.i || "✨"), " ", pillLabel(p)))), isBlank ?
   /*#__PURE__*/
   /* HONEST empty state for a brand-new live user — no fake recommendations.
      Two real first steps: check in your state, or just start a conversation. */
@@ -832,132 +881,88 @@ function AILive() {
       padding: "0 24px",
       lineHeight: 1.5
     }
-  }, "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C, \u043A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u043D\u0430\u0431\u0435\u0440\u0451\u0442\u0441\u044F \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u0442\u0432\u043E\u0438\u0445 \u0434\u0430\u043D\u043D\u044B\u0445.")) : (
-  /* Real next-step suggestions — the AI brief pills as tappable cards.
-     Tap → open the chat already primed with that step. */
-  pills.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C, \u043A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u043D\u0430\u0431\u0435\u0440\u0451\u0442\u0441\u044F \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u0442\u0432\u043E\u0438\u0445 \u0434\u0430\u043D\u043D\u044B\u0445.")) : null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 18,
       color: "var(--text-3)",
       padding: "0 4px"
     }
-  }, "\u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0435 \u0448\u0430\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043A\u043E\u0440\u043E \u0432 Balance AI"), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      flexDirection: "column",
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
       gap: 8,
       marginTop: 8
     }
-  }, pills.map((p, i) => {
-    var isChat = !p || typeof p === "string" || p.kind !== "action";
-    return /*#__PURE__*/React.createElement("button", {
-      key: i,
-      onClick: () => goPill(p),
-      className: "tap",
-      style: {
-        width: "100%",
-        background: "var(--card)",
-        borderRadius: 22,
-        boxShadow: "var(--card-shadow)",
-        border: 0,
-        padding: 14,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        textAlign: "left",
-        color: "var(--text)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        background: "linear-gradient(135deg, #e9f1ff, #cfe1ff)",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 22,
-        flexShrink: 0
-      }
-    }, p && p.i || "✨"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14.5,
-        fontWeight: 600,
-        color: "var(--text)"
-      }
-    }, pillLabel(p)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12.5,
-        color: "var(--text-4)",
-        marginTop: 2,
-        lineHeight: 1.45
-      }
-    }, isChat ? "Обсудить с помощником →" : "Открыть →")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-      size: 18,
-      color: "var(--text-4)",
-      style: {
-        flexShrink: 0
-      }
-    }));
-  })))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 18,
-      color: "var(--text-3)",
-      padding: "0 4px"
-    }
-  }, "\u0421\u043F\u0440\u043E\u0441\u0438 \u0447\u0442\u043E \u0443\u0433\u043E\u0434\u043D\u043E"), /*#__PURE__*/React.createElement("div", {
+  }, [{
+    i: "📊",
+    t: "Аналитика",
+    need: 10,
+    d: "Твои закономерности: что качает, а что мешает."
+  }, {
+    i: "🧠",
+    t: "Наставник",
+    need: 15,
+    d: "Личная программа и разбор недели."
+  }].map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.t,
     style: {
       background: "var(--card)",
       borderRadius: 22,
       padding: 14,
-      marginTop: 8,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      padding: "2px 6px"
+      justifyContent: "space-between"
     }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: ask,
-    onChange: e => setAsk(e.target.value),
-    placeholder: "\u0421\u043F\u0440\u043E\u0441\u0438\u0442\u044C Balance AI\u2026",
-    onKeyDown: e => e.key === "Enter" && navigate("ai-chat", ask.trim() ? {
-      prompt: ask
-    } : {}),
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: 1,
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      color: "var(--text)",
-      fontSize: 14,
-      padding: "10px 6px"
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("ai-chat", ask.trim() ? {
-      prompt: ask
-    } : {}),
-    className: "tap hit44",
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: "50%",
-      background: "#0a0a0a",
-      border: 0,
-      color: "#fff",
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      background: "var(--surface-3)",
       display: "grid",
-      placeItems: "center"
+      placeItems: "center",
+      fontSize: 19
     }
-  }, /*#__PURE__*/React.createElement(I.Send, {
-    size: 14
-  })))));
+  }, f.i), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "var(--text-4)",
+      background: "var(--surface-3)",
+      borderRadius: 999,
+      padding: "4px 9px"
+    }
+  }, /*#__PURE__*/React.createElement(I.Lock, {
+    size: 10,
+    strokeWidth: 2.2
+  }), " ", f.need, " \u0443\u0440.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      marginTop: 10,
+      color: "var(--text)"
+    }
+  }, f.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)",
+      marginTop: 3,
+      lineHeight: 1.4
+    }
+  }, f.d), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)",
+      marginTop: 8
+    }
+  }, lvl.level >= f.need ? "Готовим к запуску ✨" : "Твой уровень — " + lvl.level + " из " + f.need)))));
 }

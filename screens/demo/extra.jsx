@@ -864,7 +864,15 @@ async function bosAiBrief(app) {
       (out.pills || []).concat(base.pills || []).forEach((p) => {
         if (p && p.t && !have[p.t]) { have[p.t] = 1; merged.push(p); }
       });
-      out.pills = merged.slice(0, 4);
+      // МИКС гарантирован (David): 1-2 чипа-«действия» (kind:"action" → реальный экран)
+      // + 1-2 чипа-«разговора» (чат). ИИ обычно отдаёт разговоры; действия — из эвристики.
+      const isAct = (p) => p && p.kind === "action" && p.route;
+      const chats = merged.filter((p) => !isAct(p)), acts = merged.filter(isAct);
+      const mixed = [];
+      for (let k = 0; k < 2; k++) { if (chats[k]) mixed.push(chats[k]); if (acts[k]) mixed.push(acts[k]); }
+      const rest = chats.slice(2).concat(acts.slice(2));
+      for (let k = 0; mixed.length < 4 && k < rest.length; k++) mixed.push(rest[k]);
+      out.pills = mixed.slice(0, 4);
       return out;
     }
   } catch (e) { /* keep heuristic */ }

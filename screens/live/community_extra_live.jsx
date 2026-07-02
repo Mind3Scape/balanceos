@@ -538,7 +538,11 @@ function TeamQuickEditSheetLive({ team, navigate }) {
   }
   return (
     <div style={{ padding: "2px 18px 20px", maxHeight: "80vh", overflowY: "auto" }}>
-      <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 6 }}>Изменить цель</div>
+      {/* Единый язык форм-шторок: серый фон + шапка ✕/✓ (David: «стандартизировать везде»). */}
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      {typeof SheetFormHeadLive === "function"
+        ? <SheetFormHeadLive title="Изменить цель" onClose={close} onDone={save} />
+        : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 6 }}>Изменить цель</div>}
 
       {/* Идентичность — тот же вид, что в создании/настройках: белая карточка + красящаяся плитка + пикер. */}
       <div style={{ background: "#fff", borderRadius: 22, padding: 14, marginTop: 6, boxShadow: "var(--card-shadow)" }}>
@@ -582,14 +586,14 @@ function TeamQuickEditSheetLive({ team, navigate }) {
 
       {/* Видимость — без подписи. */}
       <div style={{ marginTop: 14 }}>
-        <Segmented value={priv ? "private" : "public"} onChange={(v) => setPriv(v === "private")} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Публичная" }]} />
+        <Segmented small value={priv ? "private" : "public"} onChange={(v) => setPriv(v === "private")} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Публичная" }]} />
       </div>
 
       {/* Ставка — без подписи. */}
       <div style={{ background: "var(--card)", borderRadius: 18, padding: 14, marginTop: 18, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Все ставят XP<div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4, fontWeight: 400 }}>Дойдёте — банк раскроется. Опционально.</div></div>
-          <Switch on={stakes} onChange={setStakes}/>
+          <Switch small on={stakes} onChange={setStakes}/>
         </div>
         {stakes && (
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -600,8 +604,8 @@ function TeamQuickEditSheetLive({ team, navigate }) {
         )}
       </div>
 
-      <button className="bos-btn" disabled={saving} style={{ marginTop: 18, opacity: saving ? 0.65 : 1 }} onClick={save}>{saving ? "Сохраняем…" : "Сохранить"}</button>
-      <button onClick={() => { close(); navigate("team-settings", { team }); }} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 4, fontSize: 13.5, fontWeight: 600 }}>Все настройки и участники →</button>
+      {/* Нижней кнопки сохранения НЕТ — только «✓» в шапке (единый язык всех форм-шторок). */}
+      <button onClick={() => { close(); navigate("team-settings", { team }); }} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 14, fontSize: 13.5, fontWeight: 600 }}>Все настройки и участники →</button>
       {/* УДАЛИТЬ КРУГ — здесь, на правке (карандаш), а не на главной круга (David). Шторка правки = owner-only. */}
       <button onClick={() => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet })} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: "12px", marginTop: 2, fontSize: 13.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Trash size={16}/> Удалить цель</button>
     </div>
@@ -638,10 +642,11 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
   }
   return (
     <div style={{ padding: "2px 20px 8px", color: "var(--text)" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Новая привычка команды</div>
-        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 3 }}>Общая для всех в «{team?.name || "команде"}»</div>
-      </div>
+      {/* Единая шапка форм-шторок: ✕ слева, ✓ справа (David: «стандартизировать везде»). */}
+      {typeof SheetFormHeadLive === "function"
+        ? <SheetFormHeadLive title="Привычка команды" onClose={close} onDone={save} />
+        : <div style={{ textAlign: "center", fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Новая привычка команды</div>}
+      <div style={{ textAlign: "center", fontSize: 13.5, color: "var(--text-3)", marginTop: 2 }}>Общая для всех в «{team?.name || "команде"}»</div>
       {/* Идентичность — иконка (тап → пикер) + имя в ОДНОМ блоке (David: «не отдельно сменить иконку и
           название ниже»), как карточка создания личной привычки. */}
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12, background: "var(--surface-3)", borderRadius: 16, padding: 10 }}>
@@ -682,7 +687,7 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
             <div style={{ fontSize: 14.5 }}>Двигает цель команды</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Отметка участника = +1 к общей цели</div>
           </div>
-          <Switch on={movesGoal} onChange={setMovesGoal} />
+          <Switch small on={movesGoal} onChange={setMovesGoal} />
         </div>
         <div style={{ height: 1, background: "var(--line)" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0" }}>
@@ -690,10 +695,10 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
             <div style={{ fontSize: 14.5 }}>Сделать главной</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Станет «якорем» команды</div>
           </div>
-          <Switch on={isMain} onChange={setIsMain} />
+          <Switch small on={isMain} onChange={setIsMain} />
         </div>
       </div>
-      <button className="bos-btn" style={{ marginTop: 20, marginBottom: 2 }} onClick={save}>Добавить привычку</button>
+      {/* Нижней кнопки НЕТ — сохранение через «✓» в шапке (единый язык форм-шторок). */}
     </div>
   );
 }
