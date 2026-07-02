@@ -793,7 +793,7 @@ function OrbitField({
       position: "absolute",
       left: "50%",
       top: "50%",
-      transform: "translate(-50%,-50%) scale(" + (openMode ? lerp(2.6, 1.9, eo) : 1).toFixed(3) + ")",
+      transform: "translate(-50%,-50%) scale(" + (openMode ? lerp(2.6, 1.05, eo) : 1).toFixed(3) + ")",
       width: 60,
       height: 60,
       borderRadius: "50%",

@@ -298,7 +298,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           with your avatar nested inside it. tap to change avatar. open<1 (Вселенная): кольца свёрнуты,
           а центр-аватар РАЗДУВАЕТСЯ (до ~2.6×), заполняя ячейку → дальняя система = плотный диск-иконка
           (тайлится встык, Apple-Watch), у центра сжимается обратно к 60px и вокруг расцветают кольца. */}
-      <button onClick={onTap} className="tap" aria-label={editable ? "Сменить аватар" : (name || "Круг")} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%) scale(" + (openMode ? lerp(2.6, 1.9, eo) : 1).toFixed(3) + ")", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: onTap ? "pointer" : "default", opacity: openMode ? 1 : eo }}>
+      <button onClick={onTap} className="tap" aria-label={editable ? "Сменить аватар" : (name || "Круг")} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%) scale(" + (openMode ? lerp(2.6, 1.05, eo) : 1).toFixed(3) + ")", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: onTap ? "pointer" : "default", opacity: openMode ? 1 : eo }}>
         {/* Gold XP ring around the centre (same as the home avatar) when a level badge is requested. */}
         {levelBadge > 0 && (
           <svg width="60" height="60" viewBox="0 0 60 60" aria-hidden style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
