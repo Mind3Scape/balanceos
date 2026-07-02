@@ -2931,7 +2931,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // экрана, крупнеют и раскрывают кольца; уходящие к краю — мельчают и сворачиваются в точку-аватар.
   // Никто не «король»: большой = тот, кто сейчас в центре. Pointer Events = и мышь, и тач; 2 пальца
   // = пинч; чистый тап = закрыть. Открытие — мягкий зум-ин + проявление (shown).
-  var [view, setView] = React.useState({ s: 0.96, x: 0, y: 0, anim: true });
+  var [view, setView] = React.useState({ s: 0.82, x: 0, y: 0, anim: true });
   var [shown, setShown] = React.useState(false);
   React.useEffect(function () {
     var a = requestAnimationFrame(function () { var b = requestAnimationFrame(function () { setShown(true); }); vp.current._raf2 = b; });
@@ -2965,12 +2965,22 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
   // ЛИНЗА ЦЕНТРА: для каждой системы считаем, насколько её экранная точка близко к середине экрана
   // (1 — ровно в центре, 0 — далеко). Эта величина задаёт и размер (focal), и раскрытие колец (open).
-  var FOCR = Math.min(W, H) * 0.6;                     // радиус зоны увеличения
   var introK = shown ? 1 : 0.9;                        // мягкий зум-ин на открытии
-  function _focC(gx, gy) {
+  // РАЗМЕР — по близости к центру (мягкий Apple-Watch фокус: центр крупнее, но соседи на экране
+  // остаются целостными, не крошечными). Широкий радиус → на экране размеры близкие.
+  var SZR = Math.min(W, H) * 0.95;
+  function _focScale(gx, gy) {
     var dx = (gx - layout.cx) * view.s + view.x, dy = (gy - layout.cy) * view.s + view.y;
-    var d = Math.sqrt(dx * dx + dy * dy) / FOCR;
-    return 1 - _bosSm(d > 1 ? 1 : d);
+    var d = Math.sqrt(dx * dx + dy * dy) / SZR;
+    return _bosLp(0.72, 1.26, 1 - _bosSm(d > 1 ? 1 : d));
+  }
+  // РАСКРЫТИЕ КОЛЕЦ — по тому, насколько система В ПРЕДЕЛАХ ЭКРАНА (David: «те, что помещаются —
+  // раскрыты; полностью сворачиваются, ТОЛЬКО уходя ЗА экран»). edge = расстояние до ближайшего края:
+  // внутри → раскрыто, у самого края → полу-раскрыто, за экраном → свёрнуто в точку-аватар.
+  function _focOpen(gx, gy) {
+    var sx = layout.cx + (gx - layout.cx) * view.s + view.x, sy = layout.cy + (gy - layout.cy) * view.s + view.y;
+    var edge = Math.min(sx, W - sx, sy, H - sy);
+    return _bosSm((edge + 55) / 110);
   }
   // Твоя система — ТАКАЯ ЖЕ, как у всех (не гигант): крупной её делает только центр экрана. Кормим
   // её твоими РЕАЛЬНЫМИ привычками/людьми/уровнем, и ставим в центр вселенной (layout.cx/cy).
@@ -2991,9 +3001,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
               краю → мельче и свёрнуты в точку-аватар. Твоя (you) — с золотым кольцом уровня, без
               жёлтой дуги (hideLevelArc), центр вселенной. zIndex по близости — центр всегда сверху. */}
           {allSys.map(function (pl, i) {
-            var sp = pl.sp, c = _focC(pl.x, pl.y), fsc = _bosLp(0.5, 1.16, c), openV = _bosSm((c - 0.2) / 0.55), k = (sp.size / 300) * fsc;
+            var sp = pl.sp, fsc = _focScale(pl.x, pl.y), openV = _focOpen(pl.x, pl.y), k = (sp.size / 300) * fsc;
             return (
-              <div key={pl.you ? "you" : ("o" + i)} style={{ position: "absolute", left: pl.x.toFixed(1) + "px", top: pl.y.toFixed(1) + "px", pointerEvents: "none", zIndex: Math.round(c * 100) }}>
+              <div key={pl.you ? "you" : ("o" + i)} style={{ position: "absolute", left: pl.x.toFixed(1) + "px", top: pl.y.toFixed(1) + "px", pointerEvents: "none", zIndex: Math.round(fsc * 100) }}>
                 <div style={{ position: "absolute", width: 300, height: 300, left: -150, top: -150, transform: "scale(" + k.toFixed(3) + ")", transformOrigin: "150px 150px", transition: view.anim ? "transform 0.3s ease" : "none" }}>
                   {(typeof OrbitField === "function") ? <OrbitField avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={pl.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={!!pl.you} editable={false} levelBadge={sp.level} open={openV} /> : null}
                 </div>

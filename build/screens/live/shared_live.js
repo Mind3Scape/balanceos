@@ -7540,7 +7540,7 @@ function UniverseFieldLive({
   // Никто не «король»: большой = тот, кто сейчас в центре. Pointer Events = и мышь, и тач; 2 пальца
   // = пинч; чистый тап = закрыть. Открытие — мягкий зум-ин + проявление (shown).
   var [view, setView] = React.useState({
-    s: 0.96,
+    s: 0.82,
     x: 0,
     y: 0,
     anim: true
@@ -7677,13 +7677,24 @@ function UniverseFieldLive({
   var sub = friends == null ? "" : list.length ? list.length + " " + plural + " рядом — у каждого своя орбита" : "пока только твоя система — позови своих";
   // ЛИНЗА ЦЕНТРА: для каждой системы считаем, насколько её экранная точка близко к середине экрана
   // (1 — ровно в центре, 0 — далеко). Эта величина задаёт и размер (focal), и раскрытие колец (open).
-  var FOCR = Math.min(W, H) * 0.6; // радиус зоны увеличения
   var introK = shown ? 1 : 0.9; // мягкий зум-ин на открытии
-  function _focC(gx, gy) {
+  // РАЗМЕР — по близости к центру (мягкий Apple-Watch фокус: центр крупнее, но соседи на экране
+  // остаются целостными, не крошечными). Широкий радиус → на экране размеры близкие.
+  var SZR = Math.min(W, H) * 0.95;
+  function _focScale(gx, gy) {
     var dx = (gx - layout.cx) * view.s + view.x,
       dy = (gy - layout.cy) * view.s + view.y;
-    var d = Math.sqrt(dx * dx + dy * dy) / FOCR;
-    return 1 - _bosSm(d > 1 ? 1 : d);
+    var d = Math.sqrt(dx * dx + dy * dy) / SZR;
+    return _bosLp(0.72, 1.26, 1 - _bosSm(d > 1 ? 1 : d));
+  }
+  // РАСКРЫТИЕ КОЛЕЦ — по тому, насколько система В ПРЕДЕЛАХ ЭКРАНА (David: «те, что помещаются —
+  // раскрыты; полностью сворачиваются, ТОЛЬКО уходя ЗА экран»). edge = расстояние до ближайшего края:
+  // внутри → раскрыто, у самого края → полу-раскрыто, за экраном → свёрнуто в точку-аватар.
+  function _focOpen(gx, gy) {
+    var sx = layout.cx + (gx - layout.cx) * view.s + view.x,
+      sy = layout.cy + (gy - layout.cy) * view.s + view.y;
+    var edge = Math.min(sx, W - sx, sy, H - sy);
+    return _bosSm((edge + 55) / 110);
   }
   // Твоя система — ТАКАЯ ЖЕ, как у всех (не гигант): крупной её делает только центр экрана. Кормим
   // её твоими РЕАЛЬНЫМИ привычками/людьми/уровнем, и ставим в центр вселенной (layout.cx/cy).
@@ -7750,9 +7761,8 @@ function UniverseFieldLive({
     style: galStyle
   }, allSys.map(function (pl, i) {
     var sp = pl.sp,
-      c = _focC(pl.x, pl.y),
-      fsc = _bosLp(0.5, 1.16, c),
-      openV = _bosSm((c - 0.2) / 0.55),
+      fsc = _focScale(pl.x, pl.y),
+      openV = _focOpen(pl.x, pl.y),
       k = sp.size / 300 * fsc;
     return /*#__PURE__*/React.createElement("div", {
       key: pl.you ? "you" : "o" + i,
@@ -7761,7 +7771,7 @@ function UniverseFieldLive({
         left: pl.x.toFixed(1) + "px",
         top: pl.y.toFixed(1) + "px",
         pointerEvents: "none",
-        zIndex: Math.round(c * 100)
+        zIndex: Math.round(fsc * 100)
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
