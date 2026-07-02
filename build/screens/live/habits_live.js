@@ -353,8 +353,11 @@ function CreatePickerSheetLive({
   var isDark = app?.themeOverride === "dark";
   var sheen = typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "";
   var discBg = sheen + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)");
-  var line = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  var tile = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-2)";
+  var line = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  // БЕЛЫЕ карточки + card-shadow — язык наших форм-шторок (David: серый var(--surface-2)
+  // был грубым, серое-на-сером не читалось и выпадало из палитры приложения).
+  var tile = isDark ? "rgba(255,255,255,0.06)" : "#fff";
+  var tileShadow = isDark ? "none" : "var(--card-shadow)";
   var pick = c => {
     if (window.tgHaptic) {
       try {
@@ -407,7 +410,8 @@ function CreatePickerSheetLive({
       background: tile,
       borderRadius: 18,
       marginTop: 14,
-      overflow: "hidden"
+      overflow: "hidden",
+      boxShadow: tileShadow
     }
   }, [{
     icon: I.Flame,
@@ -489,7 +493,8 @@ function CreatePickerSheetLive({
     style: {
       background: tile,
       borderRadius: 18,
-      overflow: "hidden"
+      overflow: "hidden",
+      boxShadow: tileShadow
     }
   }, cat.items.map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: c.key,

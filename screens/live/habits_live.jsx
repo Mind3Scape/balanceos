@@ -111,8 +111,11 @@ function CreatePickerSheetLive({ navigate }) {
   const isDark = app?.themeOverride === "dark";
   const sheen = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "");
   const discBg = sheen + (isDark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)");
-  const line = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const tile = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-2)";
+  const line = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  // БЕЛЫЕ карточки + card-shadow — язык наших форм-шторок (David: серый var(--surface-2)
+  // был грубым, серое-на-сером не читалось и выпадало из палитры приложения).
+  const tile = isDark ? "rgba(255,255,255,0.06)" : "#fff";
+  const tileShadow = isDark ? "none" : "var(--card-shadow)";
   const pick = (c) => {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
     openSheet(<ChallengeIntroSheet c={c} dark={isDark} onStart={() => bosCommitChallenge(app, c, { navigate, openSheet })} />);
@@ -130,7 +133,7 @@ function CreatePickerSheetLive({ navigate }) {
       <div style={{ textAlign: "center", fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>Готовый челлендж с наградой — или своё с нуля</div>
 
       {/* Своё — формы с нуля (те же шторки создания). */}
-      <div style={{ background: tile, borderRadius: 18, marginTop: 14, overflow: "hidden" }}>
+      <div style={{ background: tile, borderRadius: 18, marginTop: 14, overflow: "hidden", boxShadow: tileShadow }}>
         {[
           { icon: I.Flame, t: "Своя привычка", d: "форма с нуля — как хочешь", go: () => custom(<HabitFormSheetLive mode="create" navigate={navigate} />) },
           { icon: I.Flag,  t: "Своя цель",     d: "число, срок и привычки к ней", go: () => custom(<GoalFormSheetLive mode="create" navigate={navigate} />) },
@@ -150,7 +153,7 @@ function CreatePickerSheetLive({ navigate }) {
       {BOS_CREATE_CATS.map((cat) => (
         <React.Fragment key={cat.t}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "16px 4px 7px" }}>{cat.t}</div>
-          <div style={{ background: tile, borderRadius: 18, overflow: "hidden" }}>
+          <div style={{ background: tile, borderRadius: 18, overflow: "hidden", boxShadow: tileShadow }}>
             {cat.items.map((c, i) => (
               <button key={c.key} onClick={() => pick(c)} className="tap" data-no-haptic style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, background: "transparent", border: 0, borderTop: i ? "0.5px solid " + line : 0, cursor: "pointer", textAlign: "left", padding: "11px 14px" }}>
                 <span style={{ width: 38, height: 38, borderRadius: 12, background: discBg, boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none"), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(c.i, 19, null)}</span>

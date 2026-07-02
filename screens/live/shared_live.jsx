@@ -2940,20 +2940,16 @@ function UniDiscLive({ avatar, level, lvlPct, size, dark }) {
   var isMemoji = /^m\d+$/.test(av), isEmoji = av.indexOf("emoji:") === 0;
   var SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
   var bg = SHEEN + ", " + (isMemoji ? "url(./assets/people/" + av + ".png) center/cover no-repeat, " : (!isEmoji ? "url(./assets/sphere.png) center/cover no-repeat, " : "")) + "linear-gradient(150deg,#eef1f6,#dadfe7)";
-  var rr = size / 2 - size * 0.045, C = 2 * Math.PI * rr, badge = size * 0.34;
+  var badge = size * 0.34;
+  // Кольцо-прогресс уровня УБРАНО (David: «перегружает») — остаётся только цифра уровня.
+  // Inset 0.12 сохранён → размер лица и стык с раскрытой орбитой не изменились.
   return (
     <div style={{ position: "relative", width: size, height: size }}>
-      {level > 0 && (
-        <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
-          <defs><linearGradient id="uniXpR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777" /><stop offset="0.5" stopColor="#F4B72A" /><stop offset="1" stopColor="#E08A00" /></linearGradient></defs>
-          <circle cx={size / 2} cy={size / 2} r={rr} stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} strokeWidth={size * 0.045} fill="none" />
-          <circle cx={size / 2} cy={size / 2} r={rr} stroke="url(#uniXpR)" strokeWidth={size * 0.045} fill="none" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - Math.max(0.02, (lvlPct || 0) / 100))} />
-        </svg>
-      )}
       <div style={{ position: "absolute", inset: size * 0.12, borderRadius: "50%", background: bg, boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)", display: "grid", placeItems: "center", fontSize: size * 0.42, lineHeight: 1 }}>
         {isEmoji ? av.slice(6) : null}
       </div>
-      {level > 0 && <span style={{ position: "absolute", right: size * 0.05, bottom: size * 0.05, minWidth: badge, height: badge, padding: "0 " + (size * 0.03) + "px", boxSizing: "border-box", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: size * 0.2, fontWeight: 800, lineHeight: badge + "px", textAlign: "center", border: "1.5px solid var(--card)" }}>{level}</span>}
+      {/* Цифра уровня — grid-центрирование (была line-height с border → визуально съезжала). */}
+      {level > 0 && <span style={{ position: "absolute", right: size * 0.05, bottom: size * 0.05, minWidth: badge, height: badge, padding: "0 " + (size * 0.03) + "px", boxSizing: "border-box", borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: size * 0.2, fontWeight: 800, lineHeight: 1, display: "grid", placeItems: "center", border: "1.5px solid var(--card)", fontFamily: "-apple-system, system-ui, sans-serif" }}>{level}</span>}
     </div>
   );
 }
@@ -2964,10 +2960,41 @@ function UniDiscLive({ avatar, level, lvlPct, size, dark }) {
 function _uniOrbitEq(a, b) {
   return a.avatar === b.avatar && a.habits === b.habits && a.people === b.people && a.levelPct === b.levelPct
     && a.moodC === b.moodC && a.dark === b.dark && a.levelBadge === b.levelBadge && a.open === b.open
-    && a.spinT === b.spinT && a.minimal === b.minimal && a.hideLevelArc === b.hideLevelArc;
+    && a.spinT === b.spinT && a.minimal === b.minimal && a.hideLevelArc === b.hideLevelArc
+    && a.hideLevelRing === b.hideLevelRing;
 }
 var UniOrbitMemo = (typeof OrbitField === "function" && React.memo) ? React.memo(OrbitField, _uniOrbitEq) : OrbitField;
 var UniDiscMemo = React.memo ? React.memo(UniDiscLive) : UniDiscLive;
+
+// ОБЩИЙ тикер вращения Вселенной (~10fps, пауза в фоне): раньше spin был state РОДИТЕЛЯ и каждый
+// тик пересобирал ВСЁ поле; теперь на тик перерисовываются ТОЛЬКО раскрытые орбиты-подписчики.
+var _uniSpinSubs = new Set();
+var _uniSpinTimer = null;
+function _uniSpinStart() {
+  if (_uniSpinTimer != null) return;
+  _uniSpinTimer = setInterval(function () {
+    if (typeof document !== "undefined" && document.hidden) return;
+    var v = (performance.now() / 1000) * 0.7;   // та же спокойная скорость, что была
+    _uniSpinSubs.forEach(function (fn) { try { fn(v); } catch (e) {} });
+  }, 100);
+}
+function _uniSpinStop() { if (_uniSpinTimer != null) { clearInterval(_uniSpinTimer); _uniSpinTimer = null; } }
+function useUniSpin(active) {
+  var st = React.useState(0), v = st[0], setV = st[1];
+  React.useEffect(function () {
+    if (!active) return;
+    _uniSpinSubs.add(setV); _uniSpinStart();
+    return function () { _uniSpinSubs.delete(setV); if (!_uniSpinSubs.size) _uniSpinStop(); };
+  }, [active]);
+  return active ? v : 0;
+}
+// Одна РАСКРЫТАЯ система: подписка на тикер только пока spinOn (глубоко под линзой). open=1 —
+// геометрия печётся раз, живое раскрытие едет CSS-переменными (--uK/--uO/--uA) с обёртки.
+function UniSpinOrbit({ sp, moodC, isDark, spinOn }) {
+  var spin = useUniSpin(spinOn);
+  if (!UniOrbitMemo) return null;
+  return <UniOrbitMemo avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={moodC} dark={isDark} hideLevelArc={true} hideLevelRing={true} editable={false} levelBadge={sp.level} open={1} minimal={true} spinT={spin} />;
+}
 function UniverseFieldLive({ app, people, from, onClose }) {
   var isDark = app && app.themeOverride === "dark";
   var [friends, setFriends] = React.useState(_bosUniverseCache);
@@ -3053,62 +3080,109 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   }, [friends]);
 
   // ЛИНЗА (fisheye, как главное меню Apple Watch): поле тесно упаковано, а в центре экрана — «лупа».
-  // Кто под ней — раздут и с раскрытыми кольцами; вокруг всё жмётся плотно (минимум белого). Двигаешь
-  // пальцем — под лупу въезжает другая система, раздувается, соседи липнут к ней. cam = точка поля под
-  // центром экрана (норм. единицы); z = зум. Открытие — мягкий зум-ин (shown). Тач/мышь; тап = закрыть.
-  var [cam, setCam] = React.useState({ x: 0, y: 0, z: 1, anim: true });
-  var [intro, setIntro] = React.useState(0);         // 0→1: плавный вход — камера ОТЪЕЗЖАЕТ от твоей системы
-  var [spin, setSpin] = React.useState(0);           // МЕДЛЕННОЕ время вращения (своё, ~7fps, спокойное)
-  React.useEffect(function () {
-    var rafI, rafS, t0 = null, sLast = 0;
-    function stepIntro(now) { if (t0 == null) t0 = now; var p = (now - t0) / 820; if (p > 1) p = 1; setIntro(p); if (p < 1) rafI = requestAnimationFrame(stepIntro); }
-    function stepSpin(now) { rafS = requestAnimationFrame(stepSpin); if (now - sLast < 90) return; sLast = now; setSpin((now / 1000) * 0.7); }  // 0.7 = как на странице привычек, но на ~30% медленнее
-    rafI = requestAnimationFrame(stepIntro); rafS = requestAnimationFrame(stepSpin);
-    var tm = setTimeout(function () { setIntro(1); }, 1100);   // фолбэк если rAF throttled
-    return function () { cancelAnimationFrame(rafI); cancelAnimationFrame(rafS); clearTimeout(tm); };
-  }, []);
-  var vp = React.useRef({ pts: {}, mode: null, sd: 1, ox: 0, oy: 0, oz: 1, sx: 0, sy: 0, moved: 0 });
+  // ─── ДВИЖОК БЕЗ REACT НА КАЖДЫЙ КАДР ───────────────────────────────────────────────
+  // Урок «лага линзы»: раньше пан/зум шли через setState → React пересобирал ВСЕ ~240 систем
+  // каждый кадр, а раскрытие колец квантовалось ступенями (лица шли «лесенкой»). Теперь камера
+  // живёт в ref, и ОДИН rAF-цикл пишет transform + CSS-переменные (--uK/--uO/--uA — раскрытие
+  // колец и размер лица) НАПРЯМУЮ в DOM — плавно, 60fps, без единого ре-рендера. React
+  // пересобирает поле только по camQ (~6 раз/с) ради СТРУКТУРЫ: диск↔орбита (с гистерезисом)
+  // и вкл/выкл вращения. В покое не происходит ВООБЩЕ ничего (записи скипаются по сигнатуре).
+  var camRef = React.useRef({ x: 0, y: 0, z: 1 });
+  var [camQ, setCamQ] = React.useState({ x: 0, y: 0, z: 1 }); // квантованная камера — только для структуры
+  var [introDone, setIntroDone] = React.useState(false);      // после каскада появления pop-анимации гасим
+  var introRef = React.useRef(0);
+  var nodeEls = React.useRef({});   // key → DOM-обёртка системы (loop пишет transform/vars сюда)
+  var nodeSig = React.useRef({});   // key → последняя записанная сигнатура (скип одинаковых записей)
+  var lodRef = React.useRef({});    // key → "disc"|"orbit" (гистерезис переключения)
+  var nodesRef = React.useRef([]);
   function _cZ(z) { return z < 0.55 ? 0.55 : z > 3 ? 3 : z; }
-  var introK = _bosLp(1.34, 1, _bosSm(intro));       // зум-аут: старт ×1.34 (ты крупно, остальные за краем) → ×1
-  // ШАГ между центрами и ДИАМЕТР орбиты — РАЗНЫЕ: видимый кластер планет заметно меньше 300-бокса,
-  // поэтому боксы кладём с перекрытием (шаг = PACK×диаметр, PACK<0.5) → сами орбиты впритык, минимум
-  // белого (соты). Магнификация мягкая (орбиты не расползаются): центр MC, край ME.
-  var SIZB = 178 * cam.z * introK;                    // диаметр орбиты (px) при mag=1
-  var PACK = 0.9;                                     // шаг = PACK×диаметр — раздвиг ячеек (меньше наезда орбит)
-  var SPB = SIZB * PACK;
-  var SIG = 235 * cam.z * introK;                     // радиус «лупы» (px) — шире, чтобы ближние оставались раскрытыми
-  var MC = 1.85, ME = 0.72;                           // магнификация: центр / край
-  function fish(fx, fy) {
+  var PACK = 0.9, MC = 1.85, ME = 0.72;               // упаковка сот и магнификация линзы: центр/край
+  // Геометрия одной системы из камеры. ВАЖНО: q = rf·(178·PACK/235) — НЕ зависит от зума/intro
+  // (они сокращаются) → раскрытость определяется только расстоянием до линзы. Этим пользуется
+  // и React-структура (LOD по camQ), и rAF-цикл (плавные значения по camRef).
+  function calcNode(fx, fy, cam, introK) {
+    var SIZB = 178 * cam.z * introK, SPB = SIZB * PACK, SIG = 235 * cam.z * introK;
     var vx = fx - cam.x, vy = fy - cam.y, rf = Math.sqrt(vx * vx + vy * vy), rpx = rf * SPB;
     var q = rpx / SIG, mag = ME + (MC - ME) / (1 + q * q);
     var R = ME * rpx + (MC - ME) * SIG * Math.atan(q);           // радиальное отображение «лупы»
     var ux = rf > 0.001 ? vx / rf : 0, uy = rf > 0.001 ? vy / rf : 0;
     return { sx: W / 2 + ux * R, sy: H / 2 + uy * R, size: SIZB * mag, mag: mag };
   }
+  // Стили одной системы (единая математика для rAF-цикла И для inline-рендера, чтобы редкий
+  // React-рендер писал РОВНО те же значения и ничего не дёргалось).
+  // Диск масштабируется НЕПРЕРЫВНО от openV — лицо диска и лицо орбиты совпадают при ЛЮБОМ
+  // моменте переключения LOD (раньше стык был точечно подогнан под фикс-порог).
+  function nodeVisual(fx, fy, cam, introK) {
+    var f = calcNode(fx, fy, cam, introK);
+    var openV = openMag(f.mag);
+    var off = (f.sx < -f.size || f.sx > W + f.size || f.sy < -f.size || f.sy > H + f.size);
+    var uA = _bosLp(2.6, 1.05, openV);
+    var dscale = (f.size * 0.2 * uA) / 110;            // 0.2 = 60px аватар / 300px бокс орбиты
+    var oscale = f.size / 300;
+    return { f: f, openV: openV, off: off, uA: uA, dscale: dscale, oscale: oscale, zi: Math.round(f.mag * 100) };
+  }
+  React.useEffect(function () {
+    var raf, t0 = null, lastQ = 0;
+    function frame(now) {
+      raf = requestAnimationFrame(frame);
+      if (t0 == null) t0 = now;
+      var ip = (now - t0) / 820; if (ip > 1) ip = 1;
+      introRef.current = ip;
+      var introK = _bosLp(1.34, 1, _bosSm(ip));       // зум-аут входа: ты крупно → поле «разгорается»
+      var cam = camRef.current;
+      var nodes = nodesRef.current, els = nodeEls.current, sigs = nodeSig.current;
+      for (var i = 0; i < nodes.length; i++) {
+        var nd = nodes[i], el = els[nd.key];
+        if (!el) continue;
+        var v = nodeVisual(nd.fx, nd.fy, cam, introK);
+        if (v.off) { if (sigs[nd.key] !== "hide") { el.style.display = "none"; sigs[nd.key] = "hide"; } continue; }
+        var disc = el.getAttribute("data-lod") === "disc";
+        var tf = "translate(" + v.f.sx.toFixed(1) + "px," + v.f.sy.toFixed(1) + "px) scale(" + (disc ? v.dscale : v.oscale).toFixed(4) + ")";
+        var sig = tf + "|" + v.zi + "|" + v.openV.toFixed(3);
+        if (sigs[nd.key] === sig) continue;            // покой = ноль записей в DOM
+        if (sigs[nd.key] === "hide") el.style.display = "";
+        el.style.transform = tf;
+        el.style.zIndex = v.zi;
+        if (!disc) {
+          el.style.setProperty("--uK", _bosLp(0.3, 1, v.openV).toFixed(4));
+          el.style.setProperty("--uO", v.openV.toFixed(3));
+          el.style.setProperty("--uA", v.uA.toFixed(4));
+        }
+        sigs[nd.key] = sig;
+      }
+      // Квантованная камера для структуры (LOD/вращение) — не чаще ~6 раз/с и только если сдвинулась.
+      if (now - lastQ > 160) {
+        lastQ = now;
+        setCamQ(function (p) { var c = camRef.current; return (p.x === c.x && p.y === c.y && p.z === c.z) ? p : { x: c.x, y: c.y, z: c.z }; });
+      }
+    }
+    raf = requestAnimationFrame(frame);
+    return function () { cancelAnimationFrame(raf); };
+  }, []);
+  React.useEffect(function () { var t = setTimeout(function () { setIntroDone(true); }, 2000); return function () { clearTimeout(t); }; }, []);
+  var vp = React.useRef({ pts: {}, mode: null, sd: 1, ox: 0, oy: 0, oz: 1, sx: 0, sy: 0, moved: 0 });
   function uDown(e) {
     var g = vp.current; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
+    var cam = camRef.current;
     if (ids.length === 1) { g.mode = "pan"; g.sx = e.clientX; g.sy = e.clientY; g.ox = cam.x; g.oy = cam.y; g.moved = 0; }
     else if (ids.length >= 2) { g.mode = "pinch"; var a = g.pts[ids[0]], b = g.pts[ids[1]]; g.sd = Math.hypot(a.x - b.x, a.y - b.y) || 1; g.oz = cam.z; }
-    setCam(function (v) { return { x: v.x, y: v.y, z: v.z, anim: false }; });
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
   }
   function uMove(e) {
     var g = vp.current; if (!g.pts[e.pointerId]) return; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
-    if (g.mode === "pinch" && ids.length >= 2) { var a = g.pts[ids[0]], b = g.pts[ids[1]]; g._pend = { z: _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd)) }; }
-    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * 0.9 * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); g._pend = { x: g.ox - dx / ps, y: g.oy - dy / ps }; }
-    else return;
-    // rAF-троттлинг: частые pointermove склеиваем в ОДИН setCam на кадр (не грузим перерисовку)
-    if (!g._raf) g._raf = requestAnimationFrame(function () { g._raf = null; var p = g._pend; if (!p) return; setCam(function (v) { return { x: p.x != null ? p.x : v.x, y: p.y != null ? p.y : v.y, z: p.z != null ? p.z : v.z, anim: false }; }); });
+    var cam = camRef.current;
+    // Пишем ПРЯМО в ref — rAF-цикл подхватит на ближайшем кадре (ни одного setState на пан).
+    if (g.mode === "pinch" && ids.length >= 2) { var a = g.pts[ids[0]], b = g.pts[ids[1]]; camRef.current = { x: cam.x, y: cam.y, z: _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd)) }; }
+    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * PACK * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); camRef.current = { x: g.ox - dx / ps, y: g.oy - dy / ps, z: cam.z }; }
   }
   function uUp(e) {
     var g = vp.current; var tap = (g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1);
     delete g.pts[e.pointerId]; if (!Object.keys(g.pts).length) g.mode = null;
-    if (g._raf) { cancelAnimationFrame(g._raf); g._raf = null; }
-    var p = g._pend; g._pend = null;
-    setCam(function (v) { return { x: p && p.x != null ? p.x : v.x, y: p && p.y != null ? p.y : v.y, z: p && p.z != null ? p.z : v.z, anim: true }; });
+    var c = camRef.current;
+    setCamQ({ x: c.x, y: c.y, z: c.z });               // жест кончился → структура сразу догоняет
     if (tap) { try { onClose && onClose(); } catch (_) {} }
   }
-  function uWheel(e) { var nz = _cZ(cam.z * (1 - (e.deltaY || 0) * 0.0012)); setCam(function (v) { return { x: v.x, y: v.y, z: nz, anim: false }; }); }
+  function uWheel(e) { var c = camRef.current; camRef.current = { x: c.x, y: c.y, z: _cZ(c.z * (1 - (e.deltaY || 0) * 0.0012)) }; }
 
   var plural = list.length === 1 ? "система" : (list.length >= 2 && list.length <= 4 ? "системы" : "систем");
   var sub = (friends == null) ? "" : (list.length ? (list.length + " " + plural + " рядом — у каждого своя орбита") : "пока только твоя система — позови своих");
@@ -3122,44 +3196,52 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var youHabits = React.useMemo(function () { return ((app && app.habits) || []).slice(0, 12).map(function (h) { return { emoji: h.emoji || "✨", color: h.color, streak: _bs(h.log), id: h.id }; }); }, [app]);
   var youPeople = React.useMemo(function () { return Array.isArray(people) ? people.slice(0, 10) : []; }, [people]);
   var youSp = React.useMemo(function () { return { s: { avatar: app && app.avatar, name: (app && app.userName) || "" }, level: lvlNum, lvlPct: lvlPct, habits: youHabits, people: youPeople }; }, [app, lvlNum, lvlPct, youHabits, youPeople]);
-  var allNodes = React.useMemo(function () { return [{ sp: youSp, fx: 0, fy: 0, you: true, ring: 0 }].concat(layout.nodes); }, [youSp, layout]);
+  var allNodes = React.useMemo(function () {
+    return [{ sp: youSp, fx: 0, fy: 0, you: true, ring: 0, key: "you" }]
+      .concat(layout.nodes.map(function (n, j) { return { sp: n.sp, fx: n.fx, fy: n.fy, ring: n.ring, key: "o" + j }; }));
+  }, [youSp, layout]);
+  nodesRef.current = allNodes; // rAF-цикл всегда видит свежий список
   var node = (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
       <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}"}</style>
       {/* Жесты: пинч-зум + перетаскивание + колесо; чистый тап (без сдвига) закрывает. */}
       <div onPointerDown={uDown} onPointerMove={uMove} onPointerUp={uUp} onPointerCancel={uUp} onWheel={uWheel} style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "grab" }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-          {/* Каждая система из линзы fish() (теснота + раздутие центра). ДАЛЬНИЕ (openV<0.12) = лёгкий
-              СТАТИЧНЫЙ диск UniDiscLive (без часов → не грузит); БЛИЖНИЕ = живой OrbitField с раскрытыми
-              кольцами. За краем не рисуем (отсечение). Появление: bosSysPop, стаггер по кольцу (из
-              центра наружу на открытии; при въезде в кадр — быстрый поп). zIndex по размеру. */}
-          {allNodes.map(function (nd, i) {
-            var f = fish(nd.fx, nd.fy);
-            if (f.sx < -f.size || f.sx > W + f.size || f.sy < -f.size || f.sy > H + f.size) return null;
-            var sp = nd.sp, openV = openMag(f.mag), key = nd.you ? "you" : ("o" + i);
-            var delay = Math.min((nd.ring || 0) * 0.1, 0.6);               // стаггер: ты — 0, кольца позже (каскад)
-            var pop = "bosSysPop 0.5s cubic-bezier(0.34,1.35,0.5,1) " + delay.toFixed(2) + "s both";
-            // ВНЕШНЯЯ обёртка = позиция+размер (transform, дёшево, меняется на КАЖДЫЙ кадр пана).
-            // СРЕДНЯЯ = появление (bosSysPop, один раз). ВНУТРЕННЯЯ = тяжёлая графика в МЕМО (пан её не трогает).
-            if (openV < 0.12) {
-              var dsc = (f.size * 0.484) / 110;      // = размер аватара орбиты при open≈0.12 → стык без скачка
-              return (
-                <div key={key} style={{ position: "absolute", left: 0, top: 0, transform: "translate(" + f.sx.toFixed(1) + "px," + f.sy.toFixed(1) + "px) scale(" + dsc.toFixed(3) + ")", transformOrigin: "0px 0px", zIndex: Math.round(f.mag * 100), pointerEvents: "none" }}>
-                  <div style={{ transformOrigin: "0px 0px", animation: pop }}>
+          {/* Каждая система: ДАЛЬНИЕ = лёгкий статичный диск UniDiscLive; БЛИЖНИЕ = живой OrbitField
+              (open=1, раскрытие едет через CSS-переменные с rAF-цикла — см. движок выше). LOD
+              переключается с ГИСТЕРЕЗИСОМ по camQ, а размеры диска и лица орбиты — одна непрерывная
+              формула → стык бесшовный в любой момент. Появление: bosSysPop-каскад «космос загорается»
+              (ты → кольцо за кольцом, лёгкий джиттер внутри кольца); после каскада анимация гасится,
+              чтобы смена LOD/въезд в кадр не «подпрыгивали». Inline-стили считаются из ТЕХ ЖЕ
+              camRef/introRef, что пишет цикл → редкий React-рендер ничего не сдвигает. */}
+          {allNodes.map(function (nd) {
+            var sp = nd.sp, key = nd.key;
+            var vq = nodeVisual(nd.fx, nd.fy, camQ, 1); // структура: LOD/вращение (зум сокращается — см. calcNode)
+            var prev = lodRef.current[key];
+            var lod = vq.openV > (prev === "orbit" ? 0.10 : 0.14) ? "orbit" : "disc";
+            lodRef.current[key] = lod;
+            var vNow = nodeVisual(nd.fx, nd.fy, camRef.current, _bosLp(1.34, 1, _bosSm(introRef.current)));
+            var delay = Math.min((nd.ring || 0) * 0.14, 1.0) + ((_bosHashU(key) % 100) / 100) * 0.15;
+            var pop = introDone ? "none" : ("bosSysPop 0.55s cubic-bezier(0.34,1.35,0.5,1) " + delay.toFixed(2) + "s both");
+            var style = {
+              position: "absolute", left: 0, top: 0, transformOrigin: "0px 0px", pointerEvents: "none",
+              display: vNow.off ? "none" : undefined, zIndex: vNow.zi,
+              transform: "translate(" + vNow.f.sx.toFixed(1) + "px," + vNow.f.sy.toFixed(1) + "px) scale(" + (lod === "disc" ? vNow.dscale : vNow.oscale).toFixed(4) + ")",
+            };
+            if (lod !== "disc") { style["--uK"] = _bosLp(0.3, 1, vNow.openV).toFixed(4); style["--uO"] = vNow.openV.toFixed(3); style["--uA"] = vNow.uA.toFixed(4); }
+            nodeSig.current[key] = null; // рендер переписал inline-стили → цикл обновит сигнатуру заново
+            return (
+              <div key={key} ref={function (el) { if (el) nodeEls.current[key] = el; else { delete nodeEls.current[key]; delete nodeSig.current[key]; } }} data-lod={lod} style={style}>
+                <div style={{ transformOrigin: "0px 0px", animation: pop }}>
+                  {lod === "disc" ? (
                     <div style={{ position: "absolute", left: -55, top: -55 }}>
                       {UniDiscMemo ? <UniDiscMemo avatar={sp.s && sp.s.avatar} level={sp.level} lvlPct={sp.lvlPct} size={110} dark={isDark} /> : null}
                     </div>
-                  </div>
-                </div>
-              );
-            }
-            var openQ = Math.round(openV * 32) / 32;                       // МЕЛКАЯ нарезка (32 ступени ≈ плавно, скачков не видно), но мемо всё ещё не дёргается на каждый пиксель
-            return (
-              <div key={key} style={{ position: "absolute", left: 0, top: 0, transform: "translate(" + f.sx.toFixed(1) + "px," + f.sy.toFixed(1) + "px) scale(" + (f.size / 300).toFixed(3) + ")", transformOrigin: "0px 0px", zIndex: Math.round(f.mag * 100), pointerEvents: "none" }}>
-                <div style={{ transformOrigin: "0px 0px", animation: pop }}>
-                  <div style={{ position: "absolute", left: -150, top: -150, width: 300, height: 300 }}>
-                    {UniOrbitMemo ? <UniOrbitMemo avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} dark={isDark} hideLevelArc={true} editable={false} levelBadge={sp.level} open={openQ} minimal={true} spinT={openV > 0.45 ? spin : 0} /> : null}
-                  </div>
+                  ) : (
+                    <div style={{ position: "absolute", left: -150, top: -150, width: 300, height: 300 }}>
+                      <UniSpinOrbit sp={sp} moodC={nd.you ? (app && app.mood && app.mood.c) : undefined} isDark={isDark} spinOn={vq.openV > 0.45} />
+                    </div>
+                  )}
                 </div>
               </div>
             );

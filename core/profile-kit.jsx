@@ -94,7 +94,14 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
-function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open, minimal = false, spinT }) {
+function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open, minimal = false, spinT, hideLevelRing = false }) {
+  // hideLevelRing (Вселенная): скрыть золотое КОЛЬЦО-прогресс вокруг центра (David: «перегружает»),
+  // цифра уровня остаётся. Геометрия (inset под кольцо) не меняется → стык диск↔орбита не плывёт.
+  // openMode+minimal (Вселенная) дополнительно читает CSS-переменные с обёртки:
+  //   --uK (масштаб раскрытия колец), --uO (их прозрачность), --uA (масштаб центра-аватара).
+  // Родитель (линза) пишет их НАПРЯМУЮ в DOM на каждый кадр → раскрытие/лица плавные БЕЗ
+  // ре-рендера этого тяжёлого SVG (фолбэки = старое поведение от prop `open`, так что все
+  // остальные экраны («Я», комнаты) не меняются вовсе).
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
   // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
@@ -148,8 +155,12 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
 
   // Proportions mirror the onboarding cosmos: rings 72/104/136, spacing 32 (icons ≤15 → never
   // overlap across belts), all in-frame so nothing clips at the edge.
+  // uniShell (Вселенная): геометрия печётся ОДИН раз при eo=1, а раскрытие/угасание едет через
+  // CSS-переменные на группе (компоновщик, не React) → плавно и без ре-рендеров на пан.
+  const uniShell = openMode && minimal;
+  const geoEo = uniShell ? 1 : eo;
   const RBASE = 72, RSTEP = 32;
-  const radius = (ring) => (RBASE + ring * RSTEP) * lerp(openMode ? 0.3 : 0.86, 1, eo);
+  const radius = (ring) => (RBASE + ring * RSTEP) * lerp(openMode ? 0.3 : 0.86, 1, geoEo);
   const spin = (ring) => ((ring % 2) ? -1 : 1) * 0.06 / (1 + ring * 0.18);
   // Like onboarding: the faces/planets stay FULL opacity; only the thin ring lines + dust
   // whisper a little outward. fadeAt is mild and used ONLY for those, never the icons.
@@ -208,9 +219,16 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           </linearGradient>
         </defs>
 
+        {/* Вселенная (uniShell): кольца+планеты в ОДНОЙ группе — раскрытие = scale/opacity группы
+            через CSS-переменные (пишет родитель напрямую в DOM). Прочие экраны: группа без стиля. */}
+        <g style={uniShell ? {
+          transform: "scale(var(--uK," + lerp(0.3, 1, eo).toFixed(4) + "))",
+          transformOrigin: "50% 50%", transformBox: "view-box",
+          opacity: "var(--uO," + clamp(eo, 0, 1).toFixed(3) + ")",
+        } : undefined}>
         {/* concentric orbits */}
         {drawRings.map((r) => {
-          const R = radius(r), op = ((dark ? 0.20 : 0.17) - r * 0.035) * eo * fadeAt(R);
+          const R = radius(r), op = ((dark ? 0.20 : 0.17) - r * 0.035) * geoEo * fadeAt(R);
           return op <= 0.004 ? null :
             <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(" + PAL.ring + "," + op.toFixed(3) + ")"} strokeWidth="1" />;
         })}
@@ -249,7 +267,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
         {nodes.map((n) => {
           const R = radius(n.ring), ang = n.baseAng + t * spin(n.ring);
           const x = Math.cos(ang) * R, y = Math.sin(ang) * R;
-          const op = clamp(eo, 0, 1); if (op <= 0.02) return null; // faces stay crisp (onboarding-style)
+          const op = clamp(geoEo, 0, 1); if (op <= 0.02) return null; // faces stay crisp (onboarding-style)
           // Size by belt (inner = bigger). Capped ≤15 with 32px belt spacing → adjacent belts
           // never overlap (the thing David disliked on onboarding). Meaning survives: strongest
           // habits sit on the inner belt, so they read biggest.
@@ -298,15 +316,17 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             </g>
           );
         })}
+        </g>
       </svg>
 
       {/* you, in the centre — the SAME glossy mood orb as the home hero, just larger,
           with your avatar nested inside it. tap to change avatar. open<1 (Вселенная): кольца свёрнуты,
           а центр-аватар РАЗДУВАЕТСЯ (до ~2.6×), заполняя ячейку → дальняя система = плотный диск-иконка
           (тайлится встык, Apple-Watch), у центра сжимается обратно к 60px и вокруг расцветают кольца. */}
-      <button onClick={onTap} className="tap" aria-label={editable ? "Сменить аватар" : (name || "Круг")} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%) scale(" + (openMode ? lerp(2.6, 1.05, eo) : 1).toFixed(3) + ")", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: onTap ? "pointer" : "default", opacity: openMode ? 1 : eo }}>
-        {/* Gold XP ring around the centre (same as the home avatar) when a level badge is requested. */}
-        {levelBadge > 0 && (
+      <button onClick={onTap} className="tap" aria-label={editable ? "Сменить аватар" : (name || "Круг")} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%) scale(" + (openMode ? ("var(--uA," + lerp(2.6, 1.05, eo).toFixed(3) + ")") : "1") + ")", width: 60, height: 60, borderRadius: "50%", border: 0, padding: 0, background: "transparent", cursor: onTap ? "pointer" : "default", opacity: openMode ? 1 : eo }}>
+        {/* Gold XP ring around the centre (same as the home avatar) when a level badge is requested.
+            hideLevelRing (Вселенная) прячет КОЛЬЦО, но inset под него остаётся → размеры не плывут. */}
+        {levelBadge > 0 && !hideLevelRing && (
           <svg width="60" height="60" viewBox="0 0 60 60" aria-hidden style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
             <defs><linearGradient id="orbXpRingC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE777" /><stop offset="0.5" stopColor="#F4B72A" /><stop offset="1" stopColor="#E08A00" /></linearGradient></defs>
             <circle cx="30" cy="30" r="28" stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} strokeWidth="2.5" fill="none" />
@@ -319,9 +339,10 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           display: "grid", placeItems: "center", fontSize: 27, lineHeight: 1, color: "#5b6473", fontWeight: 600 }}>
           {avIsEmoji ? avStr.slice(6) : (!avIsMemoji ? (centreInitial || null) : null)}
         </div>
-        {/* Level-number badge at 45° on the ring — identical language to the home hero avatar. */}
+        {/* Level-number badge at 45° on the ring — identical language to the home hero avatar.
+            Центрирование цифры = grid (David: «циферки не центрированы» — line-height с border врал). */}
         {levelBadge > 0 && (
-          <span aria-hidden style={{ position: "absolute", left: 30 + 28 * 0.7071 - 10, top: 30 + 28 * 0.7071 - 10, width: 20, height: 20, borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: 11, fontWeight: 800, lineHeight: "17px", textAlign: "center", letterSpacing: "-0.3px", border: "1.5px solid var(--card)", boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)", zIndex: 3 }}>{levelBadge}</span>
+          <span aria-hidden style={{ position: "absolute", left: 30 + 28 * 0.7071 - 10, top: 30 + 28 * 0.7071 - 10, width: 20, height: 20, borderRadius: 999, background: "linear-gradient(180deg,#FFE777,#F4B72A)", color: "#4a3800", fontSize: 11, fontWeight: 800, lineHeight: 1, display: "grid", placeItems: "center", letterSpacing: "-0.3px", border: "1.5px solid var(--card)", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)", zIndex: 3, fontFamily: "-apple-system, system-ui, sans-serif" }}>{levelBadge}</span>
         )}
         {editable && (
         <span style={{ position: "absolute", right: -1, bottom: -1, width: 20, height: 20, borderRadius: "50%", color: dark ? "#fff" : "var(--text)", background: "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%), " + (dark ? "rgba(255,255,255,0.12)" : "var(--surface-3)"), boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.18)", display: "grid", placeItems: "center", zIndex: 2 }}>

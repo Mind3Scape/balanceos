@@ -334,8 +334,16 @@ function OrbitField({
   settled = false,
   open,
   minimal = false,
-  spinT
+  spinT,
+  hideLevelRing = false
 }) {
+  // hideLevelRing (Вселенная): скрыть золотое КОЛЬЦО-прогресс вокруг центра (David: «перегружает»),
+  // цифра уровня остаётся. Геометрия (inset под кольцо) не меняется → стык диск↔орбита не плывёт.
+  // openMode+minimal (Вселенная) дополнительно читает CSS-переменные с обёртки:
+  //   --uK (масштаб раскрытия колец), --uO (их прозрачность), --uA (масштаб центра-аватара).
+  // Родитель (линза) пишет их НАПРЯМУЮ в DOM на каждый кадр → раскрытие/лица плавные БЕЗ
+  // ре-рендера этого тяжёлого SVG (фолбэки = старое поведение от prop `open`, так что все
+  // остальные экраны («Я», комнаты) не меняются вовсе).
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
   // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
@@ -437,9 +445,13 @@ function OrbitField({
 
   // Proportions mirror the onboarding cosmos: rings 72/104/136, spacing 32 (icons ≤15 → never
   // overlap across belts), all in-frame so nothing clips at the edge.
+  // uniShell (Вселенная): геометрия печётся ОДИН раз при eo=1, а раскрытие/угасание едет через
+  // CSS-переменные на группе (компоновщик, не React) → плавно и без ре-рендеров на пан.
+  var uniShell = openMode && minimal;
+  var geoEo = uniShell ? 1 : eo;
   var RBASE = 72,
     RSTEP = 32;
-  var radius = ring => (RBASE + ring * RSTEP) * lerp(openMode ? 0.3 : 0.86, 1, eo);
+  var radius = ring => (RBASE + ring * RSTEP) * lerp(openMode ? 0.3 : 0.86, 1, geoEo);
   var spin = ring => (ring % 2 ? -1 : 1) * 0.06 / (1 + ring * 0.18);
   // Like onboarding: the faces/planets stay FULL opacity; only the thin ring lines + dust
   // whisper a little outward. fadeAt is mild and used ONLY for those, never the icons.
@@ -571,9 +583,16 @@ function OrbitField({
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "1",
     stopColor: "#dadfe7"
-  }))), drawRings.map(r => {
+  }))), /*#__PURE__*/React.createElement("g", {
+    style: uniShell ? {
+      transform: "scale(var(--uK," + lerp(0.3, 1, eo).toFixed(4) + "))",
+      transformOrigin: "50% 50%",
+      transformBox: "view-box",
+      opacity: "var(--uO," + clamp(eo, 0, 1).toFixed(3) + ")"
+    } : undefined
+  }, drawRings.map(r => {
     var R = radius(r),
-      op = ((dark ? 0.20 : 0.17) - r * 0.035) * eo * fadeAt(R);
+      op = ((dark ? 0.20 : 0.17) - r * 0.035) * geoEo * fadeAt(R);
     return op <= 0.004 ? null : /*#__PURE__*/React.createElement("circle", {
       key: "ring" + r,
       cx: "0",
@@ -638,7 +657,7 @@ function OrbitField({
       ang = n.baseAng + t * spin(n.ring);
     var x = Math.cos(ang) * R,
       y = Math.sin(ang) * R;
-    var op = clamp(eo, 0, 1);
+    var op = clamp(geoEo, 0, 1);
     if (op <= 0.02) return null; // faces stay crisp (onboarding-style)
     // Size by belt (inner = bigger). Capped ≤15 with 32px belt spacing → adjacent belts
     // never overlap (the thing David disliked on onboarding). Meaning survives: strongest
@@ -791,7 +810,7 @@ function OrbitField({
       strokeLinecap: "round",
       strokeLinejoin: "round"
     })));
-  })), /*#__PURE__*/React.createElement("button", {
+  }))), /*#__PURE__*/React.createElement("button", {
     onClick: onTap,
     className: "tap",
     "aria-label": editable ? "Сменить аватар" : name || "Круг",
@@ -799,7 +818,7 @@ function OrbitField({
       position: "absolute",
       left: "50%",
       top: "50%",
-      transform: "translate(-50%,-50%) scale(" + (openMode ? lerp(2.6, 1.05, eo) : 1).toFixed(3) + ")",
+      transform: "translate(-50%,-50%) scale(" + (openMode ? "var(--uA," + lerp(2.6, 1.05, eo).toFixed(3) + ")" : "1") + ")",
       width: 60,
       height: 60,
       borderRadius: "50%",
@@ -809,7 +828,7 @@ function OrbitField({
       cursor: onTap ? "pointer" : "default",
       opacity: openMode ? 1 : eo
     }
-  }, levelBadge > 0 && /*#__PURE__*/React.createElement("svg", {
+  }, levelBadge > 0 && !hideLevelRing && /*#__PURE__*/React.createElement("svg", {
     width: "60",
     height: "60",
     viewBox: "0 0 60 60",
@@ -879,12 +898,15 @@ function OrbitField({
       color: "#4a3800",
       fontSize: 11,
       fontWeight: 800,
-      lineHeight: "17px",
-      textAlign: "center",
+      lineHeight: 1,
+      display: "grid",
+      placeItems: "center",
       letterSpacing: "-0.3px",
       border: "1.5px solid var(--card)",
+      boxSizing: "border-box",
       boxShadow: "0 1px 3px rgba(224,138,0,0.5), inset 0 1px 0.5px rgba(255,255,255,0.6)",
-      zIndex: 3
+      zIndex: 3,
+      fontFamily: "-apple-system, system-ui, sans-serif"
     }
   }, levelBadge), editable && /*#__PURE__*/React.createElement("span", {
     style: {
