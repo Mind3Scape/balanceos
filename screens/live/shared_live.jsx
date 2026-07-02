@@ -2977,9 +2977,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // поэтому боксы кладём с перекрытием (шаг = PACK×диаметр, PACK<0.5) → сами орбиты впритык, минимум
   // белого (соты). Магнификация мягкая (орбиты не расползаются): центр MC, край ME.
   var SIZB = 178 * cam.z * introK;                    // диаметр орбиты (px) при mag=1
-  var PACK = 0.8;                                     // шаг = PACK×диаметр — раздвиг ячеек (меньше наезда орбит)
+  var PACK = 0.9;                                     // шаг = PACK×диаметр — раздвиг ячеек (меньше наезда орбит)
   var SPB = SIZB * PACK;
-  var SIG = 210 * cam.z * introK;                     // радиус «лупы» (px) — шире, чтобы ближние оставались раскрытыми
+  var SIG = 235 * cam.z * introK;                     // радиус «лупы» (px) — шире, чтобы ближние оставались раскрытыми
   var MC = 1.85, ME = 0.72;                           // магнификация: центр / край
   function fish(fx, fy) {
     var vx = fx - cam.x, vy = fy - cam.y, rf = Math.sqrt(vx * vx + vy * vy), rpx = rf * SPB;
@@ -2998,7 +2998,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   function uMove(e) {
     var g = vp.current; if (!g.pts[e.pointerId]) return; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
     if (g.mode === "pinch" && ids.length >= 2) { var a = g.pts[ids[0]], b = g.pts[ids[1]]; g._pend = { z: _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd)) }; }
-    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * 0.8 * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); g._pend = { x: g.ox - dx / ps, y: g.oy - dy / ps }; }
+    else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * 0.9 * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); g._pend = { x: g.ox - dx / ps, y: g.oy - dy / ps }; }
     else return;
     // rAF-троттлинг: частые pointermove склеиваем в ОДИН setCam на кадр (не грузим перерисовку)
     if (!g._raf) g._raf = requestAnimationFrame(function () { g._raf = null; var p = g._pend; if (!p) return; setCam(function (v) { return { x: p.x != null ? p.x : v.x, y: p.y != null ? p.y : v.y, z: p.z != null ? p.z : v.z, anim: false }; }); });

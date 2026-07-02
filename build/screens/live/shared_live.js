@@ -7679,9 +7679,9 @@ function UniverseFieldLive({
   // поэтому боксы кладём с перекрытием (шаг = PACK×диаметр, PACK<0.5) → сами орбиты впритык, минимум
   // белого (соты). Магнификация мягкая (орбиты не расползаются): центр MC, край ME.
   var SIZB = 178 * cam.z * introK; // диаметр орбиты (px) при mag=1
-  var PACK = 0.8; // шаг = PACK×диаметр — раздвиг ячеек (меньше наезда орбит)
+  var PACK = 0.9; // шаг = PACK×диаметр — раздвиг ячеек (меньше наезда орбит)
   var SPB = SIZB * PACK;
-  var SIG = 210 * cam.z * introK; // радиус «лупы» (px) — шире, чтобы ближние оставались раскрытыми
+  var SIG = 235 * cam.z * introK; // радиус «лупы» (px) — шире, чтобы ближние оставались раскрытыми
   var MC = 1.85,
     ME = 0.72; // магнификация: центр / край
   function fish(fx, fy) {
@@ -7749,7 +7749,7 @@ function UniverseFieldLive({
         z: _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd))
       };
     } else if (g.mode === "pan" && ids.length === 1) {
-      var ps = 178 * 0.8 * g.oz;
+      var ps = 178 * 0.9 * g.oz;
       var dx = e.clientX - g.sx,
         dy = e.clientY - g.sy;
       g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy));
