@@ -174,9 +174,47 @@
           if (!rp.error) return true;
           var rp2 = await c.from("profiles").update({ snapshot: a.env }).eq("id", id); return !rp2.error; // pre-patch fallback
         }
+        case "ledgerSpend": {
+          // Этап 1 «Серверная правда»: КАЖДАЯ трата XP — строка в серверном журнале
+          // (sql/patch_xp_wallet.sql). Идемпотентно по ref → повтор очереди безопасен.
+          var rl = await c.rpc("bos_spend_xp", { p_amount: a.amount, p_ref: a.ref || null, p_kind: a.kind || "spend", p_earned: (a.earned == null ? null : a.earned), p_meta: a.meta || {} });
+          if (!rl.error) return true; // ok/dup/insufficient — журнал ответил, очередь чиста
+          // Патч ещё не применён (функции нет) → НЕ клиним общую очередь: убираем оп в отдельный
+          // запасник и дольём его первой же успешной записью после применения патча.
+          if (_isMissingFn(rl.error)) { _ledgerPark(op.args); return true; }
+          return false; // сеть/сервер — обычный ретрай
+        }
       }
     } catch (e) { return false; }
     return false;
+  }
+  // ── Запасник журнала (патч кошелька ещё не применён) ─────────────────────
+  var LKEY = "bos_ledger_backlog_v1";
+  function _ledgerLoad() { try { var v = JSON.parse(localStorage.getItem(LKEY) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function _ledgerSave(list) { try { localStorage.setItem(LKEY, JSON.stringify(list)); } catch (e) {} }
+  function _ledgerPark(args) {
+    var list = _ledgerLoad();
+    if (args && args.ref && list.some(function (x) { return x && x.ref === args.ref; })) return; // дубль
+    list.push(args); _ledgerSave(list);
+  }
+  function _isMissingFn(err) {
+    var m = ((err && (err.code || "")) + " " + (err && (err.message || ""))).toLowerCase();
+    return m.indexOf("pgrst202") >= 0 || m.indexOf("could not find the function") >= 0 || m.indexOf("does not exist") >= 0;
+  }
+  var _ledgerFlushing = false;
+  async function flushLedgerBacklog() {
+    if (_ledgerFlushing) return;
+    var list = _ledgerLoad(); if (!list.length) return;
+    var c = client(); if (!c) return;
+    _ledgerFlushing = true;
+    try {
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        var r = await c.rpc("bos_spend_xp", { p_amount: a.amount, p_ref: a.ref || null, p_kind: a.kind || "spend", p_earned: null, p_meta: a.meta || {} });
+        if (r.error) break; // функции всё ещё нет / сеть — попробуем в другой раз
+        list.splice(i, 1); i--; _ledgerSave(list);
+      }
+    } catch (e) {} finally { _ledgerFlushing = false; }
   }
   // Try an op now; on failure queue it for retry. On success, drain any backlog (the network is up).
   async function _durable(op) {
@@ -198,8 +236,8 @@
     } catch (e) {} finally { _flushing = false; }
   }
   try {
-    window.addEventListener("online", function () { flushQueue(); });
-    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") flushQueue(); });
+    window.addEventListener("online", function () { flushQueue(); flushLedgerBacklog(); });
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { flushQueue(); flushLedgerBacklog(); } });
   } catch (e) {}
 
   // ── D2 · cross-device snapshot ──────────────────────────────────────────────
@@ -673,6 +711,20 @@
     } catch (e) { return {}; }
   }
 
+  // ── Этап 1 «Серверная правда»: XP-кошелёк (публичное API) ────────────────
+  // spendLedger — положить трату в серверный журнал ЧЕРЕЗ надёжную очередь:
+  // офлайн/сбой → доедет позже; патч не применён → запасник; ref = идемпотентность.
+  async function spendLedger(a) {
+    if (!a || !((a.amount | 0) > 0)) return false;
+    var key = "ledger:" + (a.ref || ("t" + Date.now() + ":" + Math.random().toString(36).slice(2, 7)));
+    return _durable({ type: "ledgerSpend", key: key, args: { amount: a.amount | 0, ref: a.ref || null, kind: a.kind || "spend", earned: (a.earned == null ? null : (a.earned | 0)), meta: a.meta || {} } });
+  }
+  // wallet — серверная сводка {spent, credited, ops} | null (патч не применён / офлайн).
+  async function wallet() {
+    var c = client(); if (!c) return null;
+    try { var r = await c.rpc("bos_wallet"); if (r.error) return null; return r.data || null; } catch (e) { return null; }
+  }
+
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
@@ -690,6 +742,7 @@
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
+    spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
     signOut: signOut,
     _client: client,
   };

@@ -2317,7 +2317,7 @@ function AppProvider({
       return 0;
     }
   });
-  var spendXP = amount => {
+  var spendXP = (amount, ref, meta) => {
     var a = Math.max(0, amount | 0);
     if (!a) return false;
     setSpentXP(function (prev) {
@@ -2327,12 +2327,51 @@ function AppProvider({
       } catch (e) {}
       return next;
     });
+    // Этап 1 «Серверная правда»: трата дублируется строкой в серверный ЖУРНАЛ (xp_ledger)
+    // через надёжную очередь — офлайн доедет позже, повтор не спишет дважды (ref).
+    try {
+      if (mode === "live" && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.spendLedger) {
+        window.bosCloud.spendLedger({
+          amount: a,
+          ref: ref || null,
+          kind: meta && meta.kind || "spend",
+          meta: meta || {}
+        });
+      }
+    } catch (e) {}
     if (window.tgHaptic) {
       try {
         window.tgHaptic("success");
       } catch (e) {}
     }
     return true;
+  };
+
+  // СЕЙФ (Этап 1): «получено у партнёра» и «постучался в круг» раньше жили ТОЛЬКО в
+  // localStorage — потеря телефона их стирала. Теперь едут в облачный блоб (extras);
+  // события ниже дёргают пересохранение, слияние при входе — union (полученное не отменяется).
+  var [extrasTick, setExtrasTick] = useState(0);
+  useEffect(() => {
+    var bump = () => setExtrasTick(t => t + 1);
+    window.addEventListener("bos:partnersChanged", bump);
+    window.addEventListener("bos:circlesKnocked", bump);
+    return () => {
+      window.removeEventListener("bos:partnersChanged", bump);
+      window.removeEventListener("bos:circlesKnocked", bump);
+    };
+  }, []);
+  var _walletExtras = () => {
+    var out = {
+      redeemedPartners: {},
+      knockedCircles: {}
+    };
+    try {
+      out.redeemedPartners = JSON.parse(localStorage.getItem("bos:redeemedPartners") || "{}") || {};
+    } catch (e) {}
+    try {
+      out.knockedCircles = JSON.parse(localStorage.getItem("bos:knockedCircles") || "{}") || {};
+    } catch (e) {}
+    return out;
   };
 
   // ── Local-first persistence (the spine) ────────────────────────────
@@ -2410,6 +2449,7 @@ function AppProvider({
           // D2 — mirror the blob across devices. Habits/goals are NO LONGER here: they sync as rows
           // (habits/habit_logs/goals) so the blob can't balloon with date-keyed logs. Write only when
           // the blob's content actually changed → a habit check-in no longer re-upserts user_state.
+          var _extras = _walletExtras();
           var _blobStr = JSON.stringify({
             teams,
             dayMoods,
@@ -2417,7 +2457,8 @@ function AppProvider({
             widgets,
             wheelSpheres,
             claimedChallenges,
-            spentXP
+            spentXP,
+            extras: _extras
           });
           if (_blobStr !== lastCloudBlobRef.current) {
             window.bosCloud.saveSnapshot({
@@ -2427,7 +2468,8 @@ function AppProvider({
               widgets,
               wheelSpheres,
               claimedChallenges,
-              spentXP
+              spentXP,
+              extras: _extras
             });
             lastCloudBlobRef.current = _blobStr;
           }
@@ -2437,7 +2479,7 @@ function AppProvider({
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres, claimedChallenges, spentXP]);
+  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres, claimedChallenges, spentXP, extrasTick]);
 
   // Flush synchronously when the app is backgrounded/closed: the 400 ms debounce above
   // would otherwise lose the very last check-in if the user swipes the app away. localStorage
@@ -2461,6 +2503,7 @@ function AppProvider({
           wheelSpheres: s.wheelSpheres
         });
         if (window.bosCloud && window.bosCloud.enabled()) {
+          var _extras = _walletExtras();
           var _blobStr = JSON.stringify({
             teams: s.teams,
             dayMoods: s.dayMoods,
@@ -2468,7 +2511,8 @@ function AppProvider({
             widgets: s.widgets,
             wheelSpheres: s.wheelSpheres,
             claimedChallenges: s.claimedChallenges,
-            spentXP: s.spentXP
+            spentXP: s.spentXP,
+            extras: _extras
           });
           if (_blobStr !== lastCloudBlobRef.current) {
             window.bosCloud.saveSnapshot({
@@ -2478,7 +2522,8 @@ function AppProvider({
               widgets: s.widgets,
               wheelSpheres: s.wheelSpheres,
               claimedChallenges: s.claimedChallenges,
-              spentXP: s.spentXP
+              spentXP: s.spentXP,
+              extras: _extras
             });
             lastCloudBlobRef.current = _blobStr;
           }
@@ -2801,6 +2846,25 @@ function AppProvider({
                 localStorage.setItem("bos:spentXP", String(_mSpent));
               } catch (e) {}
             }
+            // СЕЙФ (Этап 1): «получено у партнёра» / «постучался в круг» — union облака и телефона
+            // (полученное не отменяется). События будят открытые экраны перерисоваться.
+            try {
+              var _cx = snap && snap.data && snap.data.extras || null;
+              if (_cx) {
+                var _lr = {};
+                try {
+                  _lr = JSON.parse(localStorage.getItem("bos:redeemedPartners") || "{}") || {};
+                } catch (e0) {}
+                localStorage.setItem("bos:redeemedPartners", JSON.stringify(Object.assign({}, _cx.redeemedPartners || {}, _lr)));
+                var _lk = {};
+                try {
+                  _lk = JSON.parse(localStorage.getItem("bos:knockedCircles") || "{}") || {};
+                } catch (e1) {}
+                localStorage.setItem("bos:knockedCircles", JSON.stringify(Object.assign({}, _cx.knockedCircles || {}, _lk)));
+                window.dispatchEvent(new Event("bos:partnersChanged"));
+                window.dispatchEvent(new Event("bos:circlesKnocked"));
+              }
+            } catch (e) {}
             if (snap && snap.data && cloudAt >= localAt) {
               var d = snap.data;
               // habits/goals are NO LONGER in the blob — they're loaded from rows below.

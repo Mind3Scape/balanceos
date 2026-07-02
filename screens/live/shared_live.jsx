@@ -2699,7 +2699,7 @@ function PartnerDetailLive() {
   const afford = balance >= p.cost;
   const redeem = () => {
     if (got || !afford) return;
-    if (app && typeof app.spendXP === "function" && app.spendXP(p.cost)) {
+    if (app && typeof app.spendXP === "function" && app.spendXP(p.cost, "partner:" + p.id, { kind: "spend_partner", name: p.name, cost: p.cost })) {
       bosMarkPartnerRedeemed(p.id); setGot(true);
       if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
     }

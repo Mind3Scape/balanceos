@@ -6619,7 +6619,11 @@ function PartnerDetailLive() {
   var afford = balance >= p.cost;
   var redeem = () => {
     if (got || !afford) return;
-    if (app && typeof app.spendXP === "function" && app.spendXP(p.cost)) {
+    if (app && typeof app.spendXP === "function" && app.spendXP(p.cost, "partner:" + p.id, {
+      kind: "spend_partner",
+      name: p.name,
+      cost: p.cost
+    })) {
       bosMarkPartnerRedeemed(p.id);
       setGot(true);
       if (window.tgHaptic) {
