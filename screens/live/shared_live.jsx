@@ -1107,12 +1107,11 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
 // внутреннем кольце и люди (лица) на внешнем. МЕДЛЕННО КРУТИТСЯ (David передумал «пусть статично» →
 // «не крутятся»): CSS bosSpin/bosSpinR, кольца в разные стороны, диски counter-rotate = прямые.
 // Дёшево (только transform, GPU). habits=[{emoji,color}], people=[{avatar,name}].
-function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], size = 128, dark = false }) {
+function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], size = 128, dark = false, fade = false }) {
   var C = size / 2;
   var cR = Math.round(size * 0.19);            // центр-диск (радиус)
   var r1 = size * 0.315, r2 = size * 0.455;    // радиусы колец (привычки / люди)
-  var hb = (habits || []).filter(Boolean).slice(0, 7);
-  var pp = (people || []).filter(Boolean).slice(0, 9);
+  var hbAll = (habits || []).filter(Boolean), ppAll = (people || []).filter(Boolean);
   var ringLine = dark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.09)";
   var accent = centerColor || (dark ? "#fff" : "#0a0a0a");
   var ring = function (R) { return <span aria-hidden style={{ position: "absolute", left: C - R, top: C - R, width: R * 2, height: R * 2, borderRadius: "50%", border: "1px solid " + ringLine }} />; };
@@ -1125,6 +1124,11 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   };
   var hSz = Math.max(16, Math.round(size * 0.16));
   var pSz = Math.max(16, Math.round(size * 0.155));
+  // Показываем СТОЛЬКО, СКОЛЬКО ВЛЕЗАЕТ на кольцо (David: «сколько помещается — столько и показываем,
+  // остальное красиво обрезается/уходит в opacity»). Лимит = длина кольца / размер диска. Лишнее не
+  // рисуем (не наезжает), а край орбиты мягко гаснет fade-маской.
+  var hb = hbAll.slice(0, Math.max(1, Math.floor((2 * Math.PI * r1) / (hSz * 1.18))));
+  var pp = ppAll.slice(0, Math.max(1, Math.floor((2 * Math.PI * r2) / (pSz * 1.12))));
   // РАЗМЕР эмодзи задаём ЯВНО через fontSize на диске: bosIcon для эмодзи (не sf-символов) игнорит
   // size и возвращает голую строку → иначе эмодзи наследует крупный шрифт карточки и ВЫЛЕЗАЕТ за
   // кружок (баг David). Для sf-символов bosIcon отдаёт SVG нужного размера — fontSize им не мешает.
@@ -1144,8 +1148,9 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   // ОРБИТА КРУТИТСЯ (David: «не крутятся»): кольцо привычек — по часовой, кольцо людей — против,
   // МЕДЛЕННО (спокойно). Диски counter-rotate на ту же длительность → эмодзи/лица стоят прямо.
   // bosSpin/bosSpinR — готовые keyframes (mobile.css); willChange → GPU-слой, дёшево на карточках.
+  var fadeMask = fade ? "radial-gradient(circle at center, #000 58%, rgba(0,0,0,0.55) 82%, transparent 99%)" : undefined;
   return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} aria-hidden>
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0, WebkitMaskImage: fadeMask, maskImage: fadeMask }} aria-hidden>
       {ring(r1)}{ring(r2)}
       {/* привычки — внутреннее кольцо, по часовой */}
       <div style={{ position: "absolute", inset: 0, animation: "bosSpin 40s linear infinite", willChange: "transform" }}>

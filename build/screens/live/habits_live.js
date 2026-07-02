@@ -549,14 +549,25 @@ function GoalCardOrbit({
   goal,
   habits,
   size,
-  dark
+  dark,
+  fade
 }) {
   var members = typeof useBuddyMembersLive === "function" ? useBuddyMembersLive(goal && goal.shareCode) : null;
-  var people = (members || []).filter(m => m && !m.me).map(m => ({
+  // Люди на орбите = ВСЕ участники цели (включая себя — David: «вижу большую часть команды на орбитах»).
+  var people = (members || []).filter(Boolean).map(m => ({
     avatar: m.avatar,
     name: m.name
   }));
-  var linked = (goal && goal.habitIds || []).map(id => (habits || []).find(h => h.id === id)).filter(Boolean).map(h => ({
+  // Привычки цели: по habitIds И по обратной ссылке h.goalId (David добавлял привычку, а она не
+  // появлялась — ловим оба способа привязки), без дублей.
+  var ids = {};
+  (goal && goal.habitIds || []).forEach(id => {
+    ids[id] = 1;
+  });
+  (habits || []).forEach(h => {
+    if (h && goal && h.goalId === goal.id) ids[h.id] = 1;
+  });
+  var linked = Object.keys(ids).map(id => (habits || []).find(h => "" + h.id === "" + id)).filter(Boolean).map(h => ({
     emoji: h.emoji,
     color: h.color
   }));
@@ -567,7 +578,8 @@ function GoalCardOrbit({
     habits: linked,
     people: people,
     size: size,
-    dark: dark
+    dark: dark,
+    fade: fade
   });
 }
 function HabitsLive() {
@@ -1078,8 +1090,9 @@ function HabitsLive() {
     var orbit = goalStyle.orbits ? /*#__PURE__*/React.createElement(GoalCardOrbit, {
       goal: g,
       habits: habits,
-      size: banner ? 104 : 116,
-      dark: isDark
+      size: banner ? 132 : 152,
+      dark: isDark,
+      fade: true
     }) : null;
     var pctEl = /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1287,8 +1300,9 @@ function HabitsLive() {
         emoji: h.emoji
       })),
       people: members,
-      size: banner ? 104 : 116,
-      dark: isDark
+      size: banner ? 132 : 152,
+      dark: isDark,
+      fade: true
     }) : null;
     var faces = !orbit && members.length ? /*#__PURE__*/React.createElement("span", {
       style: {
