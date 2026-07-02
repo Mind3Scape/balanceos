@@ -344,7 +344,7 @@ function GoalSettingsLive() {
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
   const [color, setColor] = useHS(g0?.color ?? preset?.color ?? BOS_GREY); // новый = нейтральный «белый» BOS_GREY (единый дефолт с привычками/командами)
   const [target, setTarget] = useHS(g0?.target || preset?.target || 22);
-  const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "недель");
+  const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
   const [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
   const [showCal, setShowCal] = useHS(false);
   const [linkHabit, setLinkHabit] = useHS(true);
@@ -393,14 +393,15 @@ function GoalSettingsLive() {
       </div>
 
       <div style={{ background: "#fff", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
           <input type="text" inputMode="numeric" pattern="[0-9]*" value={target}
             onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
             className="goal-num"
             style={{ flex: "0 0 auto", width: 72, fontSize: 28, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }}/>
-          <div style={{ flex: "1 1 auto", minWidth: 0, display: "flex" }}><BosUnitSelectLive value={unit} onChange={setUnit} /></div>
+          {unit && <span style={{ fontSize: 16, fontWeight: 600, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{unit}</span>}
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 6 }}>От этого числа будет считаться прогресс цели.</div>
+        <div style={{ marginTop: 12 }}><BosUnitSelectLive value={unit} onChange={setUnit} /></div>
+        <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 10 }}>От этого числа будет считаться прогресс цели.</div>
       </div>
 
       {/* Срок — ВСЁ в ОДНОМ блоке (David: «не всё в блоках»): поле + кнопки сроков + календарь;

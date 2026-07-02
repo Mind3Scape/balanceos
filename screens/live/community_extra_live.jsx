@@ -142,7 +142,7 @@ function TeamCreateLive() {
           placeholder="50 добрых дел"
           style={{ width: "100%", fontSize: 19, fontWeight: 600, color: "var(--text)", border: 0, outline: 0, padding: "8px 0 12px", background: "transparent", borderBottom: "1px solid var(--line)" }}/>
         {goalType !== "streak" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Цель</div>
               <input type="text" inputMode="numeric" pattern="[0-9]*" value={target}
@@ -390,7 +390,7 @@ function TeamSettingsLive() {
         <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="50 добрых дел"
           style={{ width: "100%", fontSize: 19, fontWeight: 600, color: "var(--text)", border: 0, outline: 0, padding: "8px 0 12px", background: "transparent", borderBottom: goalType !== "streak" ? "1px solid var(--line)" : "0" }} />
         {goalType !== "streak" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10.5, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Цель</div>
               <input type="text" inputMode="numeric" pattern="[0-9]*" value={target}
@@ -572,9 +572,9 @@ function TeamQuickEditSheetLive({ team, navigate }) {
         <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="50 добрых дел"
           style={{ width: "100%", fontSize: 18, fontWeight: 600, color: "var(--text)", border: 0, outline: 0, padding: "4px 0 10px", background: "transparent", borderBottom: goalType !== "streak" ? "1px solid var(--line)" : "0" }} />
         {goalType !== "streak" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
             <input type="text" inputMode="numeric" pattern="[0-9]*" value={target} onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
-              style={{ flex: "0 0 80px", fontSize: 24, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0 }}/>
+              style={{ width: 80, flexShrink: 0, alignSelf: "flex-start", fontSize: 24, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0 }}/>
             <BosUnitSelectLive value={unit} onChange={setUnit} />
           </div>
         )}

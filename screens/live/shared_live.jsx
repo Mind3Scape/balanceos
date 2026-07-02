@@ -229,17 +229,41 @@ function bosChipGlass(isDark) {
 // Метрика цели/круга — СТАНДАРТНЫЙ iOS-выбор (нативный <select> = колесо на iPhone), чтобы единицу
 // ВЫБИРАЛИ, а не печатали (David: «дай выбор маленьким стандартным ios-меню, не чтобы я сам писал»).
 // Если у объекта единица не из списка (старые данные) — она добавляется первой, чтобы не потерялась.
-var BOS_UNITS = ["раз", "дней", "недель", "км", "шагов", "книг", "страниц", "минут", "часов", "стаканов", "литров", "дел", "штук"];
+// Единица прогресса цели/команды — ТРИ простых режима (David: «Count, Time, Custom Unit» → по-русски):
+// Количество (unit="раз") / Время (unit="мин") / Своя единица (unit=свой текст). Раньше был список из 13
+// — перегруз. Режим выводится из unit. ОДИН компонент → одинаково в целях и командах.
+function bosUnitMode(unit) {
+  var u = ("" + (unit || "")).toLowerCase().trim();
+  if (u === "" || u === "раз") return "count";
+  if (u === "мин" || u === "минут" || u === "ч" || u === "час" || u === "часов") return "time";
+  return "custom";
+}
 function BosUnitSelectLive({ value, onChange }) {
-  var cur = value || "раз";
-  var opts = BOS_UNITS.indexOf(cur) >= 0 ? BOS_UNITS : [cur].concat(BOS_UNITS);
+  // Режим — ЛОКАЛЬНОЕ состояние (источник правды для сегментов): иначе пустой «custom» (unit="") тут же
+  // прочитался бы как «count» и режим «Своя» не открылся бы. Синхронизируем с value, но пустой custom держим.
+  var _s = React.useState(function () { return bosUnitMode(value); });
+  var mode = _s[0], setMode = _s[1];
+  React.useEffect(function () { if (!(mode === "custom" && !value)) setMode(bosUnitMode(value)); }, [value]);
+  var pick = function (m) {
+    if (m === mode) return;
+    setMode(m);
+    onChange(m === "count" ? "раз" : m === "time" ? "мин" : (bosUnitMode(value) === "custom" ? value : ""));
+  };
+  var seg = function (m, label) {
+    var on = mode === m;
+    return <button type="button" className="tap" data-no-haptic onClick={function () { pick(m); }} aria-label={label}
+      style={{ flex: 1, minWidth: 0, border: 0, borderRadius: 9, padding: "8px 4px", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        background: on ? "#fff" : "transparent", color: on ? "#0a0a0a" : "var(--text-3)", boxShadow: on ? "0 1px 3px rgba(0,0,0,0.10)" : "none", transition: "background 0.15s" }}>{label}</button>;
+  };
   return (
-    <div style={{ position: "relative", display: "inline-flex", alignItems: "center", maxWidth: "100%", minWidth: 0 }}>
-      <select value={cur} onChange={function (e) { onChange(e.target.value); }} className="tap" aria-label="Единица измерения"
-        style={{ appearance: "none", WebkitAppearance: "none", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "8px 32px 8px 14px", fontSize: 16, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", cursor: "pointer", maxWidth: "100%", textOverflow: "ellipsis" }}>
-        {opts.map(function (u) { return <option key={u} value={u}>{u}</option>; })}
-      </select>
-      <span aria-hidden style={{ position: "absolute", right: 12, fontSize: 12, color: "var(--text-3)", pointerEvents: "none" }}>▾</span>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ display: "flex", gap: 4, background: "var(--surface-3)", borderRadius: 12, padding: 3 }}>
+        {seg("count", "Количество")}{seg("time", "Время")}{seg("custom", "Своя")}
+      </div>
+      {mode === "custom" && (
+        <input type="text" value={value || ""} onChange={function (e) { onChange(e.target.value); }} placeholder="напр. книг, км, стаканов" aria-label="Своя единица"
+          style={{ width: "100%", boxSizing: "border-box", marginTop: 8, border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 12, padding: "10px 14px", fontSize: 15, fontWeight: 600, color: "var(--text)" }} />
+      )}
     </div>
   );
 }

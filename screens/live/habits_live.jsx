@@ -450,7 +450,7 @@ function HabitsLive() {
         <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {icon}
+              {!orbit && icon}
               <div style={{ flex: 1, minWidth: 0 }}>
                 {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
                 {g.deadline && <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>до {g.deadline}</div>}
@@ -521,7 +521,7 @@ function HabitsLive() {
         <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {icon}
+              {!orbit && icon}
               <div style={{ flex: 1, minWidth: 0 }}>
                 {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>}
                 <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>Вместе{members.length ? " · " + members.length : ""}</div>

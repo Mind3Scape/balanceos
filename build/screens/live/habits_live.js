@@ -1173,7 +1173,7 @@ function HabitsLive() {
           alignItems: "center",
           gap: 12
         }
-      }, icon, /*#__PURE__*/React.createElement("div", {
+      }, !orbit && icon, /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
           minWidth: 0
@@ -1392,7 +1392,7 @@ function HabitsLive() {
           alignItems: "center",
           gap: 12
         }
-      }, icon, /*#__PURE__*/React.createElement("div", {
+      }, !orbit && icon, /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
           minWidth: 0

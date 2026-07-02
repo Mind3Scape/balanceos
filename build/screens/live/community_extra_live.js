@@ -292,7 +292,7 @@ function TeamCreateLive() {
   }), goalType !== "streak" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "center",
+      flexDirection: "column",
       gap: 12,
       marginTop: 12
     }
@@ -993,7 +993,7 @@ function TeamSettingsLive() {
   }), goalType !== "streak" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "center",
+      flexDirection: "column",
       gap: 12,
       marginTop: 12
     }
@@ -1580,7 +1580,7 @@ function TeamQuickEditSheetLive({
   }), goalType !== "streak" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "center",
+      flexDirection: "column",
       gap: 12,
       marginTop: 12
     }
@@ -1591,7 +1591,9 @@ function TeamQuickEditSheetLive({
     value: target,
     onChange: e => setTarget(parseInt(e.target.value.replace(/\D/g, "")) || 0),
     style: {
-      flex: "0 0 80px",
+      width: 80,
+      flexShrink: 0,
+      alignSelf: "flex-start",
       fontSize: 24,
       fontWeight: 700,
       color: "var(--text)",

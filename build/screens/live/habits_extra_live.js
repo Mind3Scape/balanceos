@@ -769,7 +769,7 @@ function GoalSettingsLive() {
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
   var [color, setColor] = useHS(g0?.color ?? preset?.color ?? BOS_GREY); // новый = нейтральный «белый» BOS_GREY (единый дефолт с привычками/командами)
   var [target, setTarget] = useHS(g0?.target || preset?.target || 22);
-  var [unit, setUnit] = useHS(g0?.unit || preset?.unit || "недель");
+  var [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
   var [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
   var [showCal, setShowCal] = useHS(false);
   var [linkHabit, setLinkHabit] = useHS(true);
@@ -887,8 +887,8 @@ function GoalSettingsLive() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "center",
-      gap: 10,
+      alignItems: "baseline",
+      gap: 8,
       minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("input", {
@@ -910,20 +910,28 @@ function GoalSettingsLive() {
       padding: 0,
       minWidth: 0
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }), unit && /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: "1 1 auto",
-      minWidth: 0,
-      display: "flex"
+      fontSize: 16,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      minWidth: 0
+    }
+  }, unit)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12
     }
   }, /*#__PURE__*/React.createElement(BosUnitSelectLive, {
     value: unit,
     onChange: setUnit
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-4)",
-      marginTop: 6
+      marginTop: 10
     }
   }, "\u041E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u0447\u0438\u0442\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement("div", {
     style: {
