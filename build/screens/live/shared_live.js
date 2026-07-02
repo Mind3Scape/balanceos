@@ -7336,6 +7336,104 @@ function _bosSm(x) {
 function _bosLp(a, b, k) {
   return a + (b - a) * k;
 }
+// СТАТИЧНЫЙ диск дальней системы (иконка): аватар + одно золотое кольцо уровня + бейдж. БЕЗ часов и
+// SVG-орбиты → не крутится, не ре-рендерится на 30fps (главная оптимизация: дальних систем много,
+// им не нужна анимация). Вид совпадает со свёрнутым OrbitField → переход бесшовный.
+function UniDiscLive({
+  avatar,
+  level,
+  lvlPct,
+  size,
+  dark
+}) {
+  var av = "" + (avatar || "");
+  var isMemoji = /^m\d+$/.test(av),
+    isEmoji = av.indexOf("emoji:") === 0;
+  var SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
+  var bg = SHEEN + ", " + (isMemoji ? "url(./assets/people/" + av + ".png) center/cover no-repeat, " : !isEmoji ? "url(./assets/sphere.png) center/cover no-repeat, " : "") + "linear-gradient(150deg,#eef1f6,#dadfe7)";
+  var rr = size / 2 - size * 0.045,
+    C = 2 * Math.PI * rr,
+    badge = size * 0.34;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: size,
+      height: size
+    }
+  }, level > 0 && /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 " + size + " " + size,
+    style: {
+      position: "absolute",
+      inset: 0,
+      transform: "rotate(-90deg)"
+    },
+    "aria-hidden": true
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "uniXpR",
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#FFE777"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "0.5",
+    stopColor: "#F4B72A"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#E08A00"
+  }))), /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: rr,
+    stroke: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+    strokeWidth: size * 0.045,
+    fill: "none"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: rr,
+    stroke: "url(#uniXpR)",
+    strokeWidth: size * 0.045,
+    fill: "none",
+    strokeLinecap: "round",
+    strokeDasharray: C,
+    strokeDashoffset: C * (1 - Math.max(0.02, (lvlPct || 0) / 100))
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: size * 0.12,
+      borderRadius: "50%",
+      background: bg,
+      boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: size * 0.42,
+      lineHeight: 1
+    }
+  }, isEmoji ? av.slice(6) : null), level > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      right: size * 0.05,
+      bottom: size * 0.05,
+      minWidth: badge,
+      height: badge,
+      padding: "0 " + size * 0.03 + "px",
+      boxSizing: "border-box",
+      borderRadius: 999,
+      background: "linear-gradient(180deg,#FFE777,#F4B72A)",
+      color: "#4a3800",
+      fontSize: size * 0.2,
+      fontWeight: 800,
+      lineHeight: badge + "px",
+      textAlign: "center",
+      border: "1.5px solid var(--card)"
+    }
+  }, level));
+}
 function UniverseFieldLive({
   app,
   people,
@@ -7499,7 +7597,8 @@ function UniverseFieldLive({
       // index 0 = центр, далее по кольцам
       if (index <= 0) return {
         q: 0,
-        r: 0
+        r: 0,
+        k: 0
       };
       var k = 1;
       while (index > 3 * k * (k + 1)) k++; // номер кольца
@@ -7516,7 +7615,8 @@ function UniverseFieldLive({
       r += AX[side][1] * step;
       return {
         q: q,
-        r: r
+        r: r,
+        k: k
       };
     }
     var nodes = others.map(function (sp, j) {
@@ -7524,7 +7624,8 @@ function UniverseFieldLive({
       return {
         sp: sp,
         fx: h.q + h.r * 0.5,
-        fy: h.r * 0.8660254
+        fy: h.r * 0.8660254,
+        ring: h.k
       };
     });
     return {
@@ -7644,40 +7745,50 @@ function UniverseFieldLive({
     if (g.mode === "pinch" && ids.length >= 2) {
       var a = g.pts[ids[0]],
         b = g.pts[ids[1]];
-      var nz = _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd));
-      setCam(function (v) {
-        return {
-          x: v.x,
-          y: v.y,
-          z: nz,
-          anim: false
-        };
-      });
+      g._pend = {
+        z: _cZ(g.oz * (Math.hypot(a.x - b.x, a.y - b.y) / g.sd))
+      };
     } else if (g.mode === "pan" && ids.length === 1) {
       var ps = 178 * 0.8 * g.oz;
       var dx = e.clientX - g.sx,
         dy = e.clientY - g.sy;
       g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy));
+      g._pend = {
+        x: g.ox - dx / ps,
+        y: g.oy - dy / ps
+      };
+    } else return;
+    // rAF-троттлинг: частые pointermove склеиваем в ОДИН setCam на кадр (не грузим перерисовку)
+    if (!g._raf) g._raf = requestAnimationFrame(function () {
+      g._raf = null;
+      var p = g._pend;
+      if (!p) return;
       setCam(function (v) {
         return {
-          x: g.ox - dx / ps,
-          y: g.oy - dy / ps,
-          z: v.z,
+          x: p.x != null ? p.x : v.x,
+          y: p.y != null ? p.y : v.y,
+          z: p.z != null ? p.z : v.z,
           anim: false
         };
       });
-    }
+    });
   }
   function uUp(e) {
     var g = vp.current;
     var tap = g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1;
     delete g.pts[e.pointerId];
     if (!Object.keys(g.pts).length) g.mode = null;
+    if (g._raf) {
+      cancelAnimationFrame(g._raf);
+      g._raf = null;
+    }
+    var p = g._pend;
+    g._pend = null;
     setCam(function (v) {
       return {
-        x: v.x,
-        y: v.y,
-        z: v.z,
+        x: p && p.x != null ? p.x : v.x,
+        y: p && p.y != null ? p.y : v.y,
+        z: p && p.z != null ? p.z : v.z,
         anim: true
       };
     });
@@ -7733,7 +7844,8 @@ function UniverseFieldLive({
     sp: youSp,
     fx: 0,
     fy: 0,
-    you: true
+    you: true,
+    ring: 0
   }].concat(layout.nodes);
   var node = /*#__PURE__*/React.createElement("div", {
     style: {
@@ -7744,7 +7856,7 @@ function UniverseFieldLive({
       background: bg,
       animation: "bosUniFade 0.5s ease both"
     }
-  }, /*#__PURE__*/React.createElement("style", null, "@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSpinCW{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes bosSpinFaceCW{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes bosSpinFaceCCW{from{transform:rotate(0)}to{transform:rotate(-360deg)}}@keyframes bosUniPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("style", null, "@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}"), /*#__PURE__*/React.createElement("div", {
     onPointerDown: uDown,
     onPointerMove: uMove,
     onPointerUp: uUp,
@@ -7766,17 +7878,37 @@ function UniverseFieldLive({
     var f = fish(nd.fx, nd.fy);
     if (f.sx < -f.size || f.sx > W + f.size || f.sy < -f.size || f.sy > H + f.size) return null;
     var sp = nd.sp,
-      k = f.size / 300,
-      openV = openMag(f.mag);
+      openV = openMag(f.mag),
+      delay = Math.min((nd.ring || 0) * 0.045, 0.4);
+    var wrap = {
+      position: "absolute",
+      left: f.sx.toFixed(1) + "px",
+      top: f.sy.toFixed(1) + "px",
+      pointerEvents: "none",
+      zIndex: Math.round(f.mag * 100),
+      animation: "bosSysPop 0.44s cubic-bezier(0.34,1.35,0.5,1) " + delay.toFixed(2) + "s both"
+    };
+    if (openV < 0.12) {
+      return /*#__PURE__*/React.createElement("div", {
+        key: nd.you ? "you" : "o" + i,
+        style: wrap
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          position: "absolute",
+          transform: "translate(-50%,-50%)"
+        }
+      }, typeof UniDiscLive === "function" ? /*#__PURE__*/React.createElement(UniDiscLive, {
+        avatar: sp.s && sp.s.avatar,
+        level: sp.level,
+        lvlPct: sp.lvlPct,
+        size: f.size * 0.52,
+        dark: isDark
+      }) : null));
+    }
+    var k = f.size / 300;
     return /*#__PURE__*/React.createElement("div", {
       key: nd.you ? "you" : "o" + i,
-      style: {
-        position: "absolute",
-        left: f.sx.toFixed(1) + "px",
-        top: f.sy.toFixed(1) + "px",
-        pointerEvents: "none",
-        zIndex: Math.round(f.mag * 100)
-      }
+      style: wrap
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         position: "absolute",
@@ -7798,7 +7930,8 @@ function UniverseFieldLive({
       hideLevelArc: true,
       editable: false,
       levelBadge: sp.level,
-      open: openV
+      open: openV,
+      minimal: true
     }) : null));
   }))), /*#__PURE__*/React.createElement("div", {
     style: {

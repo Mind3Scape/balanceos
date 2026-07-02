@@ -332,7 +332,8 @@ function OrbitField({
   editable = true,
   levelBadge = 0,
   settled = false,
-  open
+  open,
+  minimal = false
 }) {
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
@@ -577,7 +578,7 @@ function OrbitField({
       stroke: "rgba(" + PAL.ring + "," + op.toFixed(3) + ")",
       strokeWidth: "1"
     });
-  }), drawRings.map(r => {
+  }), !minimal && drawRings.map(r => {
     var R = radius(r),
       baseOp = clamp(eo * fadeAt(R), 0, 1);
     if (baseOp <= 0.02) return null;

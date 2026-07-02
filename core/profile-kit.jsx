@@ -94,7 +94,7 @@ function AvatarPickerSheet({ dark = false }) {
   );
 }
 
-function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open }) {
+function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTap, moodC, dark = false, hideLevelArc = false, editable = true, levelBadge = 0, settled = false, open, minimal = false }) {
   // editable=false → center is a circle's EMBLEM, not an editable avatar (no pencil). people items
   // may carry `lit` (opt-in): lit===true → active today (glows + ✓), lit===false → dimmed. Profile
   // passes plain people (no lit) → full opacity, no badge (unchanged). Used to unify the team orbit.
@@ -211,8 +211,10 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
             <circle key={"ring" + r} cx="0" cy="0" r={R.toFixed(1)} fill="none" stroke={"rgba(" + PAL.ring + "," + op.toFixed(3) + ")"} strokeWidth="1" />;
         })}
 
-        {/* small living dots drifting along the orbits — echoes the onboarding cosmos */}
-        {drawRings.map((r) => {
+        {/* small living dots drifting along the orbits — echoes the onboarding cosmos.
+            minimal=true (Вселенная) СКИПАЕТ их: десятки лишних SVG-элементов на каждую орбиту ×
+            много систем ре-рендерились на 30fps → главный источник лагов вселенной. */}
+        {!minimal && drawRings.map((r) => {
           const R = radius(r), baseOp = clamp(eo * fadeAt(R), 0, 1);
           if (baseOp <= 0.02) return null;
           const ds = ((r % 2) ? -1 : 1) * 0.05 / (1 + r * 0.15);
