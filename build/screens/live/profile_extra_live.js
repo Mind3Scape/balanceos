@@ -17,10 +17,11 @@
    carry fontWeight: 600 + color: "var(--text)". Already-700 weights and
    secondary/caption text are left untouched.
 
-   The ONLY new top-level declarations in this file are the seven `…Live`
-   components below: SettingsLive, NotificationsLive, HistoryLive, SupportLive,
-   AchievementsLive, ManifestLive, IconPickerLive. (GuideScreen is NOT defined in
-   profile.jsx — it lives in app.jsx — so no GuideLive fork is made here.) */
+   Top-level declarations in this file: SettingsLive, NotificationsLive, HistoryLive,
+   SupportLive, AchievementsLive, ManifestLive, IconPickerLive + the friends family
+   (bosHabitsWord, _bosFriendsPageCache, FriendsLive, FriendPreviewSheetLive) and
+   StateHistorySheetLive. (GuideScreen is NOT defined in profile.jsx — it lives in
+   app.jsx — so no GuideLive fork is made here.) */
 
 // LIVE state-history sheet (Settings → «История состояния»): the user's REAL day-keyed
 // mood marks, newest first. Honest empty state — never a fake calendar.
@@ -165,79 +166,254 @@ function StateHistorySheetLive({
   }, e.tags.map(t => "#" + ("" + t).replace(/_/g, " ")).join("  ")))))));
 }
 
-// LIVE friends sheet (Settings → «Друзья»): the REAL people you invited (referral circle)
-// from the cloud. Honest — name + avatar only, no fabricated profiles; empty state nudges to
-// invite. No tap-through to ContactDetailLive (that screen is a curated mock).
-function FriendsSheetLive({
-  dark = false
-}) {
-  var [people, setPeople] = React.useState(null); // null = loading
+// Склонение «привычка/привычки/привычек» для подписей друзей.
+function bosHabitsWord(n) {
+  n = Math.abs(n | 0);
+  var d10 = n % 10,
+    d100 = n % 100;
+  if (d10 === 1 && d100 !== 11) return "привычка";
+  if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return "привычки";
+  return "привычек";
+}
+
+/* СТРАНИЦА «ДРУЗЬЯ» (David: «страница друзей с карточками, превью их профилей, редактирование
+   своего видимого профиля — нативно, как родное приложение iOS»). Раньше была куцая шторка-список;
+   теперь полноценный экран в языке «Я»/Настроек (bos-sys-card, hairline-строки):
+   1) ТВОЙ ВИДИМЫЙ ПРОФИЛЬ — как тебя видят друзья + карандаш (EditProfileSheet) + честная
+      строка «Что видно другим» (имя, аватар, уровень, значки привычек — БЕЗ названий и записей).
+   2) ТВОИ ЛЮДИ — реальные люди: приглашённые (реферальный круг) + участники твоих кругов
+      (дедуп, без себя). Тап по карточке → ШТОРКА-превью профиля (FriendPreviewSheetLive).
+   3) Золотая «Позвать друга» (ShareAppSheetLive) — та же механика +150 XP, что везде.
+   Кэш в модульной переменной → мгновенный повторный вход (паттерн CircleFriendsStripLive). */
+var _bosFriendsPageCache = null; // { people:[{id,name,avatar,invited,teams[]}], pub:{id:{level,lvlPct,habits,goals,people}} }
+function FriendsLive() {
+  var {
+    navigate,
+    params
+  } = useNav();
+  var app = useApp();
+  var {
+    open: openSheet
+  } = useSheet();
+  var isDark = app?.themeOverride === "dark";
+  var back = params && params.from || "profile";
+  var [data, setData] = useP(_bosFriendsPageCache); // null = загрузка
+  var teamSig = (app?.teams || []).filter(t => t.cloudId).map(t => t.cloudId).join(",");
   React.useEffect(() => {
     var on = true;
-    if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.invitedPeople) {
-      window.bosCloud.invitedPeople().then(list => {
-        if (on) setPeople(Array.isArray(list) ? list : []);
-      }).catch(() => {
-        if (on) setPeople([]);
-      });
-    } else setPeople([]);
+    (async () => {
+      if (!(window.bosCloud && window.bosCloud.enabled())) {
+        if (on) setData({
+          people: [],
+          pub: {}
+        });
+        return;
+      }
+      var myId = null;
+      try {
+        myId = await window.bosCloud.uid();
+      } catch (e) {}
+      var seen = {},
+        out = [];
+      // 1) Приглашённые тобой (реферальный круг) — в порядке приглашения.
+      try {
+        var inv = await window.bosCloud.invitedPeople();
+        (inv || []).forEach(p => {
+          if (p && p.id && p.id !== myId && !seen[p.id]) {
+            seen[p.id] = 1;
+            out.push({
+              id: p.id,
+              name: p.username || "Друг",
+              avatar: p.avatar,
+              invited: true,
+              teams: []
+            });
+          }
+        });
+      } catch (e) {}
+      // 2) Люди из твоих кругов — дедуп + запоминаем ОБЩИЕ круги (для превью).
+      var teams = (app?.teams || []).filter(t => t.cloudId);
+      var _loop = async function (i) {
+        try {
+          var mem = await window.bosCloud.teamMembers(teams[i].cloudId);
+          (mem || []).forEach(m => {
+            if (!m || !m.id || m.id === myId) return;
+            if (!seen[m.id]) {
+              seen[m.id] = 1;
+              out.push({
+                id: m.id,
+                name: m.name || "Друг",
+                avatar: m.avatar,
+                invited: false,
+                teams: []
+              });
+            }
+            var f = out.find(x => x.id === m.id);
+            if (f && !f.teams.some(x => x._id === teams[i]._id)) f.teams.push(teams[i]);
+          });
+        } catch (e) {}
+      };
+      for (var i = 0; i < teams.length; i++) {
+        await _loop(i);
+      }
+      // 3) Публичные орбиты друзей (уровень + значки привычек) — кормят подписи и превью.
+      var pub = {};
+      try {
+        pub = (await window.bosCloud.profilesPublic(out.map(f => f.id))) || {};
+      } catch (e) {}
+      var d = {
+        people: out,
+        pub
+      };
+      _bosFriendsPageCache = d;
+      if (on) setData(d);
+    })();
     return () => {
       on = false;
     };
-  }, []);
-  var C = dark ? {
-    text: "#fff",
-    sub: "rgba(255,255,255,0.5)",
-    tile: "rgba(255,255,255,0.07)"
-  } : {
-    text: "#0a0a0a",
-    sub: "rgba(0,0,0,0.5)",
-    tile: "#f4f4f6"
+  }, [teamSig]);
+  var chip = icon => /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(icon, {
+    size: 15,
+    color: "var(--text)"
+  }));
+  var people = data && data.people;
+  var pub = data && data.pub || {};
+  var inviteFriend = () => {
+    if (typeof ShareAppSheetLive === "function") openSheet(/*#__PURE__*/React.createElement(ShareAppSheetLive, {
+      dark: isDark
+    }));
   };
-  var _COLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
   return /*#__PURE__*/React.createElement("div", {
+    className: "page-in",
     style: {
-      padding: "2px 20px 22px",
-      color: C.text
+      padding: "0 16px 24px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "\u0414\u0440\u0443\u0437\u044C\u044F",
+    onBack: () => navigate(back)
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-card",
     style: {
-      textAlign: "center"
+      marginTop: 6,
+      padding: 0,
+      overflow: "hidden"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(EditProfileSheet, {
+      dark: isDark
+    })),
+    className: "tap",
     style: {
-      fontSize: 20,
-      fontWeight: 700,
-      letterSpacing: "-0.3px"
-    }
-  }, "\u0414\u0440\u0443\u0437\u044C\u044F"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: C.sub,
-      marginTop: 3
-    }
-  }, "\u041A\u043E\u0433\u043E \u0442\u044B \u043F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u043B \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435")), people === null ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
+      width: "100%",
       display: "flex",
-      flexDirection: "column",
-      gap: 8
+      alignItems: "center",
+      gap: 12,
+      background: "transparent",
+      border: 0,
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "13px 14px"
     }
-  }, [0, 1].map(i => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    avatar: app?.avatar,
+    name: app?.userName,
+    size: 46
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, app?.userName || "Ты"), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 1
+    }
+  }, "\u0422\u0430\u043A \u0442\u0435\u0431\u044F \u0432\u0438\u0434\u044F\u0442 \u0434\u0440\u0443\u0437\u044C\u044F")), /*#__PURE__*/React.createElement("span", {
+    className: "bos-sys-chip-bg",
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Pencil, {
+    size: 14,
+    color: "var(--text)"
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(InfoSheet, {
+      title: "\u0427\u0442\u043E \u0432\u0438\u0434\u043D\u043E \u0434\u0440\u0443\u0433\u0438\u043C",
+      body: "\u0414\u0440\u0443\u0437\u044C\u044F \u0432\u0438\u0434\u044F\u0442 \u0442\u0432\u043E\u0451 \u0438\u043C\u044F, \u0430\u0432\u0430\u0442\u0430\u0440, \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u0438 \u0437\u043D\u0430\u0447\u043A\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A \u2014 \u0431\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0439, \u0437\u0430\u043F\u0438\u0441\u0435\u0439 \u0438 \u0437\u0430\u043C\u0435\u0442\u043E\u043A. \u0412\u0441\u0451 \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u043E\u0435 \u043E\u0441\u0442\u0430\u0451\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0443 \u0442\u0435\u0431\u044F.",
+      cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
+      dark: isDark
+    })),
+    className: "tap",
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "transparent",
+      border: 0,
+      borderTop: "0.5px solid var(--line)",
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "13px 14px"
+    }
+  }, chip(I.Eye), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u0427\u0442\u043E \u0432\u0438\u0434\u043D\u043E \u0434\u0440\u0443\u0433\u0438\u043C"), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-2"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 22
+    }
+  }, "\u0422\u0432\u043E\u0438 \u043B\u044E\u0434\u0438", people && people.length ? " · " + people.length : ""), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-card",
+    style: {
+      marginTop: 8,
+      padding: 0,
+      overflow: "hidden"
+    }
+  }, people === null && [0, 1, 2].map(i => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: "flex",
       alignItems: "center",
       gap: 12,
-      padding: "10px 12px",
-      background: C.tile,
-      borderRadius: 14
+      padding: "12px 14px",
+      borderTop: i ? "0.5px solid var(--line)" : 0
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-skel",
     style: {
-      width: 38,
-      height: 38,
+      width: 42,
+      height: 42,
       borderRadius: "50%",
       flexShrink: 0
     }
@@ -245,71 +421,325 @@ function FriendsSheetLive({
     className: "bos-skel",
     style: {
       display: "block",
-      width: "45%",
+      width: "42%",
       height: 12,
       borderRadius: 6
     }
-  })))) : people.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }))), people && people.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center",
-      padding: "22px 8px",
-      color: C.sub,
-      fontSize: 14,
-      lineHeight: 1.5
+      padding: "24px 18px",
+      textAlign: "center"
     }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E. \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438 \u0434\u0440\u0443\u0433\u0430 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435 \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0433\u043E \u044D\u043A\u0440\u0430\u043D\u0430 \u2014 \u0437\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E +XP \u043A \u0443\u0440\u043E\u0432\u043D\u044E.") : /*#__PURE__*/React.createElement("div", {
-    className: "bos-acc-in",
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 14,
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      maxHeight: "52vh",
-      overflowY: "auto"
+      fontSize: 30,
+      lineHeight: 1
     }
-  }, people.map((p, i) => {
-    var nm = p && p.username ? p.username : "Друг";
-    return /*#__PURE__*/React.createElement("div", {
-      key: i,
+  }, "\uD83E\uDEE7"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)",
+      marginTop: 9
+    }
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E \u0440\u044F\u0434\u043E\u043C"), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 4,
+      lineHeight: 1.45,
+      maxWidth: 240,
+      margin: "4px auto 0"
+    }
+  }, "\u041F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0433\u0430 \u2014 \u043E\u043D \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0438 \u043D\u0430 \u0442\u0432\u043E\u0435\u0439 \u043E\u0440\u0431\u0438\u0442\u0435.")), people && people.map((f, i) => {
+    var o = pub[f.id];
+    var sub = o && o.level > 0 ? "Уровень " + o.level + ((o.habits || []).length ? " · " + o.habits.length + " " + bosHabitsWord((o.habits || []).length) : "") : f.invited ? "Пришёл по твоему приглашению" : "Вместе в круге";
+    return /*#__PURE__*/React.createElement("button", {
+      key: f.id,
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(FriendPreviewSheetLive, {
+        friend: f,
+        pub: o,
+        navigate: navigate
+      })),
+      className: "tap",
       style: {
+        width: "100%",
         display: "flex",
         alignItems: "center",
         gap: 12,
-        padding: "10px 12px",
-        background: C.tile,
-        borderRadius: 14
+        background: "transparent",
+        border: 0,
+        borderTop: i ? "0.5px solid var(--line)" : 0,
+        cursor: "pointer",
+        textAlign: "left",
+        padding: "12px 14px"
       }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 38,
-        height: 38,
-        borderRadius: "50%",
-        background: _COLORS[i % _COLORS.length],
-        display: "grid",
-        placeItems: "center",
-        fontSize: 16,
-        fontWeight: 700,
-        color: "rgba(0,0,0,0.55)",
-        flexShrink: 0
-      }
-    }, nm.charAt(0).toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+      avatar: f.avatar,
+      name: f.name,
+      size: 42
+    }), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 15,
-        fontWeight: 600
+        fontSize: 15.5,
+        fontWeight: 600,
+        color: "var(--text)",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
       }
-    }, nm), /*#__PURE__*/React.createElement("div", {
+    }, f.name), /*#__PURE__*/React.createElement("div", {
+      className: "bos-sys-text-3",
       style: {
-        fontSize: 12,
-        color: C.sub,
+        fontSize: 12.5,
         marginTop: 1
       }
-    }, "\u0412 \u0442\u0432\u043E\u0451\u043C \u043A\u0440\u0443\u0433\u0435")));
+    }, sub)), f.teams.length > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 15,
+        marginRight: 2
+      }
+    }, bosIcon(f.teams[0].emblem || "✨", 15, null)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+      size: 16,
+      className: "bos-sys-text-2"
+    }));
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: inviteFriend,
+    className: "tap",
+    style: {
+      width: "100%",
+      marginTop: 16,
+      position: "relative",
+      overflow: "hidden",
+      border: 0,
+      borderRadius: 22,
+      padding: 16,
+      background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
+      boxShadow: "0 8px 22px rgba(239,159,20,0.3)",
+      color: "#0a0a0a",
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      textAlign: "left",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      inset: 0,
+      background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)",
+      pointerEvents: "none"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: "rgba(255,255,255,0.5)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement(I.Share, {
+    size: 20
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 700,
+      letterSpacing: "-0.2px"
+    }
+  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0430"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "rgba(10,10,10,0.65)",
+      marginTop: 2
+    }
+  }, "+150 XP \u0437\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E, \u043A\u0442\u043E \u0432\u043E\u0439\u0434\u0451\u0442 \u043F\u043E \u0442\u0432\u043E\u0435\u0439 \u0441\u0441\u044B\u043B\u043A\u0435")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    style: {
+      position: "relative"
+    }
   })));
+}
+
+/* ШТОРКА-ПРЕВЬЮ ПРОФИЛЯ ДРУГА — его космос тем же OrbitField, что на «Я» (аватар в центре,
+   золотое кольцо уровня, значки привычек на кольцах — из ПУБЛИЧНОЙ орбиты, без названий),
+   тройка фактов и общие круги (тап → комната круга). navigate — пропом (шторки вне NavCtx). */
+function FriendPreviewSheetLive({
+  friend,
+  pub,
+  navigate
+}) {
+  var {
+    open: openSheet,
+    close
+  } = useSheet();
+  var app = useApp();
+  var isDark = app?.themeOverride === "dark";
+  var o = pub || {};
+  var habits = (o.habits || []).map(h => ({
+    emoji: h && h.e || "✨",
+    color: h && h.c || null
+  }));
+  var goTeam = t => {
+    close();
+    if (typeof navigate === "function") navigate("team-detail", {
+      team: t,
+      from: "friends"
+    });
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 18px 20px",
+      maxHeight: "84vh",
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+      textAlign: "center"
+    }
+  }, typeof OrbitField === "function" ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: -8
+    }
+  }, /*#__PURE__*/React.createElement(OrbitField, {
+    avatar: friend.avatar,
+    name: friend.name,
+    habits: habits,
+    people: [],
+    levelPct: o.lvlPct || 2,
+    dark: isDark,
+    hideLevelArc: true,
+    editable: false,
+    levelBadge: o.level || 0
+  })) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "center",
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    avatar: friend.avatar,
+    name: friend.name,
+    size: 76
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--bos-title-font)",
+      fontWeight: 700,
+      fontSize: 24,
+      marginTop: 0,
+      color: "var(--text)",
+      letterSpacing: "-0.4px"
+    }
+  }, friend.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 3
+    }
+  }, friend.invited ? "На твоей орбите — по твоему приглашению" : "Вы вместе ведёте круг"), o.level > 0 || habits.length > 0 || o.goals > 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 8,
+      marginTop: 14
+    }
+  }, [["Уровень", o.level || 1], ["Привычки", habits.length], ["Цели", o.goals || 0]].map(([l, v]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      background: "var(--surface-3)",
+      borderRadius: 16,
+      padding: "11px 6px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      color: "var(--text)",
+      letterSpacing: "-0.3px"
+    }
+  }, v), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-4)",
+      marginTop: 1,
+      fontWeight: 600
+    }
+  }, l)))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 14,
+      lineHeight: 1.45
+    }
+  }, "\u041E\u0440\u0431\u0438\u0442\u0430 \u0434\u0440\u0443\u0433\u0430 \u0435\u0449\u0451 \u043D\u0430\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F \u2014 \u0437\u043D\u0430\u0447\u043A\u0438 \u0435\u0433\u043E \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C."), friend.teams && friend.teams.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "left",
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      margin: "18px 2px 8px"
+    }
+  }, "\u0412\u043C\u0435\u0441\u0442\u0435 \u0432 \u043A\u0440\u0443\u0433\u0430\u0445"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap",
+      justifyContent: "flex-start"
+    }
+  }, friend.teams.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t._id,
+    onClick: () => goTeam(t),
+    className: "tap",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+        background: "var(--surface-3)"
+      }),
+      padding: "7px 13px 7px 9px",
+      borderRadius: 999,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      border: 0,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14
+    }
+  }, bosIcon(t.emblem || "✨", 14, null)), t.name)))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+      mode: "create",
+      circleOn: true,
+      navigate: navigate
+    })),
+    className: "tap",
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--text-3)",
+      padding: "12px",
+      marginTop: 14,
+      fontSize: 13.5,
+      fontWeight: 600
+    }
+  }, "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u043E\u0431\u0449\u0438\u0439 \u043A\u0440\u0443\u0433 \u2192"));
 }
 function SettingsLive() {
   var {
@@ -493,7 +923,7 @@ function NotificationsLive() {
       try {
         var me = await window.bosCloud.uid();
         var out = [];
-        var _loop = async function () {
+        var _loop2 = async function () {
           var rows = await window.bosCloud.loadMessages(t.cloudId);
           if (!Array.isArray(rows) || !rows.length) return 1; // continue
           var lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
@@ -512,7 +942,7 @@ function NotificationsLive() {
           }
         };
         for (var t of teams) {
-          if (await _loop()) continue;
+          if (await _loop2()) continue;
         }
         if (on) setLiveItems(out);
       } catch (e) {

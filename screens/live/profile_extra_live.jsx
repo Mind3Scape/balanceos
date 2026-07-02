@@ -17,10 +17,11 @@
    carry fontWeight: 600 + color: "var(--text)". Already-700 weights and
    secondary/caption text are left untouched.
 
-   The ONLY new top-level declarations in this file are the seven `…Live`
-   components below: SettingsLive, NotificationsLive, HistoryLive, SupportLive,
-   AchievementsLive, ManifestLive, IconPickerLive. (GuideScreen is NOT defined in
-   profile.jsx — it lives in app.jsx — so no GuideLive fork is made here.) */
+   Top-level declarations in this file: SettingsLive, NotificationsLive, HistoryLive,
+   SupportLive, AchievementsLive, ManifestLive, IconPickerLive + the friends family
+   (bosHabitsWord, _bosFriendsPageCache, FriendsLive, FriendPreviewSheetLive) and
+   StateHistorySheetLive. (GuideScreen is NOT defined in profile.jsx — it lives in
+   app.jsx — so no GuideLive fork is made here.) */
 
 // LIVE state-history sheet (Settings → «История состояния»): the user's REAL day-keyed
 // mood marks, newest first. Honest empty state — never a fake calendar.
@@ -72,55 +73,195 @@ function StateHistorySheetLive({ app, dark = false }) {
   );
 }
 
-// LIVE friends sheet (Settings → «Друзья»): the REAL people you invited (referral circle)
-// from the cloud. Honest — name + avatar only, no fabricated profiles; empty state nudges to
-// invite. No tap-through to ContactDetailLive (that screen is a curated mock).
-function FriendsSheetLive({ dark = false }) {
-  const [people, setPeople] = React.useState(null); // null = loading
+// Склонение «привычка/привычки/привычек» для подписей друзей.
+function bosHabitsWord(n) {
+  n = Math.abs(n | 0); var d10 = n % 10, d100 = n % 100;
+  if (d10 === 1 && d100 !== 11) return "привычка";
+  if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return "привычки";
+  return "привычек";
+}
+
+/* СТРАНИЦА «ДРУЗЬЯ» (David: «страница друзей с карточками, превью их профилей, редактирование
+   своего видимого профиля — нативно, как родное приложение iOS»). Раньше была куцая шторка-список;
+   теперь полноценный экран в языке «Я»/Настроек (bos-sys-card, hairline-строки):
+   1) ТВОЙ ВИДИМЫЙ ПРОФИЛЬ — как тебя видят друзья + карандаш (EditProfileSheet) + честная
+      строка «Что видно другим» (имя, аватар, уровень, значки привычек — БЕЗ названий и записей).
+   2) ТВОИ ЛЮДИ — реальные люди: приглашённые (реферальный круг) + участники твоих кругов
+      (дедуп, без себя). Тап по карточке → ШТОРКА-превью профиля (FriendPreviewSheetLive).
+   3) Золотая «Позвать друга» (ShareAppSheetLive) — та же механика +150 XP, что везде.
+   Кэш в модульной переменной → мгновенный повторный вход (паттерн CircleFriendsStripLive). */
+var _bosFriendsPageCache = null; // { people:[{id,name,avatar,invited,teams[]}], pub:{id:{level,lvlPct,habits,goals,people}} }
+function FriendsLive() {
+  const { navigate, params } = useNav();
+  const app = useApp();
+  const { open: openSheet } = useSheet();
+  const isDark = app?.themeOverride === "dark";
+  const back = (params && params.from) || "profile";
+  const [data, setData] = useP(_bosFriendsPageCache); // null = загрузка
+  const teamSig = (app?.teams || []).filter((t) => t.cloudId).map((t) => t.cloudId).join(",");
   React.useEffect(() => {
     let on = true;
-    if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.invitedPeople) {
-      window.bosCloud.invitedPeople().then((list) => { if (on) setPeople(Array.isArray(list) ? list : []); }).catch(() => { if (on) setPeople([]); });
-    } else setPeople([]);
+    (async () => {
+      if (!(window.bosCloud && window.bosCloud.enabled())) { if (on) setData({ people: [], pub: {} }); return; }
+      let myId = null; try { myId = await window.bosCloud.uid(); } catch (e) {}
+      const seen = {}, out = [];
+      // 1) Приглашённые тобой (реферальный круг) — в порядке приглашения.
+      try {
+        const inv = await window.bosCloud.invitedPeople();
+        (inv || []).forEach((p) => { if (p && p.id && p.id !== myId && !seen[p.id]) { seen[p.id] = 1; out.push({ id: p.id, name: p.username || "Друг", avatar: p.avatar, invited: true, teams: [] }); } });
+      } catch (e) {}
+      // 2) Люди из твоих кругов — дедуп + запоминаем ОБЩИЕ круги (для превью).
+      const teams = (app?.teams || []).filter((t) => t.cloudId);
+      for (let i = 0; i < teams.length; i++) {
+        try {
+          const mem = await window.bosCloud.teamMembers(teams[i].cloudId);
+          (mem || []).forEach((m) => {
+            if (!m || !m.id || m.id === myId) return;
+            if (!seen[m.id]) { seen[m.id] = 1; out.push({ id: m.id, name: m.name || "Друг", avatar: m.avatar, invited: false, teams: [] }); }
+            const f = out.find((x) => x.id === m.id);
+            if (f && !f.teams.some((x) => x._id === teams[i]._id)) f.teams.push(teams[i]);
+          });
+        } catch (e) {}
+      }
+      // 3) Публичные орбиты друзей (уровень + значки привычек) — кормят подписи и превью.
+      let pub = {};
+      try { pub = (await window.bosCloud.profilesPublic(out.map((f) => f.id))) || {}; } catch (e) {}
+      const d = { people: out, pub };
+      _bosFriendsPageCache = d;
+      if (on) setData(d);
+    })();
     return () => { on = false; };
-  }, []);
-  const C = dark
-    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.07)" }
-    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f4f4f6" };
-  const _COLORS = ["#e8c8a8", "#a8b9d4", "#d4b8e8", "#a8d4e8", "#b8e8c8", "#e8b8d4", "#d4c8e8"];
+  }, [teamSig]);
+
+  const chip = (icon) => <span className="bos-sys-chip-bg" style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(icon, { size: 15, color: "var(--text)" })}</span>;
+  const people = data && data.people;
+  const pub = (data && data.pub) || {};
+  const inviteFriend = () => { if (typeof ShareAppSheetLive === "function") openSheet(<ShareAppSheetLive dark={isDark} />); };
+
   return (
-    <div style={{ padding: "2px 20px 22px", color: C.text }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Друзья</div>
-        <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3 }}>Кого ты пригласил в приложение</div>
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader title="Друзья" onBack={() => navigate(back)} />
+
+      {/* ТВОЙ ВИДИМЫЙ ПРОФИЛЬ — как тебя видят друзья; карандаш → правка имени/аватара. */}
+      <div className="bos-sys-card" style={{ marginTop: 6, padding: 0, overflow: "hidden" }}>
+        <button onClick={() => openSheet(<EditProfileSheet dark={isDark} />)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+          <BuddyFaceLive avatar={app?.avatar} name={app?.userName} size={46} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>{app?.userName || "Ты"}</div>
+            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>Так тебя видят друзья</div>
+          </div>
+          <span className="bos-sys-chip-bg" style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Pencil size={14} color="var(--text)" /></span>
+        </button>
+        <button onClick={() => openSheet(<InfoSheet title="Что видно другим" body="Друзья видят твоё имя, аватар, уровень и значки привычек — без названий, записей и заметок. Всё остальное остаётся только у тебя." cta="Понятно" dark={isDark} />)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+          {chip(I.Eye)}
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Что видно другим</span>
+          <I.ChevronRight size={16} className="bos-sys-text-2" />
+        </button>
       </div>
-      {people === null ? (
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-          {[0, 1].map((i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: C.tile, borderRadius: 14 }}>
-              <span className="bos-skel" style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0 }} />
-              <span className="bos-skel" style={{ display: "block", width: "45%", height: 12, borderRadius: 6 }} />
+
+      {/* ТВОИ ЛЮДИ — карточки друзей; тап → шторка-превью профиля. */}
+      <div className="section-label" style={{ marginTop: 22 }}>Твои люди{people && people.length ? " · " + people.length : ""}</div>
+      <div className="bos-sys-card" style={{ marginTop: 8, padding: 0, overflow: "hidden" }}>
+        {people === null && [0, 1, 2].map((i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: i ? "0.5px solid var(--line)" : 0 }}>
+            <span className="bos-skel" style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0 }} />
+            <span className="bos-skel" style={{ display: "block", width: "42%", height: 12, borderRadius: 6 }} />
+          </div>
+        ))}
+        {people && people.length === 0 && (
+          <div style={{ padding: "24px 18px", textAlign: "center" }}>
+            <div style={{ fontSize: 30, lineHeight: 1 }}>🫧</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", marginTop: 9 }}>Пока никого рядом</div>
+            <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 4, lineHeight: 1.45, maxWidth: 240, margin: "4px auto 0" }}>Позови друга — он появится здесь и на твоей орбите.</div>
+          </div>
+        )}
+        {people && people.map((f, i) => {
+          const o = pub[f.id];
+          const sub = (o && o.level > 0)
+            ? ("Уровень " + o.level + ((o.habits || []).length ? " · " + o.habits.length + " " + bosHabitsWord((o.habits || []).length) : ""))
+            : (f.invited ? "Пришёл по твоему приглашению" : "Вместе в круге");
+          return (
+            <button key={f.id} onClick={() => openSheet(<FriendPreviewSheetLive friend={f} pub={o} navigate={navigate} />)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, cursor: "pointer", textAlign: "left", padding: "12px 14px" }}>
+              <BuddyFaceLive avatar={f.avatar} name={f.name} size={42} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</div>
+                <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{sub}</div>
+              </div>
+              {f.teams.length > 0 && <span style={{ fontSize: 15, marginRight: 2 }}>{bosIcon(f.teams[0].emblem || "✨", 15, null)}</span>}
+              <I.ChevronRight size={16} className="bos-sys-text-2" />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Позвать друга — та же золотая механика +150 XP, что на главной/в Сообществе. */}
+      <button onClick={inviteFriend} className="tap" style={{ width: "100%", marginTop: 16, position: "relative", overflow: "hidden", border: 0, borderRadius: 22, padding: 16, background: "linear-gradient(135deg, #FEDE34, #EF9F14)", boxShadow: "0 8px 22px rgba(239,159,20,0.3)", color: "#0a0a0a", display: "flex", alignItems: "center", gap: 13, textAlign: "left", cursor: "pointer" }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)", pointerEvents: "none" }} />
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, position: "relative" }}><I.Share size={20} /></span>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+          <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px" }}>Позвать друга</div>
+          <div style={{ fontSize: 12.5, color: "rgba(10,10,10,0.65)", marginTop: 2 }}>+150 XP за каждого, кто войдёт по твоей ссылке</div>
+        </div>
+        <I.ChevronRight size={18} style={{ position: "relative" }} />
+      </button>
+    </div>
+  );
+}
+
+/* ШТОРКА-ПРЕВЬЮ ПРОФИЛЯ ДРУГА — его космос тем же OrbitField, что на «Я» (аватар в центре,
+   золотое кольцо уровня, значки привычек на кольцах — из ПУБЛИЧНОЙ орбиты, без названий),
+   тройка фактов и общие круги (тап → комната круга). navigate — пропом (шторки вне NavCtx). */
+function FriendPreviewSheetLive({ friend, pub, navigate }) {
+  const { open: openSheet, close } = useSheet();
+  const app = useApp();
+  const isDark = app?.themeOverride === "dark";
+  const o = pub || {};
+  const habits = (o.habits || []).map((h) => ({ emoji: (h && h.e) || "✨", color: (h && h.c) || null }));
+  const goTeam = (t) => { close(); if (typeof navigate === "function") navigate("team-detail", { team: t, from: "friends" }); };
+  return (
+    <div style={{ padding: "0 18px 20px", maxHeight: "84vh", overflowY: "auto", WebkitOverflowScrolling: "touch", textAlign: "center" }}>
+      {typeof OrbitField === "function" ? (
+        <div style={{ marginTop: -8 }}>
+          <OrbitField avatar={friend.avatar} name={friend.name} habits={habits} people={[]} levelPct={o.lvlPct || 2} dark={isDark} hideLevelArc editable={false} levelBadge={o.level || 0} />
+        </div>
+      ) : (
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}><BuddyFaceLive avatar={friend.avatar} name={friend.name} size={76} /></div>
+      )}
+      <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 24, marginTop: 0, color: "var(--text)", letterSpacing: "-0.4px" }}>{friend.name}</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3 }}>{friend.invited ? "На твоей орбите — по твоему приглашению" : "Вы вместе ведёте круг"}</div>
+
+      {/* Тройка фактов из публичной орбиты — если друг уже что-то наполнил. */}
+      {(o.level > 0 || habits.length > 0 || o.goals > 0) ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14 }}>
+          {[["Уровень", o.level || 1], ["Привычки", habits.length], ["Цели", o.goals || 0]].map(([l, v]) => (
+            <div key={l} style={{ background: "var(--surface-3)", borderRadius: 16, padding: "11px 6px" }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px" }}>{v}</div>
+              <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 1, fontWeight: 600 }}>{l}</div>
             </div>
           ))}
         </div>
-      ) : people.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "22px 8px", color: C.sub, fontSize: 14, lineHeight: 1.5 }}>Пока никого. Пригласи друга по ссылке с главного экрана — за каждого +XP к уровню.</div>
       ) : (
-        <div className="bos-acc-in" style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: "52vh", overflowY: "auto" }}>
-          {people.map((p, i) => {
-            const nm = (p && p.username) ? p.username : "Друг";
-            return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: C.tile, borderRadius: 14 }}>
-                <span style={{ width: 38, height: 38, borderRadius: "50%", background: _COLORS[i % _COLORS.length], display: "grid", placeItems: "center", fontSize: 16, fontWeight: 700, color: "rgba(0,0,0,0.55)", flexShrink: 0 }}>{nm.charAt(0).toUpperCase()}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600 }}>{nm}</div>
-                  <div style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>В твоём круге</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 14, lineHeight: 1.45 }}>Орбита друга ещё наполняется — значки его привычек появятся здесь.</div>
       )}
+
+      {/* Общие круги — тап ведёт в комнату. */}
+      {friend.teams && friend.teams.length > 0 && (
+        <>
+          <div style={{ textAlign: "left", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", margin: "18px 2px 8px" }}>Вместе в кругах</div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "flex-start" }}>
+            {friend.teams.map((t) => (
+              <button key={t._id} onClick={() => goTeam(t)} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), padding: "7px 13px 7px 9px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", border: 0, cursor: "pointer" }}>
+                <span style={{ fontSize: 14 }}>{bosIcon(t.emblem || "✨", 14, null)}</span>{t.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Тихая дорога — начать общий круг с этим человеком (позвать по ссылке). */}
+      <button onClick={() => openSheet(<GoalFormSheetLive mode="create" circleOn={true} navigate={navigate} />)} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 14, fontSize: 13.5, fontWeight: 600 }}>
+        Собрать общий круг →
+      </button>
     </div>
   );
 }

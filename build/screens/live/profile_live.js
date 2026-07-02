@@ -387,9 +387,9 @@ function ProfileLive() {
     size: 18,
     className: "bos-sys-text-2"
   })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(FriendsSheetLive, {
-      dark: isDark
-    })),
+    onClick: () => navigate("friends", {
+      from: "profile"
+    }),
     className: "tap",
     style: {
       width: "100%",

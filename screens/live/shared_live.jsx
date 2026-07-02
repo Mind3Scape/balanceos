@@ -2557,16 +2557,17 @@ function PartnersShowcaseLive({ app, navigate, from = "community" }) {
           const got = !!redeemed[p.id];
           return (
             <div key={p.id} className="tap" onClick={() => openPartner(p)} style={{ flex: "0 0 auto", width: 170, scrollSnapAlign: "start", borderRadius: 22, padding: 15, background: "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent, boxShadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)", cursor: "pointer", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              <span style={{ fontSize: 36, lineHeight: 1 }}>{p.emblem}</span>
+              {/* Человечек-счётчик — В ВЕРХНЕМ углу, не в нижнем ряду (David: там он ужимал
+                  пилюлю цены и сам не читался). Тихий, но на свободном воздухе — считывается. */}
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 36, lineHeight: 1 }}>{p.emblem}</span>
+                {p.used > 0 && <span title={p.used + " человек уже воспользовались"} style={{ display: "inline-flex", alignItems: "center", gap: 3.5, fontSize: 11.5, fontWeight: 700, color: "rgba(27,27,31,0.48)", paddingTop: 3 }}><I.Users size={12} strokeWidth={2.2} /> {p.used}</span>}
+              </div>
               <div style={{ fontSize: 15.5, fontWeight: 700, color: "#1b1b1f", marginTop: 12, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
               <div style={{ fontSize: 11.5, color: "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
               <div style={{ flex: 1, minHeight: 12 }} />
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.82)", color: "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
-                  {/* Едва заметный человечек + число: столько людей уже оставили тут свою XP. */}
-                  {p.used > 0 && <span title={p.used + " человек уже воспользовались"} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700, color: "rgba(27,27,31,0.42)", whiteSpace: "nowrap" }}><I.Users size={11} strokeWidth={2.2} /> {p.used}</span>}
-                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.82)", color: "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? "#1E8E4E" : "#0a0a0a", display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Открыть <I.ChevronRight size={13}/></>}</span>
               </div>
             </div>
@@ -2620,7 +2621,8 @@ function PartnerDetailLive() {
             (серый человечек — сколько людей уже потратили тут свою XP). */}
         <div style={{ display: "flex", gap: 6, marginTop: 13, flexWrap: "wrap" }}>
           {p.tags.map((t, i) => <span key={i} style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600 }}>{t}</span>)}
-          {p.used > 0 && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "rgba(42,42,48,0.72)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}><I.Users size={12} strokeWidth={2.2} /> {p.used} уже были</span>}
+          {/* Лаконично: человечек + «уже N» (David: «N человек уже было» — некрасиво). */}
+          {p.used > 0 && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "rgba(42,42,48,0.72)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}><I.Users size={12} strokeWidth={2.2} /> уже {p.used}</span>}
           {p.limit && <span style={{ background: "rgba(255,255,255,0.6)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#2a2a30", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>👥 {p.limit}</span>}
           {p.perk && <span style={{ background: "rgba(255,255,255,0.92)", borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: "#0a0a0a", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}>🏅 {p.perk}</span>}
         </div>

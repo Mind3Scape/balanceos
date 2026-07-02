@@ -143,7 +143,7 @@ function ProfileLive() {
           </div>
           <I.ChevronRight size={18} className="bos-sys-text-2" />
         </button>
-        <button onClick={() => openSheet(<FriendsSheetLive dark={isDark} />)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+        <button onClick={() => navigate("friends", { from: "profile" })} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
           {chip(I.Users)}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Друзья</div>

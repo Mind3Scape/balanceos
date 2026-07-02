@@ -6287,12 +6287,32 @@ function PartnersShowcaseLive({
         flexDirection: "column",
         overflow: "hidden"
       }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between"
+      }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 36,
         lineHeight: 1
       }
-    }, p.emblem), /*#__PURE__*/React.createElement("div", {
+    }, p.emblem), p.used > 0 && /*#__PURE__*/React.createElement("span", {
+      title: p.used + " человек уже воспользовались",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3.5,
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "rgba(27,27,31,0.48)",
+        paddingTop: 3
+      }
+    }, /*#__PURE__*/React.createElement(I.Users, {
+      size: 12,
+      strokeWidth: 2.2
+    }), " ", p.used)), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 15.5,
         fontWeight: 700,
@@ -6328,13 +6348,6 @@ function PartnersShowcaseLive({
       style: {
         display: "inline-flex",
         alignItems: "center",
-        gap: 6,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
         gap: 4,
         background: "rgba(255,255,255,0.82)",
         color: "#0a0a0a",
@@ -6343,21 +6356,7 @@ function PartnersShowcaseLive({
         borderRadius: 999,
         padding: "4px 10px"
       }
-    }, "\uD83E\uDE99 ", p.cost), p.used > 0 && /*#__PURE__*/React.createElement("span", {
-      title: p.used + " человек уже воспользовались",
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 3,
-        fontSize: 10.5,
-        fontWeight: 700,
-        color: "rgba(27,27,31,0.42)",
-        whiteSpace: "nowrap"
-      }
-    }, /*#__PURE__*/React.createElement(I.Users, {
-      size: 11,
-      strokeWidth: 2.2
-    }), " ", p.used)), /*#__PURE__*/React.createElement("span", {
+    }, "\uD83E\uDE99 ", p.cost), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12.5,
         fontWeight: 700,
@@ -6514,7 +6513,7 @@ function PartnerDetailLive() {
   }, /*#__PURE__*/React.createElement(I.Users, {
     size: 12,
     strokeWidth: 2.2
-  }), " ", p.used, " \u0443\u0436\u0435 \u0431\u044B\u043B\u0438"), p.limit && /*#__PURE__*/React.createElement("span", {
+  }), " \u0443\u0436\u0435 ", p.used), p.limit && /*#__PURE__*/React.createElement("span", {
     style: {
       background: "rgba(255,255,255,0.6)",
       borderRadius: 999,
