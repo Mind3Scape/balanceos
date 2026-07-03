@@ -262,7 +262,7 @@ function ChallengeProgressChip({ habit }) {
    конфликтует с сеткой, поэтому действия живут в шторке-меню). One sheet, three rows: Поделиться /
    Переставить плитки (entering the grid jiggle-mode) / Удалить. «swap» actions open their own sheet
    so we just let openSheet replace this menu (no down-then-up flicker); «leave» closes first. */
-function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete, kindLabel = "Привычка" }) {
+function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete, deleteLabel = "Удалить", deleteIcon, kindLabel = "Привычка" }) {
   const { close } = useSheet();
   const swap = (fn) => () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } if (fn) fn(); };
   const leave = (fn) => () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } close(); if (fn) fn(); };
@@ -288,7 +288,7 @@ function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete, kindLabe
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <Row icon={<I.Share size={18} />} label="Поделиться" onClick={swap(onShare)} />
         <Row icon={reorderIcon} label="Переставить плитки" onClick={leave(onReorder)} />
-        {onDelete && <Row icon={<I.Trash size={18} />} label="Удалить" onClick={swap(onDelete)} danger />}
+        {onDelete && <Row icon={deleteIcon || <I.Trash size={18} />} label={deleteLabel} onClick={swap(onDelete)} danger />}
       </div>
       <button onClick={close} className="tap" style={{ width: "100%", marginTop: 10, border: 0, borderRadius: 999, padding: 14, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)", fontSize: 15.5, fontWeight: 600 }}>Отмена</button>
       <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
@@ -428,13 +428,19 @@ function HabitsLive() {
     }
     if (("" + key)[0] === "t") {
       const t = teams.find((x) => ("t" + (x._id != null ? x._id : x.id)) === key); if (!t) return;
-      // Меню для команды: те же «Поделиться / Переставить». «Удалить» тут НЕ даём — удаление круга
-      // затрагивает всех участников, это делается в настройках команды. onDelete не передаём → строка скрыта.
+      // Меню команды = ПАРИТЕТ с привычками/целями (David: «должно быть одинаково»): помимо
+      // «Поделиться / Переставить» даём удаление. Владелец (создатель, ещё не joined) → «Удалить круг»
+      // (исчезнет у всех, с явным подтверждением bosConfirmExitTeam); участник → «Покинуть круг». Оба
+      // ВОЗВРАЩАЮТ на «Привычки» (returnTo:"habits"), НЕ в «Сообщество» (David: «удаление кидает в Сообщество»).
       const tHabit = { name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color };
+      const iAmOwner = !t.joined;
       openSheet(
         <HabitTileMenuLive habit={tHabit} dark={isDark} kindLabel="Команда"
           onShare={() => openSheet(<TeamShareSheet team={t} />)}
           onReorder={openReorder}
+          deleteLabel={iAmOwner ? "Удалить круг" : "Покинуть круг"}
+          deleteIcon={iAmOwner ? <I.Trash size={18} /> : <I.Logout size={18} />}
+          onDelete={() => bosConfirmExitTeam({ app, team: t, isOwner: iAmOwner, navigate, openSheet, returnTo: "habits" })}
         />
       );
       return;

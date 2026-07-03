@@ -814,6 +814,8 @@ function HabitTileMenuLive({
   onShare,
   onReorder,
   onDelete,
+  deleteLabel = "Удалить",
+  deleteIcon,
   kindLabel = "Привычка"
 }) {
   var {
@@ -938,10 +940,10 @@ function HabitTileMenuLive({
     label: "\u041F\u0435\u0440\u0435\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043F\u043B\u0438\u0442\u043A\u0438",
     onClick: leave(onReorder)
   }), onDelete && /*#__PURE__*/React.createElement(Row, {
-    icon: /*#__PURE__*/React.createElement(I.Trash, {
+    icon: deleteIcon || /*#__PURE__*/React.createElement(I.Trash, {
       size: 18
     }),
-    label: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    label: deleteLabel,
     onClick: swap(onDelete),
     danger: true
   })), /*#__PURE__*/React.createElement("button", {
@@ -1167,13 +1169,16 @@ function HabitsLive() {
     if (("" + key)[0] === "t") {
       var t = teams.find(x => "t" + (x._id != null ? x._id : x.id) === key);
       if (!t) return;
-      // Меню для команды: те же «Поделиться / Переставить». «Удалить» тут НЕ даём — удаление круга
-      // затрагивает всех участников, это делается в настройках команды. onDelete не передаём → строка скрыта.
+      // Меню команды = ПАРИТЕТ с привычками/целями (David: «должно быть одинаково»): помимо
+      // «Поделиться / Переставить» даём удаление. Владелец (создатель, ещё не joined) → «Удалить круг»
+      // (исчезнет у всех, с явным подтверждением bosConfirmExitTeam); участник → «Покинуть круг». Оба
+      // ВОЗВРАЩАЮТ на «Привычки» (returnTo:"habits"), НЕ в «Сообщество» (David: «удаление кидает в Сообщество»).
       var tHabit = {
         name: t.name,
         emoji: t.emblem || "👥",
         color: t.accent || t.color
       };
+      var iAmOwner = !t.joined;
       openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
         habit: tHabit,
         dark: isDark,
@@ -1181,7 +1186,21 @@ function HabitsLive() {
         onShare: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheet, {
           team: t
         })),
-        onReorder: openReorder
+        onReorder: openReorder,
+        deleteLabel: iAmOwner ? "Удалить круг" : "Покинуть круг",
+        deleteIcon: iAmOwner ? /*#__PURE__*/React.createElement(I.Trash, {
+          size: 18
+        }) : /*#__PURE__*/React.createElement(I.Logout, {
+          size: 18
+        }),
+        onDelete: () => bosConfirmExitTeam({
+          app,
+          team: t,
+          isOwner: iAmOwner,
+          navigate,
+          openSheet,
+          returnTo: "habits"
+        })
       }));
       return;
     }
