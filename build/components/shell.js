@@ -182,14 +182,17 @@ function NavProvider({
 }
 var useNav = () => React.useContext(NavCtx);
 
-// Bottom tab bar
+// Bottom tab bar. `tabs` — необязательный список {id, icon}: live передаёт свой состав
+// (без «Привычек», с «Я»), демо живёт на прежнем дефолте. Ширина линзы следует за
+// числом вкладок инлайном (CSS-дефолт рассчитан на 4).
 function TabBar({
   active,
   dark = false,
   onTab,
-  style
+  style,
+  tabs: tabsProp
 }) {
-  var tabs = [{
+  var tabs = tabsProp && tabsProp.length ? tabsProp : [{
     id: "home",
     icon: "Home"
   }, {
@@ -209,6 +212,7 @@ function TabBar({
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-tab-lens-track",
     style: {
+      width: "calc((100% - 24px) / " + tabs.length + ")",
       transform: "translateX(" + idx * 100 + "%)"
     }
   }, /*#__PURE__*/React.createElement("span", {

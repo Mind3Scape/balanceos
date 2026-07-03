@@ -22,10 +22,49 @@ class WidgetBoundaryLive extends React.Component {
   render() { return this.state.dead ? null : this.props.children; }
 }
 
-function HomeLive() {
+/* «Быстрое добавление» — лента челленджей, ПЕРЕЕХАВШАЯ со страницы «Привычки» (слияние
+   с главной): те же чипы CHALLENGE_STARTERS с XP-бонусом, тот же путь согласия
+   (ChallengeIntroSheet → bosCommitChallenge). Горизонтальный скролл, уходит за край с
+   маской — как жила наверху «Привычек». Виджет w:quick, снимается минусом/в галерее. */
+function HomeQuickStripLive({ isDark }) {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
   const app = useApp();
+  const list = (typeof CHALLENGE_STARTERS !== "undefined" && Array.isArray(CHALLENGE_STARTERS)) ? CHALLENGE_STARTERS : [];
+  if (!list.length) return null;
+  const chipText = isDark ? "var(--text)" : "var(--text-2)";
+  const start = (c) => {
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    if (typeof ChallengeIntroSheet === "function" && typeof bosCommitChallenge === "function") {
+      openSheet(<ChallengeIntroSheet c={c} dark={isDark} onStart={() => bosCommitChallenge(app, c, { navigate, openSheet })} />);
+    }
+  };
+  return (
+    <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "2px 1px", margin: "0 -1px",
+      WebkitMaskImage: "linear-gradient(90deg, #000 88%, transparent)", maskImage: "linear-gradient(90deg, #000 88%, transparent)" }}>
+      {list.map((c, i) => (
+        <button key={c.key || i} className="tap" data-no-haptic onClick={() => start(c)} style={{
+          ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), borderRadius: 999, padding: "7px 9px 7px 11px", border: 0, flexShrink: 0,
+          display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap", cursor: "pointer",
+          animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.03) + "s",
+        }}>
+          <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: chipText }}>{c.t}</span>
+          {c.kind === "together" && <I.Users size={12} color={chipText} style={{ opacity: 0.55, marginLeft: -2 }} />}
+          <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9a6800", background: "rgba(245,180,30,0.18)", borderRadius: 999, padding: "2px 6px", letterSpacing: "-0.2px", lineHeight: 1.3 }}>+{c.bonus} XP</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function HomeLive() {
+  const { navigate } = useNav();
+  const { open: openSheet, close: closeSheet } = useSheet();
+  const app = useApp();
+  // Меню «Стиль карточек» — открывается из галереи: шторка закрывается, панель встаёт
+  // под «+» в шапке, и смена формы/отметок видна ВЖИВУЮ на карточках доски.
+  const [styleOpen, setStyleOpen] = React.useState(false);
   const widgets = app?.widgets || {};
   const mood = app?.mood;
   const wrapRef = React.useRef(null);
@@ -197,6 +236,14 @@ function HomeLive() {
     // Совместные цели — тоже ПЛИТКАМИ на доске (David: «захочу цель на главной»); прежний
     // авто-виджет «Вместе» больше не добавляем сами — он остался в галерее как сводка по желанию.
     teams.forEach((t) => { const k = teamKey(t); if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("t:", k); seen[k] = 1; } });
+    // «Быстрое добавление» (w:quick, лента челленджей со стр. «Привычки») добирается САМО —
+    // как плитки, а не как виджеты: у существующих юзеров order давно персистнут без него.
+    // Правило видимости: НЕ в hidden. Встаёт сразу после сводки (hero) или в начало доски.
+    if (!seen["w:quick"] && hidden.indexOf("w:quick") < 0) {
+      const hi = order.indexOf("w:hero");
+      order.splice(hi >= 0 ? hi + 1 : 0, 0, "w:quick");
+      seen["w:quick"] = 1;
+    }
     return { order, hidden };
   }, [layoutObj, habits, goals, teams, widgets]);
   const saveLayout = (patch) => { if (app?.setHomeLayout) app.setHomeLayout({ ...effLayout, ...patch }); };
@@ -263,6 +310,11 @@ function HomeLive() {
           </SwipeRow>
         </div>
       );
+    }
+
+    if (id === "quick") {
+      // Лента челленджей (быстрое добавление) — переехала со страницы «Привычки».
+      return <HomeQuickStripLive isDark={isDark} />;
     }
 
     if (id === "week") {
@@ -379,7 +431,8 @@ function HomeLive() {
     saveLayout({ order: merged });
   };
   const gridCtl = React.useRef(null);
-  const openAddSheet = () => openSheet(<AddWidgetSheetLive defs={BOS_HOME_WIDGETS} dark={isDark} />);
+  const openAddSheet = () => openSheet(<AddWidgetSheetLive defs={BOS_HOME_WIDGETS} dark={isDark}
+    onStyle={() => { closeSheet(); setStyleOpen(true); }} />);
   // Плитка/виджет по ключу. Плитки — ГОЛЫЕ (те же HabitTileLive/GoalTileLive, что на
   // «Привычках»); long-press ловит сетка → меню (Поделиться / Переставить / Убрать с главной).
   const tileFor = (k) => {
@@ -447,6 +500,8 @@ function HomeLive() {
       </div>
 
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
+      {/* «Стиль карточек» из галереи: панель под «+», доска на глазах меняет формы. */}
+      {typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleOpen} onClose={() => setStyleOpen(false)} anchorRef={addBtnRef} />}
 
       {/* Новому юзеру (0 привычек/целей/команд) — ПРОСТОЙ старт = ОДИН hero-блок: ИИ-сводка + пилюли
           (там уже есть «➕ Создать привычку» + мягкий ИИ-старт «Рассказать о себе»). Прежнюю большую

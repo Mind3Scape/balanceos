@@ -328,9 +328,17 @@ function SettingsLive() {
   };
   const isDark = app?.themeOverride === "dark";
   const setDark = (on) => app?.setThemeOverride(on ? "dark" : "light");
-  // «Обучение» cards on the Habits screen — ON shows them, OFF hides (restore after «Скрыть»).
-  const [learnOn, setLearnOn] = React.useState(() => !(typeof bosLearnHidden === "function" && bosLearnHidden()));
-  const setLearnPersist = (on) => { setLearnOn(on); if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(!on); };
+  // Вкладка «Я» внизу (слияние Главной и «Привычек»): дефолт ВКЛ; выключил — заходи через
+  // аватар в сводке дня. Если сводку убрали с доски, вкладка показывается принудительно
+  // (app.jsx), чтобы дверь в настройки не захлопнулась.
+  const [profTab, setProfTab] = React.useState(() => {
+    try { return localStorage.getItem("bos:profileTab") !== "0"; } catch (e) { return true; }
+  });
+  const setProfTabPersist = (on) => {
+    setProfTab(on);
+    try { localStorage.setItem("bos:profileTab", on ? "1" : "0"); } catch (e) {}
+    try { window.dispatchEvent(new Event("bos:profileTabChanged")); } catch (e) {}
+  };
   // Grouped iOS-style sections (v279 reno): ONE card per group, hairline-divided rows inside.
   // Helpers are plain render-fns (not components) so toggling never remounts the list.
   const PRIVACY_BODY = "Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта.";
@@ -366,12 +374,13 @@ function SettingsLive() {
 
       {group("Предпочтения", [
         toggleRow(I.Eye, "Тёмная тема", isDark, setDark),
-        toggleRow(I.Bell, "Push-уведомления", push, setPushPersist),
-        toggleRow(I.Book, "Карточки-подсказки", learnOn, setLearnPersist, true),
+        toggleRow(I.Bell, "Push-уведомления", push, setPushPersist, true),
       ])}
 
       {group("Главный экран", [
-        row(I.Home, "Главный экран", () => navigate("home-customize"), true),
+        row(I.Home, "Главный экран", () => navigate("home-customize")),
+        // Слияние: страницы «Привычки» больше нет, «Я» — четвёртая вкладка меню (по желанию).
+        toggleRow(I.Person, "Вкладка «Я» внизу", profTab, setProfTabPersist, true),
       ])}
 
       {group("О приложении", [

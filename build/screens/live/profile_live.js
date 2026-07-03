@@ -24,7 +24,8 @@ function ProfileLive() {
   } = useNav();
   var app = typeof useApp === "function" ? useApp() : null;
   var {
-    open: openSheet
+    open: openSheet,
+    close: closeSheet
   } = useSheet();
   var openAvatar = () => openSheet(/*#__PURE__*/React.createElement(AvatarPickerSheetLive, {
     dark: app?.themeOverride === "dark"
@@ -446,7 +447,125 @@ function ProfileLive() {
       padding: 0,
       overflow: "hidden"
     }
-  }, navRow(I.Compass, "Как устроен Balance", "guide"), navRow(I.Settings, "Настройки", "settings"), navRow(I.Bell, "Уведомления", "notifications"), navRow(I.Help, "Поддержка и помощь", "support", true)), /*#__PURE__*/React.createElement(SysBtn, {
+  }, navRow(I.Compass, "Как устроен Balance", "guide"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "2px 20px 20px",
+        color: "var(--text)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center",
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 19,
+        fontWeight: 800,
+        letterSpacing: "-0.3px"
+      }
+    }, "\u041E\u0431\u0443\u0447\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "var(--text-4)",
+        marginTop: 3
+      }
+    }, "\u041A\u043E\u0440\u043E\u0442\u043A\u0438\u0435 \u0441\u0442\u0430\u0442\u044C\u0438 \u2014 \u043A\u0430\u043A \u044D\u0442\u043E \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442")), [{
+      topic: "habits-basics",
+      emoji: "🌱",
+      t: "Основы привычек",
+      b: "Почему маленькое сильнее большого — и как не пропускать дважды."
+    }, {
+      topic: "goals-101",
+      emoji: "🎯",
+      t: "Хорошие цели",
+      b: "Результат или процесс: что отслеживать и когда."
+    }, {
+      topic: "teams-101",
+      emoji: "🤝",
+      t: "Совместные привычки",
+      b: "Один общий якорь, общая серия и поддержка вместо контроля."
+    }].map((c, i) => /*#__PURE__*/React.createElement("button", {
+      key: i,
+      onClick: () => {
+        closeSheet();
+        navigate("info", {
+          topic: c.topic,
+          from: "profile"
+        });
+      },
+      className: "tap",
+      style: {
+        width: "100%",
+        background: "transparent",
+        border: 0,
+        borderTop: i ? "0.5px solid var(--line)" : "0",
+        padding: "12px 2px",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        textAlign: "left",
+        color: "var(--text)",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        background: "var(--surface-3)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 18,
+        flexShrink: 0
+      }
+    }, c.emoji), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 14.5,
+        fontWeight: 600
+      }
+    }, c.t), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12,
+        color: "var(--text-4)",
+        marginTop: 1,
+        lineHeight: 1.35
+      }
+    }, c.b)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+      size: 15,
+      className: "bos-sys-text-2"
+    }))))),
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      borderBottom: "0.5px solid var(--line)",
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "13px 14px"
+    }
+  }, chip(I.Book), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u041E\u0431\u0443\u0447\u0435\u043D\u0438\u0435"), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 18,
+    className: "bos-sys-text-2"
+  })), navRow(I.Settings, "Настройки", "settings"), navRow(I.Bell, "Уведомления", "notifications"), navRow(I.Help, "Поддержка и помощь", "support", true)), /*#__PURE__*/React.createElement(SysBtn, {
     onClick: () => navigate("onboarding", {
       from: "profile"
     }),

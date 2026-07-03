@@ -761,7 +761,7 @@ function InfoLive() {
   };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title={topic.title} onBack={() => navigate("habits")} />
+      <PageHeader title={topic.title} onBack={() => navigate(params?.from || "habits")} />
       {/* Hero — accent-tinted, dark-aware */}
       <div style={{ background: "var(--card)", borderRadius: 22, padding: "22px 20px", boxShadow: "var(--card-shadow)", position: "relative", overflow: "hidden" }}>
         <div aria-hidden style={{ position: "absolute", top: -34, right: -26, width: 150, height: 150, borderRadius: "50%", background: accent, opacity: 0.10, pointerEvents: "none" }} />

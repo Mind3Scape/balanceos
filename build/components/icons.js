@@ -409,6 +409,18 @@ var I = {
     r: "0.6",
     fill: "currentColor"
   })),
+  Person: ({
+    filled,
+    ...p
+  }) => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "7.6",
+    r: "3.5",
+    fill: filled ? p.color || "currentColor" : "none"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M5.2 20c.9-3.8 3.6-5.9 6.8-5.9s5.9 2.1 6.8 5.9",
+    fill: filled ? p.color || "currentColor" : "none"
+  })),
   Dumbbell: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
     d: "M3 9v6M6.5 7v10M17.5 7v10M21 9v6M6.5 12h11"
   })),

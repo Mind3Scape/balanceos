@@ -22,6 +22,25 @@ var {
 // in-app immersive screens stay always-dark.
 var DARK_ROUTES = new Set([]);
 var TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
+// LIVE-меню после слияния Главной и «Привычек» (David): вкладки Главная · Сообщество · ИИ · Я.
+// «Привычки» в live больше не вкладка (все карточки живут на главной, navigate("habits") → home),
+// «Я» — четвёртая справа, прячется тумблером в настройках (bos:profileTab). Демо живёт на старом
+// TAB_ROUTES/дефолте TabBar — его не трогаем.
+var LIVE_TAB_ROUTES = new Set(["home", "community", "ai", "profile"]);
+var LIVE_TABS_BASE = [{
+  id: "home",
+  icon: "Home"
+}, {
+  id: "community",
+  icon: "Group"
+}, {
+  id: "ai",
+  icon: "Sparkles"
+}];
+var LIVE_TAB_PROFILE = {
+  id: "profile",
+  icon: "Person"
+};
 var FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
 
 // Root (html/body) background per screen — matches each screen's own base
@@ -196,7 +215,7 @@ var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && windo
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-var APP_VERSION = "v535";
+var APP_VERSION = "v536";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -1695,6 +1714,36 @@ function PhoneApp() {
     open: node => setSheet(node),
     close: () => setSheet(null)
   }), []);
+
+  // ── LIVE-вкладки (слияние Главной и «Привычек») ─────────────────────────────
+  // Тумблер «Вкладка „Я“ внизу» живёт в настройках (bos:profileTab, дефолт ВКЛ).
+  var [profTabPref, setProfTabPref] = useState(() => {
+    try {
+      return localStorage.getItem("bos:profileTab") !== "0";
+    } catch (e) {
+      return true;
+    }
+  });
+  useEffect(() => {
+    var f = () => {
+      try {
+        setProfTabPref(localStorage.getItem("bos:profileTab") !== "0");
+      } catch (e) {}
+    };
+    window.addEventListener("bos:profileTabChanged", f);
+    return () => window.removeEventListener("bos:profileTabChanged", f);
+  }, []);
+  var isLive = app.mode === "live";
+  // Защита от запертой двери: сводка дня (hero с аватаром) — единственный второй путь в «Я».
+  // Если её убрали с доски, вкладка «Я» показывается принудительно, что бы ни стояло в тумблере.
+  var heroHidden = !!(app.homeLayout && Array.isArray(app.homeLayout.order) && app.homeLayout.order.indexOf("w:hero") < 0);
+  var liveTabs = React.useMemo(() => profTabPref || heroHidden ? LIVE_TABS_BASE.concat([LIVE_TAB_PROFILE]) : LIVE_TABS_BASE, [profTabPref, heroHidden]);
+  var tabSet = isLive ? LIVE_TAB_ROUTES : TAB_ROUTES;
+  // navigate — стабильный useCallback, поэтому актуальный режим/набор вкладок читаем через ref.
+  var tabSetRef = useRef(tabSet);
+  tabSetRef.current = tabSet;
+  var isLiveRef = useRef(isLive);
+  isLiveRef.current = isLive;
   useEffect(() => {
     applyTweaks(TWEAK_DEFAULTS);
     var reveal = () => document.body.classList.add("app-ready");
@@ -1752,6 +1801,8 @@ function PhoneApp() {
     return () => cancelAnimationFrame(id);
   }, []);
   var navigate = useCallback((next, np = {}, opts = {}) => {
+    // Live: страница «Привычки» слита с главной — любая старая дорожка ведёт на доску.
+    if (next === "habits" && isLiveRef.current) next = "home";
     setFrames(prev => {
       var idx = prev.findIndex(f => f.route === next);
       // Re-navigating to the current screen → just refresh its params, no transition.
@@ -1768,7 +1819,7 @@ function PhoneApp() {
       if (idx >= 0) {
         dir = "pop";
         nextFrames = prev.slice(0, idx + 1);
-      } else if (TAB_ROUTES.has(next)) {
+      } else if (tabSetRef.current.has(next)) {
         dir = "fade";
         nextFrames = [{
           route: next,
@@ -1809,7 +1860,7 @@ function PhoneApp() {
   var top = frames[frames.length - 1];
   var themeFor = route => app.themeOverride === "dark" ? true : app.themeOverride === "light" ? false : DARK_ROUTES.has(route);
   var topDark = themeFor(top.route);
-  var topInTabs = TAB_ROUTES.has(top.route);
+  var topInTabs = tabSet.has(top.route);
 
   // Keep the iOS status-bar tint + the root background in sync with the screen,
   // so the home-indicator safe area never shows a stray black bar.
@@ -1877,7 +1928,7 @@ function PhoneApp() {
   }, [anim]);
   var renderLayer = (frame, animClass, onEnd) => {
     var dark = themeFor(frame.route);
-    var inTabs = TAB_ROUTES.has(frame.route);
+    var inTabs = tabSet.has(frame.route);
     var full = FULLBLEED_ROUTES.has(frame.route);
     var Comp = resolveScreen(frame.route, app.mode);
     var cls = "bos-page " + (dark ? "theme-dark" : "theme-light") + (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "") + (animClass ? " " + animClass : "");
@@ -1895,7 +1946,7 @@ function PhoneApp() {
   };
   var renderDragLayer = (frame, style, dimStyle) => {
     var dark = themeFor(frame.route);
-    var inTabs = TAB_ROUTES.has(frame.route);
+    var inTabs = tabSet.has(frame.route);
     var full = FULLBLEED_ROUTES.has(frame.route);
     var Comp = resolveScreen(frame.route, app.mode);
     var cls = "bos-page " + (dark ? "theme-dark" : "theme-light") + (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "");
@@ -1984,7 +2035,7 @@ function PhoneApp() {
   };
   var p = drag ? Math.max(0, Math.min(drag.dx / drag.w, 1)) : 0;
   var dragTrans = drag && drag.releasing ? "transform 0.3s var(--ios-ease), opacity 0.3s var(--ios-ease)" : "none";
-  var destTab = drag && prevFrame && TAB_ROUTES.has(prevFrame.route) ? prevFrame.route : null;
+  var destTab = drag && prevFrame && tabSet.has(prevFrame.route) ? prevFrame.route : null;
   return /*#__PURE__*/React.createElement(SheetCtx.Provider, {
     value: sheetApi
   }, /*#__PURE__*/React.createElement("div", {
@@ -2014,7 +2065,8 @@ function PhoneApp() {
     key: "tabbar",
     active: top.route,
     dark: topDark,
-    onTab: id => navigate(id)
+    onTab: id => navigate(id),
+    tabs: isLive ? liveTabs : undefined
   }), destTab && /*#__PURE__*/React.createElement(TabBar, {
     key: "tabbar-drag",
     active: destTab,
@@ -2023,7 +2075,8 @@ function PhoneApp() {
     style: {
       opacity: p,
       transition: dragTrans
-    }
+    },
+    tabs: isLive ? liveTabs : undefined
   }), /*#__PURE__*/React.createElement("div", {
     className: "bos-version"
   }, app.mode === "live" ? APP_VERSION : DEMO_VERSION), /*#__PURE__*/React.createElement(BottomSheet, {

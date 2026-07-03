@@ -17,6 +17,17 @@ const { useState, useRef, useEffect, useCallback } = React;
 // in-app immersive screens stay always-dark.
 const DARK_ROUTES = new Set([]);
 const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
+// LIVE-меню после слияния Главной и «Привычек» (David): вкладки Главная · Сообщество · ИИ · Я.
+// «Привычки» в live больше не вкладка (все карточки живут на главной, navigate("habits") → home),
+// «Я» — четвёртая справа, прячется тумблером в настройках (bos:profileTab). Демо живёт на старом
+// TAB_ROUTES/дефолте TabBar — его не трогаем.
+const LIVE_TAB_ROUTES = new Set(["home", "community", "ai", "profile"]);
+const LIVE_TABS_BASE = [
+  { id: "home", icon: "Home" },
+  { id: "community", icon: "Group" },
+  { id: "ai", icon: "Sparkles" },
+];
+const LIVE_TAB_PROFILE = { id: "profile", icon: "Person" };
 const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
 
 // Root (html/body) background per screen — matches each screen's own base
@@ -189,7 +200,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v535";
+const APP_VERSION = "v536";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -718,6 +729,29 @@ function PhoneApp() {
     close: () => setSheet(null),
   }), []);
 
+  // ── LIVE-вкладки (слияние Главной и «Привычек») ─────────────────────────────
+  // Тумблер «Вкладка „Я“ внизу» живёт в настройках (bos:profileTab, дефолт ВКЛ).
+  const [profTabPref, setProfTabPref] = useState(() => {
+    try { return localStorage.getItem("bos:profileTab") !== "0"; } catch (e) { return true; }
+  });
+  useEffect(() => {
+    const f = () => { try { setProfTabPref(localStorage.getItem("bos:profileTab") !== "0"); } catch (e) {} };
+    window.addEventListener("bos:profileTabChanged", f);
+    return () => window.removeEventListener("bos:profileTabChanged", f);
+  }, []);
+  const isLive = app.mode === "live";
+  // Защита от запертой двери: сводка дня (hero с аватаром) — единственный второй путь в «Я».
+  // Если её убрали с доски, вкладка «Я» показывается принудительно, что бы ни стояло в тумблере.
+  const heroHidden = !!(app.homeLayout && Array.isArray(app.homeLayout.order) && app.homeLayout.order.indexOf("w:hero") < 0);
+  const liveTabs = React.useMemo(
+    () => (profTabPref || heroHidden) ? LIVE_TABS_BASE.concat([LIVE_TAB_PROFILE]) : LIVE_TABS_BASE,
+    [profTabPref, heroHidden]
+  );
+  const tabSet = isLive ? LIVE_TAB_ROUTES : TAB_ROUTES;
+  // navigate — стабильный useCallback, поэтому актуальный режим/набор вкладок читаем через ref.
+  const tabSetRef = useRef(tabSet); tabSetRef.current = tabSet;
+  const isLiveRef = useRef(isLive); isLiveRef.current = isLive;
+
   useEffect(() => {
     applyTweaks(TWEAK_DEFAULTS);
     const reveal = () => document.body.classList.add("app-ready");
@@ -751,6 +785,8 @@ function PhoneApp() {
   }, []);
 
   const navigate = useCallback((next, np = {}, opts = {}) => {
+    // Live: страница «Привычки» слита с главной — любая старая дорожка ведёт на доску.
+    if (next === "habits" && isLiveRef.current) next = "home";
     setFrames((prev) => {
       const idx = prev.findIndex((f) => f.route === next);
       // Re-navigating to the current screen → just refresh its params, no transition.
@@ -764,7 +800,7 @@ function PhoneApp() {
       if (idx >= 0) {
         dir = "pop";
         nextFrames = prev.slice(0, idx + 1);
-      } else if (TAB_ROUTES.has(next)) {
+      } else if (tabSetRef.current.has(next)) {
         dir = "fade";
         nextFrames = [{ route: next, params: np || {}, id: idRef.current++ }];
       } else {
@@ -797,7 +833,7 @@ function PhoneApp() {
         : DARK_ROUTES.has(route);
 
   const topDark = themeFor(top.route);
-  const topInTabs = TAB_ROUTES.has(top.route);
+  const topInTabs = tabSet.has(top.route);
 
   // Keep the iOS status-bar tint + the root background in sync with the screen,
   // so the home-indicator safe area never shows a stray black bar.
@@ -854,7 +890,7 @@ function PhoneApp() {
 
   const renderLayer = (frame, animClass, onEnd) => {
     const dark = themeFor(frame.route);
-    const inTabs = TAB_ROUTES.has(frame.route);
+    const inTabs = tabSet.has(frame.route);
     const full = FULLBLEED_ROUTES.has(frame.route);
     const Comp = resolveScreen(frame.route, app.mode);
     const cls =
@@ -874,7 +910,7 @@ function PhoneApp() {
 
   const renderDragLayer = (frame, style, dimStyle) => {
     const dark = themeFor(frame.route);
-    const inTabs = TAB_ROUTES.has(frame.route);
+    const inTabs = tabSet.has(frame.route);
     const full = FULLBLEED_ROUTES.has(frame.route);
     const Comp = resolveScreen(frame.route, app.mode);
     const cls =
@@ -945,7 +981,7 @@ function PhoneApp() {
   const dragTrans = drag && drag.releasing
     ? "transform 0.3s var(--ios-ease), opacity 0.3s var(--ios-ease)"
     : "none";
-  const destTab = drag && prevFrame && TAB_ROUTES.has(prevFrame.route) ? prevFrame.route : null;
+  const destTab = drag && prevFrame && tabSet.has(prevFrame.route) ? prevFrame.route : null;
 
   return (
     <SheetCtx.Provider value={sheetApi}>
@@ -982,11 +1018,11 @@ function PhoneApp() {
         {/* No fake status bar. iOS draws the real one in an installed PWA; in a
             browser or Telegram the OS / Telegram owns the top bar, so we stay clean. */}
         {!drag && topInTabs && (
-          <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} />
+          <TabBar key="tabbar" active={top.route} dark={topDark} onTab={(id) => navigate(id)} tabs={isLive ? liveTabs : undefined} />
         )}
         {destTab && (
           <TabBar key="tabbar-drag" active={destTab} dark={themeFor(destTab)}
-            onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} />
+            onTab={(id) => navigate(id)} style={{ opacity: p, transition: dragTrans }} tabs={isLive ? liveTabs : undefined} />
         )}
         <div className="bos-version">{app.mode === "live" ? APP_VERSION : DEMO_VERSION}</div>
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>

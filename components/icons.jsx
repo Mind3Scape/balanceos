@@ -70,6 +70,7 @@ const I = {
   Trophy: (p) => <Icon {...p}><path d="M8 4h8v6a4 4 0 0 1-8 0V4z"/><path d="M5 4h3v3a3 3 0 0 1-3-3z"/><path d="M19 4h-3v3a3 3 0 0 0 3-3z"/><path d="M10 14v3h4v-3M8 21h8"/></Icon>,
   Flag: (p) => <Icon {...p}><path d="M4 21V4h12l-2 4 2 4H4"/></Icon>,
   Smile: (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="10" r="0.6" fill="currentColor"/><circle cx="15" cy="10" r="0.6" fill="currentColor"/></Icon>,
+  Person: ({filled, ...p}) => <Icon {...p}><circle cx="12" cy="7.6" r="3.5" fill={filled ? p.color || "currentColor" : "none"}/><path d="M5.2 20c.9-3.8 3.6-5.9 6.8-5.9s5.9 2.1 6.8 5.9" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
   Dumbbell: (p) => <Icon {...p}><path d="M3 9v6M6.5 7v10M17.5 7v10M21 9v6M6.5 12h11"/></Icon>,
   Bulb: (p) => <Icon {...p}><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.5.4.8 1 .8 1.7v.2h6v-.2c0-.7.3-1.3.8-1.7A6 6 0 0 0 12 3z"/></Icon>,
   Wallet: (p) => <Icon {...p}><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M15.5 11H21v4h-5.5a2 2 0 0 1 0-4z"/></Icon>,

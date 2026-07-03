@@ -1876,7 +1876,7 @@ function InfoLive() {
     }
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: topic.title,
-    onBack: () => navigate("habits")
+    onBack: () => navigate(params?.from || "habits")
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",

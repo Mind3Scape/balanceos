@@ -21,7 +21,7 @@
 function ProfileLive() {
   const { navigate } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
-  const { open: openSheet } = useSheet();
+  const { open: openSheet, close: closeSheet } = useSheet();
   const openAvatar = () => openSheet(<AvatarPickerSheetLive dark={app?.themeOverride === "dark"} />);
   // LIVE: always real data.
   const _xp = bosLiveXPLive(app);
@@ -171,6 +171,35 @@ function ProfileLive() {
         {/* «Как устроен Balance» — гид-мануал по экономике (XP → уровень → партнёры → нетворк →
             Вселенная); ПЕРВОЙ строкой — новичку важнее настроек (David: «гид как в игре»). */}
         {navRow(I.Compass, "Как устроен Balance", "guide")}
+        {/* «Обучение» переехало со страницы «Привычки» (слияние с главной): три статьи —
+            шторкой рядом с гидом. */}
+        <button onClick={() => openSheet(
+          <div style={{ padding: "2px 20px 20px", color: "var(--text)" }}>
+            <div style={{ textAlign: "center", marginBottom: 8 }}>
+              <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px" }}>Обучение</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3 }}>Короткие статьи — как это работает</div>
+            </div>
+            {[
+              { topic: "habits-basics", emoji: "🌱", t: "Основы привычек", b: "Почему маленькое сильнее большого — и как не пропускать дважды." },
+              { topic: "goals-101",     emoji: "🎯", t: "Хорошие цели", b: "Результат или процесс: что отслеживать и когда." },
+              { topic: "teams-101",     emoji: "🤝", t: "Совместные привычки", b: "Один общий якорь, общая серия и поддержка вместо контроля." },
+            ].map((c, i) => (
+              <button key={i} onClick={() => { closeSheet(); navigate("info", { topic: c.topic, from: "profile" }); }} className="tap"
+                style={{ width: "100%", background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : "0", padding: "12px 2px", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)", cursor: "pointer" }}>
+                <span style={{ width: 36, height: 36, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{c.emoji}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{c.t}</span>
+                  <span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 1, lineHeight: 1.35 }}>{c.b}</span>
+                </span>
+                <I.ChevronRight size={15} className="bos-sys-text-2" />
+              </button>
+            ))}
+          </div>
+        )} className="tap" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", background: "transparent", border: 0, borderBottom: "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+          {chip(I.Book)}
+          <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Обучение</span>
+          <I.ChevronRight size={18} className="bos-sys-text-2" />
+        </button>
         {navRow(I.Settings, "Настройки", "settings")}
         {navRow(I.Bell, "Уведомления", "notifications")}
         {navRow(I.Help, "Поддержка и помощь", "support", true)}

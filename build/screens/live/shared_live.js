@@ -4591,6 +4591,15 @@ var BOS_HOME_WIDGETS = [{
   t: "Подсказки",
   d: "ИИ-сводка дня и аватар",
   emoji: "✨"
+},
+// Лента челленджей ПЕРЕЕХАЛА со страницы «Привычки» (слияние с главной, David): готовые
+// привычки/цели/«вместе» с XP-бонусом одной строкой чипов. Добирается на доску сама
+// (как плитки) — правило видимости «НЕ в hidden», см. effLayout в home_live.
+{
+  id: "quick",
+  t: "Быстрое добавление",
+  d: "Челленджи с бонусом XP",
+  emoji: "⚡"
 }, {
   id: "week",
   t: "Эта неделя",
@@ -4663,7 +4672,8 @@ function WidgetMinusLive({
    - плитка включена = её ключ НЕ в hidden (добор в home_live сам держит живые плитки на доске).
    Поэтому у плиток тумблер честно показывает «на главной», даже если ключ ещё не персистнут. */
 function HomeGalleryContentLive({
-  dark = false
+  dark = false,
+  onStyle = null
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
   var layout = app && app.homeLayout && Array.isArray(app.homeLayout.order) ? app.homeLayout : {
@@ -4690,8 +4700,14 @@ function HomeGalleryContentLive({
   };
   var toggleWidget = id => {
     var k = "w:" + id;
+    // «Быстрое добавление» добирается на доску само (как плитки) → его вкл = НЕ в hidden.
+    if (id === "quick") {
+      toggleTile(k);
+      return;
+    }
     if (inOrder(k)) setL(layout.order.filter(x => x !== k), hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden);else setL(layout.order.concat([k]), hidden.filter(x => x !== k));
   };
+  var widgetOn = id => id === "quick" ? hidden.indexOf("w:quick") < 0 : inOrder("w:" + id);
   var tileOn = k => hidden.indexOf(k) < 0;
   var toggleTile = k => {
     if (tileOn(k)) setL(layout.order.filter(x => x !== k), hidden.concat([k]));else setL(inOrder(k) ? layout.order : layout.order.concat([k]), hidden.filter(x => x !== k));
@@ -4701,14 +4717,23 @@ function HomeGalleryContentLive({
   var habits = (app && app.habits || []).filter(h => !h.shelved && !h.goalOnly);
   var goals = app && app.goals || [];
   var teams = app && app.teams || [];
+  // Локальный фолбэк для страницы настроек: там доски за шторкой нет, меню стиля
+  // открывается прямо по месту (на доске шторка закрывается — это делает onStyle).
+  var [styleHere, setStyleHere] = React.useState(false);
+  var openStyle = () => {
+    haptic();
+    if (onStyle) onStyle();else setStyleHere(true);
+  };
+  // Компактная библиотека (David: «прям компактнее, много места в высоту») — строки-миниатюры:
+  // одна карточка на секцию, волосяные разделители, малые тумблеры.
   var kicker = txt => /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 10.5,
       fontWeight: 700,
-      letterSpacing: 1,
+      letterSpacing: 0.9,
       textTransform: "uppercase",
       color: "var(--text-4)",
-      padding: "16px 4px 8px"
+      padding: "12px 4px 5px"
     }
   }, txt);
   var row = ({
@@ -4718,29 +4743,26 @@ function HomeGalleryContentLive({
     sub,
     on,
     onToggle
-  }) => /*#__PURE__*/React.createElement("div", {
+  }, i, arr) => /*#__PURE__*/React.createElement("div", {
     key: key,
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 13,
+      gap: 10,
       width: "100%",
-      padding: 12,
-      borderRadius: 18,
-      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
-      boxShadow: bosTileGlass(dark)
+      padding: "6.5px 10px",
+      borderTop: i ? "0.5px solid " + (dark ? "rgba(255,255,255,0.07)" : "var(--line-2)") : "none"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 40,
-      height: 40,
-      borderRadius: 13,
+      width: 28,
+      height: 28,
+      borderRadius: 9,
       display: "grid",
       placeItems: "center",
-      fontSize: 20,
+      fontSize: 15,
       flexShrink: 0,
-      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"),
-      boxShadow: bosTileGlass(dark),
+      background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
       opacity: on ? 1 : 0.5,
       transition: "opacity 0.2s"
     }
@@ -4749,81 +4771,148 @@ function HomeGalleryContentLive({
       flex: 1,
       minWidth: 0,
       opacity: on ? 1 : 0.55,
-      transition: "opacity 0.2s"
+      transition: "opacity 0.2s",
+      display: "flex",
+      alignItems: "baseline",
+      gap: 6
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 15.5,
+      fontSize: 14,
       fontWeight: 600,
+      whiteSpace: "nowrap",
+      flexShrink: 0,
+      maxWidth: "100%",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, name), sub && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)",
+      minWidth: 0,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, name), sub && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-4)",
-      marginTop: 1
-    }
   }, sub)), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: on,
-    onChange: onToggle
+    onChange: onToggle,
+    dark: dark
   }));
-  var list = items => /*#__PURE__*/React.createElement("div", {
+  var card = items => /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "#fff"),
+      borderRadius: 14,
+      boxShadow: bosTileGlass(dark),
+      overflow: "hidden"
     }
-  }, items);
+  }, items.map((it, i, arr) => row(it, i, arr)));
   return /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--text)"
     }
-  }, kicker("Виджеты"), list(defs.map(o => row({
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: openStyle,
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      width: "100%",
+      padding: "8px 10px",
+      border: 0,
+      cursor: "pointer",
+      textAlign: "left",
+      color: "var(--text)",
+      marginTop: 2,
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "#fff"),
+      borderRadius: 14,
+      boxShadow: bosTileGlass(dark)
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 9,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"
+    }
+  }, /*#__PURE__*/React.createElement(I.Settings, {
+    size: 15,
+    color: "var(--text)"
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      alignItems: "baseline",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600
+    }
+  }, "\u0421\u0442\u0438\u043B\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)"
+    }
+  }, "\u0444\u043E\u0440\u043C\u044B, \u043E\u0442\u043C\u0435\u0442\u043A\u0438, \u043B\u0438\u0446\u0430")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 15,
+    color: "var(--text-4)"
+  })), !onStyle && typeof CardStyleMenuLive === "function" && /*#__PURE__*/React.createElement(CardStyleMenuLive, {
+    open: styleHere,
+    onClose: () => setStyleHere(false),
+    anchorRef: null
+  }), kicker("Виджеты"), card(defs.map(o => ({
     key: "w:" + o.id,
     icon: o.emoji,
     name: o.t,
     sub: o.d,
-    on: inOrder("w:" + o.id),
+    on: widgetOn(o.id),
     onToggle: () => toggleWidget(o.id)
-  }))), habits.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Привычки"), list(habits.map(h => {
+  }))), habits.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Привычки"), card(habits.map(h => {
     var k = "h:" + h.id;
-    return row({
+    return {
       key: k,
-      icon: typeof bosIcon === "function" ? bosIcon(h.emoji || "🌱", 20, h.color) : h.emoji || "🌱",
+      icon: typeof bosIcon === "function" ? bosIcon(h.emoji || "🌱", 15, h.color) : h.emoji || "🌱",
       name: h.name,
       sub: null,
       on: tileOn(k),
       onToggle: () => toggleTile(k)
-    });
-  }))), goals.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Цели"), list(goals.map(g => {
+    };
+  }))), goals.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Цели"), card(goals.map(g => {
     var k = "g:" + g.id;
-    return row({
+    return {
       key: k,
-      icon: typeof bosIcon === "function" ? bosIcon(g.emoji || "🎯", 20, g.color) : g.emoji || "🎯",
+      icon: typeof bosIcon === "function" ? bosIcon(g.emoji || "🎯", 15, g.color) : g.emoji || "🎯",
       name: g.name,
       sub: null,
       on: tileOn(k),
       onToggle: () => toggleTile(k)
-    });
-  }))), teams.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Совместные цели"), list(teams.map(t => {
+    };
+  }))), teams.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Совместные цели"), card(teams.map(t => {
     var k = typeof bosTeamKeyLive === "function" ? bosTeamKeyLive(t) : "t:" + (t.cloudId || t._id || t.id);
     var n = Array.isArray(t.members) ? t.members.length : 0;
-    return row({
+    return {
       key: k,
-      icon: typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 20, t.accent) : t.emblem || "👥",
+      icon: typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 15, t.accent) : t.emblem || "👥",
       name: t.name,
       sub: "Вместе" + (n ? " · " + n : ""),
       on: tileOn(k),
       onToggle: () => toggleTile(k)
-    });
+    };
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12.5,
+      fontSize: 12,
       color: "var(--text-4)",
-      lineHeight: 1.5,
-      padding: "14px 4px 0",
+      lineHeight: 1.45,
+      padding: "12px 4px 0",
       textAlign: "center"
     }
   }, "\u0412\u0441\u0451 \u044D\u0442\u043E \u2014 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u0433\u043B\u0430\u0432\u043D\u043E\u0439. \u0417\u0430\u0436\u043C\u0438 \u043B\u044E\u0431\u0443\u044E \u043F\u0440\u044F\u043C\u043E \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439, \u0447\u0442\u043E\u0431\u044B \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0438\u043B\u0438 \u0443\u0431\u0440\u0430\u0442\u044C."));
@@ -4833,7 +4922,8 @@ function HomeGalleryContentLive({
    bos-sheet-scroll: каталог длинный (все привычки и цели), тело шторки скроллится само. */
 function AddWidgetSheetLive({
   defs = [],
-  dark = false
+  dark = false,
+  onStyle = null
 }) {
   return /*#__PURE__*/React.createElement("div", {
     className: "bos-sheet-scroll",
@@ -4846,22 +4936,23 @@ function AddWidgetSheetLive({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      marginBottom: 4
+      marginBottom: 2
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 20,
+      fontSize: 19,
       fontWeight: 800,
       letterSpacing: "-0.3px"
     }
   }, "\u0413\u043B\u0430\u0432\u043D\u044B\u0439 \u044D\u043A\u0440\u0430\u043D"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
+      fontSize: 12.5,
       color: "var(--text-3)",
-      marginTop: 5
+      marginTop: 3
     }
   }, "\u0421\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439: \u0432\u0438\u0434\u0436\u0435\u0442\u044B, \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u0446\u0435\u043B\u0438")), /*#__PURE__*/React.createElement(HomeGalleryContentLive, {
-    dark: dark
+    dark: dark,
+    onStyle: onStyle
   }));
 }
 
@@ -5975,13 +6066,17 @@ function CardStyleMenuLive({
     if (!open) return;
     setHs(bosLoadCardStyle());
     setGs(bosLoadGoalStyle());
+    // Без якоря (открытие из галереи/настроек) — паркуемся под шапкой справа, доска видна.
     if (anchorRef && anchorRef.current) {
       var r = anchorRef.current.getBoundingClientRect();
       setPos({
         right: Math.round(window.innerWidth - r.right),
         top: Math.round(r.bottom + 10)
       });
-    }
+    } else setPos({
+      right: 12,
+      top: 78
+    });
   }, [open]);
   if (!open || !pos) return null;
   var setH = patch => {
@@ -5995,8 +6090,8 @@ function CardStyleMenuLive({
     bosSaveGoalStyle(n);
   };
   var SQ = /*#__PURE__*/React.createElement("svg", {
-    width: "34",
-    height: "20",
+    width: "30",
+    height: "18",
     viewBox: "0 0 34 20",
     fill: "none"
   }, /*#__PURE__*/React.createElement("rect", {
@@ -6017,8 +6112,8 @@ function CardStyleMenuLive({
     strokeWidth: "1.6"
   }));
   var RC = /*#__PURE__*/React.createElement("svg", {
-    width: "34",
-    height: "20",
+    width: "30",
+    height: "18",
     viewBox: "0 0 34 20",
     fill: "none"
   }, /*#__PURE__*/React.createElement("rect", {
@@ -6039,8 +6134,8 @@ function CardStyleMenuLive({
     strokeWidth: "1.6"
   }));
   var BN = /*#__PURE__*/React.createElement("svg", {
-    width: "34",
-    height: "20",
+    width: "30",
+    height: "18",
     viewBox: "0 0 34 20",
     fill: "none"
   }, /*#__PURE__*/React.createElement("rect", {
@@ -6073,6 +6168,7 @@ function CardStyleMenuLive({
     fill: "#0a0a0a",
     opacity: "0.5"
   }));
+  // Компактнее (David: «тумблеры поменьше, блок компактнее»): узкая панель, малые тумблеры, сжатые поля.
   var formBtn = (key, label, icon, cur, onPick) => /*#__PURE__*/React.createElement("button", {
     key: key,
     onClick: () => onPick(key),
@@ -6082,28 +6178,28 @@ function CardStyleMenuLive({
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: 7,
-      padding: "13px 6px",
-      borderRadius: 14,
+      gap: 5,
+      padding: "9px 6px",
+      borderRadius: 12,
       border: cur === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)",
       background: cur === key ? "rgba(10,10,10,0.05)" : "transparent",
       cursor: "pointer"
     }
   }, icon, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 12,
+      fontSize: 11.5,
       fontWeight: 600,
       color: "#0a0a0a"
     }
   }, label));
-  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в 258px).
+  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в узкую панель).
   var seg = (val, opts, onPick) => /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 4,
       background: "rgba(10,10,10,0.05)",
-      borderRadius: 12,
-      padding: 4
+      borderRadius: 11,
+      padding: 3
     }
   }, opts.map(o => /*#__PURE__*/React.createElement("button", {
     key: o.v,
@@ -6113,9 +6209,9 @@ function CardStyleMenuLive({
       flex: 1,
       minWidth: 0,
       border: 0,
-      borderRadius: 9,
-      padding: "7px 4px",
-      fontSize: 13,
+      borderRadius: 8,
+      padding: "5.5px 4px",
+      fontSize: 12.5,
       fontWeight: 600,
       cursor: "pointer",
       whiteSpace: "nowrap",
@@ -6129,12 +6225,13 @@ function CardStyleMenuLive({
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "9px 2px",
-      fontSize: 14.5,
+      padding: "6px 2px",
+      fontSize: 13.5,
       fontWeight: 500,
       color: "#0a0a0a"
     }
   }, /*#__PURE__*/React.createElement("span", null, label), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
     on: on,
     onChange: onCh
   }));
@@ -6142,7 +6239,7 @@ function CardStyleMenuLive({
     style: {
       height: 1,
       background: "rgba(10,10,10,0.08)",
-      margin: "13px 0 10px"
+      margin: "10px 0 8px"
     }
   });
   return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
@@ -6163,9 +6260,9 @@ function CardStyleMenuLive({
       top: pos.top,
       transformOrigin: "top right",
       animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
-      width: 258,
-      padding: 14,
-      borderRadius: 22,
+      width: 236,
+      padding: 11,
+      borderRadius: 20,
       background: "rgba(255,255,255,0.86)",
       WebkitBackdropFilter: "blur(34px) saturate(180%)",
       backdropFilter: "blur(34px) saturate(180%)",
@@ -6181,12 +6278,12 @@ function CardStyleMenuLive({
     l: "Цели"
   }], setTab), /*#__PURE__*/React.createElement("div", {
     style: {
-      height: 12
+      height: 9
     }
   }), tab === "habits" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8
+      gap: 7
     }
   }, formBtn("rect", "Строка", RC, hs.form, k => setH({
     form: k
@@ -6194,9 +6291,9 @@ function CardStyleMenuLive({
     form: k
   }))), divider, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
+      fontSize: 11.5,
       fontWeight: 600,
-      marginBottom: 8,
+      marginBottom: 6,
       color: "rgba(10,10,10,0.5)"
     }
   }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0438"), seg(hs.marks, [{
@@ -6233,7 +6330,7 @@ function CardStyleMenuLive({
   })))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8
+      gap: 7
     }
   }, formBtn("banner", "Баннер", BN, gs.form, k => setG({
     form: k

@@ -935,11 +935,24 @@ function SettingsLive() {
   };
   var isDark = app?.themeOverride === "dark";
   var setDark = on => app?.setThemeOverride(on ? "dark" : "light");
-  // «Обучение» cards on the Habits screen — ON shows them, OFF hides (restore after «Скрыть»).
-  var [learnOn, setLearnOn] = React.useState(() => !(typeof bosLearnHidden === "function" && bosLearnHidden()));
-  var setLearnPersist = on => {
-    setLearnOn(on);
-    if (typeof bosSetLearnHidden === "function") bosSetLearnHidden(!on);
+  // Вкладка «Я» внизу (слияние Главной и «Привычек»): дефолт ВКЛ; выключил — заходи через
+  // аватар в сводке дня. Если сводку убрали с доски, вкладка показывается принудительно
+  // (app.jsx), чтобы дверь в настройки не захлопнулась.
+  var [profTab, setProfTab] = React.useState(() => {
+    try {
+      return localStorage.getItem("bos:profileTab") !== "0";
+    } catch (e) {
+      return true;
+    }
+  });
+  var setProfTabPersist = on => {
+    setProfTab(on);
+    try {
+      localStorage.setItem("bos:profileTab", on ? "1" : "0");
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event("bos:profileTabChanged"));
+    } catch (e) {}
   };
   // Grouped iOS-style sections (v279 reno): ONE card per group, hairline-divided rows inside.
   // Helpers are plain render-fns (not components) so toggling never remounts the list.
@@ -1036,7 +1049,9 @@ function SettingsLive() {
     body: "\u0422\u044B \u0432\u0445\u043E\u0434\u0438\u0448\u044C \u0447\u0435\u0440\u0435\u0437 \u0441\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 Telegram \u2014 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C \u043D\u0435 \u043D\u0443\u0436\u0435\u043D. \u0422\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u044B \u043A \u043D\u0435\u043C\u0443 \u0438 \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u044F\u0442\u0441\u044F \u043C\u0435\u0436\u0434\u0443 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C\u0438.",
     cta: "\u041F\u043E\u043D\u044F\u0442\u043D\u043E",
     dark: routeDark
-  })), true)]), group("Предпочтения", [toggleRow(I.Eye, "Тёмная тема", isDark, setDark), toggleRow(I.Bell, "Push-уведомления", push, setPushPersist), toggleRow(I.Book, "Карточки-подсказки", learnOn, setLearnPersist, true)]), group("Главный экран", [row(I.Home, "Главный экран", () => navigate("home-customize"), true)]), group("О приложении", [row(I.Compass, "Как устроен Balance", () => navigate("guide", {
+  })), true)]), group("Предпочтения", [toggleRow(I.Eye, "Тёмная тема", isDark, setDark), toggleRow(I.Bell, "Push-уведомления", push, setPushPersist, true)]), group("Главный экран", [row(I.Home, "Главный экран", () => navigate("home-customize")),
+  // Слияние: страницы «Привычки» больше нет, «Я» — четвёртая вкладка меню (по желанию).
+  toggleRow(I.Person, "Вкладка «Я» внизу", profTab, setProfTabPersist, true)]), group("О приложении", [row(I.Compass, "Как устроен Balance", () => navigate("guide", {
     from: "settings"
   })), row(I.Sparkles, "Манифест", () => navigate("manifest", {
     from: "settings"

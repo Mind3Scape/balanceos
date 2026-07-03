@@ -2143,6 +2143,10 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
 // (нет в DEFAULT_ORDER → отфильтровывается), чтобы откат был лёгким.
 var BOS_HOME_WIDGETS = [
   { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   emoji: "✨" },
+  // Лента челленджей ПЕРЕЕХАЛА со страницы «Привычки» (слияние с главной, David): готовые
+  // привычки/цели/«вместе» с XP-бонусом одной строкой чипов. Добирается на доску сама
+  // (как плитки) — правило видимости «НЕ в hidden», см. effLayout в home_live.
+  { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", emoji: "⚡" },
   { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅" },
   { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥" },
   // «Состояние» (mood-слайдер + виджет-состояние с упоминанием дневника) ВРЕМЕННО СКРЫТ (David) —
@@ -2177,7 +2181,7 @@ function WidgetMinusLive({ onRemove }) {
    - виджет включён = "w:<id>" есть в order (виджеты сами на доску не добираются);
    - плитка включена = её ключ НЕ в hidden (добор в home_live сам держит живые плитки на доске).
    Поэтому у плиток тумблер честно показывает «на главной», даже если ключ ещё не персистнут. */
-function HomeGalleryContentLive({ dark = false }) {
+function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const layout = (app && app.homeLayout && Array.isArray(app.homeLayout.order)) ? app.homeLayout : { order: [], hidden: [] };
   const hidden = Array.isArray(layout.hidden) ? layout.hidden : [];
@@ -2186,9 +2190,12 @@ function HomeGalleryContentLive({ dark = false }) {
   const setL = (order, hid) => { if (app && app.setHomeLayout) { app.setHomeLayout({ order, hidden: hid }); haptic(); } };
   const toggleWidget = (id) => {
     const k = "w:" + id;
+    // «Быстрое добавление» добирается на доску само (как плитки) → его вкл = НЕ в hidden.
+    if (id === "quick") { toggleTile(k); return; }
     if (inOrder(k)) setL(layout.order.filter((x) => x !== k), hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden);
     else setL(layout.order.concat([k]), hidden.filter((x) => x !== k));
   };
+  const widgetOn = (id) => (id === "quick") ? (hidden.indexOf("w:quick") < 0) : inOrder("w:" + id);
   const tileOn = (k) => hidden.indexOf(k) < 0;
   const toggleTile = (k) => {
     if (tileOn(k)) setL(layout.order.filter((x) => x !== k), hidden.concat([k]));
@@ -2199,49 +2206,74 @@ function HomeGalleryContentLive({ dark = false }) {
   const habits = ((app && app.habits) || []).filter((h) => !h.shelved && !h.goalOnly);
   const goals = (app && app.goals) || [];
   const teams = (app && app.teams) || [];
+  // Локальный фолбэк для страницы настроек: там доски за шторкой нет, меню стиля
+  // открывается прямо по месту (на доске шторка закрывается — это делает onStyle).
+  const [styleHere, setStyleHere] = React.useState(false);
+  const openStyle = () => { haptic(); if (onStyle) onStyle(); else setStyleHere(true); };
+  // Компактная библиотека (David: «прям компактнее, много места в высоту») — строки-миниатюры:
+  // одна карточка на секцию, волосяные разделители, малые тумблеры.
   const kicker = (txt) => (
-    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "16px 4px 8px" }}>{txt}</div>
+    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.9, textTransform: "uppercase", color: "var(--text-4)", padding: "12px 4px 5px" }}>{txt}</div>
   );
-  const row = ({ key, icon, name, sub, on, onToggle }) => (
-    <div key={key} style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", padding: 12, borderRadius: 18,
-      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), boxShadow: bosTileGlass(dark) }}>
-      <span style={{ width: 40, height: 40, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0,
-        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"), boxShadow: bosTileGlass(dark), opacity: on ? 1 : 0.5, transition: "opacity 0.2s" }}>{icon}</span>
-      <div style={{ flex: 1, minWidth: 0, opacity: on ? 1 : 0.55, transition: "opacity 0.2s" }}>
-        <div style={{ fontSize: 15.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
-        {sub && <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>{sub}</div>}
+  const row = ({ key, icon, name, sub, on, onToggle }, i, arr) => (
+    <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "6.5px 10px",
+      borderTop: i ? ("0.5px solid " + (dark ? "rgba(255,255,255,0.07)" : "var(--line-2)")) : "none" }}>
+      <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0,
+        background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", opacity: on ? 1 : 0.5, transition: "opacity 0.2s" }}>{icon}</span>
+      <div style={{ flex: 1, minWidth: 0, opacity: on ? 1 : 0.55, transition: "opacity 0.2s", display: "flex", alignItems: "baseline", gap: 6 }}>
+        {/* Имя не сжимается — ужимается ПОДПИСЬ (иначе «Быстрое д…» при длинном сабе). */}
+        <span style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
+        {sub && <span style={{ fontSize: 11.5, color: "var(--text-4)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</span>}
       </div>
-      <Switch on={on} onChange={onToggle} />
+      <Switch small on={on} onChange={onToggle} dark={dark} />
     </div>
   );
-  const list = (items) => <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{items}</div>;
+  const card = (items) => (
+    <div style={{ background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "#fff"), borderRadius: 14, boxShadow: bosTileGlass(dark), overflow: "hidden" }}>
+      {items.map((it, i, arr) => row(it, i, arr))}
+    </div>
+  );
   return (
     <div style={{ color: "var(--text)" }}>
+      {/* «Вид» — НА САМОМ ВЕРХУ (David): тап закрывает шторку и открывает компактное меню
+          стиля НАД живой доской — карточки меняются на глазах. */}
+      <button onClick={openStyle} className="tap" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 10px",
+        border: 0, cursor: "pointer", textAlign: "left", color: "var(--text)", marginTop: 2,
+        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "#fff"), borderRadius: 14, boxShadow: bosTileGlass(dark) }}>
+        <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", flexShrink: 0,
+          background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)" }}><I.Settings size={15} color="var(--text)" /></span>
+        <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 6 }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Стиль карточек</span>
+          <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>формы, отметки, лица</span>
+        </span>
+        <I.ChevronRight size={15} color="var(--text-4)" />
+      </button>
+      {!onStyle && typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleHere} onClose={() => setStyleHere(false)} anchorRef={null} />}
       {kicker("Виджеты")}
-      {list(defs.map((o) => row({ key: "w:" + o.id, icon: o.emoji, name: o.t, sub: o.d, on: inOrder("w:" + o.id), onToggle: () => toggleWidget(o.id) })))}
+      {card(defs.map((o) => ({ key: "w:" + o.id, icon: o.emoji, name: o.t, sub: o.d, on: widgetOn(o.id), onToggle: () => toggleWidget(o.id) })))}
       {habits.length > 0 && (
         <React.Fragment>
           {kicker("Привычки")}
-          {list(habits.map((h) => { const k = "h:" + h.id; return row({ key: k, icon: (typeof bosIcon === "function" ? bosIcon(h.emoji || "🌱", 20, h.color) : (h.emoji || "🌱")), name: h.name, sub: null, on: tileOn(k), onToggle: () => toggleTile(k) }); }))}
+          {card(habits.map((h) => { const k = "h:" + h.id; return { key: k, icon: (typeof bosIcon === "function" ? bosIcon(h.emoji || "🌱", 15, h.color) : (h.emoji || "🌱")), name: h.name, sub: null, on: tileOn(k), onToggle: () => toggleTile(k) }; }))}
         </React.Fragment>
       )}
       {goals.length > 0 && (
         <React.Fragment>
           {kicker("Цели")}
-          {list(goals.map((g) => { const k = "g:" + g.id; return row({ key: k, icon: (typeof bosIcon === "function" ? bosIcon(g.emoji || "🎯", 20, g.color) : (g.emoji || "🎯")), name: g.name, sub: null, on: tileOn(k), onToggle: () => toggleTile(k) }); }))}
+          {card(goals.map((g) => { const k = "g:" + g.id; return { key: k, icon: (typeof bosIcon === "function" ? bosIcon(g.emoji || "🎯", 15, g.color) : (g.emoji || "🎯")), name: g.name, sub: null, on: tileOn(k), onToggle: () => toggleTile(k) }; }))}
         </React.Fragment>
       )}
       {teams.length > 0 && (
         <React.Fragment>
           {kicker("Совместные цели")}
-          {list(teams.map((t) => {
+          {card(teams.map((t) => {
             const k = (typeof bosTeamKeyLive === "function") ? bosTeamKeyLive(t) : ("t:" + (t.cloudId || t._id || t.id));
             const n = Array.isArray(t.members) ? t.members.length : 0;
-            return row({ key: k, icon: (typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 20, t.accent) : (t.emblem || "👥")), name: t.name, sub: "Вместе" + (n ? " · " + n : ""), on: tileOn(k), onToggle: () => toggleTile(k) });
+            return { key: k, icon: (typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 15, t.accent) : (t.emblem || "👥")), name: t.name, sub: "Вместе" + (n ? " · " + n : ""), on: tileOn(k), onToggle: () => toggleTile(k) };
           }))}
         </React.Fragment>
       )}
-      <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.5, padding: "14px 4px 0", textAlign: "center" }}>
+      <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, padding: "12px 4px 0", textAlign: "center" }}>
         Всё это — карточки главной. Зажми любую прямо на главной, чтобы переставить или убрать.
       </div>
     </div>
@@ -2250,14 +2282,14 @@ function HomeGalleryContentLive({ dark = false }) {
 
 /* Шторка «+» на главной — тонкая обёртка над единой галереей (см. HomeGalleryContentLive).
    bos-sheet-scroll: каталог длинный (все привычки и цели), тело шторки скроллится само. */
-function AddWidgetSheetLive({ defs = [], dark = false }) {
+function AddWidgetSheetLive({ defs = [], dark = false, onStyle = null }) {
   return (
     <div className="bos-sheet-scroll" style={{ paddingLeft: 18, paddingRight: 18, paddingBottom: 8, color: "var(--text)" }}>
-      <div style={{ textAlign: "center", marginBottom: 4 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px" }}>Главный экран</div>
-        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 5 }}>Собери свой: виджеты, привычки и цели</div>
+      <div style={{ textAlign: "center", marginBottom: 2 }}>
+        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px" }}>Главный экран</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3 }}>Собери свой: виджеты, привычки и цели</div>
       </div>
-      <HomeGalleryContentLive dark={dark} />
+      <HomeGalleryContentLive dark={dark} onStyle={onStyle} />
     </div>
   );
 }
@@ -2650,45 +2682,48 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
   React.useEffect(() => {
     if (!open) return;
     setHs(bosLoadCardStyle()); setGs(bosLoadGoalStyle());
+    // Без якоря (открытие из галереи/настроек) — паркуемся под шапкой справа, доска видна.
     if (anchorRef && anchorRef.current) { const r = anchorRef.current.getBoundingClientRect(); setPos({ right: Math.round(window.innerWidth - r.right), top: Math.round(r.bottom + 10) }); }
+    else setPos({ right: 12, top: 78 });
   }, [open]);
   if (!open || !pos) return null;
   const setH = (patch) => { const n = Object.assign({}, hs, patch); setHs(n); bosSaveCardStyle(n); };
   const setG = (patch) => { const n = Object.assign({}, gs, patch); setGs(n); bosSaveGoalStyle(n); };
-  const SQ = (<svg width="34" height="20" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="13" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="19" y="3" width="13" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
-  const RC = (<svg width="34" height="20" viewBox="0 0 34 20" fill="none"><rect x="2" y="2.5" width="30" height="6.5" rx="2.5" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="2" y="11" width="30" height="6.5" rx="2.5" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
-  const BN = (<svg width="34" height="20" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="30" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /><circle cx="8" cy="10" r="2.4" stroke="#0a0a0a" strokeWidth="1.4" /><rect x="14" y="7" width="15" height="2" rx="1" fill="#0a0a0a" /><rect x="14" y="12" width="10" height="2" rx="1" fill="#0a0a0a" opacity="0.5" /></svg>);
+  const SQ = (<svg width="30" height="18" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="13" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="19" y="3" width="13" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
+  const RC = (<svg width="30" height="18" viewBox="0 0 34 20" fill="none"><rect x="2" y="2.5" width="30" height="6.5" rx="2.5" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="2" y="11" width="30" height="6.5" rx="2.5" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
+  const BN = (<svg width="30" height="18" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="30" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /><circle cx="8" cy="10" r="2.4" stroke="#0a0a0a" strokeWidth="1.4" /><rect x="14" y="7" width="15" height="2" rx="1" fill="#0a0a0a" /><rect x="14" y="12" width="10" height="2" rx="1" fill="#0a0a0a" opacity="0.5" /></svg>);
+  // Компактнее (David: «тумблеры поменьше, блок компактнее»): узкая панель, малые тумблеры, сжатые поля.
   const formBtn = (key, label, icon, cur, onPick) => (
-    <button key={key} onClick={() => onPick(key)} className="tap" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "13px 6px", borderRadius: 14, border: cur === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)", background: cur === key ? "rgba(10,10,10,0.05)" : "transparent", cursor: "pointer" }}>
-      {icon}<span style={{ fontSize: 12, fontWeight: 600, color: "#0a0a0a" }}>{label}</span>
+    <button key={key} onClick={() => onPick(key)} className="tap" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "9px 6px", borderRadius: 12, border: cur === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)", background: cur === key ? "rgba(10,10,10,0.05)" : "transparent", cursor: "pointer" }}>
+      {icon}<span style={{ fontSize: 11.5, fontWeight: 600, color: "#0a0a0a" }}>{label}</span>
     </button>
   );
-  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в 258px).
+  // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в узкую панель).
   const seg = (val, opts, onPick) => (
-    <div style={{ display: "flex", gap: 4, background: "rgba(10,10,10,0.05)", borderRadius: 12, padding: 4 }}>
+    <div style={{ display: "flex", gap: 4, background: "rgba(10,10,10,0.05)", borderRadius: 11, padding: 3 }}>
       {opts.map((o) => (
-        <button key={o.v} onClick={() => onPick(o.v)} className="tap" style={{ flex: 1, minWidth: 0, border: 0, borderRadius: 9, padding: "7px 4px", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", background: val === o.v ? "#fff" : "transparent", color: val === o.v ? "#0a0a0a" : "rgba(10,10,10,0.5)", boxShadow: val === o.v ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{o.l}</button>
+        <button key={o.v} onClick={() => onPick(o.v)} className="tap" style={{ flex: 1, minWidth: 0, border: 0, borderRadius: 8, padding: "5.5px 4px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", background: val === o.v ? "#fff" : "transparent", color: val === o.v ? "#0a0a0a" : "rgba(10,10,10,0.5)", boxShadow: val === o.v ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{o.l}</button>
       ))}
     </div>
   );
   const toggleRow = (label, on, onCh) => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 2px", fontSize: 14.5, fontWeight: 500, color: "#0a0a0a" }}>
-      <span>{label}</span><Switch on={on} onChange={onCh} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 2px", fontSize: 13.5, fontWeight: 500, color: "#0a0a0a" }}>
+      <span>{label}</span><Switch small on={on} onChange={onCh} />
     </div>
   );
-  const divider = <div style={{ height: 1, background: "rgba(10,10,10,0.08)", margin: "13px 0 10px" }} />;
+  const divider = <div style={{ height: 1, background: "rgba(10,10,10,0.08)", margin: "10px 0 8px" }} />;
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
-      <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right", animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 258, padding: 14, borderRadius: 22, background: "rgba(255,255,255,0.86)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
+      <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right", animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 236, padding: 11, borderRadius: 20, background: "rgba(255,255,255,0.86)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
         {/* Вкладки: Привычки / Цели */}
         {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }], setTab)}
-        <div style={{ height: 12 }} />
+        <div style={{ height: 9 }} />
         {tab === "habits" ? (
           <>
             {/* David: дефолт (строка) СЛЕВА, квадрат справа — «всё дефолтное по сути слева». */}
-            <div style={{ display: "flex", gap: 8 }}>{formBtn("rect", "Строка", RC, hs.form, (k) => setH({ form: k }))}{formBtn("square", "Квадрат", SQ, hs.form, (k) => setH({ form: k }))}</div>
+            <div style={{ display: "flex", gap: 7 }}>{formBtn("rect", "Строка", RC, hs.form, (k) => setH({ form: k }))}{formBtn("square", "Квадрат", SQ, hs.form, (k) => setH({ form: k }))}</div>
             {divider}
-            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 6, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
             {seg(hs.marks, [{ v: "none", l: "Нет" }, { v: "week", l: "Неделя" }, { v: "month", l: "Месяц" }], (v) => setH({ marks: v }))}
             {hs.marks !== "none" && <div style={{ marginTop: 8 }}>{seg(hs.cells || "round", [{ v: "round", l: "Кружки" }, { v: "square", l: "Квадраты" }], (v) => setH({ cells: v }))}</div>}
             <div style={{ marginTop: 6 }}>
@@ -2698,7 +2733,7 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
           </>
         ) : (
           <>
-            <div style={{ display: "flex", gap: 8 }}>{formBtn("banner", "Баннер", BN, gs.form, (k) => setG({ form: k }))}{formBtn("square", "Квадрат", SQ, gs.form, (k) => setG({ form: k }))}</div>
+            <div style={{ display: "flex", gap: 7 }}>{formBtn("banner", "Баннер", BN, gs.form, (k) => setG({ form: k }))}{formBtn("square", "Квадрат", SQ, gs.form, (k) => setG({ form: k }))}</div>
             {divider}
             <div style={{ marginTop: 0 }}>
               {toggleRow("Орбиты вокруг цели", gs.orbits, (v) => setG({ orbits: v }))}

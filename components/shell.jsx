@@ -80,9 +80,11 @@ function NavProvider({ children, initial = "home" }) {
 }
 const useNav = () => React.useContext(NavCtx);
 
-// Bottom tab bar
-function TabBar({ active, dark = false, onTab, style }) {
-  const tabs = [
+// Bottom tab bar. `tabs` — необязательный список {id, icon}: live передаёт свой состав
+// (без «Привычек», с «Я»), демо живёт на прежнем дефолте. Ширина линзы следует за
+// числом вкладок инлайном (CSS-дефолт рассчитан на 4).
+function TabBar({ active, dark = false, onTab, style, tabs: tabsProp }) {
+  const tabs = (tabsProp && tabsProp.length) ? tabsProp : [
     { id: "home", icon: "Home" },
     { id: "habits", icon: "Bolt" },
     { id: "community", icon: "Group" },
@@ -94,7 +96,7 @@ function TabBar({ active, dark = false, onTab, style }) {
       {/* Liquid-glass selection lens: the TRACK springs between tabs (translateX), while the
           inner droplet replays a stretch-and-settle morph on every change (key→remount) — the
           «жидкое стекло» cue. Two layers so position and morph never fight over `transform`. */}
-      <span className="bos-tab-lens-track" style={{ transform: "translateX(" + (idx * 100) + "%)" }}>
+      <span className="bos-tab-lens-track" style={{ width: "calc((100% - 24px) / " + tabs.length + ")", transform: "translateX(" + (idx * 100) + "%)" }}>
         <span key={idx} className="bos-tab-lens" />
       </span>
       {tabs.map(t => (
