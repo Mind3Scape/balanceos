@@ -8023,8 +8023,12 @@ function UniDiscLive({
   var av = "" + (avatar || "");
   var isMemoji = /^m\d+$/.test(av),
     isEmoji = av.indexOf("emoji:") === 0;
-  var SHEEN = "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
+  // Блик кружка Вселенной ТЕМА-ЗАВИСИМ (David: «в тёмной кружочки не адаптировались»): в тёмной
+  // яркий белый градиент (0.55) выбеливал графитовый диск → приглушаем почти в ноль.
+  var SHEEN = dark ? "linear-gradient(165deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04) 46%, rgba(255,255,255,0) 72%)" : "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
   var bg = SHEEN + ", " + (isMemoji ? "url(./assets/people/" + av + ".png) center/cover no-repeat, " : !isEmoji ? "url(./assets/sphere.png) center/cover no-repeat, " : "") + "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))";
+  // Верхняя белая кромка диска тоже гаснет в тёмной (была 0.9 — резкий блик).
+  var discSh = dark ? "inset 0 1px 0.5px rgba(255,255,255,0.10), inset 0 0 0 0.6px rgba(255,255,255,0.05), 0 4px 12px rgba(0,0,0,0.30)" : "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)";
   var badge = size * 0.34;
   // Кольцо-прогресс уровня УБРАНО (David: «перегружает») — остаётся только цифра уровня.
   // Inset 0.12 сохранён → размер лица и стык с раскрытой орбитой не изменились.
@@ -8040,7 +8044,7 @@ function UniDiscLive({
       inset: size * 0.12,
       borderRadius: "50%",
       background: bg,
-      boxShadow: "inset 0 1.5px 0.5px rgba(255,255,255,0.9), inset 0 0 0 0.6px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.14)",
+      boxShadow: discSh,
       display: "grid",
       placeItems: "center",
       fontSize: size * 0.42,
