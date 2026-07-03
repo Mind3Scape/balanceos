@@ -1846,6 +1846,14 @@ function bosRollHabit(h) {
    the user's face appears. At T1 other users' avatars come down the same field. */
 var BOS_MEMOJI = ["default", "m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18"];
 var BOS_EMOJI_AVATARS = ["🦊", "🐼", "🐨", "🦁", "🐯", "🐵", "🐸", "🐙", "🦄", "🐲", "🌟", "🔥", "🌈", "🍀", "🌸", "⚡", "💎", "🚀", "🎧", "🧠", "❤️", "🦋"];
+/* Стартовая аватарка = случайное ЛИЦО-эмодзи (David: «у всех одно лицо — люди не понимают,
+   что аватарку можно менять»). ТОЛЬКО лица; зверей/предметы человек выберет сам в профиле.
+   Присваивается один раз тем, кто ещё НИКОГДА не выбирал (avatar == null); вручную
+   выбранная сфера («default») уважается и не трогается. */
+var BOS_FACE_AVATARS = ["😀", "😃", "😄", "😁", "😊", "🙂", "😉", "😌", "😎", "🤓", "🥳", "🤩", "🥰", "😇", "🤠", "😋", "😜", "🤪", "🤗", "🤭", "🙃", "😏", "🧐", "🫡"];
+function bosRandomFaceAvatar() {
+  return "emoji:" + BOS_FACE_AVATARS[Math.floor(Math.random() * BOS_FACE_AVATARS.length)];
+}
 function bosAvatarBg(avatar) {
   if (!avatar || avatar === "default") return "url(./assets/sphere.png) center/cover no-repeat";
   if (("" + avatar).indexOf("emoji:") === 0) return "linear-gradient(150deg,#eef1f6,#d3d9e4)";
@@ -2724,9 +2732,15 @@ function AppProvider({
     var name = tgUser && (tgUser.first_name || tgUser.username) || "";
     setMode("live");
     var saved = window.bosStore && window.bosStore.has(pid) ? window.bosStore.load(pid) : null;
+    // Стартовое лицо: аватар ещё НИ РАЗУ не выбирался (null) → случайное эмодзи-лицо вместо
+    // общей серой сферы. Один раз: дальше выбор сохранён локально + в облаке. Ручной выбор
+    // (включая «default»-сферу из пикера) не перебивается.
+    var _av0 = (saved ? saved.avatar || avatar : avatar) || null;
+    var _avWasEmpty = !_av0;
+    if (_avWasEmpty && typeof bosRandomFaceAvatar === "function") _av0 = bosRandomFaceAvatar();
     if (saved) {
       setUserName(saved.userName || name);
-      setAvatar(saved.avatar || avatar || null);
+      setAvatar(_av0);
       setHabits((saved.habits || []).map(bosRollHabit));
       setGoals(saved.goals || []);
       setTeams(saved.teams || []);
@@ -2741,7 +2755,7 @@ function AppProvider({
       setMood(_miS != null && MOOD_OPTIONS[_miS] ? MOOD_OPTIONS[_miS] : _onbMood() || MOOD_OPTIONS[2]);
     } else {
       setUserName(name);
-      setAvatar(avatar || null);
+      setAvatar(_av0);
       setHabits([]);
       setGoals([]);
       setTeams([]);
@@ -2782,7 +2796,7 @@ function AppProvider({
         var _joinTeamId = typeof bosJoinTeamId === "function" ? bosJoinTeamId() : null; // Telegram start_param=team_<id> OR web ?team=
         var _joinShareId = typeof bosJoinSharedHabitId === "function" ? bosJoinSharedHabitId() : null; // start_param=hb_<code> → join the SAME shared habit
         var _locName = saved ? saved.userName || name : name;
-        var _locAv = saved ? saved.avatar || avatar || null : avatar || null;
+        var _locAv = _av0;
         window.bosCloud.signIn(_refBy).then(function (u) {
           if (!u) {
             _doneHydrate();
@@ -2792,6 +2806,12 @@ function AppProvider({
             if (prof && (prof.username || prof.avatar)) {
               if (prof.username) setUserName(prof.username);
               if (prof.avatar) setAvatar(prof.avatar);
+              // Само-миграция старожилов: имя в облаке есть, аватара НЕТ (никогда не менял) →
+              // закрепляем свежее случайное лицо и в облаке — Вселенная/круги увидят его сразу.
+              else if (_avWasEmpty && _av0) window.bosCloud.saveProfile({
+                username: prof.username || _locName,
+                avatar: _av0
+              });
             } else {
               window.bosCloud.saveProfile({
                 username: _locName,
