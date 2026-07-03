@@ -176,34 +176,79 @@ function FriendsLive() {
           </div>
         )}
         {people && people.map((f, i) => {
+          // ЖИВАЯ строка друга (v530): золотое кольцо уровня вокруг лица (тот же язык, что
+          // строка «Уровень» на «Я»), бейдж-цифра, справа — значки его РЕАЛЬНЫХ привычек из
+          // публичной орбиты (эмодзи+цвет, без названий — то, что он и так показывает миру).
           const o = pub[f.id];
-          const sub = (o && o.level > 0)
-            ? ("Уровень " + o.level + ((o.habits || []).length ? " · " + o.habits.length + " " + bosHabitsWord((o.habits || []).length) : ""))
+          const lvl = (o && o.level) || 0;
+          const pctRing = Math.max(0, Math.min(100, (o && o.lvlPct) || 0));
+          const hb = ((o && o.habits) || []).slice(0, 3);
+          const sub = lvl > 0
+            ? ("Уровень " + lvl + ((o.habits || []).length ? " · " + o.habits.length + " " + bosHabitsWord((o.habits || []).length) : ""))
             : (f.invited ? "Пришёл по твоему приглашению" : "Вместе в круге");
           return (
             <button key={f.id} onClick={() => openSheet(<FriendPreviewSheetLive friend={f} pub={o} navigate={navigate} />)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, cursor: "pointer", textAlign: "left", padding: "12px 14px" }}>
-              <BuddyFaceLive avatar={f.avatar} name={f.name} size={42} />
+              <span style={{ position: "relative", width: 46, height: 46, flexShrink: 0, display: "grid", placeItems: "center" }}>
+                <svg width="46" height="46" viewBox="0 0 46 46" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+                  <circle cx="23" cy="23" r="21.5" fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"} strokeWidth="2" />
+                  {pctRing > 0 && <circle cx="23" cy="23" r="21.5" fill="none" stroke="url(#bosFrLvl)" strokeWidth="2" strokeLinecap="round" strokeDasharray="135.1" strokeDashoffset={135.1 * (1 - pctRing / 100)} />}
+                  <defs><linearGradient id="bosFrLvl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" /></linearGradient></defs>
+                </svg>
+                <BuddyFaceLive avatar={f.avatar} name={f.name} size={38} />
+                {lvl > 0 && <span style={{ position: "absolute", right: -3, bottom: -2, minWidth: 17, height: 17, borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 3px", boxShadow: "0 0 0 2px var(--card)" }}>{lvl}</span>}
+              </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</div>
                 <div className="bos-sys-text-3" style={{ fontSize: 12.5, marginTop: 1 }}>{sub}</div>
               </div>
-              {f.teams.length > 0 && <span style={{ fontSize: 15, marginRight: 2 }}>{bosIcon(f.teams[0].emblem || "✨", 15, null)}</span>}
+              {hb.length > 0 ? (
+                <div style={{ display: "flex", marginRight: 2, flexShrink: 0 }}>
+                  {hb.map((hx, j) => <span key={j} style={{ width: 24, height: 24, borderRadius: 8, background: (hx && hx.c) ? hx.c + "26" : "var(--card-2)", display: "grid", placeItems: "center", fontSize: 12, marginLeft: j ? -6 : 0, border: "1.5px solid var(--card)" }}>{(hx && hx.e) || "✨"}</span>)}
+                </div>
+              ) : (f.teams.length > 0 && <span style={{ fontSize: 15, marginRight: 2 }}>{bosIcon(f.teams[0].emblem || "✨", 15, null)}</span>)}
               <I.ChevronRight size={16} className="bos-sys-text-2" />
             </button>
           );
         })}
       </div>
 
-      {/* Позвать друга — та же золотая механика +150 XP, что на главной/в Сообществе. */}
-      <button onClick={inviteFriend} className="tap" style={{ width: "100%", marginTop: 16, position: "relative", overflow: "hidden", border: 0, borderRadius: 22, padding: 16, background: "linear-gradient(135deg, #FEDE34, #EF9F14)", boxShadow: "0 8px 22px rgba(239,159,20,0.3)", color: "#0a0a0a", display: "flex", alignItems: "center", gap: 13, textAlign: "left", cursor: "pointer" }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)", pointerEvents: "none" }} />
-        <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0, position: "relative" }}><I.Share size={20} /></span>
-        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-          <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px" }}>Позвать друга</div>
-          <div style={{ fontSize: 12.5, color: "rgba(10,10,10,0.65)", marginTop: 2 }}>+150 XP за каждого, кто войдёт по твоей ссылке</div>
-        </div>
-        <I.ChevronRight size={18} style={{ position: "relative" }} />
-      </button>
+      {/* Позвать друга + ВЕХИ (v530): та же золотая механика +150 XP, но с РЕАЛЬНЫМ прогрессом
+          к следующему бонусу (3/7/15/30 друзей → +300/700/1500/3000 XP — те же вехи, что фраза
+          на главной). Сегменты = приглашённые из этой десятки/тройки; всё честно, без таймеров. */}
+      {(() => {
+        const invited = Math.max(app?.invitedCount || 0, people ? people.filter((p) => p.invited).length : 0);
+        const miles = [{ n: 3, b: 300 }, { n: 7, b: 700 }, { n: 15, b: 1500 }, { n: 30, b: 3000 }];
+        const next = miles.find((m) => m.n > invited);
+        return (
+          <button onClick={inviteFriend} className="tap" style={{ width: "100%", marginTop: 16, position: "relative", overflow: "hidden", border: 0, borderRadius: 22, padding: 16, background: "linear-gradient(135deg, #FEDE34, #EF9F14)", boxShadow: "0 8px 22px rgba(239,159,20,0.3)", color: "#0a0a0a", textAlign: "left", cursor: "pointer", display: "block" }}>
+            <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)", pointerEvents: "none" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 13, position: "relative" }}>
+              <span style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.5)", display: "grid", placeItems: "center", flexShrink: 0 }}><I.Share size={20} /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: "-0.2px" }}>Позвать друга</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", fontSize: 10.5, fontWeight: 800, color: "#FEDE34", background: "#0a0a0a", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>+150 XP</span>
+                </div>
+                <div style={{ fontSize: 12.5, color: "rgba(10,10,10,0.65)", marginTop: 2 }}>Он появится на твоей орбите — и вы будете видеть живое друг друга</div>
+              </div>
+              <I.ChevronRight size={18} />
+            </div>
+            {next && (
+              <div style={{ position: "relative", marginTop: 13 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.7, color: "rgba(10,10,10,0.55)" }}>Веха · +{next.b} XP бонусом</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "rgba(10,10,10,0.75)", fontVariantNumeric: "tabular-nums" }}>{invited} из {next.n}</span>
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {Array.from({ length: next.n }, (_, j) => (
+                    <span key={j} style={{ flex: 1, height: 6, borderRadius: 999, background: j < invited ? "#0a0a0a" : "rgba(10,10,10,0.18)" }} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </button>
+        );
+      })()}
     </div>
   );
 }

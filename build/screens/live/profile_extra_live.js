@@ -452,8 +452,14 @@ function FriendsLive() {
       margin: "4px auto 0"
     }
   }, "\u041F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0433\u0430 \u2014 \u043E\u043D \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0438 \u043D\u0430 \u0442\u0432\u043E\u0435\u0439 \u043E\u0440\u0431\u0438\u0442\u0435.")), people && people.map((f, i) => {
+    // ЖИВАЯ строка друга (v530): золотое кольцо уровня вокруг лица (тот же язык, что
+    // строка «Уровень» на «Я»), бейдж-цифра, справа — значки его РЕАЛЬНЫХ привычек из
+    // публичной орбиты (эмодзи+цвет, без названий — то, что он и так показывает миру).
     var o = pub[f.id];
-    var sub = o && o.level > 0 ? "Уровень " + o.level + ((o.habits || []).length ? " · " + o.habits.length + " " + bosHabitsWord((o.habits || []).length) : "") : f.invited ? "Пришёл по твоему приглашению" : "Вместе в круге";
+    var lvl = o && o.level || 0;
+    var pctRing = Math.max(0, Math.min(100, o && o.lvlPct || 0));
+    var hb = (o && o.habits || []).slice(0, 3);
+    var sub = lvl > 0 ? "Уровень " + lvl + ((o.habits || []).length ? " · " + o.habits.length + " " + bosHabitsWord((o.habits || []).length) : "") : f.invited ? "Пришёл по твоему приглашению" : "Вместе в круге";
     return /*#__PURE__*/React.createElement("button", {
       key: f.id,
       onClick: () => openSheet(/*#__PURE__*/React.createElement(FriendPreviewSheetLive, {
@@ -474,11 +480,76 @@ function FriendsLive() {
         textAlign: "left",
         padding: "12px 14px"
       }
-    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "relative",
+        width: 46,
+        height: 46,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: "46",
+      height: "46",
+      viewBox: "0 0 46 46",
+      style: {
+        position: "absolute",
+        inset: 0,
+        transform: "rotate(-90deg)"
+      },
+      "aria-hidden": true
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: "23",
+      cy: "23",
+      r: "21.5",
+      fill: "none",
+      stroke: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
+      strokeWidth: "2"
+    }), pctRing > 0 && /*#__PURE__*/React.createElement("circle", {
+      cx: "23",
+      cy: "23",
+      r: "21.5",
+      fill: "none",
+      stroke: "url(#bosFrLvl)",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeDasharray: "135.1",
+      strokeDashoffset: 135.1 * (1 - pctRing / 100)
+    }), /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+      id: "bosFrLvl",
+      x1: "0",
+      y1: "0",
+      x2: "1",
+      y2: "1"
+    }, /*#__PURE__*/React.createElement("stop", {
+      offset: "0",
+      stopColor: "#FEDE34"
+    }), /*#__PURE__*/React.createElement("stop", {
+      offset: "1",
+      stopColor: "#EF9F14"
+    })))), /*#__PURE__*/React.createElement(BuddyFaceLive, {
       avatar: f.avatar,
       name: f.name,
-      size: 42
-    }), /*#__PURE__*/React.createElement("div", {
+      size: 38
+    }), lvl > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        right: -3,
+        bottom: -2,
+        minWidth: 17,
+        height: 17,
+        borderRadius: 999,
+        background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+        color: "#0a0a0a",
+        fontSize: 10,
+        fontWeight: 800,
+        display: "grid",
+        placeItems: "center",
+        padding: "0 3px",
+        boxShadow: "0 0 0 2px var(--card)"
+      }
+    }, lvl)), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
@@ -498,7 +569,26 @@ function FriendsLive() {
         fontSize: 12.5,
         marginTop: 1
       }
-    }, sub)), f.teams.length > 0 && /*#__PURE__*/React.createElement("span", {
+    }, sub)), hb.length > 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        marginRight: 2,
+        flexShrink: 0
+      }
+    }, hb.map((hx, j) => /*#__PURE__*/React.createElement("span", {
+      key: j,
+      style: {
+        width: 24,
+        height: 24,
+        borderRadius: 8,
+        background: hx && hx.c ? hx.c + "26" : "var(--card-2)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 12,
+        marginLeft: j ? -6 : 0,
+        border: "1.5px solid var(--card)"
+      }
+    }, hx && hx.e || "✨"))) : f.teams.length > 0 && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 15,
         marginRight: 2
@@ -507,71 +597,148 @@ function FriendsLive() {
       size: 16,
       className: "bos-sys-text-2"
     }));
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: inviteFriend,
-    className: "tap",
-    style: {
-      width: "100%",
-      marginTop: 16,
-      position: "relative",
-      overflow: "hidden",
-      border: 0,
-      borderRadius: 22,
-      padding: 16,
-      background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
-      boxShadow: "0 8px 22px rgba(239,159,20,0.3)",
-      color: "#0a0a0a",
-      display: "flex",
-      alignItems: "center",
-      gap: 13,
-      textAlign: "left",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      inset: 0,
-      background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)",
-      pointerEvents: "none"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      background: "rgba(255,255,255,0.5)",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0,
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement(I.Share, {
-    size: 20
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 700,
-      letterSpacing: "-0.2px"
-    }
-  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0430"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "rgba(10,10,10,0.65)",
-      marginTop: 2
-    }
-  }, "+150 XP \u0437\u0430 \u043A\u0430\u0436\u0434\u043E\u0433\u043E, \u043A\u0442\u043E \u0432\u043E\u0439\u0434\u0451\u0442 \u043F\u043E \u0442\u0432\u043E\u0435\u0439 \u0441\u0441\u044B\u043B\u043A\u0435")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 18,
-    style: {
-      position: "relative"
-    }
-  })));
+  })), (() => {
+    var invited = Math.max(app?.invitedCount || 0, people ? people.filter(p => p.invited).length : 0);
+    var miles = [{
+      n: 3,
+      b: 300
+    }, {
+      n: 7,
+      b: 700
+    }, {
+      n: 15,
+      b: 1500
+    }, {
+      n: 30,
+      b: 3000
+    }];
+    var next = miles.find(m => m.n > invited);
+    return /*#__PURE__*/React.createElement("button", {
+      onClick: inviteFriend,
+      className: "tap",
+      style: {
+        width: "100%",
+        marginTop: 16,
+        position: "relative",
+        overflow: "hidden",
+        border: 0,
+        borderRadius: 22,
+        padding: 16,
+        background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
+        boxShadow: "0 8px 22px rgba(239,159,20,0.3)",
+        color: "#0a0a0a",
+        textAlign: "left",
+        cursor: "pointer",
+        display: "block"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        inset: 0,
+        background: "radial-gradient(circle at 86% 8%, rgba(255,255,255,0.4) 0%, transparent 55%)",
+        pointerEvents: "none"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 13,
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        background: "rgba(255,255,255,0.5)",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(I.Share, {
+      size: 20
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 15.5,
+        fontWeight: 700,
+        letterSpacing: "-0.2px"
+      }
+    }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0430"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        fontSize: 10.5,
+        fontWeight: 800,
+        color: "#FEDE34",
+        background: "#0a0a0a",
+        padding: "2px 8px",
+        borderRadius: 999,
+        flexShrink: 0
+      }
+    }, "+150 XP")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "rgba(10,10,10,0.65)",
+        marginTop: 2
+      }
+    }, "\u041E\u043D \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u043D\u0430 \u0442\u0432\u043E\u0435\u0439 \u043E\u0440\u0431\u0438\u0442\u0435 \u2014 \u0438 \u0432\u044B \u0431\u0443\u0434\u0435\u0442\u0435 \u0432\u0438\u0434\u0435\u0442\u044C \u0436\u0438\u0432\u043E\u0435 \u0434\u0440\u0443\u0433 \u0434\u0440\u0443\u0433\u0430")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+      size: 18
+    })), next && /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        marginTop: 13
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        marginBottom: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: 0.7,
+        color: "rgba(10,10,10,0.55)"
+      }
+    }, "\u0412\u0435\u0445\u0430 \xB7 +", next.b, " XP \u0431\u043E\u043D\u0443\u0441\u043E\u043C"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "rgba(10,10,10,0.75)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, invited, " \u0438\u0437 ", next.n)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4
+      }
+    }, Array.from({
+      length: next.n
+    }, (_, j) => /*#__PURE__*/React.createElement("span", {
+      key: j,
+      style: {
+        flex: 1,
+        height: 6,
+        borderRadius: 999,
+        background: j < invited ? "#0a0a0a" : "rgba(10,10,10,0.18)"
+      }
+    })))));
+  })());
 }
 
 /* ШТОРКА-ПРЕВЬЮ ПРОФИЛЯ ДРУГА — его космос тем же OrbitField, что на «Я» (аватар в центре,
