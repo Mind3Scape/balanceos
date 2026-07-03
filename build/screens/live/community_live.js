@@ -1034,6 +1034,48 @@ function TeamDetailLive() {
     done: !!flowSet[m.id]
   }));
   var inFlowToday = (Array.isArray(members) ? members : []).filter(m => flowSet[m.id]).length;
+  // ── ЕДИНАЯ СТРАНИЦА ЦЕЛИ (David: «команда = та же цель + блок людей») ──
+  // Всё, что ниже, — расчёты для вёрстки-близнеца GoalDetailLive: прогресс/банк/выплаты
+  // подняты из бывшей мега-карточки, сами данные и опросы выше НЕ менялись.
+  var gpd = goalProg;
+  var gUnit = gpd && gpd.unit || t.unit || "";
+  var gTgt = gpd && gpd.target || t.target || 0;
+  var gCur = gpd ? gpd.current : t.current != null ? t.current : Math.round((t.progress || 0) * gTgt);
+  var gDone = gTgt > 0 && gCur >= gTgt;
+  var gp = gTgt > 0 ? Math.min(1, gCur / gTgt) : t.progress || 0;
+  var gRemaining = Math.max(0, gTgt - gCur);
+  var gType = gpd && gpd.type || t.type || "collective";
+  var modeLabel = {
+    streak: "Серия у каждого",
+    race: "Гонка — лидер",
+    collective: "Общий счёт"
+  }[gType] || "Общий счёт";
+  var contrib = gpd && Array.isArray(gpd.members) ? gpd.members : [];
+  var isRace = gType === "race";
+  var stake = gpd && gpd.stake || t.stake || 0;
+  var bank = gpd && gpd.bank || stake * Math.max(1, contrib.length || members.length);
+  var payFor = (m, i) => {
+    if (!gDone || stake <= 0) return 0;
+    if (settlements && settlements[m.id]) return settlements[m.id].xp || 0;
+    return isRace ? i === 0 ? bank : 0 : stake;
+  };
+  var myPay = gDone && stake > 0 ? contrib.reduce((acc, m, i) => acc + (m.me ? payFor(m, i) : 0), 0) : 0;
+  var gStyle = typeof bosLoadGoalStyle === "function" ? bosLoadGoalStyle() : {
+    orbits: true
+  };
+  // Реальный цвет команды красит кольцо/чеки (как g.color у личной); нейтральный → графит.
+  var teamColor = t.accent && ("" + t.accent).toLowerCase() !== "#0a0a0a" && t.accent !== "#8E8E93" && t.accent !== "#EAEAEF" ? t.accent : null;
+  var ringInk = teamColor || (isDark ? "#e6e6ea" : "#0a0a0a");
+  var card = isDark ? {
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.08)"
+  } : {
+    background: "#fff",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+  };
+  var CountC = typeof Count === "function" ? Count : function (p) {
+    return p.value;
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1056,571 +1098,438 @@ function TeamDetailLive() {
     }))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: `linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%), linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`,
-      color: "var(--text)",
-      borderRadius: 22,
-      padding: 20,
-      position: "relative",
-      overflow: "hidden",
-      boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)",
-      transform: "translateZ(0)"
+      textAlign: "center",
+      padding: "6px 0 18px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, gStyle.orbits ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "relative"
+      width: 190,
+      height: 190,
+      margin: "0 auto",
+      display: "grid",
+      placeItems: "center"
     }
-  }, (() => {
-    var gStyle = typeof bosLoadGoalStyle === "function" ? bosLoadGoalStyle() : {
-      orbits: true
-    };
-    if (gStyle.orbits) return /*#__PURE__*/React.createElement(TeamOrbitLive, {
-      emblem: t.emblem,
-      accent: accent,
-      faces: orbitFaces,
-      isDark: isDark
-    });
-    var _t = goalProg && goalProg.target || t.target || 0;
-    var _c = goalProg ? goalProg.current : t.current != null ? t.current : Math.round((t.progress || 0) * _t);
-    var hp = _t > 0 ? Math.min(1, _c / _t) : t.progress || 0;
-    var CC = 2 * Math.PI * 54;
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 190,
-        height: 190,
-        margin: "0 auto 2px",
-        position: "relative"
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: "190",
-      height: "190",
-      viewBox: "0 0 140 140",
-      style: {
-        transform: "rotate(-90deg)"
-      }
-    }, /*#__PURE__*/React.createElement("circle", {
-      cx: "70",
-      cy: "70",
-      r: "54",
-      fill: "none",
-      stroke: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
-      strokeWidth: "13"
-    }), hp > 0 && /*#__PURE__*/React.createElement("circle", {
-      cx: "70",
-      cy: "70",
-      r: "54",
-      fill: "none",
-      stroke: isDark ? "#e6e6ea" : "#0a0a0a",
-      strokeWidth: "13",
-      strokeLinecap: "round",
-      strokeDasharray: CC,
-      strokeDashoffset: CC * (1 - hp),
-      style: {
-        transition: "stroke-dashoffset 0.6s ease"
-      }
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: "absolute",
-        inset: 0,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: "center"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 34,
-        lineHeight: 1
-      }
-    }, bosIcon(t.emblem || "🎯", 32, null)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 26,
-        fontWeight: 800,
-        marginTop: 4,
-        letterSpacing: "-0.5px",
-        color: "var(--text)"
-      }
-    }, Math.round(hp * 100), "%"))));
-  })(), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(GoalOrbitMini, {
+    centerEmoji: t.emblem || "👥",
+    centerColor: teamColor,
+    habits: teamHabits.map(h => ({
+      emoji: h.emoji,
+      color: h.color,
+      done: myDone(h)
+    })),
+    people: orbitFaces.map(f => ({
+      avatar: f.avatar,
+      name: f.name,
+      active: f.done
+    })),
+    size: 190,
+    dark: isDark,
+    progress: gp
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 30,
+      fontWeight: 800,
+      marginTop: 12,
+      letterSpacing: "-0.5px",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement(CountC, {
+    value: Math.round(gp * 100)
+  }), "%")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: 170,
+      height: 170,
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "170",
+    height: "170",
+    viewBox: "0 0 140 140",
+    style: {
+      transform: "rotate(-90deg)"
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "70",
+    cy: "70",
+    r: "54",
+    fill: "none",
+    stroke: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.07)",
+    strokeWidth: "13"
+  }), gp > 0 && /*#__PURE__*/React.createElement("circle", {
+    cx: "70",
+    cy: "70",
+    r: "54",
+    fill: "none",
+    stroke: ringInk,
+    strokeWidth: "13",
+    strokeLinecap: "round",
+    strokeDasharray: 2 * Math.PI * 54,
+    strokeDashoffset: 2 * Math.PI * 54 * (1 - gp),
+    style: {
+      transition: "stroke-dashoffset 0.6s ease",
+      ...(gDone ? {
+        filter: "drop-shadow(0 0 6px " + ringInk + "80)"
+      } : {})
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 34,
+      lineHeight: 1
+    }
+  }, bosIcon(t.emblem || "👥", 32, null)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 28,
+      fontWeight: 800,
+      marginTop: 4,
+      letterSpacing: "-0.5px"
+    }
+  }, /*#__PURE__*/React.createElement(CountC, {
+    value: Math.round(gp * 100)
+  }), "%")))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 22,
       fontWeight: 700,
-      letterSpacing: "-0.5px",
       color: "var(--text)",
-      textAlign: "center",
-      marginTop: 2
+      marginTop: 14,
+      letterSpacing: "-0.4px"
     }
   }, t.name), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 14,
-      color: "var(--text-2)",
-      marginTop: 6,
-      fontWeight: 500,
-      textAlign: "center"
+      fontSize: 13,
+      color: "var(--text-4)",
+      marginTop: 3
     }
-  }, "\uD83C\uDFAF ", t.goal), /*#__PURE__*/React.createElement("div", {
+  }, gTgt > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CountC, {
+    value: gCur
+  }), " \u0438\u0437 ", gTgt, " ", gUnit, " \xB7 ", modeLabel) : modeLabel), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: "var(--text-3)",
-      marginTop: 2,
-      textAlign: "center"
+      color: "var(--text-5, var(--text-4))",
+      marginTop: 2
     }
-  }, t.date), /*#__PURE__*/React.createElement("div", {
+  }, t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная", t.goal ? " · " + t.goal : "")), /*#__PURE__*/React.createElement(StatTrioLive, {
+    isDark: isDark,
+    card: card,
+    items: [{
+      l: "Осталось",
+      v: gRemaining,
+      icon: /*#__PURE__*/React.createElement(I.Target, {
+        size: 16,
+        strokeWidth: 2,
+        color: isDark ? "#fff" : "#0a0a0a"
+      })
+    }, {
+      l: "Сделано",
+      v: gCur,
+      icon: /*#__PURE__*/React.createElement(I.Check, {
+        size: 16,
+        strokeWidth: 2.4,
+        color: isDark ? "#fff" : "#0a0a0a"
+      })
+    }, {
+      l: "Люди",
+      v: _rosterLoading ? 0 : members.length,
+      icon: /*#__PURE__*/React.createElement(I.Users, {
+        size: 16,
+        strokeWidth: 2,
+        color: isDark ? "#fff" : "#0a0a0a"
+      })
+    }]
+  }), stake > 0 && !gDone && /*#__PURE__*/React.createElement("div", {
     style: {
+      ...card,
+      borderRadius: 22,
+      padding: 14,
+      marginTop: 12,
       display: "flex",
-      flexWrap: "wrap",
-      gap: 6,
-      marginTop: 9,
-      justifyContent: "center"
+      alignItems: "center",
+      gap: 12
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      fontSize: 11.5,
-      fontWeight: 600,
-      color: "var(--text-2)",
-      ...bosChipGlass(isDark),
-      padding: "4px 10px",
-      borderRadius: 999
+      width: 38,
+      height: 38,
+      borderRadius: 13,
+      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 19,
+      flexShrink: 0
     }
-  }, t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"), /*#__PURE__*/React.createElement("span", {
+  }, "\uD83E\uDE99"), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      fontSize: 11.5,
-      fontWeight: 600,
-      color: "var(--text-2)",
-      ...bosChipGlass(isDark),
-      padding: "4px 10px",
-      borderRadius: 999
+      flex: 1,
+      minWidth: 0
     }
-  }, teamModeMeta.e, " ", teamModeMeta.t)), (() => {
-    // Goal progress is COMPUTED FROM THE HABIT MARKS (David) via teamGoalProgress —
-    // current + each member's contribution. Falls back to the local team fields until
-    // it loads (or pre-SQL). Mode-aware label: общий счёт / серия у каждого / гонка.
-    var gpd = goalProg;
-    var unit = gpd && gpd.unit || t.unit || "";
-    var tgt = gpd && gpd.target || t.target || 0;
-    var cur = gpd ? gpd.current : t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
-    var done = tgt > 0 && cur >= tgt;
-    var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
-    var gType = gpd && gpd.type || t.type || "collective";
-    var modeLabel = {
-      streak: "Серия у каждого",
-      race: "Гонка — лидер",
-      collective: "Общий счёт"
-    }[gType] || "Общий счёт";
-    var contrib = gpd && Array.isArray(gpd.members) ? gpd.members : [];
-    // Optional XP STAKE → bank. Unlock-only: reaching the goal OPENS the payout (co-op: each
-    // gets stake; race: the leader takes the whole bank). Per-member payout = ledger truth if
-    // settled, else the rule (contrib[0] is the race leader — sorted by value desc).
-    var isRace = gType === "race";
-    var stake = gpd && gpd.stake || t.stake || 0;
-    var bank = gpd && gpd.bank || stake * Math.max(1, contrib.length || members.length);
-    var payFor = (m, i) => {
-      if (!done || stake <= 0) return 0;
-      if (settlements && settlements[m.id]) return settlements[m.id].xp || 0;
-      return isRace ? i === 0 ? bank : 0 : stake;
-    };
-    var myPay = done && stake > 0 ? contrib.reduce((acc, m, i) => acc + (m.me ? payFor(m, i) : 0), 0) : 0;
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 14
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "baseline"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: "var(--text-3)",
-        textTransform: "uppercase",
-        letterSpacing: 1,
-        fontWeight: 600
-      }
-    }, done ? "Цель достигнута 🎉" : modeLabel), tgt > 0 && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 15,
-        fontWeight: 700,
-        color: "var(--text)"
-      }
-    }, cur, " / ", tgt, " ", unit)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        height: 9,
-        background: "rgba(255,255,255,0.55)",
-        borderRadius: 999,
-        overflow: "hidden",
-        marginTop: 6
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "block",
-        height: "100%",
-        width: gp * 100 + "%",
-        background: done ? "linear-gradient(90deg,#FEDE34,#EF9F14)" : "var(--card-fill)",
-        borderRadius: 999,
-        transition: "width 0.6s ease"
-      }
-    })), tgt > 0 && !done && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11.5,
-        color: "var(--text-3)",
-        marginTop: 6
-      }
-    }, "\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", Math.max(0, tgt - cur), " ", unit, " \u2014 \u0437\u0430\u043A\u0440\u043E\u0435\u043C \u0432\u043C\u0435\u0441\u0442\u0435"), stake > 0 && !done && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u0411\u0430\u043D\u043A ", bank, " XP"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, isRace ? "Лидер гонки забирает всё" : `Дойдёте — каждому вернётся +${stake}`))), gDone && stake > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      padding: "13px 15px",
+      borderRadius: 22,
+      background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+      color: "#0a0a0a"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 800,
+      letterSpacing: "-0.2px"
+    }
+  }, "\uD83C\uDF89 \u0426\u0435\u043B\u044C \u0434\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442\u0430 \u2014 \u0431\u0430\u043D\u043A \u0440\u0430\u0441\u043A\u0440\u044B\u0442!"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      marginTop: 3,
+      lineHeight: 1.4
+    }
+  }, isRace ? myPay > 0 ? `Ты лидер гонки — весь банк твой: +${myPay} XP 👑` : `Банк ${bank} XP забрал лидер гонки` : `Тебе +${myPay || stake} XP, и столько же каждому`)), contrib.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      marginTop: 12,
+      flexWrap: "wrap"
+    }
+  }, contrib.map((m, i) => {
+    var pay = payFor(m, i);
+    return /*#__PURE__*/React.createElement("span", {
+      key: m.id,
       style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
-        marginTop: 8,
+        ...bosChipGlass(isDark),
+        borderRadius: 999,
+        padding: "3px 10px 3px 3px"
+      }
+    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+      avatar: m.avatar,
+      name: m.name,
+      size: 20
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
         fontSize: 11.5,
         fontWeight: 600,
-        color: "var(--text-2)",
-        background: "rgba(255,255,255,0.5)",
-        padding: "4px 11px",
-        borderRadius: 999
+        color: "var(--text-2)"
       }
-    }, /*#__PURE__*/React.createElement("span", null, "\uD83E\uDE99 \u0411\u0430\u043D\u043A ", bank, " XP"), /*#__PURE__*/React.createElement("span", {
+    }, m.me ? "Ты" : (m.name || "").split(" ")[0], " \xB7 ", m.value), pay > 0 && /*#__PURE__*/React.createElement("span", {
       style: {
-        color: "var(--text-3)",
-        fontWeight: 500
-      }
-    }, "\xB7 ", isRace ? "лидер забирает всё" : `дойдём — каждому +${stake}`)), done && stake > 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 11,
-        padding: "11px 13px",
-        borderRadius: 16,
-        background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
-        color: "#0a0a0a"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
+        fontSize: 10,
         fontWeight: 800,
-        letterSpacing: "-0.2px"
+        color: "#7a5300",
+        background: "rgba(254,222,52,0.95)",
+        borderRadius: 999,
+        padding: "1px 6px"
       }
-    }, "\uD83C\uDF89 \u0426\u0435\u043B\u044C \u0434\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442\u0430!"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 600,
-        marginTop: 3,
-        lineHeight: 1.4
-      }
-    }, isRace ? myPay > 0 ? `Ты лидер гонки — весь банк твой: +${myPay} XP 👑` : `Банк ${bank} XP забрал лидер гонки` : `Банк раскрыт — тебе +${myPay || stake} XP, и столько же каждому`)), contrib.length > 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 7,
-        marginTop: 11,
-        flexWrap: "wrap"
-      }
-    }, contrib.map((m, i) => {
-      var pay = payFor(m, i);
-      return /*#__PURE__*/React.createElement("span", {
-        key: m.id,
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: "rgba(255,255,255,0.55)",
-          borderRadius: 999,
-          padding: "3px 10px 3px 3px"
-        }
-      }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
-        avatar: m.avatar,
-        name: m.name,
-        size: 20
-      }), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 11.5,
-          fontWeight: 600,
-          color: "var(--text-2)"
-        }
-      }, m.me ? "Ты" : (m.name || "").split(" ")[0], " \xB7 ", m.value), pay > 0 && /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10,
-          fontWeight: 800,
-          color: "#7a5300",
-          background: "rgba(254,222,52,0.95)",
-          borderRadius: 999,
-          padding: "1px 6px"
-        }
-      }, "+", pay, isRace ? " 👑" : ""));
-    })));
-  })())), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      markChatRead();
-      navigate("team-chat", {
-        team: t
-      });
-    },
-    className: "tap",
-    style: {
-      width: "100%",
-      marginTop: 12,
-      position: "relative",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 9,
-      background: BOS_TILE_SHEEN + ", var(--surface-3)",
-      boxShadow: bosTileGlass(isDark),
-      border: 0,
-      borderRadius: 18,
-      padding: "15px 12px",
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text-2)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 18,
-      lineHeight: 1
-    }
-  }, "\uD83D\uDCAC"), " \u0427\u0430\u0442 \u0446\u0435\u043B\u0438", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      top: 9,
-      right: 14,
-      background: "#FF3B30",
-      color: "#fff",
-      fontSize: 10,
-      fontWeight: 700,
-      borderRadius: 999,
-      minWidth: 18,
-      height: 18,
-      padding: "0 5px",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)), /*#__PURE__*/React.createElement(StatTrioLive, {
-    isDark: isDark,
-    card: {
-      background: "var(--card)",
-      boxShadow: "var(--card-shadow)",
-      marginTop: 12,
-      transform: "translateZ(0)"
-    },
-    items: [{
-      l: "Привычки",
-      v: teamHabits.length,
-      suf: "",
-      icon: /*#__PURE__*/React.createElement(I.ChartBar, {
-        size: 14,
-        color: "var(--text-4)"
-      })
-    }, {
-      l: "Участники",
-      v: _rosterLoading ? 0 : members.length,
-      suf: "",
-      icon: /*#__PURE__*/React.createElement(I.Users, {
-        size: 14,
-        color: "var(--text-4)"
-      })
-    }, {
-      l: "Сегодня",
-      v: _rosterLoading ? 0 : inFlowToday,
-      suf: "",
-      icon: /*#__PURE__*/React.createElement(I.Flame, {
-        size: 14,
-        color: "var(--text-4)"
-      })
-    }]
-  }), /*#__PURE__*/React.createElement("div", {
+    }, "+", pay, isRace ? " 👑" : ""));
+  })), /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
     }
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0446\u0435\u043B\u0438", teamHabits.length ? " · " + teamHabits.length : ""), /*#__PURE__*/React.createElement("div", {
+  }, "\u0421\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0438\u0437 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A"), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 8
-    }
-  }, teamHabits.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)",
-      padding: "4px 2px 8px",
-      lineHeight: 1.5
-    }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u043E\u043D\u0430 \u0441\u0442\u0430\u043D\u0435\u0442 \u044F\u043A\u043E\u0440\u0435\u043C \u0446\u0435\u043B\u0438."), teamHabits.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
+      ...card,
+      borderRadius: 22,
+      marginTop: 8,
+      overflow: "hidden"
     }
   }, [main].concat(others).filter(Boolean).map((h, i) => {
     var done = myDone(h);
-    var adopted = !!adoptedFor(h);
+    var adopted = adoptedFor(h);
     var markInTeam = () => adopted ? markAdopted(h) : toggleMyTeamHabit(h);
     return /*#__PURE__*/React.createElement("div", {
-      key: i,
+      key: h.id || i,
       style: {
-        background: "var(--card)",
-        borderRadius: 22,
-        boxShadow: "var(--card-shadow)",
-        padding: "13px 13px 12px",
-        minHeight: 150,
         display: "flex",
-        flexDirection: "column",
-        overflow: "hidden"
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 14px",
+        borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
       }
-    }, h.isMain && /*#__PURE__*/React.createElement("div", {
+    }, _rosterLive ? /*#__PURE__*/React.createElement("button", {
+      onClick: markInTeam,
+      className: "tap",
+      "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C \u0441\u0435\u0433\u043E\u0434\u043D\u044F",
       style: {
-        fontSize: 9.5,
-        fontWeight: 800,
-        textTransform: "uppercase",
-        letterSpacing: 1,
+        width: 30,
+        height: 30,
+        borderRadius: "50%",
+        flexShrink: 0,
+        border: 0,
+        display: "grid",
+        placeItems: "center",
+        cursor: "pointer",
+        background: done ? h.color || ringInk : isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+        boxShadow: done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)")
+      }
+    }, done && /*#__PURE__*/React.createElement(I.Check, {
+      size: 16,
+      strokeWidth: 3,
+      color: "#fff"
+    })) : /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": true,
+      style: {
+        width: 30,
+        height: 30,
+        borderRadius: "50%",
+        flexShrink: 0,
+        background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+        boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)")
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      className: "tap",
+      onClick: () => {
+        if (adopted) navigate("habit-detail", {
+          habit: adopted,
+          from: "team-detail"
+        });
+      },
+      style: {
+        flex: 1,
+        minWidth: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: 0,
+        background: "transparent",
+        border: 0,
+        textAlign: "left",
+        color: "var(--text)",
+        cursor: adopted ? "pointer" : "default"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: 12,
+        background: h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 17,
+        flexShrink: 0
+      }
+    }, bosIcon(h.emoji, 18, h.color)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15,
+        color: "var(--text)",
+        fontWeight: 600,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, h.name, adopted && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 600,
         color: "var(--text-4)",
+        marginLeft: 7
+      }
+    }, "\xB7 \u0443 \u0441\u0435\u0431\u044F")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-4)",
+        marginTop: 1
+      }
+    }, h.isMain && /*#__PURE__*/React.createElement("span", {
+      style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        marginBottom: 7
+        marginRight: 7
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         width: 5,
         height: 5,
         borderRadius: "50%",
-        background: "#EF9F14"
+        background: "#EF9F14",
+        display: "inline-block"
       }
-    }), "\u042F\u043A\u043E\u0440\u044C"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 38,
-        height: 38,
-        borderRadius: 13,
-        background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"),
-        boxShadow: bosTileGlass(isDark),
-        display: "grid",
-        placeItems: "center",
-        fontSize: 19,
-        flexShrink: 0
-      }
-    }, bosIcon(h.emoji, 21, h.color)), _rosterLive && /*#__PURE__*/React.createElement("button", {
-      onClick: markInTeam,
-      className: "check-btn tap " + (done ? "" : "unchecked"),
-      "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C",
-      style: {
-        flexShrink: 0,
-        width: 30,
-        height: 30,
-        "--check-color": "#0a0a0a"
-      }
-    }, done && /*#__PURE__*/React.createElement(I.Check, {
+    }), "\u042F\u043A\u043E\u0440\u044C"), h.doneToday != null && h.total != null ? h.doneToday + " из " + h.total + " сегодня" : "общая привычка")), adopted && /*#__PURE__*/React.createElement(I.ChevronRight, {
       size: 16,
-      color: "#fff",
-      strokeWidth: 3
-    }))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 10,
-        fontSize: 15,
-        fontWeight: 600,
-        color: "var(--text)",
-        letterSpacing: "-0.2px",
-        lineHeight: 1.25,
-        display: "-webkit-box",
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: "vertical",
-        overflow: "hidden"
-      }
-    }, h.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: "auto",
-        paddingTop: 12
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        marginBottom: 5
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 10,
-        fontWeight: 700,
-        color: "var(--text-4)",
-        textTransform: "uppercase",
-        letterSpacing: 0.6
-      }
-    }, "\u0421\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 700,
-        color: "var(--text-2)",
-        fontVariantNumeric: "tabular-nums"
-      }
-    }, h.doneToday, "/", h.total)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        height: 6,
-        borderRadius: 999,
-        background: "var(--surface-3)",
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "block",
-        height: "100%",
-        width: Math.round((h.weekPct || 0) * 100) + "%",
-        borderRadius: 999,
-        background: h.color || "#0a0a0a"
-      }
+      color: "var(--text-4)"
     })), _rosterLive && !adopted && /*#__PURE__*/React.createElement("button", {
       onClick: () => adoptTeamHabit(h),
       className: "tap",
       style: {
-        marginTop: 9,
-        width: "100%",
+        flexShrink: 0,
         background: "transparent",
-        border: "1px dashed rgba(0,0,0,0.16)",
+        border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"),
         borderRadius: 999,
-        padding: "6px 8px",
-        fontSize: 11.5,
-        fontWeight: 600,
-        color: "var(--text-3)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 5
-      }
-    }, /*#__PURE__*/React.createElement(I.Plus, {
-      size: 12
-    }), " \u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F"), _rosterLive && adopted && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 9,
+        padding: "5px 10px",
         fontSize: 11,
         fontWeight: 600,
-        color: "var(--text-4)",
-        textAlign: "center"
+        color: "var(--text-3)",
+        whiteSpace: "nowrap"
       }
-    }, "\uD83D\uDC64 \u0432\u0435\u0434\u0451\u0448\u044C \u0438 \u0443 \u0441\u0435\u0431\u044F")));
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: openAddHabit,
-    className: "tap",
+    }, "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F"));
+  }), teamHabits.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 12,
-      width: "100%",
-      background: "transparent",
-      border: "1px dashed rgba(0,0,0,0.18)",
-      borderRadius: 22,
-      padding: 14,
-      color: "var(--text-3)",
-      fontSize: 14,
-      fontWeight: 500
+      padding: "14px 14px 2px",
+      fontSize: 13,
+      color: "var(--text-4)",
+      lineHeight: 1.5
     }
-  }, "+ \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0446\u0435\u043B\u0438")), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
+  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u043E\u043D\u0430 \u0441\u0442\u0430\u043D\u0435\u0442 \u044F\u043A\u043E\u0440\u0435\u043C \u0446\u0435\u043B\u0438."), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: openAddHabit,
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "12px 14px",
+      borderTop: teamHabits.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0,
+      background: "transparent",
+      border: 0,
+      color: "var(--text-2)",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)")
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 15,
+    strokeWidth: 2.4,
+    color: isDark ? "#fff" : "var(--text-2)"
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600
+    }
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0446\u0435\u043B\u0438"))), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
     people: mainProg.map(m => ({
       name: m.me ? "Ты" : m.name,
       initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
@@ -1707,26 +1616,21 @@ function TeamDetailLive() {
     style: {
       marginTop: 22
     }
-  }, "\u041D\u0430\u0448\u0438", _rosterLoading ? "" : " · " + members.length), /*#__PURE__*/React.createElement("div", {
+  }, "\u041B\u044E\u0434\u0438", _rosterLoading ? "" : " · " + members.length), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 8
+      ...card,
+      borderRadius: 22,
+      marginTop: 8,
+      overflow: "hidden"
     }
   }, _rosterLoading && [0, 1].map(i => /*#__PURE__*/React.createElement("div", {
     key: "sk" + i,
     style: {
-      background: "var(--card)",
-      borderRadius: 22,
-      boxShadow: "var(--card-shadow)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
       padding: 12,
       display: "flex",
       alignItems: "center",
-      gap: 12
+      gap: 12,
+      borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "bos-skel",
@@ -1756,71 +1660,128 @@ function TeamDetailLive() {
       borderRadius: 6,
       marginTop: 7
     }
-  }))))), !_rosterLoading && ranked.map((m, i) => {
-    return /*#__PURE__*/React.createElement("div", {
-      key: i,
-      style: {
-        background: "var(--card)",
-        borderRadius: 22,
-        boxShadow: "var(--card-shadow)",
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: "100%",
-        padding: 12,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        textAlign: "left",
-        color: "var(--text)"
-      }
-    }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
-      avatar: m.avatar,
-      name: m.name,
-      size: 40
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 600,
-        color: "var(--text)"
-      }
-    }, m.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-4)",
-        marginTop: 2
-      }
-    }, m.role === "owner" ? "Создатель" : "Участник"))));
-  })), /*#__PURE__*/React.createElement("button", {
+  })))), !_rosterLoading && ranked.map((m, i) => /*#__PURE__*/React.createElement("div", {
+    key: m.id || i,
+    style: {
+      padding: "10px 14px",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      borderRadius: "50%",
+      boxShadow: flowSet[m.id] ? "0 0 0 1.5px " + (isDark ? "#0f0f12" : "#fff") + ", 0 0 0 3.5px " + ringInk : "none"
+    }
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    avatar: m.avatar,
+    name: m.name,
+    size: 38
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, m.id === meId ? "Ты" : m.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, m.role === "owner" ? "Создатель" : "Участник", flowSet[m.id] ? " · сегодня в деле" : "")))), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
     onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
       team: t
     })),
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "12px 14px",
+      borderTop: members.length || _rosterLoading ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0,
+      background: "transparent",
+      border: 0,
+      color: "var(--text-2)",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: "50%",
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)")
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 15,
+    strokeWidth: 2.4,
+    color: isDark ? "#fff" : "var(--text-2)"
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600
+    }
+  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439"))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      markChatRead();
+      navigate("team-chat", {
+        team: t
+      });
+    },
     className: "tap",
     style: {
       width: "100%",
-      marginTop: 22,
+      marginTop: 12,
+      position: "relative",
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: 8,
+      gap: 9,
       background: BOS_TILE_SHEEN + ", var(--surface-3)",
       boxShadow: bosTileGlass(isDark),
       border: 0,
-      borderRadius: 16,
-      padding: "13px 10px",
-      fontSize: 14,
+      borderRadius: 18,
+      padding: "15px 12px",
+      fontSize: 15,
       fontWeight: 600,
       color: "var(--text-2)"
     }
-  }, /*#__PURE__*/React.createElement(I.Share, {
-    size: 16
-  }), " \u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433"), !_isOwner && /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18,
+      lineHeight: 1
+    }
+  }, "\uD83D\uDCAC"), " \u0427\u0430\u0442 \u0446\u0435\u043B\u0438", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 9,
+      right: 14,
+      background: "#FF3B30",
+      color: "#fff",
+      fontSize: 10,
+      fontWeight: 700,
+      borderRadius: 999,
+      minWidth: 18,
+      height: 18,
+      padding: "0 5px",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)), !_isOwner && /*#__PURE__*/React.createElement("button", {
     onClick: () => bosConfirmExitTeam({
       app,
       team: t,

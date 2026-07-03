@@ -495,6 +495,36 @@ function TeamDetailLive() {
   if (meId && main && main.doneByMe) flowSet[meId] = true;
   const orbitFaces = (Array.isArray(members) ? members : []).map((m) => ({ id: m.id, avatar: m.avatar, name: m.name, done: !!flowSet[m.id] }));
   const inFlowToday = (Array.isArray(members) ? members : []).filter((m) => flowSet[m.id]).length;
+  // ── ЕДИНАЯ СТРАНИЦА ЦЕЛИ (David: «команда = та же цель + блок людей») ──
+  // Всё, что ниже, — расчёты для вёрстки-близнеца GoalDetailLive: прогресс/банк/выплаты
+  // подняты из бывшей мега-карточки, сами данные и опросы выше НЕ менялись.
+  const gpd = goalProg;
+  const gUnit = (gpd && gpd.unit) || t.unit || "";
+  const gTgt = (gpd && gpd.target) || t.target || 0;
+  const gCur = gpd ? gpd.current : (t.current != null ? t.current : Math.round((t.progress || 0) * gTgt));
+  const gDone = gTgt > 0 && gCur >= gTgt;
+  const gp = gTgt > 0 ? Math.min(1, gCur / gTgt) : (t.progress || 0);
+  const gRemaining = Math.max(0, gTgt - gCur);
+  const gType = (gpd && gpd.type) || t.type || "collective";
+  const modeLabel = ({ streak: "Серия у каждого", race: "Гонка — лидер", collective: "Общий счёт" })[gType] || "Общий счёт";
+  const contrib = (gpd && Array.isArray(gpd.members)) ? gpd.members : [];
+  const isRace = gType === "race";
+  const stake = (gpd && gpd.stake) || t.stake || 0;
+  const bank = (gpd && gpd.bank) || (stake * Math.max(1, contrib.length || members.length));
+  const payFor = (m, i) => {
+    if (!gDone || stake <= 0) return 0;
+    if (settlements && settlements[m.id]) return settlements[m.id].xp || 0;
+    return isRace ? (i === 0 ? bank : 0) : stake;
+  };
+  const myPay = (gDone && stake > 0) ? contrib.reduce((acc, m, i) => acc + (m.me ? payFor(m, i) : 0), 0) : 0;
+  const gStyle = (typeof bosLoadGoalStyle === "function") ? bosLoadGoalStyle() : { orbits: true };
+  // Реальный цвет команды красит кольцо/чеки (как g.color у личной); нейтральный → графит.
+  const teamColor = (t.accent && ("" + t.accent).toLowerCase() !== "#0a0a0a" && t.accent !== "#8E8E93" && t.accent !== "#EAEAEF") ? t.accent : null;
+  const ringInk = teamColor || (isDark ? "#e6e6ea" : "#0a0a0a");
+  const card = isDark
+    ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
+    : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
+  const CountC = (typeof Count === "function") ? Count : function (p) { return p.value; };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Цель" onBack={() => navigate(from)} right={
@@ -505,184 +535,129 @@ function TeamDetailLive() {
           {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<TeamQuickEditSheetLive team={t} navigate={navigate} />)} />}
         </div>
       }/>
-      <div style={{ background: `linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%), linear-gradient(135deg, ${accent} 0%, ${accent}66 60%, var(--card-fade) 100%)`, color: "var(--text)", borderRadius: 22, padding: 20, position: "relative", overflow: "hidden", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.7), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)", transform: "translateZ(0)" }}>
-        <div style={{ position: "relative" }}>
-          {/* Hero комнаты цели: ОРБИТА (люди-планеты за сегодня) или КОЛЬЦО прогресса — по тому же
-              тумблеру «Орбиты» стиля целей (David: симметрия с личной целью — там тоже орбита↔кольцо). */}
-          {(() => {
-            const gStyle = (typeof bosLoadGoalStyle === "function") ? bosLoadGoalStyle() : { orbits: true };
-            if (gStyle.orbits) return <TeamOrbitLive emblem={t.emblem} accent={accent} faces={orbitFaces} isDark={isDark} />;
-            const _t = (goalProg && goalProg.target) || t.target || 0;
-            const _c = goalProg ? goalProg.current : (t.current != null ? t.current : Math.round((t.progress || 0) * _t));
-            const hp = _t > 0 ? Math.min(1, _c / _t) : (t.progress || 0);
-            const CC = 2 * Math.PI * 54;
-            return (
-              <div style={{ width: 190, height: 190, margin: "0 auto 2px", position: "relative" }}>
-                <svg width="190" height="190" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
-                  <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"} strokeWidth="13" />
-                  {hp > 0 && <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "#e6e6ea" : "#0a0a0a"} strokeWidth="13" strokeLinecap="round" strokeDasharray={CC} strokeDashoffset={CC * (1 - hp)} style={{ transition: "stroke-dashoffset 0.6s ease" }} />}
-                </svg>
-                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 34, lineHeight: 1 }}>{bosIcon(t.emblem || "🎯", 32, null)}</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px", color: "var(--text)" }}>{Math.round(hp * 100)}%</div>
-                  </div>
-                </div>
+      {/* HERO — БЛИЗНЕЦ личной цели (David: «команда = та же цель + блок людей»):
+          голая орбита-пульс ИЛИ кольцо (тот же тумблер стиля), крупный %, имя, суть. */}
+      <div style={{ textAlign: "center", padding: "6px 0 18px" }}>
+        {gStyle.orbits ? (
+          <>
+            <div style={{ width: 190, height: 190, margin: "0 auto", display: "grid", placeItems: "center" }}>
+              <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={teamColor}
+                habits={teamHabits.map((h) => ({ emoji: h.emoji, color: h.color, done: myDone(h) }))}
+                people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done }))}
+                size={190} dark={isDark} progress={gp} />
+            </div>
+            <div style={{ fontSize: 30, fontWeight: 800, marginTop: 12, letterSpacing: "-0.5px", color: "var(--text)" }}><CountC value={Math.round(gp * 100)} />%</div>
+          </>
+        ) : (
+          <div style={{ position: "relative", width: 170, height: 170, margin: "0 auto" }}>
+            <svg width="170" height="170" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.07)"} strokeWidth="13" />
+              {gp > 0 && <circle cx="70" cy="70" r="54" fill="none" stroke={ringInk} strokeWidth="13" strokeLinecap="round" strokeDasharray={2 * Math.PI * 54} strokeDashoffset={2 * Math.PI * 54 * (1 - gp)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(gDone ? { filter: "drop-shadow(0 0 6px " + ringInk + "80)" } : {}) }} />}
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 34, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 32, null)}</div>
+                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px" }}><CountC value={Math.round(gp * 100)} />%</div>
               </div>
-            );
-          })()}
-          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)", textAlign: "center", marginTop: 2 }}>{t.name}</div>
-          <div style={{ fontSize: 14, color: "var(--text-2)", marginTop: 6, fontWeight: 500, textAlign: "center" }}>🎯 {t.goal}</div>
-          <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2, textAlign: "center" }}>{t.date}</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, justifyContent: "center" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "4px 10px", borderRadius: 999 }}>
-              {t.vis === "public" ? "🌐 Открытая · видна всем" : "🔒 Приватная · по приглашению"}
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "4px 10px", borderRadius: 999 }}>
-              {teamModeMeta.e} {teamModeMeta.t}
-            </span>
+            </div>
           </div>
-          {/* The GOAL — the team's destination. Real progress toward the target
-             (not the weekly habit aggregate), and it COMPLETES at target. */}
-          {(() => {
-            // Goal progress is COMPUTED FROM THE HABIT MARKS (David) via teamGoalProgress —
-            // current + each member's contribution. Falls back to the local team fields until
-            // it loads (or pre-SQL). Mode-aware label: общий счёт / серия у каждого / гонка.
-            const gpd = goalProg;
-            const unit = (gpd && gpd.unit) || t.unit || "";
-            const tgt = (gpd && gpd.target) || t.target || 0;
-            const cur = gpd ? gpd.current : (t.current != null ? t.current : Math.round((t.progress || 0) * tgt));
-            const done = tgt > 0 && cur >= tgt;
-            const gp = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
-            const gType = (gpd && gpd.type) || t.type || "collective";
-            const modeLabel = ({ streak: "Серия у каждого", race: "Гонка — лидер", collective: "Общий счёт" })[gType] || "Общий счёт";
-            const contrib = (gpd && Array.isArray(gpd.members)) ? gpd.members : [];
-            // Optional XP STAKE → bank. Unlock-only: reaching the goal OPENS the payout (co-op: each
-            // gets stake; race: the leader takes the whole bank). Per-member payout = ledger truth if
-            // settled, else the rule (contrib[0] is the race leader — sorted by value desc).
-            const isRace = gType === "race";
-            const stake = (gpd && gpd.stake) || t.stake || 0;
-            const bank = (gpd && gpd.bank) || (stake * Math.max(1, contrib.length || members.length));
-            const payFor = (m, i) => {
-              if (!done || stake <= 0) return 0;
-              if (settlements && settlements[m.id]) return settlements[m.id].xp || 0;
-              return isRace ? (i === 0 ? bank : 0) : stake;
-            };
-            const myPay = (done && stake > 0) ? contrib.reduce((acc, m, i) => acc + (m.me ? payFor(m, i) : 0), 0) : 0;
-            return (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{done ? "Цель достигнута 🎉" : modeLabel}</span>
-                  {tgt > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{cur} / {tgt} {unit}</span>}
-                </div>
-                <div style={{ height: 9, background: "rgba(255,255,255,0.55)", borderRadius: 999, overflow: "hidden", marginTop: 6 }}>
-                  <span style={{ display: "block", height: "100%", width: (gp * 100) + "%", background: done ? "linear-gradient(90deg,#FEDE34,#EF9F14)" : "var(--card-fill)", borderRadius: 999, transition: "width 0.6s ease" }} />
-                </div>
-                {tgt > 0 && !done && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>Осталось {Math.max(0, tgt - cur)} {unit} — закроем вместе</div>}
-                {/* The XP STAKE while the goal is still open — what's in the pot + how it pays. */}
-                {stake > 0 && !done && (
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "rgba(255,255,255,0.5)", padding: "4px 11px", borderRadius: 999 }}>
-                    <span>🪙 Банк {bank} XP</span>
-                    <span style={{ color: "var(--text-3)", fontWeight: 500 }}>· {isRace ? "лидер забирает всё" : `дойдём — каждому +${stake}`}</span>
-                  </div>
-                )}
-                {/* PAYOUT — a real moment: the bank opens, XP lands. Mode-aware. */}
-                {done && stake > 0 && (
-                  <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: 16, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a" }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.2px" }}>🎉 Цель достигнута!</div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, lineHeight: 1.4 }}>
-                      {isRace
-                        ? (myPay > 0 ? `Ты лидер гонки — весь банк твой: +${myPay} XP 👑` : `Банк ${bank} XP забрал лидер гонки`)
-                        : `Банк раскрыт — тебе +${myPay || stake} XP, и столько же каждому`}
-                    </div>
-                  </div>
-                )}
-                {/* Вклад каждого — кто сколько внёс (из их отметок), с реальным аватаром + выплата. */}
-                {contrib.length > 0 && (
-                  <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap" }}>
-                    {contrib.map((m, i) => {
-                      const pay = payFor(m, i);
-                      return (
-                        <span key={m.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.55)", borderRadius: 999, padding: "3px 10px 3px 3px" }}>
-                          <BuddyFaceLive avatar={m.avatar} name={m.name} size={20} />
-                          <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{m.me ? "Ты" : (m.name || "").split(" ")[0]} · {m.value}</span>
-                          {pay > 0 && <span style={{ fontSize: 10, fontWeight: 800, color: "#7a5300", background: "rgba(254,222,52,0.95)", borderRadius: 999, padding: "1px 6px" }}>+{pay}{isRace ? " 👑" : ""}</span>}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+        )}
+        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginTop: 14, letterSpacing: "-0.4px" }}>{t.name}</div>
+        <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
+          {gTgt > 0 ? <><CountC value={gCur} /> из {gTgt} {gUnit} · {modeLabel}</> : modeLabel}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-5, var(--text-4))", marginTop: 2 }}>
+          {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}{t.goal ? " · " + t.goal : ""}
         </div>
       </div>
 
-      {/* Чат — СТЕКЛЯННАЯ кнопка прямо под карточкой круга (David: «старая кнопка чата как „Позвать"
-          мне нравилась — просто под главной карточкой и крупнее»). Тот же стеклянный стиль, что
-          «Позвать в круг», только больше; счётчик непрочитанных остаётся. */}
-      <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 18, padding: "15px 12px", fontSize: 15, fontWeight: 600, color: "var(--text-2)" }}>
-        <span style={{ fontSize: 18, lineHeight: 1 }}>💬</span> Чат цели
-        {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: 9, right: 14, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", display: "grid", placeItems: "center" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
-      </button>
-
-      {/* Stat band — the SAME unified plaque as Habits/Goals detail (StatTrioLive). Team streak stays
-          «—» (no honest cross-member streak yet). */}
-      <StatTrioLive isDark={isDark} card={{ background: "var(--card)", boxShadow: "var(--card-shadow)", marginTop: 12, transform: "translateZ(0)" }} items={[
-        { l: "Привычки", v: teamHabits.length, suf: "", icon: <I.ChartBar size={14} color="var(--text-4)" /> },
-        { l: "Участники", v: _rosterLoading ? 0 : members.length, suf: "", icon: <I.Users size={14} color="var(--text-4)" /> },
-        { l: "Сегодня", v: _rosterLoading ? 0 : inFlowToday, suf: "", icon: <I.Flame size={14} color="var(--text-4)" /> },
+      {/* Stat row — тот же StatTrioLive и те же ячейки, что у личной цели; третья — Люди. */}
+      <StatTrioLive isDark={isDark} card={card} items={[
+        { l: "Осталось", v: gRemaining, icon: <I.Target size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
+        { l: "Сделано", v: gCur, icon: <I.Check size={16} strokeWidth={2.4} color={isDark ? "#fff" : "#0a0a0a"} /> },
+        { l: "Люди", v: _rosterLoading ? 0 : members.length, icon: <I.Users size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
       ]} />
 
-      {/* Привычки цели — якорь + остальные ОДНОЙ зоной (David: «якорь и привычки команды рядом,
-          не в разных частях экрана»). Календарь «кто отметил» уехал ПОД зону. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Привычки цели{teamHabits.length ? " · " + teamHabits.length : ""}</div>
-      {/* Якорь больше НЕ отдельная геро-карточка (David: «якорь тоже плиткой») — он первой плиткой в
-          общей сетке ниже (с бейджем «● Якорь»). Лица «кто отметил сегодня» живут в календаре под сеткой. */}
+      {/* СТАВКА/БАНК — карточкой под статами (перенесено из бывшей мега-карточки, логика та же). */}
+      {stake > 0 && !gDone && (
+        <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 38, height: 38, borderRadius: 13, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>🪙</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Банк {bank} XP</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>{isRace ? "Лидер гонки забирает всё" : `Дойдёте — каждому вернётся +${stake}`}</div>
+          </div>
+        </div>
+      )}
+      {gDone && stake > 0 && (
+        <div style={{ marginTop: 12, padding: "13px 15px", borderRadius: 22, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a" }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: "-0.2px" }}>🎉 Цель достигнута — банк раскрыт!</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 3, lineHeight: 1.4 }}>
+            {isRace
+              ? (myPay > 0 ? `Ты лидер гонки — весь банк твой: +${myPay} XP 👑` : `Банк ${bank} XP забрал лидер гонки`)
+              : `Тебе +${myPay || stake} XP, и столько же каждому`}
+          </div>
+        </div>
+      )}
+      {contrib.length > 0 && (
+        <div style={{ display: "flex", gap: 7, marginTop: 12, flexWrap: "wrap" }}>
+          {contrib.map((m, i) => {
+            const pay = payFor(m, i);
+            return (
+              <span key={m.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, ...bosChipGlass(isDark), borderRadius: 999, padding: "3px 10px 3px 3px" }}>
+                <BuddyFaceLive avatar={m.avatar} name={m.name} size={20} />
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{m.me ? "Ты" : (m.name || "").split(" ")[0]} · {m.value}</span>
+                {pay > 0 && <span style={{ fontSize: 10, fontWeight: 800, color: "#7a5300", background: "rgba(254,222,52,0.95)", borderRadius: 999, padding: "1px 6px" }}>+{pay}{isRace ? " 👑" : ""}</span>}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
-      <div style={{ marginTop: 8 }}>
-        {teamHabits.length === 0 && (
-          <div style={{ fontSize: 13, color: "var(--text-4)", padding: "4px 2px 8px", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем цели.</div>
-        )}
-        {/* Командные привычки = ТЕ ЖЕ квадратные плитки, что на стр. Привычки (David: «не выдумывать
-            третий способ отметки — единый язык»). Галочка отмечает ПРЯМО В КОМАНДЕ (toggleMyTeamHabit),
-            личная копия не нужна; «Вести у себя» снизу плитки — опц. опт-ин (появится и в личных). */}
-        {teamHabits.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {[main].concat(others).filter(Boolean).map((h, i) => {
-              const done = myDone(h);
-              const adopted = !!adoptedFor(h);
-              const markInTeam = () => (adopted ? markAdopted(h) : toggleMyTeamHabit(h));
-              return (
-                <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: "13px 13px 12px", minHeight: 150, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                  {h.isMain && <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EF9F14" }} />Якорь</div>}
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
-                    {_rosterLive && <button onClick={markInTeam} className={"check-btn tap " + (done ? "" : "unchecked")} aria-label="Отметить" style={{ flexShrink: 0, width: 30, height: 30, "--check-color": "#0a0a0a" }}>{done && <I.Check size={16} color="#fff" strokeWidth={3} />}</button>}
-                  </div>
-                  <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
-                  <div style={{ marginTop: "auto", paddingTop: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.6 }}>Сегодня</span>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>{h.doneToday}/{h.total}</span>
-                    </div>
-                    <div style={{ height: 6, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
-                      <span style={{ display: "block", height: "100%", width: Math.round((h.weekPct || 0) * 100) + "%", borderRadius: 999, background: h.color || "#0a0a0a" }} />
-                    </div>
-                    {_rosterLive && !adopted && (
-                      <button onClick={() => adoptTeamHabit(h)} className="tap" style={{ marginTop: 9, width: "100%", background: "transparent", border: "1px dashed rgba(0,0,0,0.16)", borderRadius: 999, padding: "6px 8px", fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}><I.Plus size={12} /> Вести у себя</button>
-                    )}
-                    {_rosterLive && adopted && (
-                      <div style={{ marginTop: 9, fontSize: 11, fontWeight: 600, color: "var(--text-4)", textAlign: "center" }}>👤 ведёшь и у себя</div>
-                    )}
+      {/* СКЛАДЫВАЕТСЯ ИЗ ПРИВЫЧЕК — ТОТ ЖЕ блок-строки, что у личной цели (David: «привычки
+          должны быть так же»). Чек-кружок отмечает В КОМАНДЕ (или личную копию, если ведёшь
+          у себя); «Вести у себя» — тихая пилюля справа; якорь — жёлтая точка в подписи. */}
+      <div className="section-label" style={{ marginTop: 22 }}>Складывается из привычек</div>
+      <div style={{ ...card, borderRadius: 22, marginTop: 8, overflow: "hidden" }}>
+        {[main].concat(others).filter(Boolean).map((h, i) => {
+          const done = myDone(h);
+          const adopted = adoptedFor(h);
+          const markInTeam = () => (adopted ? markAdopted(h) : toggleMyTeamHabit(h));
+          return (
+            <div key={h.id || i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+              {_rosterLive ? (
+                <button onClick={markInTeam} className="tap" aria-label="Отметить сегодня"
+                  style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+                    background: done ? (h.color || ringInk) : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+                    boxShadow: done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }}>
+                  {done && <I.Check size={16} strokeWidth={3} color="#fff" />}
+                </button>
+              ) : (
+                <span aria-hidden style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }} />
+              )}
+              <button className="tap" onClick={() => { if (adopted) navigate("habit-detail", { habit: adopted, from: "team-detail" }); }} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, padding: 0, background: "transparent", border: 0, textAlign: "left", color: "var(--text)", cursor: adopted ? "pointer" : "default" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}{adopted && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginLeft: 7 }}>· у себя</span>}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>
+                    {h.isMain && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#EF9F14", display: "inline-block" }} />Якорь</span>}
+                    {(h.doneToday != null && h.total != null) ? (h.doneToday + " из " + h.total + " сегодня") : "общая привычка"}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                {adopted && <I.ChevronRight size={16} color="var(--text-4)" />}
+              </button>
+              {_rosterLive && !adopted && (
+                <button onClick={() => adoptTeamHabit(h)} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вести у себя</button>
+              )}
+            </div>
+          );
+        })}
+        {teamHabits.length === 0 && (
+          <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем цели.</div>
         )}
-        <button onClick={openAddHabit} className="tap" style={{ marginTop: 12, width: "100%", background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", borderRadius: 22, padding: 14, color: "var(--text-3)", fontSize: 14, fontWeight: 500 }}>
-          + Добавить привычку цели
+        <button className="tap" onClick={openAddHabit}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: teamHabits.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0, background: "transparent", border: 0, color: "var(--text-2)", cursor: "pointer" }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
+          <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
         </button>
       </div>
 
@@ -712,37 +687,41 @@ function TeamDetailLive() {
           ))}
         </div>
       </>)}
-      <div className="section-label" style={{ marginTop: 22 }}>Наши{_rosterLoading ? "" : " · " + members.length}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      {/* ЛЮДИ — «тот же блок, только с людьми» (David): одна карточка-список в языке страницы
+          цели; колечко на лице = отметился сегодня (пульс), «Позвать людей» — dashed-строкой. */}
+      <div className="section-label" style={{ marginTop: 22 }}>Люди{_rosterLoading ? "" : " · " + members.length}</div>
+      <div style={{ ...card, borderRadius: 22, marginTop: 8, overflow: "hidden" }}>
         {_rosterLoading && [0, 1].map((i) => (
-          <div key={"sk" + i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)" }}>
-            <div style={{ padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
-              <span className="bos-skel" style={{ width: 40, height: 40, borderRadius: "50%" }} />
-              <div style={{ flex: 1 }}>
-                <span className="bos-skel" style={{ display: "block", width: "42%", height: 12, borderRadius: 6 }} />
-                <span className="bos-skel" style={{ display: "block", width: "26%", height: 10, borderRadius: 6, marginTop: 7 }} />
-              </div>
+          <div key={"sk" + i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+            <span className="bos-skel" style={{ width: 40, height: 40, borderRadius: "50%" }} />
+            <div style={{ flex: 1 }}>
+              <span className="bos-skel" style={{ display: "block", width: "42%", height: 12, borderRadius: 6 }} />
+              <span className="bos-skel" style={{ display: "block", width: "26%", height: 10, borderRadius: 6, marginTop: 7 }} />
             </div>
           </div>
         ))}
-        {!_rosterLoading && ranked.map((m,i)=>{
-          return (
-          <div key={i} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
-            <div style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>
-              <BuddyFaceLive avatar={m.avatar} name={m.name} size={40} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{m.name}</div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{m.role === "owner" ? "Создатель" : "Участник"}</div>
-              </div>
+        {!_rosterLoading && ranked.map((m, i) => (
+          <div key={m.id || i} style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+            <span style={{ display: "inline-flex", borderRadius: "50%", boxShadow: flowSet[m.id] ? ("0 0 0 1.5px " + (isDark ? "#0f0f12" : "#fff") + ", 0 0 0 3.5px " + ringInk) : "none" }}>
+              <BuddyFaceLive avatar={m.avatar} name={m.name} size={38} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.id === meId ? "Ты" : m.name}</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>{m.role === "owner" ? "Создатель" : "Участник"}{flowSet[m.id] ? " · сегодня в деле" : ""}</div>
             </div>
           </div>
-          );
-        })}
+        ))}
+        <button className="tap" onClick={() => openSheet(<TeamShareSheetLive team={t} />)}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: (members.length || _rosterLoading) ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0, background: "transparent", border: 0, color: "var(--text-2)", cursor: "pointer" }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
+          <span style={{ fontSize: 14.5, fontWeight: 600 }}>Позвать людей</span>
+        </button>
       </div>
 
-      {/* Позвать — приглашение спокойной стеклянной кнопкой (чат поднялся наверх в заметную карточку). */}
-      <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" style={{ width: "100%", marginTop: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 16, padding: "13px 10px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>
-        <I.Share size={16}/> Позвать в круг
+      {/* Чат цели — стеклянная кнопка под «Людьми» (счётчик непрочитанных сохранён). */}
+      <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 18, padding: "15px 12px", fontSize: 15, fontWeight: 600, color: "var(--text-2)" }}>
+        <span style={{ fontSize: 18, lineHeight: 1 }}>💬</span> Чат цели
+        {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: 9, right: 14, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", display: "grid", placeItems: "center" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
       </button>
 
       {/* ПОКИНУТЬ — только участник (у него нет карандаша). Владелец УДАЛЯЕТ круг со шторки правки
