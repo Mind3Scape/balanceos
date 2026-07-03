@@ -824,7 +824,7 @@ function GoalDetailPersonalLive() {
       marginTop: 1,
       lineHeight: 1.4
     }
-  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u043C \u043A\u0440\u0443\u0433\u043E\u043C.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439 \u2014 \u043F\u043E\u0432\u0435\u0434\u0451\u0442\u0435 \u0446\u0435\u043B\u044C \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 17,
     color: "var(--text-4)"
   })), /*#__PURE__*/React.createElement("div", {

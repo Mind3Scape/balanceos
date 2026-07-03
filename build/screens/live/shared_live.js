@@ -2035,6 +2035,7 @@ function JoinWelcomeLive({
   if (!info) return null;
   var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   var isTeam = info.kind === "team";
+  var isApp = info.kind === "app"; // «X зовёт тебя» — пришёл по ссылке друга просто в приложение
   var inviter = (info.inviterName || "").trim();
   var close = () => {
     if (closingRef.current) return;
@@ -2068,7 +2069,14 @@ function JoinWelcomeLive({
       justifyContent: "center",
       marginBottom: 2
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, isApp ?
+  /*#__PURE__*/
+  // Человек зовёт человека — по центру ЛИЦО зовущего, без служебной плитки.
+  React.createElement(BuddyFaceLive, {
+    avatar: info.inviterAvatar || "default",
+    name: inviter,
+    size: 76
+  }) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       width: 76,
@@ -2106,7 +2114,7 @@ function JoinWelcomeLive({
       fontWeight: 700,
       marginTop: 14
     }
-  }, isTeam ? "Команда" : "Совместная привычка"), /*#__PURE__*/React.createElement("div", {
+  }, isApp ? "Тебя пригласили" : isTeam ? "Совместная цель" : "Совместная привычка"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 23,
       fontWeight: 800,
@@ -2123,7 +2131,7 @@ function JoinWelcomeLive({
       padding: "0 6px",
       textWrap: "balance"
     }
-  }, isTeam ? (inviter ? inviter + " зовёт в команду" : "Тебя позвали в команду") + " — ведите цели вместе, виден прогресс каждого." : (inviter ? inviter + " зовёт вести вместе" : "Тебя позвали вести вместе") + " — будете видеть отметки друг друга и держать ритм."), !isTeam && /*#__PURE__*/React.createElement("div", {
+  }, isApp ? (inviter || "Друг") + " зовёт вести привычки и цели вместе. Вы уже на одной орбите — начни со своей первой привычки." : isTeam ? (inviter ? inviter + " зовёт вести цель вместе" : "Тебя позвали вести цель вместе") + " — виден прогресс каждого." : (inviter ? inviter + " зовёт вести вместе" : "Тебя позвали вести вместе") + " — будете видеть отметки друг друга и держать ритм."), !isTeam && !isApp && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -2173,7 +2181,7 @@ function JoinWelcomeLive({
     style: {
       marginTop: 20
     }
-  }, isTeam ? "Отлично!" : "Веду вместе!")));
+  }, isApp ? "Начали!" : isTeam ? "Отлично!" : "Веду вместе!")));
 }
 
 /* Achievement celebration — the gold «достижение открыто» moment as our STANDARD iOS sheet
@@ -2429,7 +2437,7 @@ function TeamAdoptChoiceLive({
       lineHeight: 1.5,
       textWrap: "balance"
     }
-  }, "\xAB", dupeName, "\xBB \u0443\u0436\u0435 \u0432 \u0442\u0432\u043E\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430\u0445. \u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0435\u0451 \u043A \u043A\u043E\u043C\u0430\u043D\u0434\u0435 \u2014 \u0441\u0435\u0440\u0438\u044F \u0438 \u0442\u0432\u043E\u0451 \u0432\u0440\u0435\u043C\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0442\u0441\u044F. \u0418\u043B\u0438 \u0437\u0430\u0432\u0435\u0441\u0442\u0438 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u0434\u043B\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u044B."), /*#__PURE__*/React.createElement("button", {
+  }, "\xAB", dupeName, "\xBB \u0443\u0436\u0435 \u0432 \u0442\u0432\u043E\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430\u0445. \u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0435\u0451 \u043A \u043E\u0431\u0449\u0435\u0439 \u0446\u0435\u043B\u0438 \u2014 \u0441\u0435\u0440\u0438\u044F \u0438 \u0442\u0432\u043E\u0451 \u0432\u0440\u0435\u043C\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0442\u0441\u044F. \u0418\u043B\u0438 \u0437\u0430\u0432\u0435\u0441\u0442\u0438 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E."), /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
       marginTop: 18
@@ -2449,7 +2457,7 @@ function TeamAdoptChoiceLive({
       fontWeight: 600,
       cursor: "pointer"
     }
-  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043D\u043E\u0432\u0443\u044E \u0434\u043B\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u044B"));
+  }, "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043D\u043E\u0432\u0443\u044E \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E"));
 }
 
 /* Real shared-habit buddies (cloud) for the habit CARDS — fills the side slot with the ACTUAL
@@ -4343,8 +4351,8 @@ var BOS_HOME_WIDGETS = [{
   emoji: "📅"
 }, {
   id: "team",
-  t: "Команды",
-  d: "Твои команды",
+  t: "Вместе",
+  d: "Ваши совместные цели",
   emoji: "👥"
 },
 // «Состояние» (mood-слайдер + виджет-состояние с упоминанием дневника) ВРЕМЕННО СКРЫТ (David) —
@@ -10963,7 +10971,7 @@ function TeamShareSheetLive({
   } = typeof useSheet === "function" ? useSheet() : {};
   var isPublic = team?.vis === "public";
   var link = team && team.cloudId && typeof bosTeamInviteLink === "function" ? bosTeamInviteLink(team.cloudId) : typeof bosInviteLink === "function" ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
-  var shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team?.name || "") + "» в BalanceOS";
+  var shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Присоединяйся к «" + (team?.name || "") + "» в BalanceOS";
   var copyLink = () => {
     try {
       navigator.clipboard.writeText(link);

@@ -1286,6 +1286,19 @@ function AppProvider({ children }) {
               else if (_avWasEmpty && _av0) window.bosCloud.saveProfile({ username: prof.username || _locName, avatar: _av0 });
             } else {
               window.bosCloud.saveProfile({ username: _locName, avatar: _locAv });
+              // Мост приглашения: самый первый вход (профиля ещё не было), и сервер уже
+              // записал «кто привёл» (referred_by из ссылки) → тёплое «X зовёт тебя» вместо
+              // безликого входа. Не показываем, когда человек пришёл по ссылке В привычку
+              // или В совместную цель — там его встречает своё, более конкретное приветствие.
+              try {
+                if (prof && prof.referred_by && !_joinTeamId && !_joinShareId && window.bosCloud.myInviter && !localStorage.getItem("bos:refWelcomed:" + pid)) {
+                  window.bosCloud.myInviter().then(function (inv) {
+                    if (!inv || !inv.username) return;
+                    try { localStorage.setItem("bos:refWelcomed:" + pid, "1"); } catch (e2) {}
+                    setPendingJoinWelcome({ kind: "app", name: inv.username, inviterName: inv.username, inviterAvatar: inv.avatar || "default" });
+                  });
+                }
+              } catch (e) {}
             }
           });
           // D2 — cross-device data: whichever side saved last wins. Cloud newer →
@@ -1428,7 +1441,7 @@ function AppProvider({ children }) {
                 var lt = { _id: "cloud-" + row.id, cloudId: row.id, joined: true, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: "", members: [], target: row.goal_target || 0, current: 0, progress: 0 };
                 var _already = (teams || []).some(function (x) { return x.cloudId === row.id; });
                 setTeams(function (prev) { return (prev || []).some(function (x) { return x.cloudId === row.id; }) ? prev : [lt].concat(prev || []); });
-                if (!_already) setPendingJoinWelcome({ kind: "team", name: row.name || "Команда", emoji: row.emblem || "✨", color: "#84A4B8" });
+                if (!_already) setPendingJoinWelcome({ kind: "team", name: row.name || "Совместная цель", emoji: row.emblem || "✨", color: "#84A4B8" });
                 try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
               });
             }

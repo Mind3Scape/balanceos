@@ -73,6 +73,18 @@
     try { var r = await c.from("profiles").select("id,username,avatar,created_at").eq("referred_by", id).order("created_at", { ascending: true }); return r.data || []; }
     catch (e) { return []; }
   }
+  // The person who brought ME in (my profiles.referred_by → their profile), so the
+  // newcomer sees their inviter on the orbit from day one — the bridge works both ways.
+  async function myInviter() {
+    var c = client(); var id = await uid(); if (!c || !id) return null;
+    try {
+      var me = await c.from("profiles").select("referred_by").eq("id", id).maybeSingle();
+      var rid = me.data && me.data.referred_by;
+      if (!rid) return null;
+      var r = await c.from("profiles").select("id,username,avatar").eq("id", rid).maybeSingle();
+      return r.data || null;
+    } catch (e) { return null; }
+  }
   // PUBLIC orbit for the «Вселенная»: a person's level + their habit ICONS (emoji+colour) + how many
   // people are on their orbit, so others render as REAL orbits (icons + faces), not anonymous beads.
   // profiles is world-readable → friends in your circle can read it. ONE column needed:
@@ -758,7 +770,7 @@
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, uidSync: uidSync, currentUser: currentUser,
-    loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople, refCode: refCode, inviteCode: inviteCode,
+    loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople, myInviter: myInviter, refCode: refCode, inviteCode: inviteCode,
     savePublicStats: savePublicStats, profilesPublic: profilesPublic, allPublic: allPublic,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,

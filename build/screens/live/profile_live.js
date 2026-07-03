@@ -36,17 +36,22 @@ function ProfileLive() {
   var lvlPct = _li.pct;
 
   // Real multiplayer: pull the people you've actually invited (referral circle) from
-  // the cloud and put them on your orbit.
+  // the cloud and put them on your orbit — PLUS the person who invited YOU (myInviter),
+  // so a newcomer's orbit is never empty: the bridge works both ways from day one.
   var [livePeople, setLivePeople] = React.useState([]);
   React.useEffect(() => {
     var on = true;
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
-        window.bosCloud.invitedPeople().then(list => {
-          if (on && Array.isArray(list)) setLivePeople(list.map(p => ({
-            avatar: p && p.avatar || "default",
-            name: p && (p.username || p.name) || ""
-          })));
+        var _mk = p => ({
+          avatar: p && p.avatar || "default",
+          name: p && (p.username || p.name) || ""
+        });
+        Promise.all([window.bosCloud.invitedPeople().catch(() => []), (window.bosCloud.myInviter ? window.bosCloud.myInviter() : Promise.resolve(null)).catch(() => null)]).then(([list, inv]) => {
+          if (!on) return;
+          var out = (Array.isArray(list) ? list : []).map(_mk);
+          if (inv && inv.username) out.unshift(_mk(inv)); // зовущий — первым, ближе всех
+          setLivePeople(out);
         }).catch(() => {});
       }
     } catch (e) {}

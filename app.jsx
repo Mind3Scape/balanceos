@@ -187,7 +187,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v522";
+const APP_VERSION = "v523";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -990,8 +990,12 @@ function PhoneApp() {
         <BottomSheet open={!!sheet} onClose={sheetApi.close} dark={topDark}>{sheet}</BottomSheet>
         <FreshOnboarding app={app} dark={topDark} />
         <GuidedTour step={app.tourStep} setStep={app.setTourStep} endTour={app.endTour} navigate={navigate} setCommunityView={app.setCommunityView} openSheet={sheetApi.open} tourScreen={app.tourScreen} dark={topDark} onAdvance={advanceGuide} onDismiss={dismissGuide} lastScreen={app.tourScreen === "ai"} />
-        {app.pendingAch && typeof AchievementSheetLive === "function" && <AchievementSheetLive ach={app.pendingAch} onClose={app.clearPendingAch} />}
-        {app.pendingJoinWelcome && typeof JoinWelcomeLive === "function" && <JoinWelcomeLive info={app.pendingJoinWelcome} onClose={app.clearPendingJoinWelcome} />}
+        {/* «Швейцар» приветственных поп-апов (David: «не больше одного за раз, остальные в
+            очередь»): пока идёт онбординг или открыта обычная шторка — ничего не всплывает
+            (pending-состояния просто ЖДУТ, они не сбрасываются); потом приглашение; ачивка —
+            последней. Каждый следующий монтируется только после закрытия предыдущего. */}
+        {!app.onbWelcome && !sheet && app.pendingJoinWelcome && typeof JoinWelcomeLive === "function" && <JoinWelcomeLive info={app.pendingJoinWelcome} onClose={app.clearPendingJoinWelcome} />}
+        {!app.onbWelcome && !sheet && !app.pendingJoinWelcome && app.pendingAch && typeof AchievementSheetLive === "function" && <AchievementSheetLive ach={app.pendingAch} onClose={app.clearPendingAch} />}
       </div>
     </div>
     </SheetCtx.Provider>

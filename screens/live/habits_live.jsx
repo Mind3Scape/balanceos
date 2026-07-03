@@ -32,7 +32,7 @@ const CHALLENGE_STARTERS = [
   { i: "💪", t: "30 дней спорта",   kind: "together", key: "sport30", bonus: 75, target: 30, unit: "дней", desc: "Месяц движения без пропусков. Вместе с друзьями держать ритм легче." },
   { i: "💧", t: "Вода каждый день", kind: "habit",    key: "water",   bonus: 30, days: 21, color: "#34C759", desc: "Стакан за стаканом — приучи себя пить достаточно воды каждый день." },
   { i: "📚", t: "Книга за месяц",   kind: "goal",     key: "book",    bonus: 40, target: 1, unit: "книга", deadline: "Месяц", desc: "Одна книга до конца месяца — маленькими шагами каждый день." },
-  { i: "🏃", t: "Бег вместе",       kind: "together", key: "runtog",  bonus: 75, target: 30, unit: "км", desc: "Набегайте общий километраж командой — вклад каждого виден всем." },
+  { i: "🏃", t: "Бег вместе",       kind: "together", key: "runtog",  bonus: 75, target: 30, unit: "км", desc: "Набегайте общий километраж вместе — вклад каждого виден всем." },
   { i: "🧘", t: "10 минут тишины",  kind: "habit",    key: "silence", bonus: 30, days: 21, color: "#AF52DE", desc: "Десять минут покоя в день — место, где мысли оседают." },
   { i: "🌅", t: "Ранний подъём",    kind: "habit",    key: "wake",    bonus: 40, days: 21, color: "#FF9500", desc: "Вставай раньше и выигрывай утро, пока все ещё спят." },
   { i: "🚭", t: "Без сахара",       kind: "habit",    key: "nosugar", bonus: 50, days: 30, color: "#FF2D55", desc: "Месяц без добавленного сахара — тело скажет спасибо." },
@@ -96,7 +96,7 @@ const BOS_CREATE_CATS = [
   ]},
   { t: "🤝 Вместе", items: [
     { i: "💪", t: "30 дней спорта",  kind: "together", key: "sport30", bonus: 75, target: 30, unit: "дней", desc: "Месяц движения без пропусков. Вместе с друзьями держать ритм легче." },
-    { i: "🏃", t: "Бег вместе",      kind: "together", key: "runtog",  bonus: 75, target: 30, unit: "км",   desc: "Набегайте общий километраж командой — вклад каждого виден всем." },
+    { i: "🏃", t: "Бег вместе",      kind: "together", key: "runtog",  bonus: 75, target: 30, unit: "км",   desc: "Набегайте общий километраж вместе — вклад каждого виден всем." },
     { i: "🧘", t: "Тишина вместе",   kind: "together", key: "medtog",  bonus: 75, target: 21, unit: "дней", desc: "Три недели медитации всем кругом — никто не сходит с дистанции." },
   ]},
 ];
@@ -435,10 +435,10 @@ function HabitsLive() {
       const tHabit = { name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color };
       const iAmOwner = !t.joined;
       openSheet(
-        <HabitTileMenuLive habit={tHabit} dark={isDark} kindLabel="Команда"
+        <HabitTileMenuLive habit={tHabit} dark={isDark} kindLabel="Совместная цель"
           onShare={() => openSheet(<TeamShareSheet team={t} />)}
           onReorder={openReorder}
-          deleteLabel={iAmOwner ? "Удалить круг" : "Покинуть круг"}
+          deleteLabel={iAmOwner ? "Удалить цель" : "Покинуть цель"}
           deleteIcon={iAmOwner ? <I.Trash size={18} /> : <I.Logout size={18} />}
           onDelete={() => bosConfirmExitTeam({ app, team: t, isOwner: iAmOwner, navigate, openSheet, returnTo: "habits" })}
         />
@@ -638,7 +638,7 @@ function HabitsLive() {
         <button className="tap" onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} style={{ width: "100%", background: TH.cardBg, border: 0, borderRadius: 22, padding: "30px 20px", boxShadow: cardShadow, color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
           <span style={{ width: 54, height: 54, borderRadius: 16, background: TH.iconBg, display: "grid", placeItems: "center", fontSize: 27 }}>🌱</span>
           <div style={{ fontSize: 17, fontWeight: 600 }}>Здесь будут твои привычки и цели</div>
-          <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 260 }}>Нажми «+» вверху — заведи привычку или собери круг. Карточки потом расставишь как удобно.</div>
+          <div style={{ fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 260 }}>Нажми «+» вверху — заведи привычку или позови своих к общей цели. Карточки потом расставишь как удобно.</div>
         </button>
       ) : (
         <BosReorderGrid ids={entries.map((e) => e.k)} onReorder={(keys) => { bosSavePracticeOrder(keys); setOrderTick((t) => t + 1); }}
@@ -679,7 +679,7 @@ function HabitsLive() {
             {[
               { topic: "habits-basics", emoji: "🌱", t: "Основы привычек", b: "Почему маленькое сильнее большого — и как не пропускать дважды." },
               { topic: "goals-101",     emoji: "🎯", t: "Хорошие цели", b: "Результат или процесс: что отслеживать и когда." },
-              { topic: "teams-101",     emoji: "🤝", t: "Командные привычки", b: "Один общий якорь, общая серия и поддержка вместо контроля." },
+              { topic: "teams-101",     emoji: "🤝", t: "Совместные привычки", b: "Один общий якорь, общая серия и поддержка вместо контроля." },
             ].map((c, i) => (
               <button key={i} onClick={() => navigate("info", { topic: c.topic })} className="tap"
                 style={{ width: "100%", background: "transparent", border: 0, borderTop: i ? "1px solid " + TH.divider : "0", padding: "12px 4px", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)" }}>

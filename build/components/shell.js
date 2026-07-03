@@ -2817,6 +2817,26 @@ function AppProvider({
                 username: _locName,
                 avatar: _locAv
               });
+              // Мост приглашения: самый первый вход (профиля ещё не было), и сервер уже
+              // записал «кто привёл» (referred_by из ссылки) → тёплое «X зовёт тебя» вместо
+              // безликого входа. Не показываем, когда человек пришёл по ссылке В привычку
+              // или В совместную цель — там его встречает своё, более конкретное приветствие.
+              try {
+                if (prof && prof.referred_by && !_joinTeamId && !_joinShareId && window.bosCloud.myInviter && !localStorage.getItem("bos:refWelcomed:" + pid)) {
+                  window.bosCloud.myInviter().then(function (inv) {
+                    if (!inv || !inv.username) return;
+                    try {
+                      localStorage.setItem("bos:refWelcomed:" + pid, "1");
+                    } catch (e2) {}
+                    setPendingJoinWelcome({
+                      kind: "app",
+                      name: inv.username,
+                      inviterName: inv.username,
+                      inviterAvatar: inv.avatar || "default"
+                    });
+                  });
+                }
+              } catch (e) {}
             }
           });
           // D2 — cross-device data: whichever side saved last wins. Cloud newer →
@@ -3097,7 +3117,7 @@ function AppProvider({
                 });
                 if (!_already) setPendingJoinWelcome({
                   kind: "team",
-                  name: row.name || "Команда",
+                  name: row.name || "Совместная цель",
                   emoji: row.emblem || "✨",
                   color: "#84A4B8"
                 });

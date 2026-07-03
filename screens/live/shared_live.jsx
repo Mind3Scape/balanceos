@@ -972,6 +972,7 @@ function JoinWelcomeLive({ info, onClose }) {
   if (!info) return null;
   const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   const isTeam = info.kind === "team";
+  const isApp = info.kind === "app"; // «X зовёт тебя» — пришёл по ссылке друга просто в приложение
   const inviter = (info.inviterName || "").trim();
   const close = () => {
     if (closingRef.current) return; closingRef.current = true;
@@ -989,23 +990,30 @@ function JoinWelcomeLive({ info, onClose }) {
     <BottomSheet open={open} onClose={close} dark={isDark}>
       <div style={{ padding: "2px 22px 26px", textAlign: "center", color: "var(--text)" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 2 }}>
-          <div style={{ position: "relative", width: 76, height: 76 }}>
-            <div style={{ width: 76, height: 76, borderRadius: 21, background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "0 6px 16px rgba(0,0,0,0.10)"), display: "grid", placeItems: "center", fontSize: 37 }}>{glyph}</div>
-            {!isTeam && (
-              <div style={{ position: "absolute", right: -8, bottom: -6, borderRadius: "50%", boxShadow: "0 0 0 3px var(--card, #fff)" }}>
-                <BuddyFaceLive avatar={info.inviterAvatar || "default"} name={inviter} size={34} />
-              </div>
-            )}
-          </div>
+          {isApp ? (
+            // Человек зовёт человека — по центру ЛИЦО зовущего, без служебной плитки.
+            <BuddyFaceLive avatar={info.inviterAvatar || "default"} name={inviter} size={76} />
+          ) : (
+            <div style={{ position: "relative", width: 76, height: 76 }}>
+              <div style={{ width: 76, height: 76, borderRadius: 21, background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "0 6px 16px rgba(0,0,0,0.10)"), display: "grid", placeItems: "center", fontSize: 37 }}>{glyph}</div>
+              {!isTeam && (
+                <div style={{ position: "absolute", right: -8, bottom: -6, borderRadius: "50%", boxShadow: "0 0 0 3px var(--card, #fff)" }}>
+                  <BuddyFaceLive avatar={info.inviterAvatar || "default"} name={inviter} size={34} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>{isTeam ? "Команда" : "Совместная привычка"}</div>
+        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>{isApp ? "Тебя пригласили" : isTeam ? "Совместная цель" : "Совместная привычка"}</div>
         <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", marginTop: 3 }}>{info.name}</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 8, lineHeight: 1.5, padding: "0 6px", textWrap: "balance" }}>
-          {isTeam
-            ? ((inviter ? inviter + " зовёт в команду" : "Тебя позвали в команду") + " — ведите цели вместе, виден прогресс каждого.")
-            : ((inviter ? inviter + " зовёт вести вместе" : "Тебя позвали вести вместе") + " — будете видеть отметки друг друга и держать ритм.")}
+          {isApp
+            ? ((inviter || "Друг") + " зовёт вести привычки и цели вместе. Вы уже на одной орбите — начни со своей первой привычки.")
+            : isTeam
+              ? ((inviter ? inviter + " зовёт вести цель вместе" : "Тебя позвали вести цель вместе") + " — виден прогресс каждого.")
+              : ((inviter ? inviter + " зовёт вести вместе" : "Тебя позвали вести вместе") + " — будете видеть отметки друг друга и держать ритм.")}
         </div>
-        {!isTeam && (
+        {!isTeam && !isApp && (
           <div style={{ display: "flex", alignItems: "center", gap: 13, background: isDark ? "rgba(255,255,255,0.06)" : "#f4f4f6", borderRadius: 17, padding: "13px 15px", marginTop: 18, textAlign: "left" }}>
             <span style={{ width: 42, height: 42, borderRadius: 13, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 5px 13px rgba(239,159,20,0.34), inset 0 1px 0.5px rgba(255,255,255,0.6)" }}>
               <I.Bolt size={22} color="#fff" filled />
@@ -1016,7 +1024,7 @@ function JoinWelcomeLive({ info, onClose }) {
             </div>
           </div>
         )}
-        <button onClick={close} className="bos-btn" style={{ marginTop: 20 }}>{isTeam ? "Отлично!" : "Веду вместе!"}</button>
+        <button onClick={close} className="bos-btn" style={{ marginTop: 20 }}>{isApp ? "Начали!" : isTeam ? "Отлично!" : "Веду вместе!"}</button>
       </div>
     </BottomSheet>
   );
@@ -1094,9 +1102,9 @@ function TeamAdoptChoiceLive({ dupeName, onLink, onCreate }) {
   return (
     <div style={{ padding: "2px 22px 14px", color: "var(--text)", textAlign: "center" }}>
       <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px" }}>У тебя уже есть такая</div>
-      <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 7, lineHeight: 1.5, textWrap: "balance" }}>«{dupeName}» уже в твоих привычках. Привязать её к команде — серия и твоё время сохранятся. Или завести отдельную для команды.</div>
+      <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 7, lineHeight: 1.5, textWrap: "balance" }}>«{dupeName}» уже в твоих привычках. Привязать её к общей цели — серия и твоё время сохранятся. Или завести отдельную.</div>
       <button className="bos-btn" style={{ marginTop: 18 }} onClick={() => go(onLink)}>Привязать «{dupeName}»</button>
-      <button className="tap" onClick={() => go(onCreate)} style={{ width: "100%", marginTop: 6, background: "transparent", border: 0, color: "var(--text-3)", padding: 13, fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Создать новую для команды</button>
+      <button className="tap" onClick={() => go(onCreate)} style={{ width: "100%", marginTop: 6, background: "transparent", border: 0, color: "var(--text-3)", padding: 13, fontSize: 14.5, fontWeight: 600, cursor: "pointer" }}>Создать новую отдельно</button>
     </div>
   );
 }
@@ -1981,7 +1989,7 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
 var BOS_HOME_WIDGETS = [
   { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   emoji: "✨" },
   { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅" },
-  { id: "team",    t: "Команды",      d: "Твои команды",             emoji: "👥" },
+  { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥" },
   // «Состояние» (mood-слайдер + виджет-состояние с упоминанием дневника) ВРЕМЕННО СКРЫТ (David) —
   // убран из списка → кейс id==="mood" в home_live не рендерится. Вернуть = добавить строку обратно.
   { id: "habits",  t: "Привычки",     d: "Список привычек на день",  emoji: "🌱" },
@@ -4328,7 +4336,7 @@ function TeamShareSheetLive({ team }) {
   const link = (team && team.cloudId && typeof bosTeamInviteLink === "function")
     ? bosTeamInviteLink(team.cloudId)
     : ((typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot");
-  const shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Залетай в команду «" + (team?.name || "") + "» в BalanceOS";
+  const shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Присоединяйся к «" + (team?.name || "") + "» в BalanceOS";
   const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
   const shareTelegram = () => {
     const url = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent(shareText);

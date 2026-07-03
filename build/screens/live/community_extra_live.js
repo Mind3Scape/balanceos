@@ -94,7 +94,7 @@ function TeamCreateLive() {
     id: "streak",
     e: "🔥",
     t: "Серия у каждого",
-    d: "Каждый держит серию — команда проходит только если прошли все.",
+    d: "Каждый держит серию — засчитывается, только если прошли все.",
     example: `напр. все держат серию ${duration === "week" ? 7 : duration === "month" ? 21 : 60} дней`
   }
   // «Гонка» (race) ВРЕМЕННО убрана из пикера (David: «может вернём позже»). Логика гонки в
@@ -129,7 +129,7 @@ function TeamCreateLive() {
       padding: "0 16px 24px"
     }
   }, /*#__PURE__*/React.createElement(PageHeader, {
-    title: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0443",
+    title: "\u0421\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u0430\u044F \u0446\u0435\u043B\u044C",
     onBack: () => navigate("community")
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -171,7 +171,7 @@ function TeamCreateLive() {
   }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
-    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B",
+    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0446\u0435\u043B\u0438",
     style: {
       flex: 1,
       minWidth: 0,
@@ -377,7 +377,7 @@ function TeamCreateLive() {
       marginTop: 2,
       lineHeight: 1.5
     }
-  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0430 \u043F\u043E \u043A\u043E\u043C\u0430\u043D\u0434\u043D\u043E\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0435 \u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0446\u0435\u043B\u044C \u043D\u0430 +1 \u2014 \u0437\u0430\u043A\u0440\u044B\u0432\u0430\u0435\u0442\u0435 \u0435\u0451 \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement("span", {
+  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0430 \u043F\u043E \u043E\u0431\u0449\u0435\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0435 \u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0446\u0435\u043B\u044C \u043D\u0430 +1 \u2014 \u0437\u0430\u043A\u0440\u044B\u0432\u0430\u0435\u0442\u0435 \u0435\u0451 \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       fontWeight: 700,
@@ -641,7 +641,7 @@ function TeamCreateLive() {
         year: "Год"
       }[duration] || "Этот месяц";
       var nt = app?.addTeam({
-        name: name.trim() || "Новая команда",
+        name: name.trim() || "Совместная цель",
         emblem,
         accent,
         vis,
@@ -691,7 +691,7 @@ function TeamCreateLive() {
       } catch (e) {}
       setTimeout(() => navigate("community"), 300);
     }
-  }, saving ? "Создаём…" : "Создать команду"));
+  }, saving ? "Создаём…" : "Создать совместную цель"));
 }
 
 /* Team settings — full screen opened from the gear in Team detail. Edits are
@@ -823,7 +823,7 @@ function TeamSettingsLive() {
     id: "streak",
     e: "🔥",
     t: "Серия у каждого",
-    d: "Каждый держит серию — команда проходит, только если прошли все."
+    d: "Каждый держит серию — засчитывается, только если прошли все."
   }
   // «Гонка» временно скрыта (David: «может вернём позже») — вернуть = раскомментировать.
   // { id: "race",    e: "🏁", t: "Гонка", d: "Бок о бок — первый до цели побеждает, остальные получают часть XP." },
@@ -879,7 +879,7 @@ function TeamSettingsLive() {
   }, bosIcon(emblem, 28, accent)), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
-    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B",
+    placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0446\u0435\u043B\u0438",
     style: {
       flex: 1,
       minWidth: 0,
@@ -1096,7 +1096,7 @@ function TeamSettingsLive() {
       marginTop: 2,
       lineHeight: 1.5
     }
-  }, "\u0422\u0438\u0445\u0438\u0439 \u043F\u0443\u0448, \u043A\u043E\u0433\u0434\u0430 \u043A\u0442\u043E-\u0442\u043E \u0437\u0430\u043A\u0440\u044B\u043B \u043A\u043E\u043C\u0430\u043D\u0434\u043D\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443.")), /*#__PURE__*/React.createElement(Switch, {
+  }, "\u0422\u0438\u0445\u0438\u0439 \u043F\u0443\u0448, \u043A\u043E\u0433\u0434\u0430 \u043A\u0442\u043E-\u0442\u043E \u0437\u0430\u043A\u0440\u044B\u043B \u043E\u0431\u0449\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443.")), /*#__PURE__*/React.createElement(Switch, {
     on: notify,
     onChange: setNotify
   }))), /*#__PURE__*/React.createElement("div", {
@@ -1390,7 +1390,7 @@ function TeamHabitSheetLive({
       color: "var(--text)"
     }
   }, typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
-    title: "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u044B",
+    title: "\u041E\u0431\u0449\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430",
     onClose: close,
     onDone: save
   }) : /*#__PURE__*/React.createElement("div", {
@@ -1400,14 +1400,14 @@ function TeamHabitSheetLive({
       fontWeight: 700,
       letterSpacing: "-0.3px"
     }
-  }, "\u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041D\u043E\u0432\u0430\u044F \u043E\u0431\u0449\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       fontSize: 13.5,
       color: "var(--text-3)",
       marginTop: 2
     }
-  }, "\u041E\u0431\u0449\u0430\u044F \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0432 \xAB", team?.name || "команде", "\xBB"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041E\u0431\u0449\u0430\u044F \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0432 \xAB", team?.name || "цели", "\xBB"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       display: "flex",
@@ -1579,7 +1579,7 @@ function TeamHabitSheetLive({
     style: {
       fontSize: 14.5
     }
-  }, "\u0414\u0432\u0438\u0433\u0430\u0435\u0442 \u0446\u0435\u043B\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0414\u0432\u0438\u0433\u0430\u0435\u0442 \u043E\u0431\u0449\u0443\u044E \u0446\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-4)",
@@ -1615,7 +1615,7 @@ function TeamHabitSheetLive({
       color: "var(--text-4)",
       marginTop: 1
     }
-  }, "\u0421\u0442\u0430\u043D\u0435\u0442 \xAB\u044F\u043A\u043E\u0440\u0435\u043C\xBB \u043A\u043E\u043C\u0430\u043D\u0434\u044B")), /*#__PURE__*/React.createElement(Switch, {
+  }, "\u0421\u0442\u0430\u043D\u0435\u0442 \xAB\u044F\u043A\u043E\u0440\u0435\u043C\xBB \u0446\u0435\u043B\u0438")), /*#__PURE__*/React.createElement(Switch, {
     small: true,
     on: isMain,
     onChange: setIsMain
@@ -2885,7 +2885,7 @@ function TeamChatLive() {
       color: "var(--text-2)",
       marginBottom: 4
     }
-  }, "\u042D\u0442\u043E \u043E\u0431\u0449\u0438\u0439 \u0447\u0430\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+  }, "\u042D\u0442\u043E \u0432\u0430\u0448 \u043E\u0431\u0449\u0438\u0439 \u0447\u0430\u0442"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       lineHeight: 1.5,
@@ -3045,7 +3045,7 @@ function TeamChatLive() {
     onKeyDown: e => {
       if (e.key === "Enter") send();
     },
-    placeholder: "\u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u0435\u2026",
+    placeholder: "\u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0441\u0432\u043E\u0438\u043C\u2026",
     style: {
       flex: 1,
       minWidth: 0,

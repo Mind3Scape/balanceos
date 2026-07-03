@@ -171,7 +171,7 @@ function HomeLive() {
   var ruTeam = n => {
     var m = n % 10,
       h = n % 100;
-    return m === 1 && h !== 11 ? "команда" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "команды" : "команд";
+    return m === 1 && h !== 11 ? "цель" : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? "цели" : "целей";
   };
   // Live profiles get REAL numbers from the date-keyed habit model.
   var _liveXP = bosLiveXPLive(app);
@@ -557,13 +557,13 @@ function HomeLive() {
           color: "var(--text)",
           letterSpacing: "-0.2px"
         }
-      }, "\u041A\u043E\u043C\u0430\u043D\u0434\u044B"), /*#__PURE__*/React.createElement("div", {
+      }, "\u0412\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 12,
           color: "var(--text-4)",
           marginTop: 1
         }
-      }, teams.length ? teams.length + " " + ruTeam(teams.length) + " · ведёте вместе" : "Создай свою первую")), teams.length > 0 ? /*#__PURE__*/React.createElement("div", {
+      }, teams.length ? teams.length + " " + ruTeam(teams.length) + " · ведёте вместе" : "Создай первую совместную цель")), teams.length > 0 ? /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           flexShrink: 0

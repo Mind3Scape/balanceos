@@ -71,7 +71,7 @@ function TeamCreateLive() {
 
   const goalTypes = [
     { id: "collective", e: "🌊", t: "Общий счёт",  d: "Отметки всех складываются в одно число.", example: `напр. ${target} ${unit} вместе` },
-    { id: "streak",     e: "🔥", t: "Серия у каждого",  d: "Каждый держит серию — команда проходит только если прошли все.", example: `напр. все держат серию ${duration === "week" ? 7 : duration === "month" ? 21 : 60} дней` },
+    { id: "streak",     e: "🔥", t: "Серия у каждого",  d: "Каждый держит серию — засчитывается, только если прошли все.", example: `напр. все держат серию ${duration === "week" ? 7 : duration === "month" ? 21 : 60} дней` },
     // «Гонка» (race) ВРЕМЕННО убрана из пикера (David: «может вернём позже»). Логика гонки в
     // community_live.jsx цела → вернуть = раскомментировать строку обратно.
     // { id: "race",    e: "🏁", t: "Гонка",              d: "Бок о бок — первый до цели побеждает, остальные получают часть XP.",  example: `напр. первый до ${target} ${unit}` },
@@ -91,7 +91,7 @@ function TeamCreateLive() {
 
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="Создать команду" onBack={() => navigate("community")} />
+      <PageHeader title="Совместная цель" onBack={() => navigate("community")} />
 
       {/* IDENTITY — как в привычках/целях: БЕЛАЯ карточка + СТЕКЛО-плитка, КРАСЯЩАЯСЯ выбранным тоном,
           + единый цвет-пикер (David: «в миссии тоже меняй цвет стекла под иконкой, как в привычках»).
@@ -100,7 +100,7 @@ function TeamCreateLive() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
             style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название команды"
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
         {typeof BosColorPickerLive === "function" && <BosColorPickerLive value={accent} onChange={setAccent} />}
@@ -162,7 +162,7 @@ function TeamCreateLive() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500, lineHeight: 1.4 }}>Двигать цель привычками</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Каждая отметка участника по командной привычке двигает цель на +1 — закрываете её вместе.</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Каждая отметка участника по общей привычке двигает цель на +1 — закрываете её вместе.</div>
           </div>
           <span style={{ fontSize: 11, fontWeight: 700, color: linkedCount > 0 ? "#1e6b3a" : "var(--text-4)", background: linkedCount > 0 ? "#e5f5ea" : "#e8e8e8", padding: "3px 9px", borderRadius: 999, flexShrink: 0 }}>{linkedCount} привязано</span>
         </div>
@@ -261,7 +261,7 @@ function TeamCreateLive() {
         if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
         const dur = { week: "Эта неделя", month: "Этот месяц", quarter: "3 месяца", year: "Год" }[duration] || "Этот месяц";
         const nt = app?.addTeam({
-          name: name.trim() || "Новая команда",
+          name: name.trim() || "Совместная цель",
           emblem, accent, vis, // private / public — preserved from the toggle above
           goal: goalTitle || (target + " " + unit),
           type: goalType, // collective | streak | race — store the MODE locally too (was cloud-only → detail couldn't show it)
@@ -282,7 +282,7 @@ function TeamCreateLive() {
           }
         } catch (e) {}
         setTimeout(() => navigate("community"), 300);
-      }}>{saving ? "Создаём…" : "Создать команду"}</button>
+      }}>{saving ? "Создаём…" : "Создать совместную цель"}</button>
     </div>
   );
 }
@@ -349,7 +349,7 @@ function TeamSettingsLive() {
   const card = { background: "var(--card, #fff)", borderRadius: 22, marginTop: 8, boxShadow: "var(--card-shadow)" };
   const goalTypes = [
     { id: "collective", e: "🌊", t: "Общий счёт", d: "Отметки всех складываются в одно число." },
-    { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — команда проходит, только если прошли все." },
+    { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — засчитывается, только если прошли все." },
     // «Гонка» временно скрыта (David: «может вернём позже») — вернуть = раскомментировать.
     // { id: "race",    e: "🏁", t: "Гонка", d: "Бок о бок — первый до цели побеждает, остальные получают часть XP." },
   ];
@@ -363,7 +363,7 @@ function TeamSettingsLive() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => openSheet(<EmojiPickerLive onPick={setEmblem} current={emblem} accent={accent} />)} className="tap" aria-label="Сменить иконку"
             style={{ width: 56, height: 56, borderRadius: 16, background: (accent && accent !== BOS_GREY && ("" + accent).toLowerCase() !== "#0a0a0a") ? accent + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>{bosIcon(emblem, 28, accent)}</button>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название команды"
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели"
             style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, letterSpacing: "-0.4px" }} />
         </div>
         {typeof BosColorPickerLive === "function" && <BosColorPickerLive value={accent} onChange={setAccent} />}
@@ -420,7 +420,7 @@ function TeamSettingsLive() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Когда участники отмечаются</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Тихий пуш, когда кто-то закрыл командную привычку.</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Тихий пуш, когда кто-то закрыл общую привычку.</div>
           </div>
           <Switch on={notify} onChange={setNotify} />
         </div>
@@ -526,9 +526,9 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
     <div style={{ padding: "2px 20px 8px", color: "var(--text)" }}>
       {/* Единая шапка форм-шторок: ✕ слева, ✓ справа (David: «стандартизировать везде»). */}
       {typeof SheetFormHeadLive === "function"
-        ? <SheetFormHeadLive title="Привычка команды" onClose={close} onDone={save} />
-        : <div style={{ textAlign: "center", fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Новая привычка команды</div>}
-      <div style={{ textAlign: "center", fontSize: 13.5, color: "var(--text-3)", marginTop: 2 }}>Общая для всех в «{team?.name || "команде"}»</div>
+        ? <SheetFormHeadLive title="Общая привычка" onClose={close} onDone={save} />
+        : <div style={{ textAlign: "center", fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Новая общая привычка</div>}
+      <div style={{ textAlign: "center", fontSize: 13.5, color: "var(--text-3)", marginTop: 2 }}>Общая для всех в «{team?.name || "цели"}»</div>
       {/* Идентичность — иконка (тап → пикер) + имя в ОДНОМ блоке (David: «не отдельно сменить иконку и
           название ниже»), как карточка создания личной привычки. */}
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12, background: "var(--surface-3)", borderRadius: 16, padding: 10 }}>
@@ -566,7 +566,7 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
       <div style={{ background: "var(--surface-3)", borderRadius: 14, padding: "2px 14px", marginTop: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0" }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14.5 }}>Двигает цель команды</div>
+            <div style={{ fontSize: 14.5 }}>Двигает общую цель</div>
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Отметка участника = +1 к общей цели</div>
           </div>
           <Switch small on={movesGoal} onChange={setMovesGoal} />
@@ -575,7 +575,7 @@ function TeamHabitSheetLive({ team, members = [], onAdd }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14.5 }}>Сделать главной</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Станет «якорем» команды</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>Станет «якорем» цели</div>
           </div>
           <Switch small on={isMain} onChange={setIsMain} />
         </div>
@@ -1024,7 +1024,7 @@ function TeamChatLive() {
         {msgs.length === 0 ? (
           <div style={{ margin: "auto", textAlign: "center", padding: "0 30px" }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>💬</div>
-            <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 4 }}>Это общий чат команды</div>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 4 }}>Это ваш общий чат</div>
             <div style={{ fontSize: 13, lineHeight: 1.5, color: "var(--text-4)" }}>Напиши первое сообщение или поделись фото своего прогресса 👋</div>
           </div>
         ) : (
@@ -1056,7 +1056,7 @@ function TeamChatLive() {
         <button onClick={pickPhoto} className="tap" aria-label="Прикрепить фото" style={{ width: 38, height: 38, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.14)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>
         </button>
-        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} placeholder="Сообщение команде…"
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} placeholder="Сообщение своим…"
           style={{ flex: 1, minWidth: 0, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(120,120,128,0.10)", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.05)", borderRadius: 22, padding: "10px 15px", fontSize: 16, color: "var(--text)", outline: "none", lineHeight: 1.3 }} />
         <button onClick={send} className="tap" aria-label="Отправить" style={{ width: 38, height: 38, borderRadius: "50%", background: text.trim() ? "#0a0a0a" : (isDark ? "rgba(255,255,255,0.10)" : "rgba(120,120,128,0.18)"), border: 0, display: "grid", placeItems: "center", flexShrink: 0, transition: "background 0.2s, transform 0.2s", transform: text.trim() ? "scale(1)" : "scale(0.94)" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? "#fff" : "var(--text-4)"} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>

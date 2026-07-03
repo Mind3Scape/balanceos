@@ -72,7 +72,7 @@ var CHALLENGE_STARTERS = [{
   bonus: 75,
   target: 30,
   unit: "км",
-  desc: "Набегайте общий километраж командой — вклад каждого виден всем."
+  desc: "Набегайте общий километраж вместе — вклад каждого виден всем."
 }, {
   i: "🧘",
   t: "10 минут тишины",
@@ -326,7 +326,7 @@ var BOS_CREATE_CATS = [{
     bonus: 75,
     target: 30,
     unit: "км",
-    desc: "Набегайте общий километраж командой — вклад каждого виден всем."
+    desc: "Набегайте общий километраж вместе — вклад каждого виден всем."
   }, {
     i: "🧘",
     t: "Тишина вместе",
@@ -1182,12 +1182,12 @@ function HabitsLive() {
       openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
         habit: tHabit,
         dark: isDark,
-        kindLabel: "\u041A\u043E\u043C\u0430\u043D\u0434\u0430",
+        kindLabel: "\u0421\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u0430\u044F \u0446\u0435\u043B\u044C",
         onShare: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheet, {
           team: t
         })),
         onReorder: openReorder,
-        deleteLabel: iAmOwner ? "Удалить круг" : "Покинуть круг",
+        deleteLabel: iAmOwner ? "Удалить цель" : "Покинуть цель",
         deleteIcon: iAmOwner ? /*#__PURE__*/React.createElement(I.Trash, {
           size: 18
         }) : /*#__PURE__*/React.createElement(I.Logout, {
@@ -1776,7 +1776,7 @@ function HabitsLive() {
       lineHeight: 1.45,
       maxWidth: 260
     }
-  }, "\u041D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0432\u0432\u0435\u0440\u0445\u0443 \u2014 \u0437\u0430\u0432\u0435\u0434\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0438\u043B\u0438 \u0441\u043E\u0431\u0435\u0440\u0438 \u043A\u0440\u0443\u0433. \u041A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u043F\u043E\u0442\u043E\u043C \u0440\u0430\u0441\u0441\u0442\u0430\u0432\u0438\u0448\u044C \u043A\u0430\u043A \u0443\u0434\u043E\u0431\u043D\u043E.")) : /*#__PURE__*/React.createElement(BosReorderGrid, {
+  }, "\u041D\u0430\u0436\u043C\u0438 \xAB+\xBB \u0432\u0432\u0435\u0440\u0445\u0443 \u2014 \u0437\u0430\u0432\u0435\u0434\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0438\u043B\u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u0441\u0432\u043E\u0438\u0445 \u043A \u043E\u0431\u0449\u0435\u0439 \u0446\u0435\u043B\u0438. \u041A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u043F\u043E\u0442\u043E\u043C \u0440\u0430\u0441\u0441\u0442\u0430\u0432\u0438\u0448\u044C \u043A\u0430\u043A \u0443\u0434\u043E\u0431\u043D\u043E.")) : /*#__PURE__*/React.createElement(BosReorderGrid, {
     ids: entries.map(e => e.k),
     onReorder: keys => {
       bosSavePracticeOrder(keys);
@@ -1876,7 +1876,7 @@ function HabitsLive() {
   }, {
     topic: "teams-101",
     emoji: "🤝",
-    t: "Командные привычки",
+    t: "Совместные привычки",
     b: "Один общий якорь, общая серия и поддержка вместо контроля."
   }].map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
