@@ -474,7 +474,9 @@
           var u = {}; hl.forEach(function (r) { if (r.day === day) u[r.user_id] = 1; });
           weekSum += total ? Object.keys(u).length / total : 0;
         }
-        return { id: h.id, name: h.name, emoji: h.emoji || "✨", isMain: !!h.is_main, goalPerDay: (h.goal_per_day || 1), doneToday: Object.keys(todayUsers).length, total: total, doneByMe: !!(me && todayUsers[me]), weekPct: weekSum / 7 };
+        // todayUsers как СПИСОК id — клиент строит «пульс» каждого участника (доля закрытых
+        // им сегодня привычек круга) без единого лишнего запроса: логи уже пришли выше.
+        return { id: h.id, name: h.name, emoji: h.emoji || "✨", isMain: !!h.is_main, goalPerDay: (h.goal_per_day || 1), doneToday: Object.keys(todayUsers).length, total: total, doneByMe: !!(me && todayUsers[me]), todayUsers: Object.keys(todayUsers), weekPct: weekSum / 7 };
       });
     } catch (e) { return []; }
   }

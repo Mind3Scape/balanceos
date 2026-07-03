@@ -2758,19 +2758,34 @@ function GoalOrbitMini({
       }
     }, place(items, R, dSz, k * 0.35, function (it) {
       if (isPeople) {
-        // ПУЛЬС: active → двойное колечко «сегодня в деле» (стиль сторис) в цвет цели.
+        // ПУЛЬС 2.0: кольцо человека — ЕГО зона ответственности, заполняется долей
+        // закрытых им сегодня привычек круга (progress 0..1 → дуга в цвет цели);
+        // центр показывает общий счёт. Нет данных о доле → active-фолбэк: отметился
+        // (его «всё» = одна отметка) → полное кольцо. Тот же язык, что кольцо центра.
+        var pp = typeof it.progress === "number" && isFinite(it.progress) ? Math.max(0, Math.min(1, it.progress)) : it.active ? 1 : 0;
         return /*#__PURE__*/React.createElement("span", {
           style: {
+            position: "relative",
             display: "block",
-            borderRadius: "50%",
-            boxShadow: it.active ? "0 0 0 1.5px " + (dark ? "#0f0f12" : "#fff") + ", 0 0 0 3.5px " + accent : "none",
-            transition: "box-shadow 0.35s ease"
+            width: "100%",
+            height: "100%"
           }
         }, typeof BuddyFaceLive === "function" ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
           avatar: it.avatar,
           name: it.name,
           size: dSz
-        }) : null);
+        }) : null, pp > 0 && /*#__PURE__*/React.createElement("span", {
+          "aria-hidden": true,
+          style: {
+            position: "absolute",
+            inset: -4,
+            borderRadius: "50%",
+            pointerEvents: "none",
+            background: "conic-gradient(" + accent + " " + Math.round(pp * 360) + "deg, " + (dark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)") + " 0)",
+            WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 2.4px), #000 calc(100% - 1.9px))",
+            mask: "radial-gradient(farthest-side, transparent calc(100% - 2.4px), #000 calc(100% - 1.9px))"
+          }
+        }));
       }
       // ПУЛЬС: привычка ЗАКРЫТА сегодня → спутник загорается тоном СВОЕГО цвета
       // (фолбэк — цвет цели) + мягкое свечение; не закрыта → приглушённый тон цели.

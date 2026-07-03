@@ -612,14 +612,33 @@ function CommunityLive() {
 /* Per-team stale-while-revalidate cache (roster / habits / anchor-progress / goal) so
    re-opening a team renders INSTANTLY from the last-known data instead of flashing through
    a skeleton every time (David: «каждый раз вижу обновление экрана, дёргать не нравится»).
-   Keyed by cloudId; the effects below still revalidate in the background. */
+   Keyed by cloudId; the effects below still revalidate in the background.
+   ПЕРЕЖИВАЕТ ПЕРЕЗАПУСК: write-through в localStorage (David: «при переходе всё двигается,
+   скачок интерфейса» — раньше кэш жил только в памяти и после рестарта Telegram каждый
+   первый вход дёргался). Событие bos:teamCacheChanged — плитка команды на «Привычках»
+   ест ТОТ ЖЕ кэш и обновляется вслед за деталью. */
 var _bosTeamCache = {};
 function _bosTeamGet(k) {
-  return k && _bosTeamCache[k] !== undefined ? _bosTeamCache[k] : null;
+  if (!k) return null;
+  if (_bosTeamCache[k] !== undefined) return _bosTeamCache[k];
+  var v = null;
+  try {
+    v = JSON.parse(localStorage.getItem("bos:cache:team:" + k) || "null");
+  } catch (e) {
+    v = null;
+  }
+  _bosTeamCache[k] = v;
+  return v;
 }
 function _bosTeamPut(k, v) {
   if (k) {
     _bosTeamCache[k] = v;
+    try {
+      localStorage.setItem("bos:cache:team:" + k, JSON.stringify(v));
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event("bos:teamCacheChanged"));
+    } catch (e) {}
   }
   return v;
 }
@@ -1034,6 +1053,17 @@ function TeamDetailLive() {
     done: !!flowSet[m.id]
   }));
   var inFlowToday = (Array.isArray(members) ? members : []).filter(m => flowSet[m.id]).length;
+  // ПУЛЬС 2.0 (David): кольцо ЧЕЛОВЕКА на орбите = его зона ответственности — доля закрытых
+  // ИМ сегодня привычек круга (2 из 5 → 40% дуги), а центральное кольцо = общий счёт команды.
+  // Данные бесплатные: teamHabitsFull уже несёт todayUsers (см. cloud.js). Себя считаем
+  // ЛОКАЛЬНО (myDone) — кольцо отвечает на отметку мгновенно, без ожидания опроса.
+  var _pulseTotal = teamHabits.length || 0;
+  var _pulseFor = f => {
+    if (!_pulseTotal) return null;
+    if (meId && f.id === meId) return teamHabits.filter(h => myDone(h)).length / _pulseTotal;
+    if (!teamHabits.some(h => Array.isArray(h.todayUsers))) return null; // старый кэш/оффлайн → active-фолбэк
+    return teamHabits.filter(h => Array.isArray(h.todayUsers) && h.todayUsers.indexOf(f.id) !== -1).length / _pulseTotal;
+  };
   // ── ЕДИНАЯ СТРАНИЦА ЦЕЛИ (David: «команда = та же цель + блок людей») ──
   // Всё, что ниже, — расчёты для вёрстки-близнеца GoalDetailLive: прогресс/банк/выплаты
   // подняты из бывшей мега-карточки, сами данные и опросы выше НЕ менялись.
@@ -1120,7 +1150,8 @@ function TeamDetailLive() {
     people: orbitFaces.map(f => ({
       avatar: f.avatar,
       name: f.name,
-      active: f.done
+      active: f.done,
+      progress: _pulseFor(f)
     })),
     size: 190,
     dark: isDark,

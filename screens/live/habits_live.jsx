@@ -335,6 +335,14 @@ function HabitsLive() {
     while (n && !n.classList.contains("theme-light") && !n.classList.contains("theme-dark")) n = n.parentElement;
     setIsDark(!!(n && n.classList.contains("theme-dark")));
   }, []);
+  // Плитка команды ест кэш детали (_bosTeamGet) — деталь дообновила ростер/привычки/счёт →
+  // плитка перерисовывается вслед, без своего запроса.
+  const [, setTeamCacheTick] = React.useState(0);
+  React.useEffect(() => {
+    const f = () => setTeamCacheTick((n) => n + 1);
+    window.addEventListener("bos:teamCacheChanged", f);
+    return () => window.removeEventListener("bos:teamCacheChanged", f);
+  }, []);
 
   // Theme tokens — solid surfaces, NO borders. Match Home dark style.
   const TH = isDark ? {
@@ -626,22 +634,39 @@ function HabitsLive() {
   // команды показывает УЧАСТНИКОВ (лица) + командные привычки. Метка «Команда» сохранена в прогрессе.
   const teamTile = (t, ctx) => {
     const banner = goalStyle.form === "banner";
-    const tgt = t.target || 0;
-    const cur = t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+    // ЕДИНЫЙ ИСТОЧНИК с деталью команды (David: «на внешней должно показываться всё то же
+    // самое, просто обрезаться»): плитка ест тот же stale-while-revalidate кэш _bosTeamGet
+    // (живёт в community_live, persist в localStorage) — ВСЕ привычки круга, живой ростер и
+    // облачный счёт цели, а не бедный локальный снапшот (из-за него внутри было два кольца,
+    // снаружи одно). Кэша нет (первый вход/оффлайн) → прежние t.habits/t.members.
+    const _ck = t.cloudId || null;
+    const _cHabits = (_ck && typeof _bosTeamGet === "function") ? _bosTeamGet("habits:" + _ck) : null;
+    const _cRoster = (_ck && typeof _bosTeamGet === "function") ? _bosTeamGet("roster:" + _ck) : null;
+    const _cGoal = (_ck && typeof _bosTeamGet === "function") ? _bosTeamGet("goal:" + _ck) : null;
+    const tHabits = (Array.isArray(_cHabits) && _cHabits.length) ? _cHabits : (Array.isArray(t.habits) ? t.habits : []);
+    const tgt = (_cGoal && _cGoal.target) || t.target || 0;
+    const cur = (_cGoal && _cGoal.current != null) ? _cGoal.current : (t.current != null ? t.current : Math.round((t.progress || 0) * tgt));
     const pct = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
     const sk = goalSkin(t.accent || t.color);
     const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t, from: "habits" });
     // t.members из облачного списка бывает ЧИСЛОМ (count), из снапшота — массивом лиц: guard.
-    const members = Array.isArray(t.members) ? t.members : [];
+    const members = (Array.isArray(_cRoster) && _cRoster.length) ? _cRoster : (Array.isArray(t.members) ? t.members : []);
     // УНИФИКАЦИЯ с плиткой цели и деталью команды (David: «чуть не унифицировано местами»):
     // пульс и здесь — привычка done горит своим цветом (через МОЮ локальную копию по teamHabitId,
-    // id-guard от офлайн-команд без id), лицо участника с отметкой сегодня получает колечко.
+    // id-guard от офлайн-команд без id), кольцо человека = доля закрытых им сегодня привычек
+    // круга (todayUsers из кэша детали), фолбэк — отметка дня из снапшота.
     const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
-    const orbitHabits = (t.habits || []).map((h) => {
+    const orbitHabits = tHabits.map((h) => {
       const mine = (h && h.id != null) ? (habits || []).find((x) => x.teamHabitId === h.id) : null;
-      return { emoji: h && h.emoji, color: (mine && mine.color) || null, done: !!(mine && mine.done) };
+      return { emoji: h && h.emoji, color: (mine && mine.color) || (h && h.color) || null, done: mine ? !!mine.done : !!(h && h.doneByMe) };
     });
-    const orbitPeople = members.filter(Boolean).map((m) => ({ avatar: m.avatar, name: m.name, active: !!(_tk && m.days && m.days[_tk]) }));
+    const _pt = tHabits.length || 0;
+    const _anyTU = tHabits.some((h) => h && Array.isArray(h.todayUsers));
+    const orbitPeople = members.filter(Boolean).map((m) => {
+      let progress = null;
+      if (_pt && _anyTU && m.id != null) progress = tHabits.filter((h) => h && Array.isArray(h.todayUsers) && h.todayUsers.indexOf(m.id) !== -1).length / _pt;
+      return { avatar: m.avatar, name: m.name, active: !!(_tk && m.days && m.days[_tk]), progress };
+    });
     const orbit = goalStyle.orbits && typeof GoalOrbitMini === "function"
       ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={orbitHabits} people={orbitPeople} size={banner ? 132 : 152} dark={isDark} fade progress={pct} />
       : null;

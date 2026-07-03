@@ -262,10 +262,28 @@ function CommunityLive() {
 /* Per-team stale-while-revalidate cache (roster / habits / anchor-progress / goal) so
    re-opening a team renders INSTANTLY from the last-known data instead of flashing through
    a skeleton every time (David: «каждый раз вижу обновление экрана, дёргать не нравится»).
-   Keyed by cloudId; the effects below still revalidate in the background. */
+   Keyed by cloudId; the effects below still revalidate in the background.
+   ПЕРЕЖИВАЕТ ПЕРЕЗАПУСК: write-through в localStorage (David: «при переходе всё двигается,
+   скачок интерфейса» — раньше кэш жил только в памяти и после рестарта Telegram каждый
+   первый вход дёргался). Событие bos:teamCacheChanged — плитка команды на «Привычках»
+   ест ТОТ ЖЕ кэш и обновляется вслед за деталью. */
 var _bosTeamCache = {};
-function _bosTeamGet(k) { return (k && _bosTeamCache[k] !== undefined) ? _bosTeamCache[k] : null; }
-function _bosTeamPut(k, v) { if (k) { _bosTeamCache[k] = v; } return v; }
+function _bosTeamGet(k) {
+  if (!k) return null;
+  if (_bosTeamCache[k] !== undefined) return _bosTeamCache[k];
+  var v = null;
+  try { v = JSON.parse(localStorage.getItem("bos:cache:team:" + k) || "null"); } catch (e) { v = null; }
+  _bosTeamCache[k] = v;
+  return v;
+}
+function _bosTeamPut(k, v) {
+  if (k) {
+    _bosTeamCache[k] = v;
+    try { localStorage.setItem("bos:cache:team:" + k, JSON.stringify(v)); } catch (e) {}
+    try { window.dispatchEvent(new Event("bos:teamCacheChanged")); } catch (e) {}
+  }
+  return v;
+}
 
 /* ОРБИТА КРУГА — герой комнаты команды. ЕДИНЫЙ космос со страницей «Я»: переиспользуем тот же
    общий OrbitField (один стандарт, одна логика расстановки — David: «должно быть едино и целостно,
@@ -495,6 +513,17 @@ function TeamDetailLive() {
   if (meId && main && main.doneByMe) flowSet[meId] = true;
   const orbitFaces = (Array.isArray(members) ? members : []).map((m) => ({ id: m.id, avatar: m.avatar, name: m.name, done: !!flowSet[m.id] }));
   const inFlowToday = (Array.isArray(members) ? members : []).filter((m) => flowSet[m.id]).length;
+  // ПУЛЬС 2.0 (David): кольцо ЧЕЛОВЕКА на орбите = его зона ответственности — доля закрытых
+  // ИМ сегодня привычек круга (2 из 5 → 40% дуги), а центральное кольцо = общий счёт команды.
+  // Данные бесплатные: teamHabitsFull уже несёт todayUsers (см. cloud.js). Себя считаем
+  // ЛОКАЛЬНО (myDone) — кольцо отвечает на отметку мгновенно, без ожидания опроса.
+  const _pulseTotal = teamHabits.length || 0;
+  const _pulseFor = (f) => {
+    if (!_pulseTotal) return null;
+    if (meId && f.id === meId) return teamHabits.filter((h) => myDone(h)).length / _pulseTotal;
+    if (!teamHabits.some((h) => Array.isArray(h.todayUsers))) return null; // старый кэш/оффлайн → active-фолбэк
+    return teamHabits.filter((h) => Array.isArray(h.todayUsers) && h.todayUsers.indexOf(f.id) !== -1).length / _pulseTotal;
+  };
   // ── ЕДИНАЯ СТРАНИЦА ЦЕЛИ (David: «команда = та же цель + блок людей») ──
   // Всё, что ниже, — расчёты для вёрстки-близнеца GoalDetailLive: прогресс/банк/выплаты
   // подняты из бывшей мега-карточки, сами данные и опросы выше НЕ менялись.
@@ -543,7 +572,7 @@ function TeamDetailLive() {
             <div style={{ width: 190, height: 190, margin: "0 auto", display: "grid", placeItems: "center" }}>
               <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={teamColor}
                 habits={teamHabits.map((h) => ({ emoji: h.emoji, color: h.color, done: myDone(h) }))}
-                people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done }))}
+                people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done, progress: _pulseFor(f) }))}
                 size={190} dark={isDark} progress={gp} />
             </div>
             <div style={{ fontSize: 30, fontWeight: 800, marginTop: 12, letterSpacing: "-0.5px", color: "var(--text)" }}><CountC value={Math.round(gp * 100)} />%</div>
