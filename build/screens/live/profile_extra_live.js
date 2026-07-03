@@ -1071,7 +1071,8 @@ function NotifFeedLive({
   onOpenTeam,
   onOpenChat,
   onOpenAccepted,
-  onOpenFriends
+  onOpenFriends,
+  onOpenBuddy
 }) {
   var secHead = t => /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1200,7 +1201,7 @@ function NotifFeedLive({
     }, /*#__PURE__*/React.createElement(I.X, {
       size: 15
     }))), null);
-  }), (data.accepted.length > 0 || data.joined.length > 0 || data.invited.length > 0) && secHead("Новое"), data.accepted.map(a => row("acc-" + a.row.id, emblem(a.row.emblem), "Тебя приняли в «" + a.row.name + "»", "Открыть круг", /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }), (data.accepted.length > 0 || data.joined.length > 0 || (data.buddies || []).length > 0 || data.invited.length > 0) && secHead("Новое"), data.accepted.map(a => row("acc-" + a.row.id, emblem(a.row.emblem), "Тебя приняли в «" + a.row.name + "»", "Открыть круг", /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 16,
     className: "bos-sys-text-3",
     style: {
@@ -1212,7 +1213,13 @@ function NotifFeedLive({
     style: {
       flexShrink: 0
     }
-  }), () => onOpenTeam(j.team))), data.invited.map((p, i) => row("inv-" + i, face({
+  }), () => onOpenTeam(j.team))), (data.buddies || []).map((b, i) => row("bud-" + i, face(b.user), (b.user.name || "Друг") + " присоединился к привычке «" + (b.habit.name || "…") + "»", "Теперь ведёте её вместе — вы видите отметки друг друга", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-3",
+    style: {
+      flexShrink: 0
+    }
+  }), () => onOpenBuddy && onOpenBuddy(b.habit))), data.invited.map((p, i) => row("inv-" + i, face({
     name: p.user.username,
     avatar: p.user.avatar
   }), (p.user.username || "Гость") + " пришёл по твоему приглашению", "Теперь на твоей орбите · +150 XP", /*#__PURE__*/React.createElement(I.ChevronRight, {
@@ -1253,6 +1260,7 @@ function NotificationsLive() {
       joined: [],
       invited: [],
       accepted: [],
+      buddies: [],
       chats: [],
       absorb: null
     };
@@ -1326,6 +1334,10 @@ function NotificationsLive() {
   var openFriends = () => navigate("friends", {
     from: "notifications"
   });
+  var openBuddy = h => navigate("habit-detail", {
+    habit: h,
+    from: "notifications"
+  });
   var openAccepted = row => {
     // Круг ещё не в моих «Целях» (вступление подтвердил владелец, не я) → добавим локально
     // тем же форматом, что joinViaLink в shell, снимем «стук» и откроем комнату.
@@ -1368,10 +1380,12 @@ function NotificationsLive() {
     joined: [],
     invited: [],
     accepted: [],
+    buddies: [],
     chats: []
   }) : data;
-  var isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !shown.chats.length;
-  var canClear = shown && (shown.joined.length || shown.invited.length || shown.accepted.length || shown.chats.length) ? true : false;
+  var _bud = shown && shown.buddies || [];
+  var isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !_bud.length && !shown.chats.length;
+  var canClear = shown && (shown.joined.length || shown.invited.length || shown.accepted.length || _bud.length || shown.chats.length) ? true : false;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1465,7 +1479,8 @@ function NotificationsLive() {
     onOpenTeam: openTeam,
     onOpenChat: openChat,
     onOpenAccepted: openAccepted,
-    onOpenFriends: openFriends
+    onOpenFriends: openFriends,
+    onOpenBuddy: openBuddy
   }));
 }
 function HistoryLive() {

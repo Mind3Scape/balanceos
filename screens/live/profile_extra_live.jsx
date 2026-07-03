@@ -389,7 +389,7 @@ function SettingsLive() {
 /* Лента уведомлений — ПРЕЗЕНТАЦИЯ (секция Б): «Требует решения» (заявки, Принять/✕),
    «Новое» (тебя приняли / вступили в круг / пришли по твоей ссылке), «Сообщения»
    (непрочитанные чаты). Отделена от загрузки, чтобы рендериться и с готовыми данными. */
-function NotifFeedLive({ data, busy, onApprove, onReject, onOpenTeam, onOpenChat, onOpenAccepted, onOpenFriends }) {
+function NotifFeedLive({ data, busy, onApprove, onReject, onOpenTeam, onOpenChat, onOpenAccepted, onOpenFriends, onOpenBuddy }) {
   const secHead = (t) => (
     <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "8px 4px 0" }}>{t}</div>
   );
@@ -430,7 +430,7 @@ function NotifFeedLive({ data, busy, onApprove, onReject, onOpenTeam, onOpenChat
           null);
       })}
 
-      {(data.accepted.length > 0 || data.joined.length > 0 || data.invited.length > 0) && secHead("Новое")}
+      {(data.accepted.length > 0 || data.joined.length > 0 || (data.buddies || []).length > 0 || data.invited.length > 0) && secHead("Новое")}
       {data.accepted.map((a) => row("acc-" + a.row.id, emblem(a.row.emblem),
         "Тебя приняли в «" + a.row.name + "»", "Открыть круг",
         <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }} />,
@@ -439,6 +439,12 @@ function NotifFeedLive({ data, busy, onApprove, onReject, onOpenTeam, onOpenChat
         (j.user.name || "Гость") + " теперь в «" + j.team.name + "»", "Вступил по ссылке-приглашению",
         <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }} />,
         () => onOpenTeam(j.team)))}
+      {/* Совместные ПРИВЫЧКИ: друг вступил по твоей ссылке hb_ — теперь ведёте вместе. */}
+      {(data.buddies || []).map((b, i) => row("bud-" + i, face(b.user),
+        (b.user.name || "Друг") + " присоединился к привычке «" + (b.habit.name || "…") + "»",
+        "Теперь ведёте её вместе — вы видите отметки друг друга",
+        <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }} />,
+        () => onOpenBuddy && onOpenBuddy(b.habit)))}
       {data.invited.map((p, i) => row("inv-" + i, face({ name: p.user.username, avatar: p.user.avatar }),
         (p.user.username || "Гость") + " пришёл по твоему приглашению", "Теперь на твоей орбите · +150 XP",
         <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }} />,
@@ -466,7 +472,7 @@ function NotificationsLive() {
   const [cleared, setCleared] = React.useState(false); // «Очистить» прячет «Новое»+«Сообщения»
   React.useEffect(() => {
     let on = true;
-    const emptyD = { requests: [], joined: [], invited: [], accepted: [], chats: [], absorb: null };
+    const emptyD = { requests: [], joined: [], invited: [], accepted: [], buddies: [], chats: [], absorb: null };
     if (!(window.bosCloud && window.bosCloud.enabled()) || typeof bosNotifCollectLive !== "function") { setData(emptyD); return; }
     bosNotifCollectLive(app).then((d) => {
       if (!on) return;
@@ -500,6 +506,7 @@ function NotificationsLive() {
   const openChat = (t) => { try { localStorage.setItem("bos:chatread:" + t.cloudId, String(Date.now())); } catch (e) {} navigate("team-chat", { team: t, from: "notifications" }); };
   const openTeam = (t) => navigate("team-detail", { team: t, from: "notifications" });
   const openFriends = () => navigate("friends", { from: "notifications" });
+  const openBuddy = (h) => navigate("habit-detail", { habit: h, from: "notifications" });
   const openAccepted = (row) => {
     // Круг ещё не в моих «Целях» (вступление подтвердил владелец, не я) → добавим локально
     // тем же форматом, что joinViaLink в shell, снимем «стук» и откроем комнату.
@@ -516,9 +523,10 @@ function NotificationsLive() {
     setCleared(true);
   };
   const loading = data === null;
-  const shown = loading ? null : (cleared ? Object.assign({}, data, { joined: [], invited: [], accepted: [], chats: [] }) : data);
-  const isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !shown.chats.length;
-  const canClear = shown && (shown.joined.length || shown.invited.length || shown.accepted.length || shown.chats.length) ? true : false;
+  const shown = loading ? null : (cleared ? Object.assign({}, data, { joined: [], invited: [], accepted: [], buddies: [], chats: [] }) : data);
+  const _bud = (shown && shown.buddies) || [];
+  const isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !_bud.length && !shown.chats.length;
+  const canClear = shown && (shown.joined.length || shown.invited.length || shown.accepted.length || _bud.length || shown.chats.length) ? true : false;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Уведомления" onBack={() => navigate(params?.from || "profile")} right={
@@ -546,7 +554,7 @@ function NotificationsLive() {
         <NotifFeedLive data={shown} busy={busy}
           onApprove={approve} onReject={reject}
           onOpenTeam={openTeam} onOpenChat={openChat}
-          onOpenAccepted={openAccepted} onOpenFriends={openFriends} />
+          onOpenAccepted={openAccepted} onOpenFriends={openFriends} onOpenBuddy={openBuddy} />
       )}
     </div>
   );

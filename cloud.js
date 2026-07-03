@@ -555,6 +555,23 @@
     try { var r = await c.from("messages").insert({ team_id: teamId, user_id: id, text: (msg && msg.text) || null, image_url: (msg && msg.imageUrl) || null }).select().single(); return r.data || null; }
     catch (e) { return null; }
   }
+  // ЛЁГКИЙ счёт непрочитанных для шторки/точки: count-only HEAD-запрос вместо полной ленты
+  // (раньше сборщик тянул до 200 строк текста НА КАЖДЫЙ круг только чтобы посчитать) + одно
+  // последнее чужое сообщение для превью. При сотнях людей это главная экономия чтения.
+  async function unreadMessages(teamId, sinceMs) {
+    var c = client(); var id = await uid(); if (!c || !teamId) return null;
+    try {
+      var sinceIso = new Date(sinceMs || 0).toISOString();
+      var cnt = await c.from("messages").select("id", { count: "exact", head: true })
+        .eq("team_id", teamId).neq("user_id", id).gt("created_at", sinceIso);
+      if (cnt.error) return null;
+      var n = cnt.count || 0;
+      if (!n) return { count: 0, last: null };
+      var lr = await c.from("messages").select("id,user_id,text,image_url,created_at")
+        .eq("team_id", teamId).neq("user_id", id).order("created_at", { ascending: false }).limit(1);
+      return { count: n, last: (lr.data && lr.data[0]) || null };
+    } catch (e) { return null; }
+  }
   // Realtime: calls onInsert(row) for every new message in this team. Returns unsubscribe().
   function subscribeMessages(teamId, onInsert) {
     var c = client(); if (!c || !teamId) return function () {};
@@ -789,7 +806,7 @@
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
-    loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto,
+    loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
     signOut: signOut,
     _client: client,

@@ -984,12 +984,13 @@ function bosNotifSeenSet(uid, patch) {
 /* Полный сбор для шторки. Возвращает { requests, joined, invited, accepted, chats, absorb };
    absorb скармливается bosNotifAbsorbLive ПОСЛЕ показа (метит виденное, гасит точку). */
 async function bosNotifCollectLive(app) {
-  const out = { requests: [], joined: [], invited: [], accepted: [], chats: [], absorb: null };
+  const out = { requests: [], joined: [], invited: [], accepted: [], buddies: [], chats: [], absorb: null };
   if (!(window.bosCloud && window.bosCloud.enabled())) return out;
   let me = null; try { me = await window.bosCloud.uid(); } catch (e) {}
   const seen = bosNotifSeenGet(me);
   const teams = (app?.teams || []).filter((t) => t.cloudId);
-  const absorb = { inv: [], members: {} };
+  const shHabits = (app?.habits || []).filter((h) => h && h.shareCode);
+  const absorb = { inv: [], members: {}, buddies: {} };
   await Promise.all([
     // Заявки — только в круги, где я владелец (создатель, не joined).
     ...teams.filter((t) => !t.joined).map(async (t) => {
@@ -1034,12 +1035,30 @@ async function bosNotifCollectLive(app) {
         } catch (e) {}
       }));
     })(),
-    // Непрочитанные чаты — прежний честный механизм.
+    // Совместные ПРИВЫЧКИ (buddy по shareCode): дифф участников против «виденных» —
+    // «X теперь ведёт привычку с тобой» (David: друг вступил в привычку — а у обоих тишина).
+    ...shHabits.map(async (h) => {
+      try {
+        if (!window.bosCloud.sharedHabitProgress) return;
+        const d = await window.bosCloud.sharedHabitProgress(h.shareCode);
+        const ms = (d && d.members) || [];
+        const known = seen.buddies && seen.buddies[h.shareCode];
+        if (Array.isArray(known)) ms.forEach((m) => { if (m && m.id !== me && known.indexOf(m.id) < 0) out.buddies.push({ habit: h, user: m }); });
+        absorb.buddies[h.shareCode] = ms.map((m) => m && m.id).filter(Boolean);
+      } catch (e) {}
+    }),
+    // Непрочитанные чаты. Новый путь — ЛЁГКИЙ count-запрос (cloud.unreadMessages) вместо
+    // полной ленты на каждый круг; старый полный fetch остаётся фолбэком.
     ...teams.map(async (t) => {
       try {
+        const lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
+        if (window.bosCloud.unreadMessages) {
+          const u = await window.bosCloud.unreadMessages(t.cloudId, lastRead);
+          if (u && u.count) out.chats.push({ team: t, count: u.count, last: u.last });
+          if (u) return; // null → облако споткнулось, попробуем фолбэк ниже
+        }
         const rows = await window.bosCloud.loadMessages(t.cloudId);
         if (!Array.isArray(rows) || !rows.length) return;
-        const lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
         const unread = rows.filter((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead);
         if (unread.length) out.chats.push({ team: t, count: unread.length, last: unread[unread.length - 1] });
       } catch (e) {}
@@ -1055,7 +1074,8 @@ function bosNotifAbsorbLive(absorb) {
   let me = null; try { me = window.bosCloud && window.bosCloud.uidSync && window.bosCloud.uidSync(); } catch (e) {}
   const cur = bosNotifSeenGet(me);
   const members = Object.assign({}, cur.members || {}, absorb.members || {});
-  bosNotifSeenSet(me, { inv: absorb.inv || cur.inv || [], members: members });
+  const buddies = Object.assign({}, cur.buddies || {}, absorb.buddies || {});
+  bosNotifSeenSet(me, { inv: absorb.inv || cur.inv || [], members: members, buddies: buddies });
   try { localStorage.removeItem("bos:cache:notifdot:" + (me || "local")); } catch (e) {}
   try { window.dispatchEvent(new Event("bos:notifSeenChanged")); } catch (e) {}
 }
@@ -1077,7 +1097,7 @@ async function bosNotifHasFreshLive(app) {
     if (c && Date.now() - c.at < 10 * 60 * 1000) return !!c.v;
   } catch (e) {}
   const d = await bosNotifCollectLive(app);
-  const has = !!(d.requests.length || d.joined.length || d.invited.length || d.accepted.length || d.chats.length);
+  const has = !!(d.requests.length || d.joined.length || d.invited.length || d.accepted.length || d.buddies.length || d.chats.length);
   try { localStorage.setItem(KEY, JSON.stringify({ v: has, at: Date.now() })); } catch (e) {}
   // Первый взгляд: если «виденных» ещё нет вообще — тихо поглотим базу, чтобы у
   // старожила не вспыхнула точка задним числом на всю историю.
