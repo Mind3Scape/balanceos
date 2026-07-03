@@ -329,13 +329,13 @@ function GoalDetailLive() {
         </button>
       </div>
 
-      {/* ИДТИ К ЦЕЛИ ВМЕСТЕ — превращает ЭТУ цель в общий круг НА МЕСТЕ (David): переносит привычки,
-          зовёшь людей. Тап → лёгкое подтверждение → bosPromoteGoalToCircle. */}
+      {/* ИДТИ К ЦЕЛИ ВМЕСТЕ — БЕЗ шторок и подтверждений (David: «просто должен появиться блок
+          с людьми, ничего в лицо не пихаем»): тап → цель тихо становится общей, остаёшься на
+          ТОЙ ЖЕ (единой) странице, где вырос блок «Люди» с «Позвать людей». Захочет настроить
+          режим/ставку — сам зайдёт в карандашик. */}
       <button className="tap" onClick={() => {
-        const go = () => { if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, { navigate, from: back, onShare: (t) => openSheet(<TeamShareSheetLive team={t} />) }); };
-        if (typeof ConfirmActionSheet === "function") {
-          openSheet(<ConfirmActionSheet emoji="👥" title="Вести цель вместе?" message={"«" + g.name + "» станет общим кругом: твои привычки перейдут в него, и ты позовёшь людей. Отмечаешь у себя — идёт в общий счёт."} confirmLabel="Позвать людей" confirmIcon={I.Users} onConfirm={go} />);
-        } else { go(); }
+        if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, { navigate, from: back });
+        if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
       }}
         style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22, width: "100%", display: "flex", alignItems: "center", gap: 12, border: 0, textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
         <span style={{ width: 38, height: 38, borderRadius: 13, background: g.color ? g.color + "22" : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color={g.color || (isDark ? "#fff" : "#0a0a0a")} /></span>

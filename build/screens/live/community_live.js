@@ -890,7 +890,7 @@ function TeamDetailLive() {
   // привычка отмечается через её личную копию (один источник) — никакого прямого team-write.
   var myHabits = app?.habits || [];
   var _todayK = new Date().toISOString().slice(0, 10);
-  var adoptedFor = h => h && myHabits.find(x => x.teamHabitId === h.id);
+  var adoptedFor = h => h && h.id != null ? myHabits.find(x => x.teamHabitId === h.id) : null; // id-guard: у офлайн-команды привычки без id — undefined===undefined ложно матчил первую попавшуюся
   var _dupeFor = h => h && myHabits.find(x => !x.teamHabitId && (x.name || "").trim().toLowerCase() === (h.name || "").trim().toLowerCase());
   var _createLinkedHabit = h => {
     app?.addHabit({

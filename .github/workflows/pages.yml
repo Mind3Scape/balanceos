@@ -1,0 +1,34 @@
+# Публикация BalanceOS на GitHub Pages СОБСТВЕННЫМ workflow.
+# Причина: легаси-конвейер «pages build and deployment» намертво заклинило зомби-ранами
+# (queued с 02.07, ни cancel, ни delete их не берут) — каждый второй деплой умирал по
+# таймауту в очереди за ними. Свой workflow = своя чистая очередь; cancel-in-progress
+# гарантирует «последний пуш побеждает» без хвостов.
+name: Deploy Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: bos-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

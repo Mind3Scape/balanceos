@@ -756,26 +756,14 @@ function GoalDetailLive() {
   }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0446\u0435\u043B\u0438"))), /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {
-      var go = () => {
-        if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, {
-          navigate,
-          from: back,
-          onShare: t => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
-            team: t
-          }))
-        });
-      };
-      if (typeof ConfirmActionSheet === "function") {
-        openSheet(/*#__PURE__*/React.createElement(ConfirmActionSheet, {
-          emoji: "\uD83D\uDC65",
-          title: "\u0412\u0435\u0441\u0442\u0438 \u0446\u0435\u043B\u044C \u0432\u043C\u0435\u0441\u0442\u0435?",
-          message: "«" + g.name + "» станет общим кругом: твои привычки перейдут в него, и ты позовёшь людей. Отмечаешь у себя — идёт в общий счёт.",
-          confirmLabel: "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439",
-          confirmIcon: I.Users,
-          onConfirm: go
-        }));
-      } else {
-        go();
+      if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, {
+        navigate,
+        from: back
+      });
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
       }
     },
     style: {
