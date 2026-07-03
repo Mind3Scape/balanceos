@@ -444,7 +444,7 @@ function ProfileLive() {
       padding: 0,
       overflow: "hidden"
     }
-  }, navRow(I.Settings, "Настройки", "settings"), navRow(I.Bell, "Уведомления", "notifications"), navRow(I.Help, "Поддержка и помощь", "support", true)), /*#__PURE__*/React.createElement(SysBtn, {
+  }, navRow(I.Compass, "Как устроен Balance", "guide"), navRow(I.Settings, "Настройки", "settings"), navRow(I.Bell, "Уведомления", "notifications"), navRow(I.Help, "Поддержка и помощь", "support", true)), /*#__PURE__*/React.createElement(SysBtn, {
     onClick: () => navigate("onboarding", {
       from: "profile"
     }),
@@ -470,7 +470,15 @@ function ProfileLive() {
       fontSize: 16,
       fontWeight: 600
     }
-  }, "\u0412\u044B\u0439\u0442\u0438")));
+  }, "\u0412\u044B\u0439\u0442\u0438")), /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      textAlign: "center",
+      padding: "18px 14px 4px",
+      fontSize: 12.5,
+      opacity: 0.85
+    }
+  }, "\u0421\u0434\u0435\u043B\u0430\u043D\u043E \u0441 \uD83D\uDC9B"));
 }
 function AILive() {
   var {

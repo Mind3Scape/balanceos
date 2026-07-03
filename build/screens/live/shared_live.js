@@ -4118,6 +4118,7 @@ function BosReorderList({
   };
   var dark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   return /*#__PURE__*/React.createElement(React.Fragment, null, mode && ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
+    className: "bos-reorder-float",
     style: {
       position: "absolute",
       bottom: "calc(var(--bos-safe-bottom, 0px) + 94px)",
@@ -4452,6 +4453,7 @@ function BosReorderGrid({
     };
   };
   return /*#__PURE__*/React.createElement(React.Fragment, null, mode && ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
+    className: "bos-reorder-float",
     style: {
       position: "absolute",
       bottom: "calc(var(--bos-safe-bottom, 0px) + 94px)",
@@ -4622,17 +4624,16 @@ function WidgetMinusLive({
   }));
 }
 
-/* Bottom sheet to turn home widgets ON/OFF — one glassy place to manage the board (David: «шторка
-   с виджетами, которые можно включить или выключить, со стеклом»). Reads app.widgets live, so the
-   board behind updates as you flip switches. `defs` = the full catalogue [{ id, t, d, emoji }]; LIVE. */
-function AddWidgetSheetLive({
-  defs = [],
+/* ЕДИНАЯ ГАЛЕРЕЯ ГЛАВНОГО ЭКРАНА — полный каталог того, что может жить на доске: виджеты,
+   привычки, цели и совместные цели. Одна логика для шторки «+» (AddWidgetSheetLive) и страницы
+   настроек «Главный экран» (HomeCustomizeLive) — никакого дрейфа. Правила видимости:
+   - виджет включён = "w:<id>" есть в order (виджеты сами на доску не добираются);
+   - плитка включена = её ключ НЕ в hidden (добор в home_live сам держит живые плитки на доске).
+   Поэтому у плиток тумблер честно показывает «на главной», даже если ключ ещё не персистнут. */
+function HomeGalleryContentLive({
   dark = false
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
-  // v528 (Д): видимость решает homeLayout (order/hidden), не widgets{} — главная стала
-  // свободной сеткой. Тумблер виджета = добавить/убрать из order; скрытые ПЛИТКИ привычек
-  // и целей (минус в тряске / «Убрать с главной») возвращаются отсюда же.
   var layout = app && app.homeLayout && Array.isArray(app.homeLayout.order) ? app.homeLayout : {
     order: [],
     hidden: []
@@ -4646,122 +4647,28 @@ function AddWidgetSheetLive({
       } catch (e) {}
     }
   };
-  var toggleWidget = id => {
-    var k = "w:" + id;
-    if (!app || !app.setHomeLayout) return;
-    if (inOrder(k)) app.setHomeLayout({
-      order: layout.order.filter(x => x !== k),
-      hidden: hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden
-    });else app.setHomeLayout({
-      order: layout.order.concat([k]),
-      hidden: hidden.filter(x => x !== k)
-    });
-    haptic();
-  };
-  var hiddenTiles = hidden.filter(k => k.indexOf("h:") === 0 || k.indexOf("g:") === 0).map(k => {
-    if (k.indexOf("h:") === 0) {
-      var h = (app?.habits || []).find(x => "h:" + x.id === k);
-      return h ? {
-        k,
-        emoji: h.emoji || "🌱",
-        name: h.name
-      } : null;
-    }
-    var g = (app?.goals || []).find(x => "g:" + x.id === k);
-    return g ? {
-      k,
-      emoji: g.emoji || "🎯",
-      name: g.name
-    } : null;
-  }).filter(Boolean);
-  var restoreTile = k => {
+  var setL = (order, hid) => {
     if (app && app.setHomeLayout) {
       app.setHomeLayout({
-        order: layout.order.concat([k]),
-        hidden: hidden.filter(x => x !== k)
+        order,
+        hidden: hid
       });
       haptic();
     }
   };
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "2px 18px 8px",
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 20,
-      fontWeight: 800,
-      letterSpacing: "-0.3px"
-    }
-  }, "\u0412\u0438\u0434\u0436\u0435\u0442\u044B \u0433\u043B\u0430\u0432\u043D\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-3)",
-      marginTop: 5
-    }
-  }, "\u0427\u0442\u043E \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, defs.map(o => {
-    var on = inOrder("w:" + o.id);
-    return /*#__PURE__*/React.createElement("div", {
-      key: o.id,
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 13,
-        width: "100%",
-        padding: 12,
-        borderRadius: 18,
-        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
-        boxShadow: bosTileGlass(dark)
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 40,
-        height: 40,
-        borderRadius: 13,
-        display: "grid",
-        placeItems: "center",
-        fontSize: 20,
-        flexShrink: 0,
-        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"),
-        boxShadow: bosTileGlass(dark),
-        opacity: on ? 1 : 0.5,
-        transition: "opacity 0.2s"
-      }
-    }, o.emoji), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0,
-        opacity: on ? 1 : 0.55,
-        transition: "opacity 0.2s"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15.5,
-        fontWeight: 600
-      }
-    }, o.t), o.d && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12.5,
-        color: "var(--text-4)",
-        marginTop: 1
-      }
-    }, o.d)), /*#__PURE__*/React.createElement(Switch, {
-      on: on,
-      onChange: () => toggleWidget(o.id)
-    }));
-  })), hiddenTiles.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  var toggleWidget = id => {
+    var k = "w:" + id;
+    if (inOrder(k)) setL(layout.order.filter(x => x !== k), hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden);else setL(layout.order.concat([k]), hidden.filter(x => x !== k));
+  };
+  var tileOn = k => hidden.indexOf(k) < 0;
+  var toggleTile = k => {
+    if (tileOn(k)) setL(layout.order.filter(x => x !== k), hidden.concat([k]));else setL(inOrder(k) ? layout.order : layout.order.concat([k]), hidden.filter(x => x !== k));
+  };
+  var defs = typeof BOS_HOME_WIDGETS !== "undefined" ? BOS_HOME_WIDGETS : [];
+  var habits = app && app.habits || [];
+  var goals = app && app.goals || [];
+  var teams = app && app.teams || [];
+  var kicker = txt => /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 700,
@@ -4770,14 +4677,16 @@ function AddWidgetSheetLive({
       color: "var(--text-4)",
       padding: "16px 4px 8px"
     }
-  }, "\u0421\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, hiddenTiles.map(tle => /*#__PURE__*/React.createElement("div", {
-    key: tle.k,
+  }, txt);
+  var row = ({
+    key,
+    icon,
+    name,
+    sub,
+    on,
+    onToggle
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: key,
     style: {
       display: "flex",
       alignItems: "center",
@@ -4798,32 +4707,129 @@ function AddWidgetSheetLive({
       fontSize: 20,
       flexShrink: 0,
       background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"),
-      boxShadow: bosTileGlass(dark)
+      boxShadow: bosTileGlass(dark),
+      opacity: on ? 1 : 0.5,
+      transition: "opacity 0.2s"
     }
-  }, typeof bosIcon === "function" ? bosIcon(tle.emoji, 20, null) : tle.emoji), /*#__PURE__*/React.createElement("div", {
+  }, icon), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0,
+      opacity: on ? 1 : 0.55,
+      transition: "opacity 0.2s"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       fontSize: 15.5,
       fontWeight: 600,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, tle.name), /*#__PURE__*/React.createElement("button", {
-    onClick: () => restoreTile(tle.k),
-    className: "tap",
+  }, name), sub && /*#__PURE__*/React.createElement("div", {
     style: {
-      border: 0,
-      cursor: "pointer",
-      borderRadius: 999,
-      padding: "9px 15px",
-      fontSize: 13,
-      fontWeight: 600,
-      background: "var(--cta, #0a0a0a)",
-      color: "var(--cta-ink, #fff)"
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 1
     }
-  }, "\u0412\u0435\u0440\u043D\u0443\u0442\u044C"))))));
+  }, sub)), /*#__PURE__*/React.createElement(Switch, {
+    on: on,
+    onChange: onToggle
+  }));
+  var list = items => /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, items);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--text)"
+    }
+  }, kicker("Виджеты"), list(defs.map(o => row({
+    key: "w:" + o.id,
+    icon: o.emoji,
+    name: o.t,
+    sub: o.d,
+    on: inOrder("w:" + o.id),
+    onToggle: () => toggleWidget(o.id)
+  }))), habits.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Привычки"), list(habits.map(h => {
+    var k = "h:" + h.id;
+    return row({
+      key: k,
+      icon: typeof bosIcon === "function" ? bosIcon(h.emoji || "🌱", 20, h.color) : h.emoji || "🌱",
+      name: h.name,
+      sub: null,
+      on: tileOn(k),
+      onToggle: () => toggleTile(k)
+    });
+  }))), goals.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Цели"), list(goals.map(g => {
+    var k = "g:" + g.id;
+    return row({
+      key: k,
+      icon: typeof bosIcon === "function" ? bosIcon(g.emoji || "🎯", 20, g.color) : g.emoji || "🎯",
+      name: g.name,
+      sub: null,
+      on: tileOn(k),
+      onToggle: () => toggleTile(k)
+    });
+  }))), teams.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Совместные цели"), list(teams.map(t => {
+    var k = typeof bosTeamKeyLive === "function" ? bosTeamKeyLive(t) : "t:" + (t.cloudId || t._id || t.id);
+    var n = Array.isArray(t.members) ? t.members.length : 0;
+    return row({
+      key: k,
+      icon: typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 20, t.accent) : t.emblem || "👥",
+      name: t.name,
+      sub: "Вместе" + (n ? " · " + n : ""),
+      on: tileOn(k),
+      onToggle: () => toggleTile(k)
+    });
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      lineHeight: 1.5,
+      padding: "14px 4px 0",
+      textAlign: "center"
+    }
+  }, "\u0412\u0441\u0451 \u044D\u0442\u043E \u2014 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u0433\u043B\u0430\u0432\u043D\u043E\u0439. \u0417\u0430\u0436\u043C\u0438 \u043B\u044E\u0431\u0443\u044E \u043F\u0440\u044F\u043C\u043E \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439, \u0447\u0442\u043E\u0431\u044B \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0438\u043B\u0438 \u0443\u0431\u0440\u0430\u0442\u044C."));
+}
+
+/* Шторка «+» на главной — тонкая обёртка над единой галереей (см. HomeGalleryContentLive).
+   bos-sheet-scroll: каталог длинный (все привычки и цели), тело шторки скроллится само. */
+function AddWidgetSheetLive({
+  defs = [],
+  dark = false
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "bos-sheet-scroll",
+    style: {
+      paddingLeft: 18,
+      paddingRight: 18,
+      paddingBottom: 8,
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 800,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0413\u043B\u0430\u0432\u043D\u044B\u0439 \u044D\u043A\u0440\u0430\u043D"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-3)",
+      marginTop: 5
+    }
+  }, "\u0421\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439: \u0432\u0438\u0434\u0436\u0435\u0442\u044B, \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u0446\u0435\u043B\u0438")), /*#__PURE__*/React.createElement(HomeGalleryContentLive, {
+    dark: dark
+  }));
 }
 
 /* «+» (Главная и Привычки) — КЛАССИЧЕСКИЙ стеклянный поповер (David: «нравилась небольшая
@@ -5352,6 +5358,296 @@ function HabitTileLive({
       paddingTop: cardStyle.name ? 0 : 12
     }
   }, marks));
+}
+/* Стабильный ключ плитки круга для homeLayout: облачный id живёт дольше локального. */
+function bosTeamKeyLive(t) {
+  if (!t) return "t:";
+  var id = t.cloudId != null && t.cloudId !== "" ? t.cloudId : t._id != null ? t._id : t.id;
+  return "t:" + id;
+}
+
+/* ПЛИТКА КРУГА (совместной цели) — вынесена из habits_live в ОБЩИЙ компонент, потому что
+   теперь живёт и на ГЛАВНОЙ (ключи t:<id> в homeLayout), не только на «Привычках».
+   Та же форма, что плитка цели (goalStyle: баннер/квадрат + орбиты + прогресс), но эмблема,
+   ЛИЦА участников и командный счёт; ест stale-while-revalidate кэш детали (_bosTeamGet). */
+function TeamTileLive({
+  team: t,
+  ctx = {
+    mode: false
+  },
+  from = "habits"
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var navigate = (typeof useNav === "function" ? useNav() : {}).navigate || function () {};
+  var isDark = !!(app && app.themeOverride === "dark");
+  var goalStyle = useBosGoalStyle();
+  var habits = app && app.habits || [];
+  var banner = goalStyle.form === "banner";
+  var _ck = t.cloudId || null;
+  var _cHabits = _ck && typeof _bosTeamGet === "function" ? _bosTeamGet("habits:" + _ck) : null;
+  var _cRoster = _ck && typeof _bosTeamGet === "function" ? _bosTeamGet("roster:" + _ck) : null;
+  var _cGoal = _ck && typeof _bosTeamGet === "function" ? _bosTeamGet("goal:" + _ck) : null;
+  var tHabits = Array.isArray(_cHabits) && _cHabits.length ? _cHabits : Array.isArray(t.habits) ? t.habits : [];
+  var tgt = _cGoal && _cGoal.target || t.target || 0;
+  var cur = _cGoal && _cGoal.current != null ? _cGoal.current : t.current != null ? t.current : Math.round((t.progress || 0) * tgt);
+  var pct = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
+  var sk = bosGoalSkin(t.accent || t.color, isDark);
+  var onOpen = ctx.mode ? undefined : () => navigate("team-detail", {
+    team: t,
+    from: from
+  });
+  // t.members из облачного списка бывает ЧИСЛОМ (count), из снапшота — массивом лиц: guard.
+  var members = Array.isArray(_cRoster) && _cRoster.length ? _cRoster : Array.isArray(t.members) ? t.members : [];
+  // Пульс: привычка done горит своим цветом (моя локальная копия по teamHabitId), кольцо
+  // человека = доля закрытых им сегодня привычек круга (todayUsers из кэша детали).
+  var _tk = typeof bosTodayKey === "function" ? bosTodayKey() : null;
+  var orbitHabits = tHabits.map(h => {
+    var mine = h && h.id != null ? (habits || []).find(x => x.teamHabitId === h.id) : null;
+    return {
+      emoji: h && h.emoji,
+      color: mine && mine.color || h && h.color || null,
+      done: mine ? !!mine.done : !!(h && h.doneByMe)
+    };
+  });
+  var _pt = tHabits.length || 0;
+  var _anyTU = tHabits.some(h => h && Array.isArray(h.todayUsers));
+  var orbitPeople = members.filter(Boolean).map(m => {
+    var progress = null;
+    if (_pt && _anyTU && m.id != null) progress = tHabits.filter(h => h && Array.isArray(h.todayUsers) && h.todayUsers.indexOf(m.id) !== -1).length / _pt;
+    return {
+      avatar: m.avatar,
+      name: m.name,
+      active: !!(_tk && m.days && m.days[_tk]),
+      progress
+    };
+  });
+  var orbit = goalStyle.orbits && typeof GoalOrbitMini === "function" ? /*#__PURE__*/React.createElement(GoalOrbitMini, {
+    centerEmoji: t.emblem || "👥",
+    centerColor: t.accent || t.color,
+    habits: orbitHabits,
+    people: orbitPeople,
+    size: banner ? 132 : 152,
+    dark: isDark,
+    fade: true,
+    progress: pct
+  }) : null;
+  var faces = !orbit && members.length ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(PeopleStackLive, {
+    people: members,
+    size: 20,
+    max: 3
+  })) : null;
+  var pctEl = /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800,
+      color: sk.hasColor ? sk.txt : sk.accent,
+      fontVariantNumeric: "tabular-nums",
+      flexShrink: 0
+    }
+  }, Math.round(pct * 100), "%");
+  var valTxt = t.target ? cur + " / " + tgt + " " + (t.unit || "") : Math.round(pct * 100) + "%";
+  var progBar = goalStyle.progress ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: sk.lbl,
+      textTransform: "uppercase",
+      letterSpacing: 0.7
+    }
+  }, "\u0426\u0435\u043B\u044C"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: sk.val,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, valTxt)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 7,
+      borderRadius: 999,
+      background: sk.track,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: pct * 100 + "%",
+      borderRadius: 999,
+      background: sk.hasColor ? sk.fill : "linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + sk.accent
+    }
+  }))) : null;
+  var icon = /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      background: sk.iconBg,
+      boxShadow: bosTileGlass(isDark),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20,
+      flexShrink: 0
+    }
+  }, bosIcon(t.emblem || "👥", 22, sk.hasColor ? sk.iconInk : t.accent || t.color));
+  if (banner) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: ctx.mode ? "" : "tap",
+      onClick: onOpen,
+      style: {
+        background: sk.bg,
+        borderRadius: 22,
+        boxShadow: sk.shadow,
+        padding: 16,
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        minHeight: 116,
+        pointerEvents: ctx.mode ? "none" : "auto",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: 11
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 12
+      }
+    }, !orbit && icon, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, goalStyle.name && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 16,
+        fontWeight: 700,
+        color: sk.txt,
+        letterSpacing: "-0.3px",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, t.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: sk.sub,
+        marginTop: 1
+      }
+    }, "\u0412\u043C\u0435\u0441\u0442\u0435", members.length ? " · " + members.length : "")), !orbit && (faces || pctEl)), progBar), orbit);
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    className: ctx.mode ? "" : "tap",
+    onClick: onOpen,
+    style: {
+      background: sk.bg,
+      borderRadius: 22,
+      boxShadow: sk.shadow,
+      padding: "13px 13px 12px",
+      height: orbit ? 146 : undefined,
+      minHeight: 146,
+      boxSizing: "border-box",
+      position: "relative",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      justifyContent: "flex-start",
+      textAlign: "left",
+      pointerEvents: ctx.mode ? "none" : "auto",
+      overflow: "hidden"
+    }
+  }, orbit ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%, -50%)",
+      pointerEvents: "none"
+    }
+  }, orbit), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "auto",
+      position: "relative",
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      gap: 8
+    }
+  }, goalStyle.name ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 14,
+      fontWeight: 600,
+      color: sk.txt,
+      letterSpacing: "-0.2px",
+      lineHeight: 1.2,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, t.name) : /*#__PURE__*/React.createElement("span", null), goalStyle.progress && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: sk.hasColor ? sk.txt : sk.accent,
+      fontVariantNumeric: "tabular-nums",
+      flexShrink: 0
+    }
+  }, Math.round(pct * 100), "%"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8
+    }
+  }, icon, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexShrink: 0
+    }
+  }, faces, pctEl)), goalStyle.name && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      fontSize: 15,
+      fontWeight: 600,
+      color: sk.txt,
+      letterSpacing: "-0.2px",
+      lineHeight: 1.25,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden"
+    }
+  }, t.name), progBar && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "auto",
+      paddingTop: 12
+    }
+  }, progBar)));
 }
 function GoalTileLive({
   goal,

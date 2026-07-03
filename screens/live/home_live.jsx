@@ -22,26 +22,6 @@ class WidgetBoundaryLive extends React.Component {
   render() { return this.state.dead ? null : this.props.children; }
 }
 
-// Обёртка плитки на ГЛАВНОЙ: удержание (~480мс) открывает то же меню, что на «Привычках» (Поделиться/
-// Удалить), тап проходит в detail. Свайпа тут нет — это карточки-плитки, а не строки. `full` → плитка
-// во всю ширину сетки (строка привычки / баннер цели), иначе половина (квадрат).
-function HomeTileLP({ onLongPress, full, children }) {
-  const t = React.useRef(null), fired = React.useRef(false), sx = React.useRef(0), sy = React.useRef(0);
-  const clear = () => { if (t.current) { clearTimeout(t.current); t.current = null; } };
-  const down = (e) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    // Гасим всплытие → удержание на ПЛИТКЕ не запускает тряску/перетаскивание виджета (BosReorderList
-    // на обёртке-родителе): нажатие на плитку = её меню; перетаскивание виджета — за шапку/промежутки.
-    e.stopPropagation();
-    fired.current = false; sx.current = e.clientX; sy.current = e.clientY; clear();
-    t.current = setTimeout(() => { fired.current = true; if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (_) {} } if (onLongPress) onLongPress(); }, 480);
-  };
-  const move = (e) => { if (Math.abs(e.clientX - sx.current) > 10 || Math.abs(e.clientY - sy.current) > 10) clear(); };
-  return <div onPointerDown={down} onPointerMove={move} onPointerUp={clear} onPointerLeave={clear} onPointerCancel={clear}
-    onClickCapture={(e) => { if (fired.current) { e.stopPropagation(); e.preventDefault(); fired.current = false; } }}
-    style={{ minWidth: 0, gridColumn: full ? "1 / -1" : "auto" }}>{children}</div>;
-}
-
 function HomeLive() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
@@ -196,6 +176,7 @@ function HomeLive() {
     });
     return out;
   };
+  const teamKey = (t) => (typeof bosTeamKeyLive === "function") ? bosTeamKeyLive(t) : ("t:" + (t.cloudId || t._id || t.id));
   const effLayout = React.useMemo(() => {
     const base = (layoutObj && Array.isArray(layoutObj.order)) ? layoutObj : { order: buildMigratedOrder(), hidden: [] };
     const hidden = Array.isArray(base.hidden) ? base.hidden : [];
@@ -203,16 +184,18 @@ function HomeLive() {
     const alive = (k) => {
       if (k.startsWith("h:")) return habits.some((h) => "h:" + h.id === k);
       if (k.startsWith("g:")) return goals.some((g) => "g:" + g.id === k);
+      if (k.startsWith("t:")) return teams.some((t) => teamKey(t) === k);
       if (k.startsWith("w:")) return BOS_HOME_WIDGETS.some((w) => "w:" + w.id === k);
       return false;
     };
     const order = base.order.filter((k) => { if (seen[k] || !alive(k)) return false; seen[k] = 1; return true; });
-    // Добор НОВЫХ привычек/целей: сразу на главную — после последней плитки своего вида.
+    // Добор НОВЫХ привычек/целей/кругов: сразу на главную — после последней плитки своего вида.
     const insertAfterLast = (pref, key) => { let at = -1; order.forEach((k, i) => { if (k.indexOf(pref) === 0) at = i; }); if (at >= 0) order.splice(at + 1, 0, key); else order.push(key); };
     habits.forEach((h) => { const k = "h:" + h.id; if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("h:", k); seen[k] = 1; } });
     goals.forEach((g) => { const k = "g:" + g.id; if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("g:", k); seen[k] = 1; } });
-    // «Вместе» сам встаёт на доску при первой совместной цели (если его не скрывали).
-    if (teams.length && order.indexOf("w:team") < 0 && hidden.indexOf("w:team") < 0) order.push("w:team");
+    // Совместные цели — тоже ПЛИТКАМИ на доске (David: «захочу цель на главной»); прежний
+    // авто-виджет «Вместе» больше не добавляем сами — он остался в галерее как сводка по желанию.
+    teams.forEach((t) => { const k = teamKey(t); if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("t:", k); seen[k] = 1; } });
     return { order, hidden };
   }, [layoutObj, habits, goals, teams, widgets]);
   const saveLayout = (patch) => { if (app?.setHomeLayout) app.setHomeLayout({ ...effLayout, ...patch }); };
@@ -256,7 +239,7 @@ function HomeLive() {
         <div style={{ borderRadius: 22, overflow: "hidden", transform: "translateZ(0)", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
           {/* rowBg carries the gradient (not a solid) so the peeling edge has ONE surface. */}
           <SwipeRow rowBg="linear-gradient(135deg,#FEDE34,#EF9F14)" dark={isDark} actions={[
-            { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideWidget("level") },
+            { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:level") },
           ]}>
             <button onClick={() => navigate("levels")} className="tap" style={{
               width: "100%", border: 0, padding: "15px 17px",
@@ -326,7 +309,7 @@ function HomeLive() {
       // State check-in (not logged today) → the once-a-day slider; logged + ≥2 days → streak widget.
       const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
       const _loggedToday = !!(app?.dayMoods && app.dayMoods[_tk] != null);
-      const _hideAction = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideWidget("mood") }];
+      const _hideAction = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:mood") }];
       if (!_loggedToday) {
         return (
           <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
@@ -344,82 +327,13 @@ function HomeLive() {
       return null;
     }
 
-    if (id === "habits") {
-      // David: «унифицировать» — виджет привычек = ТЕ ЖЕ плитки, что на странице «Привычки» (общий
-      // HabitTileLive, читают cardStyle из шестерёнки). Лёгкая шапка (название + счёт), ниже сетка
-      // плиток; удержание → то же меню (Поделиться/Удалить), тап → детали (from:"home"). Раньше был
-      // упрощённый отдельный список строк — теперь один вид с «Привычками».
-      return (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 4px 11px", color: "var(--text)" }}>
-            <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Привычки</span>
-            {habits.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{doneCount} из {totalCount}</span>}
-          </div>
-          {habits.length === 0 ? (
-            <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />)} style={{ width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, padding: "26px 20px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-              <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>Здесь будут твои привычки</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
-              <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
-            </button>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-              {habits.map((h) => (
-                <HomeTileLP key={h.id} full={cardStyle.form === "rect"} onLongPress={() => openSheet(
-                  <HabitTileMenuLive habit={h} dark={isDark}
-                    onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
-                    onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) })} />
-                )}>
-                  <HabitTileLive habit={h} from="home" />
-                </HomeTileLP>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (id === "goals") {
-      // David: «унифицировать» — виджет целей = ТЕ ЖЕ плитки, что на «Привычках» (общий GoalTileLive,
-      // читают goalStyle из шестерёнки). Лёгкая шапка + сетка плиток; удержание → меню (Поделиться/
-      // Удалить), тап → детали (from:"home").
-      return (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 4px 11px", color: "var(--text)" }}>
-            <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Цели</span>
-            {goals.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{goals.length}</span>}
-          </div>
-          {goals.length === 0 ? (
-            <button className="tap" onClick={() => openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />)} style={{ width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, padding: "26px 20px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-              <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>Пока нет целей</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
-              <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Поставить цель</span>
-            </button>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-              {goals.map((g) => (
-                <HomeTileLP key={g.id} full={goalStyle.form === "banner"} onLongPress={() => openSheet(
-                  <HabitTileMenuLive habit={g} dark={isDark} kindLabel="Цель"
-                    onShare={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)}
-                    onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) })} />
-                )}>
-                  <GoalTileLive goal={g} from="home" />
-                </HomeTileLP>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
     if (id === "invite") {
       // Invite / share — GOLD banner (David: «как баннер уровня»): same reward-gold language as the
       // level banner, dark ink on gold. The «+150 XP» badge flips to a dark pill for contrast on gold.
       return (
         <div style={{ borderRadius: 22, overflow: "hidden", transform: "translateZ(0)", boxShadow: "0 10px 26px rgba(239,159,20,0.30)" }}>
           <SwipeRow rowBg="linear-gradient(135deg,#FEDE34,#EF9F14)" dark={isDark} actions={[
-            { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideWidget("invite") },
+            { key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:invite") },
           ]}>
             <button data-tour="share-app" className="tap" onClick={() => openSheet(<ShareAppSheetLive dark={isDark} />)}
               style={{ width: "100%", padding: "15px 17px", border: 0, position: "relative",
@@ -471,6 +385,7 @@ function HomeLive() {
     if (k.indexOf("w:") === 0) { const id = k.slice(2); return nodes[id] ? <WidgetBoundaryLive wid={id}>{nodes[id]}</WidgetBoundaryLive> : null; }
     if (k.indexOf("h:") === 0) { const h = habits.find((x) => "h:" + x.id === k); return h ? <HabitTileLive habit={h} from="home" /> : null; }
     if (k.indexOf("g:") === 0) { const g = goals.find((x) => "g:" + x.id === k); return g ? <GoalTileLive goal={g} from="home" /> : null; }
+    if (k.indexOf("t:") === 0) { const t = teams.find((x) => teamKey(x) === k); return t && typeof TeamTileLive === "function" ? <TeamTileLive team={t} from="home" /> : null; }
     return null;
   };
   const onCellLongPress = (k) => {
@@ -481,7 +396,7 @@ function HomeLive() {
       openSheet(<HabitTileMenuLive habit={h} dark={isDark}
         onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
         onReorder={enterRe}
-        deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
+        deleteIcon={<I.X size={18} />} deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
       return;
     }
     if (k.indexOf("g:") === 0) {
@@ -489,7 +404,17 @@ function HomeLive() {
       openSheet(<HabitTileMenuLive habit={g} dark={isDark} kindLabel="Цель"
         onShare={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)}
         onReorder={enterRe}
-        deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
+        deleteIcon={<I.X size={18} />} deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
+      return;
+    }
+    if (k.indexOf("t:") === 0) {
+      // Круг: то же меню; «Убрать с главной» прячет ПЛИТКУ (сам круг живёт на «Привычках»
+      // и в «Сообществе»), «Поделиться» — та же шторка-приглашение, что на странице Привычки.
+      const t = teams.find((x) => teamKey(x) === k); if (!t) { enterRe(); return; }
+      openSheet(<HabitTileMenuLive habit={{ name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color }} dark={isDark} kindLabel="Совместная цель"
+        onShare={() => openSheet(<TeamShareSheet team={t} />)}
+        onReorder={enterRe}
+        deleteIcon={<I.X size={18} />} deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
     }
   };
 
@@ -541,7 +466,7 @@ function HomeLive() {
           spanFull={(k) => {
             // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).
             if (!k || k.indexOf("w:") === 0) return true;
-            if (k.indexOf("g:") === 0) return goalStyle.form === "banner";
+            if (k.indexOf("g:") === 0 || k.indexOf("t:") === 0) return goalStyle.form === "banner";
             return cardStyle.form === "rect";
           }}
           renderItem={(k, { mode }) => (

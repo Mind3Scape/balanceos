@@ -243,6 +243,14 @@ function BottomSheet({ open, onClose, children, dark = false }) {
     }
   }, [open]); // eslint-disable-line
 
+  // Класс на body, пока ЛЮБАЯ шторка на экране: плавающие элементы-порталы (например «+»/«Готово»
+  // режима тряски, z-index 7000 на body) прячутся по CSS и не светятся поверх шторки.
+  useEffect(() => {
+    if (!render) return;
+    try { document.body.classList.add("bos-sheet-open"); } catch (e) {}
+    return () => { try { document.body.classList.remove("bos-sheet-open"); } catch (e) {} };
+  }, [render]);
+
   if (!render) return null;
 
   const onDown = (e) => {

@@ -36,66 +36,6 @@ class WidgetBoundaryLive extends React.Component {
     return this.state.dead ? null : this.props.children;
   }
 }
-
-// Обёртка плитки на ГЛАВНОЙ: удержание (~480мс) открывает то же меню, что на «Привычках» (Поделиться/
-// Удалить), тап проходит в detail. Свайпа тут нет — это карточки-плитки, а не строки. `full` → плитка
-// во всю ширину сетки (строка привычки / баннер цели), иначе половина (квадрат).
-function HomeTileLP({
-  onLongPress,
-  full,
-  children
-}) {
-  var t = React.useRef(null),
-    fired = React.useRef(false),
-    sx = React.useRef(0),
-    sy = React.useRef(0);
-  var clear = () => {
-    if (t.current) {
-      clearTimeout(t.current);
-      t.current = null;
-    }
-  };
-  var down = e => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    // Гасим всплытие → удержание на ПЛИТКЕ не запускает тряску/перетаскивание виджета (BosReorderList
-    // на обёртке-родителе): нажатие на плитку = её меню; перетаскивание виджета — за шапку/промежутки.
-    e.stopPropagation();
-    fired.current = false;
-    sx.current = e.clientX;
-    sy.current = e.clientY;
-    clear();
-    t.current = setTimeout(() => {
-      fired.current = true;
-      if (window.tgHaptic) {
-        try {
-          window.tgHaptic("medium");
-        } catch (_) {}
-      }
-      if (onLongPress) onLongPress();
-    }, 480);
-  };
-  var move = e => {
-    if (Math.abs(e.clientX - sx.current) > 10 || Math.abs(e.clientY - sy.current) > 10) clear();
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    onPointerDown: down,
-    onPointerMove: move,
-    onPointerUp: clear,
-    onPointerLeave: clear,
-    onPointerCancel: clear,
-    onClickCapture: e => {
-      if (fired.current) {
-        e.stopPropagation();
-        e.preventDefault();
-        fired.current = false;
-      }
-    },
-    style: {
-      minWidth: 0,
-      gridColumn: full ? "1 / -1" : "auto"
-    }
-  }, children);
-}
 function HomeLive() {
   var {
     navigate
@@ -310,6 +250,7 @@ function HomeLive() {
     });
     return out;
   };
+  var teamKey = t => typeof bosTeamKeyLive === "function" ? bosTeamKeyLive(t) : "t:" + (t.cloudId || t._id || t.id);
   var effLayout = React.useMemo(() => {
     var base = layoutObj && Array.isArray(layoutObj.order) ? layoutObj : {
       order: buildMigratedOrder(),
@@ -320,6 +261,7 @@ function HomeLive() {
     var alive = k => {
       if (k.startsWith("h:")) return habits.some(h => "h:" + h.id === k);
       if (k.startsWith("g:")) return goals.some(g => "g:" + g.id === k);
+      if (k.startsWith("t:")) return teams.some(t => teamKey(t) === k);
       if (k.startsWith("w:")) return BOS_HOME_WIDGETS.some(w => "w:" + w.id === k);
       return false;
     };
@@ -328,7 +270,7 @@ function HomeLive() {
       seen[k] = 1;
       return true;
     });
-    // Добор НОВЫХ привычек/целей: сразу на главную — после последней плитки своего вида.
+    // Добор НОВЫХ привычек/целей/кругов: сразу на главную — после последней плитки своего вида.
     var insertAfterLast = (pref, key) => {
       var at = -1;
       order.forEach((k, i) => {
@@ -350,8 +292,15 @@ function HomeLive() {
         seen[k] = 1;
       }
     });
-    // «Вместе» сам встаёт на доску при первой совместной цели (если его не скрывали).
-    if (teams.length && order.indexOf("w:team") < 0 && hidden.indexOf("w:team") < 0) order.push("w:team");
+    // Совместные цели — тоже ПЛИТКАМИ на доске (David: «захочу цель на главной»); прежний
+    // авто-виджет «Вместе» больше не добавляем сами — он остался в галерее как сводка по желанию.
+    teams.forEach(t => {
+      var k = teamKey(t);
+      if (!seen[k] && hidden.indexOf(k) < 0) {
+        insertAfterLast("t:", k);
+        seen[k] = 1;
+      }
+    });
     return {
       order,
       hidden
@@ -455,7 +404,7 @@ function HomeLive() {
           tone: "delete",
           label: "Убрать",
           icon: I.X,
-          onAction: () => hideWidget("level")
+          onAction: () => hideKey("w:level")
         }]
       }, /*#__PURE__*/React.createElement("button", {
         onClick: () => navigate("levels"),
@@ -669,7 +618,7 @@ function HomeLive() {
         tone: "delete",
         label: "Убрать",
         icon: I.X,
-        onAction: () => hideWidget("mood")
+        onAction: () => hideKey("w:mood")
       }];
       if (!_loggedToday) {
         return /*#__PURE__*/React.createElement("div", {
@@ -710,228 +659,6 @@ function HomeLive() {
       }
       return null;
     }
-    if (id === "habits") {
-      // David: «унифицировать» — виджет привычек = ТЕ ЖЕ плитки, что на странице «Привычки» (общий
-      // HabitTileLive, читают cardStyle из шестерёнки). Лёгкая шапка (название + счёт), ниже сетка
-      // плиток; удержание → то же меню (Поделиться/Удалить), тап → детали (from:"home"). Раньше был
-      // упрощённый отдельный список строк — теперь один вид с «Привычками».
-      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "2px 4px 11px",
-          color: "var(--text)"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 14.5,
-          fontWeight: 600,
-          letterSpacing: "-0.2px"
-        }
-      }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), habits.length > 0 && /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 12,
-          color: "var(--text-4)",
-          fontWeight: 500
-        }
-      }, doneCount, " \u0438\u0437 ", totalCount)), habits.length === 0 ? /*#__PURE__*/React.createElement("button", {
-        className: "tap",
-        onClick: () => openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
-          mode: "create",
-          navigate: navigate
-        })),
-        style: {
-          width: "100%",
-          background: cardBg,
-          border: cardBorder,
-          borderRadius: 22,
-          boxShadow: cardShadow,
-          padding: "26px 20px",
-          color: "var(--text)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          textAlign: "center",
-          gap: 10
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 52,
-          height: 52,
-          borderRadius: 16,
-          background: iconBg,
-          display: "grid",
-          placeItems: "center",
-          fontSize: 26
-        }
-      }, "\uD83C\uDF31"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 15,
-          fontWeight: 600
-        }
-      }, "\u0417\u0434\u0435\u0441\u044C \u0431\u0443\u0434\u0443\u0442 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 12.5,
-          color: "var(--text-4)",
-          lineHeight: 1.45,
-          maxWidth: 235
-        }
-      }, "\u041D\u0430\u0447\u043D\u0438 \u0441 \u043E\u0434\u043D\u043E\u0439 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u043E\u0439 \u2014 \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, \u0441\u0442\u0430\u043A\u0430\u043D \u0432\u043E\u0434\u044B \u0443\u0442\u0440\u043E\u043C."), /*#__PURE__*/React.createElement("span", {
-        style: {
-          marginTop: 4,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: isDark ? "#fff" : "#0a0a0a",
-          color: isDark ? "#0a0a0a" : "#fff",
-          borderRadius: 999,
-          padding: "9px 16px",
-          fontSize: 14,
-          fontWeight: 600
-        }
-      }, /*#__PURE__*/React.createElement(I.Plus, {
-        size: 15,
-        strokeWidth: 2.5
-      }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: 12
-        }
-      }, habits.map(h => /*#__PURE__*/React.createElement(HomeTileLP, {
-        key: h.id,
-        full: cardStyle.form === "rect",
-        onLongPress: () => openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
-          habit: h,
-          dark: isDark,
-          onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
-            habit: h,
-            dark: isDark
-          })),
-          onDelete: () => bosConfirmDelete(openSheet, {
-            title: "Удалить привычку?",
-            message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
-            confirmLabel: "Удалить",
-            onConfirm: () => remove(h.id)
-          })
-        }))
-      }, /*#__PURE__*/React.createElement(HabitTileLive, {
-        habit: h,
-        from: "home"
-      })))));
-    }
-    if (id === "goals") {
-      // David: «унифицировать» — виджет целей = ТЕ ЖЕ плитки, что на «Привычках» (общий GoalTileLive,
-      // читают goalStyle из шестерёнки). Лёгкая шапка + сетка плиток; удержание → меню (Поделиться/
-      // Удалить), тап → детали (from:"home").
-      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "2px 4px 11px",
-          color: "var(--text)"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 14.5,
-          fontWeight: 600,
-          letterSpacing: "-0.2px"
-        }
-      }, "\u0426\u0435\u043B\u0438"), goals.length > 0 && /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 12,
-          color: "var(--text-4)",
-          fontWeight: 500
-        }
-      }, goals.length)), goals.length === 0 ? /*#__PURE__*/React.createElement("button", {
-        className: "tap",
-        onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
-          mode: "create",
-          navigate: navigate
-        })),
-        style: {
-          width: "100%",
-          background: cardBg,
-          border: cardBorder,
-          borderRadius: 22,
-          boxShadow: cardShadow,
-          padding: "26px 20px",
-          color: "var(--text)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          textAlign: "center",
-          gap: 10
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 52,
-          height: 52,
-          borderRadius: 16,
-          background: iconBg,
-          display: "grid",
-          placeItems: "center",
-          fontSize: 26
-        }
-      }, "\uD83C\uDFAF"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 15,
-          fontWeight: 600
-        }
-      }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0446\u0435\u043B\u0435\u0439"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 12.5,
-          color: "var(--text-4)",
-          lineHeight: 1.45,
-          maxWidth: 235
-        }
-      }, "\u0411\u043E\u043B\u044C\u0448\u0430\u044F \u0446\u0435\u043B\u044C \u2014 \u044D\u0442\u043E \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0438\u0435 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u0441\u043B\u043E\u0436\u0435\u043D\u043D\u044B\u0435 \u0432\u043C\u0435\u0441\u0442\u0435."), /*#__PURE__*/React.createElement("span", {
-        style: {
-          marginTop: 4,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: isDark ? "#fff" : "#0a0a0a",
-          color: isDark ? "#0a0a0a" : "#fff",
-          borderRadius: 999,
-          padding: "9px 16px",
-          fontSize: 14,
-          fontWeight: 600
-        }
-      }, /*#__PURE__*/React.createElement(I.Plus, {
-        size: 15,
-        strokeWidth: 2.5
-      }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: 12
-        }
-      }, goals.map(g => /*#__PURE__*/React.createElement(HomeTileLP, {
-        key: g.id,
-        full: goalStyle.form === "banner",
-        onLongPress: () => openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
-          habit: g,
-          dark: isDark,
-          kindLabel: "\u0426\u0435\u043B\u044C",
-          onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
-            goal: g,
-            dark: isDark
-          })),
-          onDelete: () => bosConfirmDelete(openSheet, {
-            title: "Удалить цель?",
-            message: "«" + g.name + "» удалится навсегда.",
-            confirmLabel: "Удалить",
-            onConfirm: () => removeGoal(g.id)
-          })
-        }))
-      }, /*#__PURE__*/React.createElement(GoalTileLive, {
-        goal: g,
-        from: "home"
-      })))));
-    }
     if (id === "invite") {
       // Invite / share — GOLD banner (David: «как баннер уровня»): same reward-gold language as the
       // level banner, dark ink on gold. The «+150 XP» badge flips to a dark pill for contrast on gold.
@@ -950,7 +677,7 @@ function HomeLive() {
           tone: "delete",
           label: "Убрать",
           icon: I.X,
-          onAction: () => hideWidget("invite")
+          onAction: () => hideKey("w:invite")
         }]
       }, /*#__PURE__*/React.createElement("button", {
         "data-tour": "share-app",
@@ -1104,6 +831,13 @@ function HomeLive() {
         from: "home"
       }) : null;
     }
+    if (k.indexOf("t:") === 0) {
+      var t = teams.find(x => teamKey(x) === k);
+      return t && typeof TeamTileLive === "function" ? /*#__PURE__*/React.createElement(TeamTileLive, {
+        team: t,
+        from: "home"
+      }) : null;
+    }
     return null;
   };
   var onCellLongPress = k => {
@@ -1128,6 +862,9 @@ function HomeLive() {
           dark: isDark
         })),
         onReorder: enterRe,
+        deleteIcon: /*#__PURE__*/React.createElement(I.X, {
+          size: 18
+        }),
         deleteLabel: "\u0423\u0431\u0440\u0430\u0442\u044C \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439",
         onDelete: () => hideKey(k)
       }));
@@ -1148,6 +885,37 @@ function HomeLive() {
           dark: isDark
         })),
         onReorder: enterRe,
+        deleteIcon: /*#__PURE__*/React.createElement(I.X, {
+          size: 18
+        }),
+        deleteLabel: "\u0423\u0431\u0440\u0430\u0442\u044C \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439",
+        onDelete: () => hideKey(k)
+      }));
+      return;
+    }
+    if (k.indexOf("t:") === 0) {
+      // Круг: то же меню; «Убрать с главной» прячет ПЛИТКУ (сам круг живёт на «Привычках»
+      // и в «Сообществе»), «Поделиться» — та же шторка-приглашение, что на странице Привычки.
+      var t = teams.find(x => teamKey(x) === k);
+      if (!t) {
+        enterRe();
+        return;
+      }
+      openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
+        habit: {
+          name: t.name,
+          emoji: t.emblem || "👥",
+          color: t.accent || t.color
+        },
+        dark: isDark,
+        kindLabel: "\u0421\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u0430\u044F \u0446\u0435\u043B\u044C",
+        onShare: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheet, {
+          team: t
+        })),
+        onReorder: enterRe,
+        deleteIcon: /*#__PURE__*/React.createElement(I.X, {
+          size: 18
+        }),
         deleteLabel: "\u0423\u0431\u0440\u0430\u0442\u044C \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439",
         onDelete: () => hideKey(k)
       }));
@@ -1287,7 +1055,7 @@ function HomeLive() {
     spanFull: k => {
       // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).
       if (!k || k.indexOf("w:") === 0) return true;
-      if (k.indexOf("g:") === 0) return goalStyle.form === "banner";
+      if (k.indexOf("g:") === 0 || k.indexOf("t:") === 0) return goalStyle.form === "banner";
       return cardStyle.form === "rect";
     },
     renderItem: (k, {

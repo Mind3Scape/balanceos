@@ -166,6 +166,9 @@ function ProfileLive() {
       {/* App menu — Настройки first, Уведомления under (David). ИИ-инсайты removed (ИИ is its
           own tab) and История removed (it's reachable from the home calendar). */}
       <div className="bos-sys-card" style={{ marginTop: 12, padding: 0, overflow: "hidden" }}>
+        {/* «Как устроен Balance» — гид-мануал по экономике (XP → уровень → партнёры → нетворк →
+            Вселенная); ПЕРВОЙ строкой — новичку важнее настроек (David: «гид как в игре»). */}
+        {navRow(I.Compass, "Как устроен Balance", "guide")}
         {navRow(I.Settings, "Настройки", "settings")}
         {navRow(I.Bell, "Уведомления", "notifications")}
         {navRow(I.Help, "Поддержка и помощь", "support", true)}
@@ -176,6 +179,8 @@ function ProfileLive() {
         </span>
         <span style={{ flex: 1, fontSize: 16, fontWeight: 600 }}>Выйти</span>
       </SysBtn>
+      {/* Тёплая подпись — переехала из настроек СЮДА, к орбитам (David: «сделано с любовью на „Я"»). */}
+      <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "18px 14px 4px", fontSize: 12.5, opacity: 0.85 }}>Сделано с 💛</div>
     </div>
   );
 }

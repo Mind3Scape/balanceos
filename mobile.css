@@ -110,6 +110,10 @@ body {
 }
 .bos-sheet-scroll::-webkit-scrollbar { display: none; }
 .bos-sheet.is-dark { background: #1c1c1e; color: #fff; box-shadow: 0 -12px 50px rgba(0,0,0,0.6); }
+/* Пока открыта ЛЮБАЯ шторка (BottomSheet вешает bos-sheet-open на body), плавающие «+»/«Готово»
+   режима тряски (порталы на body, z-index 7000) гаснут — не светятся поверх панели. */
+body.bos-sheet-open .bos-reorder-float { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+.bos-reorder-float { transition: opacity 0.2s ease; }
 /* Серые форм-шторки: контент помечает себя [data-sheet-grey] — красим САМУ панель, чтобы серый
    доходил до скруглённого верха и не кончался при прокрутке (белые полосы — баг David). */
 .bos-sheet:has([data-sheet-grey]) { background: var(--bg, #f2f2f4); }
