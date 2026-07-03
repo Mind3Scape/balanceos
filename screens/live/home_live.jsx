@@ -177,13 +177,49 @@ function HomeLive() {
   const cardShadow = isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)";
   const rowBg = isDark ? "#1b1b1e" : "#ffffff"; // opaque so swipe actions stay hidden until revealed
 
-  // ── Widget board plumbing ────────────────────────────────────────────────────
+  // ── v528 (секция Д): СВОБОДНАЯ сетка — виджеты и плитки привычек/целей ВПЕРЕМЕШКУ
+  // (iOS-паттерн). Раскладка = app.homeLayout { order: ["w:hero","h:<id>","g:<id>",...],
+  // hidden: [...] }; видимость решает ПРИСУТСТВИЕ в order (widgets{} больше не источник).
+  // Первый вход без раскладки → миграция из старых widgets{} (контейнеры «Привычки»/«Цели»
+  // раскрываются в плитки на своих местах).
   const DEFAULT_ORDER = BOS_HOME_WIDGETS.map((w) => w.id);
-  // «invite» (Позови своих) is OFF by default on the home board (David: «убираем с главной / скрой
-  // по дефолту») — the invite path lives in «Найти». Still re-addable via the widget sheet (opt-in:
-  // needs widgets.invite === true). Every other widget: on unless explicitly hidden.
   const isWidgetOn = (id) => (id === "invite") ? (widgets.invite === true) : (widgets[id] !== false);
-  const hideWidget = (id) => app.setWidgets({ ...widgets, [id]: false });
+  const layoutObj = app?.homeLayout;
+  const buildMigratedOrder = () => {
+    const out = [];
+    const savedW = (Array.isArray(widgets.order) ? widgets.order : []).filter((id) => DEFAULT_ORDER.includes(id) || id === "habits" || id === "goals");
+    const wOrder = [...savedW, ...["hero", "week", "habits", "goals", "team", "invite"].filter((id) => !savedW.includes(id))];
+    wOrder.forEach((id) => {
+      if (id === "habits") { habits.forEach((h) => out.push("h:" + h.id)); return; }
+      if (id === "goals") { goals.forEach((g) => out.push("g:" + g.id)); return; }
+      if (isWidgetOn(id)) out.push("w:" + id);
+    });
+    return out;
+  };
+  const effLayout = React.useMemo(() => {
+    const base = (layoutObj && Array.isArray(layoutObj.order)) ? layoutObj : { order: buildMigratedOrder(), hidden: [] };
+    const hidden = Array.isArray(base.hidden) ? base.hidden : [];
+    const seen = {};
+    const alive = (k) => {
+      if (k.startsWith("h:")) return habits.some((h) => "h:" + h.id === k);
+      if (k.startsWith("g:")) return goals.some((g) => "g:" + g.id === k);
+      if (k.startsWith("w:")) return BOS_HOME_WIDGETS.some((w) => "w:" + w.id === k);
+      return false;
+    };
+    const order = base.order.filter((k) => { if (seen[k] || !alive(k)) return false; seen[k] = 1; return true; });
+    // Добор НОВЫХ привычек/целей: сразу на главную — после последней плитки своего вида.
+    const insertAfterLast = (pref, key) => { let at = -1; order.forEach((k, i) => { if (k.indexOf(pref) === 0) at = i; }); if (at >= 0) order.splice(at + 1, 0, key); else order.push(key); };
+    habits.forEach((h) => { const k = "h:" + h.id; if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("h:", k); seen[k] = 1; } });
+    goals.forEach((g) => { const k = "g:" + g.id; if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("g:", k); seen[k] = 1; } });
+    // «Вместе» сам встаёт на доску при первой совместной цели (если его не скрывали).
+    if (teams.length && order.indexOf("w:team") < 0 && hidden.indexOf("w:team") < 0) order.push("w:team");
+    return { order, hidden };
+  }, [layoutObj, habits, goals, teams, widgets]);
+  const saveLayout = (patch) => { if (app?.setHomeLayout) app.setHomeLayout({ ...effLayout, ...patch }); };
+  // Миграция фиксируется ОДИН раз (иначе шторка «+» видела бы пустой layout). Гидрация из
+  // облака позже спокойно перекроет это своим сохранённым homeLayout.
+  React.useEffect(() => { if (!layoutObj && !trulyNew && app?.setHomeLayout) app.setHomeLayout(effLayout); }, [!!layoutObj, trulyNew]);
+  const hideKey = (k) => saveLayout({ order: effLayout.order.filter((x) => x !== k), hidden: effLayout.hidden.indexOf(k) < 0 ? effLayout.hidden.concat([k]) : effLayout.hidden });
 
   // Each widget's content. Returns null when a widget is ON but has nothing to show
   // right now (e.g. mood logged today with <2 days of history) — it then drops off the
@@ -412,22 +448,50 @@ function HomeLive() {
     return null;
   };
 
-  // Saved order (only known ids), with any new/missing widget ids appended so they still appear.
-  const savedOrder = (Array.isArray(widgets.order) ? widgets.order : []).filter((id) => DEFAULT_ORDER.includes(id));
-  const fullOrder = [...savedOrder, ...DEFAULT_ORDER.filter((id) => !savedOrder.includes(id))];
+  // Виджеты рендерим по layout; упавший/пустой (nodeOf → null, напр. mood без истории) просто
+  // не показывается, но МЕСТО в order держит — вернётся сам, когда появится контент.
   const nodes = {};
-  // Предохранитель: упавший виджет просто не показывается — остальная главная живёт.
-  fullOrder.forEach((id) => { if (isWidgetOn(id)) { try { const n = nodeOf(id); if (n != null) nodes[id] = n; } catch (e) {} } });
-  const visibleIds = fullOrder.filter((id) => nodes[id] != null);
-
-  // Reorder commits the new VISIBLE order back into the full order, keeping any hidden ids in
-  // place — so a removed-then-re-added widget returns to roughly where it was.
-  const onReorderWidgets = (newVisible) => {
+  effLayout.order.forEach((k) => {
+    if (k.indexOf("w:") !== 0) return;
+    const id = k.slice(2);
+    try { const n = nodeOf(id); if (n != null) nodes[id] = n; } catch (e) {}
+  });
+  const keyVisible = (k) => (k.indexOf("w:") === 0 ? nodes[k.slice(2)] != null : true);
+  const visibleKeys = effLayout.order.filter(keyVisible);
+  const onReorderKeys = (newVisible) => {
     let vi = 0;
-    const merged = fullOrder.map((id) => (visibleIds.indexOf(id) >= 0 ? newVisible[vi++] : id));
-    app.setWidgets({ ...widgets, order: merged });
+    const merged = effLayout.order.map((k) => (keyVisible(k) ? newVisible[vi++] : k));
+    saveLayout({ order: merged });
   };
+  const gridCtl = React.useRef(null);
   const openAddSheet = () => openSheet(<AddWidgetSheetLive defs={BOS_HOME_WIDGETS} dark={isDark} />);
+  // Плитка/виджет по ключу. Плитки — ГОЛЫЕ (те же HabitTileLive/GoalTileLive, что на
+  // «Привычках»); long-press ловит сетка → меню (Поделиться / Переставить / Убрать с главной).
+  const tileFor = (k) => {
+    if (k.indexOf("w:") === 0) { const id = k.slice(2); return nodes[id] ? <WidgetBoundaryLive wid={id}>{nodes[id]}</WidgetBoundaryLive> : null; }
+    if (k.indexOf("h:") === 0) { const h = habits.find((x) => "h:" + x.id === k); return h ? <HabitTileLive habit={h} from="home" /> : null; }
+    if (k.indexOf("g:") === 0) { const g = goals.find((x) => "g:" + x.id === k); return g ? <GoalTileLive goal={g} from="home" /> : null; }
+    return null;
+  };
+  const onCellLongPress = (k) => {
+    const enterRe = () => { if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder(); };
+    if (k.indexOf("w:") === 0) { enterRe(); return; } // виджет: зажал → сразу тряска (iOS)
+    if (k.indexOf("h:") === 0) {
+      const h = habits.find((x) => "h:" + x.id === k); if (!h) { enterRe(); return; }
+      openSheet(<HabitTileMenuLive habit={h} dark={isDark}
+        onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
+        onReorder={enterRe}
+        deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
+      return;
+    }
+    if (k.indexOf("g:") === 0) {
+      const g = goals.find((x) => "g:" + x.id === k); if (!g) { enterRe(); return; }
+      openSheet(<HabitTileMenuLive habit={g} dark={isDark} kindLabel="Цель"
+        onShare={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)}
+        onReorder={enterRe}
+        deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
+    }
+  };
 
   return (
     <div ref={wrapRef} className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -463,18 +527,27 @@ function HomeLive() {
           карточку «Создай первую привычку» убрал — она дублировала пилюлю и занимала пол-экрана
           (David: «нету смысла показывать на пол-экрана, в пилюлях уже есть»). Доска — с первой привычкой. */}
       {trulyNew ? (
-        <WidgetBoundaryLive wid="hero">{nodes["hero"] || null}</WidgetBoundaryLive>
-      ) : visibleIds.length > 0 ? (
-        <BosReorderList
-          ids={visibleIds}
+        <WidgetBoundaryLive wid="hero">{(() => { try { return nodeOf("hero"); } catch (e) { return null; } })()}</WidgetBoundaryLive>
+      ) : visibleKeys.length > 0 ? (
+        <BosReorderGrid
+          ids={visibleKeys}
+          cols={2}
           gap={12}
-          onReorder={onReorderWidgets}
+          ctlRef={gridCtl}
+          onReorder={onReorderKeys}
+          onLongPress={onCellLongPress}
           onAdd={openAddSheet}
-          addLabel="Добавить виджет"
-          renderItem={(id, { mode }) => (
-            <div style={{ position: "relative" }}>
-              <div style={{ pointerEvents: mode ? "none" : "auto" }}><WidgetBoundaryLive wid={id}>{nodes[id]}</WidgetBoundaryLive></div>
-              {mode && <WidgetMinusLive onRemove={() => hideWidget(id)} />}
+          addLabel="Добавить на главную"
+          spanFull={(k) => {
+            // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).
+            if (!k || k.indexOf("w:") === 0) return true;
+            if (k.indexOf("g:") === 0) return goalStyle.form === "banner";
+            return cardStyle.form === "rect";
+          }}
+          renderItem={(k, { mode }) => (
+            <div style={{ position: "relative", height: "100%" }}>
+              <div style={{ pointerEvents: mode ? "none" : "auto", height: "100%" }}>{tileFor(k)}</div>
+              {mode && <WidgetMinusLive onRemove={() => hideKey(k)} />}
             </div>
           )}
         />

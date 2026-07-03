@@ -1954,6 +1954,9 @@ function AppProvider({
   var [dayMoods, setDayMoods] = useState(SEED_DAYMOODS);
   var [dayNotes, setDayNotes] = useState(SEED_DAYNOTES);
   var [widgets, setWidgets] = useState(DEMO_WIDGETS);
+  // v528 (секция Д): СВОБОДНАЯ сетка главной — раскладка { order: ["w:hero","h:<id>","g:<id>",...], hidden: [...] };
+  // null = ещё не мигрирована из widgets (home_live построит дефолт при первом входе в новую главную).
+  var [homeLayout, setHomeLayout] = useState(null);
   var [wheelSpheres, setWheelSpheres] = useState(DEFAULT_SPHERES);
   // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere. Stays "auto"
   // (= light, DARK_ROUTES is empty) by default — we polish the LIGHT theme end-to-end first,
@@ -2421,6 +2424,7 @@ function AppProvider({
     dayMoods,
     dayNotes,
     widgets,
+    homeLayout,
     wheelSpheres,
     claimedChallenges,
     spentXP
@@ -2441,6 +2445,7 @@ function AppProvider({
         dayMoods,
         dayNotes,
         widgets,
+        homeLayout,
         wheelSpheres
       });
       try {
@@ -2463,6 +2468,7 @@ function AppProvider({
             dayMoods,
             dayNotes,
             widgets,
+            homeLayout,
             wheelSpheres,
             claimedChallenges,
             spentXP,
@@ -2474,6 +2480,7 @@ function AppProvider({
               dayMoods,
               dayNotes,
               widgets,
+              homeLayout,
               wheelSpheres,
               claimedChallenges,
               spentXP,
@@ -2487,7 +2494,7 @@ function AppProvider({
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres, claimedChallenges, spentXP, extrasTick]);
+  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, extrasTick]);
 
   // Flush synchronously when the app is backgrounded/closed: the 400 ms debounce above
   // would otherwise lose the very last check-in if the user swipes the app away. localStorage
@@ -2508,6 +2515,7 @@ function AppProvider({
           dayMoods: s.dayMoods,
           dayNotes: s.dayNotes,
           widgets: s.widgets,
+          homeLayout: s.homeLayout,
           wheelSpheres: s.wheelSpheres
         });
         if (window.bosCloud && window.bosCloud.enabled()) {
@@ -2517,6 +2525,7 @@ function AppProvider({
             dayMoods: s.dayMoods,
             dayNotes: s.dayNotes,
             widgets: s.widgets,
+            homeLayout: s.homeLayout,
             wheelSpheres: s.wheelSpheres,
             claimedChallenges: s.claimedChallenges,
             spentXP: s.spentXP,
@@ -2528,6 +2537,7 @@ function AppProvider({
               dayMoods: s.dayMoods,
               dayNotes: s.dayNotes,
               widgets: s.widgets,
+              homeLayout: s.homeLayout,
               wheelSpheres: s.wheelSpheres,
               claimedChallenges: s.claimedChallenges,
               spentXP: s.spentXP,
@@ -2698,6 +2708,7 @@ function AppProvider({
     setMood(_onbMood() || MOOD_OPTIONS[2]);
     setWheelSpheres(DEFAULT_SPHERES);
     setWidgets(FRESH_WIDGETS);
+    setHomeLayout(null);
     setCommunityView({
       networkUnlocked: false,
       discTab: "teams",
@@ -2748,6 +2759,7 @@ function AppProvider({
       setDayNotes(saved.dayNotes || {});
       setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES);
       setWidgets(saved.widgets || FRESH_WIDGETS);
+      setHomeLayout(saved.homeLayout || null);
       // Restore today's state (the orb) from the saved per-day record, so reopening lands
       // in the mood the user last set today instead of snapping back to neutral.
       var _tkS = typeof bosTodayKey === "function" ? bosTodayKey() : null;
@@ -2764,6 +2776,7 @@ function AppProvider({
       setMood(_onbMood() || MOOD_OPTIONS[2]);
       setWheelSpheres(DEFAULT_SPHERES);
       setWidgets(FRESH_WIDGETS);
+      setHomeLayout(null);
     }
     setCommunityView({
       networkUnlocked: false,
@@ -2921,6 +2934,7 @@ function AppProvider({
               } catch (e) {}
               if (d.wheelSpheres) setWheelSpheres(d.wheelSpheres);
               if (d.widgets) setWidgets(d.widgets);
+              if (d.homeLayout) setHomeLayout(d.homeLayout);
               // If local held days the cloud lacked, push the union up so the cloud is whole too.
               if (Object.keys(_mMoods).length > Object.keys(_cloudMoods).length || Object.keys(_mNotes).length > Object.keys(_cloudNotes).length) {
                 window.bosCloud.saveSnapshot({
@@ -2929,6 +2943,7 @@ function AppProvider({
                   dayNotes: _mNotes,
                   wheelSpheres: d.wheelSpheres,
                   widgets: d.widgets,
+                  homeLayout: d.homeLayout || saved && saved.homeLayout || null,
                   claimedChallenges: _mClaimed,
                   spentXP: _mSpent
                 });
@@ -2945,6 +2960,7 @@ function AppProvider({
                 dayNotes: _mNotes2,
                 wheelSpheres: src.wheelSpheres,
                 widgets: src.widgets,
+                homeLayout: src.homeLayout || null,
                 claimedChallenges: _mClaimed,
                 spentXP: _mSpent
               });
@@ -3279,6 +3295,8 @@ function AppProvider({
       setDayNotes,
       widgets,
       setWidgets,
+      homeLayout,
+      setHomeLayout,
       wheelSpheres,
       setWheelSpheres,
       themeOverride,

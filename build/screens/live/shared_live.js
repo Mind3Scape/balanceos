@@ -4226,7 +4226,9 @@ function BosReorderGrid({
   ctlRef,
   cols = 2,
   gap = 12,
-  spanFull
+  spanFull,
+  onAdd,
+  addLabel
 }) {
   var [mode, setMode] = React.useState(false);
   var [order, setOrder] = React.useState(ids);
@@ -4462,7 +4464,29 @@ function BosReorderGrid({
       zIndex: 7000,
       pointerEvents: "none"
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, onAdd && /*#__PURE__*/React.createElement("button", {
+    onClick: onAdd,
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": addLabel || "Добавить",
+    style: {
+      pointerEvents: "auto",
+      width: 44,
+      height: 44,
+      borderRadius: "50%",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      color: typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark") ? "#fff" : "var(--text)",
+      background: BOS_TILE_SHEEN + ", " + (typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark") ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+      boxShadow: "0 10px 26px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)",
+      animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both"
+    }
+  }, /*#__PURE__*/React.createElement(I.Plus, {
+    size: 20,
+    strokeWidth: 2.6
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: done,
     className: "tap",
     "data-haptic": "selection",
@@ -4546,17 +4570,9 @@ var BOS_HOME_WIDGETS = [{
 },
 // «Состояние» (mood-слайдер + виджет-состояние с упоминанием дневника) ВРЕМЕННО СКРЫТ (David) —
 // убран из списка → кейс id==="mood" в home_live не рендерится. Вернуть = добавить строку обратно.
+// v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
+// элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
 {
-  id: "habits",
-  t: "Привычки",
-  d: "Список привычек на день",
-  emoji: "🌱"
-}, {
-  id: "goals",
-  t: "Цели",
-  d: "Твои цели",
-  emoji: "🎯"
-}, {
   id: "invite",
   t: "Позови своих",
   d: "Приглашай друзей — +XP",
@@ -4614,18 +4630,57 @@ function AddWidgetSheetLive({
   dark = false
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
-  var widgets = app?.widgets || {};
-  // «invite» is opt-in (off by default, matches the home board); everything else ON unless hidden.
-  var isOn = id => id === "invite" ? widgets.invite === true : widgets[id] !== false;
-  var toggle = id => {
-    app?.setWidgets({
-      ...(app.widgets || {}),
-      [id]: !isOn(id)
-    });
+  // v528 (Д): видимость решает homeLayout (order/hidden), не widgets{} — главная стала
+  // свободной сеткой. Тумблер виджета = добавить/убрать из order; скрытые ПЛИТКИ привычек
+  // и целей (минус в тряске / «Убрать с главной») возвращаются отсюда же.
+  var layout = app && app.homeLayout && Array.isArray(app.homeLayout.order) ? app.homeLayout : {
+    order: [],
+    hidden: []
+  };
+  var hidden = Array.isArray(layout.hidden) ? layout.hidden : [];
+  var inOrder = k => layout.order.indexOf(k) >= 0;
+  var haptic = () => {
     if (window.tgHaptic) {
       try {
         window.tgHaptic("light");
-      } catch (_) {}
+      } catch (e) {}
+    }
+  };
+  var toggleWidget = id => {
+    var k = "w:" + id;
+    if (!app || !app.setHomeLayout) return;
+    if (inOrder(k)) app.setHomeLayout({
+      order: layout.order.filter(x => x !== k),
+      hidden: hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden
+    });else app.setHomeLayout({
+      order: layout.order.concat([k]),
+      hidden: hidden.filter(x => x !== k)
+    });
+    haptic();
+  };
+  var hiddenTiles = hidden.filter(k => k.indexOf("h:") === 0 || k.indexOf("g:") === 0).map(k => {
+    if (k.indexOf("h:") === 0) {
+      var h = (app?.habits || []).find(x => "h:" + x.id === k);
+      return h ? {
+        k,
+        emoji: h.emoji || "🌱",
+        name: h.name
+      } : null;
+    }
+    var g = (app?.goals || []).find(x => "g:" + x.id === k);
+    return g ? {
+      k,
+      emoji: g.emoji || "🎯",
+      name: g.name
+    } : null;
+  }).filter(Boolean);
+  var restoreTile = k => {
+    if (app && app.setHomeLayout) {
+      app.setHomeLayout({
+        order: layout.order.concat([k]),
+        hidden: hidden.filter(x => x !== k)
+      });
+      haptic();
     }
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -4657,7 +4712,7 @@ function AddWidgetSheetLive({
       gap: 8
     }
   }, defs.map(o => {
-    var on = isOn(o.id);
+    var on = inOrder("w:" + o.id);
     return /*#__PURE__*/React.createElement("div", {
       key: o.id,
       style: {
@@ -4704,9 +4759,71 @@ function AddWidgetSheetLive({
       }
     }, o.d)), /*#__PURE__*/React.createElement(Switch, {
       on: on,
-      onChange: () => toggle(o.id)
+      onChange: () => toggleWidget(o.id)
     }));
-  })));
+  })), hiddenTiles.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "16px 4px 8px"
+    }
+  }, "\u0421\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, hiddenTiles.map(tle => /*#__PURE__*/React.createElement("div", {
+    key: tle.k,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      width: "100%",
+      padding: 12,
+      borderRadius: 18,
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
+      boxShadow: bosTileGlass(dark)
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20,
+      flexShrink: 0,
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"),
+      boxShadow: bosTileGlass(dark)
+    }
+  }, typeof bosIcon === "function" ? bosIcon(tle.emoji, 20, null) : tle.emoji), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 15.5,
+      fontWeight: 600,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, tle.name), /*#__PURE__*/React.createElement("button", {
+    onClick: () => restoreTile(tle.k),
+    className: "tap",
+    style: {
+      border: 0,
+      cursor: "pointer",
+      borderRadius: 999,
+      padding: "9px 15px",
+      fontSize: 13,
+      fontWeight: 600,
+      background: "var(--cta, #0a0a0a)",
+      color: "var(--cta-ink, #fff)"
+    }
+  }, "\u0412\u0435\u0440\u043D\u0443\u0442\u044C"))))));
 }
 
 /* «+» (Главная и Привычки) — КЛАССИЧЕСКИЙ стеклянный поповер (David: «нравилась небольшая

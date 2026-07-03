@@ -1970,7 +1970,7 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
    menu (enterReorder, exposed via ctlRef) — a grid has no obvious drag-handle, so we don't want a
    stray hold to start dragging. In REORDER mode every tile jiggles and a press begins a drag at
    once; «Готово» (floating, portal'd like BosReorderList) leaves the mode. */
-function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull }) {
+function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull, onAdd, addLabel }) {
   const [mode, setMode] = React.useState(false);
   const [order, setOrder] = React.useState(ids);
   const [drag, setDrag] = React.useState({ id: null, from: -1, to: -1, dx: 0, dy: 0 });
@@ -2071,9 +2071,20 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
 
   return (
     <>
-      {/* «Готово» FLOATS (same portal as BosReorderList — pinned bottom-centre above the tab bar). */}
+      {/* «Готово» FLOATS (same portal as BosReorderList — pinned bottom-centre above the tab bar).
+          v528: опциональный стеклянный «+» рядом (onAdd) — как у List на главной: добавить
+          виджет/вернуть скрытую карточку прямо из режима тряски (iOS-паттерн). */}
       {mode && ReactDOM.createPortal(
         <div style={{ position: "absolute", bottom: "calc(var(--bos-safe-bottom, 0px) + 94px)", left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, zIndex: 7000, pointerEvents: "none" }}>
+          {onAdd && (
+            <button onClick={onAdd} className="tap" data-haptic="selection" aria-label={addLabel || "Добавить"} style={{
+              pointerEvents: "auto", width: 44, height: 44, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+              color: (typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark")) ? "#fff" : "var(--text)",
+              background: BOS_TILE_SHEEN + ", " + ((typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark")) ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+              boxShadow: "0 10px 26px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)",
+              animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
+            }}><I.Plus size={20} strokeWidth={2.6} /></button>
+          )}
           <button onClick={done} className="tap" data-haptic="selection" aria-label="Готово — выйти из режима перестановки" style={{
             pointerEvents: "auto", border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "11px 22px",
             fontSize: 14, fontWeight: 600, boxShadow: "0 10px 26px rgba(0,0,0,0.36)", cursor: "pointer",
@@ -2116,8 +2127,8 @@ var BOS_HOME_WIDGETS = [
   { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥" },
   // «Состояние» (mood-слайдер + виджет-состояние с упоминанием дневника) ВРЕМЕННО СКРЫТ (David) —
   // убран из списка → кейс id==="mood" в home_live не рендерится. Вернуть = добавить строку обратно.
-  { id: "habits",  t: "Привычки",     d: "Список привычек на день",  emoji: "🌱" },
-  { id: "goals",   t: "Цели",         d: "Твои цели",                emoji: "🎯" },
+  // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
+  // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
   { id: "invite",  t: "Позови своих", d: "Приглашай друзей — +XP",   emoji: "📣" },
 ];
 
@@ -2145,10 +2156,28 @@ function WidgetMinusLive({ onRemove }) {
    board behind updates as you flip switches. `defs` = the full catalogue [{ id, t, d, emoji }]; LIVE. */
 function AddWidgetSheetLive({ defs = [], dark = false }) {
   const app = (typeof useApp === "function") ? useApp() : null;
-  const widgets = app?.widgets || {};
-  // «invite» is opt-in (off by default, matches the home board); everything else ON unless hidden.
-  const isOn = (id) => (id === "invite") ? (widgets.invite === true) : (widgets[id] !== false);
-  const toggle = (id) => { app?.setWidgets({ ...(app.widgets || {}), [id]: !isOn(id) }); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } };
+  // v528 (Д): видимость решает homeLayout (order/hidden), не widgets{} — главная стала
+  // свободной сеткой. Тумблер виджета = добавить/убрать из order; скрытые ПЛИТКИ привычек
+  // и целей (минус в тряске / «Убрать с главной») возвращаются отсюда же.
+  const layout = (app && app.homeLayout && Array.isArray(app.homeLayout.order)) ? app.homeLayout : { order: [], hidden: [] };
+  const hidden = Array.isArray(layout.hidden) ? layout.hidden : [];
+  const inOrder = (k) => layout.order.indexOf(k) >= 0;
+  const haptic = () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  const toggleWidget = (id) => {
+    const k = "w:" + id;
+    if (!app || !app.setHomeLayout) return;
+    if (inOrder(k)) app.setHomeLayout({ order: layout.order.filter((x) => x !== k), hidden: hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden });
+    else app.setHomeLayout({ order: layout.order.concat([k]), hidden: hidden.filter((x) => x !== k) });
+    haptic();
+  };
+  const hiddenTiles = hidden
+    .filter((k) => k.indexOf("h:") === 0 || k.indexOf("g:") === 0)
+    .map((k) => {
+      if (k.indexOf("h:") === 0) { const h = (app?.habits || []).find((x) => "h:" + x.id === k); return h ? { k, emoji: h.emoji || "🌱", name: h.name } : null; }
+      const g = (app?.goals || []).find((x) => "g:" + x.id === k); return g ? { k, emoji: g.emoji || "🎯", name: g.name } : null;
+    })
+    .filter(Boolean);
+  const restoreTile = (k) => { if (app && app.setHomeLayout) { app.setHomeLayout({ order: layout.order.concat([k]), hidden: hidden.filter((x) => x !== k) }); haptic(); } };
   return (
     <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
       <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -2157,7 +2186,7 @@ function AddWidgetSheetLive({ defs = [], dark = false }) {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {defs.map((o) => {
-          const on = isOn(o.id);
+          const on = inOrder("w:" + o.id);
           return (
             <div key={o.id} style={{
               display: "flex", alignItems: "center", gap: 13, width: "100%",
@@ -2170,11 +2199,27 @@ function AddWidgetSheetLive({ defs = [], dark = false }) {
                 <div style={{ fontSize: 15.5, fontWeight: 600 }}>{o.t}</div>
                 {o.d && <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>{o.d}</div>}
               </div>
-              <Switch on={on} onChange={() => toggle(o.id)} />
+              <Switch on={on} onChange={() => toggleWidget(o.id)} />
             </div>
           );
         })}
       </div>
+      {hiddenTiles.length > 0 && (
+        <React.Fragment>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "16px 4px 8px" }}>Скрытые карточки</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {hiddenTiles.map((tle) => (
+              <div key={tle.k} style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", padding: 12, borderRadius: 18,
+                background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), boxShadow: bosTileGlass(dark) }}>
+                <span style={{ width: 40, height: 40, borderRadius: 13, display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0,
+                  background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.08)" : "#fff"), boxShadow: bosTileGlass(dark) }}>{typeof bosIcon === "function" ? bosIcon(tle.emoji, 20, null) : tle.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0, fontSize: 15.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tle.name}</div>
+                <button onClick={() => restoreTile(tle.k)} className="tap" style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "9px 15px", fontSize: 13, fontWeight: 600, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)" }}>Вернуть</button>
+              </div>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
     </div>
   );
 }

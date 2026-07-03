@@ -852,6 +852,9 @@ function AppProvider({ children }) {
   const [dayMoods, setDayMoods] = useState(SEED_DAYMOODS);
   const [dayNotes, setDayNotes] = useState(SEED_DAYNOTES);
   const [widgets, setWidgets] = useState(DEMO_WIDGETS);
+  // v528 (секция Д): СВОБОДНАЯ сетка главной — раскладка { order: ["w:hero","h:<id>","g:<id>",...], hidden: [...] };
+  // null = ещё не мигрирована из widgets (home_live построит дефолт при первом входе в новую главную).
+  const [homeLayout, setHomeLayout] = useState(null);
   const [wheelSpheres, setWheelSpheres] = useState(DEFAULT_SPHERES);
   // "auto" = follow per-route DARK_ROUTES; "light" / "dark" force everywhere. Stays "auto"
   // (= light, DARK_ROUTES is empty) by default — we polish the LIGHT theme end-to-end first,
@@ -1094,14 +1097,14 @@ function AppProvider({ children }) {
   // Always holds the latest state so an unload/background flush writes what's on screen
   // right now (a stale effect-closure would miss the very last tap).
   const latestRef = useRef(null);
-  latestRef.current = { persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres, claimedChallenges, spentXP };
+  latestRef.current = { persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP };
   useEffect(() => {
     if (!persistId || !window.bosStore) return;
     if (hydratingRef.current) return; // don't persist until the cloud load has reconciled
     if (saveTimer.current) clearTimeout(saveTimer.current);
     // Debounce: a flurry of taps coalesces into one write.
     saveTimer.current = setTimeout(() => {
-      window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres });
+      window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres });
       try {
         if (window.bosCloud && window.bosCloud.enabled()) {
           // Profile (name/avatar) — write only when it changed (it almost never does per tap).
@@ -1111,13 +1114,13 @@ function AppProvider({ children }) {
           // (habits/habit_logs/goals) so the blob can't balloon with date-keyed logs. Write only when
           // the blob's content actually changed → a habit check-in no longer re-upserts user_state.
           var _extras = _walletExtras();
-          var _blobStr = JSON.stringify({ teams, dayMoods, dayNotes, widgets, wheelSpheres, claimedChallenges, spentXP, extras: _extras });
-          if (_blobStr !== lastCloudBlobRef.current) { window.bosCloud.saveSnapshot({ teams, dayMoods, dayNotes, widgets, wheelSpheres, claimedChallenges, spentXP, extras: _extras }); lastCloudBlobRef.current = _blobStr; }
+          var _blobStr = JSON.stringify({ teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, extras: _extras });
+          if (_blobStr !== lastCloudBlobRef.current) { window.bosCloud.saveSnapshot({ teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, extras: _extras }); lastCloudBlobRef.current = _blobStr; }
         }
       } catch (e) {}
     }, 400);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, wheelSpheres, claimedChallenges, spentXP, extrasTick]);
+  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, extrasTick]);
 
   // Flush synchronously when the app is backgrounded/closed: the 400 ms debounce above
   // would otherwise lose the very last check-in if the user swipes the app away. localStorage
@@ -1128,11 +1131,11 @@ function AppProvider({ children }) {
       if (!s || !s.persistId || !window.bosStore || hydratingRef.current) return;
       try {
         if (saveTimer.current) clearTimeout(saveTimer.current);
-        window.bosStore.save(s.persistId, { savedAt: Date.now(), userName: s.userName, avatar: s.avatar, habits: s.habits, goals: s.goals, teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, wheelSpheres: s.wheelSpheres });
+        window.bosStore.save(s.persistId, { savedAt: Date.now(), userName: s.userName, avatar: s.avatar, habits: s.habits, goals: s.goals, teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres });
         if (window.bosCloud && window.bosCloud.enabled()) {
           var _extras = _walletExtras();
-          var _blobStr = JSON.stringify({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, wheelSpheres: s.wheelSpheres, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras });
-          if (_blobStr !== lastCloudBlobRef.current) { window.bosCloud.saveSnapshot({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, wheelSpheres: s.wheelSpheres, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras }); lastCloudBlobRef.current = _blobStr; }
+          var _blobStr = JSON.stringify({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras });
+          if (_blobStr !== lastCloudBlobRef.current) { window.bosCloud.saveSnapshot({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras }); lastCloudBlobRef.current = _blobStr; }
         }
       } catch (e) {}
     };
@@ -1215,7 +1218,7 @@ function AppProvider({ children }) {
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim()); setAvatar(null);
     setHabits([]); setGoals([]); setTeams([]);
-    setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
+    setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS); setHomeLayout(null);
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // Arm the welcome sheets; mark home as already-introduced so only the OTHER
     // tabs trigger a contextual intro when the user first opens them.
@@ -1246,7 +1249,7 @@ function AppProvider({ children }) {
       setUserName(saved.userName || name); setAvatar(_av0);
       setHabits((saved.habits || []).map(bosRollHabit)); setGoals(saved.goals || []); setTeams(saved.teams || []);
       setDayMoods(saved.dayMoods || {}); setDayNotes(saved.dayNotes || {});
-      setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS);
+      setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS); setHomeLayout(saved.homeLayout || null);
       // Restore today's state (the orb) from the saved per-day record, so reopening lands
       // in the mood the user last set today instead of snapping back to neutral.
       var _tkS = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
@@ -1255,7 +1258,7 @@ function AppProvider({ children }) {
     } else {
       setUserName(name); setAvatar(_av0);
       setHabits([]); setGoals([]); setTeams([]);
-      setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS);
+      setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS); setHomeLayout(null);
     }
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // First-time real users get the welcome sheets; returning ones skip straight in.
@@ -1363,9 +1366,10 @@ function AppProvider({ children }) {
               try { var _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null; var _mi = _tk ? _mMoods[_tk] : undefined; if (_mi != null && MOOD_OPTIONS[_mi]) setMood(MOOD_OPTIONS[_mi]); } catch (e) {}
               if (d.wheelSpheres) setWheelSpheres(d.wheelSpheres);
               if (d.widgets) setWidgets(d.widgets);
+              if (d.homeLayout) setHomeLayout(d.homeLayout);
               // If local held days the cloud lacked, push the union up so the cloud is whole too.
               if (Object.keys(_mMoods).length > Object.keys(_cloudMoods).length || Object.keys(_mNotes).length > Object.keys(_cloudNotes).length) {
-                window.bosCloud.saveSnapshot({ teams: Array.isArray(d.teams) ? d.teams : ((saved && saved.teams) || []), dayMoods: _mMoods, dayNotes: _mNotes, wheelSpheres: d.wheelSpheres, widgets: d.widgets, claimedChallenges: _mClaimed, spentXP: _mSpent });
+                window.bosCloud.saveSnapshot({ teams: Array.isArray(d.teams) ? d.teams : ((saved && saved.teams) || []), dayMoods: _mMoods, dayNotes: _mNotes, wheelSpheres: d.wheelSpheres, widgets: d.widgets, homeLayout: d.homeLayout || (saved && saved.homeLayout) || null, claimedChallenges: _mClaimed, spentXP: _mSpent });
               }
             } else {
               var src = saved || {};
@@ -1373,7 +1377,7 @@ function AppProvider({ children }) {
               var _mNotes2 = bosMergeDayMap(_localNotes, _cloudNotes);
               setDayMoods(_mMoods2);
               setDayNotes(_mNotes2);
-              window.bosCloud.saveSnapshot({ teams: src.teams || [], dayMoods: _mMoods2, dayNotes: _mNotes2, wheelSpheres: src.wheelSpheres, widgets: src.widgets, claimedChallenges: _mClaimed, spentXP: _mSpent });
+              window.bosCloud.saveSnapshot({ teams: src.teams || [], dayMoods: _mMoods2, dayNotes: _mNotes2, wheelSpheres: src.wheelSpheres, widgets: src.widgets, homeLayout: src.homeLayout || null, claimedChallenges: _mClaimed, spentXP: _mSpent });
             }
             // Reconciliation done → allow autosave again (the join below should persist).
             _doneHydrate();
@@ -1528,7 +1532,7 @@ function AppProvider({ children }) {
     mood, setMood,
     dayMoods, setDayMoods,
     dayNotes, setDayNotes,
-    widgets, setWidgets,
+    widgets, setWidgets, homeLayout, setHomeLayout,
     wheelSpheres, setWheelSpheres,
     themeOverride, setThemeOverride,
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
