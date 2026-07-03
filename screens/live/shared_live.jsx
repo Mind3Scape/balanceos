@@ -2115,7 +2115,7 @@ function SheetFormHeadLive({ title, onClose, onDone }) {
 // ─── СТИЛЬ КАРТОЧЕК страницы «Привычки» ───────────────────────────────────────────────────────────
 // David: «формы + тоглы внутри». Дефолт = ТЕКУЩИЙ вид (квадрат, неделя, имя+лица) — не меняем, человек
 // сам покрутит. Запоминается в localStorage; смена шлёт событие → список перерисовывается вживую.
-var BOS_CARD_STYLE_DEFAULT = { form: "square", name: true, marks: "week", faces: true, cells: "round" };
+var BOS_CARD_STYLE_DEFAULT = { form: "rect", name: true, marks: "none", faces: true, cells: "round" };
 function bosLoadCardStyle() { try { var s = JSON.parse(localStorage.getItem("bos:cardStyle") || "null"); if (s && typeof s === "object") return Object.assign({}, BOS_CARD_STYLE_DEFAULT, s); } catch (e) {} return Object.assign({}, BOS_CARD_STYLE_DEFAULT); }
 function bosSaveCardStyle(s) { try { localStorage.setItem("bos:cardStyle", JSON.stringify(s)); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
 
@@ -2123,7 +2123,7 @@ function bosSaveCardStyle(s) { try { localStorage.setItem("bos:cardStyle", JSON.
 // шестерёнке — стиль привычек И стиль целей, у целей другие пресеты»). База = ВЫСОКИЙ БАННЕР (как
 // цель выглядела изначально). form: banner (полноширинный высокий) | square (2-в-ряд минимал).
 // orbits = мини-орбита (привычки+люди вокруг цели-превью). name/progress — тоглы. Тот же event.
-var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: false, progress: true };
+var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: true, progress: true };
 function bosLoadGoalStyle() { try { var s = JSON.parse(localStorage.getItem("bos:goalStyle") || "null"); if (s && typeof s === "object") return Object.assign({}, BOS_GOAL_STYLE_DEFAULT, s); } catch (e) {} return Object.assign({}, BOS_GOAL_STYLE_DEFAULT); }
 function bosSaveGoalStyle(s) { try { localStorage.setItem("bos:goalStyle", JSON.stringify(s)); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
 
@@ -2194,7 +2194,8 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
         <div style={{ height: 12 }} />
         {tab === "habits" ? (
           <>
-            <div style={{ display: "flex", gap: 8 }}>{formBtn("square", "Квадрат", SQ, hs.form, (k) => setH({ form: k }))}{formBtn("rect", "Строка", RC, hs.form, (k) => setH({ form: k }))}</div>
+            {/* David: дефолт (строка) СЛЕВА, квадрат справа — «всё дефолтное по сути слева». */}
+            <div style={{ display: "flex", gap: 8 }}>{formBtn("rect", "Строка", RC, hs.form, (k) => setH({ form: k }))}{formBtn("square", "Квадрат", SQ, hs.form, (k) => setH({ form: k }))}</div>
             {divider}
             <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
             {seg(hs.marks, [{ v: "none", l: "Нет" }, { v: "week", l: "Неделя" }, { v: "month", l: "Месяц" }], (v) => setH({ marks: v }))}

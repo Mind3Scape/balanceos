@@ -4716,9 +4716,9 @@ function SheetFormHeadLive({
 // David: «формы + тоглы внутри». Дефолт = ТЕКУЩИЙ вид (квадрат, неделя, имя+лица) — не меняем, человек
 // сам покрутит. Запоминается в localStorage; смена шлёт событие → список перерисовывается вживую.
 var BOS_CARD_STYLE_DEFAULT = {
-  form: "square",
+  form: "rect",
   name: true,
-  marks: "week",
+  marks: "none",
   faces: true,
   cells: "round"
 };
@@ -4745,7 +4745,7 @@ function bosSaveCardStyle(s) {
 var BOS_GOAL_STYLE_DEFAULT = {
   form: "banner",
   name: true,
-  orbits: false,
+  orbits: true,
   progress: true
 };
 function bosLoadGoalStyle() {
@@ -5037,9 +5037,9 @@ function CardStyleMenuLive({
       display: "flex",
       gap: 8
     }
-  }, formBtn("square", "Квадрат", SQ, hs.form, k => setH({
+  }, formBtn("rect", "Строка", RC, hs.form, k => setH({
     form: k
-  })), formBtn("rect", "Строка", RC, hs.form, k => setH({
+  })), formBtn("square", "Квадрат", SQ, hs.form, k => setH({
     form: k
   }))), divider, /*#__PURE__*/React.createElement("div", {
     style: {

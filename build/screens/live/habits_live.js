@@ -2208,9 +2208,17 @@ function HabitsLive() {
     },
     onLongPress: onTileLongPress,
     ctlRef: gridCtl,
-    cols: cardStyle.form === "rect" ? 1 : 2,
+    cols: 2,
     gap: 12,
-    spanFull: k => k && (k[0] === "g" || k[0] === "t") && goalStyle.form === "banner",
+    spanFull: k => {
+      // Сетка ВСЕГДА 2-колоночная; КАЖДАЯ плитка сама решает ширину по СВОЕЙ форме (David: «квадрат
+      // цели должен стать квадратом, даже если привычки строкой»). Строка-привычка и баннер-цель =
+      // во всю ширину; квадрат = половина. Раньше колонки зависели от формы привычек → квадрат цели
+      // растягивался в 1-колоночной сетке. Теперь формы привычек и целей независимы.
+      if (!k) return false;
+      if (k[0] === "g" || k[0] === "t") return goalStyle.form === "banner";
+      return cardStyle.form === "rect";
+    },
     renderItem: (k, ctx) => {
       var e = entries.find(x => x.k === k);
       if (!e) return null;
