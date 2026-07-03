@@ -228,6 +228,26 @@ function CommunityLive() {
   // selected before, or carried from another mode), fall back to "network" so the
   // content area is never blank.
   var commTabEff = commTab === "partners" ? "network" : commTab;
+  // ── ОДНА ЛЕНТА С ЧИПАМИ (David: «двойное меню точно не вариант; самое элегантное?») ──
+  // Вместо двух рядов вкладок — чипы-фильтры ОДНОЙ ленты: Все · Круги · Люди · Партнёры.
+  // Совместимость: тур и онбординг-пилюли пишут старые section/commTab — если они
+  // расходятся с сохранённым filter (их только что сменили извне), верим им; чипы пишут
+  // ОБА представления согласованно. courses→Партнёры, network→Люди, discover→Все.
+  var _pairFor = {
+    all: "discover",
+    circles: "discover",
+    partners: "community",
+    people: "community"
+  };
+  var _legacyFilter = section === "community" ? commTabEff === "courses" ? "partners" : "people" : "all";
+  var _fOk = cv.filter && _pairFor[cv.filter] === section && (section !== "community" || cv.filter === "partners" === (commTabEff === "courses"));
+  var filter = _fOk ? cv.filter : _legacyFilter;
+  var setFilter = f => setView({
+    filter: f,
+    section: _pairFor[f] || "discover",
+    commTab: f === "partners" ? "courses" : "network"
+  });
+  var isDark = app?.themeOverride === "dark";
 
   // Real level for the live user — never the demo's curated 8/1240/2000. The
   // typeof guard keeps this safe if the XP helpers aren't loaded yet.
@@ -302,45 +322,44 @@ function CommunityLive() {
       color: "var(--text)"
     }
   }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), /*#__PURE__*/React.createElement("div", {
-    className: "tab-pill",
     style: {
-      background: "var(--card-2)"
+      display: "flex",
+      gap: 7,
+      padding: "2px 2px 0"
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "tap " + (section === "discover" ? "active" : ""),
-    onClick: () => setSection("discover")
-  }, "\u041D\u0430\u0439\u0442\u0438"), /*#__PURE__*/React.createElement("button", {
-    className: "tap " + (section === "community" ? "active" : ""),
-    onClick: () => setSection("community")
-  }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), section === "community" && /*#__PURE__*/React.createElement("div", {
-    className: "tab-pill tab-pill-sm",
-    style: {
-      background: "var(--card-2)",
-      marginTop: 10,
-      marginBottom: 14
-    }
-  }, [{
-    id: "network",
-    t: "Нетворк"
-  }, {
-    id: "courses",
-    t: "Курсы"
-  }].map(tb => /*#__PURE__*/React.createElement("button", {
-    key: tb.id,
-    className: "tap " + (commTabEff === tb.id ? "active" : ""),
-    "data-tour": tb.id === "network" ? "network" : undefined,
-    onClick: () => setCommTab(tb.id)
-  }, tb.t))), section === "discover" && /*#__PURE__*/React.createElement("div", {
+  }, [["all", "Все"], ["circles", "Круги"], ["people", "Люди"], ["partners", "Партнёры"]].map(([id, t]) => {
+    var on = filter === id;
+    var glass = !on && typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {};
+    return /*#__PURE__*/React.createElement("button", {
+      key: id,
+      onClick: () => setFilter(id),
+      className: "tap",
+      "data-haptic": "selection",
+      "data-tour": id === "people" ? "network" : undefined,
+      style: {
+        border: 0,
+        cursor: "pointer",
+        borderRadius: 999,
+        padding: "8px 15px",
+        fontSize: 13.5,
+        fontWeight: 600,
+        transition: "background 0.2s, color 0.2s",
+        ...glass,
+        background: on ? "var(--cta, #0a0a0a)" : glass.background,
+        color: on ? "var(--cta-ink, #fff)" : "var(--text-2)"
+      }
+    }, t);
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 12,
       marginTop: 14
     }
-  }, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
+  }, (filter === "all" || filter === "partners") && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
     app: app,
     navigate: navigate
-  }), /*#__PURE__*/React.createElement("div", {
+  })), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "2px 4px 0"
     }
@@ -369,17 +388,15 @@ function CommunityLive() {
     app: app,
     navigate: navigate
   }), typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
-    isDark: app?.themeOverride === "dark"
+    isDark: isDark
   }), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
     app: app
-  })), section === "community" && commTabEff === "network" &&
+  })), (filter === "all" || filter === "people") &&
   /*#__PURE__*/
-  // The unlocked Network body (a curated people list + booking buttons) is
-  // FABRICATED content — demo-only. The live user gets the honest locked banner
-  // instead (real XP paths, no fabricated people), until a real network exists.
+  // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
   React.createElement("div", {
     style: {
-      marginTop: 2
+      marginTop: filter === "all" ? 4 : 0
     }
   }, /*#__PURE__*/React.createElement(NetworkLockedLive, {
     navigate: navigate,
@@ -390,11 +407,8 @@ function CommunityLive() {
     levelsLeft: levelsLeft,
     weeks: weeksToUnlock,
     onUnlock: () => {},
-    onSwitchToCommunity: () => {
-      setSection("community");
-      setCommTab("courses");
-    }
-  })), section === "community" && commTabEff === "courses" && /*#__PURE__*/React.createElement("div", {
+    onSwitchToCommunity: () => setFilter("partners")
+  })), (filter === "all" || filter === "partners") && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -402,6 +416,24 @@ function CommunityLive() {
       marginTop: 4
     }
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 4px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 21,
+      fontWeight: 700,
+      letterSpacing: "-0.5px",
+      color: "var(--text)"
+    }
+  }, "\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)",
+      marginTop: 3,
+      lineHeight: 1.45
+    }
+  }, "\u0418\u043D\u0442\u0435\u043D\u0441\u0438\u0432\u044B \u0438 \u043A\u0443\u0440\u0441\u044B \u2014 \u0441\u0430\u043C\u044B\u0439 \u0431\u044B\u0441\u0442\u0440\u044B\u0439 \u0440\u043E\u0441\u0442 \u0443\u0440\u043E\u0432\u043D\u044F.")), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       overflow: "hidden",
@@ -606,7 +638,7 @@ function CommunityLive() {
     }
   }, "\u041E \u043A\u0443\u0440\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 14
-  })))))));
+  }))))))));
 }
 
 /* Per-team stale-while-revalidate cache (roster / habits / anchor-progress / goal) so

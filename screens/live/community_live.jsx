@@ -99,6 +99,18 @@ function CommunityLive() {
   // selected before, or carried from another mode), fall back to "network" so the
   // content area is never blank.
   const commTabEff = (commTab === "partners") ? "network" : commTab;
+  // ── ОДНА ЛЕНТА С ЧИПАМИ (David: «двойное меню точно не вариант; самое элегантное?») ──
+  // Вместо двух рядов вкладок — чипы-фильтры ОДНОЙ ленты: Все · Круги · Люди · Партнёры.
+  // Совместимость: тур и онбординг-пилюли пишут старые section/commTab — если они
+  // расходятся с сохранённым filter (их только что сменили извне), верим им; чипы пишут
+  // ОБА представления согласованно. courses→Партнёры, network→Люди, discover→Все.
+  const _pairFor = { all: "discover", circles: "discover", partners: "community", people: "community" };
+  const _legacyFilter = section === "community" ? (commTabEff === "courses" ? "partners" : "people") : "all";
+  const _fOk = cv.filter && _pairFor[cv.filter] === section
+    && (section !== "community" || (cv.filter === "partners") === (commTabEff === "courses"));
+  const filter = _fOk ? cv.filter : _legacyFilter;
+  const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "partners" ? "courses" : "network" });
+  const isDark = app?.themeOverride === "dark";
 
   // Real level for the live user — never the demo's curated 8/1240/2000. The
   // typeof guard keeps this safe if the XP helpers aren't loaded yet.
@@ -135,73 +147,81 @@ function CommunityLive() {
         {/* «Новая команда» убрана: круги создаются на вкладке Привычки → «+». Сообщество = только найти/расти. */}
       </div>
 
-      {/* Primary section — pill */}
-      <div className="tab-pill" style={{ background: "var(--card-2)" }}>
-        <button className={"tap " + (section === "discover" ? "active" : "")} onClick={() => setSection("discover")}>Найти</button>
-        <button className={"tap " + (section === "community" ? "active" : "")} onClick={() => setSection("community")}>Сообщество</button>
+      {/* ЧИПЫ-ФИЛЬТРЫ одной ленты (вместо двух рядов вкладок — David: «двойное меню не
+          вариант»). Активный — CTA-пилюля, остальные — стеклянные чипы. Чип не комната,
+          а фокус той же ленты: «Все» показывает всё подряд. */}
+      <div style={{ display: "flex", gap: 7, padding: "2px 2px 0" }}>
+        {[["all", "Все"], ["circles", "Круги"], ["people", "Люди"], ["partners", "Партнёры"]].map(([id, t]) => {
+          const on = filter === id;
+          const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
+          return (
+            <button key={id} onClick={() => setFilter(id)} className="tap" data-haptic="selection"
+              data-tour={id === "people" ? "network" : undefined}
+              style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 15px", fontSize: 13.5, fontWeight: 600,
+                transition: "background 0.2s, color 0.2s", ...glass,
+                background: on ? "var(--cta, #0a0a0a)" : glass.background,
+                color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>{t}</button>
+          );
+        })}
       </div>
 
-      {/* Secondary scope bar — a thinner pill segmented control (same family as the
-          Команды/Сообщество pill above), only inside «Сообщество». «Команды» stands alone.
-          LIVE: Нетворк + Курсы only (the 3 courses are real). Партнёры is hidden until
-          real partners exist. */}
-      {section === "community" && (
-        <div className="tab-pill tab-pill-sm" style={{ background: "var(--card-2)", marginTop: 10, marginBottom: 14 }}>
-          {[{ id: "network", t: "Нетворк" }, { id: "courses", t: "Курсы" }].map(tb => (
-            <button key={tb.id} className={"tap " + (commTabEff === tb.id ? "active" : "")} data-tour={tb.id === "network" ? "network" : undefined} onClick={() => setCommTab(tb.id)}>{tb.t}</button>
-          ))}
-        </div>
-      )}
+      {/* ЛЕНТА — секции живут вместе; чип просто сужает её. Порядок «Все»: партнёры
+          (ради чего копишь XP — решение David «на самом верху») → программы партнёров
+          (бывшие «Курсы» — теперь часть партнёрского мира) → круги → люди. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+        {(filter === "all" || filter === "partners") && (
+          <React.Fragment>
+            {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку. */}
+            {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
+          </React.Fragment>
+        )}
 
-      {section === "discover" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
-          {/* НАЙТИ — только ЧУЖИЕ круги/цели, в которые можно вступить (дискавери). «Твои круги»
-              отсюда УБРАНЫ — они живут на вкладке Привычки → Цели (с лицами). Дубля больше нет.
-              Создание круга — на Привычки → «+». */}
-          {/* Партнёры — «на что потратить XP»: живые бесплатные вещи (медитация/бачата/бокс) за копилку.
-              НА САМОМ ВЕРХУ (David) — первое, что видно: ради чего копишь XP. Золотая полка, чтобы блок
-              НЕ сливался с нейтральными челленджами/кругами. Доступно с 1 уровня (Нетворк — с 10). */}
-          {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
-          <div style={{ padding: "2px 4px 0" }}>
-            <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Найди своих</div>
-            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Вступай в челленджи и живые круги — или собери свой круг с друзьями. Любой появится у тебя в «Целях».</div>
+        {(filter === "all" || filter === "circles") && (
+          <React.Fragment>
+            <div style={{ padding: "2px 4px 0" }}>
+              <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Найди своих</div>
+              <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Вступай в челленджи и живые круги — или собери свой круг с друзьями. Любой появится у тебя в «Целях».</div>
+            </div>
+            {/* Челленджи — срочные, с призом за финиш. */}
+            {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
+            {/* Собери свой круг — пресеты создания (семья/тренинги/рост). */}
+            {typeof CircleStartersShowcaseLive === "function" && <CircleStartersShowcaseLive navigate={navigate} />}
+            {/* Живые круги — витрина с лицами + активностью; тап → создать похожий. */}
+            {typeof LivingCirclesShowcaseLive === "function" && <LivingCirclesShowcaseLive navigate={navigate} />}
+            {/* РЕАЛЬНАЯ жизнь — живые лица из твоих кругов (скрыто, если людей нет). */}
+            {typeof CircleFriendsStripLive === "function" && <CircleFriendsStripLive app={app} navigate={navigate} />}
+            {/* Позови своих — родной выбор контактов Telegram (реферал). */}
+            {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
+            {/* Открытые круги из облака, в которые можно вступить. */}
+            <CloudTeamsDiscoverLive app={app} />
+          </React.Fragment>
+        )}
+
+        {(filter === "all" || filter === "people") && (
+          // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
+          <div style={{ marginTop: filter === "all" ? 4 : 0 }}>
+            <NetworkLockedLive
+              navigate={navigate}
+              live={true}
+              level={userLevel}
+              xp={xpInLevel}
+              xpMax={xpForNext}
+              levelsLeft={levelsLeft}
+              weeks={weeksToUnlock}
+              onUnlock={() => {}}
+              onSwitchToCommunity={() => setFilter("partners")}
+            />
           </div>
-          {/* Челленджи — срочные, с призом за финиш. */}
-          {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
-          {/* Собери свой круг — пресеты создания (семья/тренинги/рост), переехали сюда из Целей (David). */}
-          {typeof CircleStartersShowcaseLive === "function" && <CircleStartersShowcaseLive navigate={navigate} />}
-          {/* Живые круги — витрина с лицами + активностью («иллюзия жизни»); тап → создать похожий. */}
-          {typeof LivingCirclesShowcaseLive === "function" && <LivingCirclesShowcaseLive navigate={navigate} />}
-          {/* РЕАЛЬНАЯ жизнь — живые лица из твоих кругов (скрыто, если людей нет; David: «по-настоящему»). */}
-          {typeof CircleFriendsStripLive === "function" && <CircleFriendsStripLive app={app} navigate={navigate} />}
-          {/* Позови своих — родной выбор контактов Telegram (реферал); друзья → в «Твои люди». */}
-          {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={app?.themeOverride === "dark"} />}
-          {/* Открытые круги из облака, в которые можно вступить. */}
-          <CloudTeamsDiscoverLive app={app} />
-        </div>
-      )}
+        )}
 
-      {section === "community" && commTabEff === "network" && (
-        // The unlocked Network body (a curated people list + booking buttons) is
-        // FABRICATED content — demo-only. The live user gets the honest locked banner
-        // instead (real XP paths, no fabricated people), until a real network exists.
-        <div style={{ marginTop: 2 }}>
-          <NetworkLockedLive
-            navigate={navigate}
-            live={true}
-            level={userLevel}
-            xp={xpInLevel}
-            xpMax={xpForNext}
-            levelsLeft={levelsLeft}
-            weeks={weeksToUnlock}
-            onUnlock={() => {}}
-            onSwitchToCommunity={() => { setSection("community"); setCommTab("courses"); }}
-          />
-        </div>
-      )}
-
-      {section === "community" && commTabEff === "courses" && (
+        {(filter === "all" || filter === "partners") && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+          {/* ПРОГРАММЫ ПАРТНЁРОВ (бывшие «Курсы» — David: «курсы как слово ощущается хуже
+              партнёров»): интенсивы-ускорители внутри партнёрского мира. */}
+          <div style={{ padding: "2px 4px 0" }}>
+            <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Программы партнёров</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Интенсивы и курсы — самый быстрый рост уровня.</div>
+          </div>
           {/* Gold "why courses" banner — the hook (esp. for a newcomer): a course is
               the fastest level-up — a whole level + an achievement that opens new
               circles of people + a big XP boost. Same gold as the level badge. */}
@@ -254,7 +274,8 @@ function CommunityLive() {
             </button>
           ))}
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
