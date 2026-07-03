@@ -890,7 +890,15 @@ function CircleFacesLive({ habit, size, max }) {
   size = size || 22; max = max || 5;
   var teamId = habit && habit.teamId;
   var members = useCircleMembersLive(teamId);
-  var uidSt = React.useState(_bosMyUidCache);
+  // Свой uid берём СИНХРОННО (после авторизации cloud._uid уже известен) → фильтр «не я» верен с
+  // ПЕРВОГО рендера, и свой аватар НЕ мелькает среди чужих (David: «на секунду появляется мой аватар,
+  // лица дёргаются»). Фолбэк — async-догрузка, если авторизация ещё в полёте.
+  var uidSt = React.useState(function () {
+    if (_bosMyUidCache != null) return _bosMyUidCache;
+    var u = (window.bosCloud && window.bosCloud.uidSync) ? window.bosCloud.uidSync() : null;
+    if (u) _bosMyUidCache = u;
+    return u != null ? u : null;
+  });
   var myUid = uidSt[0], setMyUid = uidSt[1];
   React.useEffect(function () {
     if (myUid != null) return;
@@ -899,7 +907,10 @@ function CircleFacesLive({ habit, size, max }) {
     }
   }, []);
   if (!teamId) return null;
-  var others = (members || []).filter(function (m) { return !myUid || m.id !== myUid; });
+  // Пока свой uid НЕ известен (редко — авторизация ещё в полёте) — лица НЕ показываем: иначе среди
+  // чужих мелькнёт свой и потом отфильтруется (дёрганье). Дождёмся uid → покажем уже без себя.
+  if (myUid == null) return null;
+  var others = (members || []).filter(function (m) { return m.id !== myUid; });
   if (!others.length) return null;
   return React.createElement(PeopleStackLive, { people: others, size: size, max: max });
 }

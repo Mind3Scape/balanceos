@@ -29,6 +29,9 @@
     if (_uid) return _uid;
     var u = await currentUser(); _uid = u ? u.id : null; return _uid;
   }
+  // Синхронный доступ к уже известному uid (после авторизации _uid закэширован). Нужен, чтобы лица
+  // круга СРАЗУ знали «меня» и на первом рендере НЕ мелькал свой аватар среди чужих (David).
+  function uidSync() { return _uid; }
 
   // Sign in (idempotent). referredBy = id of the person whose invite link brought you.
   async function signIn(referredBy) {
@@ -730,7 +733,7 @@
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
-    signIn: signIn, uid: uid, currentUser: currentUser,
+    signIn: signIn, uid: uid, uidSync: uidSync, currentUser: currentUser,
     loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople, refCode: refCode, inviteCode: inviteCode,
     savePublicStats: savePublicStats, profilesPublic: profilesPublic, allPublic: allPublic,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
