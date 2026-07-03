@@ -2692,24 +2692,30 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
    a flash-then-vanish at the page bottom (David: «показывает на секунду, потом исчезает»).
    Here it stays silent until real teams arrive, then the section appears once, below the
    create-CTA, shifting nothing above it. The frozen demo keeps core's CloudTeamsDiscover. */
-function CloudTeamsDiscoverLive({ app }) {
+function CloudTeamsDiscoverLive({ app, query, onCount }) {
   const isDark = app?.themeOverride === "dark";
   const [list, setList] = React.useState(null);
   const [busy, setBusy] = React.useState({});
   const [requested, setRequested] = React.useState({});
+  // query → режим ПОИСКА: ищем открытые круги по имени (cloud.searchTeams) вместо витрины;
+  // onCount сообщает родителю, сколько нашлось (для честной пустышки «ничего не нашлось»).
   React.useEffect(() => {
     let on = true;
+    const q = ("" + (query || "")).trim();
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
-        window.bosCloud.discoverTeams().then((ts) => { if (on) setList(Array.isArray(ts) ? ts : []); }).catch(() => { if (on) setList([]); });
-      } else setList([]);
-    } catch (e) { setList([]); }
+        const p = (q && window.bosCloud.searchTeams) ? window.bosCloud.searchTeams(q) : window.bosCloud.discoverTeams();
+        p.then((ts) => { if (!on) return; const arr = Array.isArray(ts) ? ts : []; setList(arr); if (onCount) onCount(arr.length); }).catch(() => { if (!on) return; setList([]); if (onCount) onCount(0); });
+      } else { setList([]); if (onCount) onCount(0); }
+    } catch (e) { setList([]); if (onCount) onCount(0); }
     return () => { on = false; };
-  }, []);
+  }, [query]);
   // While LOADING (null) → render nothing (no promissory skeleton that pops then collapses).
   // Once LOADED-EMPTY ([]) → a warm, HONEST invite: «Найти» is the community pulse, so the live
   // section shouldn't read as a dead blank — but we never fabricate circles that don't exist.
+  // В режиме поиска пустышка не нужна — родитель показывает общую «ничего не нашлось».
   if (!list) return null;
+  if (query && !list.length) return null;
   if (!list.length) return (
     <div style={{ marginTop: 6 }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>

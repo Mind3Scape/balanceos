@@ -111,6 +111,41 @@ function CommunityLive() {
   const filter = _fOk ? cv.filter : _legacyFilter;
   const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "partners" ? "courses" : "network" });
   const isDark = app?.themeOverride === "dark";
+  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+
+  // ── ПОИСК по ленте (Э2 редизайна): круги (облако + живые витрины) · партнёры · программы.
+  // Дебаунс 350мс бережёт облако; от 2 символов. Пока ищем — чипы и лента уступают результатам.
+  const [q, setQ] = React.useState("");
+  const [qDeb, setQDeb] = React.useState("");
+  const [cloudHits, setCloudHits] = React.useState(null); // null = ждём облако (для пустышки)
+  React.useEffect(() => { const t = setTimeout(() => { setQDeb(q.trim()); setCloudHits(null); }, 350); return () => clearTimeout(t); }, [q]);
+  const searching = qDeb.length >= 2;
+  const _qq = qDeb.toLowerCase();
+  const _hit = (...fs) => fs.some((f) => ("" + (f || "")).toLowerCase().indexOf(_qq) !== -1);
+  const lcHits = searching && typeof LIVING_CIRCLES !== "undefined"
+    ? LIVING_CIRCLES.filter((s) => _hit(s.t, s.hook, (s.habits || []).map((h) => h.name).join(" "))) : [];
+  const pHits = searching && typeof BOS_PARTNERS !== "undefined"
+    ? BOS_PARTNERS.filter((p) => _hit(p.name, p.what, (p.tags || []).join(" "))) : [];
+
+  // ── «Сейчас N человек держат практики» (VISION: живая строка вместо ленты) — честное
+  // число из RPC bos_active_today; кэш на полчаса против моргания; 0/нет патча → скрыта.
+  const [pulseN, setPulseN] = React.useState(() => {
+    try { const v = JSON.parse(localStorage.getItem("bos:cache:pulseToday") || "null"); return (v && Date.now() - v.ts < 1800e3) ? v.n : null; } catch (e) { return null; }
+  });
+  React.useEffect(() => {
+    let on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.activeToday) {
+        window.bosCloud.activeToday().then((n) => {
+          if (!on || typeof n !== "number") return;
+          setPulseN(n);
+          try { localStorage.setItem("bos:cache:pulseToday", JSON.stringify({ n, ts: Date.now() })); } catch (e) {}
+        }).catch(() => {});
+      }
+    } catch (e) {}
+    return () => { on = false; };
+  }, []);
+  const _pulseWord = (n) => { const a = n % 10, b = n % 100; if (a === 1 && b !== 11) return "человек держит практики"; if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return "человека держат практики"; return "человек держат практики"; };
 
   // Real level for the live user — never the demo's curated 8/1240/2000. The
   // typeof guard keeps this safe if the XP helpers aren't loaded yet.
@@ -138,6 +173,9 @@ function CommunityLive() {
     { id: "breakthrough", i: "🚀",    accent: "#dbe9ff", t: "Прорыв",  d: "Открой новые пути и преодолей пределы.",            price: "110 000 ₽", lvl: "Продвинутый",    length: "7 дней", cohort: _cohortWindow(33, 7) },
     { id: "marathon",     i: "🏃🏼‍♀️", accent: "#d6f3df", t: "Марафон",      d: "21-дневная программа устойчивых привычек.",                price: "110 000 ₽", lvl: "Базовый",  length: "21 день", cohort: _cohortWindow(54, 21) },
   ];
+  // Хиты программ считаются ЗДЕСЬ (courses объявлен строкой выше — обращение раньше уронило бы TDZ).
+  const cHits = searching ? courses.filter((c) => _hit(c.t, c.d, c.lvl)) : [];
+  const nothingFound = searching && cloudHits === 0 && !lcHits.length && !pHits.length && !cHits.length;
 
   return (
     <div className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -147,9 +185,23 @@ function CommunityLive() {
         {/* «Новая команда» убрана: круги создаются на вкладке Привычки → «+». Сообщество = только найти/расти. */}
       </div>
 
+      {/* ПОИСК по всей ленте: круги (живые + облачные) · партнёры · программы. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 9, background: "var(--card, #fff)", borderRadius: 999, padding: "10px 15px", boxShadow: "var(--card-shadow)", margin: "0 2px 10px" }}>
+        <I.Search size={16} strokeWidth={2} color="var(--text-4)" style={{ flexShrink: 0 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Найти круг или партнёра" aria-label="Поиск по сообществу"
+          style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 14.5, color: "var(--text)" }} />
+        {q && (
+          <button onClick={() => setQ("")} className="tap" aria-label="Очистить" style={{ border: 0, background: "var(--surface-3)", borderRadius: 999, width: 22, height: 22, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0, color: "var(--text-3)" }}>
+            <I.X size={12} strokeWidth={2.6} />
+          </button>
+        )}
+      </div>
+
       {/* ЧИПЫ-ФИЛЬТРЫ одной ленты (вместо двух рядов вкладок — David: «двойное меню не
           вариант»). Активный — CTA-пилюля, остальные — стеклянные чипы. Чип не комната,
-          а фокус той же ленты: «Все» показывает всё подряд. */}
+          а фокус той же ленты: «Все» показывает всё подряд. Во время поиска уступают
+          месту результатам. */}
+      {!searching && (
       <div style={{ display: "flex", gap: 7, padding: "2px 2px 0" }}>
         {[["all", "Все"], ["circles", "Круги"], ["people", "Люди"], ["partners", "Партнёры"]].map(([id, t]) => {
           const on = filter === id;
@@ -164,10 +216,88 @@ function CommunityLive() {
           );
         })}
       </div>
+      )}
+
+      {/* Живая строка (VISION): сколько разных людей поставили отметку сегодня. */}
+      {!searching && pulseN > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 4px 0" }}>
+          <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: "#34C759", boxShadow: "0 0 0 3px rgba(52,199,89,0.16)", flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: "var(--text-3)" }}>Сейчас {pulseN} {_pulseWord(pulseN)}</span>
+        </div>
+      )}
+
+      {/* РЕЗУЛЬТАТЫ ПОИСКА — те же карточки, что в ленте; тап ведёт туда же. */}
+      {searching && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+          {lcHits.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌱 Живые круги</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {lcHits.map((s) => (
+                  <button key={s.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} className="tap"
+                    style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
+                    <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(s.i, 24, null)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 600 }}>{s.t}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.hook}</div>
+                    </div>
+                    <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <CloudTeamsDiscoverLive app={app} query={qDeb} onCount={setCloudHits} />
+          {pHits.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🎁 Партнёры</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {pHits.map((p) => (
+                  <button key={p.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: "community" }); }} className="tap"
+                    style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
+                    <span style={{ width: 44, height: 44, borderRadius: 14, background: (typeof bosMixHex === "function" && isDark) ? bosMixHex(p.accent, "#101014", 0.48) : p.accent, display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(p.emblem, 24, null)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 600 }}>{p.name}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.what} · {p.cost} XP</div>
+                    </div>
+                    <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {cHits.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🎓 Программы партнёров</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {cHits.map((c) => (
+                  <button key={c.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("course-detail", { course: c }); }} className="tap"
+                    style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
+                    <span style={{ width: 44, height: 44, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{c.i}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 600 }}>{c.t}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2 }}>{c.length} · {c.lvl}</div>
+                    </div>
+                    <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {nothingFound && (
+            <div style={{ background: "var(--card)", borderRadius: 22, padding: "26px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
+              <div style={{ fontSize: 30, lineHeight: 1 }}>🔭</div>
+              <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", marginTop: 9 }}>Ничего не нашлось</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 5, lineHeight: 1.45 }}>Попробуй другое слово — или собери свой круг на «Привычках» через «+».</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ЛЕНТА — секции живут вместе; чип просто сужает её. Порядок «Все»: партнёры
-          (ради чего копишь XP — решение David «на самом верху») → программы партнёров
-          (бывшие «Курсы» — теперь часть партнёрского мира) → круги → люди. */}
+          (ради чего копишь XP — решение David «на самом верху») → круги → люди →
+          программы партнёров. Во время поиска лента уступает результатам. */}
+      {!searching && (
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
         {(filter === "all" || filter === "partners") && (
           <React.Fragment>
@@ -276,6 +406,7 @@ function CommunityLive() {
         </div>
         )}
       </div>
+      )}
     </div>
   );
 }

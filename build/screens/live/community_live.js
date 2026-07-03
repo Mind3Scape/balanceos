@@ -248,6 +248,67 @@ function CommunityLive() {
     commTab: f === "partners" ? "courses" : "network"
   });
   var isDark = app?.themeOverride === "dark";
+  var {
+    open: _openSheet
+  } = typeof useSheet === "function" ? useSheet() : {
+    open: () => {}
+  };
+
+  // ── ПОИСК по ленте (Э2 редизайна): круги (облако + живые витрины) · партнёры · программы.
+  // Дебаунс 350мс бережёт облако; от 2 символов. Пока ищем — чипы и лента уступают результатам.
+  var [q, setQ] = React.useState("");
+  var [qDeb, setQDeb] = React.useState("");
+  var [cloudHits, setCloudHits] = React.useState(null); // null = ждём облако (для пустышки)
+  React.useEffect(() => {
+    var t = setTimeout(() => {
+      setQDeb(q.trim());
+      setCloudHits(null);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [q]);
+  var searching = qDeb.length >= 2;
+  var _qq = qDeb.toLowerCase();
+  var _hit = (...fs) => fs.some(f => ("" + (f || "")).toLowerCase().indexOf(_qq) !== -1);
+  var lcHits = searching && typeof LIVING_CIRCLES !== "undefined" ? LIVING_CIRCLES.filter(s => _hit(s.t, s.hook, (s.habits || []).map(h => h.name).join(" "))) : [];
+  var pHits = searching && typeof BOS_PARTNERS !== "undefined" ? BOS_PARTNERS.filter(p => _hit(p.name, p.what, (p.tags || []).join(" "))) : [];
+
+  // ── «Сейчас N человек держат практики» (VISION: живая строка вместо ленты) — честное
+  // число из RPC bos_active_today; кэш на полчаса против моргания; 0/нет патча → скрыта.
+  var [pulseN, setPulseN] = React.useState(() => {
+    try {
+      var v = JSON.parse(localStorage.getItem("bos:cache:pulseToday") || "null");
+      return v && Date.now() - v.ts < 1800e3 ? v.n : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  React.useEffect(() => {
+    var on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.activeToday) {
+        window.bosCloud.activeToday().then(n => {
+          if (!on || typeof n !== "number") return;
+          setPulseN(n);
+          try {
+            localStorage.setItem("bos:cache:pulseToday", JSON.stringify({
+              n,
+              ts: Date.now()
+            }));
+          } catch (e) {}
+        }).catch(() => {});
+      }
+    } catch (e) {}
+    return () => {
+      on = false;
+    };
+  }, []);
+  var _pulseWord = n => {
+    var a = n % 10,
+      b = n % 100;
+    if (a === 1 && b !== 11) return "человек держит практики";
+    if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return "человека держат практики";
+    return "человек держат практики";
+  };
 
   // Real level for the live user — never the demo's curated 8/1240/2000. The
   // typeof guard keeps this safe if the XP helpers aren't loaded yet.
@@ -301,6 +362,9 @@ function CommunityLive() {
     length: "21 день",
     cohort: _cohortWindow(54, 21)
   }];
+  // Хиты программ считаются ЗДЕСЬ (courses объявлен строкой выше — обращение раньше уронило бы TDZ).
+  var cHits = searching ? courses.filter(c => _hit(c.t, c.d, c.lvl)) : [];
+  var nothingFound = searching && cloudHits === 0 && !lcHits.length && !pHits.length && !cHits.length;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -322,6 +386,57 @@ function CommunityLive() {
       color: "var(--text)"
     }
   }, "\u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      background: "var(--card, #fff)",
+      borderRadius: 999,
+      padding: "10px 15px",
+      boxShadow: "var(--card-shadow)",
+      margin: "0 2px 10px"
+    }
+  }, /*#__PURE__*/React.createElement(I.Search, {
+    size: 16,
+    strokeWidth: 2,
+    color: "var(--text-4)",
+    style: {
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u041D\u0430\u0439\u0442\u0438 \u043A\u0440\u0443\u0433 \u0438\u043B\u0438 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u0430",
+    "aria-label": "\u041F\u043E\u0438\u0441\u043A \u043F\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0443",
+    style: {
+      flex: 1,
+      minWidth: 0,
+      border: 0,
+      outline: "none",
+      background: "transparent",
+      fontSize: 14.5,
+      color: "var(--text)"
+    }
+  }), q && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setQ(""),
+    className: "tap",
+    "aria-label": "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C",
+    style: {
+      border: 0,
+      background: "var(--surface-3)",
+      borderRadius: 999,
+      width: 22,
+      height: 22,
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      flexShrink: 0,
+      color: "var(--text-3)"
+    }
+  }, /*#__PURE__*/React.createElement(I.X, {
+    size: 12,
+    strokeWidth: 2.6
+  }))), !searching && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 7,
@@ -349,7 +464,300 @@ function CommunityLive() {
         color: on ? "var(--cta-ink, #fff)" : "var(--text-2)"
       }
     }, t);
-  })), /*#__PURE__*/React.createElement("div", {
+  })), !searching && pulseN > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "12px 4px 0"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: "50%",
+      background: "#34C759",
+      boxShadow: "0 0 0 3px rgba(52,199,89,0.16)",
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-3)"
+    }
+  }, "\u0421\u0435\u0439\u0447\u0430\u0441 ", pulseN, " ", _pulseWord(pulseN))), searching && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      marginTop: 12
+    }
+  }, lcHits.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "4px 4px 8px"
+    }
+  }, "\uD83C\uDF31 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, lcHits.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s.id,
+    onClick: () => {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+      if (typeof LivingCircleSheetLive === "function") _openSheet(/*#__PURE__*/React.createElement(LivingCircleSheetLive, {
+        circle: s,
+        navigate: navigate
+      }));
+    },
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 14,
+      boxShadow: "var(--card-shadow)",
+      border: 0,
+      textAlign: "left",
+      width: "100%",
+      cursor: "pointer",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 24,
+      flexShrink: 0
+    }
+  }, bosIcon(s.i, 24, null)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 600
+    }
+  }, s.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 2,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, s.hook)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    color: "var(--text-4)",
+    style: {
+      flexShrink: 0
+    }
+  }))))), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
+    app: app,
+    query: qDeb,
+    onCount: setCloudHits
+  }), pHits.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "4px 4px 8px"
+    }
+  }, "\uD83C\uDF81 \u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, pHits.map(p => /*#__PURE__*/React.createElement("button", {
+    key: p.id,
+    onClick: () => {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+      navigate("partner-detail", {
+        partner: p,
+        from: "community"
+      });
+    },
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 14,
+      boxShadow: "var(--card-shadow)",
+      border: 0,
+      textAlign: "left",
+      width: "100%",
+      cursor: "pointer",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      background: typeof bosMixHex === "function" && isDark ? bosMixHex(p.accent, "#101014", 0.48) : p.accent,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 24,
+      flexShrink: 0
+    }
+  }, bosIcon(p.emblem, 24, null)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 600
+    }
+  }, p.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 2,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, p.what, " \xB7 ", p.cost, " XP")), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    color: "var(--text-4)",
+    style: {
+      flexShrink: 0
+    }
+  }))))), cHits.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "4px 4px 8px"
+    }
+  }, "\uD83C\uDF93 \u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, cHits.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c.id,
+    onClick: () => {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+      navigate("course-detail", {
+        course: c
+      });
+    },
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: 14,
+      boxShadow: "var(--card-shadow)",
+      border: 0,
+      textAlign: "left",
+      width: "100%",
+      cursor: "pointer",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: "50%",
+      background: c.accent,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22,
+      flexShrink: 0
+    }
+  }, c.i), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 600
+    }
+  }, c.t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 2
+    }
+  }, c.length, " \xB7 ", c.lvl)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    color: "var(--text-4)",
+    style: {
+      flexShrink: 0
+    }
+  }))))), nothingFound && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      padding: "26px 18px",
+      boxShadow: "var(--card-shadow)",
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 30,
+      lineHeight: 1
+    }
+  }, "\uD83D\uDD2D"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text)",
+      marginTop: 9
+    }
+  }, "\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0448\u043B\u043E\u0441\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 5,
+      lineHeight: 1.45
+    }
+  }, "\u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439 \u0434\u0440\u0443\u0433\u043E\u0435 \u0441\u043B\u043E\u0432\u043E \u2014 \u0438\u043B\u0438 \u0441\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439 \u043A\u0440\u0443\u0433 \u043D\u0430 \xAB\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430\u0445\xBB \u0447\u0435\u0440\u0435\u0437 \xAB+\xBB."))), !searching && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

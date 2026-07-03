@@ -6362,33 +6362,50 @@ function HomeHeroSwipeLive({
    Here it stays silent until real teams arrive, then the section appears once, below the
    create-CTA, shifting nothing above it. The frozen demo keeps core's CloudTeamsDiscover. */
 function CloudTeamsDiscoverLive({
-  app
+  app,
+  query,
+  onCount
 }) {
   var isDark = app?.themeOverride === "dark";
   var [list, setList] = React.useState(null);
   var [busy, setBusy] = React.useState({});
   var [requested, setRequested] = React.useState({});
+  // query → режим ПОИСКА: ищем открытые круги по имени (cloud.searchTeams) вместо витрины;
+  // onCount сообщает родителю, сколько нашлось (для честной пустышки «ничего не нашлось»).
   React.useEffect(() => {
     var on = true;
+    var q = ("" + (query || "")).trim();
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
-        window.bosCloud.discoverTeams().then(ts => {
-          if (on) setList(Array.isArray(ts) ? ts : []);
+        var p = q && window.bosCloud.searchTeams ? window.bosCloud.searchTeams(q) : window.bosCloud.discoverTeams();
+        p.then(ts => {
+          if (!on) return;
+          var arr = Array.isArray(ts) ? ts : [];
+          setList(arr);
+          if (onCount) onCount(arr.length);
         }).catch(() => {
-          if (on) setList([]);
+          if (!on) return;
+          setList([]);
+          if (onCount) onCount(0);
         });
-      } else setList([]);
+      } else {
+        setList([]);
+        if (onCount) onCount(0);
+      }
     } catch (e) {
       setList([]);
+      if (onCount) onCount(0);
     }
     return () => {
       on = false;
     };
-  }, []);
+  }, [query]);
   // While LOADING (null) → render nothing (no promissory skeleton that pops then collapses).
   // Once LOADED-EMPTY ([]) → a warm, HONEST invite: «Найти» is the community pulse, so the live
   // section shouldn't read as a dead blank — but we never fabricate circles that don't exist.
+  // В режиме поиска пустышка не нужна — родитель показывает общую «ничего не нашлось».
   if (!list) return null;
+  if (query && !list.length) return null;
   if (!list.length) return /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 6

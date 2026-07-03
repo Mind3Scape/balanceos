@@ -359,6 +359,30 @@
       });
     } catch (e) { return []; }
   }
+  // ПОИСК открытых кругов по имени (Сообщество: строка поиска над лентой). Тот же
+  // формат ответа, что у discoverTeams — CloudTeamsDiscoverLive ест обоих.
+  async function searchTeams(q) {
+    var c = client(); var id = await uid(); if (!c || !id || !q) return [];
+    try {
+      var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,team_members(count)").eq("vis", "public").ilike("name", "%" + q + "%").limit(20);
+      var rows = r.data || []; var mine = await myTeamIds();
+      return rows.filter(function (t) { return mine.indexOf(t.id) < 0; }).map(function (t) {
+        return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
+      });
+    } catch (e) { return []; }
+  }
+  // «Сейчас N человек держат практики» — живая строка Сообщества (VISION: вместо ленты).
+  // RPC bos_active_today (sql/patch_pulse_line.sql, security definer) считает distinct-людей
+  // с отметкой за сегодня по всем трём журналам; до патча/при ошибке → null (строка скрыта).
+  async function activeToday() {
+    var c = client(); var id = await uid(); if (!c || !id) return null;
+    try {
+      var r = await c.rpc("bos_active_today");
+      if (r.error) return null;
+      var n = (typeof r.data === "number") ? r.data : parseInt(r.data, 10);
+      return isNaN(n) ? null : n;
+    } catch (e) { return null; }
+  }
   // Join a team by id (idempotent) — used by the discovery list AND ?team= invite links.
   async function joinTeam(teamId) {
     var c = client(); var id = await uid(); if (!c || !id || !teamId) return null;
@@ -739,7 +763,7 @@
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,
-    createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, joinTeam: joinTeam,
+    createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, searchTeams: searchTeams, activeToday: activeToday, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
