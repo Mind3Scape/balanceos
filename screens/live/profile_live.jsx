@@ -188,6 +188,7 @@ function ProfileLive() {
 function AILive() {
   const { navigate } = useNav();
   const app = useApp();
+  const { open: openSheet } = useSheet();
   const t = useAIT();
   const [ask, setAsk] = useP("");
   // Same orb DNA as intro — pulled into the AI hub
@@ -251,59 +252,28 @@ function AILive() {
 
   return (
     <div className="page-in" style={{ padding: "0 12px 24px" }}>
-      {/* Header — tab-style, no back button */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 14px" }}>
-        <div>
-          <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
-        </div>
-        {/* Чат — круглая СТЕКЛЯННАЯ кнопка, как все угловые кнопки приложения
-            (David: «чёрная выбивается — у нас уже всё в стекле»). */}
-        <button data-tour="ai-chat-btn" onClick={() => navigate("ai-chat")} className="tap" aria-label="Чат"
-          style={{ width: 38, height: 38, borderRadius: "50%", border: 0, cursor: "pointer",
-            background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.10)" : "#fff"),
-            boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "var(--card-shadow)",
-            color: "var(--text-2)", display: "grid", placeItems: "center" }}>
-          <I.MessageCircle size={17} strokeWidth={2}/>
-        </button>
+      {/* Header — tab-style, no back button. Угловая кнопка чата убрана (макет B, David):
+          вход в разговор = строка «Спросить» ниже, она же открывает историю чата. */}
+      <div style={{ padding: "4px 4px 14px" }}>
+        <div style={{ fontSize: 12, color: "var(--text-4)", letterSpacing: 0.4 }}>{(app.userName || "").trim() ? "Персонально · для " + app.userName.trim() : "Твой помощник"}</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px", marginTop: 2 }}>Balance AI</div>
       </div>
 
-      {/* Warm hero — КОМПАКТНЫЙ (David: «баннер нравится, но меньше; внутри — красивые чипы»).
-          Орб + одна честная строка + два чипа. Виджеты «сегодня/серия/уровень» убраны —
-          они дублировали главную и читались как бутафория. */}
-      <div data-tour="ai-hero" style={{
-        position: "relative", overflow: "hidden",
-        background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
-        borderRadius: 22, padding: "14px 16px 14px", color: "#fff",
-      }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, background:
-          "radial-gradient(circle at 80% 20%, rgba(180,210,255,0.18) 0%, transparent 40%), radial-gradient(circle at 10% 90%, rgba(120,160,210,0.15) 0%, transparent 40%)" }} />
-
-        <div style={{ display: "flex", gap: 13, alignItems: "center", position: "relative" }}>
-          <div style={{ flexShrink: 0, width: 74, height: 74, display: "grid", placeItems: "center" }}>
-            <svg viewBox="-80 -80 160 160" width="74" height="74" style={{ overflow: "visible" }}>
-              <SiriOrb r={46} tint={liveTint} t={t} intensity={1}/>
-            </svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10.5, color: "rgba(180,210,255,0.85)", fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase" }}>
-              {moodName ? "Сейчас · " + (moodIcon ? moodIcon + " " : "") + moodName : "Сегодня"}
-            </div>
-            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 15, lineHeight: 1.34, marginTop: 4, letterSpacing: "-0.2px" }}>{headline}</div>
-            {hint && <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.65)", marginTop: 5, lineHeight: 1.45 }}>{hint}</div>}
-          </div>
+      {/* Приветствие — БЕЛАЯ карточка в общем языке приложения (David выбрал макет B «Журнал»:
+          «жутко цветасто» ушло — тёмно-синий баннер заменён на card, орб остался единственным
+          цветным пятном). Орб слева, кикер состояния + честная строка дня справа. */}
+      <div data-tour="ai-hero" style={{ background: "var(--card)", borderRadius: 22, padding: "15px 16px", boxShadow: "var(--card-shadow)", display: "flex", gap: 14, alignItems: "center" }}>
+        <div style={{ flexShrink: 0, width: 64, height: 64, display: "grid", placeItems: "center" }}>
+          <svg viewBox="-80 -80 160 160" width="64" height="64" style={{ overflow: "visible" }}>
+            <SiriOrb r={46} tint={liveTint} t={t} intensity={1}/>
+          </svg>
         </div>
-
-        {/* Чипы-CTA — лёгкие, вместо двух крупных кнопок. */}
-        <div style={{ display: "flex", gap: 6, marginTop: 11, position: "relative" }}>
-          <button onClick={() => navigate("ai-chat", { prompt: planPrompt })} className="tap"
-            style={{ background: "#fff", color: "#0a1424", border: 0, borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <I.Sparkles size={13}/> План на сегодня
-          </button>
-          <button onClick={() => navigate("ai-chat")} className="tap"
-            style={{ background: "rgba(255,255,255,0.12)", color: "#fff", border: 0, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.16)", borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <I.MessageCircle size={13}/> Поговорить
-          </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>
+            {moodName ? "Сейчас · " + (moodIcon ? moodIcon + " " : "") + moodName : "Сегодня"}
+          </div>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 14.5, lineHeight: 1.4, marginTop: 5, letterSpacing: "-0.2px", color: "var(--text)" }}>{headline}</div>
+          {hint && <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 4, lineHeight: 1.45 }}>{hint}</div>}
         </div>
       </div>
 
@@ -321,18 +291,24 @@ function AILive() {
         </div>
       </div>
 
-      {/* Чипы-подсказки — тот же язык, что в чате и на главной; микс «действие/разговор». */}
+      {/* «Следующие шаги» — вместо ленты чипов ГРУППА СТРОК как в настройках (макет B): один
+          язык со всем приложением, каждый шаг читается целиком, ничего не уезжает за край. */}
       {!isBlank && pills.length > 0 && (
-        <div className="bos-hscroll" style={{ display: "flex", gap: 6, marginTop: 10, overflowX: "auto", padding: "2px 2px 4px" }}>
-          {pills.map((p, i) => (
-            <button key={i} onClick={() => goPill(p)} className="tap" data-no-haptic
-              style={{ flexShrink: 0, background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "#fff"),
-                boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "var(--card-shadow)",
-                border: 0, borderRadius: 999, padding: "7px 12px", fontSize: 12, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <span>{(p && p.i) || "✨"}</span> {pillLabel(p)}
-            </button>
-          ))}
-        </div>
+        <React.Fragment>
+          <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Следующие шаги</div>
+          <div style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden", marginTop: 8 }}>
+            {pills.slice(0, 4).map((p, i) => (
+              <button key={i} onClick={() => goPill(p)} className="tap" data-no-haptic
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
+                <span style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
+                  background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+                  boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "none" }}>{(p && p.i) || "✨"}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pillLabel(p)}</span>
+                <I.ChevronRight size={16} color="var(--text-4)" />
+              </button>
+            ))}
+          </div>
+        </React.Fragment>
       )}
 
       {isBlank ? (
@@ -363,35 +339,70 @@ function AILive() {
         </>
       ) : null}
 
-      {/* ЧЕСТНЫЕ тизеры того, что впереди (идея David): реальный уровень пользователя
-          против порога открытия. Никакой бутафории — только правда о прогрессе. */}
+      {/* «Скоро в Balance AI» — МОНОХРОМ (David: «жутко цветасто» — градиент-плакаты убраны).
+          Белые карточки в общем языке, нейтральная полоса прогресса до порога, тап РАСКРЫВАЕТ
+          шторку с подробностями: что именно будет уметь фича и сколько уровней осталось. */}
       <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Скоро в Balance AI</div>
-      {/* Премиум-тизеры (David: «выглядят банально, сливаются с привычками»): у каждой карточки СВОЙ
-          насыщенный градиент (Аналитика — сине-индиго, Наставник — фиолетово-розовый), стеклянная иконка,
-          радиальный блик и полоса прогресса до разблокировки — язык золотой CTA-кнопки, а не белой плитки. */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
         {[
-          { i: "📊", t: "Аналитика", need: 10, d: "Твои закономерности: что качает, а что мешает.", c1: "#4C82F0", c2: "#6E5AE6" },
-          { i: "🧠", t: "Наставник", need: 15, d: "Личная программа и разбор недели.", c1: "#A96BE8", c2: "#E068A9" },
+          { i: "📊", t: "Аналитика", need: 10, d: "Твои закономерности: что качает, а что мешает.", details: [
+            ["📈", "Что качает энергию", "Какие привычки реально двигают серию и настроение — по твоим отметкам."],
+            ["🕳", "Где проседает", "Дни и связки, на которых чаще всего рвётся ритм."],
+            ["🧩", "Связки привычек", "Что с чем работает в паре — и что стоит переставить."],
+          ] },
+          { i: "🧠", t: "Наставник", need: 15, d: "Личная программа и разбор недели.", details: [
+            ["🗺", "Программа под тебя", "Личный план на неделю из твоих целей и ритма."],
+            ["🔍", "Разбор недели", "Что получилось, что нет и почему — раз в неделю, честно."],
+            ["⚡", "Челленджи под ритм", "Персональные вызовы там, где тебе по силам расти."],
+          ] },
         ].map((f) => {
           const unlocked = lvl.level >= f.need;
           const pct = Math.max(6, Math.min(100, Math.round((lvl.level / f.need) * 100)));
-          return (
-            <div key={f.t} style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: 15, background: "linear-gradient(155deg, " + f.c1 + ", " + f.c2 + ")", boxShadow: "0 10px 24px " + f.c1 + "45, inset 0 0 0 0.5px rgba(255,255,255,0.16)" }}>
-              <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 84% 4%, rgba(255,255,255,0.42) 0%, transparent 52%)", pointerEvents: "none" }} />
-              <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ width: 40, height: 40, borderRadius: 13, background: "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 48%, rgba(255,255,255,0) 74%), rgba(255,255,255,0.22)", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.55)", display: "grid", placeItems: "center", fontSize: 20 }}>{f.i}</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.20)", borderRadius: 999, padding: "4px 9px" }}>{unlocked ? "✨ скоро" : <><I.Lock size={10} strokeWidth={2.4}/> {f.need} ур.</>}</span>
+          const chipBg = (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)");
+          const glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "none";
+          const openDetails = () => openSheet(
+            <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 14 }}>
+                <span style={{ width: 56, height: 56, borderRadius: 18, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 27 }}>{f.i}</span>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 10 }}>{f.t}</div>
+                <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>{unlocked ? "Готовим к запуску — ты уже открыл" : "Откроется на " + f.need + " уровне · у тебя " + lvl.level + "-й"}</div>
               </div>
-              <div style={{ position: "relative", fontSize: 15, fontWeight: 700, marginTop: 12, color: "#fff", letterSpacing: "-0.2px" }}>{f.t}</div>
-              <div style={{ position: "relative", fontSize: 11.5, color: "rgba(255,255,255,0.85)", marginTop: 3, lineHeight: 1.4 }}>{f.d}</div>
-              <div style={{ position: "relative", marginTop: 11 }}>
-                <div style={{ height: 5, borderRadius: 999, background: "rgba(255,255,255,0.24)", overflow: "hidden" }}>
-                  <span style={{ display: "block", height: "100%", width: pct + "%", background: "rgba(255,255,255,0.92)", borderRadius: 999 }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {f.details.map((d, j) => (
+                  <div key={j} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: 13, borderRadius: 18, background: isDarkAI ? "rgba(255,255,255,0.06)" : "var(--surface-2)" }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 11, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{d[0]}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 600 }}>{d[1]}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{d[2]}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {!unlocked && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ height: 6, borderRadius: 999, background: isDarkAI ? "rgba(255,255,255,0.10)" : "var(--surface-3)", overflow: "hidden" }}>
+                    <span style={{ display: "block", height: "100%", width: pct + "%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999 }} />
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 6, fontWeight: 600, textAlign: "center" }}>Уровень {lvl.level} из {f.need} — каждая отметка приближает</div>
                 </div>
-                <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.85)", marginTop: 5, fontWeight: 600 }}>{unlocked ? "Готовим к запуску" : "Уровень " + lvl.level + " / " + f.need}</div>
-              </div>
+              )}
             </div>
+          );
+          return (
+            <button key={f.t} onClick={openDetails} className="tap" style={{ textAlign: "left", border: 0, cursor: "pointer", borderRadius: 22, padding: 15, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ width: 40, height: 40, borderRadius: 13, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 20 }}>{f.i}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)", borderRadius: 999, padding: "4px 9px" }}>{unlocked ? "✨ скоро" : <><I.Lock size={10} strokeWidth={2.4}/> {f.need} ур.</>}</span>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginTop: 12, letterSpacing: "-0.2px" }}>{f.t}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>{f.d}</div>
+              <div style={{ marginTop: 11 }}>
+                <div style={{ height: 5, borderRadius: 999, background: isDarkAI ? "rgba(255,255,255,0.10)" : "var(--surface-3)", overflow: "hidden" }}>
+                  <span style={{ display: "block", height: "100%", width: pct + "%", background: isDarkAI ? "#f2f2f5" : "#0a0a0a", borderRadius: 999 }} />
+                </div>
+                <div style={{ fontSize: 10.5, color: "var(--text-4)", marginTop: 5, fontWeight: 600 }}>{unlocked ? "Готовим к запуску" : "Уровень " + lvl.level + " / " + f.need + " · подробнее ›"}</div>
+              </div>
+            </button>
           );
         })}
       </div>

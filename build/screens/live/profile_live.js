@@ -485,6 +485,9 @@ function AILive() {
     navigate
   } = useNav();
   var app = useApp();
+  var {
+    open: openSheet
+  } = useSheet();
   var t = useAIT();
   var [ask, setAsk] = useP("");
   // Same orb DNA as intro — pulled into the AI hub
@@ -552,12 +555,9 @@ function AILive() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
       padding: "4px 4px 14px"
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-4)",
@@ -571,62 +571,29 @@ function AILive() {
       letterSpacing: "-0.5px",
       marginTop: 2
     }
-  }, "Balance AI")), /*#__PURE__*/React.createElement("button", {
-    "data-tour": "ai-chat-btn",
-    onClick: () => navigate("ai-chat"),
-    className: "tap",
-    "aria-label": "\u0427\u0430\u0442",
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: "50%",
-      border: 0,
-      cursor: "pointer",
-      background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.10)" : "#fff"),
-      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDarkAI) : "var(--card-shadow)",
-      color: "var(--text-2)",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement(I.MessageCircle, {
-    size: 17,
-    strokeWidth: 2
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, "Balance AI")), /*#__PURE__*/React.createElement("div", {
     "data-tour": "ai-hero",
     style: {
-      position: "relative",
-      overflow: "hidden",
-      background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)",
+      background: "var(--card)",
       borderRadius: 22,
-      padding: "14px 16px 14px",
-      color: "#fff"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      inset: 0,
-      background: "radial-gradient(circle at 80% 20%, rgba(180,210,255,0.18) 0%, transparent 40%), radial-gradient(circle at 10% 90%, rgba(120,160,210,0.15) 0%, transparent 40%)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
+      padding: "15px 16px",
+      boxShadow: "var(--card-shadow)",
       display: "flex",
-      gap: 13,
-      alignItems: "center",
-      position: "relative"
+      gap: 14,
+      alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       flexShrink: 0,
-      width: 74,
-      height: 74,
+      width: 64,
+      height: 64,
       display: "grid",
       placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement("svg", {
     viewBox: "-80 -80 160 160",
-    width: "74",
-    height: "74",
+    width: "64",
+    height: "64",
     style: {
       overflow: "visible"
     }
@@ -643,71 +610,28 @@ function AILive() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
-      color: "rgba(180,210,255,0.85)",
-      fontWeight: 600,
-      letterSpacing: 1.3,
+      color: "var(--text-4)",
+      fontWeight: 700,
+      letterSpacing: 1.2,
       textTransform: "uppercase"
     }
   }, moodName ? "Сейчас · " + (moodIcon ? moodIcon + " " : "") + moodName : "Сегодня"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",
-      fontSize: 15,
-      lineHeight: 1.34,
-      marginTop: 4,
-      letterSpacing: "-0.2px"
+      fontSize: 14.5,
+      lineHeight: 1.4,
+      marginTop: 5,
+      letterSpacing: "-0.2px",
+      color: "var(--text)"
     }
   }, headline), hint && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: "rgba(255,255,255,0.65)",
-      marginTop: 5,
+      color: "var(--text-4)",
+      marginTop: 4,
       lineHeight: 1.45
     }
   }, hint))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 11,
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("ai-chat", {
-      prompt: planPrompt
-    }),
-    className: "tap",
-    style: {
-      background: "#fff",
-      color: "#0a1424",
-      border: 0,
-      borderRadius: 999,
-      padding: "7px 13px",
-      fontSize: 12.5,
-      fontWeight: 600,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 13
-  }), " \u041F\u043B\u0430\u043D \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("ai-chat"),
-    className: "tap",
-    style: {
-      background: "rgba(255,255,255,0.12)",
-      color: "#fff",
-      border: 0,
-      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.16)",
-      borderRadius: 999,
-      padding: "7px 13px",
-      fontSize: 12.5,
-      fontWeight: 500,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement(I.MessageCircle, {
-    size: 13
-  }), " \u041F\u043E\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C"))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,
@@ -757,34 +681,65 @@ function AILive() {
     }
   }, /*#__PURE__*/React.createElement(I.Send, {
     size: 13
-  })))), !isBlank && pills.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "bos-hscroll",
+  })))), !isBlank && pills.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
     style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 10,
-      overflowX: "auto",
-      padding: "2px 2px 4px"
+      marginTop: 18,
+      color: "var(--text-3)",
+      padding: "0 4px"
     }
-  }, pills.map((p, i) => /*#__PURE__*/React.createElement("button", {
+  }, "\u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0435 \u0448\u0430\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card)",
+      borderRadius: 22,
+      boxShadow: "var(--card-shadow)",
+      overflow: "hidden",
+      marginTop: 8
+    }
+  }, pills.slice(0, 4).map((p, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     onClick: () => goPill(p),
     className: "tap",
     "data-no-haptic": true,
     style: {
-      flexShrink: 0,
-      background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "#fff"),
-      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDarkAI) : "var(--card-shadow)",
-      border: 0,
-      borderRadius: 999,
-      padding: "7px 12px",
-      fontSize: 12,
-      color: "var(--text-2)",
-      display: "inline-flex",
+      width: "100%",
+      display: "flex",
       alignItems: "center",
-      gap: 6
+      gap: 12,
+      background: "transparent",
+      border: 0,
+      borderTop: i ? "0.5px solid var(--line)" : 0,
+      cursor: "pointer",
+      textAlign: "left",
+      padding: "13px 14px"
     }
-  }, /*#__PURE__*/React.createElement("span", null, p && p.i || "✨"), " ", pillLabel(p)))), isBlank ?
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: "50%",
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 15,
+      background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDarkAI) : "none"
+    }
+  }, p && p.i || "✨"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, pillLabel(p)), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    color: "var(--text-4)"
+  }))))), isBlank ?
   /*#__PURE__*/
   /* HONEST empty state for a brand-new live user — no fake recommendations.
      Two real first steps: check in your state, or just start a conversation. */
@@ -914,39 +869,144 @@ function AILive() {
     t: "Аналитика",
     need: 10,
     d: "Твои закономерности: что качает, а что мешает.",
-    c1: "#4C82F0",
-    c2: "#6E5AE6"
+    details: [["📈", "Что качает энергию", "Какие привычки реально двигают серию и настроение — по твоим отметкам."], ["🕳", "Где проседает", "Дни и связки, на которых чаще всего рвётся ритм."], ["🧩", "Связки привычек", "Что с чем работает в паре — и что стоит переставить."]]
   }, {
     i: "🧠",
     t: "Наставник",
     need: 15,
     d: "Личная программа и разбор недели.",
-    c1: "#A96BE8",
-    c2: "#E068A9"
+    details: [["🗺", "Программа под тебя", "Личный план на неделю из твоих целей и ритма."], ["🔍", "Разбор недели", "Что получилось, что нет и почему — раз в неделю, честно."], ["⚡", "Челленджи под ритм", "Персональные вызовы там, где тебе по силам расти."]]
   }].map(f => {
     var unlocked = lvl.level >= f.need;
     var pct = Math.max(6, Math.min(100, Math.round(lvl.level / f.need * 100)));
-    return /*#__PURE__*/React.createElement("div", {
-      key: f.t,
+    var chipBg = (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)");
+    var glass = typeof bosTileGlass === "function" ? bosTileGlass(isDarkAI) : "none";
+    var openDetails = () => openSheet(/*#__PURE__*/React.createElement("div", {
       style: {
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: 22,
-        padding: 15,
-        background: "linear-gradient(155deg, " + f.c1 + ", " + f.c2 + ")",
-        boxShadow: "0 10px 24px " + f.c1 + "45, inset 0 0 0 0.5px rgba(255,255,255,0.16)"
+        padding: "2px 18px 8px",
+        color: "var(--text)"
       }
     }, /*#__PURE__*/React.createElement("div", {
-      "aria-hidden": true,
       style: {
-        position: "absolute",
-        inset: 0,
-        background: "radial-gradient(circle at 84% 4%, rgba(255,255,255,0.42) 0%, transparent 52%)",
-        pointerEvents: "none"
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        textAlign: "center",
+        marginBottom: 14
       }
-    }), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
-        position: "relative",
+        width: 56,
+        height: 56,
+        borderRadius: 18,
+        background: chipBg,
+        boxShadow: glass,
+        display: "grid",
+        placeItems: "center",
+        fontSize: 27
+      }
+    }, f.i), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 20,
+        fontWeight: 800,
+        letterSpacing: "-0.3px",
+        marginTop: 10
+      }
+    }, f.t), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        color: "var(--text-3)",
+        marginTop: 4
+      }
+    }, unlocked ? "Готовим к запуску — ты уже открыл" : "Откроется на " + f.need + " уровне · у тебя " + lvl.level + "-й")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 8
+      }
+    }, f.details.map((d, j) => /*#__PURE__*/React.createElement("div", {
+      key: j,
+      style: {
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-start",
+        padding: 13,
+        borderRadius: 18,
+        background: isDarkAI ? "rgba(255,255,255,0.06)" : "var(--surface-2)"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: 11,
+        background: chipBg,
+        boxShadow: glass,
+        display: "grid",
+        placeItems: "center",
+        fontSize: 16,
+        flexShrink: 0
+      }
+    }, d[0]), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14.5,
+        fontWeight: 600
+      }
+    }, d[1]), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "var(--text-4)",
+        marginTop: 2,
+        lineHeight: 1.45
+      }
+    }, d[2]))))), !unlocked && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 6,
+        borderRadius: 999,
+        background: isDarkAI ? "rgba(255,255,255,0.10)" : "var(--surface-3)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        height: "100%",
+        width: pct + "%",
+        background: "linear-gradient(135deg,#FEDE34,#EF9F14)",
+        borderRadius: 999
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-4)",
+        marginTop: 6,
+        fontWeight: 600,
+        textAlign: "center"
+      }
+    }, "\u0423\u0440\u043E\u0432\u0435\u043D\u044C ", lvl.level, " \u0438\u0437 ", f.need, " \u2014 \u043A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0430\u0435\u0442"))));
+    return /*#__PURE__*/React.createElement("button", {
+      key: f.t,
+      onClick: openDetails,
+      className: "tap",
+      style: {
+        textAlign: "left",
+        border: 0,
+        cursor: "pointer",
+        borderRadius: 22,
+        padding: 15,
+        background: "var(--card)",
+        boxShadow: "var(--card-shadow)",
+        color: "var(--text)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between"
@@ -956,8 +1016,8 @@ function AILive() {
         width: 40,
         height: 40,
         borderRadius: 13,
-        background: "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 48%, rgba(255,255,255,0) 74%), rgba(255,255,255,0.22)",
-        boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.55)",
+        background: chipBg,
+        boxShadow: glass,
         display: "grid",
         placeItems: "center",
         fontSize: 20
@@ -969,8 +1029,8 @@ function AILive() {
         gap: 4,
         fontSize: 10.5,
         fontWeight: 700,
-        color: "#fff",
-        background: "rgba(255,255,255,0.20)",
+        color: "var(--text-3)",
+        background: isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
         borderRadius: 999,
         padding: "4px 9px"
       }
@@ -979,31 +1039,27 @@ function AILive() {
       strokeWidth: 2.4
     }), " ", f.need, " \u0443\u0440."))), /*#__PURE__*/React.createElement("div", {
       style: {
-        position: "relative",
         fontSize: 15,
         fontWeight: 700,
         marginTop: 12,
-        color: "#fff",
         letterSpacing: "-0.2px"
       }
     }, f.t), /*#__PURE__*/React.createElement("div", {
       style: {
-        position: "relative",
         fontSize: 11.5,
-        color: "rgba(255,255,255,0.85)",
+        color: "var(--text-4)",
         marginTop: 3,
         lineHeight: 1.4
       }
     }, f.d), /*#__PURE__*/React.createElement("div", {
       style: {
-        position: "relative",
         marginTop: 11
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         height: 5,
         borderRadius: 999,
-        background: "rgba(255,255,255,0.24)",
+        background: isDarkAI ? "rgba(255,255,255,0.10)" : "var(--surface-3)",
         overflow: "hidden"
       }
     }, /*#__PURE__*/React.createElement("span", {
@@ -1011,16 +1067,16 @@ function AILive() {
         display: "block",
         height: "100%",
         width: pct + "%",
-        background: "rgba(255,255,255,0.92)",
+        background: isDarkAI ? "#f2f2f5" : "#0a0a0a",
         borderRadius: 999
       }
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 10.5,
-        color: "rgba(255,255,255,0.85)",
+        color: "var(--text-4)",
         marginTop: 5,
         fontWeight: 600
       }
-    }, unlocked ? "Готовим к запуску" : "Уровень " + lvl.level + " / " + f.need)));
+    }, unlocked ? "Готовим к запуску" : "Уровень " + lvl.level + " / " + f.need + " · подробнее ›")));
   })));
 }
