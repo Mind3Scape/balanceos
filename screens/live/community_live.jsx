@@ -122,12 +122,14 @@ function CommunityLive() {
   // Совместимость: тур и онбординг-пилюли пишут старые section/commTab — если они
   // расходятся с сохранённым filter (их только что сменили извне), верим им; чипы пишут
   // ОБА представления согласованно. courses→Партнёры, network→Люди, discover→Все.
-  const _pairFor = { all: "discover", circles: "discover", partners: "community", people: "community" };
-  const _legacyFilter = section === "community" ? (commTabEff === "courses" ? "partners" : "people") : "all";
+  // «Тренинги» ОТДЕЛЬНЫЙ чип (David: «тренинги может отдельно от партнёров выделить»):
+  // партнёры = живые впечатления за XP, тренинги = бывшие «программы партнёров» (courses).
+  const _pairFor = { all: "discover", circles: "discover", partners: "community", people: "community", training: "community" };
+  const _legacyFilter = section === "community" ? (commTabEff === "courses" ? "training" : "people") : "all";
   const _fOk = cv.filter && _pairFor[cv.filter] === section
-    && (section !== "community" || (cv.filter === "partners") === (commTabEff === "courses"));
+    && (section !== "community" || (cv.filter === "training") === (commTabEff === "courses"));
   const filter = _fOk ? cv.filter : _legacyFilter;
-  const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "partners" ? "courses" : "network" });
+  const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "training" ? "courses" : "network" });
   const isDark = app?.themeOverride === "dark";
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
 
@@ -220,20 +222,24 @@ function CommunityLive() {
           а фокус той же ленты: «Все» показывает всё подряд. Во время поиска уступают
           месту результатам. */}
       {!searching && (
-      <div style={{ display: "flex", gap: 7, padding: "2px 2px 0" }}>
-        {/* ЗАГОТОВКА (Е3, план David): пятый чип ["nearby", "Рядом"] — режим КАРТЫ партнёров
-            города. Включаем, когда партнёры появятся больше чем в одном городе: добавить чип
-            сюда + ветку filter === "nearby" с картой в ленте (map-заглушки не строим — честно). */}
-        {[["all", "Все"], ["circles", "Круги"], ["people", "Люди"], ["partners", "Партнёры"]].map(([id, t]) => {
+      <div className="bos-hscroll" style={{ display: "flex", gap: 7, padding: "2px 2px 0", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x",
+        WebkitMaskImage: "linear-gradient(90deg, #000 92%, transparent)", maskImage: "linear-gradient(90deg, #000 92%, transparent)" }}>
+        {/* ЗАГОТОВКА (Е3, план David): чип ["nearby", "Рядом"] — режим КАРТЫ партнёров города.
+            Включаем, когда партнёры появятся больше чем в одном городе. */}
+        {/* Иконки у категорий (David: «svg-иконок не хватает, чтобы чётче отличать»). */}
+        {[["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Тренинги", I.Bolt]].map(([id, t, Ic]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
           return (
             <button key={id} onClick={() => setFilter(id)} className="tap" data-haptic="selection"
               data-tour={id === "people" ? "network" : undefined}
-              style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 15px", fontSize: 13.5, fontWeight: 600,
+              style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px", fontSize: 13.5, fontWeight: 600, flexShrink: 0,
+                display: "inline-flex", alignItems: "center", gap: 6,
                 transition: "background 0.2s, color 0.2s", ...glass,
                 background: on ? "var(--cta, #0a0a0a)" : glass.background,
-                color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>{t}</button>
+                color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>
+              <Ic size={14} strokeWidth={2.1} color={on ? "var(--cta-ink, #fff)" : "var(--text-3)"} />{t}
+            </button>
           );
         })}
       </div>
@@ -289,7 +295,7 @@ function CommunityLive() {
           )}
           {cHits.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🎓 Программы партнёров</div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🎓 Тренинги</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {cHits.map((c) => (
                   <button key={c.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("course-detail", { course: c }); }} className="tap"
@@ -320,13 +326,29 @@ function CommunityLive() {
           программы партнёров. Во время поиска лента уступает результатам. */}
       {!searching && (
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
-        {(filter === "all" || filter === "partners") && (
+        {filter === "all" && (
           <React.Fragment>
             {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку.
                 Кикер живёт ВНУТРИ витрины; на «Все» правый край = «Все ›» (onAll). */}
             {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate}
-              onAll={filter === "all" ? () => setFilter("partners") : null} />}
+              onAll={() => setFilter("partners")} />}
           </React.Fragment>
+        )}
+        {filter === "partners" && (
+          <React.Fragment>
+            {/* Страница категории (David: «каждой категории место»): ВСЕ партнёры сеткой,
+                как на «живое от партнёров» — тот же PartnersGridLive, никакого дрейфа. */}
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 0" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🎁 Партнёры · потратить XP</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>🪙 {(typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0}</span>
+            </div>
+            {typeof PartnersGridLive === "function" && <PartnersGridLive app={app} navigate={navigate} from="community" />}
+          </React.Fragment>
+        )}
+        {filter === "all" && typeof NetworkPeekLive === "function" && (
+          /* Баннер «Люди» — ВТОРЫМ блоком, заметный (David: «суть нравится, но тоненький и в
+             незаметном месте»). Тап → чип «Люди». */
+          <NetworkPeekLive unlocked={userLevel >= 10} onOpen={() => setFilter("people")} />
         )}
 
         {(filter === "all" || filter === "circles") && (
@@ -337,27 +359,40 @@ function CommunityLive() {
                 с «Постучаться», челлендж → подтверждение → старт, пресет → форма создания. */}
             {filter === "all" ? (
               <React.Fragment>
-              {/* Живые круги — КАРТОЧКИ С ОРБИТАМИ (v527, David: «покажи, как круто это должно
-                  выглядеть — карточкой реальных кругов»): та же сцена, что у плитки совместной
-                  цели на «Привычках» — лица и привычки на настоящих кольцах. */}
-              <CommSectionHeadLive title="🌱 Круги для тебя" onAll={() => setFilter("circles")} />
-              {LIVING_CIRCLES.slice(0, 2).map((s) => (
-                <LivingCircleCardLive key={s.id} circle={s}
-                  onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
-              ))}
-              <CirclesMosaicLive>
-                {SEED_CIRCLES.slice(0, 2).map((s) => {
+              {/* Обзор (David: «каждая категория со скроллом вбок, а не всё в высоту»):
+                  круги — ОДНА горизонтальная лента компакт-плиток (живые с зелёным «сегодня
+                  N в деле» + челленджи с бонусом). Большие карточки с орбитами живут на
+                  странице категории (чип «Круги»). */}
+              <CommSectionHeadLive title="🌱 Круги" onAll={() => setFilter("circles")} />
+              <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "3px 0 14px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", marginTop: -2 }}>
+                {LIVING_CIRCLES.map((s) => (
+                  <button key={s.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} className="tap"
+                    style={{ flex: "0 0 auto", width: 152, scrollSnapAlign: "start", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", gap: 9, cursor: "pointer" }}>
+                    <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 20 }}>{bosIcon(s.i, 20, null)}</span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1.25 }}>{s.t}</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "#1E8E4E", fontWeight: 600, marginTop: 3 }}>сегодня {s.today} в деле</span>
+                    </span>
+                  </button>
+                ))}
+                {SEED_CIRCLES.map((s) => {
                   const mine = (app?.teams || []).find((t) => t.seedId === s.id);
                   return (
-                    <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
-                      onTap={() => {
+                    <button key={s.id} onClick={() => {
                         if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
                         if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
                         _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
-                      }} />
+                      }} className="tap"
+                      style={{ flex: "0 0 auto", width: 152, scrollSnapAlign: "start", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", gap: 9, cursor: "pointer" }}>
+                      <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 20 }}>{bosIcon(s.emblem, 20, null)}</span>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1.25 }}>{s.name}</span>
+                        <span style={{ display: "block", fontSize: 11.5, color: mine ? "#34C759" : "var(--text-4)", marginTop: 3, lineHeight: 1.35 }}>{mine ? "Ты в деле ✓" : s.goalText + " · +" + s.reward + " XP"}</span>
+                      </span>
+                    </button>
                   );
                 })}
-              </CirclesMosaicLive>
+              </div>
               </React.Fragment>
             ) : (
               <React.Fragment>
@@ -400,11 +435,6 @@ function CommunityLive() {
           </React.Fragment>
         )}
 
-        {filter === "all" && typeof NetworkPeekLive === "function" && (
-          /* Обзор: компакт-превью «Люди» по макету (размытое обещание + пилюля-замок);
-             полный замок с путями XP живёт на чипе «Люди» — тап ведёт туда. */
-          <NetworkPeekLive unlocked={userLevel >= 10} onOpen={() => setFilter("people")} />
-        )}
         {filter === "people" && (
           // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
           <div style={{ marginTop: 0 }}>
@@ -422,25 +452,47 @@ function CommunityLive() {
           </div>
         )}
 
-        {(filter === "all" || filter === "partners") && (
+        {filter === "all" && (
+          <React.Fragment>
+            {/* ТРЕНИНГИ на обзоре — горизонтальная лента компакт-карточек (David: «тренинги
+                отдельно от партнёров» + «каждая категория со скроллом вбок»). */}
+            <CommSectionHeadLive title="🎓 Тренинги" onAll={() => setFilter("training")} />
+            <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "3px 0 14px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", marginTop: -2 }}>
+              {courses.map((c, i) => (
+                <button key={c.id} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
+                  style={{ flex: "0 0 auto", width: 196, scrollSnapAlign: "start", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", cursor: "pointer" }}>
+                  <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ width: 40, height: 40, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 20 }}>{c.i}</span>
+                    <span style={{ fontSize: 9.5, padding: "2px 7px", background: "var(--card-2)", borderRadius: 999, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{c.lvl}</span>
+                  </span>
+                  <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.2px", marginTop: 10, lineHeight: 1.2 }}>{c.t}</span>
+                  <span style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>⏱ {c.length} · 📅 {c.cohort}</span>
+                  <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 700 }}>{c.price}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center" }}>Подробнее <I.ChevronRight size={13} /></span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </React.Fragment>
+        )}
+
+        {filter === "training" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
-          {/* ПРОГРАММЫ ПАРТНЁРОВ (бывшие «Курсы» — David: «курсы как слово ощущается хуже
-              партнёров»): интенсивы-ускорители внутри партнёрского мира.
-              На «Все» — превью: 2 карточки + «Все ›»; голд-баннер «зачем» живёт на чипе. */}
-          <CommSectionHeadLive title="🎓 Программы партнёров"
-            onAll={filter === "all" ? () => setFilter("partners") : null} />
-          {/* Gold "why courses" banner — the hook (esp. for a newcomer): a course is
+          {/* ТРЕНИНГИ (бывшие «программы партнёров» — David: отдельная категория):
+              голд-баннер «зачем» + полные карточки. */}
+          <CommSectionHeadLive title="🎓 Тренинги" />
+          {/* Gold "why trainings" banner — the hook (esp. for a newcomer): a training is
               the fastest level-up — a whole level + an achievement that opens new
               circles of people + a big XP boost. Same gold as the level badge. */}
-          {filter === "partners" && (
           <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
             background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
             boxShadow: "0 8px 22px rgba(239,159,20,0.32)" }}>
             <div aria-hidden style={{ position: "absolute", top: -46, right: -28, width: 168, height: 168, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
             <div aria-hidden style={{ position: "absolute", top: 15, right: 17, fontSize: 38, lineHeight: 1, pointerEvents: "none" }}>🏆</div>
             <div style={{ position: "relative" }}>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(58,42,0,0.6)" }}>Зачем проходить курсы</div>
-              <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#3a2a00", marginTop: 4, maxWidth: 220, lineHeight: 1.2 }}>Каждый курс — целый уровень</div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(58,42,0,0.6)" }}>Зачем проходить тренинги</div>
+              <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#3a2a00", marginTop: 4, maxWidth: 220, lineHeight: 1.2 }}>Каждый тренинг — целый уровень</div>
               <div style={{ fontSize: 13, color: "rgba(58,42,0,0.8)", marginTop: 6, lineHeight: 1.42, maxWidth: 244 }}>Ачивка, большой опыт и доступ к новым людям. Самый быстрый рост.</div>
               <div style={{ display: "flex", gap: 7, marginTop: 13, flexWrap: "wrap" }}>
                 {[["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+2000 XP"]].map(([e, l], i) => (
@@ -451,8 +503,7 @@ function CommunityLive() {
               </div>
             </div>
           </div>
-          )}
-          {(filter === "all" ? courses.slice(0, 2) : courses).map((c, i) => (
+          {courses.map((c, i) => (
             <button key={i} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
               style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", color: "var(--text)", display: "block", width: "100%" }}>
               {/* Name + meta left, coloured emblem on the RIGHT — matches the Partners card */}
@@ -477,7 +528,7 @@ function CommunityLive() {
                   <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{c.price}</div>
                 </div>
                 <span style={{ background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", borderRadius: 999, padding: "10px 18px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500 }}>
-                  О курсе <I.ChevronRight size={14} />
+                  О тренинге <I.ChevronRight size={14} />
                 </span>
               </div>
             </button>

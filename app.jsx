@@ -200,7 +200,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v536";
+const APP_VERSION = "v537";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -514,11 +514,11 @@ const TAB_INTROS = {
     body: "Привычки и цели живут здесь. Делай их один или вместе с близкими, держа общую серию.",
     pills: [ { emoji: "⚡", label: "Привычки" }, { emoji: "🎯", label: "Цели" }, { emoji: "👥", label: "Вместе" } ] },
   community: { hero: "💛", eyebrow: "Сообщество", title: "Сердце приложения",
-    body: "Слева — команды с близкими. Справа — сообщество: нетворк, курсы и партнёры. Вместе держим ритм сильнее.",
+    body: "Слева — круги с близкими. Дальше — люди, партнёры и тренинги. Вместе держим ритм сильнее.",
     pills: [
-      { emoji: "👥", label: "Команды", view: { section: "discover", discTab: "teams" } },
-      { emoji: "🧭", label: "Нетворк", view: { section: "community", commTab: "network" } },
-      { emoji: "🎓", label: "Курсы", view: { section: "community", commTab: "courses" } },
+      { emoji: "👥", label: "Круги", view: { section: "discover", discTab: "teams" } },
+      { emoji: "🧭", label: "Люди", view: { section: "community", commTab: "network" } },
+      { emoji: "🎓", label: "Тренинги", view: { section: "community", commTab: "courses" } },
     ] },
   ai: { eyebrow: "Помощник", title: "ИИ всегда рядом",
     body: "Совет, разбор дня, план на завтра — Balance держит в уме твой контекст и подсказывает по делу.",

@@ -2217,9 +2217,9 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   );
   const row = ({ key, icon, name, sub, on, onToggle }, i, arr) => (
     <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "6.5px 10px",
-      borderTop: i ? ("0.5px solid " + (dark ? "rgba(255,255,255,0.07)" : "var(--line-2)")) : "none" }}>
+      borderTop: i ? ("0.5px solid " + (dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.055)")) : "none" }}>
       <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0,
-        background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", opacity: on ? 1 : 0.5, transition: "opacity 0.2s" }}>{icon}</span>
+        background: dark ? "rgba(255,255,255,0.08)" : "#fff", boxShadow: bosTileGlass(dark), opacity: on ? 1 : 0.5, transition: "opacity 0.2s" }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0, opacity: on ? 1 : 0.55, transition: "opacity 0.2s", display: "flex", alignItems: "baseline", gap: 6 }}>
         {/* Имя не сжимается — ужимается ПОДПИСЬ (иначе «Быстрое д…» при длинном сабе). */}
         <span style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
@@ -2228,8 +2228,10 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
       <Switch small on={on} onChange={onToggle} dark={dark} />
     </div>
   );
+  // Секции — СТЕКЛЯННО-СЕРЫЕ карточки в стиле приложения (David: «шторка не в наш стиль
+  // цветов» — белые карточки на белой шторке сливались; тон = как чипы/плитки, surface-3).
   const card = (items) => (
-    <div style={{ background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "#fff"), borderRadius: 14, boxShadow: bosTileGlass(dark), overflow: "hidden" }}>
+    <div style={{ background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), borderRadius: 14, boxShadow: bosTileGlass(dark), overflow: "hidden" }}>
       {items.map((it, i, arr) => row(it, i, arr))}
     </div>
   );
@@ -2239,9 +2241,9 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
           стиля НАД живой доской — карточки меняются на глазах. */}
       <button onClick={openStyle} className="tap" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 10px",
         border: 0, cursor: "pointer", textAlign: "left", color: "var(--text)", marginTop: 2,
-        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "#fff"), borderRadius: 14, boxShadow: bosTileGlass(dark) }}>
+        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), borderRadius: 14, boxShadow: bosTileGlass(dark) }}>
         <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", flexShrink: 0,
-          background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)" }}><I.Settings size={15} color="var(--text)" /></span>
+          background: dark ? "rgba(255,255,255,0.08)" : "#fff", boxShadow: bosTileGlass(dark) }}><I.Settings size={15} color="var(--text)" /></span>
         <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 6 }}>
           <span style={{ fontSize: 14, fontWeight: 600 }}>Стиль карточек</span>
           <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>формы, отметки, лица</span>
@@ -3316,6 +3318,46 @@ function PartnersShowcaseLive({ app, navigate, from = "community", onAll }) {
   );
 }
 
+// СЕТКА ВСЕХ ПАРТНЁРОВ (2-в-ряд) — ОБЩАЯ для страницы «партнёры-все» и чипа «Партнёры»
+// в Сообществе (David: «каждой категории место»). Тап → та же деталь партнёра.
+function PartnersGridLive({ app, navigate, from = "community" }) {
+  const isDark = app && app.themeOverride === "dark";
+  const [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
+  React.useEffect(function () {
+    var h = function () { setRedeemed(bosLoadRedeemedPartners()); };
+    window.addEventListener("bos:partnersChanged", h);
+    return function () { window.removeEventListener("bos:partnersChanged", h); };
+  }, []);
+  const open = (p) => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: from }); };
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+      {BOS_PARTNERS.map((p) => {
+        const got = !!redeemed[p.id];
+        return (
+          <div key={p.id} className="tap" onClick={() => open(p)} style={{ borderRadius: 22, padding: 15, minHeight: 172,
+            background: isDark
+              ? "linear-gradient(158deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 58%), " + ((typeof bosMixHex === "function") ? bosMixHex(p.accent, "#101014", 0.52) : p.accent)
+              : "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent,
+            boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.4), inset 0 0 0 0.5px rgba(255,255,255,0.09)" : "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
+            cursor: "pointer", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 34, lineHeight: 1 }}>{p.emblem}</span>
+              {p.used > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3.5, fontSize: 10.5, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.5)" : "rgba(27,27,31,0.48)", paddingTop: 3, whiteSpace: "nowrap" }}><I.Users size={11} strokeWidth={2.2} /> {p.used}</span>}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: isDark ? "#fff" : "#1b1b1f", marginTop: 11, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
+            <div style={{ fontSize: 11.5, color: isDark ? "rgba(255,255,255,0.66)" : "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
+            <div style={{ flex: 1, minHeight: 10 }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? (isDark ? "#7dd89b" : "#1E8E4E") : (isDark ? "#fff" : "#0a0a0a"), display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Открыть <I.ChevronRight size={13}/></>}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // СТРАНИЦА «ВСЕ ПАРТНЁРЫ» — вертикальная сетка ВСЕХ живых впечатлений. David: «живое от партнёров»
 // намекало на страницу со всеми партнёрами, а её не было (мёртвая ссылка). Тот же вид карточек, что
 // в ленте PartnersShowcaseLive, но 2-в-ряд и целиком; тап → та же деталь. Открывается по «живое от партнёров →».
@@ -3324,44 +3366,13 @@ function PartnersAllLive() {
   const app = (typeof useApp === "function") ? useApp() : null;
   const back = (params && params.from) || "community";
   const isDark = app && app.themeOverride === "dark";
-  const [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
-  React.useEffect(function () {
-    var h = function () { setRedeemed(bosLoadRedeemedPartners()); };
-    window.addEventListener("bos:partnersChanged", h);
-    return function () { window.removeEventListener("bos:partnersChanged", h); };
-  }, []);
   const balance = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0;
-  const open = (p) => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: "partners-all" }); };
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="Партнёры" onBack={() => navigate(back)}
         right={<span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: "var(--text)" }}>🪙 {balance}</span>} />
       <div style={{ fontSize: 13, color: "var(--text-4)", padding: "0 2px 14px", lineHeight: 1.45 }}>Живые впечатления от партнёров — трать заработанный XP на то, что происходит вживую.</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
-        {BOS_PARTNERS.map((p) => {
-          const got = !!redeemed[p.id];
-          return (
-            <div key={p.id} className="tap" onClick={() => open(p)} style={{ borderRadius: 22, padding: 15, minHeight: 172,
-              background: isDark
-                ? "linear-gradient(158deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 58%), " + ((typeof bosMixHex === "function") ? bosMixHex(p.accent, "#101014", 0.52) : p.accent)
-                : "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent,
-              boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.4), inset 0 0 0 0.5px rgba(255,255,255,0.09)" : "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
-              cursor: "pointer", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 34, lineHeight: 1 }}>{p.emblem}</span>
-                {p.used > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3.5, fontSize: 10.5, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.5)" : "rgba(27,27,31,0.48)", paddingTop: 3, whiteSpace: "nowrap" }}><I.Users size={11} strokeWidth={2.2} /> {p.used}</span>}
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: isDark ? "#fff" : "#1b1b1f", marginTop: 11, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
-              <div style={{ fontSize: 11.5, color: isDark ? "rgba(255,255,255,0.66)" : "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
-              <div style={{ flex: 1, minHeight: 10 }} />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? (isDark ? "#7dd89b" : "#1E8E4E") : (isDark ? "#fff" : "#0a0a0a"), display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Открыть <I.ChevronRight size={13}/></>}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <PartnersGridLive app={app} navigate={navigate} from="partners-all" />
     </div>
   );
 }
@@ -3620,25 +3631,38 @@ function CirclesMosaicLive({ kicker, onAll, children }) {
     </div>
   );
 }
-/* Компакт-превью «Люди» для обзора «Все» (по макету): размытые строки-ОБЕЩАНИЯ (описывают
-   будущее «знакомство по делам», НЕ выдуманных людей) + пилюля-замок. Тап → чип «Люди». */
+/* Баннер «Люди» для обзора «Все» — ЗАМЕТНЫЙ (David: «суть нравится, но тоненький и в
+   незаметном месте»): глубокая тёмная карточка-космос с заголовком, размытыми строками-
+   ОБЕЩАНИЯМИ (описывают будущее «знакомство по делам», НЕ выдуманных людей) и пилюлей-
+   замком. Тап → чип «Люди». */
 function NetworkPeekLive({ unlocked, onOpen }) {
-  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
-  const rows = [["🤝", "Похожая структура привычек"], ["🔥", "Такой же ритм — спорт по утрам"]];
+  const rows = [["🤝", "Похожая структура привычек"], ["🔥", "Такой же ритм — спорт по утрам"], ["🧩", "Знакомство по делам, не по ленте"]];
   return (
-    <button onClick={onOpen} className="tap" style={{ position: "relative", width: "100%", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, boxShadow: "var(--card-shadow)", textAlign: "left", overflow: "hidden", cursor: "pointer" }}>
-      <div aria-hidden style={{ filter: "blur(3px)", opacity: 0.5, pointerEvents: "none" }}>
-        {rows.map(([e, t], i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: i ? 9 : 0 }}>
-            <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{e}</span>
-            <span style={{ fontSize: 13, color: "var(--text-3)" }}>{t}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, padding: "8px 15px", borderRadius: 999, color: "var(--text)", ...((typeof bosChipGlass === "function") ? bosChipGlass(isDark) : { background: "var(--card-2)" }) }}>
-          🔒 {unlocked ? "Люди — скоро здесь" : "Люди — откроются с 10 уровня"}
-        </span>
+    <button onClick={onOpen} className="tap" style={{ position: "relative", width: "100%", border: 0, borderRadius: 22, padding: "17px 16px 15px", textAlign: "left", overflow: "hidden", cursor: "pointer",
+      background: "radial-gradient(130% 120% at 82% -10%, rgba(120,140,255,0.28), transparent 52%), radial-gradient(90% 90% at 12% 110%, rgba(55,244,250,0.12), transparent 55%), #0a0a0a",
+      boxShadow: "0 10px 26px rgba(10,10,20,0.28), inset 0 0 0 0.5px rgba(255,255,255,0.10)" }}>
+      {/* тихие звёзды */}
+      {[[14, 22, 2], [62, 12, 1.5], [84, 30, 2], [38, 16, 1.2], [74, 66, 1.6]].map(([x, y, r], i) => (
+        <span key={i} aria-hidden style={{ position: "absolute", left: x + "%", top: y + "%", width: r * 2, height: r * 2, borderRadius: "50%", background: "rgba(255,255,255,0.5)", pointerEvents: "none" }} />
+      ))}
+      <div style={{ position: "relative" }}>
+        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(255,255,255,0.55)" }}>🧭 Нетворк · контакты</div>
+        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#fff", marginTop: 4, lineHeight: 1.2 }}>Люди, с которыми по пути</div>
+        <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.62)", marginTop: 4, lineHeight: 1.4, maxWidth: 250 }}>Знакомства по ритму и делам — приложение само подберёт, к кому присмотреться.</div>
+        <div aria-hidden style={{ filter: "blur(3px)", opacity: 0.55, pointerEvents: "none", marginTop: 12, display: "flex", flexDirection: "column", gap: 7 }}>
+          {rows.map(([e, t], i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.14)", display: "grid", placeItems: "center", fontSize: 13, flexShrink: 0 }}>{e}</span>
+              <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.75)" }}>{t}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, padding: "8px 14px", borderRadius: 999, color: "#fff", background: "rgba(255,255,255,0.12)", boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.22)" }}>
+            🔒 {unlocked ? "Скоро здесь" : "Откроется с 10 уровня"}
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>Заглянуть <I.ChevronRight size={14} color="rgba(255,255,255,0.6)" /></span>
+        </div>
       </div>
     </button>
   );

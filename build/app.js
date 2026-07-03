@@ -215,7 +215,7 @@ var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && windo
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-var APP_VERSION = "v536";
+var APP_VERSION = "v537";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -1107,24 +1107,24 @@ var TAB_INTROS = {
     hero: "💛",
     eyebrow: "Сообщество",
     title: "Сердце приложения",
-    body: "Слева — команды с близкими. Справа — сообщество: нетворк, курсы и партнёры. Вместе держим ритм сильнее.",
+    body: "Слева — круги с близкими. Дальше — люди, партнёры и тренинги. Вместе держим ритм сильнее.",
     pills: [{
       emoji: "👥",
-      label: "Команды",
+      label: "Круги",
       view: {
         section: "discover",
         discTab: "teams"
       }
     }, {
       emoji: "🧭",
-      label: "Нетворк",
+      label: "Люди",
       view: {
         section: "community",
         commTab: "network"
       }
     }, {
       emoji: "🎓",
-      label: "Курсы",
+      label: "Тренинги",
       view: {
         section: "community",
         commTab: "courses"

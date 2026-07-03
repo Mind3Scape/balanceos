@@ -279,19 +279,22 @@ function CommunityLive() {
   // Совместимость: тур и онбординг-пилюли пишут старые section/commTab — если они
   // расходятся с сохранённым filter (их только что сменили извне), верим им; чипы пишут
   // ОБА представления согласованно. courses→Партнёры, network→Люди, discover→Все.
+  // «Тренинги» ОТДЕЛЬНЫЙ чип (David: «тренинги может отдельно от партнёров выделить»):
+  // партнёры = живые впечатления за XP, тренинги = бывшие «программы партнёров» (courses).
   var _pairFor = {
     all: "discover",
     circles: "discover",
     partners: "community",
-    people: "community"
+    people: "community",
+    training: "community"
   };
-  var _legacyFilter = section === "community" ? commTabEff === "courses" ? "partners" : "people" : "all";
-  var _fOk = cv.filter && _pairFor[cv.filter] === section && (section !== "community" || cv.filter === "partners" === (commTabEff === "courses"));
+  var _legacyFilter = section === "community" ? commTabEff === "courses" ? "training" : "people" : "all";
+  var _fOk = cv.filter && _pairFor[cv.filter] === section && (section !== "community" || cv.filter === "training" === (commTabEff === "courses"));
   var filter = _fOk ? cv.filter : _legacyFilter;
   var setFilter = f => setView({
     filter: f,
     section: _pairFor[f] || "discover",
-    commTab: f === "partners" ? "courses" : "network"
+    commTab: f === "training" ? "courses" : "network"
   });
   var isDark = app?.themeOverride === "dark";
   var {
@@ -481,12 +484,19 @@ function CommunityLive() {
     size: 12,
     strokeWidth: 2.6
   }))), !searching && /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
     style: {
       display: "flex",
       gap: 7,
-      padding: "2px 2px 0"
+      padding: "2px 2px 0",
+      overflowX: "auto",
+      scrollbarWidth: "none",
+      WebkitOverflowScrolling: "touch",
+      touchAction: "pan-x",
+      WebkitMaskImage: "linear-gradient(90deg, #000 92%, transparent)",
+      maskImage: "linear-gradient(90deg, #000 92%, transparent)"
     }
-  }, [["all", "Все"], ["circles", "Круги"], ["people", "Люди"], ["partners", "Партнёры"]].map(([id, t]) => {
+  }, [["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Тренинги", I.Bolt]].map(([id, t, Ic]) => {
     var on = filter === id;
     var glass = !on && typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {};
     return /*#__PURE__*/React.createElement("button", {
@@ -499,15 +509,23 @@ function CommunityLive() {
         border: 0,
         cursor: "pointer",
         borderRadius: 999,
-        padding: "8px 15px",
+        padding: "8px 13px",
         fontSize: 13.5,
         fontWeight: 600,
+        flexShrink: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
         transition: "background 0.2s, color 0.2s",
         ...glass,
         background: on ? "var(--cta, #0a0a0a)" : glass.background,
         color: on ? "var(--cta-ink, #fff)" : "var(--text-2)"
       }
-    }, t);
+    }, /*#__PURE__*/React.createElement(Ic, {
+      size: 14,
+      strokeWidth: 2.1,
+      color: on ? "var(--cta-ink, #fff)" : "var(--text-3)"
+    }), t);
   })), !searching && pulseN > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -708,7 +726,7 @@ function CommunityLive() {
       color: "var(--text-4)",
       padding: "4px 4px 8px"
     }
-  }, "\uD83C\uDF93 \u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDF93 \u0422\u0440\u0435\u043D\u0438\u043D\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -808,17 +826,62 @@ function CommunityLive() {
       gap: 12,
       marginTop: 14
     }
-  }, (filter === "all" || filter === "partners") && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
+  }, filter === "all" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
     app: app,
     navigate: navigate,
-    onAll: filter === "all" ? () => setFilter("partners") : null
-  })), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, filter === "all" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
-    title: "\uD83C\uDF31 \u041A\u0440\u0443\u0433\u0438 \u0434\u043B\u044F \u0442\u0435\u0431\u044F",
+    onAll: () => setFilter("partners")
+  })), filter === "partners" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      padding: "4px 4px 0"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)"
+    }
+  }, "\uD83C\uDF81 \u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B \xB7 \u043F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C XP"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text)"
+    }
+  }, "\uD83E\uDE99 ", typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : 0)), typeof PartnersGridLive === "function" && /*#__PURE__*/React.createElement(PartnersGridLive, {
+    app: app,
+    navigate: navigate,
+    from: "community"
+  })), filter === "all" && typeof NetworkPeekLive === "function" &&
+  /*#__PURE__*/
+  /* Баннер «Люди» — ВТОРЫМ блоком, заметный (David: «суть нравится, но тоненький и в
+     незаметном месте»). Тап → чип «Люди». */
+  React.createElement(NetworkPeekLive, {
+    unlocked: userLevel >= 10,
+    onOpen: () => setFilter("people")
+  }), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, filter === "all" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
+    title: "\uD83C\uDF31 \u041A\u0440\u0443\u0433\u0438",
     onAll: () => setFilter("circles")
-  }), LIVING_CIRCLES.slice(0, 2).map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
+    style: {
+      display: "flex",
+      gap: 10,
+      overflowX: "auto",
+      padding: "3px 0 14px",
+      scrollSnapType: "x proximity",
+      WebkitOverflowScrolling: "touch",
+      marginTop: -2
+    }
+  }, LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement("button", {
     key: s.id,
-    circle: s,
-    onTap: () => {
+    onClick: () => {
       if (window.tgHaptic) {
         try {
           window.tgHaptic("selection");
@@ -828,16 +891,60 @@ function CommunityLive() {
         circle: s,
         navigate: navigate
       }));
+    },
+    className: "tap",
+    style: {
+      flex: "0 0 auto",
+      width: 152,
+      scrollSnapAlign: "start",
+      background: "var(--card)",
+      border: 0,
+      borderRadius: 18,
+      padding: 13,
+      textAlign: "left",
+      color: "var(--text)",
+      boxShadow: "var(--card-shadow)",
+      display: "flex",
+      flexDirection: "column",
+      gap: 9,
+      cursor: "pointer"
     }
-  })), /*#__PURE__*/React.createElement(CirclesMosaicLive, null, SEED_CIRCLES.slice(0, 2).map(s => {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))",
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20
+    }
+  }, bosIcon(s.i, 20, null)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 14,
+      fontWeight: 600,
+      letterSpacing: "-0.2px",
+      lineHeight: 1.25
+    }
+  }, s.t), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "#1E8E4E",
+      fontWeight: 600,
+      marginTop: 3
+    }
+  }, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F ", s.today, " \u0432 \u0434\u0435\u043B\u0435")))), SEED_CIRCLES.map(s => {
     var mine = (app?.teams || []).find(t => t.seedId === s.id);
-    return /*#__PURE__*/React.createElement(CircleTileLive, {
+    return /*#__PURE__*/React.createElement("button", {
       key: s.id,
-      emoji: s.emblem,
-      title: s.name,
-      meta: s.goalText + " · +" + s.reward + " XP",
-      joined: !!mine,
-      onTap: () => {
+      onClick: () => {
         if (window.tgHaptic) {
           try {
             window.tgHaptic("selection");
@@ -854,8 +961,56 @@ function CommunityLive() {
           seed: s,
           onStart: () => bosStartSeedCircleLive(app, navigate, s)
         }));
+      },
+      className: "tap",
+      style: {
+        flex: "0 0 auto",
+        width: 152,
+        scrollSnapAlign: "start",
+        background: "var(--card)",
+        border: 0,
+        borderRadius: 18,
+        padding: 13,
+        textAlign: "left",
+        color: "var(--text)",
+        boxShadow: "var(--card-shadow)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 9,
+        cursor: "pointer"
       }
-    });
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: 13,
+        background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))",
+        boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 20
+      }
+    }, bosIcon(s.emblem, 20, null)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 14,
+        fontWeight: 600,
+        letterSpacing: "-0.2px",
+        lineHeight: 1.25
+      }
+    }, s.name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        color: mine ? "#34C759" : "var(--text-4)",
+        marginTop: 3,
+        lineHeight: 1.35
+      }
+    }, mine ? "Ты в деле ✓" : s.goalText + " · +" + s.reward + " XP")));
   }))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
     title: "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"
   }), LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
@@ -928,14 +1083,7 @@ function CommunityLive() {
     isDark: isDark
   }), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
     app: app
-  }))), filter === "all" && typeof NetworkPeekLive === "function" &&
-  /*#__PURE__*/
-  /* Обзор: компакт-превью «Люди» по макету (размытое обещание + пилюля-замок);
-     полный замок с путями XP живёт на чипе «Люди» — тап ведёт туда. */
-  React.createElement(NetworkPeekLive, {
-    unlocked: userLevel >= 10,
-    onOpen: () => setFilter("people")
-  }), filter === "people" &&
+  }))), filter === "people" &&
   /*#__PURE__*/
   // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
   React.createElement("div", {
@@ -952,7 +1100,106 @@ function CommunityLive() {
     weeks: weeksToUnlock,
     onUnlock: () => {},
     onSwitchToCommunity: () => setFilter("partners")
-  })), (filter === "all" || filter === "partners") && /*#__PURE__*/React.createElement("div", {
+  })), filter === "all" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
+    title: "\uD83C\uDF93 \u0422\u0440\u0435\u043D\u0438\u043D\u0433\u0438",
+    onAll: () => setFilter("training")
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "bos-hscroll",
+    style: {
+      display: "flex",
+      gap: 10,
+      overflowX: "auto",
+      padding: "3px 0 14px",
+      scrollSnapType: "x proximity",
+      WebkitOverflowScrolling: "touch",
+      marginTop: -2
+    }
+  }, courses.map((c, i) => /*#__PURE__*/React.createElement("button", {
+    key: c.id,
+    "data-tour": i === 0 ? "course" : undefined,
+    onClick: () => navigate("course-detail", {
+      course: c
+    }),
+    className: "tap",
+    style: {
+      flex: "0 0 auto",
+      width: 196,
+      scrollSnapAlign: "start",
+      background: "var(--card)",
+      border: 0,
+      borderRadius: 18,
+      padding: 13,
+      textAlign: "left",
+      color: "var(--text)",
+      boxShadow: "var(--card-shadow)",
+      display: "flex",
+      flexDirection: "column",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: "50%",
+      background: c.accent,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20
+    }
+  }, c.i), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      padding: "2px 7px",
+      background: "var(--card-2)",
+      borderRadius: 999,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      fontWeight: 600
+    }
+  }, c.lvl)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 700,
+      letterSpacing: "-0.2px",
+      marginTop: 10,
+      lineHeight: 1.2
+    }
+  }, c.t), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)",
+      marginTop: 3
+    }
+  }, "\u23F1 ", c.length, " \xB7 \uD83D\uDCC5 ", c.cohort), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700
+    }
+  }, c.price), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      display: "inline-flex",
+      alignItems: "center"
+    }
+  }, "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 13
+  }))))))), filter === "training" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -960,9 +1207,8 @@ function CommunityLive() {
       marginTop: 4
     }
   }, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
-    title: "\uD83C\uDF93 \u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432",
-    onAll: filter === "all" ? () => setFilter("partners") : null
-  }), filter === "partners" && /*#__PURE__*/React.createElement("div", {
+    title: "\uD83C\uDF93 \u0422\u0440\u0435\u043D\u0438\u043D\u0433\u0438"
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       overflow: "hidden",
@@ -1005,7 +1251,7 @@ function CommunityLive() {
       textTransform: "uppercase",
       color: "rgba(58,42,0,0.6)"
     }
-  }, "\u0417\u0430\u0447\u0435\u043C \u043F\u0440\u043E\u0445\u043E\u0434\u0438\u0442\u044C \u043A\u0443\u0440\u0441\u044B"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0417\u0430\u0447\u0435\u043C \u043F\u0440\u043E\u0445\u043E\u0434\u0438\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 19,
       fontWeight: 800,
@@ -1015,7 +1261,7 @@ function CommunityLive() {
       maxWidth: 220,
       lineHeight: 1.2
     }
-  }, "\u041A\u0430\u0436\u0434\u044B\u0439 \u043A\u0443\u0440\u0441 \u2014 \u0446\u0435\u043B\u044B\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041A\u0430\u0436\u0434\u044B\u0439 \u0442\u0440\u0435\u043D\u0438\u043D\u0433 \u2014 \u0446\u0435\u043B\u044B\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
       color: "rgba(58,42,0,0.8)",
@@ -1048,7 +1294,7 @@ function CommunityLive() {
       fontSize: 13,
       lineHeight: 1
     }
-  }, e), l))))), (filter === "all" ? courses.slice(0, 2) : courses).map((c, i) => /*#__PURE__*/React.createElement("button", {
+  }, e), l))))), courses.map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     "data-tour": i === 0 ? "course" : undefined,
     onClick: () => navigate("course-detail", {
@@ -1165,7 +1411,7 @@ function CommunityLive() {
       fontSize: 13,
       fontWeight: 500
     }
-  }, "\u041E \u043A\u0443\u0440\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+  }, "\u041E \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 14
   })))))), filter === "all" && typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
     isDark: isDark

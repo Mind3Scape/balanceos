@@ -4751,7 +4751,7 @@ function HomeGalleryContentLive({
       gap: 10,
       width: "100%",
       padding: "6.5px 10px",
-      borderTop: i ? "0.5px solid " + (dark ? "rgba(255,255,255,0.07)" : "var(--line-2)") : "none"
+      borderTop: i ? "0.5px solid " + (dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.055)") : "none"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -4762,7 +4762,8 @@ function HomeGalleryContentLive({
       placeItems: "center",
       fontSize: 15,
       flexShrink: 0,
-      background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+      background: dark ? "rgba(255,255,255,0.08)" : "#fff",
+      boxShadow: bosTileGlass(dark),
       opacity: on ? 1 : 0.5,
       transition: "opacity 0.2s"
     }
@@ -4801,9 +4802,11 @@ function HomeGalleryContentLive({
     onChange: onToggle,
     dark: dark
   }));
+  // Секции — СТЕКЛЯННО-СЕРЫЕ карточки в стиле приложения (David: «шторка не в наш стиль
+  // цветов» — белые карточки на белой шторке сливались; тон = как чипы/плитки, surface-3).
   var card = items => /*#__PURE__*/React.createElement("div", {
     style: {
-      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "#fff"),
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
       borderRadius: 14,
       boxShadow: bosTileGlass(dark),
       overflow: "hidden"
@@ -4827,7 +4830,7 @@ function HomeGalleryContentLive({
       textAlign: "left",
       color: "var(--text)",
       marginTop: 2,
-      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "#fff"),
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
       borderRadius: 14,
       boxShadow: bosTileGlass(dark)
     }
@@ -4839,7 +4842,8 @@ function HomeGalleryContentLive({
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
-      background: dark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"
+      background: dark ? "rgba(255,255,255,0.08)" : "#fff",
+      boxShadow: bosTileGlass(dark)
     }
   }, /*#__PURE__*/React.createElement(I.Settings, {
     size: 15,
@@ -8018,16 +8022,13 @@ function PartnersShowcaseLive({
   })));
 }
 
-// СТРАНИЦА «ВСЕ ПАРТНЁРЫ» — вертикальная сетка ВСЕХ живых впечатлений. David: «живое от партнёров»
-// намекало на страницу со всеми партнёрами, а её не было (мёртвая ссылка). Тот же вид карточек, что
-// в ленте PartnersShowcaseLive, но 2-в-ряд и целиком; тап → та же деталь. Открывается по «живое от партнёров →».
-function PartnersAllLive() {
-  var {
-    navigate,
-    params
-  } = useNav();
-  var app = typeof useApp === "function" ? useApp() : null;
-  var back = params && params.from || "community";
+// СЕТКА ВСЕХ ПАРТНЁРОВ (2-в-ряд) — ОБЩАЯ для страницы «партнёры-все» и чипа «Партнёры»
+// в Сообществе (David: «каждой категории место»). Тап → та же деталь партнёра.
+function PartnersGridLive({
+  app,
+  navigate,
+  from = "community"
+}) {
   var isDark = app && app.themeOverride === "dark";
   var [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
   React.useEffect(function () {
@@ -8039,7 +8040,6 @@ function PartnersAllLive() {
       window.removeEventListener("bos:partnersChanged", h);
     };
   }, []);
-  var balance = typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : 0;
   var open = p => {
     if (window.tgHaptic) {
       try {
@@ -8048,36 +8048,10 @@ function PartnersAllLive() {
     }
     navigate("partner-detail", {
       partner: p,
-      from: "partners-all"
+      from: from
     });
   };
   return /*#__PURE__*/React.createElement("div", {
-    className: "page-in",
-    style: {
-      padding: "0 16px 24px"
-    }
-  }, /*#__PURE__*/React.createElement(PageHeader, {
-    dark: isDark,
-    title: "\u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B",
-    onBack: () => navigate(back),
-    right: /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        fontSize: 13,
-        fontWeight: 700,
-        color: "var(--text)"
-      }
-    }, "\uD83E\uDE99 ", balance)
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)",
-      padding: "0 2px 14px",
-      lineHeight: 1.45
-    }
-  }, "\u0416\u0438\u0432\u044B\u0435 \u0432\u043F\u0435\u0447\u0430\u0442\u043B\u0435\u043D\u0438\u044F \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 \u2014 \u0442\u0440\u0430\u0442\u044C \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u044B\u0439 XP \u043D\u0430 \u0442\u043E, \u0447\u0442\u043E \u043F\u0440\u043E\u0438\u0441\u0445\u043E\u0434\u0438\u0442 \u0432\u0436\u0438\u0432\u0443\u044E."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -8184,7 +8158,52 @@ function PartnersAllLive() {
     }) : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
       size: 13
     })))));
-  })));
+  }));
+}
+
+// СТРАНИЦА «ВСЕ ПАРТНЁРЫ» — вертикальная сетка ВСЕХ живых впечатлений. David: «живое от партнёров»
+// намекало на страницу со всеми партнёрами, а её не было (мёртвая ссылка). Тот же вид карточек, что
+// в ленте PartnersShowcaseLive, но 2-в-ряд и целиком; тап → та же деталь. Открывается по «живое от партнёров →».
+function PartnersAllLive() {
+  var {
+    navigate,
+    params
+  } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var back = params && params.from || "community";
+  var isDark = app && app.themeOverride === "dark";
+  var balance = typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : 0;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-in",
+    style: {
+      padding: "0 16px 24px"
+    }
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    dark: isDark,
+    title: "\u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B",
+    onBack: () => navigate(back),
+    right: /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        fontSize: 13,
+        fontWeight: 700,
+        color: "var(--text)"
+      }
+    }, "\uD83E\uDE99 ", balance)
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)",
+      padding: "0 2px 14px",
+      lineHeight: 1.45
+    }
+  }, "\u0416\u0438\u0432\u044B\u0435 \u0432\u043F\u0435\u0447\u0430\u0442\u043B\u0435\u043D\u0438\u044F \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 \u2014 \u0442\u0440\u0430\u0442\u044C \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u044B\u0439 XP \u043D\u0430 \u0442\u043E, \u0447\u0442\u043E \u043F\u0440\u043E\u0438\u0441\u0445\u043E\u0434\u0438\u0442 \u0432\u0436\u0438\u0432\u0443\u044E."), /*#__PURE__*/React.createElement(PartnersGridLive, {
+    app: app,
+    navigate: navigate,
+    from: "partners-all"
+  }));
 }
 
 // СТРАНИЦА ПАРТНЁРА — нативная деталь (iOS-стиль): цветной hero в тон партнёру + крупный эмодзи, описание,
@@ -9075,66 +9094,112 @@ function CirclesMosaicLive({
     }
   }, children));
 }
-/* Компакт-превью «Люди» для обзора «Все» (по макету): размытые строки-ОБЕЩАНИЯ (описывают
-   будущее «знакомство по делам», НЕ выдуманных людей) + пилюля-замок. Тап → чип «Люди». */
+/* Баннер «Люди» для обзора «Все» — ЗАМЕТНЫЙ (David: «суть нравится, но тоненький и в
+   незаметном месте»): глубокая тёмная карточка-космос с заголовком, размытыми строками-
+   ОБЕЩАНИЯМИ (описывают будущее «знакомство по делам», НЕ выдуманных людей) и пилюлей-
+   замком. Тап → чип «Люди». */
 function NetworkPeekLive({
   unlocked,
   onOpen
 }) {
-  var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
-  var rows = [["🤝", "Похожая структура привычек"], ["🔥", "Такой же ритм — спорт по утрам"]];
+  var rows = [["🤝", "Похожая структура привычек"], ["🔥", "Такой же ритм — спорт по утрам"], ["🧩", "Знакомство по делам, не по ленте"]];
   return /*#__PURE__*/React.createElement("button", {
     onClick: onOpen,
     className: "tap",
     style: {
       position: "relative",
       width: "100%",
-      background: "var(--card)",
       border: 0,
-      borderRadius: 18,
-      padding: 13,
-      boxShadow: "var(--card-shadow)",
+      borderRadius: 22,
+      padding: "17px 16px 15px",
       textAlign: "left",
       overflow: "hidden",
-      cursor: "pointer"
+      cursor: "pointer",
+      background: "radial-gradient(130% 120% at 82% -10%, rgba(120,140,255,0.28), transparent 52%), radial-gradient(90% 90% at 12% 110%, rgba(55,244,250,0.12), transparent 55%), #0a0a0a",
+      boxShadow: "0 10px 26px rgba(10,10,20,0.28), inset 0 0 0 0.5px rgba(255,255,255,0.10)"
+    }
+  }, [[14, 22, 2], [62, 12, 1.5], [84, 30, 2], [38, 16, 1.2], [74, 66, 1.6]].map(([x, y, r], i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      left: x + "%",
+      top: y + "%",
+      width: r * 2,
+      height: r * 2,
+      borderRadius: "50%",
+      background: "rgba(255,255,255,0.5)",
+      pointerEvents: "none"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
     }
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 800,
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      color: "rgba(255,255,255,0.55)"
+    }
+  }, "\uD83E\uDDED \u041D\u0435\u0442\u0432\u043E\u0440\u043A \xB7 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u044B"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 19,
+      fontWeight: 800,
+      letterSpacing: "-0.4px",
+      color: "#fff",
+      marginTop: 4,
+      lineHeight: 1.2
+    }
+  }, "\u041B\u044E\u0434\u0438, \u0441 \u043A\u043E\u0442\u043E\u0440\u044B\u043C\u0438 \u043F\u043E \u043F\u0443\u0442\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "rgba(255,255,255,0.62)",
+      marginTop: 4,
+      lineHeight: 1.4,
+      maxWidth: 250
+    }
+  }, "\u0417\u043D\u0430\u043A\u043E\u043C\u0441\u0442\u0432\u0430 \u043F\u043E \u0440\u0438\u0442\u043C\u0443 \u0438 \u0434\u0435\u043B\u0430\u043C \u2014 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0441\u0430\u043C\u043E \u043F\u043E\u0434\u0431\u0435\u0440\u0451\u0442, \u043A \u043A\u043E\u043C\u0443 \u043F\u0440\u0438\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C\u0441\u044F."), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       filter: "blur(3px)",
-      opacity: 0.5,
-      pointerEvents: "none"
+      opacity: 0.55,
+      pointerEvents: "none",
+      marginTop: 12,
+      display: "flex",
+      flexDirection: "column",
+      gap: 7
     }
   }, rows.map(([e, t], i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 10,
-      marginTop: i ? 9 : 0
+      gap: 9
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 28,
-      height: 28,
+      width: 26,
+      height: 26,
       borderRadius: "50%",
-      background: "var(--card-2)",
+      background: "rgba(255,255,255,0.14)",
       display: "grid",
       placeItems: "center",
-      fontSize: 14,
+      fontSize: 13,
       flexShrink: 0
     }
   }, e), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 13,
-      color: "var(--text-3)"
+      fontSize: 12.5,
+      color: "rgba(255,255,255,0.75)"
     }
   }, t)))), /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "absolute",
-      inset: 0,
-      display: "grid",
-      placeItems: "center"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 13
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -9142,15 +9207,26 @@ function NetworkPeekLive({
       alignItems: "center",
       gap: 6,
       fontSize: 12.5,
-      fontWeight: 600,
-      padding: "8px 15px",
+      fontWeight: 700,
+      padding: "8px 14px",
       borderRadius: 999,
-      color: "var(--text)",
-      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
-        background: "var(--card-2)"
-      })
+      color: "#fff",
+      background: "rgba(255,255,255,0.12)",
+      boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.22)"
     }
-  }, "\uD83D\uDD12 ", unlocked ? "Люди — скоро здесь" : "Люди — откроются с 10 уровня")));
+  }, "\uD83D\uDD12 ", unlocked ? "Скоро здесь" : "Откроется с 10 уровня"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 2,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "rgba(255,255,255,0.75)"
+    }
+  }, "\u0417\u0430\u0433\u043B\u044F\u043D\u0443\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 14,
+    color: "rgba(255,255,255,0.6)"
+  })))));
 }
 
 /* КАРТОЧКА живого круга (v527, David: «мог бы использовать карточку реальных кругов —
