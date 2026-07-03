@@ -198,42 +198,30 @@ function LiveTeamCard({
   }, "\u041F\u043E\u043A\u0430 \u0442\u044B \u043E\u0434\u0438\u043D \u2014 \u043F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0437\u0435\u0439"))));
 }
 
-/* Заголовок секции ленты «Найти» (Е: вкладка «Все» = ОБЗОР с превью-секциями).
-   Крупный титул + подпись; onAll → маленькая «Все ›» справа (паттерн App Store
-   «See All»), которая переключает чип на полный раздел. Без onAll — просто шапка. */
+/* Заголовок секции ленты «Найти» (v526, по макету): компактный UPPERCASE-кикер, как у
+   полок внутри витрин — один ритм на всю страницу; onAll → маленькая «Все ›» справа
+   (паттерн App Store «See All»), которая переключает чип на полный раздел. */
 function CommSectionHeadLive({
   title,
-  sub,
   onAll
 }) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "flex-end",
+      alignItems: "baseline",
       justifyContent: "space-between",
       gap: 10,
-      padding: "2px 4px 0"
+      padding: "4px 4px 0"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 21,
+      fontSize: 11,
       fontWeight: 700,
-      letterSpacing: "-0.5px",
-      color: "var(--text)"
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)"
     }
-  }, title), sub && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)",
-      marginTop: 3,
-      lineHeight: 1.45
-    }
-  }, sub)), onAll && /*#__PURE__*/React.createElement("button", {
+  }, title), onAll && /*#__PURE__*/React.createElement("button", {
     onClick: onAll,
     className: "tap",
     "data-haptic": "selection",
@@ -243,15 +231,15 @@ function CommSectionHeadLive({
       cursor: "pointer",
       display: "inline-flex",
       alignItems: "center",
-      gap: 2,
-      fontSize: 13.5,
+      gap: 1,
+      fontSize: 12.5,
       fontWeight: 600,
       color: "var(--text-3)",
-      padding: "4px 0 5px 8px",
+      padding: 0,
       flexShrink: 0
     }
   }, "\u0412\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 14,
+    size: 13,
     color: "var(--text-4)"
   })));
 }
@@ -822,37 +810,149 @@ function CommunityLive() {
       gap: 12,
       marginTop: 14
     }
-  }, (filter === "all" || filter === "partners") && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
-    title: "\u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B",
-    sub: "\u0416\u0438\u0432\u044B\u0435 \u0432\u043F\u0435\u0447\u0430\u0442\u043B\u0435\u043D\u0438\u044F \u0432 \u0433\u043E\u0440\u043E\u0434\u0435 \u2014 \u0437\u0430 \u0442\u0432\u043E\u0438 XP.",
+  }, (filter === "all" || filter === "partners") && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
+    app: app,
+    navigate: navigate,
     onAll: filter === "all" ? () => setFilter("partners") : null
-  }), typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
-    app: app,
-    navigate: navigate
-  })), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
-    title: "\u041A\u0440\u0443\u0433\u0438 \u0434\u043B\u044F \u0442\u0435\u0431\u044F",
-    sub: "\u0412\u0441\u0442\u0443\u043F\u0430\u0439 \u0432 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438 \u0438 \u0436\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438 \u2014 \u0438\u043B\u0438 \u0441\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439. \u041B\u044E\u0431\u043E\u0439 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0443 \u0442\u0435\u0431\u044F \u0432 \xAB\u0426\u0435\u043B\u044F\u0445\xBB.",
-    onAll: filter === "all" ? () => setFilter("circles") : null
-  }), typeof SeedCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(SeedCirclesShowcaseLive, {
-    app: app,
-    navigate: navigate
-  }), filter === "circles" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof CircleStartersShowcaseLive === "function" && /*#__PURE__*/React.createElement(CircleStartersShowcaseLive, {
-    navigate: navigate
-  }), typeof LivingCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(LivingCirclesShowcaseLive, {
-    navigate: navigate
-  })), typeof CircleFriendsStripLive === "function" && /*#__PURE__*/React.createElement(CircleFriendsStripLive, {
+  })), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, filter === "all" ? /*#__PURE__*/React.createElement(CirclesMosaicLive, {
+    kicker: "\uD83C\uDF31 \u041A\u0440\u0443\u0433\u0438 \u0434\u043B\u044F \u0442\u0435\u0431\u044F",
+    onAll: () => setFilter("circles")
+  }, LIVING_CIRCLES.slice(0, 2).map(s => /*#__PURE__*/React.createElement(CircleTileLive, {
+    key: s.id,
+    emoji: s.i,
+    title: s.t,
+    meta: s.total + " человек · сегодня " + s.today + " в деле",
+    onTap: () => {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+      if (typeof LivingCircleSheetLive === "function") _openSheet(/*#__PURE__*/React.createElement(LivingCircleSheetLive, {
+        circle: s,
+        navigate: navigate
+      }));
+    }
+  })), SEED_CIRCLES.slice(0, 2).map(s => {
+    var mine = (app?.teams || []).find(t => t.seedId === s.id);
+    return /*#__PURE__*/React.createElement(CircleTileLive, {
+      key: s.id,
+      emoji: s.emblem,
+      title: s.name,
+      meta: s.goalText + " · +" + s.reward + " XP",
+      joined: !!mine,
+      onTap: () => {
+        if (window.tgHaptic) {
+          try {
+            window.tgHaptic("selection");
+          } catch (e) {}
+        }
+        if (mine) {
+          navigate("team-detail", {
+            team: mine,
+            from: "community"
+          });
+          return;
+        }
+        _openSheet(/*#__PURE__*/React.createElement(ConfirmActionSheet, {
+          emoji: s.emblem,
+          title: s.name + " — начать?",
+          message: s.hook + " Круг появится в «Целях», практика — в «Привычках». +" + s.reward + " XP за финиш.",
+          confirmLabel: "\u041D\u0430\u0447\u0430\u0442\u044C",
+          onConfirm: () => bosStartSeedCircleLive(app, navigate, s)
+        }));
+      }
+    });
+  })) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CirclesMosaicLive, {
+    kicker: "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"
+  }, LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement(CircleTileLive, {
+    key: s.id,
+    emoji: s.i,
+    title: s.t,
+    meta: s.total + " человек · сегодня " + s.today + " в деле",
+    onTap: () => {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+      if (typeof LivingCircleSheetLive === "function") _openSheet(/*#__PURE__*/React.createElement(LivingCircleSheetLive, {
+        circle: s,
+        navigate: navigate
+      }));
+    }
+  }))), /*#__PURE__*/React.createElement(CirclesMosaicLive, {
+    kicker: "\uD83D\uDD25 \u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438"
+  }, SEED_CIRCLES.map(s => {
+    var mine = (app?.teams || []).find(t => t.seedId === s.id);
+    return /*#__PURE__*/React.createElement(CircleTileLive, {
+      key: s.id,
+      emoji: s.emblem,
+      title: s.name,
+      meta: s.goalText + " · +" + s.reward + " XP",
+      joined: !!mine,
+      onTap: () => {
+        if (window.tgHaptic) {
+          try {
+            window.tgHaptic("selection");
+          } catch (e) {}
+        }
+        if (mine) {
+          navigate("team-detail", {
+            team: mine,
+            from: "community"
+          });
+          return;
+        }
+        _openSheet(/*#__PURE__*/React.createElement(ConfirmActionSheet, {
+          emoji: s.emblem,
+          title: s.name + " — начать?",
+          message: s.hook + " Круг появится в «Целях», практика — в «Привычках». +" + s.reward + " XP за финиш.",
+          confirmLabel: "\u041D\u0430\u0447\u0430\u0442\u044C",
+          onConfirm: () => bosStartSeedCircleLive(app, navigate, s)
+        }));
+      }
+    });
+  })), /*#__PURE__*/React.createElement(CirclesMosaicLive, {
+    kicker: "\uD83E\uDD1D \u0421\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439"
+  }, CIRCLE_STARTERS.map(s => /*#__PURE__*/React.createElement(CircleTileLive, {
+    key: s.t,
+    emoji: s.i,
+    title: s.t,
+    meta: s.target + " " + s.unit + " · " + (s.goalType === "streak" ? "серия вместе" : "счёт общий"),
+    onTap: () => {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+      _openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+        mode: "create",
+        circleOn: true,
+        preset: s,
+        navigate: navigate
+      }));
+    }
+  })))), typeof CircleFriendsStripLive === "function" && /*#__PURE__*/React.createElement(CircleFriendsStripLive, {
     app: app,
     navigate: navigate
   }), filter === "circles" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
     isDark: isDark
   }), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
     app: app
-  }))), (filter === "all" || filter === "people") &&
+  }))), filter === "all" && typeof NetworkPeekLive === "function" &&
+  /*#__PURE__*/
+  /* Обзор: компакт-превью «Люди» по макету (размытое обещание + пилюля-замок);
+     полный замок с путями XP живёт на чипе «Люди» — тап ведёт туда. */
+  React.createElement(NetworkPeekLive, {
+    unlocked: userLevel >= 10,
+    onOpen: () => setFilter("people")
+  }), filter === "people" &&
   /*#__PURE__*/
   // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
   React.createElement("div", {
     style: {
-      marginTop: filter === "all" ? 4 : 0
+      marginTop: 0
     }
   }, /*#__PURE__*/React.createElement(NetworkLockedLive, {
     navigate: navigate,
@@ -872,8 +972,7 @@ function CommunityLive() {
       marginTop: 4
     }
   }, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
-    title: "\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432",
-    sub: "\u0418\u043D\u0442\u0435\u043D\u0441\u0438\u0432\u044B \u0438 \u043A\u0443\u0440\u0441\u044B \u2014 \u0441\u0430\u043C\u044B\u0439 \u0431\u044B\u0441\u0442\u0440\u044B\u0439 \u0440\u043E\u0441\u0442 \u0443\u0440\u043E\u0432\u043D\u044F.",
+    title: "\uD83C\uDF93 \u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432",
     onAll: filter === "all" ? () => setFilter("partners") : null
   }), filter === "partners" && /*#__PURE__*/React.createElement("div", {
     style: {

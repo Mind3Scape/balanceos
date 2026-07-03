@@ -83,21 +83,18 @@ function LiveTeamCard({ t, navigate }) {
   );
 }
 
-/* Заголовок секции ленты «Найти» (Е: вкладка «Все» = ОБЗОР с превью-секциями).
-   Крупный титул + подпись; onAll → маленькая «Все ›» справа (паттерн App Store
-   «See All»), которая переключает чип на полный раздел. Без onAll — просто шапка. */
-function CommSectionHeadLive({ title, sub, onAll }) {
+/* Заголовок секции ленты «Найти» (v526, по макету): компактный UPPERCASE-кикер, как у
+   полок внутри витрин — один ритм на всю страницу; onAll → маленькая «Все ›» справа
+   (паттерн App Store «See All»), которая переключает чип на полный раздел. */
+function CommSectionHeadLive({ title, onAll }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, padding: "2px 4px 0" }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{title}</div>
-        {sub && <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>{sub}</div>}
-      </div>
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, padding: "4px 4px 0" }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>{title}</span>
       {onAll && (
         <button onClick={onAll} className="tap" data-haptic="selection"
-          style={{ border: 0, background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 2,
-            fontSize: 13.5, fontWeight: 600, color: "var(--text-3)", padding: "4px 0 5px 8px", flexShrink: 0 }}>
-          Все <I.ChevronRight size={14} color="var(--text-4)" />
+          style={{ border: 0, background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 1,
+            fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", padding: 0, flexShrink: 0 }}>
+          Все <I.ChevronRight size={13} color="var(--text-4)" />
         </button>
       )}
     </div>
@@ -326,25 +323,67 @@ function CommunityLive() {
         {(filter === "all" || filter === "partners") && (
           <React.Fragment>
             {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку.
-                На «Все» — превью с «Все ›» (Е: обзор), чип «Партнёры» — полный раздел + программы. */}
-            <CommSectionHeadLive title="Партнёры" sub="Живые впечатления в городе — за твои XP."
-              onAll={filter === "all" ? () => setFilter("partners") : null} />
-            {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
+                Кикер живёт ВНУТРИ витрины; на «Все» правый край = «Все ›» (onAll). */}
+            {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate}
+              onAll={filter === "all" ? () => setFilter("partners") : null} />}
           </React.Fragment>
         )}
 
         {(filter === "all" || filter === "circles") && (
           <React.Fragment>
-            <CommSectionHeadLive title="Круги для тебя" sub="Вступай в челленджи и живые круги — или собери свой. Любой появится у тебя в «Целях»."
-              onAll={filter === "all" ? () => setFilter("circles") : null} />
-            {/* Челленджи — срочные, с призом за финиш: витрина-превью и на «Все», и в разделе. */}
-            {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
-            {filter === "circles" && (
+            {/* КРУГИ (v526): ЕДИНЫЙ язык плиток — мозаика 2 колонки по макету, вместо трёх
+                разных горизонтальных лент. На «Все» — превью 4 плитки (2 живых + 2 челленджа);
+                чип «Круги» — все группы теми же плитками. Тапы прежние: живой → шторка-превью
+                с «Постучаться», челлендж → подтверждение → старт, пресет → форма создания. */}
+            {filter === "all" ? (
+              <CirclesMosaicLive kicker="🌱 Круги для тебя" onAll={() => setFilter("circles")}>
+                {LIVING_CIRCLES.slice(0, 2).map((s) => (
+                  <CircleTileLive key={s.id} emoji={s.i} title={s.t} meta={s.total + " человек · сегодня " + s.today + " в деле"}
+                    onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
+                ))}
+                {SEED_CIRCLES.slice(0, 2).map((s) => {
+                  const mine = (app?.teams || []).find((t) => t.seedId === s.id);
+                  return (
+                    <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
+                      onTap={() => {
+                        if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+                        if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
+                        _openSheet(<ConfirmActionSheet emoji={s.emblem} title={s.name + " — начать?"}
+                          message={s.hook + " Круг появится в «Целях», практика — в «Привычках». +" + s.reward + " XP за финиш."}
+                          confirmLabel="Начать" onConfirm={() => bosStartSeedCircleLive(app, navigate, s)} />);
+                      }} />
+                  );
+                })}
+              </CirclesMosaicLive>
+            ) : (
               <React.Fragment>
-                {/* ПОЛНЫЙ раздел (чип «Круги»): пресеты + живые витрины. На «Все» их нет —
-                    обзор короткий, «Все ›» ведёт сюда. */}
-                {typeof CircleStartersShowcaseLive === "function" && <CircleStartersShowcaseLive navigate={navigate} />}
-                {typeof LivingCirclesShowcaseLive === "function" && <LivingCirclesShowcaseLive navigate={navigate} />}
+                <CirclesMosaicLive kicker="✨ Живые круги">
+                  {LIVING_CIRCLES.map((s) => (
+                    <CircleTileLive key={s.id} emoji={s.i} title={s.t} meta={s.total + " человек · сегодня " + s.today + " в деле"}
+                      onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
+                  ))}
+                </CirclesMosaicLive>
+                <CirclesMosaicLive kicker="🔥 Челленджи">
+                  {SEED_CIRCLES.map((s) => {
+                    const mine = (app?.teams || []).find((t) => t.seedId === s.id);
+                    return (
+                      <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
+                        onTap={() => {
+                          if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+                          if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
+                          _openSheet(<ConfirmActionSheet emoji={s.emblem} title={s.name + " — начать?"}
+                            message={s.hook + " Круг появится в «Целях», практика — в «Привычках». +" + s.reward + " XP за финиш."}
+                            confirmLabel="Начать" onConfirm={() => bosStartSeedCircleLive(app, navigate, s)} />);
+                        }} />
+                    );
+                  })}
+                </CirclesMosaicLive>
+                <CirclesMosaicLive kicker="🤝 Собери свой">
+                  {CIRCLE_STARTERS.map((s) => (
+                    <CircleTileLive key={s.t} emoji={s.i} title={s.t} meta={s.target + " " + s.unit + " · " + (s.goalType === "streak" ? "серия вместе" : "счёт общий")}
+                      onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<GoalFormSheetLive mode="create" circleOn={true} preset={s} navigate={navigate} />); }} />
+                  ))}
+                </CirclesMosaicLive>
               </React.Fragment>
             )}
             {/* РЕАЛЬНАЯ жизнь — живые лица из твоих кругов (скрыто, если людей нет). */}
@@ -360,9 +399,14 @@ function CommunityLive() {
           </React.Fragment>
         )}
 
-        {(filter === "all" || filter === "people") && (
+        {filter === "all" && typeof NetworkPeekLive === "function" && (
+          /* Обзор: компакт-превью «Люди» по макету (размытое обещание + пилюля-замок);
+             полный замок с путями XP живёт на чипе «Люди» — тап ведёт туда. */
+          <NetworkPeekLive unlocked={userLevel >= 10} onOpen={() => setFilter("people")} />
+        )}
+        {filter === "people" && (
           // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
-          <div style={{ marginTop: filter === "all" ? 4 : 0 }}>
+          <div style={{ marginTop: 0 }}>
             <NetworkLockedLive
               navigate={navigate}
               live={true}
@@ -382,7 +426,7 @@ function CommunityLive() {
           {/* ПРОГРАММЫ ПАРТНЁРОВ (бывшие «Курсы» — David: «курсы как слово ощущается хуже
               партнёров»): интенсивы-ускорители внутри партнёрского мира.
               На «Все» — превью: 2 карточки + «Все ›»; голд-баннер «зачем» живёт на чипе. */}
-          <CommSectionHeadLive title="Программы партнёров" sub="Интенсивы и курсы — самый быстрый рост уровня."
+          <CommSectionHeadLive title="🎓 Программы партнёров"
             onAll={filter === "all" ? () => setFilter("partners") : null} />
           {/* Gold "why courses" banner — the hook (esp. for a newcomer): a course is
               the fastest level-up — a whole level + an achievement that opens new

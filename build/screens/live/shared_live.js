@@ -6883,112 +6883,114 @@ var SEED_CIRCLES = [{
     emoji: "📖"
   }
 }];
+/* Старт челленджа-круга — ОБЩАЯ логика (v526: её зовут и плитки новой мозаики «Найти»,
+   и прежняя горизонтальная витрина): круг в «Цели» + практика в «Привычки» + облако. */
+function bosStartSeedCircleLive(app, navigate, s) {
+  if (window.tgHaptic) {
+    try {
+      window.tgHaptic("success");
+    } catch (e) {}
+  }
+  var existing = (app?.teams || []).find(t => t.seedId === s.id);
+  if (existing) {
+    navigate("team-detail", {
+      team: existing
+    });
+    return;
+  } // уже начал → просто в круг
+  var teamObj = {
+    name: s.name,
+    emblem: s.emblem,
+    accent: s.accent,
+    vis: "private",
+    seedId: s.id,
+    goal: s.goalText,
+    type: s.type,
+    target: s.target || 0,
+    current: 0,
+    unit: s.unit || "",
+    stake: s.reward || 0,
+    date: "",
+    progress: 0,
+    members: [] // ПРИЗ за финиш = ставка (unlock-only, без списания)
+  };
+  var nt = app?.addTeam(teamObj); // круг → сразу в «Целях» (офлайн-ок)
+  var practiceHabit = {
+    name: s.practice.name,
+    emoji: s.practice.emoji,
+    color: null,
+    days: [1, 1, 1, 1, 1, 1, 1],
+    goalPerDay: 1,
+    reminder: {
+      on: false
+    }
+  };
+  var opened = false;
+  try {
+    if (nt && window.bosCloud && window.bosCloud.enabled()) {
+      window.bosCloud.createTeam({
+        name: s.name,
+        emblem: s.emblem,
+        vis: "private",
+        goalKind: s.goalText,
+        goalTarget: s.target || 0,
+        goal: {
+          type: s.type,
+          target: s.target || 0,
+          unit: s.unit || "",
+          stake: s.reward || 0
+        }
+      }).then(async row => {
+        if (row && row.id) {
+          if (app.updateTeam) app.updateTeam(nt._id, {
+            cloudId: row.id
+          });
+          var th = null;
+          try {
+            th = await window.bosCloud.addTeamHabit(row.id, {
+              name: s.practice.name,
+              emoji: s.practice.emoji,
+              isMain: true
+            });
+          } catch (e) {}
+          app?.addHabit({
+            ...practiceHabit,
+            teamId: row.id,
+            teamHabitId: th && th.id
+          });
+        } else {
+          app?.addHabit(practiceHabit);
+        }
+        navigate("team-detail", {
+          team: {
+            ...nt,
+            cloudId: row && row.id
+          }
+        });
+      }).catch(() => {
+        app?.addHabit(practiceHabit);
+        navigate("team-detail", {
+          team: nt
+        });
+      });
+      opened = true;
+    }
+  } catch (e) {}
+  if (!opened) {
+    app?.addHabit(practiceHabit);
+    navigate("team-detail", {
+      team: nt
+    });
+  } // офлайн/превью
+}
+
+/* v526: витрина больше НЕ в ленте «Найти» (её место заняла мозаика CircleTileLive с теми же данными и bosStartSeedCircleLive); компонент оставлен на случай возврата. */
 function SeedCirclesShowcaseLive({
   app,
   navigate
 }) {
   var isDark = app?.themeOverride === "dark";
-  var start = s => {
-    if (window.tgHaptic) {
-      try {
-        window.tgHaptic("success");
-      } catch (e) {}
-    }
-    var existing = (app?.teams || []).find(t => t.seedId === s.id);
-    if (existing) {
-      navigate("team-detail", {
-        team: existing
-      });
-      return;
-    } // уже начал → просто в круг
-    var teamObj = {
-      name: s.name,
-      emblem: s.emblem,
-      accent: s.accent,
-      vis: "private",
-      seedId: s.id,
-      goal: s.goalText,
-      type: s.type,
-      target: s.target || 0,
-      current: 0,
-      unit: s.unit || "",
-      stake: s.reward || 0,
-      date: "",
-      progress: 0,
-      members: [] // ПРИЗ за финиш = ставка (unlock-only, без списания)
-    };
-    var nt = app?.addTeam(teamObj); // круг → сразу в «Целях» (офлайн-ок)
-    var practiceHabit = {
-      name: s.practice.name,
-      emoji: s.practice.emoji,
-      color: null,
-      days: [1, 1, 1, 1, 1, 1, 1],
-      goalPerDay: 1,
-      reminder: {
-        on: false,
-        time: "09:00"
-      },
-      log: {}
-    };
-    var opened = false;
-    try {
-      if (nt && window.bosCloud && window.bosCloud.enabled()) {
-        window.bosCloud.createTeam({
-          name: s.name,
-          emblem: s.emblem,
-          vis: "private",
-          goalKind: s.goalText,
-          goalTarget: s.target || 0,
-          goal: {
-            type: s.type,
-            target: s.target || 0,
-            unit: s.unit || "",
-            title: s.name,
-            stake: s.reward || 0
-          }
-        }).then(async row => {
-          if (row && row.id) {
-            if (app.updateTeam) app.updateTeam(nt._id, {
-              cloudId: row.id
-            });
-            var th = null;
-            try {
-              th = await window.bosCloud.addTeamHabit(row.id, {
-                name: s.practice.name,
-                emoji: s.practice.emoji,
-                isMain: true
-              });
-            } catch (e) {}
-            app?.addHabit({
-              ...practiceHabit,
-              teamId: row.id,
-              teamHabitId: th && th.id
-            });
-          } else {
-            app?.addHabit(practiceHabit);
-          }
-          navigate("team-detail", {
-            team: {
-              ...nt,
-              cloudId: row && row.id
-            }
-          });
-        }).catch(() => {
-          app?.addHabit(practiceHabit);
-          navigate("team-detail", {
-            team: nt
-          });
-        });
-        opened = true;
-      }
-    } catch (e) {}
-    if (!opened) {
-      app?.addHabit(practiceHabit);
-      navigate("team-detail", {
-        team: nt
-      });
-    } // офлайн/превью
-  };
+  var start = s => bosStartSeedCircleLive(app, navigate, s);
   // Honest XP framing: the practice habit a challenge plants earns the SAME +10 XP per day as
   // any habit (bosTotalXPLive). So «давать экспу за челлендж» = surface that real reward — no
   // fabricated bonus. Gold pill = the app's reward/XP language (level badge, achievement XP).
@@ -7264,7 +7266,8 @@ function bosMarkPartnerRedeemed(id) {
 function PartnersShowcaseLive({
   app,
   navigate,
-  from = "community"
+  from = "community",
+  onAll
 }) {
   var isDarkP = app?.themeOverride === "dark"; // тёмная: глубокие тона карточек (David)
   var [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
@@ -7306,7 +7309,29 @@ function PartnersShowcaseLive({
       textTransform: "uppercase",
       color: "var(--text-4)"
     }
-  }, "\uD83C\uDF81 \u041F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C XP"), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83C\uDF81 \u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B \xB7 \u043F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C XP"), onAll ?
+  /*#__PURE__*/
+  /* Обзор «Все» (v526): правый край = «Все ›» на полный раздел-чип. */
+  React.createElement("button", {
+    onClick: onAll,
+    className: "tap",
+    "data-haptic": "selection",
+    style: {
+      border: 0,
+      background: "transparent",
+      padding: 0,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 1,
+      cursor: "pointer"
+    }
+  }, "\u0412\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 13,
+    color: "var(--text-4)"
+  })) : /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       if (window.tgHaptic) {
         try {
@@ -7987,6 +8012,7 @@ var CIRCLE_STARTERS = [{
   unit: "глав",
   hook: "Читаем и обсуждаем вместе"
 }];
+/* v526: витрина больше НЕ в ленте — пресеты едят плитки мозаики. */
 function CircleStartersShowcaseLive({
   navigate
 }) {
@@ -8394,6 +8420,194 @@ function bosMarkKnockedCircle(id) {
     window.dispatchEvent(new Event("bos:circlesKnocked"));
   } catch (e) {}
   return n;
+}
+
+/* ── ЕДИНЫЙ ЯЗЫК КАРТОЧЕК «Найти» (v526, по одобренному макету) ────────────────
+   Одна плитка круга для ВСЕХ видов (живой / челлендж / пресет): стекло-плитка эмодзи →
+   название → живая мета. Вместо трёх разных горизонтальных лент — вертикальная мозаика
+   2 колонки, как на макете. Партнёры сознательно ДРУГИЕ (цветная «карточка-впечатление»). */
+function CircleTileLive({
+  emoji,
+  title,
+  meta,
+  joined,
+  onTap
+}) {
+  var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onTap,
+    className: "tap",
+    style: {
+      background: "var(--card)",
+      border: 0,
+      borderRadius: 18,
+      padding: 13,
+      textAlign: "left",
+      color: "var(--text)",
+      boxShadow: "var(--card-shadow)",
+      display: "flex",
+      flexDirection: "column",
+      gap: 9,
+      minWidth: 0,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))",
+      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20
+    }
+  }, typeof bosIcon === "function" ? bosIcon(emoji, 20, null) : emoji), /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 14,
+      fontWeight: 600,
+      letterSpacing: "-0.2px",
+      lineHeight: 1.25
+    }
+  }, title), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: joined ? "#34C759" : "var(--text-4)",
+      marginTop: 3,
+      lineHeight: 1.35
+    }
+  }, joined ? "Ты в деле ✓" : meta)));
+}
+/* Мозаика плиток кругов: 2 колонки, опциональный кикер с «Все ›». */
+function CirclesMosaicLive({
+  kicker,
+  onAll,
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", null, kicker && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      padding: "4px 4px 9px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)"
+    }
+  }, kicker), onAll && /*#__PURE__*/React.createElement("button", {
+    onClick: onAll,
+    className: "tap",
+    "data-haptic": "selection",
+    style: {
+      border: 0,
+      background: "transparent",
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 1,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      padding: 0
+    }
+  }, "\u0412\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 13,
+    color: "var(--text-4)"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10
+    }
+  }, children));
+}
+/* Компакт-превью «Люди» для обзора «Все» (по макету): размытые строки-ОБЕЩАНИЯ (описывают
+   будущее «знакомство по делам», НЕ выдуманных людей) + пилюля-замок. Тап → чип «Люди». */
+function NetworkPeekLive({
+  unlocked,
+  onOpen
+}) {
+  var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  var rows = [["🤝", "Похожая структура привычек"], ["🔥", "Такой же ритм — спорт по утрам"]];
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onOpen,
+    className: "tap",
+    style: {
+      position: "relative",
+      width: "100%",
+      background: "var(--card)",
+      border: 0,
+      borderRadius: 18,
+      padding: 13,
+      boxShadow: "var(--card-shadow)",
+      textAlign: "left",
+      overflow: "hidden",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      filter: "blur(3px)",
+      opacity: 0.5,
+      pointerEvents: "none"
+    }
+  }, rows.map(([e, t], i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginTop: i ? 9 : 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: "50%",
+      background: "var(--card-2)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 14,
+      flexShrink: 0
+    }
+  }, e), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-3)"
+    }
+  }, t)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 12.5,
+      fontWeight: 600,
+      padding: "8px 15px",
+      borderRadius: 999,
+      color: "var(--text)",
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {
+        background: "var(--card-2)"
+      })
+    }
+  }, "\uD83D\uDD12 ", unlocked ? "Люди — скоро здесь" : "Люди — откроются с 10 уровня")));
 }
 
 /* ШТОРКА живого круга — «заглянуть внутрь»: орбита (привычки круга + лица на кольцах — тот же

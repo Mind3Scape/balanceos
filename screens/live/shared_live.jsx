@@ -2921,37 +2921,42 @@ const SEED_CIRCLES = [
   { id: "seed-meditate", name: "Тихий час",      emblem: "🧘", goalText: "30 дней", target: 30, unit: "дней", type: "streak",     reward: 300, hook: "5 минут тишины каждый день — месяц",     practice: { name: "Медитация",      emoji: "🧘" } },
   { id: "seed-read",     name: "Книжный клуб",   emblem: "📚", goalText: "месяц",   target: 30, unit: "дней", type: "collective", reward: 300, hook: "По главе в день — за месяц целая книга", practice: { name: "Чтение",         emoji: "📖" } },
 ];
+/* Старт челленджа-круга — ОБЩАЯ логика (v526: её зовут и плитки новой мозаики «Найти»,
+   и прежняя горизонтальная витрина): круг в «Цели» + практика в «Привычки» + облако. */
+function bosStartSeedCircleLive(app, navigate, s) {
+  if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+  const existing = (app?.teams || []).find((t) => t.seedId === s.id);
+  if (existing) { navigate("team-detail", { team: existing }); return; } // уже начал → просто в круг
+  const teamObj = {
+    name: s.name, emblem: s.emblem, accent: s.accent, vis: "private", seedId: s.id,
+    goal: s.goalText, type: s.type, target: s.target || 0, current: 0, unit: s.unit || "",
+    stake: s.reward || 0, date: "", progress: 0, members: [],   // ПРИЗ за финиш = ставка (unlock-only, без списания)
+  };
+  const nt = app?.addTeam(teamObj);                    // круг → сразу в «Целях» (офлайн-ок)
+  const practiceHabit = { name: s.practice.name, emoji: s.practice.emoji, color: null, days: [1, 1, 1, 1, 1, 1, 1], goalPerDay: 1, reminder: { on: false } };
+  let opened = false;
+  try {
+    if (nt && window.bosCloud && window.bosCloud.enabled()) {
+      window.bosCloud.createTeam({ name: s.name, emblem: s.emblem, vis: "private", goalKind: s.goalText, goalTarget: s.target || 0, goal: { type: s.type, target: s.target || 0, unit: s.unit || "", stake: s.reward || 0 } })
+        .then(async (row) => {
+          if (row && row.id) {
+            if (app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id });
+            let th = null; try { th = await window.bosCloud.addTeamHabit(row.id, { name: s.practice.name, emoji: s.practice.emoji, isMain: true }); } catch (e) {}
+            app?.addHabit({ ...practiceHabit, teamId: row.id, teamHabitId: th && th.id });
+          } else { app?.addHabit(practiceHabit); }
+          navigate("team-detail", { team: { ...nt, cloudId: row && row.id } });
+        })
+        .catch(() => { app?.addHabit(practiceHabit); navigate("team-detail", { team: nt }); });
+      opened = true;
+    }
+  } catch (e) {}
+  if (!opened) { app?.addHabit(practiceHabit); navigate("team-detail", { team: nt }); } // офлайн/превью
+}
+
+/* v526: витрина больше НЕ в ленте «Найти» (её место заняла мозаика CircleTileLive с теми же данными и bosStartSeedCircleLive); компонент оставлен на случай возврата. */
 function SeedCirclesShowcaseLive({ app, navigate }) {
   const isDark = app?.themeOverride === "dark";
-  const start = (s) => {
-    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
-    const existing = (app?.teams || []).find((t) => t.seedId === s.id);
-    if (existing) { navigate("team-detail", { team: existing }); return; } // уже начал → просто в круг
-    const teamObj = {
-      name: s.name, emblem: s.emblem, accent: s.accent, vis: "private", seedId: s.id,
-      goal: s.goalText, type: s.type, target: s.target || 0, current: 0, unit: s.unit || "",
-      stake: s.reward || 0, date: "", progress: 0, members: [],   // ПРИЗ за финиш = ставка (unlock-only, без списания)
-    };
-    const nt = app?.addTeam(teamObj);                    // круг → сразу в «Целях» (офлайн-ок)
-    const practiceHabit = { name: s.practice.name, emoji: s.practice.emoji, color: null, days: [1, 1, 1, 1, 1, 1, 1], goalPerDay: 1, reminder: { on: false, time: "09:00" }, log: {} };
-    let opened = false;
-    try {
-      if (nt && window.bosCloud && window.bosCloud.enabled()) {
-        window.bosCloud.createTeam({ name: s.name, emblem: s.emblem, vis: "private", goalKind: s.goalText, goalTarget: s.target || 0, goal: { type: s.type, target: s.target || 0, unit: s.unit || "", title: s.name, stake: s.reward || 0 } })
-          .then(async (row) => {
-            if (row && row.id) {
-              if (app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id });
-              let th = null; try { th = await window.bosCloud.addTeamHabit(row.id, { name: s.practice.name, emoji: s.practice.emoji, isMain: true }); } catch (e) {}
-              app?.addHabit({ ...practiceHabit, teamId: row.id, teamHabitId: th && th.id });
-            } else { app?.addHabit(practiceHabit); }
-            navigate("team-detail", { team: { ...nt, cloudId: row && row.id } });
-          })
-          .catch(() => { app?.addHabit(practiceHabit); navigate("team-detail", { team: nt }); });
-        opened = true;
-      }
-    } catch (e) {}
-    if (!opened) { app?.addHabit(practiceHabit); navigate("team-detail", { team: nt }); } // офлайн/превью
-  };
+  const start = (s) => bosStartSeedCircleLive(app, navigate, s);
   // Honest XP framing: the practice habit a challenge plants earns the SAME +10 XP per day as
   // any habit (bosTotalXPLive). So «давать экспу за челлендж» = surface that real reward — no
   // fabricated bonus. Gold pill = the app's reward/XP language (level badge, achievement XP).
@@ -3032,7 +3037,7 @@ function bosMarkPartnerRedeemed(id) { var n = Object.assign({}, bosLoadRedeemedP
 
 // Горизонтальная лента партнёров про ТРАТУ XP. Цветные карточки-впечатления (см. ниже). Тап по карточке →
 // нативная страница партнёра PartnerDetailLive (описание, адрес, даты, кнопка «Получить»).
-function PartnersShowcaseLive({ app, navigate, from = "community" }) {
+function PartnersShowcaseLive({ app, navigate, from = "community", onAll }) {
   const isDarkP = app?.themeOverride === "dark"; // тёмная: глубокие тона карточек (David)
   const [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
   React.useEffect(function () {
@@ -3050,8 +3055,13 @@ function PartnersShowcaseLive({ app, navigate, from = "community" }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🎁 Потратить XP</span>
-        <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partners-all", { from: from }); }} className="tap" style={{ border: 0, background: "transparent", padding: 0, fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center", gap: 3, cursor: "pointer" }}>живое от партнёров <I.ChevronRight size={12} strokeWidth={2.4} /></button>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🎁 Партнёры · потратить XP</span>
+        {onAll ? (
+          /* Обзор «Все» (v526): правый край = «Все ›» на полный раздел-чип. */
+          <button onClick={onAll} className="tap" data-haptic="selection" style={{ border: 0, background: "transparent", padding: 0, fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center", gap: 1, cursor: "pointer" }}>Все <I.ChevronRight size={13} color="var(--text-4)" /></button>
+        ) : (
+          <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partners-all", { from: from }); }} className="tap" style={{ border: 0, background: "transparent", padding: 0, fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center", gap: 3, cursor: "pointer" }}>живое от партнёров <I.ChevronRight size={12} strokeWidth={2.4} /></button>
+        )}
       </div>
       {/* padding-bottom 18 — иначе overflow-y (авто из-за overflow-x) СРЕЗАЕТ тень карточек в серую
           полосу «внизу обрезается» (David). Тень мягкая, чтобы не мутить фон. */}
@@ -3242,6 +3252,7 @@ const CIRCLE_STARTERS = [
   { i: "🧘", t: "Осознанность",       goalType: "collective", goalTitle: "Минуты медитации",  target: 1000, unit: "мин",   hook: "Копим минуты тишины на всех" },
   { i: "📖", t: "Книжный клуб",       goalType: "collective", goalTitle: "Прочитано глав",    target: 100,  unit: "глав",  hook: "Читаем и обсуждаем вместе" },
 ];
+/* v526: витрина больше НЕ в ленте — пресеты едят плитки мозаики. */
 function CircleStartersShowcaseLive({ navigate }) {
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
@@ -3354,6 +3365,64 @@ const LIVING_CIRCLES = [
 // вместе с настоящими публичными кругами; пока это витрина-пример.
 function bosLoadKnockedCircles() { try { return JSON.parse(localStorage.getItem("bos:knockedCircles") || "{}") || {}; } catch (e) { return {}; } }
 function bosMarkKnockedCircle(id) { var n = Object.assign({}, bosLoadKnockedCircles(), { [id]: true }); try { localStorage.setItem("bos:knockedCircles", JSON.stringify(n)); } catch (e) {} try { window.dispatchEvent(new Event("bos:circlesKnocked")); } catch (e) {} return n; }
+
+/* ── ЕДИНЫЙ ЯЗЫК КАРТОЧЕК «Найти» (v526, по одобренному макету) ────────────────
+   Одна плитка круга для ВСЕХ видов (живой / челлендж / пресет): стекло-плитка эмодзи →
+   название → живая мета. Вместо трёх разных горизонтальных лент — вертикальная мозаика
+   2 колонки, как на макете. Партнёры сознательно ДРУГИЕ (цветная «карточка-впечатление»). */
+function CircleTileLive({ emoji, title, meta, joined, onTap }) {
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  return (
+    <button onClick={onTap} className="tap" style={{ background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", gap: 9, minWidth: 0, cursor: "pointer" }}>
+      <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 20 }}>{typeof bosIcon === "function" ? bosIcon(emoji, 20, null) : emoji}</span>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1.25 }}>{title}</span>
+        <span style={{ display: "block", fontSize: 11.5, color: joined ? "#34C759" : "var(--text-4)", marginTop: 3, lineHeight: 1.35 }}>{joined ? "Ты в деле ✓" : meta}</span>
+      </span>
+    </button>
+  );
+}
+/* Мозаика плиток кругов: 2 колонки, опциональный кикер с «Все ›». */
+function CirclesMosaicLive({ kicker, onAll, children }) {
+  return (
+    <div>
+      {kicker && (
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 9px" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>{kicker}</span>
+          {onAll && (
+            <button onClick={onAll} className="tap" data-haptic="selection" style={{ border: 0, background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 1, fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", padding: 0 }}>
+              Все <I.ChevronRight size={13} color="var(--text-4)" />
+            </button>
+          )}
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{children}</div>
+    </div>
+  );
+}
+/* Компакт-превью «Люди» для обзора «Все» (по макету): размытые строки-ОБЕЩАНИЯ (описывают
+   будущее «знакомство по делам», НЕ выдуманных людей) + пилюля-замок. Тап → чип «Люди». */
+function NetworkPeekLive({ unlocked, onOpen }) {
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  const rows = [["🤝", "Похожая структура привычек"], ["🔥", "Такой же ритм — спорт по утрам"]];
+  return (
+    <button onClick={onOpen} className="tap" style={{ position: "relative", width: "100%", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, boxShadow: "var(--card-shadow)", textAlign: "left", overflow: "hidden", cursor: "pointer" }}>
+      <div aria-hidden style={{ filter: "blur(3px)", opacity: 0.5, pointerEvents: "none" }}>
+        {rows.map(([e, t], i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: i ? 9 : 0 }}>
+            <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{e}</span>
+            <span style={{ fontSize: 13, color: "var(--text-3)" }}>{t}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, padding: "8px 15px", borderRadius: 999, color: "var(--text)", ...((typeof bosChipGlass === "function") ? bosChipGlass(isDark) : { background: "var(--card-2)" }) }}>
+          🔒 {unlocked ? "Люди — скоро здесь" : "Люди — откроются с 10 уровня"}
+        </span>
+      </div>
+    </button>
+  );
+}
 
 /* ШТОРКА живого круга — «заглянуть внутрь»: орбита (привычки круга + лица на кольцах — тот же
    GoalOrbitMini, что на карточках целей), о чём круг, чипы привычек и «Постучаться в круг».
