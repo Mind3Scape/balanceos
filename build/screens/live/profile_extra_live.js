@@ -898,73 +898,319 @@ function SettingsLive() {
     }
   }, "\u0421\u0434\u0435\u043B\u0430\u043D\u043E \u0441 \uD83D\uDC9B"));
 }
+
+/* Лента уведомлений — ПРЕЗЕНТАЦИЯ (секция Б): «Требует решения» (заявки, Принять/✕),
+   «Новое» (тебя приняли / вступили в круг / пришли по твоей ссылке), «Сообщения»
+   (непрочитанные чаты). Отделена от загрузки, чтобы рендериться и с готовыми данными. */
+function NotifFeedLive({
+  data,
+  busy,
+  onApprove,
+  onReject,
+  onOpenTeam,
+  onOpenChat,
+  onOpenAccepted,
+  onOpenFriends
+}) {
+  var secHead = t => /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)",
+      padding: "8px 4px 0"
+    }
+  }, t);
+  var face = (u, size) => typeof BuddyFaceLive === "function" ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    avatar: u && u.avatar || "default",
+    name: u && u.name || "",
+    size: size || 40
+  })) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 24,
+      flexShrink: 0
+    }
+  }, "\uD83D\uDE42");
+  var emblem = e => /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      flexShrink: 0,
+      background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20
+    }
+  }, typeof bosIcon === "function" ? bosIcon(e || "✨", 20, null) : e || "✨");
+  var row = (key, left, title, sub, right, onClick) => /*#__PURE__*/React.createElement(SysCard, {
+    key: key,
+    onClick: onClick,
+    style: {
+      padding: 13,
+      display: "flex",
+      gap: 12,
+      alignItems: "center",
+      cursor: onClick ? "pointer" : "default"
+    }
+  }, left, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14.5,
+      color: "var(--text)",
+      lineHeight: 1.3
+    }
+  }, title), sub && /*#__PURE__*/React.createElement("div", {
+    className: "bos-sys-text-3",
+    style: {
+      fontSize: 12.5,
+      marginTop: 2,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, sub)), right);
+  var chatWord = n => n === 1 ? "новое сообщение" : n < 5 ? "новых сообщения" : "новых сообщений";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, data.requests.length > 0 && secHead("Требует решения"), data.requests.map(r => {
+    var k = r.team.cloudId + ":" + r.user.id;
+    var st = busy[k];
+    return row(k, face(r.user), (r.user.name || "Гость") + " хочет в «" + r.team.name + "»", st === "done" ? "Принят — уже в круге ✓" : st === "rejected" ? "Заявка отклонена" : "Заявка на вступление", st === "done" || st === "rejected" ? null : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        flexShrink: 0,
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        onApprove(r);
+      },
+      disabled: st === "busy",
+      className: "tap",
+      "data-haptic": "selection",
+      style: {
+        border: 0,
+        cursor: "pointer",
+        borderRadius: 999,
+        padding: "9px 15px",
+        fontSize: 13,
+        fontWeight: 600,
+        background: "var(--cta, #0a0a0a)",
+        color: "var(--cta-ink, #fff)",
+        opacity: st === "busy" ? 0.5 : 1
+      }
+    }, "\u041F\u0440\u0438\u043D\u044F\u0442\u044C"), /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        onReject(r);
+      },
+      disabled: st === "busy",
+      className: "tap",
+      "aria-label": "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C",
+      style: {
+        border: 0,
+        cursor: "pointer",
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: "var(--card-2)",
+        color: "var(--text-3)",
+        display: "grid",
+        placeItems: "center",
+        opacity: st === "busy" ? 0.5 : 1
+      }
+    }, /*#__PURE__*/React.createElement(I.X, {
+      size: 15
+    }))), null);
+  }), (data.accepted.length > 0 || data.joined.length > 0 || data.invited.length > 0) && secHead("Новое"), data.accepted.map(a => row("acc-" + a.row.id, emblem(a.row.emblem), "Тебя приняли в «" + a.row.name + "»", "Открыть круг", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-3",
+    style: {
+      flexShrink: 0
+    }
+  }), () => onOpenAccepted(a.row))), data.joined.map((j, i) => row("join-" + i, face(j.user), (j.user.name || "Гость") + " теперь в «" + j.team.name + "»", "Вступил по ссылке-приглашению", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-3",
+    style: {
+      flexShrink: 0
+    }
+  }), () => onOpenTeam(j.team))), data.invited.map((p, i) => row("inv-" + i, face({
+    name: p.user.username,
+    avatar: p.user.avatar
+  }), (p.user.username || "Гость") + " пришёл по твоему приглашению", "Теперь на твоей орбите · +150 XP", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-3",
+    style: {
+      flexShrink: 0
+    }
+  }), onOpenFriends)), data.chats.length > 0 && secHead("Сообщения"), data.chats.map((c, i) => row("chat-" + i, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 24,
+      flexShrink: 0
+    }
+  }, "\uD83D\uDCAC"), c.count + " " + chatWord(c.count) + " в «" + c.team.name + "»", c.last && c.last.text || "📷 Фото", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-3",
+    style: {
+      flexShrink: 0
+    }
+  }), () => onOpenChat(c.team))));
+}
 function NotificationsLive() {
   var {
     navigate,
     params
   } = useNav();
   var app = typeof useApp === "function" ? useApp() : null;
-  // LIVE: real notifications computed from the cloud — unread team-chat messages.
-  // Nothing scripted ever reaches a real user, so there is no sample list.
-  var [liveItems, setLiveItems] = React.useState(null); // null = still loading (skeleton); [] = loaded-empty
+  // LIVE (секция Б): события из облака одним сборщиком bosNotifCollectLive (shared_live) —
+  // заявки/вступившие/рефералы/«тебя приняли»/чаты. Показ = прочитано для «Новое»
+  // (bosNotifAbsorbLive гасит точку); заявки живут до решения, чаты — до открытия чата.
+  var [data, setData] = React.useState(null); // null = загрузка (скелет)
+  var [busy, setBusy] = React.useState({}); // "<teamId>:<userId>" → busy|done|rejected
+  var [cleared, setCleared] = React.useState(false); // «Очистить» прячет «Новое»+«Сообщения»
   React.useEffect(() => {
-    if (!(window.bosCloud && window.bosCloud.enabled())) {
-      setLiveItems([]);
+    var on = true;
+    var emptyD = {
+      requests: [],
+      joined: [],
+      invited: [],
+      accepted: [],
+      chats: [],
+      absorb: null
+    };
+    if (!(window.bosCloud && window.bosCloud.enabled()) || typeof bosNotifCollectLive !== "function") {
+      setData(emptyD);
       return;
     }
-    var teams = (app?.teams || []).filter(t => t.cloudId);
-    if (!teams.length) {
-      setLiveItems([]);
-      return;
-    } // no cloud teams → no notifications, skip the skeleton
-    var on = true;
-    (async () => {
-      try {
-        var me = await window.bosCloud.uid();
-        var out = [];
-        var _loop2 = async function () {
-          var rows = await window.bosCloud.loadMessages(t.cloudId);
-          if (!Array.isArray(rows) || !rows.length) return 1; // continue
-          var lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
-          var unread = rows.filter(r => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead);
-          if (unread.length) {
-            var last = unread[unread.length - 1];
-            var word = unread.length === 1 ? "новое сообщение" : unread.length < 5 ? "новых сообщения" : "новых сообщений";
-            out.push({
-              i: "💬",
-              t: unread.length + " " + word + " в «" + t.name + "»",
-              b: last.text || "📷 Фото",
-              w: "сейчас",
-              new: true,
-              goChat: t
-            });
-          }
-        };
-        for (var t of teams) {
-          if (await _loop2()) continue;
-        }
-        if (on) setLiveItems(out);
-      } catch (e) {
-        if (on) setLiveItems([]);
-      }
-    })();
+    bosNotifCollectLive(app).then(d => {
+      if (!on) return;
+      setData(d);
+      if (typeof bosNotifAbsorbLive === "function") bosNotifAbsorbLive(d.absorb);
+    }).catch(() => {
+      if (on) setData(emptyD);
+    });
     return () => {
       on = false;
     };
   }, []);
-  var loading = liveItems === null;
-  var shown = liveItems || [];
-  var clearAll = () => setLiveItems([]);
-  var tap = (n, idx) => {
-    if (n.goChat) {
-      try {
-        localStorage.setItem("bos:chatread:" + n.goChat.cloudId, String(Date.now()));
-      } catch (e) {}
-      navigate("team-chat", {
-        team: n.goChat
-      });
-    } else if (n.go) navigate(n.go);
+  var setB = (k, v) => setBusy(b => Object.assign({}, b, {
+    [k]: v
+  }));
+  var approve = async r => {
+    var k = r.team.cloudId + ":" + r.user.id;
+    setB(k, "busy");
+    var ok = await window.bosCloud.approveMember(r.team.cloudId, r.user.id).catch(() => false);
+    if (ok) {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("success");
+        } catch (e) {}
+      }
+      setB(k, "done");
+      // Принятый не должен тут же всплыть «вступившим»: пометим его виденным сразу.
+      if (data && data.absorb && typeof bosNotifAbsorbLive === "function") {
+        var m = (data.absorb.members[r.team.cloudId] || []).concat([r.user.id]);
+        bosNotifAbsorbLive({
+          inv: data.absorb.inv,
+          members: Object.assign({}, data.absorb.members, {
+            [r.team.cloudId]: m
+          })
+        });
+      }
+    } else setB(k, null);
   };
+  var reject = async r => {
+    var k = r.team.cloudId + ":" + r.user.id;
+    setB(k, "busy");
+    var ok = await window.bosCloud.rejectMember(r.team.cloudId, r.user.id).catch(() => false);
+    if (ok) {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("light");
+        } catch (e) {}
+      }
+      setB(k, "rejected");
+    } else setB(k, null);
+  };
+  var openChat = t => {
+    try {
+      localStorage.setItem("bos:chatread:" + t.cloudId, String(Date.now()));
+    } catch (e) {}
+    navigate("team-chat", {
+      team: t,
+      from: "notifications"
+    });
+  };
+  var openTeam = t => navigate("team-detail", {
+    team: t,
+    from: "notifications"
+  });
+  var openFriends = () => navigate("friends", {
+    from: "notifications"
+  });
+  var openAccepted = row => {
+    // Круг ещё не в моих «Целях» (вступление подтвердил владелец, не я) → добавим локально
+    // тем же форматом, что joinViaLink в shell, снимем «стук» и откроем комнату.
+    var lt = {
+      _id: "cloud-" + row.id,
+      cloudId: row.id,
+      joined: true,
+      name: row.name,
+      emblem: row.emblem || "✨",
+      accent: "#dbe9ff",
+      vis: row.vis,
+      goal: "",
+      members: [],
+      target: row.goal_target || 0,
+      current: 0,
+      progress: 0
+    };
+    var team = (app?.teams || []).find(t => t.cloudId === row.id);
+    if (!team && app && typeof app.addTeam === "function") team = app.addTeam(lt) || lt;
+    if (typeof bosNotifKnockResolved === "function") bosNotifKnockResolved(row.id);
+    navigate("team-detail", {
+      team: team || lt,
+      from: "notifications"
+    });
+  };
+  var clearAll = () => {
+    // «Новое» уже поглощено при показе; дочитаем чаты и спрячем всё, кроме заявок.
+    if (data) data.chats.forEach(c => {
+      try {
+        localStorage.setItem("bos:chatread:" + c.team.cloudId, String(Date.now()));
+      } catch (e) {}
+    });
+    try {
+      window.dispatchEvent(new Event("bos:notifSeenChanged"));
+    } catch (e) {}
+    setCleared(true);
+  };
+  var loading = data === null;
+  var shown = loading ? null : cleared ? Object.assign({}, data, {
+    joined: [],
+    invited: [],
+    accepted: [],
+    chats: []
+  }) : data;
+  var isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !shown.chats.length;
+  var canClear = shown && (shown.joined.length || shown.invited.length || shown.accepted.length || shown.chats.length) ? true : false;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -973,7 +1219,7 @@ function NotificationsLive() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F",
     onBack: () => navigate(params?.from || "profile"),
-    right: shown.length > 0 ? /*#__PURE__*/React.createElement("button", {
+    right: canClear ? /*#__PURE__*/React.createElement("button", {
       onClick: clearAll,
       className: "tap bos-sys-text-2",
       style: {
@@ -1027,7 +1273,7 @@ function NotificationsLive() {
       borderRadius: 6,
       marginTop: 7
     }
-  }))))) : shown.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }))))) : isEmpty ? /*#__PURE__*/React.createElement("div", {
     className: "bos-sys-text-3",
     style: {
       textAlign: "center",
@@ -1039,67 +1285,27 @@ function NotificationsLive() {
       fontSize: 34,
       marginBottom: 10
     }
-  }, "\uD83D\uDD14"), "\u041D\u043E\u0432\u044B\u0445 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u0439 \u043D\u0435\u0442") : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 10
-    }
-  }, shown.map((n, i) => /*#__PURE__*/React.createElement(SysCard, {
-    key: i,
-    onClick: () => tap(n, i),
-    style: {
-      padding: 14,
-      display: "flex",
-      gap: 12,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 26
-    }
-  }, n.i), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, "\uD83D\uDD14"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontWeight: 600,
-      fontSize: 15,
-      color: "var(--text)"
+      color: "var(--text-2)",
+      fontSize: 15
     }
-  }, n.t), n.new && /*#__PURE__*/React.createElement("span", {
+  }, "\u041F\u043E\u043A\u0430 \u0442\u0438\u0445\u043E"), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 6,
-      height: 6,
-      borderRadius: "50%",
-      background: "#FEDE34"
+      marginTop: 6,
+      lineHeight: 1.5
     }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-2",
-    style: {
-      fontSize: 13,
-      marginTop: 2
-    }
-  }, n.b), /*#__PURE__*/React.createElement("div", {
-    className: "bos-sys-text-3",
-    style: {
-      fontSize: 11,
-      marginTop: 6
-    }
-  }, n.w)), n.go && /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    className: "bos-sys-text-3",
-    style: {
-      alignSelf: "center"
-    }
-  })))));
+  }, "\u0417\u0434\u0435\u0441\u044C \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u0437\u0430\u044F\u0432\u043A\u0438 \u0432 \u0442\u0432\u043E\u0438 \u043A\u0440\u0443\u0433\u0438,", /*#__PURE__*/React.createElement("br", null), "\u043D\u043E\u0432\u044B\u0435 \u043B\u044E\u0434\u0438 \u0438 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F.")) : /*#__PURE__*/React.createElement(NotifFeedLive, {
+    data: shown,
+    busy: busy,
+    onApprove: approve,
+    onReject: reject,
+    onOpenTeam: openTeam,
+    onOpenChat: openChat,
+    onOpenAccepted: openAccepted,
+    onOpenFriends: openFriends
+  }));
 }
 function HistoryLive() {
   var {

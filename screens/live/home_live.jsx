@@ -125,32 +125,23 @@ function HomeLive() {
       ? "Ещё " + (_nextInviteMile.n - _invited) + " до +" + _nextInviteMile.b + " XP бонусом 🔥"
       : "+150 XP за каждого нового друга";
 
-  // Bell red dot — only light it when there are REAL unread team-chat messages —
-  // same signal NotificationsScreen uses (loadMessages per cloud team vs. the
-  // per-team "bos:chatread:" timestamp). If the cloud is off or nothing's unread,
-  // the dot stays hidden (no fake alert).
+  // Bell red dot — REAL events only (секция Б): заявки в мои круги, новые участники,
+  // пришедшие по моей ссылке, «тебя приняли», непрочитанные чаты. Один общий сборщик
+  // bosNotifHasFreshLive (shared_live, кэш 10 мин); погас/зажёгся — по событию
+  // bos:notifSeenChanged из шторки уведомлений. Облако выключено → точки нет.
   const [hasUnread, setHasUnread] = React.useState(false);
+  const [notifTick, setNotifTick] = React.useState(0);
   React.useEffect(() => {
-    if (!(window.bosCloud && window.bosCloud.enabled())) { setHasUnread(false); return; }
+    const f = () => setNotifTick((t) => t + 1);
+    window.addEventListener("bos:notifSeenChanged", f);
+    return () => window.removeEventListener("bos:notifSeenChanged", f);
+  }, []);
+  React.useEffect(() => {
+    if (!(window.bosCloud && window.bosCloud.enabled()) || typeof bosNotifHasFreshLive !== "function") { setHasUnread(false); return; }
     let on = true;
-    (async () => {
-      try {
-        const me = await window.bosCloud.uid();
-        const cloudTeams = (app?.teams || []).filter((t) => t.cloudId);
-        for (const t of cloudTeams) {
-          const rows = await window.bosCloud.loadMessages(t.cloudId);
-          if (!Array.isArray(rows) || !rows.length) continue;
-          const lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
-          if (rows.some((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead)) {
-            if (on) setHasUnread(true);
-            return;
-          }
-        }
-        if (on) setHasUnread(false);
-      } catch (e) { if (on) setHasUnread(false); }
-    })();
+    bosNotifHasFreshLive(app).then((v) => { if (on) setHasUnread(!!v); }).catch(() => { if (on) setHasUnread(false); });
     return () => { on = false; };
-  }, [teams]);
+  }, [teams, notifTick]);
   const showBellDot = hasUnread;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,

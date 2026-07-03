@@ -962,6 +962,130 @@ function HabitInviteBannerLive({ amount = 75, habit }) {
   );
 }
 
+/* ── УВЕДОМЛЕНИЯ (секция Б плана) ─────────────────────────────────────────────
+   События собираются из УЖЕ читаемых облачных данных — никаких новых таблиц и SQL:
+   · заявки в мои круги (pendingRequests — только владельцу, с Принять/Отклонить),
+   · новые участники моих кругов (дифф ростера против «виденных»),
+   · пришедшие по моей реферальной ссылке (дифф invitedPeople),
+   · «тебя приняли» (мой стук bos:knockedCircles + я уже член → круг по teamById),
+   · непрочитанные сообщения чатов (прежний механизм bos:chatread).
+   Прочитанность живёт на телефоне: bos:notifseen:<uid> = { inv:[ids], members:{[teamId]:[ids]} }.
+   ПЕРВЫЙ взгляд поглощает текущее состояние БЕЗ событий (как ачивки — не спамим задним
+   числом). Заявки не «прочитываются» — требуют решения и живут до Принять/Отклонить. */
+function bosNotifSeenGet(uid) {
+  try { return JSON.parse(localStorage.getItem("bos:notifseen:" + (uid || "local")) || "{}") || {}; } catch (e) { return {}; }
+}
+function bosNotifSeenSet(uid, patch) {
+  try {
+    const cur = bosNotifSeenGet(uid);
+    localStorage.setItem("bos:notifseen:" + (uid || "local"), JSON.stringify(Object.assign(cur, patch)));
+  } catch (e) {}
+}
+/* Полный сбор для шторки. Возвращает { requests, joined, invited, accepted, chats, absorb };
+   absorb скармливается bosNotifAbsorbLive ПОСЛЕ показа (метит виденное, гасит точку). */
+async function bosNotifCollectLive(app) {
+  const out = { requests: [], joined: [], invited: [], accepted: [], chats: [], absorb: null };
+  if (!(window.bosCloud && window.bosCloud.enabled())) return out;
+  let me = null; try { me = await window.bosCloud.uid(); } catch (e) {}
+  const seen = bosNotifSeenGet(me);
+  const teams = (app?.teams || []).filter((t) => t.cloudId);
+  const absorb = { inv: [], members: {} };
+  await Promise.all([
+    // Заявки — только в круги, где я владелец (создатель, не joined).
+    ...teams.filter((t) => !t.joined).map(async (t) => {
+      try {
+        const reqs = await window.bosCloud.pendingRequests(t.cloudId);
+        (reqs || []).forEach((r) => out.requests.push({ team: t, user: r }));
+      } catch (e) {}
+    }),
+    // Новые участники: дифф свежего ростера против «виденных» id.
+    ...teams.map(async (t) => {
+      try {
+        const ms = await window.bosCloud.teamMembers(t.cloudId);
+        const real = (ms || []).filter((m) => m && m.role !== "pending");
+        const known = seen.members && seen.members[t.cloudId];
+        if (Array.isArray(known)) real.forEach((m) => { if (m.id !== me && known.indexOf(m.id) < 0) out.joined.push({ team: t, user: m }); });
+        absorb.members[t.cloudId] = real.map((m) => m.id);
+      } catch (e) {}
+    }),
+    // Пришедшие по моей ссылке в приложение.
+    (async () => {
+      try {
+        const inv = await window.bosCloud.invitedPeople();
+        const known = seen.inv;
+        if (Array.isArray(known)) (inv || []).forEach((p) => { if (known.indexOf(p.id) < 0) out.invited.push({ user: p }); });
+        absorb.inv = (inv || []).map((p) => p.id);
+      } catch (e) {}
+    })(),
+    // «Тебя приняли»: стучался (knockedCircles) и уже член → покажем круг.
+    (async () => {
+      let knocked = {}; try { knocked = JSON.parse(localStorage.getItem("bos:knockedCircles") || "{}") || {}; } catch (e) {}
+      const ids = Object.keys(knocked).filter((k) => knocked[k]);
+      const mineIds = {}; teams.forEach((t) => { mineIds[t.cloudId] = true; });
+      await Promise.all(ids.map(async (id) => {
+        if (mineIds[id]) { bosNotifKnockResolved(id); return; } // уже открыл круг сам
+        try {
+          const ms = await window.bosCloud.teamMembers(id);
+          const mine = (ms || []).find((m) => m && m.id === me);
+          if (mine && mine.role !== "pending") {
+            const row = window.bosCloud.teamById ? await window.bosCloud.teamById(id) : null;
+            if (row) out.accepted.push({ row: row });
+          }
+        } catch (e) {}
+      }));
+    })(),
+    // Непрочитанные чаты — прежний честный механизм.
+    ...teams.map(async (t) => {
+      try {
+        const rows = await window.bosCloud.loadMessages(t.cloudId);
+        if (!Array.isArray(rows) || !rows.length) return;
+        const lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
+        const unread = rows.filter((r) => r && r.user_id !== me && new Date(r.created_at).getTime() > lastRead);
+        if (unread.length) out.chats.push({ team: t, count: unread.length, last: unread[unread.length - 1] });
+      } catch (e) {}
+    }),
+  ]);
+  out.absorb = absorb;
+  return out;
+}
+/* Пометить показанное виденным (вступившие + рефералы; заявки и чаты живут по своим
+   правилам) и разбудить точку колокольчика. */
+function bosNotifAbsorbLive(absorb) {
+  if (!absorb) return;
+  let me = null; try { me = window.bosCloud && window.bosCloud.uidSync && window.bosCloud.uidSync(); } catch (e) {}
+  const cur = bosNotifSeenGet(me);
+  const members = Object.assign({}, cur.members || {}, absorb.members || {});
+  bosNotifSeenSet(me, { inv: absorb.inv || cur.inv || [], members: members });
+  try { localStorage.removeItem("bos:cache:notifdot:" + (me || "local")); } catch (e) {}
+  try { window.dispatchEvent(new Event("bos:notifSeenChanged")); } catch (e) {}
+}
+/* Разрешить «стук»: заявку приняли и человек открыл круг (или круг уже у него). */
+function bosNotifKnockResolved(teamId) {
+  try {
+    const k = JSON.parse(localStorage.getItem("bos:knockedCircles") || "{}") || {};
+    if (k[teamId]) { delete k[teamId]; localStorage.setItem("bos:knockedCircles", JSON.stringify(k)); window.dispatchEvent(new Event("bos:circlesKnocked")); }
+  } catch (e) {}
+}
+/* Точка колокольчика: тот же полный сбор, но с кэшем на 10 минут — главная не дёргает
+   облако каждый заход. Сброс кэша — по bos:notifSeenChanged (шторка показала/решила). */
+async function bosNotifHasFreshLive(app) {
+  if (!(window.bosCloud && window.bosCloud.enabled())) return false;
+  let me = null; try { me = window.bosCloud.uidSync && window.bosCloud.uidSync(); } catch (e) {}
+  const KEY = "bos:cache:notifdot:" + (me || "local");
+  try {
+    const c = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (c && Date.now() - c.at < 10 * 60 * 1000) return !!c.v;
+  } catch (e) {}
+  const d = await bosNotifCollectLive(app);
+  const has = !!(d.requests.length || d.joined.length || d.invited.length || d.accepted.length || d.chats.length);
+  try { localStorage.setItem(KEY, JSON.stringify({ v: has, at: Date.now() })); } catch (e) {}
+  // Первый взгляд: если «виденных» ещё нет вообще — тихо поглотим базу, чтобы у
+  // старожила не вспыхнула точка задним числом на всю историю.
+  const seen = bosNotifSeenGet(me);
+  if (!Array.isArray(seen.inv) && d.absorb) bosNotifAbsorbLive(d.absorb);
+  return has;
+}
+
 /* Welcome modal shown when you open an invite LINK and land in a shared habit / team — so the
    join is never silent (David: «человек не понимает, что его позвали»). Rendered at app root
    from app.pendingJoinWelcome (mirrors AchievementUnlock). Spring-in glass card. LIVE only. */

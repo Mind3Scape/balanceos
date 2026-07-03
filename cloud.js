@@ -460,6 +460,13 @@
       return (r.data || []).map(function (m) { return { id: m.user_id, role: m.role, name: (m.profiles && m.profiles.username) || "", avatar: (m.profiles && m.profiles.avatar) || "default" }; });
     } catch (e) { return []; }
   }
+  // One team by id (уведомление «тебя приняли»: постучался → одобрили → надо показать
+  // имя круга и дать открыть его; читается, когда ты уже член — RLS пропустит).
+  async function teamById(teamId) {
+    var c = client(); if (!c || !teamId) return null;
+    try { var r = await c.from("teams").select("id,name,emblem,vis,goal_target").eq("id", teamId).maybeSingle(); return r.data || null; }
+    catch (e) { return null; }
+  }
 
   // E: leave a team (any member). RPC-first (SECURITY DEFINER) with a direct-delete fallback.
   // An OWNER who wants out should use deleteTeam (leaving would orphan the team).
@@ -776,7 +783,7 @@
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,
     createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, searchTeams: searchTeams, activeToday: activeToday, joinTeam: joinTeam,
-    joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests,
+    joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
     teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
