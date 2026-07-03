@@ -1185,6 +1185,15 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   var cR = Math.round(size * 0.19);            // центр-диск (радиус)
   var r1 = size * 0.315, r2 = size * 0.455;    // радиусы колец (привычки / люди)
   var hbAll = (habits || []).filter(Boolean), ppAll = (people || []).filter(Boolean);
+  // «ГОНКА ОРБИТ» (мягкая версия идеи David «кто раньше пришёл — тот ближе к цели»):
+  // люди раскладываются по своим кольцам в порядке СЕГОДНЯШНЕГО вклада — лидер дня ближе
+  // к центру. Только порядок внутри людских колец: привычки остаются ближними, кольца не
+  // перестраиваются, композиция не дёргается.
+  ppAll = ppAll.slice().sort(function (a, b) {
+    var pa = (typeof a.progress === "number") ? a.progress : (a.active ? 1 : 0);
+    var pb = (typeof b.progress === "number") ? b.progress : (b.active ? 1 : 0);
+    return pb - pa;
+  });
   var ringLine = dark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.09)";
   var accent = centerColor || (dark ? "#fff" : "#0a0a0a");
   var ring = function (R) { return <span aria-hidden style={{ position: "absolute", left: C - R, top: C - R, width: R * 2, height: R * 2, borderRadius: "50%", border: "1px solid " + ringLine }} />; };
@@ -1202,11 +1211,17 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   // кольцах дальше. Каждое кольцо вмещает сколько влезает по окружности; ВНЕШНИЕ кольца выходят за бокс —
   // их просто обрежет карточка (overflow:hidden). Размер/шаг колец НЕ меняем (David: «размер устраивает»).
   var ringStep = size * 0.14, r0 = size * 0.315;
+  // ИЕРАРХИЯ РАЗМЕРОВ (David: «ближе к центру — больше, дальше — чуть меньше, и не
+  // пересекаться»): размер спутника плавно убывает с номером кольца (×0.9 за кольцо).
+  // Центр остаётся крупнейшим; лица на дальних кольцах автоматически мельче привычек
+  // ближних и перестают наезжать.
+  var szFor = function (base, k) { return Math.max(14, Math.round(base * Math.pow(0.9, k))); };
   var buildRings = function (items, startK, dSz) {
     var out = [], k = startK, idx = 0;
     while (idx < items.length && k < 9) {
       var R = r0 + k * ringStep;
-      var cap = Math.max(1, Math.floor((2 * Math.PI * R) / (dSz * 3.0))); // разреженно (David: 4→1 кольцо, 10→3-4 кольца)
+      var sk = szFor(dSz, k);
+      var cap = Math.max(1, Math.floor((2 * Math.PI * R) / (sk * 3.0))); // разреженно (David: 4→1 кольцо, 10→3-4 кольца)
       out.push({ R: R, k: k, items: items.slice(idx, idx + cap) });
       idx += cap; k++;
     }
@@ -1270,10 +1285,10 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
                 <span style={{ position: "relative", display: "block", width: "100%", height: "100%" }}>
                   {typeof BuddyFaceLive === "function" ? <BuddyFaceLive avatar={it.avatar} name={it.name} size={dSz} /> : null}
                   {pp > 0 && (
-                    <span aria-hidden style={{ position: "absolute", inset: -4, borderRadius: "50%", pointerEvents: "none",
+                    <span aria-hidden style={{ position: "absolute", inset: -3, borderRadius: "50%", pointerEvents: "none",
                       background: "conic-gradient(" + accent + " " + Math.round(pp * 360) + "deg, " + (dark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)") + " 0)",
-                      WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 2.4px), #000 calc(100% - 1.9px))",
-                      mask: "radial-gradient(farthest-side, transparent calc(100% - 2.4px), #000 calc(100% - 1.9px))" }} />
+                      WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.6px))",
+                      mask: "radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.6px))" }} />
                   )}
                 </span>
               );
@@ -1292,8 +1307,8 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   };
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} aria-hidden>
-      {hRings.rings.map(function (rg) { return renderRing(rg.R, rg.k, rg.items, hSz, hIcon, false); })}
-      {pRings.rings.map(function (rg) { return renderRing(rg.R, rg.k, rg.items, pSz, hIcon, true); })}
+      {hRings.rings.map(function (rg) { var s = szFor(hSz, rg.k); return renderRing(rg.R, rg.k, rg.items, s, Math.round(s * 0.52), false); })}
+      {pRings.rings.map(function (rg) { var s = szFor(pSz, rg.k); return renderRing(rg.R, rg.k, rg.items, s, Math.round(s * 0.52), true); })}
       {/* центр = значок цели, СТАТИЧНЫЙ по центру */}
       <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: centerBg, boxShadow: (progress != null && progress >= 1) ? (orbShadow + ", 0 0 13px " + accent + (dark ? "66" : "4d")) : orbShadow, transition: "box-shadow 0.5s ease", display: "grid", placeItems: "center", fontSize: cIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, centerInk) : (centerEmoji || "🎯")}</span>
       {/* ПУЛЬС: тонкое кольцо прогресса цели вокруг центра (личная цель и команда — одинаково).

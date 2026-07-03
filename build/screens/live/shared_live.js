@@ -2646,6 +2646,15 @@ function GoalOrbitMini({
     r2 = size * 0.455; // радиусы колец (привычки / люди)
   var hbAll = (habits || []).filter(Boolean),
     ppAll = (people || []).filter(Boolean);
+  // «ГОНКА ОРБИТ» (мягкая версия идеи David «кто раньше пришёл — тот ближе к цели»):
+  // люди раскладываются по своим кольцам в порядке СЕГОДНЯШНЕГО вклада — лидер дня ближе
+  // к центру. Только порядок внутри людских колец: привычки остаются ближними, кольца не
+  // перестраиваются, композиция не дёргается.
+  ppAll = ppAll.slice().sort(function (a, b) {
+    var pa = typeof a.progress === "number" ? a.progress : a.active ? 1 : 0;
+    var pb = typeof b.progress === "number" ? b.progress : b.active ? 1 : 0;
+    return pb - pa;
+  });
   var ringLine = dark ? "rgba(255,255,255,0.13)" : "rgba(10,10,10,0.09)";
   var accent = centerColor || (dark ? "#fff" : "#0a0a0a");
   var ring = function (R) {
@@ -2688,13 +2697,21 @@ function GoalOrbitMini({
   // их просто обрежет карточка (overflow:hidden). Размер/шаг колец НЕ меняем (David: «размер устраивает»).
   var ringStep = size * 0.14,
     r0 = size * 0.315;
+  // ИЕРАРХИЯ РАЗМЕРОВ (David: «ближе к центру — больше, дальше — чуть меньше, и не
+  // пересекаться»): размер спутника плавно убывает с номером кольца (×0.9 за кольцо).
+  // Центр остаётся крупнейшим; лица на дальних кольцах автоматически мельче привычек
+  // ближних и перестают наезжать.
+  var szFor = function (base, k) {
+    return Math.max(14, Math.round(base * Math.pow(0.9, k)));
+  };
   var buildRings = function (items, startK, dSz) {
     var out = [],
       k = startK,
       idx = 0;
     while (idx < items.length && k < 9) {
       var R = r0 + k * ringStep;
-      var cap = Math.max(1, Math.floor(2 * Math.PI * R / (dSz * 3.0))); // разреженно (David: 4→1 кольцо, 10→3-4 кольца)
+      var sk = szFor(dSz, k);
+      var cap = Math.max(1, Math.floor(2 * Math.PI * R / (sk * 3.0))); // разреженно (David: 4→1 кольцо, 10→3-4 кольца)
       out.push({
         R: R,
         k: k,
@@ -2778,12 +2795,12 @@ function GoalOrbitMini({
           "aria-hidden": true,
           style: {
             position: "absolute",
-            inset: -4,
+            inset: -3,
             borderRadius: "50%",
             pointerEvents: "none",
             background: "conic-gradient(" + accent + " " + Math.round(pp * 360) + "deg, " + (dark ? "rgba(255,255,255,0.16)" : "rgba(10,10,10,0.10)") + " 0)",
-            WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 2.4px), #000 calc(100% - 1.9px))",
-            mask: "radial-gradient(farthest-side, transparent calc(100% - 2.4px), #000 calc(100% - 1.9px))"
+            WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.6px))",
+            mask: "radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.6px))"
           }
         }));
       }
@@ -2818,9 +2835,11 @@ function GoalOrbitMini({
     },
     "aria-hidden": true
   }, hRings.rings.map(function (rg) {
-    return renderRing(rg.R, rg.k, rg.items, hSz, hIcon, false);
+    var s = szFor(hSz, rg.k);
+    return renderRing(rg.R, rg.k, rg.items, s, Math.round(s * 0.52), false);
   }), pRings.rings.map(function (rg) {
-    return renderRing(rg.R, rg.k, rg.items, pSz, hIcon, true);
+    var s = szFor(pSz, rg.k);
+    return renderRing(rg.R, rg.k, rg.items, s, Math.round(s * 0.52), true);
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
