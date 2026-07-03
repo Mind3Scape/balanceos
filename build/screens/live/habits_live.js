@@ -935,7 +935,7 @@ function HabitTileMenuLive({
     }),
     label: "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F",
     onClick: swap(onShare)
-  }), /*#__PURE__*/React.createElement(Row, {
+  }), onReorder && /*#__PURE__*/React.createElement(Row, {
     icon: reorderIcon,
     label: "\u041F\u0435\u0440\u0435\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043F\u043B\u0438\u0442\u043A\u0438",
     onClick: leave(onReorder)

@@ -36,6 +36,66 @@ class WidgetBoundaryLive extends React.Component {
     return this.state.dead ? null : this.props.children;
   }
 }
+
+// Обёртка плитки на ГЛАВНОЙ: удержание (~480мс) открывает то же меню, что на «Привычках» (Поделиться/
+// Удалить), тап проходит в detail. Свайпа тут нет — это карточки-плитки, а не строки. `full` → плитка
+// во всю ширину сетки (строка привычки / баннер цели), иначе половина (квадрат).
+function HomeTileLP({
+  onLongPress,
+  full,
+  children
+}) {
+  var t = React.useRef(null),
+    fired = React.useRef(false),
+    sx = React.useRef(0),
+    sy = React.useRef(0);
+  var clear = () => {
+    if (t.current) {
+      clearTimeout(t.current);
+      t.current = null;
+    }
+  };
+  var down = e => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Гасим всплытие → удержание на ПЛИТКЕ не запускает тряску/перетаскивание виджета (BosReorderList
+    // на обёртке-родителе): нажатие на плитку = её меню; перетаскивание виджета — за шапку/промежутки.
+    e.stopPropagation();
+    fired.current = false;
+    sx.current = e.clientX;
+    sy.current = e.clientY;
+    clear();
+    t.current = setTimeout(() => {
+      fired.current = true;
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("medium");
+        } catch (_) {}
+      }
+      if (onLongPress) onLongPress();
+    }, 480);
+  };
+  var move = e => {
+    if (Math.abs(e.clientX - sx.current) > 10 || Math.abs(e.clientY - sy.current) > 10) clear();
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onPointerDown: down,
+    onPointerMove: move,
+    onPointerUp: clear,
+    onPointerLeave: clear,
+    onPointerCancel: clear,
+    onClickCapture: e => {
+      if (fired.current) {
+        e.stopPropagation();
+        e.preventDefault();
+        fired.current = false;
+      }
+    },
+    style: {
+      minWidth: 0,
+      gridColumn: full ? "1 / -1" : "auto"
+    }
+  }, children);
+}
 function HomeLive() {
   var {
     navigate
@@ -52,6 +112,10 @@ function HomeLive() {
   // on the Habits tab too (and vice versa).
   var habits = app?.habits || [];
   var goals = app?.goals || [];
+  // David: «унифицировать» — виджеты привычек/целей на главной = ТЕ ЖЕ плитки, что на «Привычках», и
+  // слушают ТОТ ЖЕ стиль (форма/тоглы из шестерёнки). Хуки → главная перерисовывается при смене стиля.
+  var cardStyle = useBosCardStyle();
+  var goalStyle = useBosGoalStyle();
   var teams = app?.teams || [];
   // Универсальная кнопка «+» в шапке главной (David: «нужна явная кнопка создать привычку») —
   // открывает то же меню Привычку/Цель/Команду, что и «+» на странице Привычки. Плюс простой
@@ -585,25 +649,17 @@ function HomeLive() {
       return null;
     }
     if (id === "habits") {
-      // «Всё внутри блоков» (David): the «Привычки» title lives INSIDE one grouped card, with the
-      // habit rows stacked below it (hairline dividers, per-row swipe kept). HOME ONLY — the
-      // Habits tab keeps its fuller separate-card view untouched.
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          background: cardBg,
-          border: cardBorder,
-          borderRadius: 22,
-          boxShadow: cardShadow,
-          overflow: "hidden",
-          color: "var(--text)",
-          transform: "translateZ(0)"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
+      // David: «унифицировать» — виджет привычек = ТЕ ЖЕ плитки, что на странице «Привычки» (общий
+      // HabitTileLive, читают cardStyle из шестерёнки). Лёгкая шапка (название + счёт), ниже сетка
+      // плиток; удержание → то же меню (Поделиться/Удалить), тап → детали (from:"home"). Раньше был
+      // упрощённый отдельный список строк — теперь один вид с «Привычками».
+      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "13px 15px 11px"
+          padding: "2px 4px 11px",
+          color: "var(--text)"
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
@@ -625,9 +681,11 @@ function HomeLive() {
         })),
         style: {
           width: "100%",
-          background: "transparent",
-          border: 0,
-          padding: "6px 20px 26px",
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: 22,
+          boxShadow: cardShadow,
+          padding: "26px 20px",
           color: "var(--text)",
           display: "flex",
           flexDirection: "column",
@@ -675,135 +733,43 @@ function HomeLive() {
         strokeWidth: 2.5
       }), " \u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443")) : /*#__PURE__*/React.createElement("div", {
         style: {
-          display: "flex",
-          flexDirection: "column"
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: 12
         }
-      }, habits.map((h, hi) => /*#__PURE__*/React.createElement("div", {
+      }, habits.map(h => /*#__PURE__*/React.createElement(HomeTileLP, {
         key: h.id,
-        style: {
-          borderTop: hi ? "1px solid " + dividerLn : "0"
-        }
-      }, /*#__PURE__*/React.createElement(SwipeRow, {
-        rowBg: rowBg,
-        dark: isDark,
-        actions: [{
-          key: "share",
-          tone: "share",
-          label: "Поделиться",
-          icon: I.Share,
-          onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+        full: cardStyle.form === "rect",
+        onLongPress: () => openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
+          habit: h,
+          dark: isDark,
+          onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
             habit: h,
             dark: isDark
-          }))
-        }, {
-          key: "del",
-          tone: "delete",
-          label: "Удалить",
-          icon: I.X,
-          onAction: () => bosConfirmDelete(openSheet, {
+          })),
+          onDelete: () => bosConfirmDelete(openSheet, {
             title: "Удалить привычку?",
             message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
             confirmLabel: "Удалить",
             onConfirm: () => remove(h.id)
           })
-        }]
-      }, /*#__PURE__*/React.createElement("div", {
-        className: "tap",
-        onClick: () => navigate("habit-detail", {
-          habit: h,
-          from: "home"
-        }),
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          padding: "12px 15px"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          width: 38,
-          height: 38,
-          borderRadius: 13,
-          background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg),
-          boxShadow: bosTileGlass(isDark),
-          display: "grid",
-          placeItems: "center",
-          fontSize: 19,
-          flexShrink: 0
-        }
-      }, bosIcon(h.emoji, 21, h.color)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1,
-          minWidth: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 15.5,
-          fontWeight: 600,
-          color: "var(--text)",
-          letterSpacing: "-0.2px"
-        }
-      }, h.name), (h.shareCode || h.duration > 0) && /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginTop: 3,
-          flexWrap: "wrap",
-          fontSize: 11,
-          color: "var(--text-4)"
-        }
-      }, h.duration > 0 && /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 3
-        }
-      }, /*#__PURE__*/React.createElement(I.Clock, {
-        size: 11
-      }), " ", h.duration, " \u043C\u0438\u043D"), /*#__PURE__*/React.createElement(HabitBuddyAvatarsLive, {
+        }))
+      }, /*#__PURE__*/React.createElement(HabitTileLive, {
         habit: h,
-        size: 16,
-        max: 5
-      }), typeof CircleFacesLive === "function" && /*#__PURE__*/React.createElement(CircleFacesLive, {
-        habit: h,
-        size: 16,
-        max: 5
-      }))), h.duration > 0 && !(h.goalPerDay > 1) ? /*#__PURE__*/React.createElement(HabitTimerCheck, {
-        habit: h,
-        app: app,
-        xp: XP_PER_HABIT
-      }) : h.goalPerDay > 1 ? /*#__PURE__*/React.createElement(HabitCountCheck, {
-        habit: h,
-        app: app,
-        xp: XP_PER_HABIT
-      }) : /*#__PURE__*/React.createElement(HabitCheck, {
-        done: h.done,
-        onToggle: () => toggle(h.id),
-        xp: XP_PER_HABIT,
-        float: true,
-        color: h.color,
-        dark: isDark
-      })))))));
+        from: "home"
+      })))));
     }
     if (id === "goals") {
-      // Grouped «Цели» card — title INSIDE, goal rows below (hairline dividers). HOME ONLY.
-      return /*#__PURE__*/React.createElement("div", {
-        style: {
-          background: cardBg,
-          border: cardBorder,
-          borderRadius: 22,
-          boxShadow: cardShadow,
-          overflow: "hidden",
-          color: "var(--text)",
-          transform: "translateZ(0)"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
+      // David: «унифицировать» — виджет целей = ТЕ ЖЕ плитки, что на «Привычках» (общий GoalTileLive,
+      // читают goalStyle из шестерёнки). Лёгкая шапка + сетка плиток; удержание → меню (Поделиться/
+      // Удалить), тап → детали (from:"home").
+      return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "13px 15px 11px"
+          padding: "2px 4px 11px",
+          color: "var(--text)"
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
@@ -825,9 +791,11 @@ function HomeLive() {
         })),
         style: {
           width: "100%",
-          background: "transparent",
-          border: 0,
-          padding: "6px 20px 26px",
+          background: cardBg,
+          border: cardBorder,
+          borderRadius: 22,
+          boxShadow: cardShadow,
+          padding: "26px 20px",
           color: "var(--text)",
           display: "flex",
           flexDirection: "column",
@@ -875,99 +843,32 @@ function HomeLive() {
         strokeWidth: 2.5
       }), " \u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0446\u0435\u043B\u044C")) : /*#__PURE__*/React.createElement("div", {
         style: {
-          display: "flex",
-          flexDirection: "column"
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: 12
         }
-      }, goals.map((g, gi) => {
-        var pct = g.target ? (g.current || 0) / g.target : 0; // ||0 — цель без current не должна давать NaN%
-        return /*#__PURE__*/React.createElement("div", {
-          key: g.id,
-          style: {
-            borderTop: gi ? "1px solid " + dividerLn : "0"
-          }
-        }, /*#__PURE__*/React.createElement(SwipeRow, {
-          rowBg: rowBg,
+      }, goals.map(g => /*#__PURE__*/React.createElement(HomeTileLP, {
+        key: g.id,
+        full: goalStyle.form === "banner",
+        onLongPress: () => openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
+          habit: g,
           dark: isDark,
-          actions: [{
-            key: "share",
-            tone: "share",
-            label: "Поделиться",
-            icon: I.Share,
-            onAction: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
-              goal: g,
-              dark: isDark
-            }))
-          }, {
-            key: "del",
-            tone: "delete",
-            label: "Удалить",
-            icon: I.X,
-            onAction: () => bosConfirmDelete(openSheet, {
-              title: "Удалить цель?",
-              message: "«" + g.name + "» удалится навсегда.",
-              confirmLabel: "Удалить",
-              onConfirm: () => removeGoal(g.id)
-            })
-          }]
-        }, /*#__PURE__*/React.createElement("div", {
-          className: "tap",
-          onClick: () => navigate("goal-detail", {
+          kindLabel: "\u0426\u0435\u043B\u044C",
+          onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
             goal: g,
-            from: "home"
-          }),
-          style: {
-            padding: "13px 15px",
-            color: "var(--text)",
-            cursor: "pointer"
-          }
-        }, /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 10
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            width: 36,
-            height: 36,
-            borderRadius: 13,
-            background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg),
-            boxShadow: bosTileGlass(isDark),
-            display: "grid",
-            placeItems: "center",
-            fontSize: 18
-          }
-        }, bosIcon(g.emoji, 20, g.color)), /*#__PURE__*/React.createElement("div", {
-          style: {
-            flex: 1
-          }
-        }, /*#__PURE__*/React.createElement("div", {
-          style: {
-            fontSize: 15.5,
-            color: "var(--text)",
-            fontWeight: 600
-          }
-        }, g.name), /*#__PURE__*/React.createElement("div", {
-          style: {
-            fontSize: 11,
-            color: "var(--text-4)"
-          }
-        }, g.current || 0, " / ", g.target, " ", g.unit)), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 14,
-            fontWeight: 700,
-            color: "var(--text-2)"
-          }
-        }, Math.round(pct * 100), "%")), /*#__PURE__*/React.createElement("div", {
-          className: "bos-progress"
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            width: pct * 100 + "%",
-            background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a")
-          }
-        })))));
-      })));
+            dark: isDark
+          })),
+          onDelete: () => bosConfirmDelete(openSheet, {
+            title: "Удалить цель?",
+            message: "«" + g.name + "» удалится навсегда.",
+            confirmLabel: "Удалить",
+            onConfirm: () => removeGoal(g.id)
+          })
+        }))
+      }, /*#__PURE__*/React.createElement(GoalTileLive, {
+        goal: g,
+        from: "home"
+      })))));
     }
     if (id === "invite") {
       // Invite / share — GOLD banner (David: «как баннер уровня»): same reward-gold language as the

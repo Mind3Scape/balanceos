@@ -287,7 +287,7 @@ function HabitTileMenuLive({ habit, dark, onShare, onReorder, onDelete, deleteLa
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <Row icon={<I.Share size={18} />} label="Поделиться" onClick={swap(onShare)} />
-        <Row icon={reorderIcon} label="Переставить плитки" onClick={leave(onReorder)} />
+        {onReorder && <Row icon={reorderIcon} label="Переставить плитки" onClick={leave(onReorder)} />}
         {onDelete && <Row icon={deleteIcon || <I.Trash size={18} />} label={deleteLabel} onClick={swap(onDelete)} danger />}
       </div>
       <button onClick={close} className="tap" style={{ width: "100%", marginTop: 10, border: 0, borderRadius: 999, padding: 14, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)", fontSize: 15.5, fontWeight: 600 }}>Отмена</button>

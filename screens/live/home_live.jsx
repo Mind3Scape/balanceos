@@ -22,6 +22,26 @@ class WidgetBoundaryLive extends React.Component {
   render() { return this.state.dead ? null : this.props.children; }
 }
 
+// Обёртка плитки на ГЛАВНОЙ: удержание (~480мс) открывает то же меню, что на «Привычках» (Поделиться/
+// Удалить), тап проходит в detail. Свайпа тут нет — это карточки-плитки, а не строки. `full` → плитка
+// во всю ширину сетки (строка привычки / баннер цели), иначе половина (квадрат).
+function HomeTileLP({ onLongPress, full, children }) {
+  const t = React.useRef(null), fired = React.useRef(false), sx = React.useRef(0), sy = React.useRef(0);
+  const clear = () => { if (t.current) { clearTimeout(t.current); t.current = null; } };
+  const down = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Гасим всплытие → удержание на ПЛИТКЕ не запускает тряску/перетаскивание виджета (BosReorderList
+    // на обёртке-родителе): нажатие на плитку = её меню; перетаскивание виджета — за шапку/промежутки.
+    e.stopPropagation();
+    fired.current = false; sx.current = e.clientX; sy.current = e.clientY; clear();
+    t.current = setTimeout(() => { fired.current = true; if (window.tgHaptic) { try { window.tgHaptic("medium"); } catch (_) {} } if (onLongPress) onLongPress(); }, 480);
+  };
+  const move = (e) => { if (Math.abs(e.clientX - sx.current) > 10 || Math.abs(e.clientY - sy.current) > 10) clear(); };
+  return <div onPointerDown={down} onPointerMove={move} onPointerUp={clear} onPointerLeave={clear} onPointerCancel={clear}
+    onClickCapture={(e) => { if (fired.current) { e.stopPropagation(); e.preventDefault(); fired.current = false; } }}
+    style={{ minWidth: 0, gridColumn: full ? "1 / -1" : "auto" }}>{children}</div>;
+}
+
 function HomeLive() {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
@@ -34,6 +54,10 @@ function HomeLive() {
   // on the Habits tab too (and vice versa).
   const habits = app?.habits || [];
   const goals = app?.goals || [];
+  // David: «унифицировать» — виджеты привычек/целей на главной = ТЕ ЖЕ плитки, что на «Привычках», и
+  // слушают ТОТ ЖЕ стиль (форма/тоглы из шестерёнки). Хуки → главная перерисовывается при смене стиля.
+  const cardStyle = useBosCardStyle();
+  const goalStyle = useBosGoalStyle();
   const teams = app?.teams || [];
   // Универсальная кнопка «+» в шапке главной (David: «нужна явная кнопка создать привычку») —
   // открывает то же меню Привычку/Цель/Команду, что и «+» на странице Привычки. Плюс простой
@@ -294,51 +318,33 @@ function HomeLive() {
     }
 
     if (id === "habits") {
-      // «Всё внутри блоков» (David): the «Привычки» title lives INSIDE one grouped card, with the
-      // habit rows stacked below it (hairline dividers, per-row swipe kept). HOME ONLY — the
-      // Habits tab keeps its fuller separate-card view untouched.
+      // David: «унифицировать» — виджет привычек = ТЕ ЖЕ плитки, что на странице «Привычки» (общий
+      // HabitTileLive, читают cardStyle из шестерёнки). Лёгкая шапка (название + счёт), ниже сетка
+      // плиток; удержание → то же меню (Поделиться/Удалить), тап → детали (from:"home"). Раньше был
+      // упрощённый отдельный список строк — теперь один вид с «Привычками».
       return (
-        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, overflow: "hidden", color: "var(--text)", transform: "translateZ(0)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 15px 11px" }}>
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 4px 11px", color: "var(--text)" }}>
             <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Привычки</span>
             {habits.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{doneCount} из {totalCount}</span>}
           </div>
           {habits.length === 0 ? (
-            <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />)} style={{ width: "100%", background: "transparent", border: 0, padding: "6px 20px 26px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />)} style={{ width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, padding: "26px 20px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🌱</span>
               <div style={{ fontSize: 15, fontWeight: 600 }}>Здесь будут твои привычки</div>
               <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Начни с одной маленькой — например, стакан воды утром.</div>
               <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Создать привычку</span>
             </button>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {habits.map((h, hi) => (
-                <div key={h.id} style={{ borderTop: hi ? "1px solid " + dividerLn : "0" }}>
-                  <SwipeRow rowBg={rowBg} dark={isDark} actions={[
-                    { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />) },
-                    { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) }) },
-                  ]}>
-                    <div className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "home" })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 15px" }}>
-                      <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{h.name}</div>
-                        {(h.shareCode || h.duration > 0) && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap", fontSize: 11, color: "var(--text-4)" }}>
-                            {h.duration > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><I.Clock size={11}/> {h.duration} мин</span>}
-                            <HabitBuddyAvatarsLive habit={h} size={16} max={5} />
-                            {typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={16} max={5} />}
-                          </div>
-                        )}
-                      </div>
-                      {/* ОДИН контрол: таймер (▶ + секции) ИЛИ счётчик (кольцо) ИЛИ галочка — не два рядом. */}
-                      {h.duration > 0 && !(h.goalPerDay > 1)
-                        ? <HabitTimerCheck habit={h} app={app} xp={XP_PER_HABIT} />
-                        : h.goalPerDay > 1
-                          ? <HabitCountCheck habit={h} app={app} xp={XP_PER_HABIT} />
-                          : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={XP_PER_HABIT} float color={h.color} dark={isDark} />}
-                    </div>
-                  </SwipeRow>
-                </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+              {habits.map((h) => (
+                <HomeTileLP key={h.id} full={cardStyle.form === "rect"} onLongPress={() => openSheet(
+                  <HabitTileMenuLive habit={h} dark={isDark}
+                    onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
+                    onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => remove(h.id) })} />
+                )}>
+                  <HabitTileLive habit={h} from="home" />
+                </HomeTileLP>
               ))}
             </div>
           )}
@@ -347,46 +353,33 @@ function HomeLive() {
     }
 
     if (id === "goals") {
-      // Grouped «Цели» card — title INSIDE, goal rows below (hairline dividers). HOME ONLY.
+      // David: «унифицировать» — виджет целей = ТЕ ЖЕ плитки, что на «Привычках» (общий GoalTileLive,
+      // читают goalStyle из шестерёнки). Лёгкая шапка + сетка плиток; удержание → меню (Поделиться/
+      // Удалить), тап → детали (from:"home").
       return (
-        <div style={{ background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, overflow: "hidden", color: "var(--text)", transform: "translateZ(0)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 15px 11px" }}>
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 4px 11px", color: "var(--text)" }}>
             <span style={{ fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.2px" }}>Цели</span>
             {goals.length > 0 && <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 500 }}>{goals.length}</span>}
           </div>
           {goals.length === 0 ? (
-            <button className="tap" onClick={() => openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />)} style={{ width: "100%", background: "transparent", border: 0, padding: "6px 20px 26px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+            <button className="tap" onClick={() => openSheet(<GoalFormSheetLive mode="create" navigate={navigate} />)} style={{ width: "100%", background: cardBg, border: cardBorder, borderRadius: 22, boxShadow: cardShadow, padding: "26px 20px", color: "var(--text)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: iconBg, display: "grid", placeItems: "center", fontSize: 26 }}>🎯</span>
               <div style={{ fontSize: 15, fontWeight: 600 }}>Пока нет целей</div>
               <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, maxWidth: 235 }}>Большая цель — это маленькие привычки, сложенные вместе.</div>
               <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 600 }}><I.Plus size={15} strokeWidth={2.5}/> Поставить цель</span>
             </button>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {goals.map((g, gi) => {
-                const pct = g.target ? ((g.current || 0) / g.target) : 0; // ||0 — цель без current не должна давать NaN%
-                return (
-                  <div key={g.id} style={{ borderTop: gi ? "1px solid " + dividerLn : "0" }}>
-                    <SwipeRow rowBg={rowBg} dark={isDark} actions={[
-                      { key: "share", tone: "share", label: "Поделиться", icon: I.Share, onAction: () => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />) },
-                      { key: "del", tone: "delete", label: "Удалить", icon: I.X, onAction: () => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) }) },
-                    ]}>
-                      <div className="tap" onClick={() => navigate("goal-detail", { goal: g, from: "home" })} style={{ padding: "13px 15px", color: "var(--text)", cursor: "pointer" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                          <span style={{ width: 36, height: 36, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (g.color ? g.color + "26" : iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 18 }}>{bosIcon(g.emoji, 20, g.color)}</span>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 15.5, color: "var(--text)", fontWeight: 600 }}>{g.name}</div>
-                            <div style={{ fontSize: 11, color: "var(--text-4)" }}>{g.current || 0} / {g.target} {g.unit}</div>
-                          </div>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)" }}>{Math.round(pct*100)}%</span>
-                        </div>
-                        <div className="bos-progress"><span style={{ width: (pct*100) + "%", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%), " + (g.color || "#0a0a0a") }} /></div>
-                        {/* Личная цель лиц НЕ носит — круг = команда (показывается как LiveTeamCard с лицами). */}
-                      </div>
-                    </SwipeRow>
-                  </div>
-                );
-              })}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+              {goals.map((g) => (
+                <HomeTileLP key={g.id} full={goalStyle.form === "banner"} onLongPress={() => openSheet(
+                  <HabitTileMenuLive habit={g} dark={isDark} kindLabel="Цель"
+                    onShare={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)}
+                    onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => removeGoal(g.id) })} />
+                )}>
+                  <GoalTileLive goal={g} from="home" />
+                </HomeTileLP>
+              ))}
             </div>
           )}
         </div>
