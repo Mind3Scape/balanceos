@@ -197,6 +197,64 @@ function LiveTeamCard({
     }
   }, "\u041F\u043E\u043A\u0430 \u0442\u044B \u043E\u0434\u0438\u043D \u2014 \u043F\u043E\u0437\u043E\u0432\u0438 \u0434\u0440\u0443\u0437\u0435\u0439"))));
 }
+
+/* Заголовок секции ленты «Найти» (Е: вкладка «Все» = ОБЗОР с превью-секциями).
+   Крупный титул + подпись; onAll → маленькая «Все ›» справа (паттерн App Store
+   «See All»), которая переключает чип на полный раздел. Без onAll — просто шапка. */
+function CommSectionHeadLive({
+  title,
+  sub,
+  onAll
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
+      gap: 10,
+      padding: "2px 4px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 21,
+      fontWeight: 700,
+      letterSpacing: "-0.5px",
+      color: "var(--text)"
+    }
+  }, title), sub && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)",
+      marginTop: 3,
+      lineHeight: 1.45
+    }
+  }, sub)), onAll && /*#__PURE__*/React.createElement("button", {
+    onClick: onAll,
+    className: "tap",
+    "data-haptic": "selection",
+    style: {
+      border: 0,
+      background: "transparent",
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 2,
+      fontSize: 13.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      padding: "4px 0 5px 8px",
+      flexShrink: 0
+    }
+  }, "\u0412\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 14,
+    color: "var(--text-4)"
+  })));
+}
 function CommunityLive() {
   var {
     navigate
@@ -764,42 +822,32 @@ function CommunityLive() {
       gap: 12,
       marginTop: 14
     }
-  }, (filter === "all" || filter === "partners") && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
+  }, (filter === "all" || filter === "partners") && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
+    title: "\u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B",
+    sub: "\u0416\u0438\u0432\u044B\u0435 \u0432\u043F\u0435\u0447\u0430\u0442\u043B\u0435\u043D\u0438\u044F \u0432 \u0433\u043E\u0440\u043E\u0434\u0435 \u2014 \u0437\u0430 \u0442\u0432\u043E\u0438 XP.",
+    onAll: filter === "all" ? () => setFilter("partners") : null
+  }), typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
     app: app,
     navigate: navigate
-  })), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "2px 4px 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 21,
-      fontWeight: 700,
-      letterSpacing: "-0.5px",
-      color: "var(--text)"
-    }
-  }, "\u041D\u0430\u0439\u0434\u0438 \u0441\u0432\u043E\u0438\u0445"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)",
-      marginTop: 3,
-      lineHeight: 1.45
-    }
-  }, "\u0412\u0441\u0442\u0443\u043F\u0430\u0439 \u0432 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438 \u0438 \u0436\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438 \u2014 \u0438\u043B\u0438 \u0441\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439 \u043A\u0440\u0443\u0433 \u0441 \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438. \u041B\u044E\u0431\u043E\u0439 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0443 \u0442\u0435\u0431\u044F \u0432 \xAB\u0426\u0435\u043B\u044F\u0445\xBB.")), typeof SeedCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(SeedCirclesShowcaseLive, {
+  })), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
+    title: "\u041A\u0440\u0443\u0433\u0438 \u0434\u043B\u044F \u0442\u0435\u0431\u044F",
+    sub: "\u0412\u0441\u0442\u0443\u043F\u0430\u0439 \u0432 \u0447\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438 \u0438 \u0436\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438 \u2014 \u0438\u043B\u0438 \u0441\u043E\u0431\u0435\u0440\u0438 \u0441\u0432\u043E\u0439. \u041B\u044E\u0431\u043E\u0439 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0443 \u0442\u0435\u0431\u044F \u0432 \xAB\u0426\u0435\u043B\u044F\u0445\xBB.",
+    onAll: filter === "all" ? () => setFilter("circles") : null
+  }), typeof SeedCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(SeedCirclesShowcaseLive, {
     app: app,
     navigate: navigate
-  }), typeof CircleStartersShowcaseLive === "function" && /*#__PURE__*/React.createElement(CircleStartersShowcaseLive, {
+  }), filter === "circles" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof CircleStartersShowcaseLive === "function" && /*#__PURE__*/React.createElement(CircleStartersShowcaseLive, {
     navigate: navigate
   }), typeof LivingCirclesShowcaseLive === "function" && /*#__PURE__*/React.createElement(LivingCirclesShowcaseLive, {
     navigate: navigate
-  }), typeof CircleFriendsStripLive === "function" && /*#__PURE__*/React.createElement(CircleFriendsStripLive, {
+  })), typeof CircleFriendsStripLive === "function" && /*#__PURE__*/React.createElement(CircleFriendsStripLive, {
     app: app,
     navigate: navigate
-  }), typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
+  }), filter === "circles" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
     isDark: isDark
   }), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
     app: app
-  })), (filter === "all" || filter === "people") &&
+  }))), (filter === "all" || filter === "people") &&
   /*#__PURE__*/
   // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
   React.createElement("div", {
@@ -823,25 +871,11 @@ function CommunityLive() {
       gap: 12,
       marginTop: 4
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "2px 4px 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 21,
-      fontWeight: 700,
-      letterSpacing: "-0.5px",
-      color: "var(--text)"
-    }
-  }, "\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)",
-      marginTop: 3,
-      lineHeight: 1.45
-    }
-  }, "\u0418\u043D\u0442\u0435\u043D\u0441\u0438\u0432\u044B \u0438 \u043A\u0443\u0440\u0441\u044B \u2014 \u0441\u0430\u043C\u044B\u0439 \u0431\u044B\u0441\u0442\u0440\u044B\u0439 \u0440\u043E\u0441\u0442 \u0443\u0440\u043E\u0432\u043D\u044F.")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
+    title: "\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432",
+    sub: "\u0418\u043D\u0442\u0435\u043D\u0441\u0438\u0432\u044B \u0438 \u043A\u0443\u0440\u0441\u044B \u2014 \u0441\u0430\u043C\u044B\u0439 \u0431\u044B\u0441\u0442\u0440\u044B\u0439 \u0440\u043E\u0441\u0442 \u0443\u0440\u043E\u0432\u043D\u044F.",
+    onAll: filter === "all" ? () => setFilter("partners") : null
+  }), filter === "partners" && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       overflow: "hidden",
@@ -927,7 +961,7 @@ function CommunityLive() {
       fontSize: 13,
       lineHeight: 1
     }
-  }, e), l))))), courses.map((c, i) => /*#__PURE__*/React.createElement("button", {
+  }, e), l))))), (filter === "all" ? courses.slice(0, 2) : courses).map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     "data-tour": i === 0 ? "course" : undefined,
     onClick: () => navigate("course-detail", {
@@ -1046,7 +1080,9 @@ function CommunityLive() {
     }
   }, "\u041E \u043A\u0443\u0440\u0441\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 14
-  }))))))));
+  })))))), filter === "all" && typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
+    isDark: isDark
+  })));
 }
 
 /* Per-team stale-while-revalidate cache (roster / habits / anchor-progress / goal) so

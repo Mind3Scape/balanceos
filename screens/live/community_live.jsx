@@ -83,6 +83,27 @@ function LiveTeamCard({ t, navigate }) {
   );
 }
 
+/* Заголовок секции ленты «Найти» (Е: вкладка «Все» = ОБЗОР с превью-секциями).
+   Крупный титул + подпись; onAll → маленькая «Все ›» справа (паттерн App Store
+   «See All»), которая переключает чип на полный раздел. Без onAll — просто шапка. */
+function CommSectionHeadLive({ title, sub, onAll }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, padding: "2px 4px 0" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>{title}</div>
+        {sub && <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>{sub}</div>}
+      </div>
+      {onAll && (
+        <button onClick={onAll} className="tap" data-haptic="selection"
+          style={{ border: 0, background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 2,
+            fontSize: 13.5, fontWeight: 600, color: "var(--text-3)", padding: "4px 0 5px 8px", flexShrink: 0 }}>
+          Все <I.ChevronRight size={14} color="var(--text-4)" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function CommunityLive() {
   const { navigate } = useNav();
   const app = useApp();
@@ -203,6 +224,9 @@ function CommunityLive() {
           месту результатам. */}
       {!searching && (
       <div style={{ display: "flex", gap: 7, padding: "2px 2px 0" }}>
+        {/* ЗАГОТОВКА (Е3, план David): пятый чип ["nearby", "Рядом"] — режим КАРТЫ партнёров
+            города. Включаем, когда партнёры появятся больше чем в одном городе: добавить чип
+            сюда + ветку filter === "nearby" с картой в ленте (map-заглушки не строим — честно). */}
         {[["all", "Все"], ["circles", "Круги"], ["people", "Люди"], ["partners", "Партнёры"]].map(([id, t]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
@@ -301,29 +325,38 @@ function CommunityLive() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
         {(filter === "all" || filter === "partners") && (
           <React.Fragment>
-            {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку. */}
+            {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку.
+                На «Все» — превью с «Все ›» (Е: обзор), чип «Партнёры» — полный раздел + программы. */}
+            <CommSectionHeadLive title="Партнёры" sub="Живые впечатления в городе — за твои XP."
+              onAll={filter === "all" ? () => setFilter("partners") : null} />
             {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate} />}
           </React.Fragment>
         )}
 
         {(filter === "all" || filter === "circles") && (
           <React.Fragment>
-            <div style={{ padding: "2px 4px 0" }}>
-              <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Найди своих</div>
-              <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Вступай в челленджи и живые круги — или собери свой круг с друзьями. Любой появится у тебя в «Целях».</div>
-            </div>
-            {/* Челленджи — срочные, с призом за финиш. */}
+            <CommSectionHeadLive title="Круги для тебя" sub="Вступай в челленджи и живые круги — или собери свой. Любой появится у тебя в «Целях»."
+              onAll={filter === "all" ? () => setFilter("circles") : null} />
+            {/* Челленджи — срочные, с призом за финиш: витрина-превью и на «Все», и в разделе. */}
             {typeof SeedCirclesShowcaseLive === "function" && <SeedCirclesShowcaseLive app={app} navigate={navigate} />}
-            {/* Собери свой круг — пресеты создания (семья/тренинги/рост). */}
-            {typeof CircleStartersShowcaseLive === "function" && <CircleStartersShowcaseLive navigate={navigate} />}
-            {/* Живые круги — витрина с лицами + активностью; тап → создать похожий. */}
-            {typeof LivingCirclesShowcaseLive === "function" && <LivingCirclesShowcaseLive navigate={navigate} />}
+            {filter === "circles" && (
+              <React.Fragment>
+                {/* ПОЛНЫЙ раздел (чип «Круги»): пресеты + живые витрины. На «Все» их нет —
+                    обзор короткий, «Все ›» ведёт сюда. */}
+                {typeof CircleStartersShowcaseLive === "function" && <CircleStartersShowcaseLive navigate={navigate} />}
+                {typeof LivingCirclesShowcaseLive === "function" && <LivingCirclesShowcaseLive navigate={navigate} />}
+              </React.Fragment>
+            )}
             {/* РЕАЛЬНАЯ жизнь — живые лица из твоих кругов (скрыто, если людей нет). */}
             {typeof CircleFriendsStripLive === "function" && <CircleFriendsStripLive app={app} navigate={navigate} />}
-            {/* Позови своих — родной выбор контактов Telegram (реферал). */}
-            {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
-            {/* Открытые круги из облака, в которые можно вступить. */}
-            <CloudTeamsDiscoverLive app={app} />
+            {filter === "circles" && (
+              <React.Fragment>
+                {/* Позови своих — родной выбор контактов Telegram (реферал). */}
+                {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
+                {/* Открытые круги из облака, в которые можно вступить. */}
+                <CloudTeamsDiscoverLive app={app} />
+              </React.Fragment>
+            )}
           </React.Fragment>
         )}
 
@@ -347,14 +380,14 @@ function CommunityLive() {
         {(filter === "all" || filter === "partners") && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
           {/* ПРОГРАММЫ ПАРТНЁРОВ (бывшие «Курсы» — David: «курсы как слово ощущается хуже
-              партнёров»): интенсивы-ускорители внутри партнёрского мира. */}
-          <div style={{ padding: "2px 4px 0" }}>
-            <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--text)" }}>Программы партнёров</div>
-            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3, lineHeight: 1.45 }}>Интенсивы и курсы — самый быстрый рост уровня.</div>
-          </div>
+              партнёров»): интенсивы-ускорители внутри партнёрского мира.
+              На «Все» — превью: 2 карточки + «Все ›»; голд-баннер «зачем» живёт на чипе. */}
+          <CommSectionHeadLive title="Программы партнёров" sub="Интенсивы и курсы — самый быстрый рост уровня."
+            onAll={filter === "all" ? () => setFilter("partners") : null} />
           {/* Gold "why courses" banner — the hook (esp. for a newcomer): a course is
               the fastest level-up — a whole level + an achievement that opens new
               circles of people + a big XP boost. Same gold as the level badge. */}
+          {filter === "partners" && (
           <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
             background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
             boxShadow: "0 8px 22px rgba(239,159,20,0.32)" }}>
@@ -373,7 +406,8 @@ function CommunityLive() {
               </div>
             </div>
           </div>
-          {courses.map((c, i) => (
+          )}
+          {(filter === "all" ? courses.slice(0, 2) : courses).map((c, i) => (
             <button key={i} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
               style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", color: "var(--text)", display: "block", width: "100%" }}>
               {/* Name + meta left, coloured emblem on the RIGHT — matches the Partners card */}
@@ -405,6 +439,10 @@ function CommunityLive() {
           ))}
         </div>
         )}
+
+        {/* Финал обзора «Все»: позови своих — путь приглашения живёт в «Найти» (решение David:
+            с главной убран). На чипе «Круги» карточка живёт внутри полного раздела. */}
+        {filter === "all" && typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
       </div>
       )}
     </div>
