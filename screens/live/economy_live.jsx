@@ -166,3 +166,169 @@ function bosEarnedAchIdsLive(app) {
   return ids;
 }
 function bosAchByIdLive(id) { for (var i = 0; i < BOS_ACHIEVEMENTS_LIVE.length; i++) { if (BOS_ACHIEVEMENTS_LIVE[i].id === id) return BOS_ACHIEVEMENTS_LIVE[i]; } return null; }
+
+/* ── ГИД «Как устроен Balance» (v531, David: «гид-мануал как в игре, с картинками и механиками,
+   от максимально локальной идеи до максимально масштабной») — LIVE-переопределение маршрута
+   guide (демо-GuideScreen «О приложении» не тронут). Шесть глав-лестница: отметка → опыт и
+   уровень → вместе (настоящая GoalOrbitMini как иллюстрация) → партнёры (билет) → нетворк
+   (замок 10 уровня) → Вселенная. Все цифры НАСТОЯЩИЕ (+10/+30/+150 — те же, что в экономике).
+   Иллюстрации — рисунки мануала (подписи не выдают их за живые данные). */
+function GuideLive() {
+  var nav = (typeof useNav === "function") ? useNav() : {};
+  var navigate = nav.navigate || function () {};
+  var params = nav.params || {};
+  var app = (typeof useApp === "function") ? useApp() : null;
+  var isDark = !!(app && app.themeOverride === "dark");
+  var back = function () { navigate(params.from || "profile"); };
+  var sheen = (typeof BOS_TILE_SHEEN !== "undefined") ? BOS_TILE_SHEEN + ", " : "";
+  var glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none";
+  var chipBg = sheen + (isDark ? "rgba(255,255,255,0.08)" : "#fff");
+  var cardStyle = { background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" };
+  var kicker = function (n, t) {
+    return (
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "0 4px", marginTop: 26, marginBottom: 8 }}>
+        <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-1px", color: "var(--text-4)", opacity: 0.45, fontVariantNumeric: "tabular-nums", fontFamily: "var(--bos-title-font)" }}>{n}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)" }}>{t}</span>
+      </div>
+    );
+  };
+  var body = function (title, text) {
+    return (
+      <div style={{ padding: "14px 16px 16px" }}>
+        <div style={{ fontSize: 17.5, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.3px", fontFamily: "var(--bos-title-font)" }}>{title}</div>
+        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, lineHeight: 1.55 }}>{text}</div>
+      </div>
+    );
+  };
+  var goldPill = function (txt) {
+    return <span style={{ display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", padding: "3px 9px", borderRadius: 999, boxShadow: "0 4px 12px rgba(239,159,20,0.35)" }}>{txt}</span>;
+  };
+  // Кольцо уровня для иллюстраций (та же математика, что на «Я»).
+  var ring = function (size, pctv, inner) {
+    var r = (size - 4) / 2, c = 2 * Math.PI * r;
+    return (
+      <span style={{ position: "relative", width: size, height: size, display: "grid", placeItems: "center" }}>
+        <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.09)"} strokeWidth="3" />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#bosGdRing)" strokeWidth="3" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pctv)} />
+          <defs><linearGradient id="bosGdRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" /></linearGradient></defs>
+        </svg>
+        {inner}
+      </span>
+    );
+  };
+  return (
+    <div className="page-in" style={{ padding: "0 16px 28px" }}>
+      <PageHeader title="Как устроен Balance" onBack={back} />
+      <div style={{ padding: "2px 4px 0" }}>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 25, fontWeight: 800, letterSpacing: "-0.6px", color: "var(--text)", lineHeight: 1.15 }}>Одна отметка — целая вселенная</div>
+        <div style={{ fontSize: 14, color: "var(--text-3)", marginTop: 8, lineHeight: 1.5 }}>Пара минут — и ты знаешь все механики: от маленького шага до карты всех людей.</div>
+      </div>
+
+      {kicker("01", "Самое маленькое")}
+      <div style={cardStyle}>
+        <div style={{ padding: "18px 16px 4px", display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "relative", width: "100%", maxWidth: 300 }}>
+            <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "var(--surface-3)", borderRadius: 18, padding: "13px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 13, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 20 }}>🤸</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Зарядка</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>сегодня · сделано</div>
+              </div>
+              <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#34C759", display: "grid", placeItems: "center", color: "#fff", boxShadow: "0 4px 12px rgba(52,199,89,0.4)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+              </span>
+            </div>
+            <span style={{ position: "absolute", top: -10, right: 6 }}>{goldPill("✦ +10 XP")}</span>
+          </div>
+        </div>
+        {body("Отметка", "Сделал дело — коснулся плитки. Каждая отметка даёт +10 XP, закрыл весь день — ещё +30 сверху. Ничего не сгорает: пропустил день — просто продолжаешь.")}
+      </div>
+
+      {kicker("02", "Твой след")}
+      <div style={cardStyle}>
+        <div style={{ padding: "20px 16px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          {ring(88, 0.72, (
+            <span style={{ position: "relative", width: 68, height: 68, borderRadius: "50%", background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 32 }}>
+              🙂
+              <span style={{ position: "absolute", right: -4, bottom: -2, minWidth: 22, height: 22, borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 5px", boxShadow: "0 0 0 2.5px var(--card)" }}>5</span>
+            </span>
+          ))}
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600 }}>кольцо заполняется → уровень растёт</div>
+        </div>
+        {body("Опыт и уровень", "XP поднимает уровень — золотое кольцо вокруг твоего лица. Уровень не обнуляется и не «сгорает по понедельникам»: это след пути, а не счётчик вины. Разовые ачивки дают XP пачками.")}
+      </div>
+
+      {kicker("03", "Сильнее вместе")}
+      <div style={cardStyle}>
+        <div style={{ padding: "12px 16px 0", display: "flex", justifyContent: "center" }}>
+          {(typeof GoalOrbitMini === "function") ? (
+            <GoalOrbitMini centerEmoji="🌅" centerColor={null}
+              habits={[{ emoji: "🤸", color: "#34C759", done: true }, { emoji: "📖", color: "#0A84FF" }, { emoji: "💧", color: "#5AC8FA" }]}
+              people={[{ avatar: "emoji:🐱", name: "" }, { avatar: "emoji:🦊", name: "" }, { avatar: "emoji:🙂", name: "" }]}
+              size={158} dark={isDark} />
+          ) : <span style={{ fontSize: 44 }}>🌅</span>}
+        </div>
+        {body("Совместные цели и привычки", "Любую привычку или цель можно вести вместе: общий круг, лица на одной орбите, общий счёт и чат. За каждого, кто придёт по твоей ссылке, — +150 XP, а на вехах — бонусы больше.")}
+      </div>
+
+      {kicker("04", "Куда тратить")}
+      <div style={cardStyle}>
+        <div style={{ padding: "18px 16px 2px", display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "relative", width: "100%", maxWidth: 300, borderRadius: 18, overflow: "hidden", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 10px 26px rgba(239,159,20,0.35)", padding: "14px 16px", color: "#0a0a0a" }}>
+            <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 85% 10%, rgba(255,255,255,0.45) 0%, transparent 55%)", pointerEvents: "none" }} />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", opacity: 0.6 }}>Партнёрский билет</div>
+                <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>✦ BAL-2481</div>
+              </div>
+              <span style={{ fontSize: 10.5, fontWeight: 800, background: "rgba(10,10,10,0.85)", color: "#FEDE34", borderRadius: 999, padding: "4px 9px" }}>скоро</span>
+            </div>
+            <div aria-hidden style={{ position: "relative", borderTop: "2px dashed rgba(10,10,10,0.25)", margin: "12px -16px 0" }} />
+            <div style={{ position: "relative", fontSize: 11.5, fontWeight: 600, marginTop: 9, opacity: 0.75 }}>предъяви код — получи живое</div>
+          </div>
+        </div>
+        {body("Партнёры", "XP и уровень — не просто цифры. В «Найти» партнёры меняют их на реальное: программы, разборы, скидки. Партнёром может вырасти любой — это уровень, а не должность.")}
+      </div>
+
+      {kicker("05", "Люди по делам")}
+      <div style={cardStyle}>
+        <div style={{ padding: "18px 16px 2px" }}>
+          <div style={{ position: "relative", borderRadius: 18, background: isDark ? "rgba(255,255,255,0.05)" : "var(--surface-3)", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
+            {[["🤝", "Похожая структура привычек"], ["🔥", "Такой же ритм — спорт по утрам"]].map(function (r, i) {
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, filter: "blur(3.5px)", opacity: 0.6 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: "50%", background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 16 }}>{r[0]}</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{r[1]}</span>
+                </div>
+              );
+            })}
+            <span style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "rgba(28,28,30,0.92)" : "rgba(255,255,255,0.95)", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", borderRadius: 999, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>🔒 Откроется с 10 уровня</span>
+          </div>
+        </div>
+        {body("Нетворк", "С 10 уровня открываются «Люди» — нетворк по делам: кто чем живёт, у кого какой ритм, к кому идти за помощью. Уровень — твой пропуск, его не купить.")}
+      </div>
+
+      {kicker("06", "Самое большое")}
+      <div style={cardStyle}>
+        <div style={{ padding: "16px 16px 0" }}>
+          <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)", height: 150 }}>
+            {[[12, 18, 2.5], [30, 64, 2], [48, 30, 3], [66, 74, 2], [82, 22, 2.5], [90, 58, 2], [22, 82, 2], [58, 12, 2], [74, 44, 2.5], [8, 52, 2], [40, 90, 2], [95, 86, 2]].map(function (d, i) {
+              return <span key={i} aria-hidden style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: "rgba(190,215,255,0.85)", boxShadow: "0 0 6px rgba(160,200,255,0.8)" }} />;
+            })}
+            {[[24, 34, 34, "🙂"], [56, 58, 42, "😎"], [78, 26, 30, "🐱"]].map(function (d, i) {
+              return (
+                <span key={"d" + i} style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: "linear-gradient(165deg, rgba(255,255,255,0.35), rgba(255,255,255,0.08) 55%), rgba(255,255,255,0.14)", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.4), 0 6px 18px rgba(0,0,0,0.35)", display: "grid", placeItems: "center", fontSize: d[2] * 0.5 }}>{d[3]}</span>
+              );
+            })}
+            <span style={{ position: "absolute", left: 12, bottom: 10, fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "rgba(190,215,255,0.75)" }}>Вселенная · все системы</span>
+          </div>
+        </div>
+        {body("Вселенная", "Каждый здесь — своя система: человек в центре, привычки — планеты на орбитах. «Вселенная» на странице «Я» показывает всех — анонимно, как огни ночного города. Ты уже один из них.")}
+      </div>
+
+      <button onClick={back} className="tap" style={{ width: "100%", marginTop: 22, border: 0, borderRadius: 999, padding: 16, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontSize: 15.5, fontWeight: 700, cursor: "pointer" }}>Начали!</button>
+      <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-4)", marginTop: 12, lineHeight: 1.5 }}>Остались вопросы — Balance AI на соседней вкладке.</div>
+    </div>
+  );
+}
