@@ -267,7 +267,7 @@ function GoalDetailPersonalLive() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
-        <EditGlassButtonLive onClick={() => openSheet(<GoalFormSheetLive mode="edit" goal={g} navigate={navigate} />)} />
+        <EditGlassButtonLive onClick={() => openSheet(<GoalFormSheetLive mode="edit" goal={g} navigate={navigate} returnTo={back} />)} />
       } />
 
       {/* Hero — ОРБИТА (если включена в стиле целей) или кольцо (Apple-Watch). Орбита = цель в центре,

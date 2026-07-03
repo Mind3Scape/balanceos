@@ -561,7 +561,7 @@ function TeamDetailLive() {
           {/* Правка НА МЕСТЕ — карандаш открывает шторку правки прямо над комнатой (не уводит
               на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. «Поделиться»
               ушло вниз в тихие чипы («Позвать»), чтобы шапка не выбивалась. */}
-          {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<TeamQuickEditSheetLive team={t} navigate={navigate} />)} />}
+          {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<TeamQuickEditSheetLive team={t} navigate={navigate} returnTo={from} />)} />}
         </div>
       }/>
       {/* HERO — БЛИЗНЕЦ личной цели (David: «команда = та же цель + блок людей»):
@@ -748,7 +748,7 @@ function TeamDetailLive() {
       </div>
 
       {/* Чат цели — стеклянная кнопка под «Людьми» (счётчик непрочитанных сохранён). */}
-      <button onClick={() => { markChatRead(); navigate("team-chat", { team: t }); }} className="tap" style={{ width: "100%", marginTop: 12, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 18, padding: "15px 12px", fontSize: 15, fontWeight: 600, color: "var(--text-2)" }}>
+      <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" style={{ width: "100%", marginTop: 12, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 18, padding: "15px 12px", fontSize: 15, fontWeight: 600, color: "var(--text-2)" }}>
         <span style={{ fontSize: 18, lineHeight: 1 }}>💬</span> Чат цели
         {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: 9, right: 14, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", display: "grid", placeItems: "center" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
       </button>

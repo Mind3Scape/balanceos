@@ -879,7 +879,8 @@ function GoalFormSheetLive({
   goal: goalProp = null,
   preset: presetProp = null,
   circleOn: circleOnProp = false,
-  navigate
+  navigate,
+  returnTo
 }) {
   var app = useApp();
   var isDark = app?.themeOverride === "dark"; // тёмная тема: инверсия активных пилюль
@@ -1570,7 +1571,7 @@ function GoalFormSheetLive({
     onClick: () => {
       app?.removeGoal(g0.id);
       close();
-      if (typeof navigate === "function") navigate("habits");
+      if (typeof navigate === "function") navigate(returnTo || "habits");
     },
     style: {
       width: "100%",

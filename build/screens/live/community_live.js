@@ -1123,7 +1123,8 @@ function TeamDetailLive() {
     }, _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamQuickEditSheetLive, {
         team: t,
-        navigate: navigate
+        navigate: navigate,
+        returnTo: from
       }))
     }))
   }), /*#__PURE__*/React.createElement("div", {
@@ -1770,7 +1771,8 @@ function TeamDetailLive() {
     onClick: () => {
       markChatRead();
       navigate("team-chat", {
-        team: t
+        team: t,
+        from
       });
     },
     className: "tap",

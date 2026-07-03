@@ -372,7 +372,7 @@ function HabitSettingsLive() {
 }
 
 /* ─── GOAL FORM — create / edit a goal, ШТОРКА (LIVE) ──────────────── */
-function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: presetProp = null, circleOn: circleOnProp = false, navigate }) {
+function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: presetProp = null, circleOn: circleOnProp = false, navigate, returnTo }) {
   const app = useApp();
   const isDark = app?.themeOverride === "dark"; // тёмная тема: инверсия активных пилюль
   const { open: openSheet, close } = useSheet();
@@ -622,7 +622,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
 
       {/* Нижней кнопки сохранения НЕТ — только «✓» в шапке (единый язык с формой привычки). */}
       {editing && (
-        <button className="tap" onClick={() => { app?.removeGoal(g0.id); close(); if (typeof navigate === "function") navigate("habits"); }}
+        <button className="tap" onClick={() => { app?.removeGoal(g0.id); close(); if (typeof navigate === "function") navigate(returnTo || "habits"); }}
           style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
           Удалить цель
         </button>

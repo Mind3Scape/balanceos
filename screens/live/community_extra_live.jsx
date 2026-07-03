@@ -294,6 +294,9 @@ function TeamSettingsLive() {
   const app = useApp();
   const { open: openSheet } = useSheet();
   const team = params?.team || {};
+  // Откуда пользователь пришёл в круг — тянется сквозь (деталь → карандаш → сюда):
+  // возврат/сохранение/удаление ведут обратно в его контекст, не в «Сообщество».
+  const backFrom = params?.from || "habits";
   const [name, setName] = useCS(team.name || "");
   const [emblem, setEmblem] = useCS(team.emblem || "✨");
   const [accent, setAccent] = useCS(team.accent || BOS_GREY);
@@ -338,11 +341,11 @@ function TeamSettingsLive() {
         window.bosCloud.updateTeam(team.cloudId, { name: patch.name, emblem, vis: patch.vis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: stakeVal } });
       }
     } catch (e) {}
-    setTimeout(() => navigate("team-detail", { team: { ...team, ...patch } }), 300);
+    setTimeout(() => navigate("team-detail", { team: { ...team, ...patch }, from: backFrom }), 300);
   };
   // This screen is owner-only (gated by the gear), so deleting goes through the cloud
   // deleteTeam + a confirm sheet (was a silent local-only removeTeam).
-  const del = () => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet });
+  const del = () => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet, returnTo: backFrom });
   const card = { background: "var(--card, #fff)", borderRadius: 22, marginTop: 8, boxShadow: "var(--card-shadow)" };
   const goalTypes = [
     { id: "collective", e: "🌊", t: "Общий счёт", d: "Отметки всех складываются в одно число." },
@@ -352,7 +355,7 @@ function TeamSettingsLive() {
   ];
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="Настройки цели" onBack={() => navigate("team-detail", { team })} />
+      <PageHeader title="Настройки цели" onBack={() => navigate("team-detail", { team, from: backFrom })} />
 
       {/* IDENTITY — тот же вид, что «Создать команду»: БЕЛАЯ карточка + СТЕКЛО-плитка, красящаяся тоном,
           + единый цвет-пикер (David: создание и редактирование = одна логика; «как в привычках»). */}
@@ -490,9 +493,12 @@ function TeamSettingsLive() {
    экран). Те же поля и тот же save (app.updateTeam + cloud updateTeam), что в TeamSettingsLive —
    комната под шторкой обновляется живьём, т.к. читает app.teams. Иконка = embedded EmojiPickerLive
    через двухвью (one-sheet host). «Все настройки и участники» → полный экран (ничего не теряем). */
-function TeamQuickEditSheetLive({ team, navigate }) {
+function TeamQuickEditSheetLive({ team, navigate, returnTo }) {
   // navigate приходит ПРОПОМ от открывающего (TeamDetailLive) — шторки рендерятся ВНЕ NavCtx,
   // поэтому useNav() здесь null (это и роняло экран при тапе на карандаш). David: фикс краша.
+  // returnTo = откуда пользователь пришёл в круг («Привычки»/«Найти»): удаление цели и
+  // «Все настройки» тянут его дальше — иначе после удаления выбрасывало в «Сообщество»
+  // (David: «удаляю цель, а кидает на сообщество-найти»).
   const app = useApp();
   const { open: openSheet, close } = useSheet();
   const [view, setView] = useCS("form");
@@ -605,9 +611,9 @@ function TeamQuickEditSheetLive({ team, navigate }) {
       </div>
 
       {/* Нижней кнопки сохранения НЕТ — только «✓» в шапке (единый язык всех форм-шторок). */}
-      <button onClick={() => { close(); navigate("team-settings", { team }); }} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 14, fontSize: 13.5, fontWeight: 600 }}>Все настройки и участники →</button>
+      <button onClick={() => { close(); navigate("team-settings", { team, from: returnTo }); }} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 14, fontSize: 13.5, fontWeight: 600 }}>Все настройки и участники →</button>
       {/* УДАЛИТЬ КРУГ — здесь, на правке (карандаш), а не на главной круга (David). Шторка правки = owner-only. */}
-      <button onClick={() => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet })} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: "12px", marginTop: 2, fontSize: 13.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Trash size={16}/> Удалить цель</button>
+      <button onClick={() => bosConfirmExitTeam({ app, team, isOwner: true, navigate, openSheet, returnTo: returnTo || "habits" })} className="tap" style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: "12px", marginTop: 2, fontSize: 13.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><I.Trash size={16}/> Удалить цель</button>
     </div>
   );
 }
@@ -1134,7 +1140,7 @@ function TeamChatLive() {
   return (
     <div className="page-in" style={{ height: "calc(100% + 90px)", margin: "-60px 0 -30px", display: "flex", flexDirection: "column", paddingTop: "max(60px, var(--tg-top-inset, 0px))", overflow: "hidden" }}>
       <div style={{ padding: "0 14px" }}>
-        <PageHeader title={team.name} onBack={() => navigate("team-detail", { team })}
+        <PageHeader title={team.name} onBack={() => navigate("team-detail", { team, from: params?.from })}
           right={(() => { const n = memberCount != null ? memberCount : (team.members && team.members.length); return n ? <span style={{ fontSize: 12, color: "var(--text-4)", whiteSpace: "nowrap" }}>{n} 👥</span> : null; })()} />
       </div>
 

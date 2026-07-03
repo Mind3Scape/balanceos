@@ -706,6 +706,9 @@ function TeamSettingsLive() {
     open: openSheet
   } = useSheet();
   var team = params?.team || {};
+  // Откуда пользователь пришёл в круг — тянется сквозь (деталь → карандаш → сюда):
+  // возврат/сохранение/удаление ведут обратно в его контекст, не в «Сообщество».
+  var backFrom = params?.from || "habits";
   var [name, setName] = useCS(team.name || "");
   var [emblem, setEmblem] = useCS(team.emblem || "✨");
   var [accent, setAccent] = useCS(team.accent || BOS_GREY);
@@ -791,7 +794,8 @@ function TeamSettingsLive() {
       team: {
         ...team,
         ...patch
-      }
+      },
+      from: backFrom
     }), 300);
   };
   // This screen is owner-only (gated by the gear), so deleting goes through the cloud
@@ -801,7 +805,8 @@ function TeamSettingsLive() {
     team,
     isOwner: true,
     navigate,
-    openSheet
+    openSheet,
+    returnTo: backFrom
   });
   var card = {
     background: "var(--card, #fff)",
@@ -831,7 +836,8 @@ function TeamSettingsLive() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0446\u0435\u043B\u0438",
     onBack: () => navigate("team-detail", {
-      team
+      team,
+      from: backFrom
     })
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1311,10 +1317,14 @@ function TeamSettingsLive() {
    через двухвью (one-sheet host). «Все настройки и участники» → полный экран (ничего не теряем). */
 function TeamQuickEditSheetLive({
   team,
-  navigate
+  navigate,
+  returnTo
 }) {
   // navigate приходит ПРОПОМ от открывающего (TeamDetailLive) — шторки рендерятся ВНЕ NavCtx,
   // поэтому useNav() здесь null (это и роняло экран при тапе на карандаш). David: фикс краша.
+  // returnTo = откуда пользователь пришёл в круг («Привычки»/«Найти»): удаление цели и
+  // «Все настройки» тянут его дальше — иначе после удаления выбрасывало в «Сообщество»
+  // (David: «удаляю цель, а кидает на сообщество-найти»).
   var app = useApp();
   var {
     open: openSheet,
@@ -1695,7 +1705,8 @@ function TeamQuickEditSheetLive({
     onClick: () => {
       close();
       navigate("team-settings", {
-        team
+        team,
+        from: returnTo
       });
     },
     className: "tap",
@@ -1715,7 +1726,8 @@ function TeamQuickEditSheetLive({
       team,
       isOwner: true,
       navigate,
-      openSheet
+      openSheet,
+      returnTo: returnTo || "habits"
     }),
     className: "tap",
     style: {
@@ -3264,7 +3276,8 @@ function TeamChatLive() {
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: team.name,
     onBack: () => navigate("team-detail", {
-      team
+      team,
+      from: params?.from
     }),
     right: (() => {
       var n = memberCount != null ? memberCount : team.members && team.members.length;

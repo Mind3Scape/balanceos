@@ -470,7 +470,8 @@ function GoalDetailPersonalLive() {
       onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
         mode: "edit",
         goal: g,
-        navigate: navigate
+        navigate: navigate,
+        returnTo: back
       }))
     })
   }), /*#__PURE__*/React.createElement("div", {
