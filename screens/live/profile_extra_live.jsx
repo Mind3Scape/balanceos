@@ -219,7 +219,7 @@ function FriendPreviewSheetLive({ friend, pub, navigate }) {
   const habits = (o.habits || []).map((h) => ({ emoji: (h && h.e) || "✨", color: (h && h.c) || null }));
   const goTeam = (t) => { close(); if (typeof navigate === "function") navigate("team-detail", { team: t, from: "friends" }); };
   return (
-    <div style={{ padding: "0 18px 20px", maxHeight: "84vh", overflowY: "auto", WebkitOverflowScrolling: "touch", textAlign: "center" }}>
+    <div className="bos-sheet-scroll" style={{ paddingLeft: 18, paddingRight: 18, textAlign: "center" }}>
       {typeof OrbitField === "function" ? (
         <div style={{ marginTop: -8 }}>
           <OrbitField avatar={friend.avatar} name={friend.name} habits={habits} people={[]} levelPct={o.lvlPct || 2} dark={isDark} hideLevelArc editable={false} levelBadge={o.level || 0} />

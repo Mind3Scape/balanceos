@@ -261,6 +261,21 @@ function bosTileGlass(isDark) {
 // Блик тема-зависимый: в тёмной CSS-переменные гасят белый градиент (David: «пересвечено»),
 // в светлой фолбэки держат прежний вид. ОДНО место — все плитки/чипы/кнопки сразу.
 const BOS_TILE_SHEEN = "linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.55)), var(--sheen-b, rgba(255,255,255,0.12)) 46%, rgba(255,255,255,0) 72%)";
+// КРУГЛОЕ стекло — для ДИСКА ВНУТРИ КОЛЬЦА (свотч пикера в кольце выбора, центр орбиты в кольце
+// прогресса). Направленный блик выбеливал ВЕРХ цветного круга — верхний край таял в светлый зазор,
+// и кольцо казалось сверху дальше, чем снизу (David). Здесь блик радиальный и ГАСНЕТ ДО КРАЁВ
+// (closest-side от точки 50%/38% докасается ровно до верхней кромки, где уже прозрачен): свет
+// по-прежнему «сверху», но силуэт круга остаётся чётким по всей окружности → зазор до кольца
+// читается одинаковым со всех сторон. Плитки/пилюли не трогаем — у них BOS_TILE_SHEEN.
+const BOS_ORB_SHEEN = "radial-gradient(closest-side at 50% 38%, var(--sheen-a, rgba(255,255,255,0.5)), rgba(255,255,255,0.07) 66%, rgba(255,255,255,0) 92%)";
+// Пара к BOS_ORB_SHEEN: РАВНОМЕРНАЯ стекло-тень круга. У bosTileGlass верхняя белая кромка +
+// капля-тень ВНИЗ — на круге в кольце обе тоже «сдвигали» его оптически. Тут ободок и ореол
+// одинаковы по всей окружности.
+function bosOrbGlass(isDark) {
+  return isDark
+    ? "inset 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 0.7px rgba(255,255,255,0.06), 0 0 2px rgba(0,0,0,0.22)"
+    : "inset 0 0 1px rgba(255,255,255,0.85), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 0 2px rgba(0,0,0,0.07)";
+}
 // Grey GLASS pill — the «Быстрое добавление» chip look (grey base) + a soft glass sheen + bright
 // top edge. ONE source so the home hero pills and the Habits quick-add chips stay identical
 // (David: стекло на пилюли + континьюити). Spread into a chip's inline style; pair with border:0.
@@ -1209,6 +1224,11 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   var sheen = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "");
   var discBg = sheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))");
   var discShadow = (typeof bosTileGlass === "function" ? bosTileGlass(dark) : "0 1px 3px rgba(0,0,0,0.12)");
+  // ЦЕНТР живёт внутри кольца прогресса → круглое стекло (блик внутри, тень равномерная):
+  // направленный блик выбеливал верх и кольцо казалось несимметричным (David). Спутники на
+  // линиях орбит — без охватывающего кольца, их стекло не трогаем (вид устраивает).
+  var orbSheen = (typeof BOS_ORB_SHEEN !== "undefined" ? BOS_ORB_SHEEN + ", " : sheen);
+  var orbShadow = (typeof bosOrbGlass === "function" ? bosOrbGlass(dark) : discShadow);
   // Центр = ПОДЛОЖКА ИКОНКИ ЦЕЛИ → красится в НАСЫЩЕННЫЙ тон цвета цели (David: «цвет должен влиять на
   // подложку иконки цели»). Реальный цвет → тон + белый глиф; нейтральный → тот же серый диск. Привычки/
   // люди на кольцах остаются серыми (они не цель).
@@ -1217,10 +1237,10 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   // светлая — осветляем к белому (пастель), тёмная — углубляем к тёмной подложке
   // (насыщенный глубокий тон, без «засветки»).
   var centerBg = cReal
-    ? (sheen + (dark
+    ? (orbSheen + (dark
         ? ((typeof bosMixHex === "function") ? bosMixHex(centerColor, "#101014", 0.22) : centerColor)
         : ((typeof bosLightenHex === "function") ? bosLightenHex(centerColor, 0.25) : centerColor)))
-    : discBg;
+    : (orbSheen + (dark ? "linear-gradient(160deg, #464c58, #30353f)" : "linear-gradient(160deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))"));
   var centerInk = cReal ? "#fff" : null;
   // Цвет цели красит и КРУЖОЧКИ ПРИВЫЧЕК на орбитах (David: «пикер применяет цвет во всём
   // блоке»). Светлая: светлый тон; тёмная: тёмный тон того же оттенка. Лица людей не трогаем.
@@ -1261,7 +1281,7 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
       {hRings.rings.map(function (rg) { return renderRing(rg.R, rg.k, rg.items, hSz, hIcon, false); })}
       {pRings.rings.map(function (rg) { return renderRing(rg.R, rg.k, rg.items, pSz, hIcon, true); })}
       {/* центр = значок цели, СТАТИЧНЫЙ по центру */}
-      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: centerBg, boxShadow: (progress != null && progress >= 1) ? (discShadow + ", 0 0 13px " + accent + (dark ? "66" : "4d")) : discShadow, transition: "box-shadow 0.5s ease", display: "grid", placeItems: "center", fontSize: cIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, centerInk) : (centerEmoji || "🎯")}</span>
+      <span style={{ position: "absolute", left: C - cR, top: C - cR, width: cR * 2, height: cR * 2, borderRadius: "50%", background: centerBg, boxShadow: (progress != null && progress >= 1) ? (orbShadow + ", 0 0 13px " + accent + (dark ? "66" : "4d")) : orbShadow, transition: "box-shadow 0.5s ease", display: "grid", placeItems: "center", fontSize: cIcon, lineHeight: 1 }}>{typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, centerInk) : (centerEmoji || "🎯")}</span>
       {/* ПУЛЬС: тонкое кольцо прогресса цели вокруг центра (личная цель и команда — одинаково).
           conic-градиент, маской вырезано в кольцо ~2.5px; на 100% центр мягко светится (выше). */}
       {progress != null && (
@@ -2939,7 +2959,7 @@ function LivingCircleSheetLive({ circle: s, navigate }) {
   };
   const people = (s.faces || []).map(function (a) { return { avatar: a, name: "" }; });
   return (
-    <div style={{ padding: "2px 20px 20px", maxHeight: "82vh", overflowY: "auto", WebkitOverflowScrolling: "touch", textAlign: "center" }}>
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 20, paddingRight: 20, textAlign: "center" }}>
       {/* Орбита — круг живёт: в центре его значок, на кольцах привычки и люди. */}
       <div style={{ width: 190, height: 190, margin: "2px auto 0", display: "grid", placeItems: "center" }}>
         {typeof GoalOrbitMini === "function"
@@ -3579,8 +3599,10 @@ function bosColorSwatch(hx, selected) {
   var isBlack = raw.toLowerCase() === "#0a0a0a";
   var isGrey = raw === BOS_GREY;
   var tone = isBlack ? "#3b3f47" : (isGrey ? "#e9ebf0" : ((typeof bosLightenHex === "function") ? bosLightenHex(raw, 0.42) : raw));
-  var sheen = "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)";
-  var glass = (typeof bosTileGlass === "function") ? bosTileGlass(false) : "inset 0 1px 1px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.1)";
+  // Круглое стекло: блик внутри, края чистые — иначе выбеленный верх сливался с белым зазором
+  // кольца выбора и кольцо казалось несимметричным (David). Тень — равномерная, без капли вниз.
+  var sheen = (typeof BOS_ORB_SHEEN !== "undefined") ? BOS_ORB_SHEEN : "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)";
+  var glass = (typeof bosOrbGlass === "function") ? bosOrbGlass(false) : "inset 0 0 1px rgba(255,255,255,0.7), 0 0 2px rgba(0,0,0,0.1)";
   var ring = isGrey ? "#c2c7d2" : raw;
   return {
     background: sheen + ", " + tone,
@@ -3593,8 +3615,8 @@ function bosColorSwatch(hx, selected) {
 function BosColorPickerLive({ value, onChange }) {
   const isHex = typeof value === "string" && value[0] === "#";
   const custom = isHex && value !== "#0a0a0a" && value !== BOS_GREY && !BOS_APPLE_COLORS.includes(value);
-  const sheen = "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)"; // верт. стекло, не шар (David)
-  const glass = (typeof bosTileGlass === "function") ? bosTileGlass(false) : "inset 0 1px 1px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.1)";
+  const sheen = (typeof BOS_ORB_SHEEN !== "undefined") ? BOS_ORB_SHEEN : "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)"; // круглое стекло: края чистые → кольцо выбора симметрично (David)
+  const glass = (typeof bosOrbGlass === "function") ? bosOrbGlass(false) : "inset 0 0 1px rgba(255,255,255,0.7), 0 0 2px rgba(0,0,0,0.1)";
   const base = { width: 32, height: 32, borderRadius: "50%", border: 0, flexShrink: 0, cursor: "pointer", transition: "box-shadow 0.15s" };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "10px 8px" }}>

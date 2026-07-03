@@ -130,7 +130,7 @@ function CreatePickerSheetLive({ navigate, custom = true }) {
     ? (c.days + " " + bosDaysWord(c.days) + " подряд · +" + c.bonus + " XP")
     : (c.target + " " + (c.unit || "") + " · +" + c.bonus + " XP");
   return (
-    <div style={{ padding: "2px 16px 20px", maxHeight: "84vh", overflowY: "auto", WebkitOverflowScrolling: "touch", color: "var(--text)" }}>
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
       {/* Серый фон + белые карточки — язык страниц приложения (David: «бэкграунд слегка серенький»). */}
       {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
       <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px" }}>{custom ? "Создать" : "Готовые челленджи"}</div>
@@ -631,9 +631,19 @@ function HabitsLive() {
     const pct = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
     const sk = goalSkin(t.accent || t.color);
     const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t, from: "habits" });
-    const members = t.members || [];
+    // t.members из облачного списка бывает ЧИСЛОМ (count), из снапшота — массивом лиц: guard.
+    const members = Array.isArray(t.members) ? t.members : [];
+    // УНИФИКАЦИЯ с плиткой цели и деталью команды (David: «чуть не унифицировано местами»):
+    // пульс и здесь — привычка done горит своим цветом (через МОЮ локальную копию по teamHabitId,
+    // id-guard от офлайн-команд без id), лицо участника с отметкой сегодня получает колечко.
+    const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+    const orbitHabits = (t.habits || []).map((h) => {
+      const mine = (h && h.id != null) ? (habits || []).find((x) => x.teamHabitId === h.id) : null;
+      return { emoji: h && h.emoji, color: (mine && mine.color) || null, done: !!(mine && mine.done) };
+    });
+    const orbitPeople = members.filter(Boolean).map((m) => ({ avatar: m.avatar, name: m.name, active: !!(_tk && m.days && m.days[_tk]) }));
     const orbit = goalStyle.orbits && typeof GoalOrbitMini === "function"
-      ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={(t.habits || []).map((h) => ({ emoji: h.emoji }))} people={members} size={banner ? 132 : 152} dark={isDark} fade progress={pct} />
+      ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={orbitHabits} people={orbitPeople} size={banner ? 132 : 152} dark={isDark} fade progress={pct} />
       : null;
     const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={20} max={3} /></span> : null;
     const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;

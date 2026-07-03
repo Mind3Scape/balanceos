@@ -91,14 +91,30 @@ body {
   overflow: hidden;
   transform: translateY(100%);
   transition: transform 0.36s cubic-bezier(0.32, 0.72, 0, 1);
+  /* flex-колонка: тело .bos-sheet-scroll само сжимается под потолок панели, без vh-математики. */
+  display: flex;
+  flex-direction: column;
 }
 .bos-sheet.is-up { transform: translateY(0); }
+/* Прокручиваемое ТЕЛО шторки. Раньше зона скролла кончалась НАД нижним отступом панели
+   (22px + сейф-зона) — под контентом лежала «мёртвая» полоса в цвет шторки, будто блок,
+   обрезающий контент снизу (David). Тело заезжает на этот отступ отрицательным margin и
+   несёт сейф-зону ВНУТРИ скролла: контент доезжает до самого низа, как родная iOS-шторка. */
+.bos-sheet-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-bottom: calc(-22px - var(--bos-safe-bottom));
+  padding-bottom: calc(28px + var(--bos-safe-bottom));
+}
+.bos-sheet-scroll::-webkit-scrollbar { display: none; }
 .bos-sheet.is-dark { background: #1c1c1e; color: #fff; box-shadow: 0 -12px 50px rgba(0,0,0,0.6); }
 /* Серые форм-шторки: контент помечает себя [data-sheet-grey] — красим САМУ панель, чтобы серый
    доходил до скруглённого верха и не кончался при прокрутке (белые полосы — баг David). */
 .bos-sheet:has([data-sheet-grey]) { background: var(--bg, #f2f2f4); }
 .bos-sheet.is-dark:has([data-sheet-grey]) { background: #151517; }
-.bos-sheet-handle { padding: 8px 0 6px; display: flex; justify-content: center; touch-action: none; cursor: grab; }
+.bos-sheet-handle { padding: 8px 0 6px; display: flex; justify-content: center; touch-action: none; cursor: grab; flex: 0 0 auto; }
 .bos-sheet-grab { width: 38px; height: 5px; border-radius: 3px; background: rgba(120,120,128,0.4); }
 .bos-sheet.is-dark .bos-sheet-grab { background: rgba(235,235,245,0.3); }
 

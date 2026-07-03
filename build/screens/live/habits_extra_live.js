@@ -224,8 +224,11 @@ function HabitFormSheetLive({
   // вложенный openSheet заменил бы форму и потерял ввод.
   if (view === "picker") {
     return /*#__PURE__*/React.createElement("div", {
+      className: "bos-sheet-scroll",
       style: {
-        padding: "2px 16px 18px"
+        paddingTop: 2,
+        paddingLeft: 16,
+        paddingRight: 16
       }
     }, /*#__PURE__*/React.createElement(EmojiPickerLive, {
       embedded: true,
@@ -254,8 +257,9 @@ function HabitFormSheetLive({
   // ВТОРОЙ ВЬЮ: «Пригласить» — реальный шаринг, с возвратом к форме.
   if (view === "share") {
     return /*#__PURE__*/React.createElement("div", {
+      className: "bos-sheet-scroll",
       style: {
-        padding: "2px 0 18px"
+        paddingTop: 2
       }
     }, /*#__PURE__*/React.createElement(ShareHabitSheetLive, {
       habit: {
@@ -279,11 +283,11 @@ function HabitFormSheetLive({
     }, "\u2190 \u041D\u0430\u0437\u0430\u0434 \u043A \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0435"));
   }
   return /*#__PURE__*/React.createElement("div", {
+    className: "bos-sheet-scroll",
     style: {
-      padding: "2px 16px 20px",
-      maxHeight: "80vh",
-      overflowY: "auto",
-      WebkitOverflowScrolling: "touch"
+      paddingTop: 2,
+      paddingLeft: 16,
+      paddingRight: 16
     }
   }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
     title: editing ? "Изменить привычку" : "Новая привычка",
@@ -996,8 +1000,11 @@ function GoalFormSheetLive({
   // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (единая логика с формой привычки).
   if (view === "picker") {
     return /*#__PURE__*/React.createElement("div", {
+      className: "bos-sheet-scroll",
       style: {
-        padding: "2px 16px 18px"
+        paddingTop: 2,
+        paddingLeft: 16,
+        paddingRight: 16
       }
     }, /*#__PURE__*/React.createElement(EmojiPickerLive, {
       embedded: true,
@@ -1024,11 +1031,11 @@ function GoalFormSheetLive({
     }, "\u041D\u0430\u0437\u0430\u0434"));
   }
   return /*#__PURE__*/React.createElement("div", {
+    className: "bos-sheet-scroll",
     style: {
-      padding: "2px 16px 20px",
-      maxHeight: "80vh",
-      overflowY: "auto",
-      WebkitOverflowScrolling: "touch"
+      paddingTop: 2,
+      paddingLeft: 16,
+      paddingRight: 16
     }
   }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
     title: editing ? "Изменить цель" : "Новая цель",

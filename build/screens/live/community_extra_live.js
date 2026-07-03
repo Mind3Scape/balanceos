@@ -1391,8 +1391,11 @@ function TeamQuickEditSheetLive({
   };
   if (view === "picker") {
     return /*#__PURE__*/React.createElement("div", {
+      className: "bos-sheet-scroll",
       style: {
-        padding: "2px 16px 18px"
+        paddingTop: 2,
+        paddingLeft: 16,
+        paddingRight: 16
       }
     }, /*#__PURE__*/React.createElement(EmojiPickerLive, {
       embedded: true,
@@ -1419,10 +1422,11 @@ function TeamQuickEditSheetLive({
     }, "\u041D\u0430\u0437\u0430\u0434"));
   }
   return /*#__PURE__*/React.createElement("div", {
+    className: "bos-sheet-scroll",
     style: {
-      padding: "2px 18px 20px",
-      maxHeight: "80vh",
-      overflowY: "auto"
+      paddingTop: 2,
+      paddingLeft: 18,
+      paddingRight: 18
     }
   }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
     title: "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0446\u0435\u043B\u044C",

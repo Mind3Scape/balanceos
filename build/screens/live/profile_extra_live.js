@@ -601,11 +601,10 @@ function FriendPreviewSheetLive({
     });
   };
   return /*#__PURE__*/React.createElement("div", {
+    className: "bos-sheet-scroll",
     style: {
-      padding: "0 18px 20px",
-      maxHeight: "84vh",
-      overflowY: "auto",
-      WebkitOverflowScrolling: "touch",
+      paddingLeft: 18,
+      paddingRight: 18,
       textAlign: "center"
     }
   }, typeof OrbitField === "function" ? /*#__PURE__*/React.createElement("div", {

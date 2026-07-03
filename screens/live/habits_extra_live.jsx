@@ -150,7 +150,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   // вложенный openSheet заменил бы форму и потерял ввод.
   if (view === "picker") {
     return (
-      <div style={{ padding: "2px 16px 18px" }}>
+      <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
         <EmojiPickerLive embedded current={iconPick} accent={color} onPick={(e) => { setIconPick(e); setView("form"); }} />
         <button onClick={() => setView("form")} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Назад</button>
       </div>
@@ -159,7 +159,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   // ВТОРОЙ ВЬЮ: «Пригласить» — реальный шаринг, с возвратом к форме.
   if (view === "share") {
     return (
-      <div style={{ padding: "2px 0 18px" }}>
+      <div className="bos-sheet-scroll" style={{ paddingTop: 2 }}>
         <ShareHabitSheetLive habit={{ name: name.trim() || "Новая привычка", emoji: iconPick, color }} />
         <button onClick={() => setView("form")} className="tap" style={{ width: "calc(100% - 40px)", margin: "10px 20px 0", background: "transparent", border: 0, padding: "10px", fontSize: 13.5, fontWeight: 600, color: "var(--text-3)" }}>← Назад к привычке</button>
       </div>
@@ -167,7 +167,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   }
 
   return (
-    <div style={{ padding: "2px 16px 20px", maxHeight: "80vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
       {/* Серый фон шторки + белые карточки — как страницы приложения (David). */}
       {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
       {typeof SheetFormHeadLive === "function"
@@ -447,7 +447,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // ВТОРОЙ ВЬЮ: эмодзи-пикер внутри той же шторки (единая логика с формой привычки).
   if (view === "picker") {
     return (
-      <div style={{ padding: "2px 16px 18px" }}>
+      <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
         <EmojiPickerLive embedded current={iconPick} accent={color} onPick={(e) => { setIconPick(e); setView("form"); }} />
         <button onClick={() => setView("form")} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Назад</button>
       </div>
@@ -455,7 +455,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   }
 
   return (
-    <div style={{ padding: "2px 16px 20px", maxHeight: "80vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
       {/* Серый фон шторки + белые карточки — как страницы приложения (David). */}
       {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
       {typeof SheetFormHeadLive === "function"

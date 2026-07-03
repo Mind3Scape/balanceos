@@ -530,14 +530,14 @@ function TeamQuickEditSheetLive({ team, navigate }) {
   };
   if (view === "picker") {
     return (
-      <div style={{ padding: "2px 16px 18px" }}>
+      <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
         <EmojiPickerLive embedded current={emblem} accent={accent} onPick={(e) => { setEmblem(e); setView("form"); }} />
         <button onClick={() => setView("form")} className="tap" style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: 0, borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 600, color: "var(--text-2)" }}>Назад</button>
       </div>
     );
   }
   return (
-    <div style={{ padding: "2px 18px 20px", maxHeight: "80vh", overflowY: "auto" }}>
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 18, paddingRight: 18 }}>
       {/* Единый язык форм-шторок: серый фон + шапка ✕/✓ (David: «стандартизировать везде»). */}
       {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
       {typeof SheetFormHeadLive === "function"

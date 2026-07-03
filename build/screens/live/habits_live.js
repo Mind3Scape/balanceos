@@ -386,11 +386,11 @@ function CreatePickerSheetLive({
   };
   var sub = c => c.kind === "habit" ? c.days + " " + bosDaysWord(c.days) + " подряд · +" + c.bonus + " XP" : c.target + " " + (c.unit || "") + " · +" + c.bonus + " XP";
   return /*#__PURE__*/React.createElement("div", {
+    className: "bos-sheet-scroll",
     style: {
-      padding: "2px 16px 20px",
-      maxHeight: "84vh",
-      overflowY: "auto",
-      WebkitOverflowScrolling: "touch",
+      paddingTop: 2,
+      paddingLeft: 16,
+      paddingRight: 16,
       color: "var(--text)"
     }
   }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), /*#__PURE__*/React.createElement("div", {
@@ -1710,14 +1710,30 @@ function HabitsLive() {
       team: t,
       from: "habits"
     });
-    var members = t.members || [];
+    // t.members из облачного списка бывает ЧИСЛОМ (count), из снапшота — массивом лиц: guard.
+    var members = Array.isArray(t.members) ? t.members : [];
+    // УНИФИКАЦИЯ с плиткой цели и деталью команды (David: «чуть не унифицировано местами»):
+    // пульс и здесь — привычка done горит своим цветом (через МОЮ локальную копию по teamHabitId,
+    // id-guard от офлайн-команд без id), лицо участника с отметкой сегодня получает колечко.
+    var _tk = typeof bosTodayKey === "function" ? bosTodayKey() : null;
+    var orbitHabits = (t.habits || []).map(h => {
+      var mine = h && h.id != null ? (habits || []).find(x => x.teamHabitId === h.id) : null;
+      return {
+        emoji: h && h.emoji,
+        color: mine && mine.color || null,
+        done: !!(mine && mine.done)
+      };
+    });
+    var orbitPeople = members.filter(Boolean).map(m => ({
+      avatar: m.avatar,
+      name: m.name,
+      active: !!(_tk && m.days && m.days[_tk])
+    }));
     var orbit = goalStyle.orbits && typeof GoalOrbitMini === "function" ? /*#__PURE__*/React.createElement(GoalOrbitMini, {
       centerEmoji: t.emblem || "👥",
       centerColor: t.accent || t.color,
-      habits: (t.habits || []).map(h => ({
-        emoji: h.emoji
-      })),
-      people: members,
+      habits: orbitHabits,
+      people: orbitPeople,
       size: banner ? 132 : 152,
       dark: isDark,
       fade: true,
