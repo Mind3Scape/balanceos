@@ -105,6 +105,7 @@ const LIVE_SCREENS = {
   levels: () => LevelsLive,
   "course-detail": () => CourseDetailLive,
   "partner-detail": () => PartnerDetailLive,
+  "partners-all": () => PartnersAllLive,
   "contact-detail": () => ContactDetailLive,
   settings: () => SettingsLive,
   friends: () => FriendsLive,
@@ -186,7 +187,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v512";
+const APP_VERSION = "v513";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.

@@ -6581,12 +6581,34 @@ function PartnersShowcaseLive({
       textTransform: "uppercase",
       color: "var(--text-4)"
     }
-  }, "\uD83C\uDF81 \u041F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C XP"), /*#__PURE__*/React.createElement("span", {
+  }, "\uD83C\uDF81 \u041F\u043E\u0442\u0440\u0430\u0442\u0438\u0442\u044C XP"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+      navigate("partners-all", {
+        from: from
+      });
+    },
+    className: "tap",
     style: {
+      border: 0,
+      background: "transparent",
+      padding: 0,
       fontSize: 11.5,
-      color: "var(--text-4)"
+      fontWeight: 600,
+      color: "var(--text-3)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 3,
+      cursor: "pointer"
     }
-  }, "\u0436\u0438\u0432\u043E\u0435 \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 \u2192")), /*#__PURE__*/React.createElement("div", {
+  }, "\u0436\u0438\u0432\u043E\u0435 \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 12,
+    strokeWidth: 2.4
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "bos-hscroll",
     style: {
       display: "flex",
@@ -6690,6 +6712,175 @@ function PartnersShowcaseLive({
         fontSize: 12.5,
         fontWeight: 700,
         color: got ? isDarkP ? "#7dd89b" : "#1E8E4E" : isDarkP ? "#fff" : "#0a0a0a",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2
+      }
+    }, got ? /*#__PURE__*/React.createElement(I.Check, {
+      size: 14,
+      strokeWidth: 3
+    }) : /*#__PURE__*/React.createElement(React.Fragment, null, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+      size: 13
+    })))));
+  })));
+}
+
+// СТРАНИЦА «ВСЕ ПАРТНЁРЫ» — вертикальная сетка ВСЕХ живых впечатлений. David: «живое от партнёров»
+// намекало на страницу со всеми партнёрами, а её не было (мёртвая ссылка). Тот же вид карточек, что
+// в ленте PartnersShowcaseLive, но 2-в-ряд и целиком; тап → та же деталь. Открывается по «живое от партнёров →».
+function PartnersAllLive() {
+  var {
+    navigate,
+    params
+  } = useNav();
+  var app = typeof useApp === "function" ? useApp() : null;
+  var back = params && params.from || "community";
+  var isDark = app && app.themeOverride === "dark";
+  var [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
+  React.useEffect(function () {
+    var h = function () {
+      setRedeemed(bosLoadRedeemedPartners());
+    };
+    window.addEventListener("bos:partnersChanged", h);
+    return function () {
+      window.removeEventListener("bos:partnersChanged", h);
+    };
+  }, []);
+  var balance = typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : 0;
+  var open = p => {
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("selection");
+      } catch (e) {}
+    }
+    navigate("partner-detail", {
+      partner: p,
+      from: "partners-all"
+    });
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-in",
+    style: {
+      padding: "0 16px 24px"
+    }
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    dark: isDark,
+    title: "\u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B",
+    onBack: () => navigate(back),
+    right: /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        fontSize: 13,
+        fontWeight: 700,
+        color: "var(--text)"
+      }
+    }, "\uD83E\uDE99 ", balance)
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)",
+      padding: "0 2px 14px",
+      lineHeight: 1.45
+    }
+  }, "\u0416\u0438\u0432\u044B\u0435 \u0432\u043F\u0435\u0447\u0430\u0442\u043B\u0435\u043D\u0438\u044F \u043E\u0442 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u043E\u0432 \u2014 \u0442\u0440\u0430\u0442\u044C \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u044B\u0439 XP \u043D\u0430 \u0442\u043E, \u0447\u0442\u043E \u043F\u0440\u043E\u0438\u0441\u0445\u043E\u0434\u0438\u0442 \u0432\u0436\u0438\u0432\u0443\u044E."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 11
+    }
+  }, BOS_PARTNERS.map(p => {
+    var got = !!redeemed[p.id];
+    return /*#__PURE__*/React.createElement("div", {
+      key: p.id,
+      className: "tap",
+      onClick: () => open(p),
+      style: {
+        borderRadius: 22,
+        padding: 15,
+        minHeight: 172,
+        background: isDark ? "linear-gradient(158deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 58%), " + (typeof bosMixHex === "function" ? bosMixHex(p.accent, "#101014", 0.52) : p.accent) : "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent,
+        boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.4), inset 0 0 0 0.5px rgba(255,255,255,0.09)" : "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 34,
+        lineHeight: 1
+      }
+    }, p.emblem), p.used > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3.5,
+        fontSize: 10.5,
+        fontWeight: 600,
+        color: isDark ? "rgba(255,255,255,0.5)" : "rgba(27,27,31,0.48)",
+        paddingTop: 3,
+        whiteSpace: "nowrap"
+      }
+    }, /*#__PURE__*/React.createElement(I.Users, {
+      size: 11,
+      strokeWidth: 2.2
+    }), " ", p.used)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15,
+        fontWeight: 700,
+        color: isDark ? "#fff" : "#1b1b1f",
+        marginTop: 11,
+        letterSpacing: "-0.2px",
+        lineHeight: 1.2
+      }
+    }, p.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: isDark ? "rgba(255,255,255,0.66)" : "rgba(27,27,31,0.62)",
+        marginTop: 3,
+        lineHeight: 1.35,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+        minHeight: 31
+      }
+    }, p.what), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minHeight: 10
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        background: isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.82)",
+        color: isDark ? "#fff" : "#0a0a0a",
+        fontWeight: 800,
+        fontSize: 11.5,
+        borderRadius: 999,
+        padding: "4px 10px"
+      }
+    }, "\uD83E\uDE99 ", p.cost), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: got ? isDark ? "#7dd89b" : "#1E8E4E" : isDark ? "#fff" : "#0a0a0a",
         display: "inline-flex",
         alignItems: "center",
         gap: 2

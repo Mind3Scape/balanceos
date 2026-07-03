@@ -2735,7 +2735,7 @@ function PartnersShowcaseLive({ app, navigate, from = "community" }) {
     <div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🎁 Потратить XP</span>
-        <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>живое от партнёров →</span>
+        <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partners-all", { from: from }); }} className="tap" style={{ border: 0, background: "transparent", padding: 0, fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center", gap: 3, cursor: "pointer" }}>живое от партнёров <I.ChevronRight size={12} strokeWidth={2.4} /></button>
       </div>
       {/* padding-bottom 18 — иначе overflow-y (авто из-за overflow-x) СРЕЗАЕТ тень карточек в серую
           полосу «внизу обрезается» (David). Тень мягкая, чтобы не мутить фон. */}
@@ -2761,6 +2761,56 @@ function PartnersShowcaseLive({ app, navigate, from = "community" }) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: isDarkP ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.82)", color: isDarkP ? "#fff" : "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? (isDarkP ? "#7dd89b" : "#1E8E4E") : (isDarkP ? "#fff" : "#0a0a0a"), display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Открыть <I.ChevronRight size={13}/></>}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// СТРАНИЦА «ВСЕ ПАРТНЁРЫ» — вертикальная сетка ВСЕХ живых впечатлений. David: «живое от партнёров»
+// намекало на страницу со всеми партнёрами, а её не было (мёртвая ссылка). Тот же вид карточек, что
+// в ленте PartnersShowcaseLive, но 2-в-ряд и целиком; тап → та же деталь. Открывается по «живое от партнёров →».
+function PartnersAllLive() {
+  const { navigate, params } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const back = (params && params.from) || "community";
+  const isDark = app && app.themeOverride === "dark";
+  const [redeemed, setRedeemed] = React.useState(bosLoadRedeemedPartners);
+  React.useEffect(function () {
+    var h = function () { setRedeemed(bosLoadRedeemedPartners()); };
+    window.addEventListener("bos:partnersChanged", h);
+    return function () { window.removeEventListener("bos:partnersChanged", h); };
+  }, []);
+  const balance = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0;
+  const open = (p) => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: "partners-all" }); };
+  return (
+    <div className="page-in" style={{ padding: "0 16px 24px" }}>
+      <PageHeader dark={isDark} title="Партнёры" onBack={() => navigate(back)}
+        right={<span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: "var(--text)" }}>🪙 {balance}</span>} />
+      <div style={{ fontSize: 13, color: "var(--text-4)", padding: "0 2px 14px", lineHeight: 1.45 }}>Живые впечатления от партнёров — трать заработанный XP на то, что происходит вживую.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+        {BOS_PARTNERS.map((p) => {
+          const got = !!redeemed[p.id];
+          return (
+            <div key={p.id} className="tap" onClick={() => open(p)} style={{ borderRadius: 22, padding: 15, minHeight: 172,
+              background: isDark
+                ? "linear-gradient(158deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 58%), " + ((typeof bosMixHex === "function") ? bosMixHex(p.accent, "#101014", 0.52) : p.accent)
+                : "linear-gradient(158deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 58%), " + p.accent,
+              boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.4), inset 0 0 0 0.5px rgba(255,255,255,0.09)" : "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
+              cursor: "pointer", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 34, lineHeight: 1 }}>{p.emblem}</span>
+                {p.used > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 3.5, fontSize: 10.5, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.5)" : "rgba(27,27,31,0.48)", paddingTop: 3, whiteSpace: "nowrap" }}><I.Users size={11} strokeWidth={2.2} /> {p.used}</span>}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: isDark ? "#fff" : "#1b1b1f", marginTop: 11, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{p.name}</div>
+              <div style={{ fontSize: 11.5, color: isDark ? "rgba(255,255,255,0.66)" : "rgba(27,27,31,0.62)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{p.what}</div>
+              <div style={{ flex: 1, minHeight: 10 }} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "#0a0a0a", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "4px 10px" }}>🪙 {p.cost}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: got ? (isDark ? "#7dd89b" : "#1E8E4E") : (isDark ? "#fff" : "#0a0a0a"), display: "inline-flex", alignItems: "center", gap: 2 }}>{got ? <I.Check size={14} strokeWidth={3}/> : <>Открыть <I.ChevronRight size={13}/></>}</span>
               </div>
             </div>
           );
