@@ -351,9 +351,7 @@ function CommunityLive() {
   var _pulseWord = n => {
     var a = n % 10,
       b = n % 100;
-    if (a === 1 && b !== 11) return "человек держит практики";
-    if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return "человека держат практики";
-    return "человек держат практики";
+    return a === 1 && b !== 11 ? "человек в потоке" : a >= 2 && a <= 4 && (b < 12 || b > 14) ? "человека в потоке" : "человек в потоке";
   };
 
   // Real level for the live user — never the demo's curated 8/1240/2000. The
@@ -814,14 +812,12 @@ function CommunityLive() {
     app: app,
     navigate: navigate,
     onAll: filter === "all" ? () => setFilter("partners") : null
-  })), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, filter === "all" ? /*#__PURE__*/React.createElement(CirclesMosaicLive, {
-    kicker: "\uD83C\uDF31 \u041A\u0440\u0443\u0433\u0438 \u0434\u043B\u044F \u0442\u0435\u0431\u044F",
+  })), (filter === "all" || filter === "circles") && /*#__PURE__*/React.createElement(React.Fragment, null, filter === "all" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
+    title: "\uD83C\uDF31 \u041A\u0440\u0443\u0433\u0438 \u0434\u043B\u044F \u0442\u0435\u0431\u044F",
     onAll: () => setFilter("circles")
-  }, LIVING_CIRCLES.slice(0, 2).map(s => /*#__PURE__*/React.createElement(CircleTileLive, {
+  }), LIVING_CIRCLES.slice(0, 2).map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
     key: s.id,
-    emoji: s.i,
-    title: s.t,
-    meta: s.total + " человек · сегодня " + s.today + " в деле",
+    circle: s,
     onTap: () => {
       if (window.tgHaptic) {
         try {
@@ -833,7 +829,7 @@ function CommunityLive() {
         navigate: navigate
       }));
     }
-  })), SEED_CIRCLES.slice(0, 2).map(s => {
+  })), /*#__PURE__*/React.createElement(CirclesMosaicLive, null, SEED_CIRCLES.slice(0, 2).map(s => {
     var mine = (app?.teams || []).find(t => t.seedId === s.id);
     return /*#__PURE__*/React.createElement(CircleTileLive, {
       key: s.id,
@@ -854,22 +850,17 @@ function CommunityLive() {
           });
           return;
         }
-        _openSheet(/*#__PURE__*/React.createElement(ConfirmActionSheet, {
-          emoji: s.emblem,
-          title: s.name + " — начать?",
-          message: s.hook + " Круг появится в «Целях», практика — в «Привычках». +" + s.reward + " XP за финиш.",
-          confirmLabel: "\u041D\u0430\u0447\u0430\u0442\u044C",
-          onConfirm: () => bosStartSeedCircleLive(app, navigate, s)
+        _openSheet(/*#__PURE__*/React.createElement(ChallengeStartSheetLive, {
+          seed: s,
+          onStart: () => bosStartSeedCircleLive(app, navigate, s)
         }));
       }
     });
-  })) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CirclesMosaicLive, {
-    kicker: "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"
-  }, LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement(CircleTileLive, {
+  }))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
+    title: "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"
+  }), LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
     key: s.id,
-    emoji: s.i,
-    title: s.t,
-    meta: s.total + " человек · сегодня " + s.today + " в деле",
+    circle: s,
     onTap: () => {
       if (window.tgHaptic) {
         try {
@@ -881,7 +872,7 @@ function CommunityLive() {
         navigate: navigate
       }));
     }
-  }))), /*#__PURE__*/React.createElement(CirclesMosaicLive, {
+  })), /*#__PURE__*/React.createElement(CirclesMosaicLive, {
     kicker: "\uD83D\uDD25 \u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438"
   }, SEED_CIRCLES.map(s => {
     var mine = (app?.teams || []).find(t => t.seedId === s.id);
@@ -904,12 +895,9 @@ function CommunityLive() {
           });
           return;
         }
-        _openSheet(/*#__PURE__*/React.createElement(ConfirmActionSheet, {
-          emoji: s.emblem,
-          title: s.name + " — начать?",
-          message: s.hook + " Круг появится в «Целях», практика — в «Привычках». +" + s.reward + " XP за финиш.",
-          confirmLabel: "\u041D\u0430\u0447\u0430\u0442\u044C",
-          onConfirm: () => bosStartSeedCircleLive(app, navigate, s)
+        _openSheet(/*#__PURE__*/React.createElement(ChallengeStartSheetLive, {
+          seed: s,
+          onStart: () => bosStartSeedCircleLive(app, navigate, s)
         }));
       }
     });

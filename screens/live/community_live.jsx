@@ -163,7 +163,7 @@ function CommunityLive() {
     } catch (e) {}
     return () => { on = false; };
   }, []);
-  const _pulseWord = (n) => { const a = n % 10, b = n % 100; if (a === 1 && b !== 11) return "человек держит практики"; if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return "человека держат практики"; return "человек держат практики"; };
+  const _pulseWord = (n) => { const a = n % 10, b = n % 100; return (a === 1 && b !== 11) ? "человек в потоке" : (a >= 2 && a <= 4 && (b < 12 || b > 14)) ? "человека в потоке" : "человек в потоке"; };
 
   // Real level for the live user — never the demo's curated 8/1240/2000. The
   // typeof guard keeps this safe if the XP helpers aren't loaded yet.
@@ -336,11 +336,16 @@ function CommunityLive() {
                 чип «Круги» — все группы теми же плитками. Тапы прежние: живой → шторка-превью
                 с «Постучаться», челлендж → подтверждение → старт, пресет → форма создания. */}
             {filter === "all" ? (
-              <CirclesMosaicLive kicker="🌱 Круги для тебя" onAll={() => setFilter("circles")}>
-                {LIVING_CIRCLES.slice(0, 2).map((s) => (
-                  <CircleTileLive key={s.id} emoji={s.i} title={s.t} meta={s.total + " человек · сегодня " + s.today + " в деле"}
-                    onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
-                ))}
+              <React.Fragment>
+              {/* Живые круги — КАРТОЧКИ С ОРБИТАМИ (v527, David: «покажи, как круто это должно
+                  выглядеть — карточкой реальных кругов»): та же сцена, что у плитки совместной
+                  цели на «Привычках» — лица и привычки на настоящих кольцах. */}
+              <CommSectionHeadLive title="🌱 Круги для тебя" onAll={() => setFilter("circles")} />
+              {LIVING_CIRCLES.slice(0, 2).map((s) => (
+                <LivingCircleCardLive key={s.id} circle={s}
+                  onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
+              ))}
+              <CirclesMosaicLive>
                 {SEED_CIRCLES.slice(0, 2).map((s) => {
                   const mine = (app?.teams || []).find((t) => t.seedId === s.id);
                   return (
@@ -348,21 +353,19 @@ function CommunityLive() {
                       onTap={() => {
                         if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
                         if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
-                        _openSheet(<ConfirmActionSheet emoji={s.emblem} title={s.name + " — начать?"}
-                          message={s.hook + " Круг появится в «Целях», практика — в «Привычках». +" + s.reward + " XP за финиш."}
-                          confirmLabel="Начать" onConfirm={() => bosStartSeedCircleLive(app, navigate, s)} />);
+                        _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
                       }} />
                   );
                 })}
               </CirclesMosaicLive>
+              </React.Fragment>
             ) : (
               <React.Fragment>
-                <CirclesMosaicLive kicker="✨ Живые круги">
-                  {LIVING_CIRCLES.map((s) => (
-                    <CircleTileLive key={s.id} emoji={s.i} title={s.t} meta={s.total + " человек · сегодня " + s.today + " в деле"}
-                      onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
-                  ))}
-                </CirclesMosaicLive>
+                <CommSectionHeadLive title="✨ Живые круги" />
+                {LIVING_CIRCLES.map((s) => (
+                  <LivingCircleCardLive key={s.id} circle={s}
+                    onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
+                ))}
                 <CirclesMosaicLive kicker="🔥 Челленджи">
                   {SEED_CIRCLES.map((s) => {
                     const mine = (app?.teams || []).find((t) => t.seedId === s.id);
@@ -371,9 +374,7 @@ function CommunityLive() {
                         onTap={() => {
                           if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
                           if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
-                          _openSheet(<ConfirmActionSheet emoji={s.emblem} title={s.name + " — начать?"}
-                            message={s.hook + " Круг появится в «Целях», практика — в «Привычках». +" + s.reward + " XP за финиш."}
-                            confirmLabel="Начать" onConfirm={() => bosStartSeedCircleLive(app, navigate, s)} />);
+                          _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
                         }} />
                     );
                   })}

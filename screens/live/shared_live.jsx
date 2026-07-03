@@ -3424,6 +3424,78 @@ function NetworkPeekLive({ unlocked, onOpen }) {
   );
 }
 
+/* КАРТОЧКА живого круга (v527, David: «мог бы использовать карточку реальных кругов —
+   показать, как круто это должно выглядеть; орбиты нигде не использованы»): полноширинная,
+   КАК настоящая плитка совместной цели на «Привычках» — слева имя + живое «сегодня N в деле»
+   + чипы привычек, справа НАСТОЯЩАЯ орбита GoalOrbitMini (привычки круга + лица людей).
+   Тап → та же шторка-превью с «Постучаться». */
+function LivingCircleCardLive({ circle: s, onTap }) {
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  const people = (s.faces || []).map(function (a) { return { avatar: a, name: "" }; });
+  return (
+    <button onClick={onTap} className="tap" style={{ width: "100%", background: "var(--card)", border: 0, borderRadius: 22, padding: "14px 8px 14px 16px", boxShadow: "var(--card-shadow)", textAlign: "left", color: "var(--text)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", overflow: "hidden" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", lineHeight: 1.2 }}>{s.t}</div>
+        <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4, fontWeight: 500 }}>
+          {s.total} человек · <b style={{ color: "#1E8E4E", fontWeight: 700 }}>сегодня {s.today} в деле</b>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 7, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{s.hook}</div>
+        <div style={{ display: "flex", gap: 5, marginTop: 9, flexWrap: "wrap" }}>
+          {(s.habits || []).slice(0, 3).map(function (h, i) {
+            return (
+              <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, ...((typeof bosChipGlass === "function") ? bosChipGlass(isDark) : { background: "var(--card-2)" }), padding: "4px 9px 4px 6px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
+                <span style={{ fontSize: 12 }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, 12, null) : h.emoji}</span>{h.name}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ width: 132, height: 132, flexShrink: 0, display: "grid", placeItems: "center" }}>
+        {typeof GoalOrbitMini === "function"
+          ? <GoalOrbitMini centerEmoji={s.i} centerColor={null} habits={s.habits || []} people={people} size={132} dark={isDark} />
+          : <span style={{ fontSize: 40 }}>{s.i}</span>}
+      </div>
+    </button>
+  );
+}
+
+/* ШТОРКА старта челленджа (v527, David: «шторка вступления угрожающая, как удалить — не в
+   тему»): ТЁПЛОЕ приглашение вместо confirm-модалки — эмблема в стекле, что получишь
+   (круг + ежедневная практика + приз), «Начать» как праздник, «Не сейчас» тихой строкой. */
+function ChallengeStartSheetLive({ seed: s, onStart }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : null;
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  const close = () => { try { if (sheet && sheet.close) sheet.close(); } catch (e) {} };
+  const rows = [
+    ["🌱", "Круг появится в «Целях» — зови своих"],
+    [(s.practice && s.practice.emoji) || "🔥", "Практика «" + ((s.practice && s.practice.name) || "каждый день") + "» — в «Привычках»"],
+    ["⚡", "+" + (s.reward || 0) + " XP за финиш — пропуск не сжигает бонус"],
+  ];
+  return (
+    <div style={{ padding: "2px 22px 26px", textAlign: "center", color: "var(--text)" }}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <div style={{ width: 76, height: 76, borderRadius: 21, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 37 }}>{typeof bosIcon === "function" ? bosIcon(s.emblem, 37, null) : s.emblem}</div>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginTop: 14 }}>Челлендж · {s.goalText}</div>
+      <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.5px", marginTop: 3 }}>{s.name}</div>
+      <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 8, lineHeight: 1.5, padding: "0 6px", textWrap: "balance" }}>{s.hook}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 16, textAlign: "left" }}>
+        {rows.map(function (r, i) {
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 11, background: isDark ? "rgba(255,255,255,0.06)" : "#f4f4f6", borderRadius: 15, padding: "11px 13px" }}>
+              <span style={{ fontSize: 19, flexShrink: 0 }}>{r[0]}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-2)", lineHeight: 1.35 }}>{r[1]}</span>
+            </div>
+          );
+        })}
+      </div>
+      <button onClick={function () { close(); onStart(); }} className="bos-btn" style={{ marginTop: 20 }}>Начать</button>
+      <button onClick={close} className="tap" style={{ display: "block", margin: "12px auto 0", border: 0, background: "transparent", fontSize: 13.5, fontWeight: 600, color: "var(--text-4)", cursor: "pointer" }}>Не сейчас</button>
+    </div>
+  );
+}
+
+
 /* ШТОРКА живого круга — «заглянуть внутрь»: орбита (привычки круга + лица на кольцах — тот же
    GoalOrbitMini, что на карточках целей), о чём круг, чипы привычек и «Постучаться в круг».
    Тап по «Постучаться» → «Заявка отправлена — её рассмотрят». Внизу тихая ссылка «Собрать
