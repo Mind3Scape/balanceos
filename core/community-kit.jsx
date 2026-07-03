@@ -607,5 +607,16 @@ async function bosExitTeam({ app, team, isOwner }) {
     }
   } catch (e) {}
   if (app && app.removeTeam && team) app.removeTeam(team._id);
+  // Копии командных привычек ПЕРЕЖИВАЮТ круг как обычные личные: отвязываем линк (миррор в
+  // мёртвый круг больше не нужен) и снимаем с «полки» (shelved) — иначе спрятанная копия
+  // застряла бы навсегда без страницы круга, где живёт кнопка «Вернуть к себе».
+  try {
+    const tid = team && (team.cloudId || team._id);
+    ((app && app.habits) || []).forEach((h) => {
+      if (!h || !h.teamHabitId || !app.updateHabit) return;
+      const linked = (tid && h.teamId === tid) || (team && Array.isArray(team.habits) && team.habits.some((x) => x && x.id === h.teamHabitId));
+      if (linked) app.updateHabit(h.id, { teamId: null, teamHabitId: null, shelved: false });
+    });
+  } catch (e) {}
 }
 /* Open the iOS confirm sheet for leaving/deleting, wired to bosExitTeam + navigate-back. */

@@ -921,6 +921,11 @@ function TeamDetailLive() {
               {_rosterLive && !adopted && (
                 <button onClick={() => adoptTeamHabit(h)} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вести у себя</button>
               )}
+              {/* Г: копия «убрана с моей страницы» (shelved) — вернуть можно ОТСЮДА, со страницы
+                  круга (David). История и опыт целы — просто снимаем с полки. */}
+              {_rosterLive && adopted && adopted.shelved && (
+                <button onClick={() => { if (app?.updateHabit) app.updateHabit(adopted.id, { shelved: false }); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вернуть к себе</button>
+              )}
             </div>
           );
         })}

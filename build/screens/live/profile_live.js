@@ -65,7 +65,9 @@ function ProfileLive() {
   // «Вселенная» — their orbits with my habits/people, как у меня (David). World-readable; no-ops until
   // David adds the pub_orbit column. Only emoji+colour leave the device (no habit names). Re-publishes
   // when anything changes via a small signature string.
-  var _pubHabits = (app?.habits || []).map(h => ({
+  // Скрытые копии привычек круга (shelved, Г) и goalOnly не светятся ни на орбите, ни в витрине.
+  var _visHabits = (app?.habits || []).filter(h => !h.shelved && !h.goalOnly);
+  var _pubHabits = _visHabits.map(h => ({
     e: h.emoji,
     c: h.color
   }));
@@ -211,7 +213,7 @@ function ProfileLive() {
   }, /*#__PURE__*/React.createElement(OrbitField, {
     avatar: app?.avatar,
     name: app?.userName,
-    habits: app?.habits || [],
+    habits: _visHabits,
     people: orbitPeople,
     levelPct: lvlPct,
     moodC: app?.mood?.c,
@@ -498,7 +500,7 @@ function AILive() {
   // brief the AI generated for them at login. No scripted "Павел" insights.
   var isDarkAI = app.themeOverride === "dark"; // тёмная тема: тёмное стекло кнопки/чипов
   var brief = app.aiBrief || null;
-  var liveHabits = app.habits || [];
+  var liveHabits = (app.habits || []).filter(h => !h.shelved && !h.goalOnly);
   var doneToday = liveHabits.filter(h => h && h.done).length;
   var maxStreak = typeof bosMaxStreak === "function" ? bosMaxStreak(liveHabits) : 0;
   var liveXP = typeof bosLiveXPLive === "function" ? bosLiveXPLive(app) : 0;

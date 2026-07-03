@@ -2103,7 +2103,30 @@ function TeamDetailLive() {
         color: "var(--text-3)",
         whiteSpace: "nowrap"
       }
-    }, "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F"));
+    }, "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F"), _rosterLive && adopted && adopted.shelved && /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        if (app?.updateHabit) app.updateHabit(adopted.id, {
+          shelved: false
+        });
+        if (window.tgHaptic) {
+          try {
+            window.tgHaptic("success");
+          } catch (e) {}
+        }
+      },
+      className: "tap",
+      style: {
+        flexShrink: 0,
+        background: "transparent",
+        border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"),
+        borderRadius: 999,
+        padding: "5px 10px",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--text-3)",
+        whiteSpace: "nowrap"
+      }
+    }, "\u0412\u0435\u0440\u043D\u0443\u0442\u044C \u043A \u0441\u0435\u0431\u0435"));
   }), teamHabits.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "14px 14px 2px",

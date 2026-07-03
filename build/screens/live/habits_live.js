@@ -1206,6 +1206,36 @@ function HabitsLive() {
     }
     var h = habits.find(x => "h" + x.id === key);
     if (!h) return;
+    if (h.teamHabitId) {
+      // Г (David): привычку круга участник НЕ удаляет — её задаёт создатель круга как условие.
+      // Вместо «Удалить» → «Убрать с моей страницы»: копия прячется (shelved), история и опыт
+      // целы, отметка из круга продолжает работать; вернуть — на странице круга «Вернуть к себе».
+      openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
+        habit: h,
+        dark: isDark,
+        kindLabel: "\u041E\u0431\u0449\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u043A\u0440\u0443\u0433\u0430",
+        onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
+          habit: h,
+          dark: isDark
+        })),
+        onReorder: openReorder,
+        deleteLabel: "\u0423\u0431\u0440\u0430\u0442\u044C \u0441 \u043C\u043E\u0435\u0439 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B",
+        deleteIcon: /*#__PURE__*/React.createElement(I.X, {
+          size: 18
+        }),
+        onDelete: () => bosConfirmDelete(openSheet, {
+          title: "Убрать с моей страницы?",
+          message: "«" + h.name + "» — общая привычка круга: в круге она останется, история и опыт сохранятся. Вернуть можно на странице круга.",
+          confirmLabel: "Убрать",
+          onConfirm: () => {
+            if (app?.updateHabit) app.updateHabit(h.id, {
+              shelved: true
+            });
+          }
+        })
+      }));
+      return;
+    }
     openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
       habit: h,
       dark: isDark,
@@ -1244,7 +1274,8 @@ function HabitsLive() {
   // Смешанный список: привычки + цели в едином порядке (ключи "h<id>"/"g<id>"), отсортированы по
   // сохранённому порядку перестановки; новые элементы — в конец.
   var entries = React.useMemo(() => {
-    var all = habits.filter(h => !h.goalOnly).map(h => ({
+    // shelved = «убрана с моей страницы» (Г): копия привычки круга спрятана, история и XP целы.
+    var all = habits.filter(h => !h.goalOnly && !h.shelved).map(h => ({
       k: "h" + h.id,
       type: "h",
       item: h

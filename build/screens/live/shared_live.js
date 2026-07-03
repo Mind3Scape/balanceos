@@ -4665,7 +4665,8 @@ function HomeGalleryContentLive({
     if (tileOn(k)) setL(layout.order.filter(x => x !== k), hidden.concat([k]));else setL(inOrder(k) ? layout.order : layout.order.concat([k]), hidden.filter(x => x !== k));
   };
   var defs = typeof BOS_HOME_WIDGETS !== "undefined" ? BOS_HOME_WIDGETS : [];
-  var habits = app && app.habits || [];
+  // shelved-копии круга (Г) и goalOnly в каталоге доски не участвуют — они спрятаны со страниц.
+  var habits = (app && app.habits || []).filter(h => !h.shelved && !h.goalOnly);
   var goals = app && app.goals || [];
   var teams = app && app.teams || [];
   var kicker = txt => /*#__PURE__*/React.createElement("div", {

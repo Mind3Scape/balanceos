@@ -349,7 +349,23 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       )}
 
       {/* Нижней кнопки сохранения НЕТ — только «✓» в шапке (David: «оставить только крестик и галочку»). */}
-      {editing && (
+      {/* Г (David): копия привычки КРУГА — подпись-объяснение + вместо «Удалить» мягкое
+          «Убрать с моей страницы» (shelved: история и опыт целы, в круге привычка остаётся,
+          вернуть — на странице круга кнопкой «Вернуть к себе»). */}
+      {editing && params.habit.teamHabitId ? (
+        <React.Fragment>
+          <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span style={{ width: 34, height: 34, borderRadius: 11, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>👥</span>
+            <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+              Это общая привычка круга — её условия задаёт создатель, а ведёте вы все вместе. Значок, цвет и напоминание у себя можешь менять как хочешь.
+            </div>
+          </div>
+          <button className="tap" onClick={() => { app?.updateHabit && app.updateHabit(params.habit.id, { shelved: true }); close(); if (typeof navigate === "function") navigate("habits"); }}
+            style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: 14, marginTop: 6, fontSize: 15 }}>
+            Убрать с моей страницы
+          </button>
+        </React.Fragment>
+      ) : editing && (
         <button className="tap" onClick={() => { app?.removeHabit(params.habit.id); close(); if (typeof navigate === "function") navigate("habits"); }}
           style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
           Удалить привычку

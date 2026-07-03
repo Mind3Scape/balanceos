@@ -2175,7 +2175,8 @@ function HomeGalleryContentLive({ dark = false }) {
     else setL(inOrder(k) ? layout.order : layout.order.concat([k]), hidden.filter((x) => x !== k));
   };
   const defs = (typeof BOS_HOME_WIDGETS !== "undefined") ? BOS_HOME_WIDGETS : [];
-  const habits = (app && app.habits) || [];
+  // shelved-копии круга (Г) и goalOnly в каталоге доски не участвуют — они спрятаны со страниц.
+  const habits = ((app && app.habits) || []).filter((h) => !h.shelved && !h.goalOnly);
   const goals = (app && app.goals) || [];
   const teams = (app && app.teams) || [];
   const kicker = (txt) => (

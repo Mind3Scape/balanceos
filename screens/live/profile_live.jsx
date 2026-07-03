@@ -57,7 +57,9 @@ function ProfileLive() {
   // «Вселенная» — their orbits with my habits/people, как у меня (David). World-readable; no-ops until
   // David adds the pub_orbit column. Only emoji+colour leave the device (no habit names). Re-publishes
   // when anything changes via a small signature string.
-  const _pubHabits = (app?.habits || []).map((h) => ({ e: h.emoji, c: h.color }));
+  // Скрытые копии привычек круга (shelved, Г) и goalOnly не светятся ни на орбите, ни в витрине.
+  const _visHabits = (app?.habits || []).filter((h) => !h.shelved && !h.goalOnly);
+  const _pubHabits = _visHabits.map((h) => ({ e: h.emoji, c: h.color }));
   const _pubSig = JSON.stringify(_pubHabits) + "|" + orbitPeople.length + "|" + lvlNum + "|" + lvlPct + "|" + (app?.goals || []).length;
   React.useEffect(() => {
     try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, lvlPct: lvlPct, habits: _pubHabits, goals: (app?.goals || []).length, people: orbitPeople.length }); } catch (e) {}
@@ -111,7 +113,7 @@ function ProfileLive() {
         {/* При входе во Вселенную прячем СТРАНИЧНУЮ орбиту (overlay рисует её идентичную копию ровно
             на этом же месте) → нет «двойной орбиты», переход читается как одно целое. */}
         <div ref={orbitRef} style={{ opacity: universeOpen ? 0 : 1, transition: "opacity 0.2s ease" }}>
-          <OrbitField avatar={app?.avatar} name={app?.userName} habits={app?.habits || []} people={orbitPeople} levelPct={lvlPct} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
+          <OrbitField avatar={app?.avatar} name={app?.userName} habits={_visHabits} people={orbitPeople} levelPct={lvlPct} moodC={app?.mood?.c} dark={app?.themeOverride === "dark"} hideLevelArc editable={false} levelBadge={lvlNum} />
         </div>
         <div style={{ fontFamily: "var(--bos-title-font)", fontWeight: 700, fontSize: 28, marginTop: 6, color: "var(--text)" }}>{app?.userName || "Ты"}</div>
       </div>
@@ -199,7 +201,7 @@ function AILive() {
   // brief the AI generated for them at login. No scripted "Павел" insights.
   const isDarkAI = app.themeOverride === "dark"; // тёмная тема: тёмное стекло кнопки/чипов
   const brief = app.aiBrief || null;
-  const liveHabits = app.habits || [];
+  const liveHabits = (app.habits || []).filter((h) => !h.shelved && !h.goalOnly);
   const doneToday = liveHabits.filter((h) => h && h.done).length;
   const maxStreak = (typeof bosMaxStreak === "function") ? bosMaxStreak(liveHabits) : 0;
   const liveXP = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;

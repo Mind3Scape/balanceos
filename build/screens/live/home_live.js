@@ -49,8 +49,9 @@ function HomeLive() {
   var wrapRef = React.useRef(null);
   var isDark = useThemeFlag(wrapRef);
   // Habits + goals come from the shared app store, so a check here shows up
-  // on the Habits tab too (and vice versa).
-  var habits = app?.habits || [];
+  // on the Habits tab too (and vice versa). Скрытые с личных страниц копии привычек круга
+  // (shelved, Г) и «только внутри цели» (goalOnly) на доску и в счёт дня не попадают.
+  var habits = (app?.habits || []).filter(h => !h.shelved && !h.goalOnly);
   var goals = app?.goals || [];
   // David: «унифицировать» — виджеты привычек/целей на главной = ТЕ ЖЕ плитки, что на «Привычках», и
   // слушают ТОТ ЖЕ стиль (форма/тоглы из шестерёнки). Хуки → главная перерисовывается при смене стиля.
@@ -129,7 +130,7 @@ function HomeLive() {
         window.bosCloud.savePublicStats({
           level: _lvl.level,
           lvlPct: _lvl.pct,
-          habits: (app?.habits || []).map(h => ({
+          habits: habits.map(h => ({
             e: h.emoji,
             c: h.color
           })),
@@ -138,7 +139,7 @@ function HomeLive() {
       } catch (e) {}
     }, 1200);
     return () => clearTimeout(t);
-  }, [_lvl.level, (app?.habits || []).length, (app?.goals || []).length]);
+  }, [_lvl.level, habits.length, (app?.goals || []).length]);
   // FOMO invite copy — the REAL next reward you're leaving on the table (honest: real XP, real
   // proximity to the next circle milestone; no fake countdowns).
   var _invited = app?.invitedCount || 0;

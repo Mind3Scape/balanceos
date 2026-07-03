@@ -446,6 +446,20 @@ function HabitsLive() {
       return;
     }
     const h = habits.find((x) => ("h" + x.id) === key); if (!h) return;
+    if (h.teamHabitId) {
+      // Г (David): привычку круга участник НЕ удаляет — её задаёт создатель круга как условие.
+      // Вместо «Удалить» → «Убрать с моей страницы»: копия прячется (shelved), история и опыт
+      // целы, отметка из круга продолжает работать; вернуть — на странице круга «Вернуть к себе».
+      openSheet(
+        <HabitTileMenuLive habit={h} dark={isDark} kindLabel="Общая привычка круга"
+          onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
+          onReorder={openReorder}
+          deleteLabel="Убрать с моей страницы" deleteIcon={<I.X size={18} />}
+          onDelete={() => bosConfirmDelete(openSheet, { title: "Убрать с моей страницы?", message: "«" + h.name + "» — общая привычка круга: в круге она останется, история и опыт сохранятся. Вернуть можно на странице круга.", confirmLabel: "Убрать", onConfirm: () => { if (app?.updateHabit) app.updateHabit(h.id, { shelved: true }); } })}
+        />
+      );
+      return;
+    }
     openSheet(
       <HabitTileMenuLive habit={h} dark={isDark}
         onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
@@ -465,7 +479,8 @@ function HabitsLive() {
   // Смешанный список: привычки + цели в едином порядке (ключи "h<id>"/"g<id>"), отсортированы по
   // сохранённому порядку перестановки; новые элементы — в конец.
   const entries = React.useMemo(() => {
-    const all = habits.filter((h) => !h.goalOnly).map((h) => ({ k: "h" + h.id, type: "h", item: h }))
+    // shelved = «убрана с моей страницы» (Г): копия привычки круга спрятана, история и XP целы.
+    const all = habits.filter((h) => !h.goalOnly && !h.shelved).map((h) => ({ k: "h" + h.id, type: "h", item: h }))
       .concat(goals.map((g) => ({ k: "g" + g.id, type: "g", item: g })))
       // Команды (круги/командные цели) живут в ТОЙ ЖЕ сетке — их можно тащить и ставить между
       // привычками/целями, как просил David. Ключ "t<id>" (cloud _id или локальный id).

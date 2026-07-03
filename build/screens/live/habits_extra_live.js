@@ -831,7 +831,53 @@ function HabitFormSheetLive({
     small: true,
     on: goalOnly,
     onChange: setGoalOnly
-  }))), editing && /*#__PURE__*/React.createElement("button", {
+  }))), editing && params.habit.teamHabitId ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card, #fff)",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 14,
+      boxShadow: "var(--card-shadow)",
+      display: "flex",
+      gap: 12,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      background: "var(--surface-3)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 16,
+      flexShrink: 0
+    }
+  }, "\uD83D\uDC65"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      lineHeight: 1.5
+    }
+  }, "\u042D\u0442\u043E \u043E\u0431\u0449\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u043A\u0440\u0443\u0433\u0430 \u2014 \u0435\u0451 \u0443\u0441\u043B\u043E\u0432\u0438\u044F \u0437\u0430\u0434\u0430\u0451\u0442 \u0441\u043E\u0437\u0434\u0430\u0442\u0435\u043B\u044C, \u0430 \u0432\u0435\u0434\u0451\u0442\u0435 \u0432\u044B \u0432\u0441\u0435 \u0432\u043C\u0435\u0441\u0442\u0435. \u0417\u043D\u0430\u0447\u043E\u043A, \u0446\u0432\u0435\u0442 \u0438 \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435 \u0443 \u0441\u0435\u0431\u044F \u043C\u043E\u0436\u0435\u0448\u044C \u043C\u0435\u043D\u044F\u0442\u044C \u043A\u0430\u043A \u0445\u043E\u0447\u0435\u0448\u044C.")), /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: () => {
+      app?.updateHabit && app.updateHabit(params.habit.id, {
+        shelved: true
+      });
+      close();
+      if (typeof navigate === "function") navigate("habits");
+    },
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--text-3)",
+      padding: 14,
+      marginTop: 6,
+      fontSize: 15
+    }
+  }, "\u0423\u0431\u0440\u0430\u0442\u044C \u0441 \u043C\u043E\u0435\u0439 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B")) : editing && /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {
       app?.removeHabit(params.habit.id);
