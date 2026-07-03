@@ -378,6 +378,11 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   const { open: openSheet, close } = useSheet();
   const editing = mode === "edit" && !!goalProp;
   const g0 = editing ? goalProp : null;
+  // РЕДАКТИРУЕМ СУЩЕСТВУЮЩИЙ КРУГ (команду), не соло-цель. Открывающий (карандаш в комнате круга)
+  // маппит команду в goal-подобный объект с __isTeam=true (+ _id/cloudId/joined/__team). Тогда ЭТА
+  // ЖЕ шторка редактирует и цель, и общую цель (David: «унифицировать; лишнюю шторку убрать»):
+  // save → app.updateTeam (не promote), delete → выход/удаление круга, + ссылка на участников.
+  const isTeamEdit = editing && !!(g0 && g0.__isTeam);
   const [view, setView] = useHS("form"); // form | picker — пикер = второй вью этой же шторки
   // Quick-add goal preset (from the Цели tab chip) → {i,t,target,unit,deadline}. Seeds the form so
   // tapping «Пробежать марафон» lands you on a pre-filled goal, same as habit quick-add presets.
@@ -427,6 +432,21 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
     if (circleOn) {
       const _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
       const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
+      // РЕДАКТИРОВАНИЕ существующего круга → app.updateTeam + облачный updateTeam (тот же save, что
+      // был в удалённой TeamQuickEditSheetLive/TeamSettingsLive), НЕ promote (иначе создался бы второй
+      // круг). Шторка над комнатой круга → close() открывает её, комната перечитывает app.teams живьём.
+      if (isTeamEdit) {
+        const goalText = (g0.goal && ("" + g0.goal).trim()) || (tgt + (unit ? " " + unit : ""));
+        const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline };
+        app?.updateTeam(g0._id, patch);
+        try {
+          if (g0.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
+            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, vis: circleVis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake } });
+          }
+        } catch (e) {}
+        close();
+        return;
+      }
       const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, color, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
       if (preset && preset.challenge) goalLike.challenge = preset.challenge;
       close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
@@ -524,7 +544,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         {showCal && <DeadlineCalendarLive onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
       </div>
 
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      {!isTeamEdit && (<div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>Подкрепи эту цель ежедневной привычкой</div>
@@ -558,11 +578,11 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
             }}><I.Plus size={12}/> Новая привычка</button>
           </div>
         )}
-      </div>
+      </div>)}
 
       {/* КРУГ — «делать вместе»: цель с надетым кругом = «команда». Один тумблер (David). Тот же
           смысл, что у привычки «Поделиться»; вкл → можно позвать людей, цель станет общей. */}
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      {!isTeamEdit && (<div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
             Идти к цели вместе
@@ -570,7 +590,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           </div>
           <Switch small on={circleOn} onChange={setCircleOn} />
         </div>
-      </div>
+      </div>)}
 
       {/* Круг ВКЛ → тут же настройки совместной цели: режим счёта + видимость + XP-ставка (David:
           «эти три нужны, но когда активируешь „вместе" — не гнать человека потом в карандашик»).
@@ -621,10 +641,26 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       </>)}
 
       {/* Нижней кнопки сохранения НЕТ — только «✓» в шапке (единый язык с формой привычки). */}
+      {/* КРУГ: управление участниками/ролями — в полном экране (сюда его не тащим, шторка компактная). */}
+      {isTeamEdit && (
+        <button className="tap" onClick={() => { close(); if (typeof navigate === "function") navigate("team-settings", { team: g0.__team || g0, from: returnTo }); }}
+          style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 6, fontSize: 13.5, fontWeight: 600 }}>
+          Участники и роли →
+        </button>
+      )}
       {editing && (
-        <button className="tap" onClick={() => { app?.removeGoal(g0.id); close(); if (typeof navigate === "function") navigate(returnTo || "habits"); }}
+        <button className="tap" onClick={() => {
+          if (isTeamEdit) {
+            // Удаление КРУГА — тот же поток, что везде (владелец удаляет / участник выходит), возврат
+            // в returnTo (не в «Сообщество»). g0.__team = сырой объект команды (для _id/cloudId/roster).
+            close();
+            if (typeof bosConfirmExitTeam === "function") bosConfirmExitTeam({ app, team: g0.__team || g0, isOwner: !(g0.__team || g0).joined, navigate, openSheet, returnTo: returnTo || "habits" });
+          } else {
+            app?.removeGoal(g0.id); close(); if (typeof navigate === "function") navigate(returnTo || "habits");
+          }
+        }}
           style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
-          Удалить цель
+          {isTeamEdit ? "Удалить круг" : "Удалить цель"}
         </button>
       )}
     </div>

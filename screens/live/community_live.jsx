@@ -561,7 +561,16 @@ function TeamDetailLive() {
           {/* Правка НА МЕСТЕ — карандаш открывает шторку правки прямо над комнатой (не уводит
               на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. «Поделиться»
               ушло вниз в тихие чипы («Позвать»), чтобы шапка не выбивалась. */}
-          {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<TeamQuickEditSheetLive team={t} navigate={navigate} returnTo={from} />)} />}
+          {/* Карандаш круга открывает ТУ ЖЕ шторку, что у обычной цели — GoalFormSheetLive (David:
+              «унифицировать; отдельную урезанную шторку убрать»). Команда маппится в goal-подобный
+              объект (emblem→emoji, accent→color) + __isTeam/__team → форма редактирует круг: save =
+              updateTeam, delete = выход/удаление круга, ссылка «Участники и роли →». */}
+          {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={{
+            _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t,
+            name: t.name, emoji: t.emblem, color: t.accent,
+            target: t.target, unit: t.unit, deadline: t.date || t.deadline || "",
+            circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, joined: t.joined, habitIds: [],
+          }} />)} />}
         </div>
       }/>
       {/* HERO — БЛИЗНЕЦ личной цели (David: «команда = та же цель + блок людей»):

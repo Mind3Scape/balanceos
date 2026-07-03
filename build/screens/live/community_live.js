@@ -1121,10 +1121,31 @@ function TeamDetailLive() {
         alignItems: "center"
       }
     }, _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
-      onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamQuickEditSheetLive, {
-        team: t,
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+        mode: "edit",
+        circleOn: true,
         navigate: navigate,
-        returnTo: from
+        returnTo: from,
+        goal: {
+          _id: t._id,
+          id: t.id,
+          cloudId: t.cloudId,
+          __isTeam: true,
+          __team: t,
+          name: t.name,
+          emoji: t.emblem,
+          color: t.accent,
+          target: t.target,
+          unit: t.unit,
+          deadline: t.date || t.deadline || "",
+          circle: true,
+          type: t.type,
+          vis: t.vis,
+          stake: t.stake,
+          goal: t.goal,
+          joined: t.joined,
+          habitIds: []
+        }
       }))
     }))
   }), /*#__PURE__*/React.createElement("div", {

@@ -890,6 +890,11 @@ function GoalFormSheetLive({
   } = useSheet();
   var editing = mode === "edit" && !!goalProp;
   var g0 = editing ? goalProp : null;
+  // РЕДАКТИРУЕМ СУЩЕСТВУЮЩИЙ КРУГ (команду), не соло-цель. Открывающий (карандаш в комнате круга)
+  // маппит команду в goal-подобный объект с __isTeam=true (+ _id/cloudId/joined/__team). Тогда ЭТА
+  // ЖЕ шторка редактирует и цель, и общую цель (David: «унифицировать; лишнюю шторку убрать»):
+  // save → app.updateTeam (не promote), delete → выход/удаление круга, + ссылка на участников.
+  var isTeamEdit = editing && !!(g0 && g0.__isTeam);
   var [view, setView] = useHS("form"); // form | picker — пикер = второй вью этой же шторки
   // Quick-add goal preset (from the Цели tab chip) → {i,t,target,unit,deadline}. Seeds the form so
   // tapping «Пробежать марафон» lands you on a pre-filled goal, same as habit quick-add presets.
@@ -955,6 +960,45 @@ function GoalFormSheetLive({
     if (circleOn) {
       var _stake = stakeOn ? Math.max(0, stakeAmount) : 0;
       var _habitIds = linkHabit ? linkedHabits.filter(h => h.on).map(h => h.id) : [];
+      // РЕДАКТИРОВАНИЕ существующего круга → app.updateTeam + облачный updateTeam (тот же save, что
+      // был в удалённой TeamQuickEditSheetLive/TeamSettingsLive), НЕ promote (иначе создался бы второй
+      // круг). Шторка над комнатой круга → close() открывает её, комната перечитывает app.teams живьём.
+      if (isTeamEdit) {
+        var goalText = g0.goal && ("" + g0.goal).trim() || tgt + (unit ? " " + unit : "");
+        var patch = {
+          name: nm,
+          emblem: iconPick,
+          accent: color,
+          goal: goalText,
+          vis: circleVis,
+          type: goalType,
+          target: tgt,
+          unit,
+          stake: _stake,
+          deadline
+        };
+        app?.updateTeam(g0._id, patch);
+        try {
+          if (g0.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
+            window.bosCloud.updateTeam(g0.cloudId, {
+              name: nm,
+              emblem: iconPick,
+              vis: circleVis,
+              goalKind: goalText,
+              goalTarget: tgt,
+              goal: {
+                type: goalType,
+                target: tgt,
+                unit,
+                title: goalText,
+                stake: _stake
+              }
+            });
+          }
+        } catch (e) {}
+        close();
+        return;
+      }
       var goalLike = {
         id: editing && g0 ? g0.id : undefined,
         name: nm,
@@ -1257,7 +1301,7 @@ function GoalFormSheetLive({
       setDeadline(s);
       setShowCal(false);
     }
-  })), /*#__PURE__*/React.createElement("div", {
+  })), !isTeamEdit && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
@@ -1356,7 +1400,7 @@ function GoalFormSheetLive({
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 12
-  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), /*#__PURE__*/React.createElement("div", {
+  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), !isTeamEdit && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
@@ -1566,12 +1610,45 @@ function GoalFormSheetLive({
       color: isDark ? "#9db8ff" : "#2b5cb8",
       lineHeight: 1.4
     }
-  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), editing && /*#__PURE__*/React.createElement("button", {
+  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), isTeamEdit && /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {
-      app?.removeGoal(g0.id);
       close();
-      if (typeof navigate === "function") navigate(returnTo || "habits");
+      if (typeof navigate === "function") navigate("team-settings", {
+        team: g0.__team || g0,
+        from: returnTo
+      });
+    },
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--text-3)",
+      padding: "12px",
+      marginTop: 6,
+      fontSize: 13.5,
+      fontWeight: 600
+    }
+  }, "\u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 \u0438 \u0440\u043E\u043B\u0438 \u2192"), editing && /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: () => {
+      if (isTeamEdit) {
+        // Удаление КРУГА — тот же поток, что везде (владелец удаляет / участник выходит), возврат
+        // в returnTo (не в «Сообщество»). g0.__team = сырой объект команды (для _id/cloudId/roster).
+        close();
+        if (typeof bosConfirmExitTeam === "function") bosConfirmExitTeam({
+          app,
+          team: g0.__team || g0,
+          isOwner: !(g0.__team || g0).joined,
+          navigate,
+          openSheet,
+          returnTo: returnTo || "habits"
+        });
+      } else {
+        app?.removeGoal(g0.id);
+        close();
+        if (typeof navigate === "function") navigate(returnTo || "habits");
+      }
     },
     style: {
       width: "100%",
@@ -1582,7 +1659,7 @@ function GoalFormSheetLive({
       marginTop: 6,
       fontSize: 15
     }
-  }, "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0446\u0435\u043B\u044C"));
+  }, isTeamEdit ? "Удалить круг" : "Удалить цель"));
 }
 
 /* Фолбэк-роут: любой оставшийся navigate("goal-settings", …) приводит на «Привычки»
