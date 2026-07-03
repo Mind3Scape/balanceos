@@ -1281,9 +1281,10 @@ function GoalOrbitMini({ centerEmoji, centerColor, habits = [], people = [], siz
   // counter-rotate на ту же длительность → эмодзи/лица стоят прямо. bosSpin/bosSpinR — keyframes
   // (mobile.css). БЕЗ radial-маски: лишнее просто обрезается карточкой (David: «просто обрезалось»).
   var renderRing = function (R, k, items, dSz, iconSz, isPeople) {
-    // Темп «галактики» ещё замедлен (David: «всё ещё слишком быстро»): базовый оборот 44с→76с,
-    // внешние кольца +13с/кольцо. Спокойный дрейф — спутники не мелькают.
-    var cw = (k % 2 === 0), dir = cw ? "bosSpin" : "bosSpinR", rev = cw ? "bosSpinR" : "bosSpin", dur = (76 + k * 13) + "s";
+    // Скорость = РОВНО КАК ВО ВСЕЛЕННОЙ (David: «сделай как в режиме вселенной»). Вселенная: spinT = 0.7×сек
+    // (useUniSpin), OrbitField spin(ring0)=0.06 → 0.042 рад/с → полный оборот ~150с; внешние кольца
+    // ×(1+0.18k) медленнее. В CSS-длительность оборота это 150с + 27с/кольцо (было 76 — вдвое быстрее).
+    var cw = (k % 2 === 0), dir = cw ? "bosSpin" : "bosSpinR", rev = cw ? "bosSpinR" : "bosSpin", dur = (150 + k * 27) + "s";
     return (
       <React.Fragment key={(isPeople ? "p" : "h") + k}>
         {ring(R)}
