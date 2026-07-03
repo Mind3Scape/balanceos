@@ -380,7 +380,19 @@ function HabitDetailLive() {
 /* GOAL DETAIL — LIVE. Progress ring, the habits it's built from (cross-linked into
    their own stats), a pace hint, and a +1 to nudge progress. Linked-habit streaks are
    ALWAYS the real bosStreak(h.log). Back returns to the origin tab (params.from). */
+/* ЕДИНАЯ страница цели — ДИСПЕТЧЕР: params.team → командный режим, иначе личная цель.
+   «Идти к цели вместе» обновляет параметры ЭТОГО ЖЕ экрана (same-route navigate = только
+   params-refresh, БЕЗ перехода/анимации) → блок «Люди» вырастает НА МЕСТЕ (David: «переход
+   на такую же страницу — грязный путь»). Диспетчер отдельным компонентом — чтобы наборы
+   хуков личной и командной веток не смешивались при смене режима без ремаунта кадра. */
 function GoalDetailLive() {
+  var {
+    params
+  } = useNav();
+  if (params && params.team && typeof TeamDetailLive === "function") return /*#__PURE__*/React.createElement(TeamDetailLive, null);
+  return /*#__PURE__*/React.createElement(GoalDetailPersonalLive, null);
+}
+function GoalDetailPersonalLive() {
   var {
     navigate,
     params
@@ -758,7 +770,8 @@ function GoalDetailLive() {
     onClick: () => {
       if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, {
         navigate,
-        from: back
+        from: back,
+        route: "goal-detail"
       });
       if (window.tgHaptic) {
         try {

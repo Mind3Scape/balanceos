@@ -220,7 +220,18 @@ function HabitDetailLive() {
 /* GOAL DETAIL — LIVE. Progress ring, the habits it's built from (cross-linked into
    their own stats), a pace hint, and a +1 to nudge progress. Linked-habit streaks are
    ALWAYS the real bosStreak(h.log). Back returns to the origin tab (params.from). */
+/* ЕДИНАЯ страница цели — ДИСПЕТЧЕР: params.team → командный режим, иначе личная цель.
+   «Идти к цели вместе» обновляет параметры ЭТОГО ЖЕ экрана (same-route navigate = только
+   params-refresh, БЕЗ перехода/анимации) → блок «Люди» вырастает НА МЕСТЕ (David: «переход
+   на такую же страницу — грязный путь»). Диспетчер отдельным компонентом — чтобы наборы
+   хуков личной и командной веток не смешивались при смене режима без ремаунта кадра. */
 function GoalDetailLive() {
+  const { params } = useNav();
+  if (params && params.team && typeof TeamDetailLive === "function") return <TeamDetailLive />;
+  return <GoalDetailPersonalLive />;
+}
+
+function GoalDetailPersonalLive() {
   const { navigate, params } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
   const { open: openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
@@ -334,7 +345,7 @@ function GoalDetailLive() {
           ТОЙ ЖЕ (единой) странице, где вырос блок «Люди» с «Позвать людей». Захочет настроить
           режим/ставку — сам зайдёт в карандашик. */}
       <button className="tap" onClick={() => {
-        if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, { navigate, from: back });
+        if (typeof bosPromoteGoalToCircle === "function") bosPromoteGoalToCircle(app, g, { navigate, from: back, route: "goal-detail" });
         if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
       }}
         style={{ ...card, borderRadius: 22, padding: 14, marginTop: 22, width: "100%", display: "flex", alignItems: "center", gap: 12, border: 0, textAlign: "left", cursor: "pointer", color: "var(--text)" }}>

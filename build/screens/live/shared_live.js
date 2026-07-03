@@ -2553,7 +2553,9 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
     });
   });
   if (goalLike.id != null && app.removeGoal) app.removeGoal(goalLike.id); // цель → круг (не остаётся дублем)
-  if (opts.navigate) opts.navigate("team-detail", {
+  // opts.route — вызывающий может остаться НА СВОЁМ экране (same-route → params-refresh,
+  // без перехода): деталь цели передаёт "goal-detail" и блок «Люди» вырастает на месте.
+  if (opts.navigate) opts.navigate(opts.route || "team-detail", {
     team: nt,
     from: opts.from || "habits"
   });

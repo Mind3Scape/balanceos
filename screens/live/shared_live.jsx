@@ -1131,7 +1131,9 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   // goalId чистим (цели больше нет). teamHabitId долетит из облака (миррор отметок в командный лог).
   linked.forEach(function (h) { app.updateHabit(h.id, { teamId: nt._id, goalId: null, goalOnly: false }); });
   if (goalLike.id != null && app.removeGoal) app.removeGoal(goalLike.id); // цель → круг (не остаётся дублем)
-  if (opts.navigate) opts.navigate("team-detail", { team: nt, from: opts.from || "habits" });
+  // opts.route — вызывающий может остаться НА СВОЁМ экране (same-route → params-refresh,
+  // без перехода): деталь цели передаёт "goal-detail" и блок «Люди» вырастает на месте.
+  if (opts.navigate) opts.navigate(opts.route || "team-detail", { team: nt, from: opts.from || "habits" });
   (async function () {
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
