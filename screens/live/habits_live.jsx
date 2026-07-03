@@ -480,158 +480,21 @@ function HabitsLive() {
     return all;
   }, [habits, goals, teams, orderTick]);
 
-  // ПЛИТКА ПРИВЫЧКИ — форма+тоглы из cardStyle. ЛИЦА переехали в ВЕРХНИЙ ряд к контролу (David: убрать
-  // пустое место внизу — все плитки одной высоты). marks: неделя / месяц-грядка / нет. rect = строка.
-  const habitTile = (h, ctx) => {
-    const rect = cardStyle.form === "rect";
-    const onOpen = ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: "habits" });
-    const control = h.duration > 0 && !(h.goalPerDay > 1)
-      ? <HabitTimerCheck habit={h} app={app} xp={10} />
-      : h.goalPerDay > 1 ? <HabitCountCheck habit={h} app={app} xp={10} />
-      : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float color={h.color} dark={isDark} />;
-    const ctrl = <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{control}</span>;
-    const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
-    const sq = cardStyle.cells === "square";
-    const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
-    const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : TH.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
-    if (rect) {
-      return (
-        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 18, boxShadow: cardShadow, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-          {icon}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
-            <ChallengeProgressChip habit={h} />
-            {marks && <div style={{ marginTop: 8 }}>{marks}</div>}
-          </div>
-          {faces}{ctrl}
-        </div>
-      );
-    }
-    const compact = cardStyle.marks === "none";
-    return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-        {/* center — чтобы 30px-кружок-чек шёл ВРОВЕНЬ с 38px-иконкой (David: центры совпадают). gap 10 —
-            чтобы кольцо/секции контрола (выступают ~7px) не задевали лица. */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          {icon}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{ctrl}</div>
-        </div>
-        {/* Челлендж-чип живёт в СЕРЕДИННОМ пространстве, а имя — ВНИЗУ у точек недели
-            (David: «название логичнее сдвинуть к точечкам, а белое место — под челленджи»). */}
-        <ChallengeProgressChip habit={h} />
-        {cardStyle.name && <div style={{ marginTop: "auto", paddingTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>}
-        {marks && <div style={{ marginTop: cardStyle.name ? 7 : "auto", paddingTop: cardStyle.name ? 0 : 12 }}>{marks}</div>}
-      </div>
-    );
-  };
+  // ПЛИТКА ПРИВЫЧКИ — вынесена в ОБЩИЙ HabitTileLive (shared_live), чтобы страница «Привычки» и виджет
+  // главной рисовали одно и то же и слушали один cardStyle (David: «унифицировать»). Тут — тонкая обёртка.
+  const habitTile = (h, ctx) => <HabitTileLive habit={h} ctx={ctx} from="habits" />;
 
   // ПЛИТКА ЦЕЛИ — та же логика форм/тоглов. «Отметки» у цели = полоска прогресса (показываем пока
   // marks ≠ «нет»). Недельной/месячной сетки у цели нет — прогресс её замена. Лица тоже наверх.
   // ЕДИНЫЙ «СКИН» карточки цели/команды (David: дефолт = БЕЛЫЙ/светло-серый; ЦВЕТ, если задан, заливает
   // карточку КАК КАРТОЧКИ ПАРТНЁРОВ — насыщенный accent + белый градиент-блик + тёмный текст). Чёрный
   // (#0a0a0a, старый дефолт) считаем НЕйтральным → белая карточка. Один источник вида для goalTile+teamTile.
-  const goalSkin = (color) => {
-    // Нейтральные (нет цвета / чёрный / системный серый) → БЕЛАЯ карточка. Реальный цвет → заливка.
-    const accent = (color && ("" + color).toLowerCase() !== "#0a0a0a" && color !== "#8E8E93") ? color : null;
-    if (!accent) return {
-      hasColor: false, accent: isDark ? "#e8e8ea" : "#0a0a0a", bg: rowBg, shadow: cardShadow,
-      txt: "var(--text)", sub: "var(--text-4)", lbl: "var(--text-4)", val: "var(--text-3)",
-      track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", fill: isDark ? "#e6e6ea" : "#0a0a0a",
-      iconBg: BOS_TILE_SHEEN + ", " + TH.iconBg, iconInk: null,
-    };
-    // ТЁМНАЯ тема: не пастель (она «светится» на тёмном — David), а ГЛУБОКИЙ насыщенный тон
-    // того же оттенка + белый текст — как цветные виджеты тёмного iOS.
-    if (isDark) return {
-      hasColor: true, accent,
-      bg: "linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0) 62%), " + ((typeof bosMixHex === "function") ? bosMixHex(accent, "#0d0f14", 0.24) : accent),
-      shadow: "0 4px 12px rgba(0,0,0,0.45), inset 0 0 0 0.5px rgba(255,255,255,0.10)",
-      txt: "#fff", sub: "rgba(255,255,255,0.72)", lbl: "rgba(255,255,255,0.6)", val: "rgba(255,255,255,0.85)",
-      track: "rgba(0,0,0,0.35)", fill: (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.18) : accent,
-      iconBg: BOS_TILE_SHEEN + ", " + accent,
-      iconInk: "#fff",
-    };
-    // СВЕТЛАЯ: заливка = МЯГКАЯ ПАСТЕЛЬ (цвет осветлён к белому) + белый блик — ровно язык карточек
-    // партнёров «Потратить XP», а не сырой насыщенный цвет (David: «убого»). Прогресс/иконка — на полном цвете.
-    const soft = (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.52) : accent;
-    return {
-      hasColor: true, accent,
-      bg: "linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 62%), " + soft,
-      shadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
-      txt: "#1b1b1f", sub: "rgba(27,27,31,0.58)", lbl: "rgba(27,27,31,0.5)", val: "rgba(27,27,31,0.72)",
-      track: "rgba(255,255,255,0.55)", fill: accent,
-      // Подложка иконки = НАСЫЩЕННЫЙ тон цвета цели (David: «цвет должен влиять на подложку иконки»),
-      // заметно глубже светлой заливки карточки → иконка сидит на своём цвете. Глиф-символ белый.
-      iconBg: BOS_TILE_SHEEN + ", " + ((typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.25) : accent),
-      iconInk: "#fff",
-    };
-  };
+  // ЕДИНЫЙ «скин» карточки цели/команды — вынесен в общий bosGoalSkin (shared_live), тут делегируем
+  // (нужен teamTile ниже). Значения идентичны прежним (rowBg/cardShadow/iconBg производятся от isDark).
+  const goalSkin = (color) => bosGoalSkin(color, isDark);
 
-  const goalTile = (g, ctx) => {
-    const banner = goalStyle.form === "banner";
-    // Прогресс = из привычек цели, если они есть (bosGoalProgress), иначе ручной current.
-    const gp = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, habits) : { pct: g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0 };
-    const pct = gp.pct;
-    const curVal = gp.current;
-    const sk = goalSkin(g.color);
-    const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
-    const orbit = goalStyle.orbits ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 132 : 152} dark={isDark} fade progress={pct} /> : null;
-    const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
-    const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color)}</span>;
-    const progBar = goalStyle.progress ? (
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: sk.lbl, textTransform: "uppercase", letterSpacing: 0.7 }}>Цель</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: sk.val, fontVariantNumeric: "tabular-nums" }}>{curVal} / {g.target} {g.unit || ""}</span>
-        </div>
-        <div style={{ height: 7, borderRadius: 999, background: sk.track, overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", width: (pct * 100) + "%", borderRadius: 999, background: sk.hasColor ? sk.fill : ("linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 72%), " + sk.accent) }} />
-        </div>
-      </div>
-    ) : null;
-
-    // БАННЕР — высокий полноширинный. Нейтральный = белый; ЦВЕТНОЙ = заливка партнёрского вида.
-    if (banner) {
-      return (
-        <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: 16, display: "flex", alignItems: "center", gap: 14, minHeight: 116, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 11 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {!orbit && icon}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
-                {g.deadline && <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>до {g.deadline}</div>}
-              </div>
-              {!orbit && pctEl}
-            </div>
-            {progBar}
-          </div>
-          {orbit}
-        </div>
-      );
-    }
-
-    // КВАДРАТ — минимал. С орбитами: карточка ТОЙ ЖЕ высоты, что у привычек (146) — орбита
-    // абсолютным слоем по центру, лишние кольца просто обрезаются (David: «одинаковый размер,
-    // что выпирает — обрезается»); имя слева и % справа внизу поверх. Без орбит: иконка+имя+прогресс.
-    return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
-        {orbit ? (
-          <>
-            <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
-            <div style={{ marginTop: "auto", position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-              {goalStyle.name ? <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div> : <span />}
-              {goalStyle.progress && <div style={{ fontSize: 12.5, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</div>}
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>{icon}{pctEl}</div>
-            {goalStyle.name && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 600, color: sk.txt, letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g.name}</div>}
-            {progBar && <div style={{ marginTop: "auto", paddingTop: 12 }}>{progBar}</div>}
-          </>
-        )}
-      </div>
-    );
-  };
+  // ПЛИТКА ЦЕЛИ — вынесена в ОБЩИЙ GoalTileLive (shared_live), тут тонкая обёртка (унификация с главной).
+  const goalTile = (g, ctx) => <GoalTileLive goal={g} ctx={ctx} from="habits" />;
 
   // ПЛИТКА КОМАНДЫ (круга) — та же форма, что цель, но эмблема + ЛИЦА участников + метка «Команда»
   // (чтобы читалась как «цель с людьми», а не соло-цель). Прогресс = командный (счёт всех / target,
