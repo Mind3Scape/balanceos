@@ -893,77 +893,121 @@ function AILive() {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: 8,
+      gap: 10,
       marginTop: 8
     }
   }, [{
     i: "📊",
     t: "Аналитика",
     need: 10,
-    d: "Твои закономерности: что качает, а что мешает."
+    d: "Твои закономерности: что качает, а что мешает.",
+    c1: "#4C82F0",
+    c2: "#6E5AE6"
   }, {
     i: "🧠",
     t: "Наставник",
     need: 15,
-    d: "Личная программа и разбор недели."
-  }].map(f => /*#__PURE__*/React.createElement("div", {
-    key: f.t,
-    style: {
-      background: "var(--card)",
-      borderRadius: 22,
-      padding: 14,
-      boxShadow: "var(--card-shadow)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      background: "var(--surface-3)",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 19
-    }
-  }, f.i), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4,
-      fontSize: 10.5,
-      fontWeight: 600,
-      color: "var(--text-4)",
-      background: "var(--surface-3)",
-      borderRadius: 999,
-      padding: "4px 9px"
-    }
-  }, /*#__PURE__*/React.createElement(I.Lock, {
-    size: 10,
-    strokeWidth: 2.2
-  }), " ", f.need, " \u0443\u0440.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14.5,
-      fontWeight: 600,
-      marginTop: 10,
-      color: "var(--text)"
-    }
-  }, f.t), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-4)",
-      marginTop: 3,
-      lineHeight: 1.4
-    }
-  }, f.d), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      marginTop: 8
-    }
-  }, lvl.level >= f.need ? "Готовим к запуску ✨" : "Твой уровень — " + lvl.level + " из " + f.need)))));
+    d: "Личная программа и разбор недели.",
+    c1: "#A96BE8",
+    c2: "#E068A9"
+  }].map(f => {
+    var unlocked = lvl.level >= f.need;
+    var pct = Math.max(6, Math.min(100, Math.round(lvl.level / f.need * 100)));
+    return /*#__PURE__*/React.createElement("div", {
+      key: f.t,
+      style: {
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: 22,
+        padding: 15,
+        background: "linear-gradient(155deg, " + f.c1 + ", " + f.c2 + ")",
+        boxShadow: "0 10px 24px " + f.c1 + "45, inset 0 0 0 0.5px rgba(255,255,255,0.16)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      "aria-hidden": true,
+      style: {
+        position: "absolute",
+        inset: 0,
+        background: "radial-gradient(circle at 84% 4%, rgba(255,255,255,0.42) 0%, transparent 52%)",
+        pointerEvents: "none"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: 13,
+        background: "linear-gradient(165deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 48%, rgba(255,255,255,0) 74%), rgba(255,255,255,0.22)",
+        boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.55)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 20
+      }
+    }, f.i), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "#fff",
+        background: "rgba(255,255,255,0.20)",
+        borderRadius: 999,
+        padding: "4px 9px"
+      }
+    }, unlocked ? "✨ скоро" : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(I.Lock, {
+      size: 10,
+      strokeWidth: 2.4
+    }), " ", f.need, " \u0443\u0440."))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        fontSize: 15,
+        fontWeight: 700,
+        marginTop: 12,
+        color: "#fff",
+        letterSpacing: "-0.2px"
+      }
+    }, f.t), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        fontSize: 11.5,
+        color: "rgba(255,255,255,0.85)",
+        marginTop: 3,
+        lineHeight: 1.4
+      }
+    }, f.d), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        marginTop: 11
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 5,
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.24)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        height: "100%",
+        width: pct + "%",
+        background: "rgba(255,255,255,0.92)",
+        borderRadius: 999
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "rgba(255,255,255,0.85)",
+        marginTop: 5,
+        fontWeight: 600
+      }
+    }, unlocked ? "Готовим к запуску" : "Уровень " + lvl.level + " / " + f.need)));
+  })));
 }
