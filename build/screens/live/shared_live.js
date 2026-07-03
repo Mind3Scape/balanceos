@@ -421,6 +421,19 @@ function bosLightenHex(hx, amt) {
   };
   return "#" + mk(r) + mk(g) + mk(b);
 }
+// Читаемая «чернильная» краска цифры/таймера НА СТЕКЛЯННОМ диске. В светлой теме — сам цвет
+// привычки (по умолчанию графит #0a0a0a: отлично читается на светлом диске). В тёмной тёмный
+// цвет НЕВИДИМ на тёмном диске (David: «цифра чёрная — не видно»), поэтому поднимаем светлоту:
+// чем темнее цвет, тем сильнее осветляем к белому; уже светлые оттенки не трогаем.
+function bosReadableInk(hx, isDark) {
+  if (!isDark) return hx || "#0a0a0a";
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) return "rgba(255,255,255,0.92)";
+  var r = parseInt(hx.slice(1, 3), 16),
+    g = parseInt(hx.slice(3, 5), 16),
+    b = parseInt(hx.slice(5, 7), 16);
+  var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum < 0.6 ? bosLightenHex(hx, 0.82 - lum * 0.5) : hx;
+}
 /* Смесь двух hex-цветов: hx→to на t (0..1). ФУНДАМЕНТ тема-зависимой тонировки (David:
    «цвета с пикера должны чуть отличаться в тёмной»): светлая тема осветляет к белому
    (bosLightenHex), тёмная — углубляет к тёмной подложке (bosMixHex к #101014 и т.п.),
@@ -3186,7 +3199,7 @@ function SharedBuddiesLive({
       style: {
         fontSize: 11,
         fontWeight: 700,
-        color: accent
+        color: bosReadableInk(accent, isDark)
       }
     }, "\u2713 \u0441\u0435\u0433\u043E\u0434\u043D\u044F")), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -5837,6 +5850,7 @@ function HomeHeroSwipeLive({
 function CloudTeamsDiscoverLive({
   app
 }) {
+  var isDark = app?.themeOverride === "dark";
   var [list, setList] = React.useState(null);
   var [busy, setBusy] = React.useState({});
   var [requested, setRequested] = React.useState({});
@@ -6020,7 +6034,7 @@ function CloudTeamsDiscoverLive({
       fontSize: 11,
       fontWeight: 600,
       color: "var(--text-2)",
-      ...bosChipGlass(false),
+      ...bosChipGlass(isDark),
       padding: "3px 9px",
       borderRadius: 999
     }
@@ -6145,6 +6159,7 @@ function SeedCirclesShowcaseLive({
   app,
   navigate
 }) {
+  var isDark = app?.themeOverride === "dark";
   var start = s => {
     if (window.tgHaptic) {
       try {
@@ -6348,7 +6363,7 @@ function SeedCirclesShowcaseLive({
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        ...bosChipGlass(false),
+        ...bosChipGlass(isDark),
         padding: "3px 9px",
         borderRadius: 999,
         fontSize: 11,
@@ -7061,6 +7076,7 @@ function CircleStartersShowcaseLive({
   } = typeof useSheet === "function" ? useSheet() : {
     open: () => {}
   };
+  var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -7163,7 +7179,7 @@ function CircleStartersShowcaseLive({
       display: "inline-flex",
       alignItems: "center",
       gap: 4,
-      ...bosChipGlass(false),
+      ...bosChipGlass(isDark),
       padding: "3px 9px",
       borderRadius: 999,
       fontSize: 11,
@@ -9903,7 +9919,7 @@ function HabitCountCheck({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: count > 0 ? accent : "var(--text-4)",
+      color: count > 0 ? bosReadableInk(accent, isDark) : "var(--text-4)",
       fontSize: 12.5,
       fontWeight: 700,
       lineHeight: 1,
@@ -10106,7 +10122,7 @@ function HabitTimerCheck({
     style: {
       width: 30,
       height: 30,
-      color: accent
+      color: bosReadableInk(accent, isDark)
     }
   }, running ? showTime ? /*#__PURE__*/React.createElement("span", {
     style: {

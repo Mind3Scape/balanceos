@@ -204,6 +204,17 @@ function bosLightenHex(hx, amt) {
   var mk = function (c) { return Math.round(c + (255 - c) * k).toString(16).padStart(2, "0"); };
   return "#" + mk(r) + mk(g) + mk(b);
 }
+// Читаемая «чернильная» краска цифры/таймера НА СТЕКЛЯННОМ диске. В светлой теме — сам цвет
+// привычки (по умолчанию графит #0a0a0a: отлично читается на светлом диске). В тёмной тёмный
+// цвет НЕВИДИМ на тёмном диске (David: «цифра чёрная — не видно»), поэтому поднимаем светлоту:
+// чем темнее цвет, тем сильнее осветляем к белому; уже светлые оттенки не трогаем.
+function bosReadableInk(hx, isDark) {
+  if (!isDark) return hx || "#0a0a0a";
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) return "rgba(255,255,255,0.92)";
+  var r = parseInt(hx.slice(1, 3), 16), g = parseInt(hx.slice(3, 5), 16), b = parseInt(hx.slice(5, 7), 16);
+  var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum < 0.6 ? bosLightenHex(hx, 0.82 - lum * 0.5) : hx;
+}
 /* Смесь двух hex-цветов: hx→to на t (0..1). ФУНДАМЕНТ тема-зависимой тонировки (David:
    «цвета с пикера должны чуть отличаться в тёмной»): светлая тема осветляет к белому
    (bosLightenHex), тёмная — углубляет к тёмной подложке (bosMixHex к #101014 и т.п.),
@@ -1452,7 +1463,7 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>
                       {m.me ? "Ты" : m.name}
-                      {doneToday && <span style={{ fontSize: 11, fontWeight: 700, color: accent }}>✓ сегодня</span>}
+                      {doneToday && <span style={{ fontSize: 11, fontWeight: 700, color: bosReadableInk(accent, isDark) }}>✓ сегодня</span>}
                     </div>
                     <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
                       {keys.map((k, j) => (
@@ -2501,6 +2512,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
    Here it stays silent until real teams arrive, then the section appears once, below the
    create-CTA, shifting nothing above it. The frozen demo keeps core's CloudTeamsDiscover. */
 function CloudTeamsDiscoverLive({ app }) {
+  const isDark = app?.themeOverride === "dark";
   const [list, setList] = React.useState(null);
   const [busy, setBusy] = React.useState({});
   const [requested, setRequested] = React.useState({});
@@ -2558,7 +2570,7 @@ function CloudTeamsDiscoverLive({ app }) {
             <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, null)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
-              <div style={{ marginTop: 5 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(false), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span></div>
+              <div style={{ marginTop: 5 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span></div>
             </div>
             <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "var(--cta, #0a0a0a)", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
           </div>
@@ -2591,6 +2603,7 @@ const SEED_CIRCLES = [
   { id: "seed-read",     name: "Книжный клуб",   emblem: "📚", goalText: "месяц",   target: 30, unit: "дней", type: "collective", reward: 300, hook: "По главе в день — за месяц целая книга", practice: { name: "Чтение",         emoji: "📖" } },
 ];
 function SeedCirclesShowcaseLive({ app, navigate }) {
+  const isDark = app?.themeOverride === "dark";
   const start = (s) => {
     if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
     const existing = (app?.teams || []).find((t) => t.seedId === s.id);
@@ -2644,7 +2657,7 @@ function SeedCirclesShowcaseLive({ app, navigate }) {
                   графит+золото «+N XP» (язык XP-бейджа, David: бейдж был кривой/мутный). Вместе они
                   читаются как «продержись N дней → +N XP за финиш». */}
               <div style={{ alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4, ...bosChipGlass(false), padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>⏱ {s.goalText}</span>
+                <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4, ...bosChipGlass(isDark), padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>⏱ {s.goalText}</span>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", background: "#0a0a0a", color: "#FEDE34", fontWeight: 700, fontSize: 11, letterSpacing: "0.2px", borderRadius: 999, padding: "3px 9px" }}>+{s.reward} XP</span>
                   <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>за финиш</span>
@@ -2862,6 +2875,7 @@ const CIRCLE_STARTERS = [
 ];
 function CircleStartersShowcaseLive({ navigate }) {
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 10px" }}>
@@ -2876,7 +2890,7 @@ function CircleStartersShowcaseLive({ navigate }) {
             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", marginTop: 11, lineHeight: 1.25 }}>{s.t}</div>
             <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 31 }}>{s.hook}</div>
             <div style={{ flex: 1, minHeight: 10 }} />
-            <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4, ...bosChipGlass(false), padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>🎯 {s.target} {s.unit}</span>
+            <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4, ...bosChipGlass(isDark), padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>🎯 {s.target} {s.unit}</span>
             <span style={{ marginTop: 9, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 2 }}>Создать <I.ChevronRight size={14}/></span>
           </div>
         ))}
@@ -3919,7 +3933,7 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   // --check-color override → same graphite as the plain checks). In progress → grey glass + count.
   const disc = isDone
     ? <span className="check-btn" style={{ width: 30, height: 30 }}><I.Check size={16} strokeWidth={2.8} color="#fff" /></span>
-    : <span className="check-btn unchecked" style={{ width: 30, height: 30 }}><span style={{ color: count > 0 ? accent : "var(--text-4)", fontSize: 12.5, fontWeight: 700, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{count}</span></span>;
+    : <span className="check-btn unchecked" style={{ width: 30, height: 30 }}><span style={{ color: count > 0 ? bosReadableInk(accent, isDark) : "var(--text-4)", fontSize: 12.5, fontWeight: 700, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{count}</span></span>;
 
   return (
     <div style={{ position: "relative", flexShrink: 0, width: 30, height: 30, display: "grid", placeItems: "center" }}>
@@ -4016,7 +4030,7 @@ function HabitTimerCheck({ habit, app, xp = 10 }) {
   // Диск = тот же 30px .check-btn. DONE → ✓. Идёт: первые ~2.5с ⏸, потом ТИКАЮЩЕЕ время. Иначе ▶ (старт/пауза).
   const disc = done
     ? <span className="check-btn" style={{ width: 30, height: 30 }}><I.Check size={16} strokeWidth={2.8} color="#fff" /></span>
-    : <span className="check-btn unchecked" style={{ width: 30, height: 30, color: accent }}>
+    : <span className="check-btn unchecked" style={{ width: 30, height: 30, color: bosReadableInk(accent, isDark) }}>
         {running
           ? (showTime
               ? <span style={{ fontSize: mmss.length > 4 ? 8 : 9.5, fontWeight: 800, letterSpacing: "-0.6px", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{mmss}</span>
