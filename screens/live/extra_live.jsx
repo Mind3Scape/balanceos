@@ -241,7 +241,9 @@ function GoalDetailLive() {
   const remaining = Math.max(0, (g.target || 0) - cur);
   const done = prog.done;
   const linked = (app?.habits || []).filter((h) => (g.habitIds || []).includes(h.id));
-  const orbitPeople = (buddies || []).filter((m) => m && !m.me).map((m) => ({ avatar: m.avatar, name: m.name }));
+  // ПУЛЬС: active = отметился сегодня → колечко «в деле» на лице.
+  const _otk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+  const orbitPeople = (buddies || []).filter((m) => m && !m.me).map((m) => ({ avatar: m.avatar, name: m.name, active: !!(_otk && m.days && m.days[_otk]) }));
   const orbitsHero = gStyle.orbits && typeof GoalOrbitMini === "function";
 
   const card = isDark
@@ -263,7 +265,7 @@ function GoalDetailLive() {
         {orbitsHero ? (
           <>
             <div style={{ width: 190, height: 190, margin: "0 auto", display: "grid", placeItems: "center" }}>
-              <GoalOrbitMini centerEmoji={g.emoji} centerColor={g.color} habits={linked.map((h) => ({ emoji: h.emoji }))} people={orbitPeople} size={190} dark={isDark} />
+              <GoalOrbitMini centerEmoji={g.emoji} centerColor={g.color} habits={linked.map((h) => ({ emoji: h.emoji, color: h.color, done: !!h.done }))} people={orbitPeople} size={190} dark={isDark} progress={pct} />
             </div>
             <div style={{ fontSize: 30, fontWeight: 800, marginTop: 12, letterSpacing: "-0.5px", color: "var(--text)" }}><Count value={Math.round(pct * 100)} />%</div>
           </>

@@ -989,13 +989,17 @@ function GoalCardOrbit({
   habits,
   size,
   dark,
-  fade
+  fade,
+  progress = null
 }) {
   var members = typeof useBuddyMembersLive === "function" ? useBuddyMembersLive(goal && goal.shareCode) : null;
   // Люди на орбите = ВСЕ участники цели (включая себя — David: «вижу большую часть команды на орбитах»).
+  // ПУЛЬС: active = отметился СЕГОДНЯ (по карте дней участника) → колечко на лице.
+  var _tk = typeof bosTodayKey === "function" ? bosTodayKey() : null;
   var people = (members || []).filter(Boolean).map(m => ({
     avatar: m.avatar,
-    name: m.name
+    name: m.name,
+    active: !!(_tk && m.days && m.days[_tk])
   }));
   // Привычки цели: по habitIds И по обратной ссылке h.goalId (David добавлял привычку, а она не
   // появлялась — ловим оба способа привязки), без дублей.
@@ -1006,9 +1010,11 @@ function GoalCardOrbit({
   (habits || []).forEach(h => {
     if (h && goal && h.goalId === goal.id) ids[h.id] = 1;
   });
+  // ПУЛЬС: несём done — закрытая сегодня привычка загорается своим цветом на орбите.
   var linked = Object.keys(ids).map(id => (habits || []).find(h => "" + h.id === "" + id)).filter(Boolean).map(h => ({
     emoji: h.emoji,
-    color: h.color
+    color: h.color,
+    done: !!h.done
   }));
   if (typeof GoalOrbitMini !== "function") return null;
   return /*#__PURE__*/React.createElement(GoalOrbitMini, {
@@ -1018,7 +1024,8 @@ function GoalCardOrbit({
     people: people,
     size: size,
     dark: dark,
-    fade: fade
+    fade: fade,
+    progress: progress
   });
 }
 function HabitsLive() {
@@ -1479,7 +1486,8 @@ function HabitsLive() {
       habits: habits,
       size: banner ? 132 : 152,
       dark: isDark,
-      fade: true
+      fade: true,
+      progress: pct
     }) : null;
     var pctEl = /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1712,7 +1720,8 @@ function HabitsLive() {
       people: members,
       size: banner ? 132 : 152,
       dark: isDark,
-      fade: true
+      fade: true,
+      progress: pct
     }) : null;
     var faces = !orbit && members.length ? /*#__PURE__*/React.createElement("span", {
       style: {

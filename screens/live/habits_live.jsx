@@ -305,18 +305,21 @@ function bosSavePracticeOrder(keys) { try { localStorage.setItem("bos:practiceOr
 // Орбита для КАРТОЧКИ цели: резолвит её людей (shareCode-бадди) + привычки (habitIds) и рисует
 // статичную GoalOrbitMini. Отдельный компонент — чтобы честно вызвать хук useBuddyMembersLive (в
 // goalTile, который зовётся в .map, хук нельзя). habits = полный список (для резолва по id).
-function GoalCardOrbit({ goal, habits, size, dark, fade }) {
+function GoalCardOrbit({ goal, habits, size, dark, fade, progress = null }) {
   const members = (typeof useBuddyMembersLive === "function") ? useBuddyMembersLive(goal && goal.shareCode) : null;
   // Люди на орбите = ВСЕ участники цели (включая себя — David: «вижу большую часть команды на орбитах»).
-  const people = (members || []).filter(Boolean).map((m) => ({ avatar: m.avatar, name: m.name }));
+  // ПУЛЬС: active = отметился СЕГОДНЯ (по карте дней участника) → колечко на лице.
+  const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+  const people = (members || []).filter(Boolean).map((m) => ({ avatar: m.avatar, name: m.name, active: !!(_tk && m.days && m.days[_tk]) }));
   // Привычки цели: по habitIds И по обратной ссылке h.goalId (David добавлял привычку, а она не
   // появлялась — ловим оба способа привязки), без дублей.
   const ids = {};
   ((goal && goal.habitIds) || []).forEach((id) => { ids[id] = 1; });
   (habits || []).forEach((h) => { if (h && goal && h.goalId === goal.id) ids[h.id] = 1; });
-  const linked = Object.keys(ids).map((id) => (habits || []).find((h) => "" + h.id === "" + id)).filter(Boolean).map((h) => ({ emoji: h.emoji, color: h.color }));
+  // ПУЛЬС: несём done — закрытая сегодня привычка загорается своим цветом на орбите.
+  const linked = Object.keys(ids).map((id) => (habits || []).find((h) => "" + h.id === "" + id)).filter(Boolean).map((h) => ({ emoji: h.emoji, color: h.color, done: !!h.done }));
   if (typeof GoalOrbitMini !== "function") return null;
-  return <GoalOrbitMini centerEmoji={goal && goal.emoji} centerColor={goal && goal.color} habits={linked} people={people} size={size} dark={dark} fade={fade} />;
+  return <GoalOrbitMini centerEmoji={goal && goal.emoji} centerColor={goal && goal.color} habits={linked} people={people} size={size} dark={dark} fade={fade} progress={progress} />;
 }
 
 function HabitsLive() {
@@ -557,7 +560,7 @@ function HabitsLive() {
     const curVal = gp.current;
     const sk = goalSkin(g.color);
     const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: "habits" });
-    const orbit = goalStyle.orbits ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 132 : 152} dark={isDark} fade /> : null;
+    const orbit = goalStyle.orbits ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 132 : 152} dark={isDark} fade progress={pct} /> : null;
     const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
     const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color)}</span>;
     const progBar = goalStyle.progress ? (
@@ -630,7 +633,7 @@ function HabitsLive() {
     const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t, from: "habits" });
     const members = t.members || [];
     const orbit = goalStyle.orbits && typeof GoalOrbitMini === "function"
-      ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={(t.habits || []).map((h) => ({ emoji: h.emoji }))} people={members} size={banner ? 132 : 152} dark={isDark} fade />
+      ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={(t.habits || []).map((h) => ({ emoji: h.emoji }))} people={members} size={banner ? 132 : 152} dark={isDark} fade progress={pct} />
       : null;
     const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={20} max={3} /></span> : null;
     const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;

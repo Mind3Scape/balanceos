@@ -425,9 +425,12 @@ function GoalDetailLive() {
   var remaining = Math.max(0, (g.target || 0) - cur);
   var done = prog.done;
   var linked = (app?.habits || []).filter(h => (g.habitIds || []).includes(h.id));
+  // ПУЛЬС: active = отметился сегодня → колечко «в деле» на лице.
+  var _otk = typeof bosTodayKey === "function" ? bosTodayKey() : null;
   var orbitPeople = (buddies || []).filter(m => m && !m.me).map(m => ({
     avatar: m.avatar,
-    name: m.name
+    name: m.name,
+    active: !!(_otk && m.days && m.days[_otk])
   }));
   var orbitsHero = gStyle.orbits && typeof GoalOrbitMini === "function";
   var card = isDark ? {
@@ -475,11 +478,14 @@ function GoalDetailLive() {
     centerEmoji: g.emoji,
     centerColor: g.color,
     habits: linked.map(h => ({
-      emoji: h.emoji
+      emoji: h.emoji,
+      color: h.color,
+      done: !!h.done
     })),
     people: orbitPeople,
     size: 190,
-    dark: isDark
+    dark: isDark,
+    progress: pct
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 30,

@@ -2611,6 +2611,10 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
 // внутреннем кольце и люди (лица) на внешнем. МЕДЛЕННО КРУТИТСЯ (David передумал «пусть статично» →
 // «не крутятся»): CSS bosSpin/bosSpinR, кольца в разные стороны, диски counter-rotate = прямые.
 // Дёшево (только transform, GPU). habits=[{emoji,color}], people=[{avatar,name}].
+/* ПУЛЬС КРУГА (David): орбита — живой индикатор. habits[].done → спутник ЗАГОРАЕТСЯ тоном
+   ЦВЕТА ПРИВЫЧКИ (habits[].color, фолбэк — цвет цели); progress (0..1) → тонкое кольцо
+   прогресса вокруг центра в цвет цели; people[].active → колечко «сегодня в деле» у лица.
+   Одна механика на личную цель И команду: чего нет в данных — просто не рисуется. */
 function GoalOrbitMini({
   centerEmoji,
   centerColor,
@@ -2618,7 +2622,8 @@ function GoalOrbitMini({
   people = [],
   size = 128,
   dark = false,
-  fade = false
+  fade = false,
+  progress = null
 }) {
   var C = size / 2;
   var cR = Math.round(size * 0.19); // центр-диск (радиус)
@@ -2732,22 +2737,35 @@ function GoalOrbitMini({
         willChange: "transform"
       }
     }, place(items, R, dSz, k * 0.35, function (it) {
-      return isPeople ? /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "block",
-          borderRadius: "50%"
-        }
-      }, typeof BuddyFaceLive === "function" ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
-        avatar: it.avatar,
-        name: it.name,
-        size: dSz
-      }) : null) : /*#__PURE__*/React.createElement("span", {
+      if (isPeople) {
+        // ПУЛЬС: active → двойное колечко «сегодня в деле» (стиль сторис) в цвет цели.
+        return /*#__PURE__*/React.createElement("span", {
+          style: {
+            display: "block",
+            borderRadius: "50%",
+            boxShadow: it.active ? "0 0 0 1.5px " + (dark ? "#0f0f12" : "#fff") + ", 0 0 0 3.5px " + accent : "none",
+            transition: "box-shadow 0.35s ease"
+          }
+        }, typeof BuddyFaceLive === "function" ? /*#__PURE__*/React.createElement(BuddyFaceLive, {
+          avatar: it.avatar,
+          name: it.name,
+          size: dSz
+        }) : null);
+      }
+      // ПУЛЬС: привычка ЗАКРЫТА сегодня → спутник загорается тоном СВОЕГО цвета
+      // (фолбэк — цвет цели) + мягкое свечение; не закрыта → приглушённый тон цели.
+      var hc = typeof it.color === "string" && it.color[0] === "#" && it.color.length >= 7 && it.color.toLowerCase() !== "#0a0a0a" && it.color !== BOS_GREY ? it.color : cReal ? centerColor : null;
+      var lit = !!it.done && !!hc;
+      var bg = lit ? sheen + (dark ? bosMixHex(hc, "#101014", 0.2) : bosLightenHex(hc, 0.28)) : hDiscBg;
+      var glow = lit ? discShadow + ", 0 0 10px " + hc + (dark ? "59" : "59") : discShadow;
+      return /*#__PURE__*/React.createElement("span", {
         style: {
           width: "100%",
           height: "100%",
           borderRadius: "50%",
-          background: hDiscBg,
-          boxShadow: discShadow,
+          background: bg,
+          boxShadow: glow,
+          transition: "background 0.45s ease, box-shadow 0.45s ease",
           display: "grid",
           placeItems: "center",
           fontSize: iconSz,
@@ -2777,13 +2795,28 @@ function GoalOrbitMini({
       height: cR * 2,
       borderRadius: "50%",
       background: centerBg,
-      boxShadow: discShadow,
+      boxShadow: progress != null && progress >= 1 ? discShadow + ", 0 0 13px " + accent + (dark ? "66" : "4d") : discShadow,
+      transition: "box-shadow 0.5s ease",
       display: "grid",
       placeItems: "center",
       fontSize: cIcon,
       lineHeight: 1
     }
-  }, typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, centerInk) : centerEmoji || "🎯"));
+  }, typeof bosIcon === "function" ? bosIcon(centerEmoji || "🎯", cIcon, centerInk) : centerEmoji || "🎯"), progress != null && /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      position: "absolute",
+      left: C - cR - 5,
+      top: C - cR - 5,
+      width: (cR + 5) * 2,
+      height: (cR + 5) * 2,
+      borderRadius: "50%",
+      pointerEvents: "none",
+      background: "conic-gradient(" + accent + " " + Math.round(Math.max(0, Math.min(1, progress)) * 360) + "deg, " + (dark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.65)") + " 0)",
+      WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.4px))",
+      mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.4px))"
+    }
+  }));
 }
 
 // Shared-habit buddies for the habit CARDS — real cloud members (no legacy h.friends letter-avatars,
