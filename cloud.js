@@ -36,7 +36,27 @@
   // Sign in (idempotent). referredBy = id of the person whose invite link brought you.
   async function signIn(referredBy) {
     var c = client(); if (!c) return null;
-    var existing = await currentUser(); if (existing) { _uid = existing.id; try { flushQueue(); flushLedgerBacklog(); } catch (e) {} return existing; }
+    var existing = await currentUser();
+    if (existing) {
+      _uid = existing.id;
+      // МОСТ ПРИГЛАШЕНИЯ ДЛЯ СТАРОЖИЛОВ (баг «друг не появился на орбите»): человек, УЖЕ
+      // залогиненный, открыл ссылку друга → referredBy пришёл из bosReferralId, НО сессия уже
+      // есть, поэтому tg-auth ниже НЕ вызывался и referred_by никогда не проставлялся. Досылаем
+      // referredBy в tg-auth отдельным вызовом: сервисной ролью он допишет referred_by ТОЛЬКО
+      // пока он пуст (никогда не перетирает уже существующего пригласившего), OTP игнорируем —
+      // сессия уже есть. Fire-and-forget, чтобы не тормозить вход. Гард от само-реферала по uid.
+      if (referredBy && referredBy !== existing.id && inTelegram()) {
+        try {
+          fetch(URL + "/functions/v1/tg-auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + KEY, "apikey": KEY },
+            body: JSON.stringify({ initData: window.__TG.initData, referredBy: referredBy }),
+          }).catch(function () {});
+        } catch (e) {}
+      }
+      try { flushQueue(); flushLedgerBacklog(); } catch (e) {}
+      return existing;
+    }
     if (inTelegram()) {
       try {
         var resp = await fetch(URL + "/functions/v1/tg-auth", {
