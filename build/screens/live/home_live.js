@@ -1180,6 +1180,7 @@ function HomeLive() {
     onReorder: onReorderKeys,
     onLongPress: onCellLongPress,
     onAdd: openAddSheet,
+    onGear: () => setStyleOpen(true),
     addLabel: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E",
     spanFull: k => {
       // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).

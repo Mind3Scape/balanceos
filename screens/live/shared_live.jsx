@@ -1999,7 +1999,7 @@ function BosReorderList({ ids, onReorder, renderItem, gap = 8, onAdd, addLabel }
    menu (enterReorder, exposed via ctlRef) — a grid has no obvious drag-handle, so we don't want a
    stray hold to start dragging. In REORDER mode every tile jiggles and a press begins a drag at
    once; «Готово» (floating, portal'd like BosReorderList) leaves the mode. */
-function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull, onAdd, addLabel }) {
+function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols = 2, gap = 12, spanFull, onAdd, addLabel, onGear }) {
   const [mode, setMode] = React.useState(false);
   const [order, setOrder] = React.useState(ids);
   const [drag, setDrag] = React.useState({ id: null, from: -1, to: -1, dx: 0, dy: 0 });
@@ -2119,6 +2119,17 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
             fontSize: 14, fontWeight: 600, boxShadow: "0 10px 26px rgba(0,0,0,0.36)", cursor: "pointer",
             animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
           }}>Готово</button>
+          {/* «Оформление» — стеклянная шестерёнка СПРАВА от «Готово» (David: в том же стиле, что плюсик).
+              Быстрые визуальные настройки доски (стиль карточек, стекло) прямо из тряски. */}
+          {onGear && (
+            <button onClick={onGear} className="tap" data-haptic="selection" aria-label="Оформление" style={{
+              pointerEvents: "auto", width: 44, height: 44, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer",
+              color: (typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark")) ? "#fff" : "var(--text)",
+              background: BOS_TILE_SHEEN + ", " + ((typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark")) ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+              boxShadow: "0 10px 26px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)",
+              animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
+            }}><I.Settings size={20} strokeWidth={2} /></button>
+          )}
         </div>,
         (typeof document !== "undefined" && document.querySelector(".page-stack")) || document.body
       )}
@@ -2693,6 +2704,10 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
   const [tab, setTab] = React.useState("habits");
   const [hs, setHs] = React.useState(bosLoadCardStyle);
   const [gs, setGs] = React.useState(bosLoadGoalStyle);
+  // «Общий вид» (David: «общие визуальные настройки в шестерёнке»): эффект стекла — тот же
+  // глобальный тумблер bos:glass, что в настройках профиля, но под рукой прямо из тряски.
+  const [glassOn, setGlassOn] = React.useState(() => { try { return localStorage.getItem("bos:glass") !== "0"; } catch (e) { return true; } });
+  const setGlass = (v) => { setGlassOn(v); try { localStorage.setItem("bos:glass", v ? "1" : "0"); } catch (e) {} try { window.dispatchEvent(new Event("bos:glassChanged")); } catch (e) {} };
   React.useEffect(() => {
     if (!open) return;
     setHs(bosLoadCardStyle()); setGs(bosLoadGoalStyle());
@@ -2730,7 +2745,7 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
       <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right", animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 236, padding: 11, borderRadius: 20, background: "rgba(255,255,255,0.86)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
         {/* Вкладки: Привычки / Цели */}
-        {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }], setTab)}
+        {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }, { v: "app", l: "Общий вид" }], setTab)}
         <div style={{ height: 9 }} />
         {tab === "habits" ? (
           <>
@@ -2745,7 +2760,7 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
               {hs.form === "square" && toggleRow("Название", hs.name, (v) => setH({ name: v }))}
             </div>
           </>
-        ) : (
+        ) : tab === "goals" ? (
           <>
             <div style={{ display: "flex", gap: 7 }}>{formBtn("banner", "Баннер", BN, gs.form, (k) => setG({ form: k }))}{formBtn("square", "Квадрат", SQ, gs.form, (k) => setG({ form: k }))}</div>
             {divider}
@@ -2755,6 +2770,12 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
               {toggleRow("Название", gs.name, (v) => setG({ name: v }))}
             </div>
             <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 0" }}>Орбиты показывают привычки и людей вокруг цели — превью, вокруг чего она.</div>
+          </>
+        ) : (
+          <>
+            {/* «Общий вид» — визуальные настройки всей главной (David: «общие настройки приложения»). */}
+            {toggleRow("Эффект стекла", glassOn, setGlass)}
+            <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 0" }}>Стеклянные блики на плитках и дисках. Выключи — станет плоско и легче телефону.</div>
           </>
         )}
       </div>

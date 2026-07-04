@@ -4272,7 +4272,8 @@ function BosReorderGrid({
   gap = 12,
   spanFull,
   onAdd,
-  addLabel
+  addLabel,
+  onGear
 }) {
   var [mode, setMode] = React.useState(false);
   var [order, setOrder] = React.useState(ids);
@@ -4549,7 +4550,29 @@ function BosReorderGrid({
       cursor: "pointer",
       animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both"
     }
-  }, "\u0413\u043E\u0442\u043E\u0432\u043E")), typeof document !== "undefined" && document.querySelector(".page-stack") || document.body), /*#__PURE__*/React.createElement("div", {
+  }, "\u0413\u043E\u0442\u043E\u0432\u043E"), onGear && /*#__PURE__*/React.createElement("button", {
+    onClick: onGear,
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": "\u041E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u0435",
+    style: {
+      pointerEvents: "auto",
+      width: 44,
+      height: 44,
+      borderRadius: "50%",
+      border: 0,
+      display: "grid",
+      placeItems: "center",
+      cursor: "pointer",
+      color: typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark") ? "#fff" : "var(--text)",
+      background: BOS_TILE_SHEEN + ", " + (typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark") ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+      boxShadow: "0 10px 26px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)",
+      animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both"
+    }
+  }, /*#__PURE__*/React.createElement(I.Settings, {
+    size: 20,
+    strokeWidth: 2
+  }))), typeof document !== "undefined" && document.querySelector(".page-stack") || document.body), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(" + cols + ", 1fr)",
@@ -6081,6 +6104,24 @@ function CardStyleMenuLive({
   var [tab, setTab] = React.useState("habits");
   var [hs, setHs] = React.useState(bosLoadCardStyle);
   var [gs, setGs] = React.useState(bosLoadGoalStyle);
+  // «Общий вид» (David: «общие визуальные настройки в шестерёнке»): эффект стекла — тот же
+  // глобальный тумблер bos:glass, что в настройках профиля, но под рукой прямо из тряски.
+  var [glassOn, setGlassOn] = React.useState(() => {
+    try {
+      return localStorage.getItem("bos:glass") !== "0";
+    } catch (e) {
+      return true;
+    }
+  });
+  var setGlass = v => {
+    setGlassOn(v);
+    try {
+      localStorage.setItem("bos:glass", v ? "1" : "0");
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event("bos:glassChanged"));
+    } catch (e) {}
+  };
   React.useEffect(() => {
     if (!open) return;
     setHs(bosLoadCardStyle());
@@ -6295,6 +6336,9 @@ function CardStyleMenuLive({
   }, {
     v: "goals",
     l: "Цели"
+  }, {
+    v: "app",
+    l: "Общий вид"
   }], setTab), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 9
@@ -6346,7 +6390,7 @@ function CardStyleMenuLive({
     faces: v
   })), hs.form === "square" && toggleRow("Название", hs.name, v => setH({
     name: v
-  })))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  })))) : tab === "goals" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 7
@@ -6372,7 +6416,14 @@ function CardStyleMenuLive({
       lineHeight: 1.4,
       padding: "4px 2px 0"
     }
-  }, "\u041E\u0440\u0431\u0438\u0442\u044B \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0432\u043E\u043A\u0440\u0443\u0433 \u0446\u0435\u043B\u0438 \u2014 \u043F\u0440\u0435\u0432\u044C\u044E, \u0432\u043E\u043A\u0440\u0443\u0433 \u0447\u0435\u0433\u043E \u043E\u043D\u0430.")))), document.body);
+  }, "\u041E\u0440\u0431\u0438\u0442\u044B \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0432\u043E\u043A\u0440\u0443\u0433 \u0446\u0435\u043B\u0438 \u2014 \u043F\u0440\u0435\u0432\u044C\u044E, \u0432\u043E\u043A\u0440\u0443\u0433 \u0447\u0435\u0433\u043E \u043E\u043D\u0430.")) : /*#__PURE__*/React.createElement(React.Fragment, null, toggleRow("Эффект стекла", glassOn, setGlass), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "rgba(10,10,10,0.42)",
+      lineHeight: 1.4,
+      padding: "4px 2px 0"
+    }
+  }, "\u0421\u0442\u0435\u043A\u043B\u044F\u043D\u043D\u044B\u0435 \u0431\u043B\u0438\u043A\u0438 \u043D\u0430 \u043F\u043B\u0438\u0442\u043A\u0430\u0445 \u0438 \u0434\u0438\u0441\u043A\u0430\u0445. \u0412\u044B\u043A\u043B\u044E\u0447\u0438 \u2014 \u0441\u0442\u0430\u043D\u0435\u0442 \u043F\u043B\u043E\u0441\u043A\u043E \u0438 \u043B\u0435\u0433\u0447\u0435 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0443.")))), document.body);
 }
 
 // LIVE share-a-goal sheet — the goal twin of ShareHabitSheetLive, kept minimal: share

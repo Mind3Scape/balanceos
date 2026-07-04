@@ -521,6 +521,7 @@ function HomeLive() {
           onReorder={onReorderKeys}
           onLongPress={onCellLongPress}
           onAdd={openAddSheet}
+          onGear={() => setStyleOpen(true)}
           addLabel="Добавить на главную"
           spanFull={(k) => {
             // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).
