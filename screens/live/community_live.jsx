@@ -882,9 +882,15 @@ function TeamDetailLive() {
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Цель" onBack={() => navigate(from)} right={
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Круглая СТЕКЛЯННАЯ «поделиться» (позвать в круг) — СТАНДАРТ как на детали привычки/цели
+              (David: «такую же кнопку везде»). Доступна ВСЕМ участникам, не только владельцу —
+              позвать друга в круг может каждый. Дублирующий тихий чип «Позвать» ниже оставляем. */}
+          <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" title="Позвать в круг"
+            style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark) }}>
+            <I.Share size={16} strokeWidth={2} />
+          </button>
           {/* Правка НА МЕСТЕ — карандаш открывает шторку правки прямо над комнатой (не уводит
-              на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. «Поделиться»
-              ушло вниз в тихие чипы («Позвать»), чтобы шапка не выбивалась. */}
+              на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. */}
           {/* Карандаш круга открывает ТУ ЖЕ шторку, что у обычной цели — GoalFormSheetLive (David:
               «унифицировать; отдельную урезанную шторку убрать»). Команда маппится в goal-подобный
               объект (emblem→emoji, accent→color) + __isTeam/__team → форма редактирует круг: save =

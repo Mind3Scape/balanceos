@@ -466,14 +466,44 @@ function GoalDetailPersonalLive() {
     dark: isDark,
     title: "",
     onBack: () => navigate(back),
-    right: /*#__PURE__*/React.createElement(EditGlassButtonLive, {
+    right: /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+        goal: g,
+        dark: isDark
+      })),
+      className: "tap",
+      "data-haptic": "selection",
+      "aria-label": "\u0412\u0435\u0441\u0442\u0438 \u0432\u043C\u0435\u0441\u0442\u0435",
+      title: "\u0412\u0435\u0441\u0442\u0438 \u0432\u043C\u0435\u0441\u0442\u0435",
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        border: 0,
+        display: "grid",
+        placeItems: "center",
+        cursor: "pointer",
+        color: isDark ? "#fff" : "var(--text)",
+        background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
+        boxShadow: bosTileGlass(isDark)
+      }
+    }, /*#__PURE__*/React.createElement(I.Share, {
+      size: 16,
+      strokeWidth: 2
+    })), /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
         mode: "edit",
         goal: g,
         navigate: navigate,
         returnTo: back
       }))
-    })
+    }))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",

@@ -267,7 +267,15 @@ function GoalDetailPersonalLive() {
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
-        <EditGlassButtonLive onClick={() => openSheet(<GoalFormSheetLive mode="edit" goal={g} navigate={navigate} returnTo={back} />)} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Круглая СТЕКЛЯННАЯ «поделиться» — СТАНДАРТ как на детали привычки (David: «такую же
+              кнопку на страницах целей и общих целей, чтобы везде одинаково»). */}
+          <button onClick={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)} className="tap" data-haptic="selection" aria-label="Вести вместе" title="Вести вместе"
+            style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark) }}>
+            <I.Share size={16} strokeWidth={2} />
+          </button>
+          <EditGlassButtonLive onClick={() => openSheet(<GoalFormSheetLive mode="edit" goal={g} navigate={navigate} returnTo={back} />)} />
+        </div>
       } />
 
       {/* Hero — ОРБИТА (если включена в стиле целей) или кольцо (Apple-Watch). Орбита = цель в центре,

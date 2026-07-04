@@ -1979,7 +1979,30 @@ function TeamDetailLive() {
         gap: 8,
         alignItems: "center"
       }
-    }, _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+        team: t
+      })),
+      className: "tap",
+      "data-haptic": "selection",
+      "aria-label": "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433",
+      title: "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433",
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        border: 0,
+        display: "grid",
+        placeItems: "center",
+        cursor: "pointer",
+        color: isDark ? "#fff" : "var(--text)",
+        background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
+        boxShadow: bosTileGlass(isDark)
+      }
+    }, /*#__PURE__*/React.createElement(I.Share, {
+      size: 16,
+      strokeWidth: 2
+    })), _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
         mode: "edit",
         circleOn: true,

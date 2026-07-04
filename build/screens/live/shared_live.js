@@ -5046,11 +5046,13 @@ function CreateMenuLive({
       minWidth: 212,
       padding: 7,
       borderRadius: 22,
-      background: isDark ? "rgba(22,23,27,0.86)" : "rgba(255,255,255,0.74)",
-      WebkitBackdropFilter: "blur(34px) saturate(160%)",
-      backdropFilter: "blur(34px) saturate(160%)",
-      border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.7)"),
-      boxShadow: "0 16px 44px rgba(0,0,0," + (isDark ? "0.55" : "0.26") + ")"
+      // Плотный фон (David: «не делай слишком прозрачным — мешает читать что в меню»): почти
+      // непрозрачное стекло вместо полупрозрачного, содержимое читается на любом фоне.
+      background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",
+      WebkitBackdropFilter: "blur(22px) saturate(150%)",
+      backdropFilter: "blur(22px) saturate(150%)",
+      border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"),
+      boxShadow: "0 16px 44px rgba(0,0,0," + (isDark ? "0.55" : "0.20") + ")"
     }
   }, items.map((it, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
