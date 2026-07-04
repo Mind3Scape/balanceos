@@ -457,62 +457,123 @@ function GoalDetailPersonalLive() {
     CIRC = 2 * Math.PI * R;
   var goalColor = g.color || "#0a0a0a"; // goal fill = its chosen colour, default black (b&w base)
 
+  // David: тот же hero-редизайн, что у ОБЩЕЙ цели (TeamDetailLive) — full-bleed шапка до самого
+  // верха со скруглённым низом; инфа под орбитой = ЧИПЫ; ОПИСАНИЕ (g.desc) под именем; правка/
+  // поделиться стеклом справа. aiChips = 1-2 честных наблюдения по темпу (заменяют блок «Подсказка»).
+  var desc = g.desc || "";
+  var aiChips = function () {
+    var out = [];
+    if (done) {
+      out.push("🎉 Цель достигнута");
+      return out;
+    }
+    if (pct >= 0.8) out.push("💪 финишная прямая");else if (pct >= 0.5) out.push("🚀 больше половины");else if (cur === 0) out.push("✨ первый шаг");else out.push("📈 в пути");
+    if (linked[0]) out.push("🔥 двигатель: " + ("" + (linked[0].name || "")).split(" ")[0]);
+    return out.slice(0, 2);
+  }();
+  var _hn = linked.length;
+  var _habitWord = _hn % 10 === 1 && _hn % 100 !== 11 ? "привычка" : _hn % 10 >= 2 && _hn % 10 <= 4 && (_hn % 100 < 12 || _hn % 100 > 14) ? "привычки" : "привычек";
+  var teamColor = g.color && ("" + g.color).toLowerCase() !== "#0a0a0a" && g.color !== "#8E8E93" && g.color !== "#EAEAEF" ? g.color : null;
+  var heroTint = isDark ? teamColor && typeof bosMixHex === "function" ? bosMixHex(teamColor, "#101014", 0.72) : "#1b1b1f" : teamColor && typeof bosMixHex === "function" ? bosMixHex(teamColor, "#ffffff", 0.84) : "#ECECF1";
+  var heroBg = "linear-gradient(180deg, " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)") + ", rgba(255,255,255,0) 58%), " + heroTint;
+  var heroBtn = {
+    width: 38,
+    height: 38,
+    borderRadius: "50%",
+    border: 0,
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+    background: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.62)",
+    color: isDark ? "#fff" : "#1b1b1f",
+    flexShrink: 0
+  };
+  var heroChip = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.62)",
+    borderRadius: 999,
+    padding: "5px 11px",
+    fontSize: 12,
+    fontWeight: 600,
+    color: isDark ? "rgba(255,255,255,0.92)" : "#2a2a30",
+    whiteSpace: "nowrap"
+  };
+  var heroChipAI = Object.assign({}, heroChip, {
+    background: isDark ? "rgba(120,150,220,0.24)" : "rgba(255,255,255,0.92)",
+    color: isDark ? "#dfe6ff" : "#3a4a68",
+    boxShadow: isDark ? "none" : "0 1px 4px rgba(40,60,110,0.10)"
+  });
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
-      padding: "0 16px 24px"
+      paddingBottom: 24
     }
-  }, /*#__PURE__*/React.createElement(PageHeader, {
-    dark: isDark,
-    title: "",
-    onBack: () => navigate(back),
-    right: /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
-        goal: g,
-        dark: isDark
-      })),
-      className: "tap",
-      "data-haptic": "selection",
-      "aria-label": "\u0412\u0435\u0441\u0442\u0438 \u0432\u043C\u0435\u0441\u0442\u0435",
-      title: "\u0412\u0435\u0441\u0442\u0438 \u0432\u043C\u0435\u0441\u0442\u0435",
-      style: {
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        border: 0,
-        display: "grid",
-        placeItems: "center",
-        cursor: "pointer",
-        color: isDark ? "#fff" : "var(--text)",
-        background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
-        boxShadow: bosTileGlass(isDark)
-      }
-    }, /*#__PURE__*/React.createElement(I.Share, {
-      size: 16,
-      strokeWidth: 2
-    })), /*#__PURE__*/React.createElement(EditGlassButtonLive, {
-      onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
-        mode: "edit",
-        goal: g,
-        navigate: navigate,
-        returnTo: back
-      }))
-    }))
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      background: heroBg,
+      marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
+      padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate(back),
+    className: "tap",
+    "aria-label": "\u041D\u0430\u0437\u0430\u0434",
+    style: heroBtn
+  }, /*#__PURE__*/React.createElement(I.ChevronLeft, {
+    size: 20,
+    strokeWidth: 2.4
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
+      goal: g,
+      dark: isDark
+    })),
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": "\u0412\u0435\u0441\u0442\u0438 \u0432\u043C\u0435\u0441\u0442\u0435",
+    style: heroBtn
+  }, /*#__PURE__*/React.createElement(I.Share, {
+    size: 16,
+    strokeWidth: 2
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+      mode: "edit",
+      goal: g,
+      navigate: navigate,
+      returnTo: back
+    })),
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0446\u0435\u043B\u0438",
+    style: heroBtn
+  }, /*#__PURE__*/React.createElement(I.Pencil, {
+    size: 16,
+    strokeWidth: 2
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      padding: "6px 0 18px"
+      marginTop: 4
     }
-  }, orbitsHero ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, orbitsHero ? /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 190,
-      height: 190,
+      width: 172,
+      height: 172,
       margin: "0 auto",
       display: "grid",
       placeItems: "center"
@@ -526,29 +587,19 @@ function GoalDetailPersonalLive() {
       done: !!h.done
     })),
     people: orbitPeople,
-    size: 190,
+    size: 172,
     dark: isDark,
     progress: pct
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 30,
-      fontWeight: 800,
-      marginTop: 12,
-      letterSpacing: "-0.5px",
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement(Count, {
-    value: Math.round(pct * 100)
-  }), "%")) : /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      width: 170,
-      height: 170,
+      width: 150,
+      height: 150,
       margin: "0 auto"
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "170",
-    height: "170",
+    width: "150",
+    height: "150",
     viewBox: "0 0 140 140",
     style: {
       transform: "rotate(-90deg)"
@@ -581,67 +632,62 @@ function GoalDetailPersonalLive() {
       position: "absolute",
       inset: 0,
       display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 34,
+      placeItems: "center",
+      fontSize: 36,
       lineHeight: 1
     }
-  }, bosIcon(g.emoji, 32, g.color)), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(g.emoji, 34, g.color))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 28,
+      fontSize: 30,
       fontWeight: 800,
-      marginTop: 4,
-      letterSpacing: "-0.5px"
+      marginTop: 8,
+      letterSpacing: "-0.5px",
+      color: "var(--text)"
     }
   }, /*#__PURE__*/React.createElement(Count, {
     value: Math.round(pct * 100)
-  }), "%")))), /*#__PURE__*/React.createElement("div", {
+  }), "%"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 22,
+      fontSize: 21,
       fontWeight: 700,
       color: "var(--text)",
-      marginTop: 14,
+      marginTop: 5,
       letterSpacing: "-0.4px"
     }
-  }, g.name), /*#__PURE__*/React.createElement("div", {
+  }, g.name), desc ? /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: "var(--text-4)",
-      marginTop: 3
+      color: isDark ? "rgba(255,255,255,0.72)" : "rgba(20,20,25,0.6)",
+      marginTop: 6,
+      lineHeight: 1.45,
+      maxWidth: 300,
+      marginLeft: "auto",
+      marginRight: "auto"
     }
-  }, /*#__PURE__*/React.createElement(Count, {
-    value: cur
-  }), " \u0438\u0437 ", g.target, " ", g.unit, g.deadline ? " · до " + g.deadline : "")), /*#__PURE__*/React.createElement(StatTrioLive, {
-    isDark: isDark,
-    card: card,
-    items: [{
-      l: "Осталось",
-      v: remaining,
-      icon: /*#__PURE__*/React.createElement(I.Target, {
-        size: 16,
-        strokeWidth: 2,
-        color: isDark ? "#fff" : "#0a0a0a"
-      })
-    }, {
-      l: "Сделано",
-      v: cur,
-      icon: /*#__PURE__*/React.createElement(I.Check, {
-        size: 16,
-        strokeWidth: 2.4,
-        color: isDark ? "#fff" : "#0a0a0a"
-      })
-    }, {
-      l: "Срок",
-      text: g.deadline,
-      icon: /*#__PURE__*/React.createElement(I.Calendar, {
-        size: 16,
-        strokeWidth: 2,
-        color: isDark ? "#fff" : "#0a0a0a"
-      })
-    }]
-  }), /*#__PURE__*/React.createElement("div", {
+  }, desc) : null), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: 13
+    }
+  }, g.target > 0 && /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, "\uD83C\uDFAF ", cur, "/", g.target, " ", g.unit), g.target > 0 && remaining > 0 && /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, "\u23F3 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", remaining), linked.length > 0 && /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, "\uD83D\uDD01 ", linked.length, " ", _habitWord), g.deadline ? /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, "\uD83D\uDCC5 \u0434\u043E ", typeof bosFmtDeadline === "function" ? bosFmtDeadline(g.deadline) : g.deadline) : null, aiChips.map((ch, i) => /*#__PURE__*/React.createElement("span", {
+    key: "ai" + i,
+    style: heroChipAI
+  }, ch)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 16px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -857,38 +903,14 @@ function GoalDetailPersonalLive() {
   }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439 \u2014 \u043F\u043E\u0432\u0435\u0434\u0451\u0442\u0435 \u0446\u0435\u043B\u044C \u0432\u043C\u0435\u0441\u0442\u0435.")), /*#__PURE__*/React.createElement(I.ChevronRight, {
     size: 17,
     color: "var(--text-4)"
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0430"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...card,
-      borderRadius: 22,
-      padding: 14,
-      marginTop: 8,
-      display: "flex",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 18,
-    color: isDark ? "#fff" : "#0a0a0a"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      fontSize: 13,
-      color: "var(--text-2)",
-      lineHeight: 1.5
-    }
-  }, done ? `Цель достигнута 🎉 «${g.name}» закрыта — можно поставить новую планку.` : pct >= 0.8 ? `Финишная прямая — осталось ${remaining} ${g.unit}.${g.deadline ? " Не сбавляй до " + g.deadline + "." : ""}` : pct >= 0.5 ? `Больше половины пути. ${linked[0] ? `Главный двигатель — «${linked[0].name}»: не разрывай серию.` : "Держи темп."}` : `${linked[0] ? `Каждая отметка «${linked[0].name}» приближает к цели. ` : "Начни с первой привычки. "}Осталось ${remaining} ${g.unit}${g.deadline ? " до " + g.deadline : ""}.`)), done && /*#__PURE__*/React.createElement("button", {
+  })), done && /*#__PURE__*/React.createElement("button", {
     className: "bos-btn",
     style: {
       marginTop: 22,
       background: isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)",
       color: "var(--text-2)"
     }
-  }, "\u2713 \u0426\u0435\u043B\u044C \u0434\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442\u0430"));
+  }, "\u2713 \u0426\u0435\u043B\u044C \u0434\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442\u0430")));
 }
 
 /* СОСТОЯНИЕ — LIVE. Отметка = маленькая ШТОРКА StateSheetLive (David live-фидбек: не полноэкранная

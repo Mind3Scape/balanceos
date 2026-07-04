@@ -1637,7 +1637,7 @@ function GoalFormSheetLive({
       color: "var(--text-4)",
       marginTop: 9
     }
-  }, "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u043E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430.")), (isTeamEdit || circleOn) && /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u043E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430.")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
@@ -1677,12 +1677,12 @@ function GoalFormSheetLive({
       marginTop: 2,
       lineHeight: 1.4
     }
-  }, "\u0427\u0442\u043E \u0432\u0430\u0436\u043D\u043E \u043F\u043E\u043C\u043D\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0435 \u2014 \u043F\u043E\u043A\u0430\u0436\u0435\u0442\u0441\u044F \u043F\u043E\u0434 \u0446\u0435\u043B\u044C\u044E."))), /*#__PURE__*/React.createElement("textarea", {
+  }, isTeamEdit || circleOn ? "Что важно помнить команде — покажется под целью." : "Короткая заметка — покажется под целью."))), /*#__PURE__*/React.createElement("textarea", {
     value: desc,
     onChange: e => setDesc(e.target.value),
     rows: 2,
     maxLength: 280,
-    placeholder: "\u041D\u0430\u043F\u0440.: \u043E\u0442\u043C\u0435\u0447\u0430\u0435\u043C\u0441\u044F \u043A\u0430\u0436\u0434\u044B\u0439 \u0432\u0435\u0447\u0435\u0440, \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u043C \u0434\u0440\u0443\u0433 \u0434\u0440\u0443\u0433\u0430",
+    placeholder: isTeamEdit || circleOn ? "Напр.: отмечаемся каждый вечер, поддерживаем друг друга" : "Зачем эта цель и как её достичь…",
     style: {
       width: "100%",
       boxSizing: "border-box",

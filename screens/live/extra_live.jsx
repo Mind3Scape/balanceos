@@ -264,56 +264,73 @@ function GoalDetailPersonalLive() {
   const R = 54, CIRC = 2 * Math.PI * R;
   const goalColor = g.color || "#0a0a0a";  // goal fill = its chosen colour, default black (b&w base)
 
+  // David: тот же hero-редизайн, что у ОБЩЕЙ цели (TeamDetailLive) — full-bleed шапка до самого
+  // верха со скруглённым низом; инфа под орбитой = ЧИПЫ; ОПИСАНИЕ (g.desc) под именем; правка/
+  // поделиться стеклом справа. aiChips = 1-2 честных наблюдения по темпу (заменяют блок «Подсказка»).
+  const desc = g.desc || "";
+  const aiChips = (function () {
+    var out = [];
+    if (done) { out.push("🎉 Цель достигнута"); return out; }
+    if (pct >= 0.8) out.push("💪 финишная прямая");
+    else if (pct >= 0.5) out.push("🚀 больше половины");
+    else if (cur === 0) out.push("✨ первый шаг");
+    else out.push("📈 в пути");
+    if (linked[0]) out.push("🔥 двигатель: " + ("" + (linked[0].name || "")).split(" ")[0]);
+    return out.slice(0, 2);
+  })();
+  const _hn = linked.length;
+  const _habitWord = (_hn % 10 === 1 && _hn % 100 !== 11) ? "привычка" : ((_hn % 10 >= 2 && _hn % 10 <= 4 && (_hn % 100 < 12 || _hn % 100 > 14)) ? "привычки" : "привычек");
+  const teamColor = (g.color && ("" + g.color).toLowerCase() !== "#0a0a0a" && g.color !== "#8E8E93" && g.color !== "#EAEAEF") ? g.color : null;
+  const heroTint = isDark
+    ? (teamColor && typeof bosMixHex === "function" ? bosMixHex(teamColor, "#101014", 0.72) : "#1b1b1f")
+    : (teamColor && typeof bosMixHex === "function" ? bosMixHex(teamColor, "#ffffff", 0.84) : "#ECECF1");
+  const heroBg = "linear-gradient(180deg, " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)") + ", rgba(255,255,255,0) 58%), " + heroTint;
+  const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.62)", color: isDark ? "#fff" : "#1b1b1f", flexShrink: 0 };
+  const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.62)", borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.92)" : "#2a2a30", whiteSpace: "nowrap" };
+  const heroChipAI = Object.assign({}, heroChip, { background: isDark ? "rgba(120,150,220,0.24)" : "rgba(255,255,255,0.92)", color: isDark ? "#dfe6ff" : "#3a4a68", boxShadow: isDark ? "none" : "0 1px 4px rgba(40,60,110,0.10)" });
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader dark={isDark} title="" onBack={() => navigate(back)} right={
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Круглая СТЕКЛЯННАЯ «поделиться» — СТАНДАРТ как на детали привычки (David: «такую же
-              кнопку на страницах целей и общих целей, чтобы везде одинаково»). */}
-          <button onClick={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)} className="tap" data-haptic="selection" aria-label="Вести вместе" title="Вести вместе"
-            style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark) }}>
-            <I.Share size={16} strokeWidth={2} />
-          </button>
-          <EditGlassButtonLive onClick={() => openSheet(<GoalFormSheetLive mode="edit" goal={g} navigate={navigate} returnTo={back} />)} />
-        </div>
-      } />
-
-      {/* Hero — ОРБИТА (если включена в стиле целей) или кольцо (Apple-Watch). Орбита = цель в центре,
-          вокруг её привычки + люди — единый вид с комнатой круга. % показываем под ней. */}
-      <div style={{ textAlign: "center", padding: "6px 0 18px" }}>
-        {orbitsHero ? (
-          <>
-            <div style={{ width: 190, height: 190, margin: "0 auto", display: "grid", placeItems: "center" }}>
-              <GoalOrbitMini centerEmoji={g.emoji} centerColor={g.color} habits={linked.map((h) => ({ emoji: h.emoji, color: h.color, done: !!h.done }))} people={orbitPeople} size={190} dark={isDark} progress={pct} />
-            </div>
-            <div style={{ fontSize: 30, fontWeight: 800, marginTop: 12, letterSpacing: "-0.5px", color: "var(--text)" }}><Count value={Math.round(pct * 100)} />%</div>
-          </>
-        ) : (
-          <div style={{ position: "relative", width: 170, height: 170, margin: "0 auto" }}>
-            <svg width="170" height="170" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
-              <circle cx="70" cy="70" r={R} fill="none" stroke={ringTrack} strokeWidth="13" />
-              {pct > 0 && <circle cx="70" cy="70" r={R} fill="none" stroke={goalColor} strokeWidth="13" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - pct)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(done ? { filter: "drop-shadow(0 0 6px " + goalColor + "80)" } : {}) }} />}
-            </svg>
-            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 34, lineHeight: 1 }}>{bosIcon(g.emoji, 32, g.color)}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px" }}><Count value={Math.round(pct * 100)} />%</div>
-              </div>
-            </div>
+    <div className="page-in" style={{ paddingBottom: 24 }}>
+      {/* HERO — full-bleed до самого верха, снизу радиус 30 (как у общей цели/партнёра): правка+
+          поделиться стеклом справа; орбита/кольцо, %, имя, ОПИСАНИЕ; инфа под орбитой = ЧИПЫ + от ИИ. */}
+      <div style={{ position: "relative", background: heroBg,
+          marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
+          padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
+          borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <button onClick={() => navigate(back)} className="tap" aria-label="Назад" style={heroBtn}><I.ChevronLeft size={20} strokeWidth={2.4} /></button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button onClick={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)} className="tap" data-haptic="selection" aria-label="Вести вместе" style={heroBtn}><I.Share size={16} strokeWidth={2} /></button>
+            <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" goal={g} navigate={navigate} returnTo={back} />)} className="tap" data-haptic="selection" aria-label="Настройки цели" style={heroBtn}><I.Pencil size={16} strokeWidth={2} /></button>
           </div>
-        )}
-        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginTop: 14, letterSpacing: "-0.4px" }}>{g.name}</div>
-        <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
-          <Count value={cur} /> из {g.target} {g.unit}{g.deadline ? " · до " + g.deadline : ""}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 4 }}>
+          {orbitsHero ? (
+            <div style={{ width: 172, height: 172, margin: "0 auto", display: "grid", placeItems: "center" }}>
+              <GoalOrbitMini centerEmoji={g.emoji} centerColor={g.color} habits={linked.map((h) => ({ emoji: h.emoji, color: h.color, done: !!h.done }))} people={orbitPeople} size={172} dark={isDark} progress={pct} />
+            </div>
+          ) : (
+            <div style={{ position: "relative", width: 150, height: 150, margin: "0 auto" }}>
+              <svg width="150" height="150" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+                <circle cx="70" cy="70" r={R} fill="none" stroke={ringTrack} strokeWidth="13" />
+                {pct > 0 && <circle cx="70" cy="70" r={R} fill="none" stroke={goalColor} strokeWidth="13" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - pct)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(done ? { filter: "drop-shadow(0 0 6px " + goalColor + "80)" } : {}) }} />}
+              </svg>
+              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIcon(g.emoji, 34, g.color)}</div>
+            </div>
+          )}
+          <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, letterSpacing: "-0.5px", color: "var(--text)" }}><Count value={Math.round(pct * 100)} />%</div>
+          <div style={{ fontSize: 21, fontWeight: 700, color: "var(--text)", marginTop: 5, letterSpacing: "-0.4px" }}>{g.name}</div>
+          {desc ? <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.72)" : "rgba(20,20,25,0.6)", marginTop: 6, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 13 }}>
+          {g.target > 0 && <span style={heroChip}>🎯 {cur}/{g.target} {g.unit}</span>}
+          {g.target > 0 && remaining > 0 && <span style={heroChip}>⏳ осталось {remaining}</span>}
+          {linked.length > 0 && <span style={heroChip}>🔁 {linked.length} {_habitWord}</span>}
+          {g.deadline ? <span style={heroChip}>📅 до {(typeof bosFmtDeadline === "function") ? bosFmtDeadline(g.deadline) : g.deadline}</span> : null}
+          {aiChips.map((ch, i) => <span key={"ai" + i} style={heroChipAI}>{ch}</span>)}
         </div>
       </div>
 
-      {/* Stat row — shared native row (StatTrioLive), same rhythm as the habit page */}
-      <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Осталось", v: remaining, icon: <I.Target size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-        { l: "Сделано", v: cur, icon: <I.Check size={16} strokeWidth={2.4} color={isDark ? "#fff" : "#0a0a0a"} /> },
-        { l: "Срок", text: g.deadline, icon: <I.Calendar size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-      ]} />
+      <div style={{ padding: "8px 16px 0" }}>
 
       {/* СКЛАДЫВАЕТСЯ ИЗ ПРИВЫЧЕК — цель ведут её привычки: отмечаешь ПРЯМО ТУТ (чек-кружок), кольцо
           растёт. Тап по имени → детали привычки. «+ Привычка для этой цели» заводит новую (можно
@@ -365,25 +382,13 @@ function GoalDetailPersonalLive() {
         <I.ChevronRight size={17} color="var(--text-4)" />
       </button>
 
-      {/* Pace hint — срок опускаем, если его нет (не «до undefined»). */}
-      <div className="section-label" style={{ marginTop: 22 }}>Подсказка</div>
-      <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 8, display: "flex", gap: 10 }}>
-        <I.Sparkles size={18} color={isDark ? "#fff" : "#0a0a0a"} />
-        <div style={{ flex: 1, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-          {done
-            ? `Цель достигнута 🎉 «${g.name}» закрыта — можно поставить новую планку.`
-            : pct >= 0.8
-              ? `Финишная прямая — осталось ${remaining} ${g.unit}.${g.deadline ? " Не сбавляй до " + g.deadline + "." : ""}`
-              : pct >= 0.5
-                ? `Больше половины пути. ${linked[0] ? `Главный двигатель — «${linked[0].name}»: не разрывай серию.` : "Держи темп."}`
-                : `${linked[0] ? `Каждая отметка «${linked[0].name}» приближает к цели. ` : "Начни с первой привычки. "}Осталось ${remaining} ${g.unit}${g.deadline ? " до " + g.deadline : ""}.`}
-        </div>
-      </div>
+      {/* «Подсказка» свернулась в чипы «от ИИ» в hero-шапке (David-редизайн, как у общей цели). */}
 
       {/* Достигнута → статичная плашка. Иначе действий тут нет — цель ведут привычки выше. */}
       {done && (
         <button className="bos-btn" style={{ marginTop: 22, background: isDark ? "rgba(255,255,255,0.1)" : "var(--surface-3)", color: "var(--text-2)" }}>✓ Цель достигнута</button>
       )}
+      </div>
     </div>
   );
 }

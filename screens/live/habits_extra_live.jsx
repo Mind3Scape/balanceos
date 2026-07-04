@@ -589,22 +589,20 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 9 }}>Прогресс цели считается от этого числа.</div>
       </div>
 
-      {/* ── ОПИСАНИЕ — заметка создателя под целью (David). Показываем только для круга/команды: там
-          её видят ВСЕ участники под целью в hero (у личной цели описание пока не выводим). ── */}
-      {(isTeamEdit || circleOn) && (
-        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17 }}>📝</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Описание</div>
-              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Что важно помнить команде — покажется под целью.</div>
-            </div>
+      {/* ── ОПИСАНИЕ — заметка под целью (David). У команды/круга видят ВСЕ участники (goal.desc синк);
+          у личной цели — под целью в её детали (g.desc). Показываем для ЛЮБОЙ цели. ── */}
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17 }}>📝</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Описание</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{(isTeamEdit || circleOn) ? "Что важно помнить команде — покажется под целью." : "Короткая заметка — покажется под целью."}</div>
           </div>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} maxLength={280}
-            placeholder="Напр.: отмечаемся каждый вечер, поддерживаем друг друга"
-            style={{ width: "100%", boxSizing: "border-box", marginTop: 11, border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 12, padding: "11px 13px", fontSize: 14, color: "var(--text)", resize: "none", fontFamily: "inherit", lineHeight: 1.45 }} />
         </div>
-      )}
+        <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} maxLength={280}
+          placeholder={(isTeamEdit || circleOn) ? "Напр.: отмечаемся каждый вечер, поддерживаем друг друга" : "Зачем эта цель и как её достичь…"}
+          style={{ width: "100%", boxSizing: "border-box", marginTop: 11, border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 12, padding: "11px 13px", fontSize: 14, color: "var(--text)", resize: "none", fontFamily: "inherit", lineHeight: 1.45 }} />
+      </div>
 
       {/* ── ИДТИ К ЦЕЛИ ВМЕСТЕ — поднято выше; настройки круга раскрываются ВНУТРИ карточки (David) ── */}
       {!isTeamEdit && (
