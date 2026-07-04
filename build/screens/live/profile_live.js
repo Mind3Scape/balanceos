@@ -752,7 +752,22 @@ function AILive() {
       marginTop: 4,
       lineHeight: 1.45
     }
-  }, hint))), /*#__PURE__*/React.createElement("div", {
+  }, hint))), !isBlank && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "section-label",
+    style: {
+      marginTop: 18,
+      color: "var(--text-3)",
+      padding: "0 4px"
+    }
+  }, "\u041A\u043E\u043B\u0435\u0441\u043E \u0431\u0430\u043B\u0430\u043D\u0441\u0430"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement(BosBalanceWheelLive, {
+    app: app,
+    dark: isDarkAI,
+    navigate: navigate
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
       borderRadius: 22,

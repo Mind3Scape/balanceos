@@ -28,20 +28,20 @@
 <!-- Telegram Mini App SDK — runs only when opened inside Telegram; deferred so it
      never blocks the normal web/PWA launch, and a no-op if telegram.org is blocked. -->
 <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-<script src="telegram.js?v=v548" defer></script>
+<script src="telegram.js?v=v549" defer></script>
 
 <!-- OpenRouter key for the live AI chat (set in aikey.js; empty = canned demo replies).
      defer → preserves document order (runs before cloud.js) without blocking the parser. -->
-<script src="aikey.js?v=v548" defer></script>
+<script src="aikey.js?v=v549" defer></script>
 
 <!-- Yandex Maps key for the Community partners map (public client-side key, restrict by domain). -->
-<script src="mapkey.js?v=v548" defer></script>
+<script src="mapkey.js?v=v549" defer></script>
 
 <!-- Supabase connection (public URL + anon key; empty = local-only mode). -->
-<script src="supabase.js?v=v548" defer></script>
+<script src="supabase.js?v=v549" defer></script>
 
-<link rel="stylesheet" href="styles.css?v=v548">
-<link rel="stylesheet" href="mobile.css?v=v548">
+<link rel="stylesheet" href="styles.css?v=v549">
+<link rel="stylesheet" href="mobile.css?v=v549">
 </head>
 <body>
 
@@ -57,53 +57,53 @@
 <script src="vendor/react-dom.production.min.js" defer></script>
 
 <!-- Native iOS haptics: invisible switch overlay → real Taptic tick on every tap -->
-<script src="haptics.js?v=v548" defer></script>
+<script src="haptics.js?v=v549" defer></script>
 
 <!-- Local-first persistence (the data spine). Defines window.bosStore before the
      app boots; the cloud (Supabase) later plugs in behind the same has/load/save. -->
-<script src="store.js?v=v548" defer></script>
+<script src="store.js?v=v549" defer></script>
 
 <!-- Supabase JS client — VENDORED locally (pinned @2.108.2) so a cold start never blocks
      on jsDelivr (this audience is often on networks where the CDN is slow or blocked); it
      now lives under /vendor → served cache-first by the SW. + BalanceOS cloud layer (T1).
      The app is local-first and works fully without these; cloud syncs on top when signed in. -->
 <script src="vendor/supabase-2.108.2.umd.js" defer></script>
-<script src="cloud.js?v=v548" defer></script>
+<script src="cloud.js?v=v549" defer></script>
 
 <!-- Precompiled UI — plain JS built from the .jsx sources by scripts/build.js.
      defer on every tag → they download in PARALLEL instead of one-at-a-time parser-blocking,
      while keeping execution order (these are position-ordered globals). No Babel Standalone
      (saves ~3 MB) and ZERO in-browser compilation → fast load.
      Rebuild before deploy:  node scripts/build.js  -->
-<script src="build/components/icons.js?v=v548" defer></script>
-<script src="build/components/shell.js?v=v548" defer></script>
+<script src="build/components/icons.js?v=v549" defer></script>
+<script src="build/components/shell.js?v=v549" defer></script>
 <!-- core/ — neutral shared toolkit (both demos + live use these single copies) -->
-<script src="build/core/aliases.js?v=v548" defer></script>
-<script src="build/core/home-kit.js?v=v548" defer></script>
-<script src="build/core/habits-kit.js?v=v548" defer></script>
-<script src="build/core/profile-kit.js?v=v548" defer></script>
-<script src="build/core/community-kit.js?v=v548" defer></script>
-<script src="build/core/extra-kit.js?v=v548" defer></script>
+<script src="build/core/aliases.js?v=v549" defer></script>
+<script src="build/core/home-kit.js?v=v549" defer></script>
+<script src="build/core/habits-kit.js?v=v549" defer></script>
+<script src="build/core/profile-kit.js?v=v549" defer></script>
+<script src="build/core/community-kit.js?v=v549" defer></script>
+<script src="build/core/extra-kit.js?v=v549" defer></script>
 <!-- demo product screens (frozen). home / habits / community are LAZY-loaded on first
      demo-or-fresh entry (loadDemoBundle in shell.jsx) → ~370 KB off the live cold start.
      profile + extra stay loaded: they expose symbols the LIVE app itself uses
      (SignUpScreen / OnboardingScreen for onboarding, bosAiBrief / AchievementUnlock). -->
-<script src="build/screens/demo/profile.js?v=v548" defer></script>
-<script src="build/screens/demo/extra.js?v=v548" defer></script>
-<script src="build/screens/intro.js?v=v548" defer></script>
+<script src="build/screens/demo/profile.js?v=v549" defer></script>
+<script src="build/screens/demo/extra.js?v=v549" defer></script>
+<script src="build/screens/intro.js?v=v549" defer></script>
 <!-- live-only forks of the mode-aware bricks (load before the live screens) -->
-<script src="build/screens/live/economy_live.js?v=v548" defer></script>
-<script src="build/screens/live/shared_live.js?v=v548" defer></script>
-<script src="build/screens/live/home_live.js?v=v548" defer></script>
-<script src="build/screens/live/habits_live.js?v=v548" defer></script>
-<script src="build/screens/live/profile_live.js?v=v548" defer></script>
-<script src="build/screens/live/community_live.js?v=v548" defer></script>
-<script src="build/screens/live/home_extra_live.js?v=v548" defer></script>
-<script src="build/screens/live/habits_extra_live.js?v=v548" defer></script>
-<script src="build/screens/live/profile_extra_live.js?v=v548" defer></script>
-<script src="build/screens/live/community_extra_live.js?v=v548" defer></script>
-<script src="build/screens/live/extra_live.js?v=v548" defer></script>
-<script src="build/app.js?v=v548" defer></script>
+<script src="build/screens/live/economy_live.js?v=v549" defer></script>
+<script src="build/screens/live/shared_live.js?v=v549" defer></script>
+<script src="build/screens/live/home_live.js?v=v549" defer></script>
+<script src="build/screens/live/habits_live.js?v=v549" defer></script>
+<script src="build/screens/live/profile_live.js?v=v549" defer></script>
+<script src="build/screens/live/community_live.js?v=v549" defer></script>
+<script src="build/screens/live/home_extra_live.js?v=v549" defer></script>
+<script src="build/screens/live/habits_extra_live.js?v=v549" defer></script>
+<script src="build/screens/live/profile_extra_live.js?v=v549" defer></script>
+<script src="build/screens/live/community_extra_live.js?v=v549" defer></script>
+<script src="build/screens/live/extra_live.js?v=v549" defer></script>
+<script src="build/app.js?v=v549" defer></script>
 
 <script>
   // Register the service worker for offline + instant relaunch, and AUTO-UPDATE

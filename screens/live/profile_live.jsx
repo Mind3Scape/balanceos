@@ -308,7 +308,19 @@ function AILive() {
         </div>
       </div>
 
-      {/* «Спроси что угодно» — главный вход в разговор, СРАЗУ под баннером (David: кнопка
+      {/* КОЛЕСО БАЛАНСА — прямо под баннером «Состояние сейчас» (David 2026-07-04). База считает
+          активность (надёжно, офлайн), строку-контекст сверху добавляет ИИ. Раскладывает ЛЮБУЮ
+          привычку/цель — пресет ИЛИ кастомную — по сфере (bosSphereFor: название + эмодзи). */}
+      {!isBlank && (
+        <React.Fragment>
+          <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Колесо баланса</div>
+          <div style={{ marginTop: 8 }}>
+            <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} />
+          </div>
+        </React.Fragment>
+      )}
+
+      {/* «Спроси что угодно» — вход в разговор под колесом (David: кнопка
           чата была скромной — вход в чат теперь на видном месте). */}
       <div style={{ background: "var(--card)", borderRadius: 22, padding: 10, marginTop: 10, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 2px 0 8px" }}>

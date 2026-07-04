@@ -1305,6 +1305,167 @@ function bosGoalProgress(goal, habits) {
   return { current: current, target: target, pct: pct, done: target > 0 && current >= target, fromHabits: fromHabits, linked: linked };
 }
 
+// ── КОЛЕСО БАЛАНСА (live) ──────────────────────────────────────────────────
+// David 2026-07-04: колесо на странице ИИ, и раскладка ДОЛЖНА быть настоящей —
+// работать с ЛЮБОЙ кастомной привычкой (отжимания/приседания → Тело), а не только
+// с пресетами. Механизм: bosSphereFor смотрит НАЗВАНИЕ + ЭМОДЗИ и относит объект в
+// одну из 6 сфер по смыслу, на устройстве, мгновенно. Если у объекта уже есть
+// .sphere (ИИ/юзер проставил) — берём её. МИКС (David): база = активность (надёжно,
+// офлайн, бесплатно), а строку-контекст сверху добавляет ИИ.
+var BOS_SPHERES = [
+  { id: "body", e: "💪", l: "Тело" },
+  { id: "mind", e: "🧠", l: "Разум" },
+  { id: "work", e: "💼", l: "Дело" },
+  { id: "bond", e: "❤️", l: "Связи" },
+  { id: "soul", e: "✨", l: "Дух" },
+  { id: "rest", e: "🌿", l: "Отдых" },
+];
+// Корни слов (в нижнем регистре, поиск подстрокой) — покрывают кастомные названия.
+var BOS_SPHERE_KW = {
+  body: ["отжим", "присед", "планк", "турник", "бег", "бега", "пробеж", "зал", "спорт", "трениров", "тренаж", "фитнес", "качал", "штанг", "гантел", "упражн", "йог", "растяж", "гибк", "вода", "воды", "воду", "стакан", "шаг", "ходь", "прогул", "сон", "спать", "выспат", "высып", "душ", "закал", "зарядк", "разминк", "велосип", "плаван", "бассейн", "пресс", "мышц", "похуд", "питани", "завтрак", "сахар", "диет", "витамин", "здоров", "body", "gym", "run", "walk", "water", "sleep", "step", "workout", "fitness", "yoga"],
+  mind: ["медит", "тишин", "дыхан", "чтен", "чита", "книг", "страниц", "учеб", "учи", "язык", "курс", "обучен", "знан", "рефлекс", "мысл", "фокус", "вниман", "концентр", "мозг", "памят", "подкаст", "лекц", "саморазв", "read", "learn", "study", "meditat", "focus", "mind", "book"],
+  work: ["работ", "проект", "дедлайн", "задач", "карьер", "бизнес", "клиент", "созвон", "планир", "финанс", "деньг", "бюджет", "накопл", "инвест", "доход", "продаж", "резюме", "навык", "портфолио", "код", "программ", "дизайн", "стартап", "work", "task", "project", "money", "budget", "career", "code"],
+  bond: ["друж", "друзь", "подруг", "друга", "другу", "другом", "семь", "родител", "мам", "папа", "папе", "папу", "отц", "жена", "жене", "жену", "супруг", "муж ", "мужа", "мужу", "парн", "девушк", "отношен", "звонок", "позвон", "общен", "свидан", "дети", "детей", "детьм", "ребён", "ребен", "близк", "обним", "вместе", "команд", "партнёр", "партнер", "together", "friend", "family", "call", "partner", "relationship", "love"],
+  soul: ["благодар", "молитв", "молит", "дух", "смысл", "ценност", "намерен", "аффирмац", "визуализ", "добро", "помога", "волонт", "вера", "осознан", "умиротвор", "spirit", "gratitude", "pray", "purpose", "faith", "kind"],
+  rest: ["отдых", "пауз", "хобби", "рису", "живопис", "музык", "гитар", "игр", "гейм", "путешеств", "отпуск", "релакс", "баня", "сауна", "фильм", "сериал", "творч", "танц", "сад", "цвет", "приро", "лес", "море", "пляж", "rest", "hobby", "relax", "fun", "travel", "nature", "paint", "music", "game"],
+};
+// Эмодзи-подсказки (fallback, если название ничего не дало).
+var BOS_SPHERE_EMO = {
+  body: "💪🏃🏋️🚴🧗🤸⚽🏀🎾🏊🚶👟🥗🍎💧😴🛌🚭🥦⛹️🤾🏄🚵🏆🥇🍽️🩺🦵",
+  mind: "🧠📖📚✍️📝🎓🧩🔬💡🎧🗒️🧘",
+  work: "💼💰📊📈💻⌨️🗂️📂📁📋📅💵🏦📌📎🎯",
+  bond: "❤️👨‍👩‍👧👪🤝📞💬🫂💑👫👬👭🥰💞👋🫶",
+  soul: "✨🙏🕊️☮️🌟💫🕯️😇🧎",
+  rest: "🌿🎨🎵🎮🎸🌳🏖️✈️🛀🍿🌸🎭🌊😌🧺🎬🃏",
+};
+function bosSphereFor(item) {
+  if (!item) return "mind";
+  if (item.sphere && BOS_SPHERE_KW[item.sphere]) return item.sphere; // ИИ/юзер проставил — приоритет
+  var name = ("" + (item.name || "")).toLowerCase();
+  for (var i = 0; i < BOS_SPHERES.length; i++) {                     // 1) по названию (корни слов)
+    var id = BOS_SPHERES[i].id, kws = BOS_SPHERE_KW[id] || [];
+    for (var j = 0; j < kws.length; j++) { if (name.indexOf(kws[j]) >= 0) return id; }
+  }
+  var emo = "" + (item.emoji || "");                                 // 2) по эмодзи
+  if (emo) { for (var k = 0; k < BOS_SPHERES.length; k++) { var id2 = BOS_SPHERES[k].id; if ((BOS_SPHERE_EMO[id2] || "").indexOf(emo) >= 0) return id2; } }
+  return "mind";                                                     // не распознали → «Разум» (саморазвитие)
+}
+// Сила одной привычки 0..1 — из серии, отметки сегодня и накопленной истории.
+function bosHabitStrength(h) {
+  if (!h) return 0;
+  var streak = Math.max(0, h.streak | 0);
+  var marks = 0; try { marks = h.log ? Object.keys(h.log).length : 0; } catch (e) {}
+  var s = 0.30;                                 // просто существует и ведётся
+  s += Math.min(streak, 30) / 30 * 0.42;        // сила серии
+  s += h.done ? 0.16 : 0;                        // отмечено сегодня
+  s += Math.min(marks, 20) / 20 * 0.12;          // накопленная история
+  return Math.max(0, Math.min(1, s));
+}
+// Данные колеса: сфера тем полнее, чем крепче держишь входящие в неё привычки/цели.
+function bosWheelData(app) {
+  var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved; });
+  var goals = (app && app.goals) || [];
+  var buckets = {}; BOS_SPHERES.forEach(function (s) { buckets[s.id] = []; });
+  habits.forEach(function (h) { buckets[bosSphereFor(h)].push(bosHabitStrength(h)); });
+  goals.forEach(function (g) {
+    var prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, (app && app.habits) || []) : { pct: 0, done: false };
+    buckets[bosSphereFor(g)].push(Math.max(0.30, Math.min(1, 0.30 + (prog.pct || 0) * 0.62 + (prog.done ? 0.08 : 0))));
+  });
+  var total = 0, filled = 0;
+  var spheres = BOS_SPHERES.map(function (s) {
+    var arr = buckets[s.id], v;
+    if (!arr.length) v = 0.12;                                        // пустая сфера — тонкая, оранжевая
+    else {
+      var avg = arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
+      v = Math.min(1, avg + Math.min(arr.length - 1, 4) * 0.03);      // чуть вознаграждаем широту
+      filled++;
+    }
+    total += v;
+    return { id: s.id, e: s.e, l: s.l, v: v, n: arr.length };
+  });
+  return { spheres: spheres, overall: Math.round(total / spheres.length * 100), filled: filled };
+}
+function bosZoneColor(v) { return v >= 0.70 ? "#34C759" : v >= 0.52 ? "#FFC400" : "#FF8A3D"; }
+
+// РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate }.
+function BosBalanceWheelLive(props) {
+  var app = props.app, dark = !!props.dark, navigate = props.navigate;
+  var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
+  var data = bosWheelData(app);
+  var SPH = data.spheres, N = SPH.length, overall = data.overall;
+  var S = 232, c = S / 2, R = 80, TAU = Math.PI * 2;
+  var ang = function (i) { return i / N * TAU - Math.PI / 2; };
+  var pol = function (a, r) { return [c + Math.cos(a) * r, c + Math.sin(a) * r]; };
+  var pt = function (i, v, rad) { return pol(ang(i), (rad == null ? R : rad) * v); };
+  var poly = "";
+  for (var i = 0; i < N; i++) { var p = pt(i, Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1) + " "; }
+  poly += "Z";
+  var grid = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
+  var spoke = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+
+  var brief = app && app.aiBrief;
+  var lows = SPH.filter(function (s) { return s.v < 0.5; }).sort(function (a, b) { return a.v - b.v; });
+  var aiLine = (brief && brief.wheelHint && ("" + brief.wheelHint).trim()) || "";
+  if (!aiLine) {
+    if (data.filled === 0) aiLine = "Заведи первую привычку — и колесо начнёт заполняться.";
+    else if (lows.length >= 2) aiLine = "«" + lows[0].l + "» и «" + lows[1].l + "» проседают — заведи привычку в этой сфере или отметься сегодня, чтобы выровнять.";
+    else if (lows.length === 1) aiLine = "«" + lows[0].l + "» просит внимания — остальное держишь ровно.";
+    else aiLine = "Хороший баланс — сферы держатся ровно. Так держать.";
+  }
+  var askWheel = function () { if (navigate) navigate("ai-chat", { prompt: "Разбери мой баланс по сферам жизни и подскажи, что подтянуть." }); };
+
+  return (
+    <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
+      <div style={{ display: "flex", justifyContent: "center", padding: "2px 0" }}>
+        <svg width={S} height={S} viewBox={"0 0 " + S + " " + S} style={{ overflow: "visible", display: "block" }}>
+          <defs>
+            <radialGradient id={uid} cx="50%" cy="46%" r="60%">
+              <stop offset="0%" stopColor="#FFD64A" stopOpacity="0.46" />
+              <stop offset="100%" stopColor="#FF9F45" stopOpacity="0.12" />
+            </radialGradient>
+          </defs>
+          {SPH.map(function (s, i) { var e = pt(i, 1); return <line key={"sp" + i} x1={c} y1={c} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spoke} strokeWidth="1" />; })}
+          <circle cx={c} cy={c} r={R} fill="none" stroke={grid} strokeWidth="1" />
+          <circle cx={c} cy={c} r={R * 0.7} fill="none" stroke={dark ? "rgba(52,199,89,0.4)" : "rgba(52,199,89,0.34)"} strokeWidth="1" strokeDasharray="2.5 4.5" />
+          <path d={poly} fill={"url(#" + uid + ")"} stroke="#FFB020" strokeWidth="1.8" strokeLinejoin="round" />
+          {SPH.map(function (s, i) { var q = pt(i, Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={q[0].toFixed(1)} cy={q[1].toFixed(1)} r="2.6" fill={bosZoneColor(s.v)} stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="1.2" />; })}
+          {SPH.map(function (s, i) { var t2 = pol(ang(i), R + 18); return <text key={"e" + i} x={t2[0].toFixed(1)} y={t2[1].toFixed(1)} fontSize="15" textAnchor="middle" dominantBaseline="central">{s.e}</text>; })}
+          <circle cx={c} cy={c} r="27" fill={dark ? "#1c1c1e" : "#ffffff"} stroke={grid} strokeWidth="1" />
+          <text x={c} y={c - 2} fontSize="20" fontWeight="700" textAnchor="middle" fill={dark ? "#f2f2f5" : "#101828"} style={{ fontVariantNumeric: "tabular-nums" }}>{overall}</text>
+          <text x={c} y={c + 13} fontSize="8.5" fontWeight="600" letterSpacing="1" textAnchor="middle" fill="#9f9fa9">БАЛАНС</text>
+        </svg>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 14px", marginTop: 12 }}>
+        {SPH.map(function (s) {
+          var pct = Math.round(s.v * 100);
+          return (
+            <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{s.e}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)", lineHeight: 1.1 }}>{s.l}</div>
+                <div style={{ height: 5, borderRadius: 3, background: "var(--surface-3)", marginTop: 4, overflow: "hidden" }}>
+                  <i style={{ display: "block", height: "100%", width: pct + "%", borderRadius: 3, background: bosZoneColor(s.v) }} />
+                </div>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", minWidth: 26, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{s.n ? pct : "—"}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <button onClick={askWheel} className="tap" data-no-haptic style={{ width: "100%", textAlign: "left", cursor: "pointer", display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, padding: "11px 12px", background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"), borderRadius: 16 }}>
+        <span style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "radial-gradient(circle at 38% 32%,#eaf2ff,#a9c6ee 70%,#5d7fae)", boxShadow: "0 2px 6px rgba(93,127,174,0.4)" }}>
+          <I.Sparkles size={12} color="#fff" />
+        </span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 12.7, lineHeight: 1.5, color: "var(--text-2)" }}>{aiLine} <span style={{ color: "#4d6f9e", fontWeight: 700, whiteSpace: "nowrap" }}>Разобрать →</span></span>
+      </button>
+
+      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", marginTop: 11, padding: "0 6px" }}>Считается из твоих привычек и целей — сфера тем полнее, чем крепче ты её держишь.</div>
+    </div>
+  );
+}
+
 // ПРЕВРАЩЕНИЕ ЦЕЛИ В КРУГ «НА МЕСТЕ» (David: «тумблер соло↔вместе на той же цели, без пересоздания»).
 // Цель СТАНОВИТСЯ кругом, ПЕРЕНОСЯ всё: имя/значок/цель/срок + СВОИ ПРИВЫЧКИ (они уходят в круг как
 // командные, а личные копии линкуются teamId/teamHabitId → отметка у себя миррорится в командный счёт,
