@@ -6706,7 +6706,7 @@ function HabitTileLive({
       width: 38,
       height: 38,
       borderRadius: 13,
-      background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : th.iconBg),
+      background: BOS_TILE_SHEEN + ", " + (h.color && h.tint !== false ? h.color + "26" : th.iconBg),
       boxShadow: bosTileGlass(isDark),
       display: "grid",
       placeItems: "center",

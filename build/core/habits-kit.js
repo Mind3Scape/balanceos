@@ -345,7 +345,7 @@ function HabitInviteShareSheet({
       height: 64,
       borderRadius: 22,
       margin: "0 auto 12px",
-      background: habit?.color ? habit.color + "26" : "var(--surface-3)",
+      background: habit?.color && habit?.tint !== false ? habit.color + "26" : "var(--surface-3)",
       display: "grid",
       placeItems: "center",
       fontSize: 34

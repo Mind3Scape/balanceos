@@ -2904,7 +2904,7 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
   const sq = cardStyle.cells === "square";
   const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
-  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + ((h.color && h.tint !== false) ? h.color + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
   const chip = (typeof ChallengeProgressChip === "function") ? <ChallengeProgressChip habit={h} /> : null;
   if (rect) {
     return (

@@ -37,20 +37,25 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a")) : (preset?.color ?? BOS_GREY)); // новый = нейтральный «белый» BOS_GREY (David: пикер по дефолту на белом везде)
   const [goal, setGoal] = useHS(editing ? (params.habit.goalPerDay || 1) : 1);
   const [duration, setDuration] = useHS(editing ? (params.habit.duration || 0) : 0); // минуты; 0 = без таймера
-  // Как отмечать привычку — ОДИН из трёх ВЗАИМОИСКЛЮЧАЮЩИХ режимов (David: «не выдумывай третий способ,
-  // сделай едино»): «Галочка» (одно касание), «Счётчик» (N раз в день), «Таймер» (отсчёт минут). pickMode
-  // держит goal/duration согласованными, чтобы в привычку никогда не попали и счётчик, и таймер сразу.
-  const [markMode, setMarkMode] = useHS(editing ? ((params.habit.duration > 0) ? "timer" : ((params.habit.goalPerDay > 1) ? "count" : "check")) : "check");
-  const pickMode = (m) => { setMarkMode(m); if (m === "check") { setGoal(1); setDuration(0); } else if (m === "count") { setGoal(goal > 1 ? goal : 2); setDuration(0); } else { setDuration(duration > 0 ? duration : 15); setGoal(1); } };
+  // Отмечать = просто ГАЛОЧКА по умолчанию. Тумблер «Считать количество» (countOn) раскрывает число +
+  // единицу: «раз» (счётчик) или «минут» (таймер). Так три старых режима (галочка/счётчик/таймер тремя
+  // кнопками — David: «громоздко») свернулись в один тумблер.
+  const [countOn, setCountOn] = useHS(editing ? (params.habit.goalPerDay > 1 || params.habit.duration > 0) : false);
+  const [countUnit, setCountUnit] = useHS(editing ? (params.habit.duration > 0 ? "min" : "times") : "times");
+  const enableCount = (on) => { setCountOn(on); if (on) { if (countUnit === "min") { if (duration < 5) setDuration(15); } else if (goal < 2) setGoal(2); } };
+  const pickUnit = (u) => { setCountUnit(u); if (u === "min") { if (duration < 5) setDuration(15); } else if (goal < 2) setGoal(2); };
+  // «Тонированный фон» — плитка залита цветом привычки (по умолч.) или чистая, только значок.
+  // Реально читается в HabitTileLive (не бутафория).
+  const [tint, setTint] = useHS(editing ? (params.habit.tint !== false) : true);
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
   const [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7
     ? params.habit.days.slice()
     : ((preset && Array.isArray(preset.days) && preset.days.length === 7) ? preset.days.slice() : [1, 1, 1, 1, 1, 1, 1]));
   const toggleDay = (i) => setDays(d => d.map((v, j) => j === i ? (v ? 0 : 1) : v));
   // Reminder — a single setting: on/off + a time. Seeded from the habit when editing.
-  const [reminderOn, setReminderOn] = useHS(editing ? !!(params.habit.reminder && params.habit.reminder.on) : true);
+  const [reminderOn, setReminderOn] = useHS(editing ? !!(params.habit.reminder && params.habit.reminder.on) : false); // David-редизайн: спокойный минимум — напоминание opt-in (дни живут внутри)
   const [reminderTime, setReminderTime] = useHS(editing && params.habit.reminder && params.habit.reminder.time ? params.habit.reminder.time : (preset?.time || "09:00"));
-  const [shareOn, setShareOn] = useHS(true);
+  const [shareOn, setShareOn] = useHS(false); // David-редизайн: «Делать вместе» по умолчанию свёрнуто/выкл (opt-in)
   const [inviteNote, setInviteNote] = useHS(""); // gentle inline note if the invite step can't run
   const [sharedTeam, setSharedTeam] = useHS(null); // the mini-team backing this shared habit (created once)
 
@@ -107,7 +112,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     } catch (e) {}
     return () => { on = false; };
   }, []);
-  const [type, setType] = useHS("build");
+  const [type, setType] = useHS(editing && params.habit.type ? params.habit.type : "build"); // build=Развивать / quit=Бросить
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки (David: «галочка справа
   // вверху, чтобы не листать до низа»).
@@ -115,11 +120,13 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     const nm = name.trim() || "Новая привычка";
     // Persist the full schedule + reminder on the habit. These extra fields ride
     // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
+    const countTimes = countOn && countUnit === "times";
+    const countMin = countOn && countUnit === "min";
     const base = {
-      emoji: iconPick, name: nm, color,
+      emoji: iconPick, name: nm, color, tint, type,        // tint = тонированный фон; type = развивать/бросить
       days: days.slice(),                                  // 7-long Пн..Вс mask
-      goalPerDay: markMode === "count" ? Math.max(2, goal) : 1,   // счётчик только в режиме «Счётчик»
-      duration: markMode === "timer" ? Math.max(1, duration) : 0, // таймер только в режиме «Таймер»
+      goalPerDay: countTimes ? Math.max(2, goal) : 1,      // счётчик: N раз в день
+      duration: countMin ? Math.max(5, duration) : 0,      // таймер: минуты
       reminder: { on: reminderOn, time: reminderTime },
     };
     if (!editing && preset && preset.challenge) base.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
@@ -173,185 +180,159 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       {typeof SheetFormHeadLive === "function"
         ? <SheetFormHeadLive title={editing ? "Изменить привычку" : "Новая привычка"} onClose={close} onDone={saveHabit} />
         : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить привычку" : "Новая привычка"}</div>}
-      {/* Identity — icon (tap → emoji panel), name (tap → type) and colour all in ONE card;
-          no separate «Название» field, no preset row (the emoji panel already has every
-          emoji). David: «зачем целое отдельное поле… сделай целостно». */}
+
+      {/* ── ОБЛИК: значок (тап → эмодзи) · имя · цвет · тонированный фон. Всё в одной карточке. ── */}
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* Tap the tile → emoji PANEL — второй вью этой же шторки. */}
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
-            style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            style={{ width: 56, height: 56, borderRadius: 16, background: (tint && color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 28, color)}
           </button>
-          {/* Name is edited right here — tap to type, no separate field above. */}
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
             style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
-        {/* Apple system palette + custom wheel. The selected swatch has a 4px outset ring —
-            the row needs padding so an overflow-x scroller doesn't clip it (David: «колечко
-            выпирает и обрезается»). 6px all round > the 4px ring. */}
         <BosColorPickerLive value={color} onChange={setColor} />
-        {/* Развивать/Бросить — суть привычки, живёт в главном блоке НАВЕРХУ (David: «в самом
-            низу его практически не видно, это важно»). Тонкий сегмент, не полноразмерный. */}
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
-          <Segmented small value={type} onChange={setType} options={[{ value: "build", label: "Развивать" }, { value: "quit", label: "Бросить" }]} />
+        {/* Тонированный фон — сразу под цветом (David: «понравился тогл тонированный фон, под цветом»). */}
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: "var(--text-2)" }}>Тонированный фон
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Плитка залита цветом. Выключишь — чистый значок.</div>
+          </div>
+          <Switch small on={tint} onChange={setTint} />
         </div>
       </div>
 
-      {/* Goal — без внешней подписи (David: подписи блоков не несут нагрузки, суть ясна изнутри). */}
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        {/* Как отмечать — ОДИН выбор из трёх (взаимоисключающие). Тонкие пилюли с иконками —
-            НЕ второй сегмент (David: «две одинаковые типовые менюшки — некрасиво»), тот же
-            язык, что ряд сроков в форме цели. Нужный «шаговик» появляется ниже. */}
-        <div style={{ display: "flex", gap: 6 }}>
-          {[{ v: "check", l: "Галочка", Ic: I.Check }, { v: "count", l: "Счётчик", Ic: I.Hash }, { v: "timer", l: "Таймер", Ic: I.Clock }].map(({ v, l, Ic }) => {
-            const on = markMode === v;
-            return (
-              <button key={v} onClick={() => pickMode(v)} className="tap" data-no-haptic aria-pressed={on}
-                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, borderRadius: 999, padding: "8px 4px", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", border: 0, cursor: "pointer", transition: "background 0.15s, color 0.15s",
-                  background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>
-                <Ic size={13} strokeWidth={2.2} /> {l}
-              </button>
-            );
-          })}
+      {/* ── РАЗВИВАТЬ / БРОСИТЬ — тумблер (по умолч. Развивать). SVG-иконка без фона (David). ── */}
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Flame size={20} color="var(--text-3)" /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{type === "build" ? "Развивать" : "Бросить"}</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{type === "build" ? "Отмечаю день, когда сделал." : "Отмечаю день без срыва."}</div>
         </div>
-        {markMode === "check" && (
-          <div style={{ marginTop: 12, fontSize: 13, color: "var(--text-4)", lineHeight: 1.4 }}>Одно касание, когда сделал.</div>
-        )}
-        {markMode === "count" && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
-            <div>
-              <div style={{ fontSize: 22, fontWeight: 600 }}>{goal} раз(а)</div>
-              <div style={{ fontSize: 13, color: "var(--text-4)" }}>или больше в день</div>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setGoal(Math.max(2, goal - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4}/></button>
-              <button onClick={() => setGoal(Math.min(20, goal + 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4}/></button>
-            </div>
-          </div>
-        )}
-        {markMode === "timer" && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
-            <div>
-              <div style={{ fontSize: 22, fontWeight: 600 }}>{duration} мин</div>
-              <div style={{ fontSize: 13, color: "var(--text-4)" }}>отсчёт времени на выполнение</div>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setDuration(Math.max(5, duration - 5))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4}/></button>
-              <button onClick={() => setDuration(Math.min(180, duration + 5))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4}/></button>
-            </div>
-          </div>
-        )}
-        {/* Days-of-week — tap a circle to toggle that day. All on = «каждый день». */}
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <span style={{ fontSize: 13, color: "var(--text-3)" }}>Дни недели</span>
-            <span style={{ fontSize: 13, color: "var(--text-2)", fontWeight: 600 }}>{daysSummary(days)}</span>
-          </div>
-          <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
-            {WEEKDAY_LABELS.map((w, i) => {
-              const on = !!days[i];
-              return (
-                <button key={i} className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
-                  style={{ flex: 1, aspectRatio: "1/1", maxWidth: 34, borderRadius: "50%", border: 0, cursor: "pointer",
-                    fontSize: 11.5, fontWeight: 600, letterSpacing: "-0.2px",
-                    background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)",   // neutral graphite, NOT the habit colour (David: «нафига в днях недели цвет — лишнее»)
-                    color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)",
-                    boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none",
-                    transform: on ? "scale(1.04)" : "none", transition: "transform 0.12s, background 0.12s, color 0.12s" }}>
-                  {w}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <Switch small on={type === "build"} onChange={(v) => setType(v ? "build" : "quit")} />
       </div>
 
-      {/* Reminders — подпись убрана, внутри блока «Напоминать каждый день». */}
+      {/* ── СЧИТАТЬ КОЛИЧЕСТВО — один тумблер вместо галочки/счётчика/таймера. On → число + раз/минут. ── */}
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
-            Напоминать каждый день
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{reminderOn ? "Тихий пуш в выбранное время." : "Без напоминаний — отмечай когда удобно."}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Hash size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Считать количество</div>
+            {!countOn && <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Обычно — просто галочка. Включи, если считаешь разы или минуты.</div>}
+          </div>
+          <Switch small on={countOn} onChange={enableCount} />
+        </div>
+        {countOn && (
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 600 }}>{countUnit === "min" ? duration : goal} <span style={{ fontSize: 15, fontWeight: 500, color: "var(--text-3)" }}>{countUnit === "min" ? "мин" : "раз"}</span></div>
+                <div style={{ fontSize: 13, color: "var(--text-4)" }}>{countUnit === "min" ? "отсчёт времени за день" : "или больше в день"}</div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => countUnit === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(2, goal - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4} /></button>
+                <button onClick={() => countUnit === "min" ? setDuration(Math.min(180, duration + 5)) : setGoal(Math.min(20, goal + 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4} /></button>
+              </div>
+            </div>
+            {/* раз (счётчик) / минут (таймер) — сюда спрятался таймер. */}
+            <div style={{ display: "flex", gap: 6, marginTop: 13 }}>
+              {[{ v: "times", l: "раз" }, { v: "min", l: "минут" }].map(({ v, l }) => {
+                const on = countUnit === v;
+                return (
+                  <button key={v} onClick={() => pickUnit(v)} className="tap" data-no-haptic aria-pressed={on}
+                    style={{ flex: 1, borderRadius: 10, padding: "8px 0", fontSize: 13, fontWeight: 600, border: 0, cursor: "pointer",
+                      background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{l}</button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── НАПОМИНАНИЕ — тумблер → дни недели + время (дни живут ЗДЕСЬ, David). ── */}
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Bell size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Напоминание</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{reminderOn ? (daysSummary(days) + " · тихий пуш") : "Каждый день · без пушей. Тут же — дни и время."}</div>
           </div>
           <Switch small on={reminderOn} onChange={setReminderOn} />
         </div>
         {reminderOn && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 14, color: "var(--text-2)" }}><I.Clock size={16} color="var(--text-3)" /> Время</span>
-            {/* Native iOS time wheel, styled to read as one of the app's pills. Тонкая пилюля,
-                цифры не жирные и по центру высоты (David: «жирное, большое, не центрировано»). */}
-            <input type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value || "09:00")}
-              style={{ border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "0 12px",
-                height: 30, lineHeight: "30px", display: "inline-flex", alignItems: "center",
-                fontSize: 14.5, fontWeight: 500, color: "var(--text)", fontVariantNumeric: "tabular-nums",
-                letterSpacing: "-0.2px", WebkitAppearance: "none", appearance: "none", textAlign: "center" }} />
-          </div>
-        )}
-      </div>
-
-      {/* Share with friend — the most natural referral moment: invite anyone into
-          your habit. They join → you earn XP and they're in the app. */}
-      <div data-tour="invite-friend" style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
-            Делать это вместе
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Друзья видят, когда ты отмечаешься. Они могут поддержать или подтолкнуть.</div>
-          </div>
-          <Switch small on={shareOn} onChange={setShareOn} />
-        </div>
-        <div style={{ marginTop: 12, borderRadius: 14, padding: "11px 12px", background: isDark ? "rgba(52,199,89,0.13)" : "#edfaf0", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(52,199,89,0.2)" : "#d6f3df", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🤝</span>
-          <div style={{ fontSize: 12.5, color: isDark ? "#7dd89b" : "#1a7a3a", lineHeight: 1.4 }}><b>+75 XP</b>, когда друг присоединится. А ведёте вместе — каждый шаг <b>+15</b> вместо +10.</div>
-        </div>
-        {shareOn && <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-          {shareFriends.length === 0 && (
-            <span style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4 }}>Пока некого выбрать — пригласи друга по ссылке.</span>
-          )}
-          {shareFriends.map((p, i) => (
-            <button key={i} onClick={() => setShareFriends(fs => fs.map((x, j) => j === i ? { ...x, on: !x.on } : x))} className="tap" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "5px 11px 5px 5px", borderRadius: 999,
-              background: p.on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)",
-              color: p.on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
-              border: 0, fontSize: 12, fontWeight: 500,
-            }}>
-              <BuddyFaceLive avatar={p.avatar} name={p.name} size={22} />
-              {p.name}
-              {p.on && <I.Check size={12} strokeWidth={3}/>}
-            </button>
-          ))}
-          {/* LIVE: make it REAL — create a shared mini-team + habit and open the share sheet. */}
-          <button onClick={() => inviteFriend()} className="tap" style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "5px 11px", borderRadius: 999,
-            background: "transparent", border: "1px dashed rgba(0,0,0,0.18)",
-            color: "var(--text-3)", fontSize: 12, fontWeight: 500,
-          }}><I.Plus size={12}/> Пригласить</button>
-        </div>}
-        {/* Gentle inline note — only when the invite step can't run (no Telegram / cloud off). */}
-        {shareOn && inviteNote && (
-          <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4, padding: "0 2px" }}>{inviteNote}</div>
-        )}
-      </div>
-
-      {/* Привычка ДЛЯ цели — тумблер «вести только внутри цели» (скрыть из общего списка). David: рояль. */}
-      {goalFor && (
-        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>Вести только внутри цели</div>
-              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Не показывать в общем списке — привычка живёт внутри «{goalFor.name}».</div>
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
+            <div style={{ display: "flex", gap: 6, justifyContent: "space-between", marginBottom: 14 }}>
+              {WEEKDAY_LABELS.map((w, i) => {
+                const on = !!days[i];
+                return (
+                  <button key={i} className="tap" data-no-haptic onClick={() => toggleDay(i)} aria-pressed={on}
+                    style={{ flex: 1, aspectRatio: "1/1", maxWidth: 34, borderRadius: "50%", border: 0, cursor: "pointer", fontSize: 11.5, fontWeight: 600, letterSpacing: "-0.2px",
+                      background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-4)",
+                      boxShadow: on ? "0 2px 6px rgba(0,0,0,0.14)" : "none", transform: on ? "scale(1.04)" : "none", transition: "transform 0.12s, background 0.12s, color 0.12s" }}>{w}</button>
+                );
+              })}
             </div>
-            <Switch small on={goalOnly} onChange={setGoalOnly} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 14, color: "var(--text-2)" }}><I.Clock size={16} color="var(--text-3)" /> Время</span>
+              <input type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value || "09:00")}
+                style={{ border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "0 12px", height: 30, lineHeight: "30px", display: "inline-flex", alignItems: "center", fontSize: 14.5, fontWeight: 500, color: "var(--text)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.2px", WebkitAppearance: "none", appearance: "none", textAlign: "center" }} />
+            </div>
           </div>
+        )}
+      </div>
+
+      {/* ── ДЕЛАТЬ ВМЕСТЕ — тумблер → XP + друзья (opt-in, свёрнуто по умолчанию). ── */}
+      {!goalFor && (
+        <div data-tour="invite-friend" style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color="var(--text-3)" /></span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Делать вместе</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Позови друга — вам обоим больше XP.</div>
+            </div>
+            <Switch small on={shareOn} onChange={setShareOn} />
+          </div>
+          {shareOn && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
+              <div style={{ borderRadius: 14, padding: "11px 12px", background: isDark ? "rgba(52,199,89,0.13)" : "#edfaf0", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(52,199,89,0.2)" : "#d6f3df", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🤝</span>
+                <div style={{ fontSize: 12.5, color: isDark ? "#7dd89b" : "#1a7a3a", lineHeight: 1.4 }}><b>+75 XP</b>, когда друг присоединится. А ведёте вместе — каждый шаг <b>+15</b> вместо +10.</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
+                {shareFriends.length === 0 && (
+                  <span style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4 }}>Пока некого выбрать — пригласи друга по ссылке.</span>
+                )}
+                {shareFriends.map((p, i) => (
+                  <button key={i} onClick={() => setShareFriends(fs => fs.map((x, j) => j === i ? { ...x, on: !x.on } : x))} className="tap" style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 5px", borderRadius: 999,
+                    background: p.on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: p.on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)", border: 0, fontSize: 12, fontWeight: 500 }}>
+                    <BuddyFaceLive avatar={p.avatar} name={p.name} size={22} />{p.name}{p.on && <I.Check size={12} strokeWidth={3} />}
+                  </button>
+                ))}
+                <button onClick={() => inviteFriend()} className="tap" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 999,
+                  background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-3)", fontSize: 12, fontWeight: 500 }}><I.Plus size={12} /> Пригласить</button>
+              </div>
+              {inviteNote && (
+                <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4, padding: "0 2px" }}>{inviteNote}</div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Нижней кнопки сохранения НЕТ — только «✓» в шапке (David: «оставить только крестик и галочку»). */}
-      {/* Г (David): копия привычки КРУГА — подпись-объяснение + вместо «Удалить» мягкое
-          «Убрать с моей страницы» (shelved: история и опыт целы, в круге привычка остаётся,
-          вернуть — на странице круга кнопкой «Вернуть к себе»). */}
+      {/* Привычка ДЛЯ цели — «вести только внутри цели» (скрыть из общего списка). David: рояль. */}
+      {goalFor && (
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Target size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Вести только внутри цели</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Не в общем списке — привычка живёт внутри «{goalFor.name}».</div>
+          </div>
+          <Switch small on={goalOnly} onChange={setGoalOnly} />
+        </div>
+      )}
+
+      {/* Копия привычки КРУГА → «Убрать с моей страницы»; обычная → «Удалить». */}
       {editing && params.habit.teamHabitId ? (
         <React.Fragment>
           <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", gap: 12, alignItems: "flex-start" }}>

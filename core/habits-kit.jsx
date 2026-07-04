@@ -156,7 +156,7 @@ function HabitInviteShareSheet({ habit, link }) {
   return (
     <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 64, height: 64, borderRadius: 22, margin: "0 auto 12px", background: habit?.color ? habit.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 34 }}>{habit?.emoji || "✨"}</div>
+        <div style={{ width: 64, height: 64, borderRadius: 22, margin: "0 auto 12px", background: (habit?.color && habit?.tint !== false) ? habit.color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 34 }}>{habit?.emoji || "✨"}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Зовите друга</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 4, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>«{habit?.name || "Привычка"}» теперь совместная — отправь ссылку, и друг присоединится.</div>
       </div>
