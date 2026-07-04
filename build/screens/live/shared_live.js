@@ -6333,16 +6333,11 @@ function CreateMenuLive({
       mode: "create",
       navigate: navigate
     }))
-  }, {
-    icon: I.Bolt,
-    label: "Готовый челлендж",
-    go: () => {
-      if (typeof CreatePickerSheetLive === "function") _openSheet(/*#__PURE__*/React.createElement(CreatePickerSheetLive, {
-        navigate: navigate,
-        custom: false
-      }));
-    }
-  }];
+  }
+  // «Готовый челлендж» временно убран из меню (David: «убери пока, оставь привычку и цель») —
+  // вход в каталог пресетов остаётся ссылкой внутри формы цели. Вернуть = раскомментировать:
+  // { icon: I.Bolt,  label: "Готовый челлендж", go: () => { if (typeof CreatePickerSheetLive === "function") _openSheet(<CreatePickerSheetLive navigate={navigate} custom={false} />); } },
+  ];
   return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
