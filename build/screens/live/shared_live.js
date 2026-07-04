@@ -1242,17 +1242,9 @@ function NetworkLockedLive({
     })),
     meta: "Вместе с друзьями",
     accent: "#85e3a8"
-  }, {
-    // Быстрая дверь (David: «нигде не упоминаем, что часть контактов открывается
-    // после тренингов»): ачивка тренинга открывает свой круг сразу, без уровня.
-    i: "🎓",
-    t: "Пройди тренинг",
-    d: "Ачивка тренинга сразу открывает свой круг контактов — не дожидаясь 10 уровня.",
-    cta: "К тренингам",
-    action: onTraining || (() => navigate("community")),
-    meta: "Ключ к людям",
-    accent: "#d8c4ff"
-  }];
+  }
+  // «Пройди тренинг» убрано (David: тренинги убраны из раздела).
+  ];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -9316,7 +9308,7 @@ function PartnersMapLive({
   from = "community"
 }) {
   var isDark = app && app.themeOverride === "dark";
-  var H = compact ? 156 : 232;
+  var H = compact ? 156 : 280; // David: карту крупнее
   var open = p => {
     if (window.tgHaptic) {
       try {
@@ -9539,7 +9531,7 @@ function PartnersMapLive({
       padding: "5px 10px",
       borderRadius: 999
     }
-  }, "\uD83D\uDDFA \u0420\u044F\u0434\u043E\u043C \xB7 \u041C\u043E\u0441\u043A\u0432\u0430"), /*#__PURE__*/React.createElement("span", {
+  }, "\uD83D\uDDFA \u041C\u043E\u0441\u043A\u0432\u0430"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,

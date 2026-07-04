@@ -292,6 +292,10 @@ function CommunityLive() {
   var _legacyFilter = section === "community" ? commTabEff === "courses" ? "training" : "people" : "all";
   var _fOk = cv.filter && _pairFor[cv.filter] === section && (section !== "community" || cv.filter === "training" === (commTabEff === "courses"));
   var filter = _fOk ? cv.filter : _legacyFilter;
+  // David: «Рядом» слит в «Партнёры» (карта+сетка одним блоком), «Тренинги» убраны из раздела —
+  // фокус на карте партнёров, партнёрах и нетворке. Старое сохранённое состояние аккуратно переводим.
+  if (filter === "nearby") filter = "partners";
+  if (filter === "training") filter = "all";
   var setFilter = f => setView({
     filter: f,
     section: _pairFor[f] || "discover",
@@ -412,7 +416,7 @@ function CommunityLive() {
   }];
   // Хиты программ считаются ЗДЕСЬ (courses объявлен строкой выше — обращение раньше уронило бы TDZ).
   var cHits = searching ? courses.filter(c => _hit(c.t, c.d, c.lvl)) : [];
-  var nothingFound = searching && cloudHits === 0 && !lcHits.length && !pHits.length && !cHits.length;
+  var nothingFound = searching && cloudHits === 0 && !lcHits.length && !pHits.length;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -500,7 +504,7 @@ function CommunityLive() {
       WebkitOverflowScrolling: "touch",
       touchAction: "pan-x"
     }
-  }, [["all", "Все", I.Globe], ["nearby", "Рядом", I.MapPin], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Тренинги", I.Bolt]].map(([id, t, Ic]) => {
+  }, [["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart]].map(([id, t, Ic]) => {
     var on = filter === id;
     var glass = !on && typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {};
     return /*#__PURE__*/React.createElement("button", {
@@ -721,81 +725,6 @@ function CommunityLive() {
     style: {
       flexShrink: 0
     }
-  }))))), cHits.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      color: "var(--text-4)",
-      padding: "4px 4px 8px"
-    }
-  }, "\uD83C\uDF93 \u0422\u0440\u0435\u043D\u0438\u043D\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 10
-    }
-  }, cHits.map(c => /*#__PURE__*/React.createElement("button", {
-    key: c.id,
-    onClick: () => {
-      if (window.tgHaptic) {
-        try {
-          window.tgHaptic("selection");
-        } catch (e) {}
-      }
-      navigate("course-detail", {
-        course: c
-      });
-    },
-    className: "tap",
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      background: "var(--card)",
-      borderRadius: 22,
-      padding: 14,
-      boxShadow: "var(--card-shadow)",
-      border: 0,
-      textAlign: "left",
-      width: "100%",
-      cursor: "pointer",
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: "50%",
-      background: c.accent,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      flexShrink: 0
-    }
-  }, c.i), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15.5,
-      fontWeight: 600
-    }
-  }, c.t), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-4)",
-      marginTop: 2
-    }
-  }, c.length, " \xB7 ", c.lvl)), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 16,
-    color: "var(--text-4)",
-    style: {
-      flexShrink: 0
-    }
   }))))), nothingFound && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
@@ -831,8 +760,8 @@ function CommunityLive() {
       marginTop: 14
     }
   }, filter === "all" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersMapLive === "function" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
-    title: "\uD83D\uDDFA \u0420\u044F\u0434\u043E\u043C \xB7 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u044B \u041C\u043E\u0441\u043A\u0432\u044B",
-    onAll: () => setFilter("nearby")
+    title: "\uD83D\uDDFA \u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B \u0440\u044F\u0434\u043E\u043C",
+    onAll: () => setFilter("partners")
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10
@@ -840,45 +769,16 @@ function CommunityLive() {
   }, /*#__PURE__*/React.createElement(PartnersMapLive, {
     app: app,
     navigate: navigate,
-    compact: true,
     from: "community"
   }))), typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
     app: app,
     navigate: navigate,
     onAll: () => setFilter("partners")
-  })), filter === "nearby" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersMapLive === "function" && /*#__PURE__*/React.createElement(PartnersMapLive, {
+  })), filter === "partners" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersMapLive === "function" && /*#__PURE__*/React.createElement(PartnersMapLive, {
     app: app,
     navigate: navigate,
     from: "community"
   }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "baseline",
-      justifyContent: "space-between",
-      padding: "4px 4px 0"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      color: "var(--text-4)"
-    }
-  }, "\uD83C\uDF81 \u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B \u041C\u043E\u0441\u043A\u0432\u044B"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4,
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text)"
-    }
-  }, "\uD83E\uDE99 ", typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : 0)), typeof PartnersGridLive === "function" && /*#__PURE__*/React.createElement(PartnersGridLive, {
-    app: app,
-    navigate: navigate,
-    from: "community"
-  })), filter === "partners" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "baseline",
@@ -1099,7 +999,6 @@ function CommunityLive() {
   }, /*#__PURE__*/React.createElement(NetworkLockedLive, {
     navigate: navigate,
     live: true,
-    onTraining: () => setFilter("training"),
     level: userLevel,
     xp: xpInLevel,
     xpMax: xpForNext,
@@ -1107,363 +1006,7 @@ function CommunityLive() {
     weeks: weeksToUnlock,
     onUnlock: () => {},
     onSwitchToCommunity: () => setFilter("partners")
-  })), filter === "all" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
-    title: "\uD83C\uDF93 \u0422\u0440\u0435\u043D\u0438\u043D\u0433\u0438",
-    onAll: () => setFilter("training")
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "bos-hscroll",
-    style: {
-      display: "flex",
-      alignItems: "stretch",
-      gap: 10,
-      overflowX: "auto",
-      padding: "3px 12px 14px 4px",
-      margin: "-2px -12px 0 0",
-      scrollSnapType: "x proximity",
-      WebkitOverflowScrolling: "touch"
-    }
-  }, courses.map((c, i) => /*#__PURE__*/React.createElement("button", {
-    key: c.id,
-    "data-tour": i === 0 ? "course" : undefined,
-    onClick: () => navigate("course-detail", {
-      course: c
-    }),
-    className: "tap",
-    style: {
-      flex: "0 0 auto",
-      width: 305,
-      scrollSnapAlign: "start",
-      background: "var(--card)",
-      borderRadius: 22,
-      padding: 16,
-      boxShadow: "var(--card-shadow)",
-      border: 0,
-      textAlign: "left",
-      color: "var(--text)",
-      display: "flex",
-      flexDirection: "column",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 700,
-      fontSize: 17,
-      color: "var(--text)",
-      letterSpacing: "-0.3px"
-    }
-  }, c.t), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      padding: "2px 8px",
-      background: "var(--card-2)",
-      borderRadius: 999,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 0.6,
-      fontWeight: 600
-    }
-  }, c.lvl)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-3)",
-      marginTop: 6,
-      lineHeight: 1.45,
-      display: "-webkit-box",
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: "vertical",
-      overflow: "hidden"
-    }
-  }, c.d), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      marginTop: 6,
-      display: "flex",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "\u23F1 ", c.length), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC5 ", c.cohort))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 46,
-      height: 46,
-      borderRadius: "50%",
-      background: c.accent,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      flexShrink: 0
-    }
-  }, c.i)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      borderTop: "1px solid var(--line)",
-      paddingTop: 12,
-      marginTop: "auto"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, "\u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 700,
-      marginTop: 2,
-      color: "var(--text)"
-    }
-  }, c.price)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      background: "var(--cta, #0a0a0a)",
-      color: "var(--cta-ink, #fff)",
-      borderRadius: 999,
-      padding: "10px 18px",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      fontSize: 13,
-      fontWeight: 500
-    }
-  }, "\u041E \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 14
-  }))))))), filter === "training" && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12,
-      marginTop: 4
-    }
-  }, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
-    title: "\uD83C\uDF93 \u0422\u0440\u0435\u043D\u0438\u043D\u0433\u0438"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      overflow: "hidden",
-      borderRadius: 22,
-      padding: "16px 18px",
-      background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
-      boxShadow: "0 8px 22px rgba(239,159,20,0.32)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      top: -46,
-      right: -28,
-      width: 168,
-      height: 168,
-      borderRadius: "50%",
-      background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)",
-      pointerEvents: "none"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      top: 15,
-      right: 17,
-      fontSize: 38,
-      lineHeight: 1,
-      pointerEvents: "none"
-    }
-  }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 800,
-      letterSpacing: 1.4,
-      textTransform: "uppercase",
-      color: "rgba(58,42,0,0.6)"
-    }
-  }, "\u0417\u0430\u0447\u0435\u043C \u043F\u0440\u043E\u0445\u043E\u0434\u0438\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 19,
-      fontWeight: 800,
-      letterSpacing: "-0.4px",
-      color: "#3a2a00",
-      marginTop: 4,
-      maxWidth: 220,
-      lineHeight: 1.2
-    }
-  }, "\u041A\u0430\u0436\u0434\u044B\u0439 \u0442\u0440\u0435\u043D\u0438\u043D\u0433 \u2014 \u0446\u0435\u043B\u044B\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "rgba(58,42,0,0.8)",
-      marginTop: 6,
-      lineHeight: 1.42,
-      maxWidth: 244
-    }
-  }, "\u0410\u0447\u0438\u0432\u043A\u0430, \u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u043E\u043F\u044B\u0442 \u0438 \u0434\u043E\u0441\u0442\u0443\u043F \u043A \u043D\u043E\u0432\u044B\u043C \u043B\u044E\u0434\u044F\u043C. \u0421\u0430\u043C\u044B\u0439 \u0431\u044B\u0441\u0442\u0440\u044B\u0439 \u0440\u043E\u0441\u0442."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 7,
-      marginTop: 13,
-      flexWrap: "wrap"
-    }
-  }, [["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+2000 XP"]].map(([e, l], i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "rgba(255,255,255,0.55)",
-      borderRadius: 999,
-      padding: "6px 11px",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "#3a2a00"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      lineHeight: 1
-    }
-  }, e), l))))), courses.map((c, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    "data-tour": i === 0 ? "course" : undefined,
-    onClick: () => navigate("course-detail", {
-      course: c
-    }),
-    className: "tap",
-    style: {
-      background: "var(--card)",
-      borderRadius: 22,
-      padding: 16,
-      boxShadow: "var(--card-shadow)",
-      border: 0,
-      textAlign: "left",
-      color: "var(--text)",
-      display: "block",
-      width: "100%"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 700,
-      fontSize: 17,
-      color: "var(--text)",
-      letterSpacing: "-0.3px"
-    }
-  }, c.t), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      padding: "2px 8px",
-      background: "var(--card-2)",
-      borderRadius: 999,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 0.6,
-      fontWeight: 600
-    }
-  }, c.lvl)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-3)",
-      marginTop: 6,
-      lineHeight: 1.45
-    }
-  }, c.d), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      marginTop: 6,
-      display: "flex",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "\u23F1 ", c.length), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC5 ", c.cohort))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 46,
-      height: 46,
-      borderRadius: "50%",
-      background: c.accent,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 22,
-      flexShrink: 0
-    }
-  }, c.i)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      borderTop: "1px solid var(--line)",
-      paddingTop: 12,
-      marginTop: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-4)",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      fontWeight: 600
-    }
-  }, "\u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 700,
-      marginTop: 2,
-      color: "var(--text)"
-    }
-  }, c.price)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      background: "var(--cta, #0a0a0a)",
-      color: "var(--cta-ink, #fff)",
-      borderRadius: 999,
-      padding: "10px 18px",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      fontSize: 13,
-      fontWeight: 500
-    }
-  }, "\u041E \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 14
-  })))))), filter === "all" && typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
+  })), filter === "all" && typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
     isDark: isDark
   })));
 }

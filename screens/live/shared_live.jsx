@@ -653,15 +653,7 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft, onTraining 
       meta: "Вместе с друзьями",
       accent: "#85e3a8",
     },
-    {
-      // Быстрая дверь (David: «нигде не упоминаем, что часть контактов открывается
-      // после тренингов»): ачивка тренинга открывает свой круг сразу, без уровня.
-      i: "🎓", t: "Пройди тренинг",
-      d: "Ачивка тренинга сразу открывает свой круг контактов — не дожидаясь 10 уровня.",
-      cta: "К тренингам", action: onTraining || (() => navigate("community")),
-      meta: "Ключ к людям",
-      accent: "#d8c4ff",
-    },
+    // «Пройди тренинг» убрано (David: тренинги убраны из раздела).
   ];
 
   return (
@@ -3793,7 +3785,7 @@ function bosLoadYandexMaps() {
 }
 function PartnersMapLive({ app, navigate, compact = false, from = "community" }) {
   const isDark = app && app.themeOverride === "dark";
-  const H = compact ? 156 : 232;
+  const H = compact ? 156 : 280; // David: карту крупнее
   const open = (p) => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: from }); };
   const [ready, setReady] = React.useState(false); // Яндекс встал и отрисовался
   const mapRef = React.useRef(null);
@@ -3863,7 +3855,7 @@ function PartnersMapLive({ app, navigate, compact = false, from = "community" })
       {/* РЕАЛЬНАЯ Яндекс.Карта — поверх резерва, проявляется когда встала (иначе виден резерв). */}
       <div ref={mapRef} aria-hidden={!ready} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 2, opacity: ready ? 1 : 0, pointerEvents: ready ? "auto" : "none", transition: "opacity 0.35s ease" }} />
       <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 4, pointerEvents: "none" }}>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: chipInk, background: chipBg, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: "5px 10px", borderRadius: 999 }}>🗺 Рядом · Москва</span>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: chipInk, background: chipBg, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: "5px 10px", borderRadius: 999 }}>🗺 Москва</span>
         <span style={{ fontSize: 11.5, fontWeight: 700, color: chipInk, background: chipBg, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: "5px 10px", borderRadius: 999 }}>{BOS_PARTNERS.length} мест поблизости</span>
       </div>
     </div>
