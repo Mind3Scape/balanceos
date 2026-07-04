@@ -5237,24 +5237,19 @@ function bosIcon(val, size, color) {
   return bosDeSF(val) || "";
 }
 
+// Все эмодзи ОДНОЙ лентой (David: категории не нравятся — сплошной поток). Дедупим, сохраняя порядок.
+const BOS_EMOJI_ALL = (function () { var seen = {}, out = []; BOS_EMOJI_CATS.forEach(function (c) { c.list.forEach(function (e) { if (!seen[e]) { seen[e] = 1; out.push(e); } }); }); return out; })();
 function EmojiPickerLive({ onPick, accent = "#0a0a0a", current, embedded = false }) {
   const { close } = useSheet();
-  const [cat, setCat] = React.useState(0);
   // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
   // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
   const pick = (e) => { if (onPick) onPick(e); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } if (!embedded) close(); };
-  // David: только ЭМОДЗИ — монохромные «Символы» убраны (у кого были — bosDeSF заменил на эмодзи).
+  // David: одна СПЛОШНАЯ лента всех эмодзи — без категорий и без «Символов».
   return (
     <div style={{ padding: "2px 10px 6px", color: "#0a0a0a" }}>
       <div style={{ textAlign: "center", fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Выбери иконку</div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
-        {BOS_EMOJI_CATS.map((c, i) => (
-          <button key={i} className="tap" data-no-haptic onClick={() => setCat(i)} aria-label={"Категория " + (i + 1)}
-            style={{ flex: 1, height: 38, borderRadius: 11, border: 0, fontSize: 19, cursor: "pointer", background: i === cat ? "var(--surface-3)" : "transparent" }}>{c.ic}</button>
-        ))}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 2, maxHeight: 300, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-        {BOS_EMOJI_CATS[cat].list.map((e, i) => (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 2, maxHeight: 344, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        {BOS_EMOJI_ALL.map((e, i) => (
           <button key={i} className="tap" data-no-haptic onClick={() => pick(e)} style={{ aspectRatio: "1 / 1", borderRadius: 10, border: 0, background: "transparent", fontSize: 25, cursor: "pointer", padding: 0 }}>{e}</button>
         ))}
       </div>

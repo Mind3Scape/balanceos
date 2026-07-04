@@ -394,6 +394,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   const [tint, setTint] = useHS(g0 ? (g0.tint !== false) : true); // тонированный фон цели — РЕАЛЬНО читается в bosGoalSkin (карточка залита цветом / чистая)
   const [target, setTarget] = useHS(g0?.target || preset?.target || 1); // старт с 1, без потолка (David: «в целях постоянно 22»)
   const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
+  const [desc, setDesc] = useHS(g0?.desc || ""); // заметка создателя под целью; у команды синкается через goal.desc всем
   // Срок — храним ISO-дату (yyyy-mm-dd) у новых целей; старые «Месяц»/«14 окт» проходят как есть
   // (bosFmtDeadline красиво форматит и то, и другое). Дефолт = месяц от сегодня. Нативный date-пикер
   // вместо графитовых пилюль (David: «пилюли стрёмно, нужно элегантнее»).
@@ -441,11 +442,12 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       // круг). Шторка над комнатой круга → close() открывает её, комната перечитывает app.teams живьём.
       if (isTeamEdit) {
         const goalText = (g0.goal && ("" + g0.goal).trim()) || (tgt + (unit ? " " + unit : ""));
-        const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline };
+        const _desc = (desc || "").trim();
+        const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc };
         app?.updateTeam(g0._id, patch);
         try {
           if (g0.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
-            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, vis: circleVis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake } });
+            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, vis: circleVis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc } });
           }
         } catch (e) {}
         close();
@@ -461,7 +463,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
     }
     // КРУГ ВЫКЛ → личная цель; habitIds наполняют её кольцо.
     const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
-    const data = { emoji: iconPick, color, tint, name: nm, target: tgt, unit, deadline, circle: false, habitIds };
+    const data = { emoji: iconPick, color, tint, name: nm, target: tgt, unit, deadline, circle: false, habitIds, desc: (desc || "").trim() };
     if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
     if (editing) app?.updateGoal(g0.id, data);
     else app?.addGoal(data);
@@ -586,6 +588,23 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         )}
         <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 9 }}>Прогресс цели считается от этого числа.</div>
       </div>
+
+      {/* ── ОПИСАНИЕ — заметка создателя под целью (David). Показываем только для круга/команды: там
+          её видят ВСЕ участники под целью в hero (у личной цели описание пока не выводим). ── */}
+      {(isTeamEdit || circleOn) && (
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17 }}>📝</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Описание</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Что важно помнить команде — покажется под целью.</div>
+            </div>
+          </div>
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} maxLength={280}
+            placeholder="Напр.: отмечаемся каждый вечер, поддерживаем друг друга"
+            style={{ width: "100%", boxSizing: "border-box", marginTop: 11, border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 12, padding: "11px 13px", fontSize: 14, color: "var(--text)", resize: "none", fontFamily: "inherit", lineHeight: 1.45 }} />
+        </div>
+      )}
 
       {/* ── ИДТИ К ЦЕЛИ ВМЕСТЕ — поднято выше; настройки круга раскрываются ВНУТРИ карточки (David) ── */}
       {!isTeamEdit && (

@@ -1508,80 +1508,190 @@ function TeamDetailLive() {
   var CountC = typeof Count === "function" ? Count : function (p) {
     return p.value;
   };
+  // David-редизайн детали общей цели: инфа под орбитой → ЧИПЫ; hero тянется до самого верха (как у
+  // партнёра), правка/позвать/ЧАТ стеклом справа В hero. desc = заметка создателя (синкается всем
+  // через goal.desc), aiChips = 1-2 честных наблюдения по реальному состоянию цели.
+  var desc = gpd && gpd.desc || t.desc || "";
+  var modeMeta = {
+    collective: {
+      e: "🌊",
+      t: "Общий счёт"
+    },
+    streak: {
+      e: "🔥",
+      t: "Серия у каждого"
+    },
+    race: {
+      e: "🏁",
+      t: "Гонка"
+    }
+  }[gType] || {
+    e: "🌊",
+    t: "Общий счёт"
+  };
+  var aiChips = function () {
+    var out = [];
+    if (gDone) {
+      out.push("🎉 Цель достигнута");
+      return out;
+    }
+    if (inFlowToday > 0) out.push("🔥 сегодня " + inFlowToday + " в деле");else if (gTgt > 0 && gCur === 0) out.push("✨ Пора сделать первый шаг");
+    if (out.length < 2 && gTgt > 0 && gCur > 0 && gRemaining > 0 && gRemaining / gTgt <= 0.25) out.push("💪 финишная прямая");
+    return out.slice(0, 2);
+  }();
+  var heroTint = isDark ? teamColor ? bosMixHex(teamColor, "#101014", 0.72) : "#1b1b1f" : teamColor ? bosMixHex(teamColor, "#ffffff", 0.84) : "#ECECF1";
+  var heroBg = "linear-gradient(180deg, " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)") + ", rgba(255,255,255,0) 58%), " + heroTint;
+  var heroBtn = {
+    width: 38,
+    height: 38,
+    borderRadius: "50%",
+    border: 0,
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+    background: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.62)",
+    color: isDark ? "#fff" : "#1b1b1f",
+    flexShrink: 0
+  };
+  var heroChip = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.62)",
+    borderRadius: 999,
+    padding: "5px 11px",
+    fontSize: 12,
+    fontWeight: 600,
+    color: isDark ? "rgba(255,255,255,0.92)" : "#2a2a30",
+    whiteSpace: "nowrap"
+  };
+  var heroChipAI = Object.assign({}, heroChip, {
+    background: isDark ? "rgba(120,150,220,0.24)" : "rgba(255,255,255,0.92)",
+    color: isDark ? "#dfe6ff" : "#3a4a68",
+    boxShadow: isDark ? "none" : "0 1px 4px rgba(40,60,110,0.10)"
+  });
+  var editGoalLike = {
+    _id: t._id,
+    id: t.id,
+    cloudId: t.cloudId,
+    __isTeam: true,
+    __team: t,
+    name: t.name,
+    emoji: t.emblem,
+    color: t.accent,
+    target: t.target,
+    unit: t.unit,
+    deadline: t.date || t.deadline || "",
+    circle: true,
+    type: t.type,
+    vis: t.vis,
+    stake: t.stake,
+    goal: t.goal,
+    desc: desc,
+    joined: t.joined,
+    habitIds: []
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
-      padding: "0 16px 24px"
+      paddingBottom: 24
     }
-  }, /*#__PURE__*/React.createElement(PageHeader, {
-    title: "\u0426\u0435\u043B\u044C",
-    onBack: () => navigate(from),
-    right: /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 8,
-        alignItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
-        team: t
-      })),
-      className: "tap",
-      "data-haptic": "selection",
-      "aria-label": "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433",
-      title: "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433",
-      style: {
-        width: 40,
-        height: 40,
-        borderRadius: "50%",
-        border: 0,
-        display: "grid",
-        placeItems: "center",
-        cursor: "pointer",
-        color: isDark ? "#fff" : "var(--text)",
-        background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
-        boxShadow: bosTileGlass(isDark)
-      }
-    }, /*#__PURE__*/React.createElement(I.Share, {
-      size: 16,
-      strokeWidth: 2
-    })), _isOwner && /*#__PURE__*/React.createElement(EditGlassButtonLive, {
-      onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
-        mode: "edit",
-        circleOn: true,
-        navigate: navigate,
-        returnTo: from,
-        goal: {
-          _id: t._id,
-          id: t.id,
-          cloudId: t.cloudId,
-          __isTeam: true,
-          __team: t,
-          name: t.name,
-          emoji: t.emblem,
-          color: t.accent,
-          target: t.target,
-          unit: t.unit,
-          deadline: t.date || t.deadline || "",
-          circle: true,
-          type: t.type,
-          vis: t.vis,
-          stake: t.stake,
-          goal: t.goal,
-          joined: t.joined,
-          habitIds: []
-        }
-      }))
-    }))
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      background: heroBg,
+      marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
+      padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => navigate(from),
+    className: "tap",
+    "aria-label": "\u041D\u0430\u0437\u0430\u0434",
+    style: heroBtn
+  }, /*#__PURE__*/React.createElement(I.ChevronLeft, {
+    size: 20,
+    strokeWidth: 2.4
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, _isOwner && /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(GoalFormSheetLive, {
+      mode: "edit",
+      circleOn: true,
+      navigate: navigate,
+      returnTo: from,
+      goal: editGoalLike
+    })),
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0446\u0435\u043B\u0438",
+    style: heroBtn
+  }, /*#__PURE__*/React.createElement(I.Pencil, {
+    size: 16,
+    strokeWidth: 2
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+      team: t
+    })),
+    className: "tap",
+    "data-haptic": "selection",
+    "aria-label": "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0440\u0443\u0433",
+    style: heroBtn
+  }, /*#__PURE__*/React.createElement(I.Share, {
+    size: 16,
+    strokeWidth: 2
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      markChatRead();
+      navigate("team-chat", {
+        team: t,
+        from
+      });
+    },
+    className: "tap",
+    "aria-label": "\u0427\u0430\u0442 \u0446\u0435\u043B\u0438",
+    style: {
+      ...heroBtn,
+      position: "relative",
+      fontSize: 17
+    }
+  }, "\uD83D\uDCAC", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: -2,
+      right: -2,
+      background: "#FF3B30",
+      color: "#fff",
+      fontSize: 10,
+      fontWeight: 700,
+      borderRadius: 999,
+      minWidth: 17,
+      height: 17,
+      padding: "0 4px",
+      display: "grid",
+      placeItems: "center",
+      border: "1.5px solid " + (isDark ? "#151519" : "#fff")
+    }
+  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)))), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      padding: "6px 0 18px"
+      marginTop: 4
     }
-  }, gStyle.orbits ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, gStyle.orbits ? /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 190,
-      height: 190,
+      width: 172,
+      height: 172,
       margin: "0 auto",
       display: "grid",
       placeItems: "center"
@@ -1600,29 +1710,19 @@ function TeamDetailLive() {
       active: f.done,
       progress: _pulseFor(f)
     })),
-    size: 190,
+    size: 172,
     dark: isDark,
     progress: gp
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 30,
-      fontWeight: 800,
-      marginTop: 12,
-      letterSpacing: "-0.5px",
-      color: "var(--text)"
-    }
-  }, /*#__PURE__*/React.createElement(CountC, {
-    value: Math.round(gp * 100)
-  }), "%")) : /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      width: 170,
-      height: 170,
+      width: 150,
+      height: 150,
       margin: "0 auto"
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "170",
-    height: "170",
+    width: "150",
+    height: "150",
     viewBox: "0 0 140 140",
     style: {
       transform: "rotate(-90deg)"
@@ -1632,7 +1732,7 @@ function TeamDetailLive() {
     cy: "70",
     r: "54",
     fill: "none",
-    stroke: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.07)",
+    stroke: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)",
     strokeWidth: "13"
   }), gp > 0 && /*#__PURE__*/React.createElement("circle", {
     cx: "70",
@@ -1655,73 +1755,64 @@ function TeamDetailLive() {
       position: "absolute",
       inset: 0,
       display: "grid",
-      placeItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 34,
+      placeItems: "center",
+      fontSize: 36,
       lineHeight: 1
     }
-  }, bosIcon(t.emblem || "👥", 32, null)), /*#__PURE__*/React.createElement("div", {
+  }, bosIcon(t.emblem || "👥", 34, null))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 28,
+      fontSize: 30,
       fontWeight: 800,
-      marginTop: 4,
-      letterSpacing: "-0.5px"
+      marginTop: 8,
+      letterSpacing: "-0.5px",
+      color: "var(--text)"
     }
   }, /*#__PURE__*/React.createElement(CountC, {
     value: Math.round(gp * 100)
-  }), "%")))), /*#__PURE__*/React.createElement("div", {
+  }), "%"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 22,
+      fontSize: 21,
       fontWeight: 700,
       color: "var(--text)",
-      marginTop: 14,
+      marginTop: 5,
       letterSpacing: "-0.4px"
     }
-  }, t.name), /*#__PURE__*/React.createElement("div", {
+  }, t.name), desc ? /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: "var(--text-4)",
-      marginTop: 3
+      color: isDark ? "rgba(255,255,255,0.72)" : "rgba(20,20,25,0.6)",
+      marginTop: 6,
+      lineHeight: 1.45,
+      maxWidth: 300,
+      marginLeft: "auto",
+      marginRight: "auto"
     }
-  }, gTgt > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CountC, {
-    value: gCur
-  }), " \u0438\u0437 ", gTgt, " ", gUnit, " \xB7 ", modeLabel) : modeLabel), /*#__PURE__*/React.createElement("div", {
+  }, desc) : null), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
-      color: "var(--text-5, var(--text-4))",
-      marginTop: 2
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: 13
     }
-  }, t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная", t.goal ? " · " + t.goal : "")), /*#__PURE__*/React.createElement(StatTrioLive, {
-    isDark: isDark,
-    card: card,
-    items: [{
-      l: "Осталось",
-      v: gRemaining,
-      icon: /*#__PURE__*/React.createElement(I.Target, {
-        size: 16,
-        strokeWidth: 2,
-        color: isDark ? "#fff" : "#0a0a0a"
-      })
-    }, {
-      l: "Сделано",
-      v: gCur,
-      icon: /*#__PURE__*/React.createElement(I.Check, {
-        size: 16,
-        strokeWidth: 2.4,
-        color: isDark ? "#fff" : "#0a0a0a"
-      })
-    }, {
-      l: "Люди",
-      v: _rosterLoading ? 0 : members.length,
-      icon: /*#__PURE__*/React.createElement(I.Users, {
-        size: 16,
-        strokeWidth: 2,
-        color: isDark ? "#fff" : "#0a0a0a"
-      })
-    }]
-  }), stake > 0 && !gDone && /*#__PURE__*/React.createElement("div", {
+  }, gTgt > 0 && /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, "\uD83C\uDFAF ", gCur, "/", gTgt, " ", gUnit), gTgt > 0 && gRemaining > 0 && /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, "\u23F3 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", gRemaining), /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, "\uD83D\uDC65 ", _rosterLoading ? "…" : members.length), /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, modeMeta.e, " ", modeMeta.t), /*#__PURE__*/React.createElement("span", {
+    style: heroChip
+  }, t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"), aiChips.map((ch, i) => /*#__PURE__*/React.createElement("span", {
+    key: "ai" + i,
+    style: heroChipAI
+  }, ch)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 16px 0"
+    }
+  }, stake > 0 && !gDone && /*#__PURE__*/React.createElement("div", {
     style: {
       ...card,
       borderRadius: 22,
@@ -2236,54 +2327,7 @@ function TeamDetailLive() {
       fontSize: 14.5,
       fontWeight: 600
     }
-  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439"))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      markChatRead();
-      navigate("team-chat", {
-        team: t,
-        from
-      });
-    },
-    className: "tap",
-    style: {
-      width: "100%",
-      marginTop: 12,
-      position: "relative",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 9,
-      background: BOS_TILE_SHEEN + ", var(--surface-3)",
-      boxShadow: bosTileGlass(isDark),
-      border: 0,
-      borderRadius: 18,
-      padding: "15px 12px",
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text-2)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 18,
-      lineHeight: 1
-    }
-  }, "\uD83D\uDCAC"), " \u0427\u0430\u0442 \u0446\u0435\u043B\u0438", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      top: 9,
-      right: 14,
-      background: "#FF3B30",
-      color: "#fff",
-      fontSize: 10,
-      fontWeight: 700,
-      borderRadius: 999,
-      minWidth: 18,
-      height: 18,
-      padding: "0 5px",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)), !_isOwner && /*#__PURE__*/React.createElement("button", {
+  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439"))), !_isOwner && /*#__PURE__*/React.createElement("button", {
     onClick: () => bosConfirmExitTeam({
       app,
       team: t,
@@ -2309,5 +2353,5 @@ function TeamDetailLive() {
     }
   }, /*#__PURE__*/React.createElement(I.Logout, {
     size: 17
-  }), " \u041F\u043E\u043A\u0438\u043D\u0443\u0442\u044C \u0446\u0435\u043B\u044C"));
+  }), " \u041F\u043E\u043A\u0438\u043D\u0443\u0442\u044C \u0446\u0435\u043B\u044C")));
 }

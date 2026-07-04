@@ -729,6 +729,7 @@
       var target = Number(goal.target != null ? goal.target : gt) || 0;
       var unit = goal.unit || "";
       var stake = Number(goal.stake) || 0; // optional XP wager per person (teams.goal.stake)
+      var desc = (goal && typeof goal.desc === "string") ? goal.desc : ""; // заметка создателя под целью (teams.goal.desc) — синкается всем
       var hs = await c.from("team_habits").select("id").eq("team_id", teamId);
       var hids = ((hs && hs.data) || []).map(function (h) { return h.id; });
       var rows = [];
@@ -748,7 +749,7 @@
       else out.sort(function (a, b) { return (b.me ? 1 : 0) - (a.me ? 1 : 0); });
       var bank = stake * members.length;        // co-op: each gets stake; race: leader takes bank
       var done = target > 0 && current >= target;
-      return { type: type, target: target, unit: unit, current: current, stake: stake, bank: bank, done: done, members: out };
+      return { type: type, target: target, unit: unit, current: current, stake: stake, bank: bank, done: done, desc: desc, members: out };
     } catch (e) { return null; }
   }
 

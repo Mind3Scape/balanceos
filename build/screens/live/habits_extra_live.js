@@ -1014,6 +1014,7 @@ function GoalFormSheetLive({
   var [tint, setTint] = useHS(g0 ? g0.tint !== false : true); // тонированный фон цели — РЕАЛЬНО читается в bosGoalSkin (карточка залита цветом / чистая)
   var [target, setTarget] = useHS(g0?.target || preset?.target || 1); // старт с 1, без потолка (David: «в целях постоянно 22»)
   var [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
+  var [desc, setDesc] = useHS(g0?.desc || ""); // заметка создателя под целью; у команды синкается через goal.desc всем
   // Срок — храним ISO-дату (yyyy-mm-dd) у новых целей; старые «Месяц»/«14 окт» проходят как есть
   // (bosFmtDeadline красиво форматит и то, и другое). Дефолт = месяц от сегодня. Нативный date-пикер
   // вместо графитовых пилюль (David: «пилюли стрёмно, нужно элегантнее»).
@@ -1085,6 +1086,7 @@ function GoalFormSheetLive({
       // круг). Шторка над комнатой круга → close() открывает её, комната перечитывает app.teams живьём.
       if (isTeamEdit) {
         var goalText = g0.goal && ("" + g0.goal).trim() || tgt + (unit ? " " + unit : "");
+        var _desc = (desc || "").trim();
         var patch = {
           name: nm,
           emblem: iconPick,
@@ -1095,7 +1097,8 @@ function GoalFormSheetLive({
           target: tgt,
           unit,
           stake: _stake,
-          deadline
+          deadline,
+          desc: _desc
         };
         app?.updateTeam(g0._id, patch);
         try {
@@ -1111,7 +1114,8 @@ function GoalFormSheetLive({
                 target: tgt,
                 unit,
                 title: goalText,
-                stake: _stake
+                stake: _stake,
+                desc: _desc
               }
             });
           }
@@ -1157,7 +1161,8 @@ function GoalFormSheetLive({
       unit,
       deadline,
       circle: false,
-      habitIds
+      habitIds,
+      desc: (desc || "").trim()
     };
     if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
     if (editing) app?.updateGoal(g0.id, data);else app?.addGoal(data);
@@ -1632,7 +1637,68 @@ function GoalFormSheetLive({
       color: "var(--text-4)",
       marginTop: 9
     }
-  }, "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u043E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430.")), !isTeamEdit && /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u043E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430.")), (isTeamEdit || circleOn) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card, #fff)",
+      borderRadius: 22,
+      padding: 14,
+      marginTop: 12,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 24,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      fontSize: 17
+    }
+  }, "\uD83D\uDCDD"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, "\u0427\u0442\u043E \u0432\u0430\u0436\u043D\u043E \u043F\u043E\u043C\u043D\u0438\u0442\u044C \u043A\u043E\u043C\u0430\u043D\u0434\u0435 \u2014 \u043F\u043E\u043A\u0430\u0436\u0435\u0442\u0441\u044F \u043F\u043E\u0434 \u0446\u0435\u043B\u044C\u044E."))), /*#__PURE__*/React.createElement("textarea", {
+    value: desc,
+    onChange: e => setDesc(e.target.value),
+    rows: 2,
+    maxLength: 280,
+    placeholder: "\u041D\u0430\u043F\u0440.: \u043E\u0442\u043C\u0435\u0447\u0430\u0435\u043C\u0441\u044F \u043A\u0430\u0436\u0434\u044B\u0439 \u0432\u0435\u0447\u0435\u0440, \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u043C \u0434\u0440\u0443\u0433 \u0434\u0440\u0443\u0433\u0430",
+    style: {
+      width: "100%",
+      boxSizing: "border-box",
+      marginTop: 11,
+      border: 0,
+      outline: 0,
+      background: "var(--surface-3)",
+      borderRadius: 12,
+      padding: "11px 13px",
+      fontSize: 14,
+      color: "var(--text)",
+      resize: "none",
+      fontFamily: "inherit",
+      lineHeight: 1.45
+    }
+  })), !isTeamEdit && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,

@@ -13507,6 +13507,21 @@ function bosDeSF(val) {
 function bosIcon(val, size, color) {
   return bosDeSF(val) || "";
 }
+
+// Все эмодзи ОДНОЙ лентой (David: категории не нравятся — сплошной поток). Дедупим, сохраняя порядок.
+var BOS_EMOJI_ALL = function () {
+  var seen = {},
+    out = [];
+  BOS_EMOJI_CATS.forEach(function (c) {
+    c.list.forEach(function (e) {
+      if (!seen[e]) {
+        seen[e] = 1;
+        out.push(e);
+      }
+    });
+  });
+  return out;
+}();
 function EmojiPickerLive({
   onPick,
   accent = "#0a0a0a",
@@ -13516,7 +13531,6 @@ function EmojiPickerLive({
   var {
     close
   } = useSheet();
-  var [cat, setCat] = React.useState(0);
   // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
   // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
   var pick = e => {
@@ -13528,7 +13542,7 @@ function EmojiPickerLive({
     }
     if (!embedded) close();
   };
-  // David: только ЭМОДЗИ — монохромные «Символы» убраны (у кого были — bosDeSF заменил на эмодзи).
+  // David: одна СПЛОШНАЯ лента всех эмодзи — без категорий и без «Символов».
   return /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "2px 10px 6px",
@@ -13543,35 +13557,14 @@ function EmojiPickerLive({
     }
   }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0438\u043A\u043E\u043D\u043A\u0443"), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      gap: 4,
-      marginBottom: 10
-    }
-  }, BOS_EMOJI_CATS.map((c, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    className: "tap",
-    "data-no-haptic": true,
-    onClick: () => setCat(i),
-    "aria-label": "Категория " + (i + 1),
-    style: {
-      flex: 1,
-      height: 38,
-      borderRadius: 11,
-      border: 0,
-      fontSize: 19,
-      cursor: "pointer",
-      background: i === cat ? "var(--surface-3)" : "transparent"
-    }
-  }, c.ic))), /*#__PURE__*/React.createElement("div", {
-    style: {
       display: "grid",
       gridTemplateColumns: "repeat(8, 1fr)",
       gap: 2,
-      maxHeight: 300,
+      maxHeight: 344,
       overflowY: "auto",
       WebkitOverflowScrolling: "touch"
     }
-  }, BOS_EMOJI_CATS[cat].list.map((e, i) => /*#__PURE__*/React.createElement("button", {
+  }, BOS_EMOJI_ALL.map((e, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
     className: "tap",
     "data-no-haptic": true,

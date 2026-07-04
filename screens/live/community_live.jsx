@@ -753,73 +753,79 @@ function TeamDetailLive() {
     ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
     : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
   const CountC = (typeof Count === "function") ? Count : function (p) { return p.value; };
+  // David-редизайн детали общей цели: инфа под орбитой → ЧИПЫ; hero тянется до самого верха (как у
+  // партнёра), правка/позвать/ЧАТ стеклом справа В hero. desc = заметка создателя (синкается всем
+  // через goal.desc), aiChips = 1-2 честных наблюдения по реальному состоянию цели.
+  const desc = (gpd && gpd.desc) || t.desc || "";
+  const modeMeta = ({ collective: { e: "🌊", t: "Общий счёт" }, streak: { e: "🔥", t: "Серия у каждого" }, race: { e: "🏁", t: "Гонка" } })[gType] || { e: "🌊", t: "Общий счёт" };
+  const aiChips = (function () {
+    var out = [];
+    if (gDone) { out.push("🎉 Цель достигнута"); return out; }
+    if (inFlowToday > 0) out.push("🔥 сегодня " + inFlowToday + " в деле");
+    else if (gTgt > 0 && gCur === 0) out.push("✨ Пора сделать первый шаг");
+    if (out.length < 2 && gTgt > 0 && gCur > 0 && gRemaining > 0 && (gRemaining / gTgt) <= 0.25) out.push("💪 финишная прямая");
+    return out.slice(0, 2);
+  })();
+  const heroTint = isDark
+    ? (teamColor ? bosMixHex(teamColor, "#101014", 0.72) : "#1b1b1f")
+    : (teamColor ? bosMixHex(teamColor, "#ffffff", 0.84) : "#ECECF1");
+  const heroBg = "linear-gradient(180deg, " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)") + ", rgba(255,255,255,0) 58%), " + heroTint;
+  const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.62)", color: isDark ? "#fff" : "#1b1b1f", flexShrink: 0 };
+  const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.62)", borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.92)" : "#2a2a30", whiteSpace: "nowrap" };
+  const heroChipAI = Object.assign({}, heroChip, { background: isDark ? "rgba(120,150,220,0.24)" : "rgba(255,255,255,0.92)", color: isDark ? "#dfe6ff" : "#3a4a68", boxShadow: isDark ? "none" : "0 1px 4px rgba(40,60,110,0.10)" });
+  const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: desc, joined: t.joined, habitIds: [] };
   return (
-    <div className="page-in" style={{ padding: "0 16px 24px" }}>
-      <PageHeader title="Цель" onBack={() => navigate(from)} right={
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* Круглая СТЕКЛЯННАЯ «поделиться» (позвать в круг) — СТАНДАРТ как на детали привычки/цели
-              (David: «такую же кнопку везде»). Доступна ВСЕМ участникам, не только владельцу —
-              позвать друга в круг может каждый. Дублирующий тихий чип «Позвать» ниже оставляем. */}
-          <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" title="Позвать в круг"
-            style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark) }}>
-            <I.Share size={16} strokeWidth={2} />
-          </button>
-          {/* Правка НА МЕСТЕ — карандаш открывает шторку правки прямо над комнатой (не уводит
-              на отдельный экран). _isOwner = роль из ростера, фолбэк !t.joined. */}
-          {/* Карандаш круга открывает ТУ ЖЕ шторку, что у обычной цели — GoalFormSheetLive (David:
-              «унифицировать; отдельную урезанную шторку убрать»). Команда маппится в goal-подобный
-              объект (emblem→emoji, accent→color) + __isTeam/__team → форма редактирует круг: save =
-              updateTeam, delete = выход/удаление круга, ссылка «Участники и роли →». */}
-          {_isOwner && <EditGlassButtonLive onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={{
-            _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t,
-            name: t.name, emoji: t.emblem, color: t.accent,
-            target: t.target, unit: t.unit, deadline: t.date || t.deadline || "",
-            circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, joined: t.joined, habitIds: [],
-          }} />)} />}
+    <div className="page-in" style={{ paddingBottom: 24 }}>
+      {/* HERO — full-bleed до самого верха, снизу скруглён (как у партнёра). Внутри: назад слева;
+          правка(владелец)/позвать/ЧАТ стеклом справа; орбита-пульс, %, имя, описание; вся инфа
+          под орбитой = ЧИПЫ (люди/осталось/режим/приватность) + 1-2 чипа «от ИИ». David-редизайн. */}
+      <div style={{ position: "relative", background: heroBg,
+          marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
+          padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
+          borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <button onClick={() => navigate(from)} className="tap" aria-label="Назад" style={heroBtn}><I.ChevronLeft size={20} strokeWidth={2.4} /></button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {_isOwner && <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" data-haptic="selection" aria-label="Настройки цели" style={heroBtn}><I.Pencil size={16} strokeWidth={2} /></button>}
+            <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={heroBtn}><I.Share size={16} strokeWidth={2} /></button>
+            {/* ЧАТ — стеклянная кнопка справа В HERO (David); значок непрочитанных сохранён. */}
+            <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" aria-label="Чат цели" style={{ ...heroBtn, position: "relative", fontSize: 17 }}>💬
+              {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -2, right: -2, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 17, height: 17, padding: "0 4px", display: "grid", placeItems: "center", border: "1.5px solid " + (isDark ? "#151519" : "#fff") }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
+            </button>
+          </div>
         </div>
-      }/>
-      {/* HERO — БЛИЗНЕЦ личной цели (David: «команда = та же цель + блок людей»):
-          голая орбита-пульс ИЛИ кольцо (тот же тумблер стиля), крупный %, имя, суть. */}
-      <div style={{ textAlign: "center", padding: "6px 0 18px" }}>
-        {gStyle.orbits ? (
-          <>
-            <div style={{ width: 190, height: 190, margin: "0 auto", display: "grid", placeItems: "center" }}>
+        <div style={{ textAlign: "center", marginTop: 4 }}>
+          {gStyle.orbits ? (
+            <div style={{ width: 172, height: 172, margin: "0 auto", display: "grid", placeItems: "center" }}>
               <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={teamColor}
                 habits={teamHabits.map((h) => ({ emoji: h.emoji, color: h.color, done: myDone(h) }))}
                 people={orbitFaces.map((f) => ({ avatar: f.avatar, name: f.name, active: f.done, progress: _pulseFor(f) }))}
-                size={190} dark={isDark} progress={gp} />
+                size={172} dark={isDark} progress={gp} />
             </div>
-            <div style={{ fontSize: 30, fontWeight: 800, marginTop: 12, letterSpacing: "-0.5px", color: "var(--text)" }}><CountC value={Math.round(gp * 100)} />%</div>
-          </>
-        ) : (
-          <div style={{ position: "relative", width: 170, height: 170, margin: "0 auto" }}>
-            <svg width="170" height="170" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
-              <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.07)"} strokeWidth="13" />
-              {gp > 0 && <circle cx="70" cy="70" r="54" fill="none" stroke={ringInk} strokeWidth="13" strokeLinecap="round" strokeDasharray={2 * Math.PI * 54} strokeDashoffset={2 * Math.PI * 54 * (1 - gp)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(gDone ? { filter: "drop-shadow(0 0 6px " + ringInk + "80)" } : {}) }} />}
-            </svg>
-            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 34, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 32, null)}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, letterSpacing: "-0.5px" }}><CountC value={Math.round(gp * 100)} />%</div>
-              </div>
+          ) : (
+            <div style={{ position: "relative", width: 150, height: 150, margin: "0 auto" }}>
+              <svg width="150" height="150" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+                <circle cx="70" cy="70" r="54" fill="none" stroke={isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)"} strokeWidth="13" />
+                {gp > 0 && <circle cx="70" cy="70" r="54" fill="none" stroke={ringInk} strokeWidth="13" strokeLinecap="round" strokeDasharray={2 * Math.PI * 54} strokeDashoffset={2 * Math.PI * 54 * (1 - gp)} style={{ transition: "stroke-dashoffset 0.6s ease", ...(gDone ? { filter: "drop-shadow(0 0 6px " + ringInk + "80)" } : {}) }} />}
+              </svg>
+              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 34, null)}</div>
             </div>
-          </div>
-        )}
-        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginTop: 14, letterSpacing: "-0.4px" }}>{t.name}</div>
-        <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
-          {gTgt > 0 ? <><CountC value={gCur} /> из {gTgt} {gUnit} · {modeLabel}</> : modeLabel}
+          )}
+          <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, letterSpacing: "-0.5px", color: "var(--text)" }}><CountC value={Math.round(gp * 100)} />%</div>
+          <div style={{ fontSize: 21, fontWeight: 700, color: "var(--text)", marginTop: 5, letterSpacing: "-0.4px" }}>{t.name}</div>
+          {desc ? <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.72)" : "rgba(20,20,25,0.6)", marginTop: 6, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-5, var(--text-4))", marginTop: 2 }}>
-          {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}{t.goal ? " · " + t.goal : ""}
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 13 }}>
+          {gTgt > 0 && <span style={heroChip}>🎯 {gCur}/{gTgt} {gUnit}</span>}
+          {gTgt > 0 && gRemaining > 0 && <span style={heroChip}>⏳ осталось {gRemaining}</span>}
+          <span style={heroChip}>👥 {_rosterLoading ? "…" : members.length}</span>
+          <span style={heroChip}>{modeMeta.e} {modeMeta.t}</span>
+          <span style={heroChip}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
+          {aiChips.map((ch, i) => <span key={"ai" + i} style={heroChipAI}>{ch}</span>)}
         </div>
       </div>
 
-      {/* Stat row — тот же StatTrioLive и те же ячейки, что у личной цели; третья — Люди. */}
-      <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Осталось", v: gRemaining, icon: <I.Target size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-        { l: "Сделано", v: gCur, icon: <I.Check size={16} strokeWidth={2.4} color={isDark ? "#fff" : "#0a0a0a"} /> },
-        { l: "Люди", v: _rosterLoading ? 0 : members.length, icon: <I.Users size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-      ]} />
+      <div style={{ padding: "8px 16px 0" }}>
 
       {/* СТАВКА/БАНК — карточкой под статами (перенесено из бывшей мега-карточки, логика та же). */}
       {stake > 0 && !gDone && (
@@ -966,11 +972,7 @@ function TeamDetailLive() {
         </button>
       </div>
 
-      {/* Чат цели — стеклянная кнопка под «Людьми» (счётчик непрочитанных сохранён). */}
-      <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" style={{ width: "100%", marginTop: 12, position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(isDark), border: 0, borderRadius: 18, padding: "15px 12px", fontSize: 15, fontWeight: 600, color: "var(--text-2)" }}>
-        <span style={{ fontSize: 18, lineHeight: 1 }}>💬</span> Чат цели
-        {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: 9, right: 14, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 18, height: 18, padding: "0 5px", display: "grid", placeItems: "center" }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
-      </button>
+      {/* Чат цели переехал в hero-шапку справа (David: «доступ к чату стеклянной кнопкой в блоке»). */}
 
       {/* ПОКИНУТЬ — только участник (у него нет карандаша). Владелец УДАЛЯЕТ круг со шторки правки
           (карандаш) — David: «удалить никчему на главной внутри круга». */}
@@ -980,6 +982,7 @@ function TeamDetailLive() {
           <I.Logout size={17}/> Покинуть цель
         </button>
       )}
+      </div>
     </div>
   );
 }
