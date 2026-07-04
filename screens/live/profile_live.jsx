@@ -315,7 +315,7 @@ function AILive() {
         <React.Fragment>
           <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Колесо баланса</div>
           <div style={{ marginTop: 8 }}>
-            <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} />
+            <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} tint={liveTint} />
           </div>
         </React.Fragment>
       )}

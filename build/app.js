@@ -30,15 +30,17 @@ var LIVE_TAB_ROUTES = new Set(["home", "community", "ai", "profile"]);
 // Иконки-семья «система колец» (солнце · орбита · искры · ты-в-кольце) ОТКАЧЕНА до
 // согласования (David: «перерисуй и согласуй прежде чем делать») — черновые Sun/OrbitPeople/
 // PersonRing остались в icons.jsx; после отмашки по новому макету просто заменить имена тут.
+// Порядок вкладок (David 2026-07-04): Главная → ИИ → Сообщество → Я (сначала мой день,
+// потом помощник по нему, потом люди/экосистема, потом Я). ИИ и Сообщество поменяны местами.
 var LIVE_TABS_BASE = [{
   id: "home",
   icon: "Home"
 }, {
-  id: "community",
-  icon: "Group"
-}, {
   id: "ai",
   icon: "Sparkles"
+}, {
+  id: "community",
+  icon: "Group"
 }];
 var LIVE_TAB_PROFILE = {
   id: "profile",
@@ -218,7 +220,7 @@ var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && windo
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-var APP_VERSION = "v550";
+var APP_VERSION = "v551";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.

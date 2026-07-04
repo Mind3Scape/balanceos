@@ -1390,9 +1390,23 @@ function bosWheelData(app) {
 }
 function bosZoneColor(v) { return v >= 0.70 ? "#34C759" : v >= 0.52 ? "#FFC400" : "#FF8A3D"; }
 
-// РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate }.
+// Мини-версия hero-орба (тот же SiriOrb + живой t + мудовый tint) — для подсказки на колесе
+// (David: «орб в подсказке должен быть таким же, как на баннере сверху»). Самоанимируется
+// через свой useAIT, чтобы не перерисовывать всё колесо каждый кадр.
+function BosHeroOrbMini(props) {
+  var tint = props.tint, size = props.size || 28;
+  var t = (typeof useAIT === "function") ? useAIT() : ((typeof useT === "function") ? useT() : 0);
+  if (typeof SiriOrb !== "function") return null;
+  return (
+    <svg viewBox="-80 -80 160 160" width={size} height={size} style={{ overflow: "visible", display: "block" }}>
+      <SiriOrb r={46} tint={tint} t={t} intensity={1} />
+    </svg>
+  );
+}
+
+// РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint }.
 function BosBalanceWheelLive(props) {
-  var app = props.app, dark = !!props.dark, navigate = props.navigate;
+  var app = props.app, dark = !!props.dark, navigate = props.navigate, tint = props.tint || ["#cfe1ff", "#7aa4d0", "#1a2c48"];
   var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
   var pickState = React.useState(null), pick = pickState[0], setPick = pickState[1];
   var data = bosWheelData(app);
@@ -1481,8 +1495,8 @@ function BosBalanceWheelLive(props) {
       })() : null}
 
       <button onClick={askWheel} className="tap" data-no-haptic style={{ width: "100%", textAlign: "left", cursor: "pointer", display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12, padding: "11px 12px", background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"), borderRadius: 16 }}>
-        <span style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "radial-gradient(circle at 38% 32%,#eaf2ff,#a9c6ee 70%,#5d7fae)", boxShadow: "0 2px 6px rgba(93,127,174,0.4)" }}>
-          <I.Sparkles size={12} color="#fff" />
+        <span style={{ width: 28, height: 28, flexShrink: 0, display: "grid", placeItems: "center", marginTop: -1 }}>
+          <BosHeroOrbMini tint={tint} size={28} />
         </span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 12.7, lineHeight: 1.5, color: "var(--text-2)" }}>{aiLine} <span style={{ color: "#4d6f9e", fontWeight: 700, whiteSpace: "nowrap" }}>Разобрать →</span></span>
       </button>

@@ -2938,11 +2938,36 @@ function bosZoneColor(v) {
   return v >= 0.70 ? "#34C759" : v >= 0.52 ? "#FFC400" : "#FF8A3D";
 }
 
-// РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate }.
+// Мини-версия hero-орба (тот же SiriOrb + живой t + мудовый tint) — для подсказки на колесе
+// (David: «орб в подсказке должен быть таким же, как на баннере сверху»). Самоанимируется
+// через свой useAIT, чтобы не перерисовывать всё колесо каждый кадр.
+function BosHeroOrbMini(props) {
+  var tint = props.tint,
+    size = props.size || 28;
+  var t = typeof useAIT === "function" ? useAIT() : typeof useT === "function" ? useT() : 0;
+  if (typeof SiriOrb !== "function") return null;
+  return /*#__PURE__*/React.createElement("svg", {
+    viewBox: "-80 -80 160 160",
+    width: size,
+    height: size,
+    style: {
+      overflow: "visible",
+      display: "block"
+    }
+  }, /*#__PURE__*/React.createElement(SiriOrb, {
+    r: 46,
+    tint: tint,
+    t: t,
+    intensity: 1
+  }));
+}
+
+// РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint }.
 function BosBalanceWheelLive(props) {
   var app = props.app,
     dark = !!props.dark,
-    navigate = props.navigate;
+    navigate = props.navigate,
+    tint = props.tint || ["#cfe1ff", "#7aa4d0", "#1a2c48"];
   var uid = React.useMemo(function () {
     return "bw" + Math.random().toString(36).slice(2, 7);
   }, []);
@@ -3255,18 +3280,16 @@ function BosBalanceWheelLive(props) {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 24,
-      height: 24,
-      borderRadius: "50%",
+      width: 28,
+      height: 28,
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      background: "radial-gradient(circle at 38% 32%,#eaf2ff,#a9c6ee 70%,#5d7fae)",
-      boxShadow: "0 2px 6px rgba(93,127,174,0.4)"
+      marginTop: -1
     }
-  }, /*#__PURE__*/React.createElement(I.Sparkles, {
-    size: 12,
-    color: "#fff"
+  }, /*#__PURE__*/React.createElement(BosHeroOrbMini, {
+    tint: tint,
+    size: 28
   })), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,

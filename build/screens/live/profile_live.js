@@ -766,7 +766,8 @@ function AILive() {
   }, /*#__PURE__*/React.createElement(BosBalanceWheelLive, {
     app: app,
     dark: isDarkAI,
-    navigate: navigate
+    navigate: navigate,
+    tint: liveTint
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card)",
