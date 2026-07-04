@@ -2343,11 +2343,12 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   const kicker = (txt) => (
     <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.9, textTransform: "uppercase", color: "var(--text-4)", padding: "12px 4px 5px" }}>{txt}</div>
   );
-  const row = ({ key, icon, name, sub, on, onToggle }, i, arr) => (
+  const row = ({ key, icon, name, sub, on, onToggle, bare }, i, arr) => (
     <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "6.5px 10px",
       borderTop: i ? ("0.5px solid " + (dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.055)")) : "none" }}>
+      {/* bare (David) — системные ч/б иконки виджетов БЕЗ квадрата-подложки, стоят сами по себе. */}
       <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0,
-        background: dark ? "rgba(255,255,255,0.08)" : "#fff", boxShadow: bosTileGlass(dark), opacity: on ? 1 : 0.5, transition: "opacity 0.2s" }}>{icon}</span>
+        background: bare ? "transparent" : (dark ? "rgba(255,255,255,0.08)" : "#fff"), boxShadow: bare ? "none" : bosTileGlass(dark), opacity: on ? 1 : 0.5, transition: "opacity 0.2s" }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0, opacity: on ? 1 : 0.55, transition: "opacity 0.2s", display: "flex", alignItems: "baseline", gap: 6 }}>
         {/* Имя не сжимается — ужимается ПОДПИСЬ (иначе «Быстрое д…» при длинном сабе). */}
         <span style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
@@ -2382,7 +2383,7 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
       {kicker("Виджеты")}
       {/* Иконки виджетов — ЧЁРНО-БЕЛЫЕ (David): монохромный sf-символ вместо цветного эмодзи, единый
           строгий вид как у плюсика. Привычки/цели ниже остаются цветными. */}
-      {card(defs.map((o) => ({ key: "w:" + o.id, icon: (typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 16, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji), name: o.t, sub: o.d, on: widgetOn(o.id), onToggle: () => toggleWidget(o.id) })))}
+      {card(defs.map((o) => ({ key: "w:" + o.id, bare: true, icon: (typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 21, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji), name: o.t, sub: o.d, on: widgetOn(o.id), onToggle: () => toggleWidget(o.id) })))}
       {habits.length > 0 && (
         <React.Fragment>
           {kicker("Привычки")}
@@ -2808,7 +2809,7 @@ function HabitMonthMini({ habit, square = false }) {
 // грузит и сохраняет оба стиля (bosSaveCardStyle/bosSaveGoalStyle → event → список перерисовывается).
 // Привычки: форма квадрат/строка + отметки/клетки/лица/название. Цели: форма БАННЕР/квадрат + орбиты
 // (мини-орбита привычек+людей) + прогресс + название. Всплывашка у шестерёнки (как CreateMenuLive).
-function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList }) {
+function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement }) {
   const [pos, setPos] = React.useState(null);
   const [tab, setTab] = React.useState("habits");
   const [hs, setHs] = React.useState(bosLoadCardStyle);
@@ -2824,10 +2825,12 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList }) {
   React.useEffect(() => {
     if (!open) return;
     setHs(bosLoadCardStyle()); setGs(bosLoadGoalStyle());
-    // Без якоря (открытие из галереи/настроек) — паркуемся под шапкой справа, доска видна.
-    if (anchorRef && anchorRef.current) { const r = anchorRef.current.getBoundingClientRect(); setPos({ right: Math.round(window.innerWidth - r.right), top: Math.round(r.bottom + 10) }); }
+    // Из шестерёнки в ТРЯСКЕ (placement="bottom") — по ЦЕНТРУ над панелью «Готово», всплывает снизу
+    // (David: «должна открываться по центру над Готово, из шестерёнки»). Иначе — под якорем/справа.
+    if (placement === "bottom") { setPos({ mode: "bottom" }); }
+    else if (anchorRef && anchorRef.current) { const r = anchorRef.current.getBoundingClientRect(); setPos({ right: Math.round(window.innerWidth - r.right), top: Math.round(r.bottom + 10) }); }
     else setPos({ right: 12, top: 78 });
-  }, [open]);
+  }, [open, placement]);
   if (!open || !pos) return null;
   const setH = (patch) => { const n = Object.assign({}, hs, patch); setHs(n); bosSaveCardStyle(n); };
   const setG = (patch) => { const n = Object.assign({}, gs, patch); setGs(n); bosSaveGoalStyle(n); };
@@ -2856,7 +2859,11 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList }) {
   const divider = <div style={{ height: 1, background: "rgba(10,10,10,0.08)", margin: "10px 0 8px" }} />;
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
-      <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right", animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 236, padding: 11, borderRadius: 20, background: "rgba(255,255,255,0.86)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
+      <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed",
+        ...(pos.mode === "bottom"
+          ? { left: "calc(50% - 118px)", bottom: "calc(var(--bos-safe-bottom, 0px) + 150px)", transformOrigin: "bottom center" }
+          : { right: pos.right, top: pos.top, transformOrigin: "top right" }),
+        animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 236, padding: 11, borderRadius: 20, background: "rgba(255,255,255,0.86)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
         {/* Вкладки: Привычки / Цели */}
         {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }, { v: "app", l: "Общий вид" }], setTab)}
         <div style={{ height: 9 }} />

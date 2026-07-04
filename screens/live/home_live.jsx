@@ -65,6 +65,9 @@ function HomeLive() {
   // Меню «Стиль карточек» — открывается из галереи: шторка закрывается, панель встаёт
   // под «+» в шапке, и смена формы/отметок видна ВЖИВУЮ на карточках доски.
   const [styleOpen, setStyleOpen] = React.useState(false);
+  // Открыто из шестерёнки в тряске → меню всплывает по ЦЕНТРУ над «Готово» (placement="bottom"),
+  // а не под шапочным «+» вверху (David: «вылазит за кадр наверху; должно из шестерёнки над Готово»).
+  const [styleBottom, setStyleBottom] = React.useState(false);
   const widgets = app?.widgets || {};
   const mood = app?.mood;
   const wrapRef = React.useRef(null);
@@ -439,7 +442,7 @@ function HomeLive() {
   };
   const gridCtl = React.useRef(null);
   const openAddSheet = () => openSheet(<AddWidgetSheetLive defs={BOS_HOME_WIDGETS} dark={isDark}
-    onStyle={() => { closeSheet(); setStyleOpen(true); }} />);
+    onStyle={() => { closeSheet(); setStyleBottom(false); setStyleOpen(true); }} />);
   // Плитка/виджет по ключу. Плитки — ГОЛЫЕ (те же HabitTileLive/GoalTileLive, что на
   // «Привычках»); long-press ловит сетка → меню (Поделиться / Переставить / Убрать с главной).
   const tileFor = (k) => {
@@ -508,6 +511,7 @@ function HomeLive() {
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
       {/* «Стиль карточек» из галереи: панель под «+», доска на глазах меняет формы. */}
       {typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleOpen} onClose={() => setStyleOpen(false)} anchorRef={addBtnRef}
+        placement={styleBottom ? "bottom" : undefined}
         onArchiveList={() => openSheet(<ArchiveSheetLive navigate={navigate} />)} />}
 
       {/* Новому юзеру (0 привычек/целей/команд) — ПРОСТОЙ старт = ОДИН hero-блок: ИИ-сводка + пилюли
@@ -525,7 +529,7 @@ function HomeLive() {
           onReorder={onReorderKeys}
           onLongPress={onCellLongPress}
           onAdd={openAddSheet}
-          onGear={() => setStyleOpen(true)}
+          onGear={() => { setStyleBottom(true); setStyleOpen(true); }}
           addLabel="Добавить на главную"
           spanFull={(k) => {
             // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).

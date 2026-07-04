@@ -147,6 +147,9 @@ function HomeLive() {
   // Меню «Стиль карточек» — открывается из галереи: шторка закрывается, панель встаёт
   // под «+» в шапке, и смена формы/отметок видна ВЖИВУЮ на карточках доски.
   var [styleOpen, setStyleOpen] = React.useState(false);
+  // Открыто из шестерёнки в тряске → меню всплывает по ЦЕНТРУ над «Готово» (placement="bottom"),
+  // а не под шапочным «+» вверху (David: «вылазит за кадр наверху; должно из шестерёнки над Готово»).
+  var [styleBottom, setStyleBottom] = React.useState(false);
   var widgets = app?.widgets || {};
   var mood = app?.mood;
   var wrapRef = React.useRef(null);
@@ -934,6 +937,7 @@ function HomeLive() {
     dark: isDark,
     onStyle: () => {
       closeSheet();
+      setStyleBottom(false);
       setStyleOpen(true);
     }
   }));
@@ -1145,6 +1149,7 @@ function HomeLive() {
     open: styleOpen,
     onClose: () => setStyleOpen(false),
     anchorRef: addBtnRef,
+    placement: styleBottom ? "bottom" : undefined,
     onArchiveList: () => openSheet(/*#__PURE__*/React.createElement(ArchiveSheetLive, {
       navigate: navigate
     }))
@@ -1164,7 +1169,10 @@ function HomeLive() {
     onReorder: onReorderKeys,
     onLongPress: onCellLongPress,
     onAdd: openAddSheet,
-    onGear: () => setStyleOpen(true),
+    onGear: () => {
+      setStyleBottom(true);
+      setStyleOpen(true);
+    },
     addLabel: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E",
     spanFull: k => {
       // Виджеты — во всю ширину; плитки решают сами по своей форме (как на «Привычках»).

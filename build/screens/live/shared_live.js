@@ -5191,7 +5191,8 @@ function HomeGalleryContentLive({
     name,
     sub,
     on,
-    onToggle
+    onToggle,
+    bare
   }, i, arr) => /*#__PURE__*/React.createElement("div", {
     key: key,
     style: {
@@ -5211,8 +5212,8 @@ function HomeGalleryContentLive({
       placeItems: "center",
       fontSize: 15,
       flexShrink: 0,
-      background: dark ? "rgba(255,255,255,0.08)" : "#fff",
-      boxShadow: bosTileGlass(dark),
+      background: bare ? "transparent" : dark ? "rgba(255,255,255,0.08)" : "#fff",
+      boxShadow: bare ? "none" : bosTileGlass(dark),
       opacity: on ? 1 : 0.5,
       transition: "opacity 0.2s"
     }
@@ -5324,7 +5325,8 @@ function HomeGalleryContentLive({
     anchorRef: null
   }), kicker("Виджеты"), card(defs.map(o => ({
     key: "w:" + o.id,
-    icon: typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 16, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji,
+    bare: true,
+    icon: typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 21, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji,
     name: o.t,
     sub: o.d,
     on: widgetOn(o.id),
@@ -6515,7 +6517,8 @@ function CardStyleMenuLive({
   open,
   onClose,
   anchorRef,
-  onArchiveList
+  onArchiveList,
+  placement
 }) {
   var [pos, setPos] = React.useState(null);
   var [tab, setTab] = React.useState("habits");
@@ -6561,8 +6564,13 @@ function CardStyleMenuLive({
     if (!open) return;
     setHs(bosLoadCardStyle());
     setGs(bosLoadGoalStyle());
-    // Без якоря (открытие из галереи/настроек) — паркуемся под шапкой справа, доска видна.
-    if (anchorRef && anchorRef.current) {
+    // Из шестерёнки в ТРЯСКЕ (placement="bottom") — по ЦЕНТРУ над панелью «Готово», всплывает снизу
+    // (David: «должна открываться по центру над Готово, из шестерёнки»). Иначе — под якорем/справа.
+    if (placement === "bottom") {
+      setPos({
+        mode: "bottom"
+      });
+    } else if (anchorRef && anchorRef.current) {
       var r = anchorRef.current.getBoundingClientRect();
       setPos({
         right: Math.round(window.innerWidth - r.right),
@@ -6572,7 +6580,7 @@ function CardStyleMenuLive({
       right: 12,
       top: 78
     });
-  }, [open]);
+  }, [open, placement]);
   if (!open || !pos) return null;
   var setH = patch => {
     var n = Object.assign({}, hs, patch);
@@ -6751,9 +6759,15 @@ function CardStyleMenuLive({
     onClick: e => e.stopPropagation(),
     style: {
       position: "fixed",
-      right: pos.right,
-      top: pos.top,
-      transformOrigin: "top right",
+      ...(pos.mode === "bottom" ? {
+        left: "calc(50% - 118px)",
+        bottom: "calc(var(--bos-safe-bottom, 0px) + 150px)",
+        transformOrigin: "bottom center"
+      } : {
+        right: pos.right,
+        top: pos.top,
+        transformOrigin: "top right"
+      }),
       animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
       width: 236,
       padding: 11,
