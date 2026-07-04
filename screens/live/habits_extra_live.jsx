@@ -478,6 +478,54 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
     );
   }
 
+  // Настройки круга — раскрываются ВНУТРИ карточки «Идти к цели вместе» (David: «раскрывается блок,
+  // внутри режимы, а не отдельные блоки»). Режимы = лёгкие строки на сером; видимость = простой тумблер.
+  const circleSettings = (
+    <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {CIRCLE_MODES.map((m) => {
+          const active = goalType === m.id;
+          return (
+            <button key={m.id} type="button" onClick={() => setGoalType(m.id)} className="tap" data-no-haptic
+              style={{ background: active ? "transparent" : "var(--surface-2, #f2f2f4)", boxShadow: active ? ("inset 0 0 0 2px " + (isDark ? "#f2f2f5" : "#0a0a0a")) : "none", border: 0, borderRadius: 15, padding: 11, display: "flex", alignItems: "center", gap: 11, textAlign: "left", width: "100%", cursor: "pointer" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "#fff", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text)", display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0, boxShadow: active ? "none" : "0 1px 3px rgba(0,0,0,0.08)" }}>{m.e}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{m.t}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, lineHeight: 1.4 }}>{m.d}</div>
+              </div>
+              <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color={isDark ? "#0a0a0a" : "#fff"} strokeWidth={3} />}</div>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Открытый круг</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{circleVis === "public" ? "Виден в поиске — войдёт кто угодно." : "Только по личной ссылке-приглашению."}</div>
+        </div>
+        <Switch small on={circleVis === "public"} onChange={(v) => setCircleVis(v ? "public" : "private")} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Поставить XP на финиш</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Дойдёте — банк вернётся каждому. Азартно.</div>
+        </div>
+        <Switch small on={stakeOn} onChange={setStakeOn} />
+      </div>
+      {stakeOn && (
+        <div style={{ marginTop: 12, display: "flex", alignItems: "baseline", gap: 8 }}>
+          <input type="text" inputMode="numeric" pattern="[0-9]*" value={stakeAmount} onChange={(e) => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0)}
+            style={{ flex: "0 0 74px", fontSize: 20, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 10, padding: "6px 10px", minWidth: 0 }} />
+          <span style={{ fontSize: 13, color: "var(--text-4)" }}>XP с каждого</span>
+        </div>
+      )}
+      <div style={{ marginTop: 13, borderRadius: 13, padding: "10px 12px", background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff", display: "flex", alignItems: "center", gap: 9 }}>
+        <span style={{ width: 26, height: 26, borderRadius: "50%", background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 13 }}>🪐</span>
+        <div style={{ fontSize: 12, color: isDark ? "#9db8ff" : "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — цель станет общей, и сразу позовёшь людей по ссылке.</div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
       {/* Серый фон шторки + белые карточки — как страницы приложения (David). */}
@@ -539,7 +587,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 9 }}>Прогресс цели считается от этого числа.</div>
       </div>
 
-      {/* ── ИДТИ К ЦЕЛИ ВМЕСТЕ — поднято выше (David: важный функционал), яснее, SVG-иконка ── */}
+      {/* ── ИДТИ К ЦЕЛИ ВМЕСТЕ — поднято выше; настройки круга раскрываются ВНУТРИ карточки (David) ── */}
       {!isTeamEdit && (
         <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -550,52 +598,18 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
             </div>
             <Switch small on={circleOn} onChange={setCircleOn} />
           </div>
+          {circleOn && circleSettings}
         </div>
       )}
-
-      {/* Круг ВКЛ (или редактирование круга) → настройки совместной цели: режим · видимость · XP-ставка. */}
-      {circleOn && (
-        <React.Fragment>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-            {CIRCLE_MODES.map((m) => {
-              const active = goalType === m.id;
-              return (
-                <button key={m.id} type="button" onClick={() => setGoalType(m.id)} className="tap"
-                  style={{ background: "var(--card, #fff)", border: active ? ("2px solid " + (isDark ? "#f2f2f5" : "#0a0a0a")) : ("1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)")), borderRadius: 18, padding: 12, display: "flex", alignItems: "center", gap: 11, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
-                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3, #e8e8e8)", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{m.e}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{m.t}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, lineHeight: 1.4 }}>{m.d}</div>
-                  </div>
-                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color={isDark ? "#0a0a0a" : "#fff"} strokeWidth={3} />}</div>
-                </button>
-              );
-            })}
+      {/* Редактирование существующего круга: настройки без тумблера, с шапкой */}
+      {isTeamEdit && (
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color="var(--text-3)" /></span>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Настройки круга</div></div>
           </div>
-          <div style={{ marginTop: 12 }}>
-            <Segmented small value={circleVis} onChange={setCircleVis} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Открытая" }]} />
-          </div>
-          <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>Поставить XP на финиш</div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Дойдёте до цели — банк вернётся каждому. Необязательно, но азартно.</div>
-              </div>
-              <Switch small on={stakeOn} onChange={setStakeOn} />
-            </div>
-            {stakeOn && (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", alignItems: "baseline", gap: 8 }}>
-                <input type="text" inputMode="numeric" pattern="[0-9]*" value={stakeAmount} onChange={(e) => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0)}
-                  style={{ flex: "0 0 78px", fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }} />
-                <span style={{ fontSize: 13, color: "var(--text-4)" }}>XP с каждого</span>
-              </div>
-            )}
-          </div>
-          <div style={{ marginTop: 12, borderRadius: 14, padding: "10px 12px", background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff", display: "flex", alignItems: "center", gap: 9 }}>
-            <span style={{ width: 28, height: 28, borderRadius: "50%", background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 14 }}>🪐</span>
-            <div style={{ fontSize: 12, color: isDark ? "#9db8ff" : "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — цель станет общей, и сразу позовёшь людей по ссылке.</div>
-          </div>
-        </React.Fragment>
+          {circleSettings}
+        </div>
       )}
 
       {/* ── СРОК — элегантно: строка + нативный выбор даты + лёгкие «+неделя» (без графитовых пилюль) ── */}
@@ -603,9 +617,13 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
           <span style={{ width: 22, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Calendar size={18} color="var(--text-3)" /></span>
           <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Срок</span>
-          <input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(deadline) ? deadline : ""} onChange={e => setDeadline(e.target.value || deadline)}
-            style={{ marginLeft: "auto", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "0 13px", height: 32, lineHeight: "32px",
-              display: "inline-flex", alignItems: "center", fontSize: 14.5, fontWeight: 600, color: "var(--text)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.2px", WebkitAppearance: "none", appearance: "none" }} />
+          {/* Пилюля с ЧИТАЕМОЙ датой «4 авг»; прозрачный <input type=date> сверху открывает нативное
+              iOS-колёсико по тапу (David: голый date-инпут выглядел ужасно). */}
+          <label style={{ marginLeft: "auto", position: "relative", display: "inline-flex", alignItems: "center", background: "var(--surface-3)", borderRadius: 999, padding: "7px 14px", cursor: "pointer" }}>
+            <span style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" }}>{(typeof bosFmtDeadline === "function" ? bosFmtDeadline(deadline) : deadline) || "выбрать"}</span>
+            <input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(deadline) ? deadline : ""} onChange={e => setDeadline(e.target.value || deadline)}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, margin: 0, padding: 0, cursor: "pointer", WebkitAppearance: "none", appearance: "none" }} />
+          </label>
         </div>
         <div style={{ display: "flex", gap: 15, marginTop: 12, paddingLeft: 33 }}>
           {[{ l: "неделя", d: () => _addDays(7) }, { l: "месяц", d: () => _addMonths(1) }, { l: "3 мес", d: () => _addMonths(3) }, { l: "год", d: () => _addMonths(12) }].map((q) => (

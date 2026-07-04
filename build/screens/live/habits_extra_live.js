@@ -1197,6 +1197,207 @@ function GoalFormSheetLive({
       }
     }, "\u041D\u0430\u0437\u0430\u0434"));
   }
+
+  // Настройки круга — раскрываются ВНУТРИ карточки «Идти к цели вместе» (David: «раскрывается блок,
+  // внутри режимы, а не отдельные блоки»). Режимы = лёгкие строки на сером; видимость = простой тумблер.
+  var circleSettings = /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      paddingTop: 14,
+      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, CIRCLE_MODES.map(m => {
+    var active = goalType === m.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: m.id,
+      type: "button",
+      onClick: () => setGoalType(m.id),
+      className: "tap",
+      "data-no-haptic": true,
+      style: {
+        background: active ? "transparent" : "var(--surface-2, #f2f2f4)",
+        boxShadow: active ? "inset 0 0 0 2px " + (isDark ? "#f2f2f5" : "#0a0a0a") : "none",
+        border: 0,
+        borderRadius: 15,
+        padding: 11,
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        textAlign: "left",
+        width: "100%",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 32,
+        height: 32,
+        borderRadius: "50%",
+        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "#fff",
+        color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 15,
+        flexShrink: 0,
+        boxShadow: active ? "none" : "0 1px 3px rgba(0,0,0,0.08)"
+      }
+    }, m.e), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: "var(--text)"
+      }
+    }, m.t), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-4)",
+        marginTop: 1,
+        lineHeight: 1.4
+      }
+    }, m.d)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 18,
+        height: 18,
+        borderRadius: "50%",
+        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "transparent",
+        border: active ? "0" : "1.5px solid var(--text-5)",
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, active && /*#__PURE__*/React.createElement(I.Check, {
+      size: 11,
+      color: isDark ? "#0a0a0a" : "#fff",
+      strokeWidth: 3
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0439 \u043A\u0440\u0443\u0433"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, circleVis === "public" ? "Виден в поиске — войдёт кто угодно." : "Только по личной ссылке-приглашению.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
+    on: circleVis === "public",
+    onChange: v => setCircleVis(v ? "public" : "private")
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      marginTop: 14,
+      paddingTop: 14,
+      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C XP \u043D\u0430 \u0444\u0438\u043D\u0438\u0448"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.45
+    }
+  }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u2014 \u0431\u0430\u043D\u043A \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u043A\u0430\u0436\u0434\u043E\u043C\u0443. \u0410\u0437\u0430\u0440\u0442\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
+    on: stakeOn,
+    onChange: setStakeOn
+  })), stakeOn && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    pattern: "[0-9]*",
+    value: stakeAmount,
+    onChange: e => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0),
+    style: {
+      flex: "0 0 74px",
+      fontSize: 20,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "var(--surface-3)",
+      borderRadius: 10,
+      padding: "6px 10px",
+      minWidth: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, "XP \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 13,
+      borderRadius: 13,
+      padding: "10px 12px",
+      background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff",
+      display: "flex",
+      alignItems: "center",
+      gap: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: "50%",
+      background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      fontSize: 13
+    }
+  }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: isDark ? "#9db8ff" : "#2b5cb8",
+      lineHeight: 1.4
+    }
+  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435.")));
   return /*#__PURE__*/React.createElement("div", {
     className: "bos-sheet-scroll",
     style: {
@@ -1477,93 +1678,7 @@ function GoalFormSheetLive({
     small: true,
     on: circleOn,
     onChange: setCircleOn
-  }))), circleOn && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 12
-    }
-  }, CIRCLE_MODES.map(m => {
-    var active = goalType === m.id;
-    return /*#__PURE__*/React.createElement("button", {
-      key: m.id,
-      type: "button",
-      onClick: () => setGoalType(m.id),
-      className: "tap",
-      style: {
-        background: "var(--card, #fff)",
-        border: active ? "2px solid " + (isDark ? "#f2f2f5" : "#0a0a0a") : "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
-        borderRadius: 18,
-        padding: 12,
-        display: "flex",
-        alignItems: "center",
-        gap: 11,
-        textAlign: "left",
-        boxShadow: "var(--card-shadow)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 34,
-        height: 34,
-        borderRadius: "50%",
-        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3, #e8e8e8)",
-        color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text)",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 16,
-        flexShrink: 0
-      }
-    }, m.e), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14.5,
-        fontWeight: 600,
-        color: "var(--text)"
-      }
-    }, m.t), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11.5,
-        color: "var(--text-4)",
-        marginTop: 1,
-        lineHeight: 1.4
-      }
-    }, m.d)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 18,
-        height: 18,
-        borderRadius: "50%",
-        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "transparent",
-        border: active ? "0" : "1.5px solid var(--text-5)",
-        flexShrink: 0,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, active && /*#__PURE__*/React.createElement(I.Check, {
-      size: 11,
-      color: isDark ? "#0a0a0a" : "#fff",
-      strokeWidth: 3
-    })));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12
-    }
-  }, /*#__PURE__*/React.createElement(Segmented, {
-    small: true,
-    value: circleVis,
-    onChange: setCircleVis,
-    options: [{
-      value: "private",
-      label: "Приватная"
-    }, {
-      value: "public",
-      label: "Открытая"
-    }]
-  })), /*#__PURE__*/React.createElement("div", {
+  })), circleOn && circleSettings), isTeamEdit && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
@@ -1577,86 +1692,28 @@ function GoalFormSheetLive({
       alignItems: "center",
       gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: 1
+      width: 24,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Users, {
+    size: 19,
+    color: "var(--text-3)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 14.5,
+      fontSize: 15,
       fontWeight: 600,
       color: "var(--text)"
     }
-  }, "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C XP \u043D\u0430 \u0444\u0438\u043D\u0438\u0448"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-4)",
-      marginTop: 2,
-      lineHeight: 1.45
-    }
-  }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u0434\u043E \u0446\u0435\u043B\u0438 \u2014 \u0431\u0430\u043D\u043A \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u043A\u0430\u0436\u0434\u043E\u043C\u0443. \u041D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E, \u043D\u043E \u0430\u0437\u0430\u0440\u0442\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
-    small: true,
-    on: stakeOn,
-    onChange: setStakeOn
-  })), stakeOn && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      paddingTop: 12,
-      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))",
-      display: "flex",
-      alignItems: "baseline",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    inputMode: "numeric",
-    pattern: "[0-9]*",
-    value: stakeAmount,
-    onChange: e => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0),
-    style: {
-      flex: "0 0 78px",
-      fontSize: 22,
-      fontWeight: 700,
-      color: "var(--text)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: 0,
-      minWidth: 0
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)"
-    }
-  }, "XP \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      borderRadius: 14,
-      padding: "10px 12px",
-      background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff",
-      display: "flex",
-      alignItems: "center",
-      gap: 9
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: "50%",
-      background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0,
-      fontSize: 14
-    }
-  }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: isDark ? "#9db8ff" : "#2b5cb8",
-      lineHeight: 1.4
-    }
-  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), /*#__PURE__*/React.createElement("div", {
+  }, "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043A\u0440\u0443\u0433\u0430"))), circleSettings), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
@@ -1686,30 +1743,42 @@ function GoalFormSheetLive({
       fontWeight: 600,
       color: "var(--text)"
     }
-  }, "\u0421\u0440\u043E\u043A"), /*#__PURE__*/React.createElement("input", {
+  }, "\u0421\u0440\u043E\u043A"), /*#__PURE__*/React.createElement("label", {
+    style: {
+      marginLeft: "auto",
+      position: "relative",
+      display: "inline-flex",
+      alignItems: "center",
+      background: "var(--surface-3)",
+      borderRadius: 999,
+      padding: "7px 14px",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text)",
+      letterSpacing: "-0.2px"
+    }
+  }, (typeof bosFmtDeadline === "function" ? bosFmtDeadline(deadline) : deadline) || "выбрать"), /*#__PURE__*/React.createElement("input", {
     type: "date",
     value: /^\d{4}-\d{2}-\d{2}$/.test(deadline) ? deadline : "",
     onChange: e => setDeadline(e.target.value || deadline),
     style: {
-      marginLeft: "auto",
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      opacity: 0,
       border: 0,
-      outline: 0,
-      background: "var(--surface-3)",
-      borderRadius: 999,
-      padding: "0 13px",
-      height: 32,
-      lineHeight: "32px",
-      display: "inline-flex",
-      alignItems: "center",
-      fontSize: 14.5,
-      fontWeight: 600,
-      color: "var(--text)",
-      fontVariantNumeric: "tabular-nums",
-      letterSpacing: "-0.2px",
+      margin: 0,
+      padding: 0,
+      cursor: "pointer",
       WebkitAppearance: "none",
       appearance: "none"
     }
-  })), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 15,
