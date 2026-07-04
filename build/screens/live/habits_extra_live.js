@@ -20,6 +20,7 @@ function HabitFormSheetLive({
   habit = null,
   preset = null,
   goalFor: goalForProp = null,
+  teamFor = null,
   navigate
 }) {
   var {
@@ -162,11 +163,29 @@ function HabitFormSheetLive({
     };
   }, []);
   var [type, setType] = useHS(editing && params.habit.type ? params.habit.type : "build"); // build=Развивать / quit=Бросить
+  // Якорь общей цели — только для командной привычки (teamFor). При правке берём из привычки, при
+  // создании — подсказку teamFor.suggestMain (первую привычку круга делаем якорем).
+  var [isMain, setIsMain] = useHS(teamFor && editing ? !!params.habit.isMain : teamFor ? !!teamFor.suggestMain : false);
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки (David: «галочка справа
   // вверху, чтобы не листать до низа»).
   var saveHabit = () => {
     var nm = name.trim() || "Новая привычка";
+    // ОБЩАЯ (командная) привычка — ТА ЖЕ форма, но сохраняем в КОМАНДУ (create/update), не в личное.
+    // Личные поля (напоминание/дни/тип/«вместе») для общего определения не пишем — они у каждого свои.
+    if (teamFor) {
+      var _gpdT = countOn && countUnit === "times" ? Math.max(1, goal) : 1;
+      if (teamFor.onSave) teamFor.onSave({
+        name: nm,
+        emoji: iconPick,
+        color,
+        tint,
+        goalPerDay: _gpdT,
+        isMain: isMain
+      }, editing ? params.habit.id : null);
+      close();
+      return;
+    }
     // Persist the full schedule + reminder on the habit. These extra fields ride
     // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
     var countTimes = countOn && countUnit === "times";
@@ -300,7 +319,7 @@ function HabitFormSheetLive({
       paddingRight: 16
     }
   }, typeof SheetGreyBgLive === "function" && /*#__PURE__*/React.createElement(SheetGreyBgLive, null), typeof SheetFormHeadLive === "function" ? /*#__PURE__*/React.createElement(SheetFormHeadLive, {
-    title: editing ? "Изменить привычку" : "Новая привычка",
+    title: teamFor ? editing ? "Изменить общую привычку" : "Общая привычка" : editing ? "Изменить привычку" : "Новая привычка",
     onClose: close,
     onDone: saveHabit
   }) : /*#__PURE__*/React.createElement("div", {
@@ -311,7 +330,7 @@ function HabitFormSheetLive({
       letterSpacing: "-0.3px",
       marginBottom: 2
     }
-  }, editing ? "Изменить привычку" : "Новая привычка"), /*#__PURE__*/React.createElement("div", {
+  }, teamFor ? editing ? "Изменить общую привычку" : "Общая привычка" : editing ? "Изменить привычку" : "Новая привычка"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
@@ -389,7 +408,7 @@ function HabitFormSheetLive({
     small: true,
     on: tint,
     onChange: setTint
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), !teamFor && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
@@ -578,7 +597,50 @@ function HabitFormSheetLive({
         color: on ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)"
       }
     }, l);
-  })))), /*#__PURE__*/React.createElement("div", {
+  })))), teamFor && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card, #fff)",
+      borderRadius: 22,
+      padding: 16,
+      marginTop: 14,
+      boxShadow: "var(--card-shadow)",
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 24,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Target, {
+    size: 19,
+    color: "var(--text-3)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u042F\u043A\u043E\u0440\u044C \u0446\u0435\u043B\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, "\u0413\u043B\u0430\u0432\u043D\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u043A\u0440\u0443\u0433\u0430 \u2014 \u043F\u043E \u043D\u0435\u0439 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u043E\u0431\u0449\u0435\u0439 \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
+    on: isMain,
+    onChange: setIsMain
+  })), !teamFor && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
@@ -703,7 +765,7 @@ function HabitFormSheetLive({
       appearance: "none",
       textAlign: "center"
     }
-  })))), !goalFor && /*#__PURE__*/React.createElement("div", {
+  })))), !goalFor && !teamFor && /*#__PURE__*/React.createElement("div", {
     "data-tour": "invite-friend",
     style: {
       background: "var(--card, #fff)",
@@ -890,7 +952,22 @@ function HabitFormSheetLive({
     small: true,
     on: goalOnly,
     onChange: setGoalOnly
-  })), editing && params.habit.teamHabitId ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  })), teamFor && editing ? /*#__PURE__*/React.createElement("button", {
+    className: "tap",
+    onClick: () => {
+      if (teamFor.onDelete) teamFor.onDelete(params.habit.id);
+      close();
+    },
+    style: {
+      width: "100%",
+      background: "transparent",
+      border: 0,
+      color: "var(--accent-red)",
+      padding: 14,
+      marginTop: 6,
+      fontSize: 15
+    }
+  }, "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043E\u0431\u0449\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443") : editing && params.habit.teamHabitId ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,

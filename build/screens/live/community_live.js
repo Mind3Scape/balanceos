@@ -1434,11 +1434,53 @@ function TeamDetailLive() {
       on = false;
     };
   }, [_rosterLive, t.cloudId, goalProg]);
-  var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(TeamHabitSheetLive, {
-    team: t,
-    members: members,
-    onAdd: h => {
-      if (_rosterLive) addTeamHabitCloud(h);else app?.addTeamHabit(t._id, h);
+  // C+D (David): создание/правка общей привычки = ТА ЖЕ полная форма HabitFormSheetLive (teamFor),
+  // а не урезанный TeamHabitSheetLive. onSave(data, editId): editId → updateTeamHabit (прогресс НЕ
+  // трогаем — логи по team_habit_id), иначе addTeamHabit. onDelete → removeTeamHabit.
+  var saveTeamHabit = (data, editId) => {
+    if (editId != null) {
+      setLiveTeamHabits(list => (list || []).map(x => x.id === editId ? Object.assign({}, x, {
+        name: data.name,
+        emoji: data.emoji,
+        color: data.color,
+        goalPerDay: data.goalPerDay,
+        isMain: data.isMain
+      }) : x));
+      if (_rosterLive && window.bosCloud && window.bosCloud.updateTeamHabit) window.bosCloud.updateTeamHabit(editId, data).then(() => setHabitsTick(n => n + 1));
+      return;
+    }
+    if (_rosterLive) addTeamHabitCloud(data);else app?.addTeamHabit(t._id, data);
+  };
+  var removeTeamHabitH = id => {
+    setLiveTeamHabits(list => (list || []).filter(x => x.id !== id));
+    if (_rosterLive && window.bosCloud && window.bosCloud.removeTeamHabit) window.bosCloud.removeTeamHabit(id).then(() => setHabitsTick(n => n + 1));
+  };
+  var openAddHabit = () => openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+    mode: "create",
+    navigate: navigate,
+    teamFor: {
+      team: t,
+      suggestMain: !(teamHabits && teamHabits.length),
+      onSave: saveTeamHabit,
+      onDelete: removeTeamHabitH
+    }
+  }));
+  var openEditTeamHabit = h => openSheet(/*#__PURE__*/React.createElement(HabitFormSheetLive, {
+    mode: "edit",
+    navigate: navigate,
+    habit: {
+      id: h.id,
+      name: h.name,
+      emoji: h.emoji,
+      color: h.color || null,
+      goalPerDay: h.goalPerDay || 1,
+      duration: 0,
+      isMain: !!h.isMain
+    },
+    teamFor: {
+      team: t,
+      onSave: saveTeamHabit,
+      onDelete: removeTeamHabitH
     }
   }));
   // КТО СЕГОДНЯ В ПОТОКЕ — отметившие якорь сегодня (per-member из mainProg) + я, если отметил.
@@ -2064,6 +2106,26 @@ function TeamDetailLive() {
     }), "\u042F\u043A\u043E\u0440\u044C"), h.doneToday != null && h.total != null ? h.doneToday + " из " + h.total + " сегодня" : "общая привычка")), adopted && /*#__PURE__*/React.createElement(I.ChevronRight, {
       size: 16,
       color: "var(--text-4)"
+    })), _isOwner && /*#__PURE__*/React.createElement("button", {
+      onClick: () => openEditTeamHabit(h),
+      className: "tap",
+      "data-haptic": "selection",
+      "aria-label": "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043E\u0431\u0449\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443",
+      style: {
+        flexShrink: 0,
+        width: 30,
+        height: 30,
+        borderRadius: 999,
+        border: 0,
+        background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+        display: "grid",
+        placeItems: "center",
+        color: "var(--text-3)",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement(I.Pencil, {
+      size: 14,
+      strokeWidth: 2
     })), _rosterLive && !adopted && /*#__PURE__*/React.createElement("button", {
       onClick: () => adoptTeamHabit(h),
       className: "tap",

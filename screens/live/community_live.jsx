@@ -705,7 +705,23 @@ function TeamDetailLive() {
     }
     return () => { on = false; };
   }, [_rosterLive, t.cloudId, goalProg]);
-  const openAddHabit = () => openSheet(<TeamHabitSheetLive team={t} members={members} onAdd={(h) => { if (_rosterLive) addTeamHabitCloud(h); else app?.addTeamHabit(t._id, h); }} />);
+  // C+D (David): создание/правка общей привычки = ТА ЖЕ полная форма HabitFormSheetLive (teamFor),
+  // а не урезанный TeamHabitSheetLive. onSave(data, editId): editId → updateTeamHabit (прогресс НЕ
+  // трогаем — логи по team_habit_id), иначе addTeamHabit. onDelete → removeTeamHabit.
+  const saveTeamHabit = (data, editId) => {
+    if (editId != null) {
+      setLiveTeamHabits((list) => (list || []).map((x) => x.id === editId ? Object.assign({}, x, { name: data.name, emoji: data.emoji, color: data.color, goalPerDay: data.goalPerDay, isMain: data.isMain }) : x));
+      if (_rosterLive && window.bosCloud && window.bosCloud.updateTeamHabit) window.bosCloud.updateTeamHabit(editId, data).then(() => setHabitsTick((n) => n + 1));
+      return;
+    }
+    if (_rosterLive) addTeamHabitCloud(data); else app?.addTeamHabit(t._id, data);
+  };
+  const removeTeamHabitH = (id) => {
+    setLiveTeamHabits((list) => (list || []).filter((x) => x.id !== id));
+    if (_rosterLive && window.bosCloud && window.bosCloud.removeTeamHabit) window.bosCloud.removeTeamHabit(id).then(() => setHabitsTick((n) => n + 1));
+  };
+  const openAddHabit = () => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} teamFor={{ team: t, suggestMain: !(teamHabits && teamHabits.length), onSave: saveTeamHabit, onDelete: removeTeamHabitH }} />);
+  const openEditTeamHabit = (h) => openSheet(<HabitFormSheetLive mode="edit" navigate={navigate} habit={{ id: h.id, name: h.name, emoji: h.emoji, color: h.color || null, goalPerDay: h.goalPerDay || 1, duration: 0, isMain: !!h.isMain }} teamFor={{ team: t, onSave: saveTeamHabit, onDelete: removeTeamHabitH }} />);
   // КТО СЕГОДНЯ В ПОТОКЕ — отметившие якорь сегодня (per-member из mainProg) + я, если отметил.
   // Кормит орбиту (планеты загораются) и честный стат «Сегодня».
   const flowSet = {}; (mainProg || []).forEach((m) => { if (m.days && m.days[_todayK]) flowSet[m.id] = true; });
@@ -895,6 +911,10 @@ function TeamDetailLive() {
                 </div>
                 {adopted && <I.ChevronRight size={16} color="var(--text-4)" />}
               </button>
+              {/* D: владелец правит ОПРЕДЕЛЕНИЕ общей привычки (та же полная форма) — прогресс цел. */}
+              {_isOwner && (
+                <button onClick={() => openEditTeamHabit(h)} className="tap" data-haptic="selection" aria-label="Изменить общую привычку" style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 999, border: 0, background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", display: "grid", placeItems: "center", color: "var(--text-3)", cursor: "pointer" }}><I.Pencil size={14} strokeWidth={2} /></button>
+              )}
               {_rosterLive && !adopted && (
                 <button onClick={() => adoptTeamHabit(h)} className="tap" style={{ flexShrink: 0, background: "transparent", border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"), borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>Вести у себя</button>
               )}

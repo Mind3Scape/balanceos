@@ -15,7 +15,7 @@
    const INFO_TOPICS_LIVE, function HabitFormSheetLive, function GoalFormSheetLive,
    function HabitSettingsLive, function GoalSettingsLive, function InfoLive. */
 
-function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goalFor: goalForProp = null, navigate }) {
+function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goalFor: goalForProp = null, teamFor = null, navigate }) {
   const { open: openSheet, close } = useSheet();
   const app = useApp();
   const isDark = app?.themeOverride === "dark"; // тёмная тема: инверсия активных пилюль (чёрное→белое)
@@ -113,11 +113,22 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     return () => { on = false; };
   }, []);
   const [type, setType] = useHS(editing && params.habit.type ? params.habit.type : "build"); // build=Развивать / quit=Бросить
+  // Якорь общей цели — только для командной привычки (teamFor). При правке берём из привычки, при
+  // создании — подсказку teamFor.suggestMain (первую привычку круга делаем якорем).
+  const [isMain, setIsMain] = useHS(teamFor && editing ? !!params.habit.isMain : (teamFor ? !!teamFor.suggestMain : false));
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки (David: «галочка справа
   // вверху, чтобы не листать до низа»).
   const saveHabit = () => {
     const nm = name.trim() || "Новая привычка";
+    // ОБЩАЯ (командная) привычка — ТА ЖЕ форма, но сохраняем в КОМАНДУ (create/update), не в личное.
+    // Личные поля (напоминание/дни/тип/«вместе») для общего определения не пишем — они у каждого свои.
+    if (teamFor) {
+      const _gpdT = (countOn && countUnit === "times") ? Math.max(1, goal) : 1;
+      if (teamFor.onSave) teamFor.onSave({ name: nm, emoji: iconPick, color, tint, goalPerDay: _gpdT, isMain: isMain }, editing ? params.habit.id : null);
+      close();
+      return;
+    }
     // Persist the full schedule + reminder on the habit. These extra fields ride
     // along into the live snapshot (addHabit/updateHabit spread whatever you pass).
     const countTimes = countOn && countUnit === "times";
@@ -178,8 +189,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       {/* Серый фон шторки + белые карточки — как страницы приложения (David). */}
       {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
       {typeof SheetFormHeadLive === "function"
-        ? <SheetFormHeadLive title={editing ? "Изменить привычку" : "Новая привычка"} onClose={close} onDone={saveHabit} />
-        : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить привычку" : "Новая привычка"}</div>}
+        ? <SheetFormHeadLive title={teamFor ? (editing ? "Изменить общую привычку" : "Общая привычка") : (editing ? "Изменить привычку" : "Новая привычка")} onClose={close} onDone={saveHabit} />
+        : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{teamFor ? (editing ? "Изменить общую привычку" : "Общая привычка") : (editing ? "Изменить привычку" : "Новая привычка")}</div>}
 
       {/* ── ОБЛИК: значок (тап → эмодзи) · имя · цвет · тонированный фон. Всё в одной карточке. ── */}
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
@@ -201,7 +212,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         </div>
       </div>
 
-      {/* ── РАЗВИВАТЬ / БРОСИТЬ — тумблер (по умолч. Развивать). SVG-иконка без фона (David). ── */}
+      {/* ── РАЗВИВАТЬ / БРОСИТЬ — тумблер (по умолч. Развивать). У общей привычки скрыт (не применимо). ── */}
+      {!teamFor && (
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
         <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Flame size={20} color="var(--text-3)" /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -210,6 +222,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         </div>
         <Switch small on={type === "build"} onChange={(v) => setType(v ? "build" : "quit")} />
       </div>
+      )}
 
       {/* ── СЧИТАТЬ КОЛИЧЕСТВО — один тумблер вместо галочки/счётчика/таймера. On → число + раз/минут. ── */}
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
@@ -248,7 +261,20 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         )}
       </div>
 
-      {/* ── НАПОМИНАНИЕ — тумблер → дни недели + время (дни живут ЗДЕСЬ, David). ── */}
+      {/* ── ЯКОРЬ ЦЕЛИ — только у общей привычки: главная привычка круга, по ней идёт прогресс цели. ── */}
+      {teamFor && (
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Target size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Якорь цели</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Главная привычка круга — по ней считается прогресс общей цели.</div>
+          </div>
+          <Switch small on={isMain} onChange={setIsMain} />
+        </div>
+      )}
+
+      {/* ── НАПОМИНАНИЕ — тумблер → дни недели + время. У общей привычки скрыто (у каждого своё). ── */}
+      {!teamFor && (
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Bell size={19} color="var(--text-3)" /></span>
@@ -279,9 +305,10 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
           </div>
         )}
       </div>
+      )}
 
-      {/* ── ДЕЛАТЬ ВМЕСТЕ — тумблер → XP + друзья (opt-in, свёрнуто по умолчанию). ── */}
-      {!goalFor && (
+      {/* ── ДЕЛАТЬ ВМЕСТЕ — тумблер → XP + друзья (opt-in). У общей привычки скрыто (это уже круг). ── */}
+      {!goalFor && !teamFor && (
         <div data-tour="invite-friend" style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color="var(--text-3)" /></span>
@@ -332,8 +359,13 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         </div>
       )}
 
-      {/* Копия привычки КРУГА → «Убрать с моей страницы»; обычная → «Удалить». */}
-      {editing && params.habit.teamHabitId ? (
+      {/* Общая привычка круга (правка) → «Удалить общую»; личная копия круга → «Убрать»; обычная → «Удалить». */}
+      {teamFor && editing ? (
+        <button className="tap" onClick={() => { if (teamFor.onDelete) teamFor.onDelete(params.habit.id); close(); }}
+          style={{ width: "100%", background: "transparent", border: 0, color: "var(--accent-red)", padding: 14, marginTop: 6, fontSize: 15 }}>
+          Удалить общую привычку
+        </button>
+      ) : editing && params.habit.teamHabitId ? (
         <React.Fragment>
           <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", gap: 12, alignItems: "flex-start" }}>
             <span style={{ width: 34, height: 34, borderRadius: 11, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>👥</span>
