@@ -6358,9 +6358,10 @@ function CreateMenuLive({
       position: "fixed",
       right: pos.right,
       top: pos.top,
+      width: 230,
       display: "flex",
       flexDirection: "column",
-      alignItems: "flex-end",
+      alignItems: "stretch",
       gap: 10
     }
   }, items.map((it, i) => /*#__PURE__*/React.createElement("button", {
@@ -6373,8 +6374,10 @@ function CreateMenuLive({
     },
     className: "tap",
     style: {
-      display: "inline-flex",
+      display: "flex",
+      width: "100%",
       alignItems: "center",
+      justifyContent: "flex-start",
       gap: 11,
       whiteSpace: "nowrap",
       padding: "8px 17px 8px 8px",

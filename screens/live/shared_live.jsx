@@ -2773,10 +2773,10 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
       {/* Три ОТДЕЛЬНЫЕ пилюли (David: «вместо цельной менюшки — три кнопки-пилюли, иконки в
           кружочках, а не квадратики»). Выскакивают из-под «+» справа, лёгкий стаггер. */}
-      <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, width: 230, display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10 }}>
         {items.map((it, i) => (
           <button key={i} role="menuitem" data-haptic="selection" onClick={() => { onClose(); it.go(); }} className="tap" style={{
-            display: "inline-flex", alignItems: "center", gap: 11, whiteSpace: "nowrap",
+            display: "flex", width: "100%", alignItems: "center", justifyContent: "flex-start", gap: 11, whiteSpace: "nowrap",
             padding: "8px 17px 8px 8px", borderRadius: 999, cursor: "pointer",
             marginTop: i === 2 ? 4 : 0, // лёгкий разрыв: «готовое» ≠ «своё»
             background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",

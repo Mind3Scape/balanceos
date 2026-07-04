@@ -1015,7 +1015,7 @@ function GoalFormSheetLive({
   var [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
   var [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
   var [showCal, setShowCal] = useHS(false);
-  var [linkHabit, setLinkHabit] = useHS(true);
+  var [linkHabit, setLinkHabit] = useHS(editing ? (g0?.habitIds || []).length > 0 : false); // по умолч. свёрнуто/выкл (opt-in) — как в форме привычки
   // КРУГ — «цель + круг = команда»: включаешь круг → цель становится КОМАНДОЙ (один движок —
   // комната-орбита, режимы, вступление по ссылке team_<cloudId>). Тумблер только переключает путь
   // сохранения ниже: вкл → app.addTeam (а не addGoal). David: один механизм, без второго «лёгкого» круга.
@@ -1420,23 +1420,35 @@ function GoalFormSheetLive({
       alignItems: "center",
       gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: 1
+      width: 24,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Flame, {
+    size: 19,
+    color: "var(--text-3)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 14,
-      color: "var(--text-2)",
-      lineHeight: 1.4
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
     }
-  }, "\u041F\u043E\u0434\u043A\u0440\u0435\u043F\u0438 \u044D\u0442\u0443 \u0446\u0435\u043B\u044C \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E\u0439 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u043E\u0434\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u043E\u0439"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-4)",
-      marginTop: 2
+      marginTop: 2,
+      lineHeight: 1.4
     }
-  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0430\u0435\u0442 \u043A \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement(Switch, {
+  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0430\u0435\u0442 \u043A \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement(Switch, {
     small: true,
     on: linkHabit,
     onChange: setLinkHabit
@@ -1445,6 +1457,8 @@ function GoalFormSheetLive({
       display: "flex",
       gap: 8,
       marginTop: 14,
+      paddingTop: 14,
+      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))",
       flexWrap: "wrap",
       alignItems: "center"
     }
@@ -1519,20 +1533,35 @@ function GoalFormSheetLive({
       alignItems: "center",
       gap: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 24,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Users, {
+    size: 19,
+    color: "var(--text-3)"
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
-      fontSize: 14,
-      color: "var(--text-2)",
-      lineHeight: 1.4
+      minWidth: 0
     }
-  }, "\u0418\u0434\u0442\u0438 \u043A \u0446\u0435\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435", /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u0418\u0434\u0442\u0438 \u043A \u0446\u0435\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-4)",
-      marginTop: 2
+      marginTop: 2,
+      lineHeight: 1.4
     }
-  }, "\u0412\u043A\u043B\u044E\u0447\u0438 \u0438 \u043F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430.")), /*#__PURE__*/React.createElement(Switch, {
+  }, "\u041F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430.")), /*#__PURE__*/React.createElement(Switch, {
     small: true,
     on: circleOn,
     onChange: setCircleOn

@@ -395,7 +395,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
   const [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
   const [showCal, setShowCal] = useHS(false);
-  const [linkHabit, setLinkHabit] = useHS(true);
+  const [linkHabit, setLinkHabit] = useHS(editing ? ((g0?.habitIds || []).length > 0) : false); // по умолч. свёрнуто/выкл (opt-in) — как в форме привычки
   // КРУГ — «цель + круг = команда»: включаешь круг → цель становится КОМАНДОЙ (один движок —
   // комната-орбита, режимы, вступление по ссылке team_<cloudId>). Тумблер только переключает путь
   // сохранения ниже: вкл → app.addTeam (а не addGoal). David: один механизм, без второго «лёгкого» круга.
@@ -543,14 +543,15 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
 
       {!isTeamEdit && (<div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>Подкрепи эту цель ежедневной привычкой</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Каждая отметка приближает к цели.</div>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Flame size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Подкрепить привычкой</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Каждая отметка привычки приближает к цели.</div>
           </div>
           <Switch small on={linkHabit} onChange={setLinkHabit}/>
         </div>
         {linkHabit && (
-          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", flexWrap: "wrap", alignItems: "center" }}>
             {linkedHabits.length === 0 && (
               <span style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4 }}>Сначала создай привычку — потом привяжешь её к цели.</span>
             )}
@@ -581,9 +582,10 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           смысл, что у привычки «Поделиться»; вкл → можно позвать людей, цель станет общей. */}
       {!isTeamEdit && (<div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ flex: 1, fontSize: 14, color: "var(--text-2)", lineHeight: 1.4 }}>
-            Идти к цели вместе
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Включи и позови людей — цель станет общей, у каждого появятся лица.</div>
+          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color="var(--text-3)" /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Идти к цели вместе</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Позови людей — цель станет общей, у каждого появятся лица.</div>
           </div>
           <Switch small on={circleOn} onChange={setCircleOn} />
         </div>
