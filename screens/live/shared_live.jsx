@@ -2248,11 +2248,11 @@ function ArchiveOrDeleteSheetLive({ name, emoji, color, dark = false, onArchive,
         </div>
       </div>
       <button onClick={() => act(onArchive)} className="tap" data-haptic="selection" style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", border: 0, borderRadius: 16, padding: 12, background: "var(--surface-3)", textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
-        <BosGlassIconLive dark={dark}>{archBox}</BosGlassIconLive>
+        <span style={{ width: 34, display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}>{archBox}</span>
         <span><span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>Архивировать</span><span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.35 }}>Спрятать с главной. История цела — вернёшь в «Архиве».</span></span>
       </button>
       <button onClick={() => act(onDelete)} className="tap" data-haptic="warning" style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", border: 0, borderRadius: 16, padding: 12, marginTop: 9, background: "var(--surface-3)", textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
-        <BosGlassIconLive dark={dark} danger><I.Trash size={19} strokeWidth={2} /></BosGlassIconLive>
+        <span style={{ width: 34, display: "grid", placeItems: "center", flexShrink: 0, color: "#FF3B30" }}><I.Trash size={21} strokeWidth={2} /></span>
         <span><span style={{ display: "block", fontSize: 15, fontWeight: 600, color: "#FF3B30" }}>{deleteLabel}</span><span style={{ display: "block", fontSize: 12, color: "#B57A00", marginTop: 2, lineHeight: 1.35 }}>{deleteHint || "Сотрёт вместе со всей историей. Это навсегда."}</span></span>
       </button>
       <div style={{ fontSize: 11.5, color: "var(--text-5)", textAlign: "center", padding: "12px 0 8px" }}>потяни вниз, чтобы отменить</div>
@@ -2372,30 +2372,10 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
       {/* Иконки виджетов — ЧЁРНО-БЕЛЫЕ (David): монохромный sf-символ вместо цветного эмодзи, единый
           строгий вид как у плюсика. Привычки/цели ниже остаются цветными. */}
       {card(defs.map((o) => ({ key: "w:" + o.id, bare: true, icon: (typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 21, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji), name: o.t, sub: o.d, on: widgetOn(o.id), onToggle: () => toggleWidget(o.id) })))}
-      {habits.length > 0 && (
-        <React.Fragment>
-          {kicker("Привычки")}
-          {card(habits.map((h) => { const k = "h:" + h.id; return { key: k, icon: (typeof bosIcon === "function" ? bosIcon(h.emoji || "🌱", 15, h.color) : (h.emoji || "🌱")), name: h.name, sub: null, on: tileOn(k), onToggle: () => toggleTile(k) }; }))}
-        </React.Fragment>
-      )}
-      {goals.length > 0 && (
-        <React.Fragment>
-          {kicker("Цели")}
-          {card(goals.map((g) => { const k = "g:" + g.id; return { key: k, icon: (typeof bosIcon === "function" ? bosIcon(g.emoji || "🎯", 15, g.color) : (g.emoji || "🎯")), name: g.name, sub: null, on: tileOn(k), onToggle: () => toggleTile(k) }; }))}
-        </React.Fragment>
-      )}
-      {teams.length > 0 && (
-        <React.Fragment>
-          {kicker("Совместные цели")}
-          {card(teams.map((t) => {
-            const k = (typeof bosTeamKeyLive === "function") ? bosTeamKeyLive(t) : ("t:" + (t.cloudId || t._id || t.id));
-            const n = Array.isArray(t.members) ? t.members.length : 0;
-            return { key: k, icon: (typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 15, t.accent) : (t.emblem || "👥")), name: t.name, sub: "Вместе" + (n ? " · " + n : ""), on: tileOn(k), onToggle: () => toggleTile(k) };
-          }))}
-        </React.Fragment>
-      )}
-      <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, padding: "12px 4px 0", textAlign: "center" }}>
-        Всё это — карточки главной. Зажми любую прямо на главной, чтобы переставить или убрать.
+      {/* Привычки/цели/совместные цели ОТСЮДА убраны (David: «их же можно спрятать архивом — незачем
+          дублировать»). Они появляются на главной сами; спрятать/вернуть — минусом в тряске → «Архив». */}
+      <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, padding: "14px 4px 0", textAlign: "center" }}>
+        Привычки и цели появляются на главной сами. Спрятать — минусом в режиме тряски, вернуть — в «Архиве».
       </div>
     </div>
   );
@@ -2806,10 +2786,11 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
   // глобальный тумблер bos:glass, что в настройках профиля, но под рукой прямо из тряски.
   const [glassOn, setGlassOn] = React.useState(() => { try { return localStorage.getItem("bos:glass") !== "0"; } catch (e) { return true; } });
   const setGlass = (v) => { setGlassOn(v); try { localStorage.setItem("bos:glass", v ? "1" : "0"); } catch (e) {} try { window.dispatchEvent(new Event("bos:glassChanged")); } catch (e) {} };
-  // «Чёрные иконки» (David: «привычки/цели чёрными svg-иконками, строже») — глобальный тумблер
-  // bos:monoIcons → body.bos-mono-icons → CSS приглушает цвет эмодзи на плитках. По умолчанию ВЫКЛ.
-  const [monoOn, setMonoOn] = React.useState(() => { try { return localStorage.getItem("bos:monoIcons") === "1"; } catch (e) { return false; } });
-  const setMono = (v) => { setMonoOn(v); try { localStorage.setItem("bos:monoIcons", v ? "1" : "0"); } catch (e) {} try { window.dispatchEvent(new Event("bos:monoIconsChanged")); } catch (e) {} };
+  // Тёмная тема (David: «в общем виде — тоггл тёмной темы, а чёрные иконки убрать») — тот же
+  // общий переключатель темы, что в настройках профиля, под рукой прямо из тряски.
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const darkOn = !!(app && app.themeOverride === "dark");
+  const setDark = (v) => { if (app && app.setThemeOverride) app.setThemeOverride(v ? "dark" : "light"); };
   React.useEffect(() => {
     if (!open) return;
     setHs(bosLoadCardStyle()); setGs(bosLoadGoalStyle());
@@ -2822,13 +2803,16 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
   if (!open || !pos) return null;
   const setH = (patch) => { const n = Object.assign({}, hs, patch); setHs(n); bosSaveCardStyle(n); };
   const setG = (patch) => { const n = Object.assign({}, gs, patch); setGs(n); bosSaveGoalStyle(n); };
-  const SQ = (<svg width="30" height="18" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="13" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="19" y="3" width="13" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
-  const RC = (<svg width="30" height="18" viewBox="0 0 34 20" fill="none"><rect x="2" y="2.5" width="30" height="6.5" rx="2.5" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="2" y="11" width="30" height="6.5" rx="2.5" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
-  const BN = (<svg width="30" height="18" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="30" height="14" rx="3" stroke="#0a0a0a" strokeWidth="1.6" /><circle cx="8" cy="10" r="2.4" stroke="#0a0a0a" strokeWidth="1.4" /><rect x="14" y="7" width="15" height="2" rx="1" fill="#0a0a0a" /><rect x="14" y="12" width="10" height="2" rx="1" fill="#0a0a0a" opacity="0.5" /></svg>);
-  // Компактнее (David: «тумблеры поменьше, блок компактнее»): узкая панель, малые тумблеры, сжатые поля.
-  const formBtn = (key, label, icon, cur, onPick) => (
-    <button key={key} onClick={() => onPick(key)} className="tap" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "9px 6px", borderRadius: 12, border: cur === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)", background: cur === key ? "rgba(10,10,10,0.05)" : "transparent", cursor: "pointer" }}>
-      {icon}<span style={{ fontSize: 11.5, fontWeight: 600, color: "#0a0a0a" }}>{label}</span>
+  // Иконки форм = ОЧЕРТАНИЯ наших реальных блоков (David: «просто формы наших блоков, без подписей»).
+  // Квадрат — два блока чуть шире, наше скругление; Строка — два ряда с бóльшим зазором и скруглением
+  // (как наша плитка-строка); Баннер — David: «хорошая иконка», оставляем.
+  const SQ = (<svg width="38" height="22" viewBox="0 0 34 20" fill="none"><rect x="1.5" y="3" width="14.5" height="14" rx="4" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="18" y="3" width="14.5" height="14" rx="4" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
+  const RC = (<svg width="38" height="22" viewBox="0 0 34 20" fill="none"><rect x="2" y="2" width="30" height="6.5" rx="3.2" stroke="#0a0a0a" strokeWidth="1.6" /><rect x="2" y="11.5" width="30" height="6.5" rx="3.2" stroke="#0a0a0a" strokeWidth="1.6" /></svg>);
+  const BN = (<svg width="38" height="22" viewBox="0 0 34 20" fill="none"><rect x="2" y="3" width="30" height="14" rx="3.5" stroke="#0a0a0a" strokeWidth="1.6" /><circle cx="8" cy="10" r="2.4" stroke="#0a0a0a" strokeWidth="1.4" /><rect x="14" y="7" width="15" height="2" rx="1" fill="#0a0a0a" /><rect x="14" y="12" width="10" height="2" rx="1" fill="#0a0a0a" opacity="0.5" /></svg>);
+  // Форм-кнопка — ТОЛЬКО иконка (David: «не подписывай строка/квадрат, оставь иконки»).
+  const formBtn = (key, icon, cur, onPick) => (
+    <button key={key} onClick={() => onPick(key)} className="tap" style={{ flex: 1, display: "grid", placeItems: "center", padding: "13px 6px", borderRadius: 12, border: cur === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)", background: cur === key ? "rgba(10,10,10,0.05)" : "transparent", cursor: "pointer" }}>
+      {icon}
     </button>
   );
   // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в узкую панель).
@@ -2861,19 +2845,19 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
         {tab === "habits" ? (
           <>
             {/* David: дефолт (строка) СЛЕВА, квадрат справа — «всё дефолтное по сути слева». */}
-            <div style={{ display: "flex", gap: 7 }}>{formBtn("rect", "Строка", RC, hs.form, (k) => setH({ form: k }))}{formBtn("square", "Квадрат", SQ, hs.form, (k) => setH({ form: k }))}</div>
+            <div style={{ display: "flex", gap: 7 }}>{formBtn("rect", RC, hs.form, (k) => setH({ form: k }))}{formBtn("square", SQ, hs.form, (k) => setH({ form: k }))}</div>
             {divider}
             <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 6, color: "rgba(10,10,10,0.5)" }}>Отметки</div>
             {seg(hs.marks, [{ v: "none", l: "Нет" }, { v: "week", l: "Неделя" }, { v: "month", l: "Месяц" }], (v) => setH({ marks: v }))}
             {hs.marks !== "none" && <div style={{ marginTop: 8 }}>{seg(hs.cells || "round", [{ v: "round", l: "Кружки" }, { v: "square", l: "Квадраты" }], (v) => setH({ cells: v }))}</div>}
             <div style={{ marginTop: 6 }}>
-              {toggleRow("Лица друзей", hs.faces, (v) => setH({ faces: v }))}
+              {toggleRow("Люди", hs.faces, (v) => setH({ faces: v }))}
               {hs.form === "square" && toggleRow("Название", hs.name, (v) => setH({ name: v }))}
             </div>
           </>
         ) : tab === "goals" ? (
           <>
-            <div style={{ display: "flex", gap: 7 }}>{formBtn("banner", "Баннер", BN, gs.form, (k) => setG({ form: k }))}{formBtn("square", "Квадрат", SQ, gs.form, (k) => setG({ form: k }))}</div>
+            <div style={{ display: "flex", gap: 7 }}>{formBtn("banner", BN, gs.form, (k) => setG({ form: k }))}{formBtn("square", SQ, gs.form, (k) => setG({ form: k }))}</div>
             {divider}
             <div style={{ marginTop: 0 }}>
               {toggleRow("Орбиты вокруг цели", gs.orbits, (v) => setG({ orbits: v }))}
@@ -2884,10 +2868,10 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
           </>
         ) : (
           <>
-            {/* «Общий вид» — визуальные настройки всей главной (David: «общие настройки приложения»). */}
-            {toggleRow("Чёрные иконки", monoOn, setMono)}
+            {/* «Общий вид» (David: «тоггл тёмной темы, а чёрные иконки убрать»). */}
+            {toggleRow("Тёмная тема", darkOn, setDark)}
             {toggleRow("Эффект стекла", glassOn, setGlass)}
-            <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 2px" }}>Чёрные иконки — строгий единый вид вместо цветных эмодзи. Стекло — блики на плитках.</div>
+            <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 2px" }}>Тёмная тема — весь экран в тёмных тонах. Стекло — глянцевые блики; выключи для плоского вида.</div>
             {typeof onArchiveList === "function" && (
               <button onClick={() => { onClose(); onArchiveList(); }} className="tap" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginTop: 8, border: 0, borderRadius: 11, padding: "9px 2px", background: "transparent", cursor: "pointer", color: "#0a0a0a", textAlign: "left" }}>
                 <span style={{ width: 26, height: 26, display: "grid", placeItems: "center", flexShrink: 0, color: "#0a0a0a" }}>

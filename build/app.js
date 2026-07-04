@@ -218,7 +218,7 @@ var IS_STANDALONE = typeof window !== "undefined" && (window.matchMedia && windo
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-var APP_VERSION = "v547";
+var APP_VERSION = "v548";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -1731,18 +1731,7 @@ function PhoneApp() {
     return () => window.removeEventListener("bos:glassChanged", apply);
   }, []);
 
-  // «Чёрные иконки» (David): bos:monoIcons="1" → body.bos-mono-icons, CSS обесцвечивает эмодзи
-  // на плитках привычек/целей/кругов (строгий единый вид). Дефолт — ВЫКЛ (opt-in).
-  useEffect(() => {
-    var apply = () => {
-      try {
-        document.body.classList.toggle("bos-mono-icons", localStorage.getItem("bos:monoIcons") === "1");
-      } catch (e) {}
-    };
-    apply();
-    window.addEventListener("bos:monoIconsChanged", apply);
-    return () => window.removeEventListener("bos:monoIconsChanged", apply);
-  }, []);
+  // (Тумблер «Чёрные иконки» убран по просьбе David — механизм bos:monoIcons больше не применяется.)
 
   // ── LIVE-вкладки (слияние Главной и «Привычек») ─────────────────────────────
   // Тумблер «Вкладка „Я“ внизу» живёт в настройках (bos:profileTab, дефолт ВКЛ).

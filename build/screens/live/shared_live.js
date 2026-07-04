@@ -4878,8 +4878,14 @@ function ArchiveOrDeleteSheetLive({
       cursor: "pointer",
       color: "var(--text)"
     }
-  }, /*#__PURE__*/React.createElement(BosGlassIconLive, {
-    dark: dark
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 34,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      color: "var(--text-2)"
+    }
   }, archBox), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     style: {
       display: "block",
@@ -4912,11 +4918,16 @@ function ArchiveOrDeleteSheetLive({
       cursor: "pointer",
       color: "var(--text)"
     }
-  }, /*#__PURE__*/React.createElement(BosGlassIconLive, {
-    dark: dark,
-    danger: true
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 34,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      color: "#FF3B30"
+    }
   }, /*#__PURE__*/React.createElement(I.Trash, {
-    size: 19,
+    size: 21,
     strokeWidth: 2
   })), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -5274,46 +5285,15 @@ function HomeGalleryContentLive({
     sub: o.d,
     on: widgetOn(o.id),
     onToggle: () => toggleWidget(o.id)
-  }))), habits.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Привычки"), card(habits.map(h => {
-    var k = "h:" + h.id;
-    return {
-      key: k,
-      icon: typeof bosIcon === "function" ? bosIcon(h.emoji || "🌱", 15, h.color) : h.emoji || "🌱",
-      name: h.name,
-      sub: null,
-      on: tileOn(k),
-      onToggle: () => toggleTile(k)
-    };
-  }))), goals.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Цели"), card(goals.map(g => {
-    var k = "g:" + g.id;
-    return {
-      key: k,
-      icon: typeof bosIcon === "function" ? bosIcon(g.emoji || "🎯", 15, g.color) : g.emoji || "🎯",
-      name: g.name,
-      sub: null,
-      on: tileOn(k),
-      onToggle: () => toggleTile(k)
-    };
-  }))), teams.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, kicker("Совместные цели"), card(teams.map(t => {
-    var k = typeof bosTeamKeyLive === "function" ? bosTeamKeyLive(t) : "t:" + (t.cloudId || t._id || t.id);
-    var n = Array.isArray(t.members) ? t.members.length : 0;
-    return {
-      key: k,
-      icon: typeof bosIcon === "function" ? bosIcon(t.emblem || "👥", 15, t.accent) : t.emblem || "👥",
-      name: t.name,
-      sub: "Вместе" + (n ? " · " + n : ""),
-      on: tileOn(k),
-      onToggle: () => toggleTile(k)
-    };
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-4)",
       lineHeight: 1.45,
-      padding: "12px 4px 0",
+      padding: "14px 4px 0",
       textAlign: "center"
     }
-  }, "\u0412\u0441\u0451 \u044D\u0442\u043E \u2014 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u0433\u043B\u0430\u0432\u043D\u043E\u0439. \u0417\u0430\u0436\u043C\u0438 \u043B\u044E\u0431\u0443\u044E \u043F\u0440\u044F\u043C\u043E \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439, \u0447\u0442\u043E\u0431\u044B \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0438\u043B\u0438 \u0443\u0431\u0440\u0430\u0442\u044C."));
+  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u0446\u0435\u043B\u0438 \u043F\u043E\u044F\u0432\u043B\u044F\u044E\u0442\u0441\u044F \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439 \u0441\u0430\u043C\u0438. \u0421\u043F\u0440\u044F\u0442\u0430\u0442\u044C \u2014 \u043C\u0438\u043D\u0443\u0441\u043E\u043C \u0432 \u0440\u0435\u0436\u0438\u043C\u0435 \u0442\u0440\u044F\u0441\u043A\u0438, \u0432\u0435\u0440\u043D\u0443\u0442\u044C \u2014 \u0432 \xAB\u0410\u0440\u0445\u0438\u0432\u0435\xBB."));
 }
 
 /* Шторка «+» на главной — тонкая обёртка над единой галереей (см. HomeGalleryContentLive).
@@ -6485,23 +6465,12 @@ function CardStyleMenuLive({
       window.dispatchEvent(new Event("bos:glassChanged"));
     } catch (e) {}
   };
-  // «Чёрные иконки» (David: «привычки/цели чёрными svg-иконками, строже») — глобальный тумблер
-  // bos:monoIcons → body.bos-mono-icons → CSS приглушает цвет эмодзи на плитках. По умолчанию ВЫКЛ.
-  var [monoOn, setMonoOn] = React.useState(() => {
-    try {
-      return localStorage.getItem("bos:monoIcons") === "1";
-    } catch (e) {
-      return false;
-    }
-  });
-  var setMono = v => {
-    setMonoOn(v);
-    try {
-      localStorage.setItem("bos:monoIcons", v ? "1" : "0");
-    } catch (e) {}
-    try {
-      window.dispatchEvent(new Event("bos:monoIconsChanged"));
-    } catch (e) {}
+  // Тёмная тема (David: «в общем виде — тоггл тёмной темы, а чёрные иконки убрать») — тот же
+  // общий переключатель темы, что в настройках профиля, под рукой прямо из тряски.
+  var app = typeof useApp === "function" ? useApp() : null;
+  var darkOn = !!(app && app.themeOverride === "dark");
+  var setDark = v => {
+    if (app && app.setThemeOverride) app.setThemeOverride(v ? "dark" : "light");
   };
   React.useEffect(() => {
     if (!open) return;
@@ -6535,53 +6504,56 @@ function CardStyleMenuLive({
     setGs(n);
     bosSaveGoalStyle(n);
   };
+  // Иконки форм = ОЧЕРТАНИЯ наших реальных блоков (David: «просто формы наших блоков, без подписей»).
+  // Квадрат — два блока чуть шире, наше скругление; Строка — два ряда с бóльшим зазором и скруглением
+  // (как наша плитка-строка); Баннер — David: «хорошая иконка», оставляем.
   var SQ = /*#__PURE__*/React.createElement("svg", {
-    width: "30",
-    height: "18",
+    width: "38",
+    height: "22",
     viewBox: "0 0 34 20",
     fill: "none"
   }, /*#__PURE__*/React.createElement("rect", {
-    x: "2",
+    x: "1.5",
     y: "3",
-    width: "13",
+    width: "14.5",
     height: "14",
-    rx: "3",
+    rx: "4",
     stroke: "#0a0a0a",
     strokeWidth: "1.6"
   }), /*#__PURE__*/React.createElement("rect", {
-    x: "19",
+    x: "18",
     y: "3",
-    width: "13",
+    width: "14.5",
     height: "14",
-    rx: "3",
+    rx: "4",
     stroke: "#0a0a0a",
     strokeWidth: "1.6"
   }));
   var RC = /*#__PURE__*/React.createElement("svg", {
-    width: "30",
-    height: "18",
+    width: "38",
+    height: "22",
     viewBox: "0 0 34 20",
     fill: "none"
   }, /*#__PURE__*/React.createElement("rect", {
     x: "2",
-    y: "2.5",
+    y: "2",
     width: "30",
     height: "6.5",
-    rx: "2.5",
+    rx: "3.2",
     stroke: "#0a0a0a",
     strokeWidth: "1.6"
   }), /*#__PURE__*/React.createElement("rect", {
     x: "2",
-    y: "11",
+    y: "11.5",
     width: "30",
     height: "6.5",
-    rx: "2.5",
+    rx: "3.2",
     stroke: "#0a0a0a",
     strokeWidth: "1.6"
   }));
   var BN = /*#__PURE__*/React.createElement("svg", {
-    width: "30",
-    height: "18",
+    width: "38",
+    height: "22",
     viewBox: "0 0 34 20",
     fill: "none"
   }, /*#__PURE__*/React.createElement("rect", {
@@ -6589,7 +6561,7 @@ function CardStyleMenuLive({
     y: "3",
     width: "30",
     height: "14",
-    rx: "3",
+    rx: "3.5",
     stroke: "#0a0a0a",
     strokeWidth: "1.6"
   }), /*#__PURE__*/React.createElement("circle", {
@@ -6614,30 +6586,22 @@ function CardStyleMenuLive({
     fill: "#0a0a0a",
     opacity: "0.5"
   }));
-  // Компактнее (David: «тумблеры поменьше, блок компактнее»): узкая панель, малые тумблеры, сжатые поля.
-  var formBtn = (key, label, icon, cur, onPick) => /*#__PURE__*/React.createElement("button", {
+  // Форм-кнопка — ТОЛЬКО иконка (David: «не подписывай строка/квадрат, оставь иконки»).
+  var formBtn = (key, icon, cur, onPick) => /*#__PURE__*/React.createElement("button", {
     key: key,
     onClick: () => onPick(key),
     className: "tap",
     style: {
       flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 5,
-      padding: "9px 6px",
+      display: "grid",
+      placeItems: "center",
+      padding: "13px 6px",
       borderRadius: 12,
       border: cur === key ? "1.5px solid #0a0a0a" : "1.5px solid rgba(10,10,10,0.12)",
       background: cur === key ? "rgba(10,10,10,0.05)" : "transparent",
       cursor: "pointer"
     }
-  }, icon, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 600,
-      color: "#0a0a0a"
-    }
-  }, label));
+  }, icon);
   // Компактный сегмент — СВОЙ (шаренный .tab-pill с padding 18px не влезал в узкую панель).
   var seg = (val, opts, onPick) => /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6742,9 +6706,9 @@ function CardStyleMenuLive({
       display: "flex",
       gap: 7
     }
-  }, formBtn("rect", "Строка", RC, hs.form, k => setH({
+  }, formBtn("rect", RC, hs.form, k => setH({
     form: k
-  })), formBtn("square", "Квадрат", SQ, hs.form, k => setH({
+  })), formBtn("square", SQ, hs.form, k => setH({
     form: k
   }))), divider, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6780,7 +6744,7 @@ function CardStyleMenuLive({
     style: {
       marginTop: 6
     }
-  }, toggleRow("Лица друзей", hs.faces, v => setH({
+  }, toggleRow("Люди", hs.faces, v => setH({
     faces: v
   })), hs.form === "square" && toggleRow("Название", hs.name, v => setH({
     name: v
@@ -6789,9 +6753,9 @@ function CardStyleMenuLive({
       display: "flex",
       gap: 7
     }
-  }, formBtn("banner", "Баннер", BN, gs.form, k => setG({
+  }, formBtn("banner", BN, gs.form, k => setG({
     form: k
-  })), formBtn("square", "Квадрат", SQ, gs.form, k => setG({
+  })), formBtn("square", SQ, gs.form, k => setG({
     form: k
   }))), divider, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6810,14 +6774,14 @@ function CardStyleMenuLive({
       lineHeight: 1.4,
       padding: "4px 2px 0"
     }
-  }, "\u041E\u0440\u0431\u0438\u0442\u044B \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0432\u043E\u043A\u0440\u0443\u0433 \u0446\u0435\u043B\u0438 \u2014 \u043F\u0440\u0435\u0432\u044C\u044E, \u0432\u043E\u043A\u0440\u0443\u0433 \u0447\u0435\u0433\u043E \u043E\u043D\u0430.")) : /*#__PURE__*/React.createElement(React.Fragment, null, toggleRow("Чёрные иконки", monoOn, setMono), toggleRow("Эффект стекла", glassOn, setGlass), /*#__PURE__*/React.createElement("div", {
+  }, "\u041E\u0440\u0431\u0438\u0442\u044B \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0432\u043E\u043A\u0440\u0443\u0433 \u0446\u0435\u043B\u0438 \u2014 \u043F\u0440\u0435\u0432\u044C\u044E, \u0432\u043E\u043A\u0440\u0443\u0433 \u0447\u0435\u0433\u043E \u043E\u043D\u0430.")) : /*#__PURE__*/React.createElement(React.Fragment, null, toggleRow("Тёмная тема", darkOn, setDark), toggleRow("Эффект стекла", glassOn, setGlass), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "rgba(10,10,10,0.42)",
       lineHeight: 1.4,
       padding: "4px 2px 2px"
     }
-  }, "\u0427\u0451\u0440\u043D\u044B\u0435 \u0438\u043A\u043E\u043D\u043A\u0438 \u2014 \u0441\u0442\u0440\u043E\u0433\u0438\u0439 \u0435\u0434\u0438\u043D\u044B\u0439 \u0432\u0438\u0434 \u0432\u043C\u0435\u0441\u0442\u043E \u0446\u0432\u0435\u0442\u043D\u044B\u0445 \u044D\u043C\u043E\u0434\u0437\u0438. \u0421\u0442\u0435\u043A\u043B\u043E \u2014 \u0431\u043B\u0438\u043A\u0438 \u043D\u0430 \u043F\u043B\u0438\u0442\u043A\u0430\u0445."), typeof onArchiveList === "function" && /*#__PURE__*/React.createElement("button", {
+  }, "\u0422\u0451\u043C\u043D\u0430\u044F \u0442\u0435\u043C\u0430 \u2014 \u0432\u0435\u0441\u044C \u044D\u043A\u0440\u0430\u043D \u0432 \u0442\u0451\u043C\u043D\u044B\u0445 \u0442\u043E\u043D\u0430\u0445. \u0421\u0442\u0435\u043A\u043B\u043E \u2014 \u0433\u043B\u044F\u043D\u0446\u0435\u0432\u044B\u0435 \u0431\u043B\u0438\u043A\u0438; \u0432\u044B\u043A\u043B\u044E\u0447\u0438 \u0434\u043B\u044F \u043F\u043B\u043E\u0441\u043A\u043E\u0433\u043E \u0432\u0438\u0434\u0430."), typeof onArchiveList === "function" && /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       onClose();
       onArchiveList();
