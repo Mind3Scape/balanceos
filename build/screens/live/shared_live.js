@@ -9236,7 +9236,8 @@ function NetworkPeekLive({
    Тап → та же шторка-превью с «Постучаться». */
 function LivingCircleCardLive({
   circle: s,
-  onTap
+  onTap,
+  w = null
 }) {
   var isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   var people = (s.faces || []).map(function (a) {
@@ -9245,11 +9246,17 @@ function LivingCircleCardLive({
       name: ""
     };
   });
+  // w — фикс-ширина для ГОРИЗОНТАЛЬНОЙ ленты обзора (David: «в ленте должна быть ИХ карточка
+  // с орбитами, не новая»); без w — прежняя полноширинная карточка страницы «Круги».
   return /*#__PURE__*/React.createElement("button", {
     onClick: onTap,
     className: "tap",
     style: {
-      width: "100%",
+      width: w || "100%",
+      ...(w ? {
+        flex: "0 0 auto",
+        scrollSnapAlign: "start"
+      } : {}),
       background: "var(--card)",
       border: 0,
       borderRadius: 22,

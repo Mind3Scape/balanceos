@@ -328,6 +328,16 @@ function SettingsLive() {
   };
   const isDark = app?.themeOverride === "dark";
   const setDark = (on) => app?.setThemeOverride(on ? "dark" : "light");
+  // «Эффект стекла» (David: «тоггл — и так и так посмотреть смогу, и нагружает телефон»):
+  // ВЫКЛ глушит все backdrop-размытия через body.bos-noglass (CSS), вид почти тот же.
+  const [glassOn, setGlassOn] = React.useState(() => {
+    try { return localStorage.getItem("bos:glass") !== "0"; } catch (e) { return true; }
+  });
+  const setGlassPersist = (on) => {
+    setGlassOn(on);
+    try { localStorage.setItem("bos:glass", on ? "1" : "0"); } catch (e) {}
+    try { window.dispatchEvent(new Event("bos:glassChanged")); } catch (e) {}
+  };
   // Вкладка «Я» внизу (слияние Главной и «Привычек»): дефолт ВКЛ; выключил — заходи через
   // аватар в сводке дня. Если сводку убрали с доски, вкладка показывается принудительно
   // (app.jsx), чтобы дверь в настройки не захлопнулась.
@@ -374,7 +384,8 @@ function SettingsLive() {
 
       {group("Предпочтения", [
         toggleRow(I.Eye, "Тёмная тема", isDark, setDark),
-        toggleRow(I.Bell, "Push-уведомления", push, setPushPersist, true),
+        toggleRow(I.Bell, "Push-уведомления", push, setPushPersist),
+        toggleRow(I.Sparkles, "Эффект стекла", glassOn, setGlassPersist, true),
       ])}
 
       {group("Главный экран", [

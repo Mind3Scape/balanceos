@@ -872,6 +872,7 @@ function CommunityLive() {
     className: "bos-hscroll",
     style: {
       display: "flex",
+      alignItems: "stretch",
       gap: 10,
       overflowX: "auto",
       padding: "3px 0 14px",
@@ -879,9 +880,11 @@ function CommunityLive() {
       WebkitOverflowScrolling: "touch",
       marginTop: -2
     }
-  }, LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement("button", {
+  }, LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
     key: s.id,
-    onClick: () => {
+    circle: s,
+    w: 324,
+    onTap: () => {
       if (window.tgHaptic) {
         try {
           window.tgHaptic("selection");
@@ -891,56 +894,8 @@ function CommunityLive() {
         circle: s,
         navigate: navigate
       }));
-    },
-    className: "tap",
-    style: {
-      flex: "0 0 auto",
-      width: 152,
-      scrollSnapAlign: "start",
-      background: "var(--card)",
-      border: 0,
-      borderRadius: 18,
-      padding: 13,
-      textAlign: "left",
-      color: "var(--text)",
-      boxShadow: "var(--card-shadow)",
-      display: "flex",
-      flexDirection: "column",
-      gap: 9,
-      cursor: "pointer"
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 13,
-      background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))",
-      boxShadow: typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 20
-    }
-  }, bosIcon(s.i, 20, null)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 14,
-      fontWeight: 600,
-      letterSpacing: "-0.2px",
-      lineHeight: 1.25
-    }
-  }, s.t), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 11.5,
-      color: "#1E8E4E",
-      fontWeight: 600,
-      marginTop: 3
-    }
-  }, "\u0441\u0435\u0433\u043E\u0434\u043D\u044F ", s.today, " \u0432 \u0434\u0435\u043B\u0435")))), SEED_CIRCLES.map(s => {
+  })), SEED_CIRCLES.map(s => {
     var mine = (app?.teams || []).find(t => t.seedId === s.id);
     return /*#__PURE__*/React.createElement("button", {
       key: s.id,
@@ -976,6 +931,7 @@ function CommunityLive() {
         boxShadow: "var(--card-shadow)",
         display: "flex",
         flexDirection: "column",
+        justifyContent: "center",
         gap: 9,
         cursor: "pointer"
       }
@@ -1107,6 +1063,7 @@ function CommunityLive() {
     className: "bos-hscroll",
     style: {
       display: "flex",
+      alignItems: "stretch",
       gap: 10,
       overflowX: "auto",
       padding: "3px 0 14px",
@@ -1123,82 +1080,124 @@ function CommunityLive() {
     className: "tap",
     style: {
       flex: "0 0 auto",
-      width: 196,
+      width: 305,
       scrollSnapAlign: "start",
       background: "var(--card)",
+      borderRadius: 22,
+      padding: 16,
+      boxShadow: "var(--card-shadow)",
       border: 0,
-      borderRadius: 18,
-      padding: 13,
       textAlign: "left",
       color: "var(--text)",
-      boxShadow: "var(--card-shadow)",
       display: "flex",
       flexDirection: "column",
       cursor: "pointer"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      justifyContent: "space-between"
+      gap: 8,
+      flexWrap: "wrap"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 40,
-      height: 40,
-      borderRadius: "50%",
-      background: c.accent,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 20
+      fontWeight: 700,
+      fontSize: 17,
+      color: "var(--text)",
+      letterSpacing: "-0.3px"
     }
-  }, c.i), /*#__PURE__*/React.createElement("span", {
+  }, c.t), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 9.5,
-      padding: "2px 7px",
+      fontSize: 10,
+      padding: "2px 8px",
       background: "var(--card-2)",
       borderRadius: 999,
       color: "var(--text-4)",
       textTransform: "uppercase",
-      letterSpacing: 0.5,
+      letterSpacing: 0.6,
       fontWeight: 600
     }
-  }, c.lvl)), /*#__PURE__*/React.createElement("span", {
+  }, c.lvl)), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 14.5,
-      fontWeight: 700,
-      letterSpacing: "-0.2px",
-      marginTop: 10,
-      lineHeight: 1.2
+      fontSize: 13,
+      color: "var(--text-3)",
+      marginTop: 6,
+      lineHeight: 1.45,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden"
     }
-  }, c.t), /*#__PURE__*/React.createElement("span", {
+  }, c.d), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11.5,
+      fontSize: 11,
       color: "var(--text-4)",
-      marginTop: 3
+      marginTop: 6,
+      display: "flex",
+      gap: 10
     }
-  }, "\u23F1 ", c.length, " \xB7 \uD83D\uDCC5 ", c.cohort), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, "\u23F1 ", c.length), /*#__PURE__*/React.createElement("span", null, "\xB7"), /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCC5 ", c.cohort))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 46,
+      height: 46,
+      borderRadius: "50%",
+      background: c.accent,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 22,
+      flexShrink: 0
+    }
+  }, c.i)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "center",
       justifyContent: "space-between",
-      marginTop: 10
+      alignItems: "center",
+      borderTop: "1px solid var(--line)",
+      paddingTop: 12,
+      marginTop: "auto"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13.5,
-      fontWeight: 700
+      fontSize: 11,
+      color: "var(--text-4)",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      fontWeight: 600
     }
-  }, c.price), /*#__PURE__*/React.createElement("span", {
+  }, "\u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "var(--text-3)",
+      fontSize: 16,
+      fontWeight: 700,
+      marginTop: 2,
+      color: "var(--text)"
+    }
+  }, c.price)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "var(--cta, #0a0a0a)",
+      color: "var(--cta-ink, #fff)",
+      borderRadius: 999,
+      padding: "10px 18px",
       display: "inline-flex",
-      alignItems: "center"
+      alignItems: "center",
+      gap: 6,
+      fontSize: 13,
+      fontWeight: 500
     }
-  }, "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 13
+  }, "\u041E \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0435 ", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 14
   }))))))), filter === "training" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",

@@ -3673,11 +3673,13 @@ function NetworkPeekLive({ unlocked, onOpen }) {
    КАК настоящая плитка совместной цели на «Привычках» — слева имя + живое «сегодня N в деле»
    + чипы привычек, справа НАСТОЯЩАЯ орбита GoalOrbitMini (привычки круга + лица людей).
    Тап → та же шторка-превью с «Постучаться». */
-function LivingCircleCardLive({ circle: s, onTap }) {
+function LivingCircleCardLive({ circle: s, onTap, w = null }) {
   const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   const people = (s.faces || []).map(function (a) { return { avatar: a, name: "" }; });
+  // w — фикс-ширина для ГОРИЗОНТАЛЬНОЙ ленты обзора (David: «в ленте должна быть ИХ карточка
+  // с орбитами, не новая»); без w — прежняя полноширинная карточка страницы «Круги».
   return (
-    <button onClick={onTap} className="tap" style={{ width: "100%", background: "var(--card)", border: 0, borderRadius: 22, padding: "14px 8px 14px 16px", boxShadow: "var(--card-shadow)", textAlign: "left", color: "var(--text)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", overflow: "hidden" }}>
+    <button onClick={onTap} className="tap" style={{ width: w || "100%", ...(w ? { flex: "0 0 auto", scrollSnapAlign: "start" } : {}), background: "var(--card)", border: 0, borderRadius: 22, padding: "14px 8px 14px 16px", boxShadow: "var(--card-shadow)", textAlign: "left", color: "var(--text)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", overflow: "hidden" }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", lineHeight: 1.2 }}>{s.t}</div>
         <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4, fontWeight: 500 }}>

@@ -359,21 +359,15 @@ function CommunityLive() {
                 с «Постучаться», челлендж → подтверждение → старт, пресет → форма создания. */}
             {filter === "all" ? (
               <React.Fragment>
-              {/* Обзор (David: «каждая категория со скроллом вбок, а не всё в высоту»):
-                  круги — ОДНА горизонтальная лента компакт-плиток (живые с зелёным «сегодня
-                  N в деле» + челленджи с бонусом). Большие карточки с орбитами живут на
-                  странице категории (чип «Круги»). */}
+              {/* Обзор (David: «каждая категория со скроллом вбок» + «в ленте должна быть ИХ
+                  карточка с орбитами, не новая»): живые круги — НАСТОЯЩИЕ карточки
+                  LivingCircleCardLive (лица и привычки на кольцах), фикс-ширина в ленте,
+                  соседняя выглядывает; следом — компакт-плитки челленджей. */}
               <CommSectionHeadLive title="🌱 Круги" onAll={() => setFilter("circles")} />
-              <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "3px 0 14px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", marginTop: -2 }}>
+              <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 0 14px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", marginTop: -2 }}>
                 {LIVING_CIRCLES.map((s) => (
-                  <button key={s.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} className="tap"
-                    style={{ flex: "0 0 auto", width: 152, scrollSnapAlign: "start", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", gap: 9, cursor: "pointer" }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 20 }}>{bosIcon(s.i, 20, null)}</span>
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1.25 }}>{s.t}</span>
-                      <span style={{ display: "block", fontSize: 11.5, color: "#1E8E4E", fontWeight: 600, marginTop: 3 }}>сегодня {s.today} в деле</span>
-                    </span>
-                  </button>
+                  <LivingCircleCardLive key={s.id} circle={s} w={324}
+                    onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
                 ))}
                 {SEED_CIRCLES.map((s) => {
                   const mine = (app?.teams || []).find((t) => t.seedId === s.id);
@@ -383,7 +377,7 @@ function CommunityLive() {
                         if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
                         _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
                       }} className="tap"
-                      style={{ flex: "0 0 auto", width: 152, scrollSnapAlign: "start", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", gap: 9, cursor: "pointer" }}>
+                      style={{ flex: "0 0 auto", width: 152, scrollSnapAlign: "start", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", justifyContent: "center", gap: 9, cursor: "pointer" }}>
                       <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 20 }}>{bosIcon(s.emblem, 20, null)}</span>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1.25 }}>{s.name}</span>
@@ -454,23 +448,38 @@ function CommunityLive() {
 
         {filter === "all" && (
           <React.Fragment>
-            {/* ТРЕНИНГИ на обзоре — горизонтальная лента компакт-карточек (David: «тренинги
-                отдельно от партнёров» + «каждая категория со скроллом вбок»). */}
+            {/* ТРЕНИНГИ на обзоре — лента из НАСТОЯЩИХ больших карточек (David: «ужатая по
+                сравнению с оригинальной — используй реальную, и ещё карточку рядом»):
+                тот же макет, что на странице «Тренинги», фикс-ширина — соседняя выглядывает. */}
             <CommSectionHeadLive title="🎓 Тренинги" onAll={() => setFilter("training")} />
-            <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "3px 0 14px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", marginTop: -2 }}>
+            <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 0 14px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", marginTop: -2 }}>
               {courses.map((c, i) => (
                 <button key={c.id} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
-                  style={{ flex: "0 0 auto", width: 196, scrollSnapAlign: "start", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", cursor: "pointer" }}>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ width: 40, height: 40, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 20 }}>{c.i}</span>
-                    <span style={{ fontSize: 9.5, padding: "2px 7px", background: "var(--card-2)", borderRadius: 999, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{c.lvl}</span>
-                  </span>
-                  <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.2px", marginTop: 10, lineHeight: 1.2 }}>{c.t}</span>
-                  <span style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3 }}>⏱ {c.length} · 📅 {c.cohort}</span>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 700 }}>{c.price}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", display: "inline-flex", alignItems: "center" }}>Подробнее <I.ChevronRight size={13} /></span>
-                  </span>
+                  style={{ flex: "0 0 auto", width: 305, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", color: "var(--text)", display: "flex", flexDirection: "column", cursor: "pointer" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 700, fontSize: 17, color: "var(--text)", letterSpacing: "-0.3px" }}>{c.t}</span>
+                        <span style={{ fontSize: 10, padding: "2px 8px", background: "var(--card-2)", borderRadius: 999, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600 }}>{c.lvl}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 6, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.d}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 6, display: "flex", gap: 10 }}>
+                        <span>⏱ {c.length}</span>
+                        <span>·</span>
+                        <span>📅 {c.cohort}</span>
+                      </div>
+                    </div>
+                    <div style={{ width: 46, height: 46, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{c.i}</div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--line)", paddingTop: 12, marginTop: "auto" }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Стоимость</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{c.price}</div>
+                    </div>
+                    <span style={{ background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", borderRadius: 999, padding: "10px 18px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500 }}>
+                      О тренинге <I.ChevronRight size={14} />
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>

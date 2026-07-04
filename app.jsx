@@ -200,7 +200,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v537";
+const APP_VERSION = "v538";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -728,6 +728,15 @@ function PhoneApp() {
     open: (node) => setSheet(node),
     close: () => setSheet(null),
   }), []);
+
+  // «Эффект стекла» (David): bos:glass="0" → body.bos-noglass, CSS глушит все
+  // backdrop-размытия (экономия GPU на слабых телефонах). Дефолт — ВКЛ.
+  useEffect(() => {
+    const apply = () => { try { document.body.classList.toggle("bos-noglass", localStorage.getItem("bos:glass") === "0"); } catch (e) {} };
+    apply();
+    window.addEventListener("bos:glassChanged", apply);
+    return () => window.removeEventListener("bos:glassChanged", apply);
+  }, []);
 
   // ── LIVE-вкладки (слияние Главной и «Привычек») ─────────────────────────────
   // Тумблер «Вкладка „Я“ внизу» живёт в настройках (bos:profileTab, дефолт ВКЛ).
