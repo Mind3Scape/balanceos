@@ -1539,8 +1539,7 @@ function TeamDetailLive() {
     if (out.length < 2 && gTgt > 0 && gCur > 0 && gRemaining > 0 && gRemaining / gTgt <= 0.25) out.push("💪 финишная прямая");
     return out.slice(0, 2);
   }();
-  var heroTint = isDark ? teamColor ? bosMixHex(teamColor, "#101014", 0.72) : "#1b1b1f" : teamColor ? bosMixHex(teamColor, "#ffffff", 0.84) : "#ECECF1";
-  var heroBg = "linear-gradient(180deg, " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)") + ", rgba(255,255,255,0) 58%), " + heroTint;
+  var H = bosGoalHero(teamColor, isDark);
   var heroBtn = {
     width: 38,
     height: 38,
@@ -1549,26 +1548,26 @@ function TeamDetailLive() {
     display: "grid",
     placeItems: "center",
     cursor: "pointer",
-    background: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.62)",
-    color: isDark ? "#fff" : "#1b1b1f",
+    background: H.btnBg,
+    color: H.btnInk,
     flexShrink: 0
   };
   var heroChip = {
     display: "inline-flex",
     alignItems: "center",
     gap: 4,
-    background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.62)",
+    background: H.chipBg,
     borderRadius: 999,
     padding: "5px 11px",
     fontSize: 12,
     fontWeight: 600,
-    color: isDark ? "rgba(255,255,255,0.92)" : "#2a2a30",
+    color: H.chipInk,
     whiteSpace: "nowrap"
   };
   var heroChipAI = Object.assign({}, heroChip, {
-    background: isDark ? "rgba(120,150,220,0.24)" : "rgba(255,255,255,0.92)",
-    color: isDark ? "#dfe6ff" : "#3a4a68",
-    boxShadow: isDark ? "none" : "0 1px 4px rgba(40,60,110,0.10)"
+    background: H.chipAiBg,
+    color: H.chipAiInk,
+    boxShadow: H.onDark ? "none" : "0 1px 4px rgba(40,60,110,0.12)"
   });
   var editGoalLike = {
     _id: t._id,
@@ -1599,7 +1598,7 @@ function TeamDetailLive() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      background: heroBg,
+      background: H.bg,
       marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
       padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
       borderBottomLeftRadius: 30,
@@ -1663,10 +1662,12 @@ function TeamDetailLive() {
     "aria-label": "\u0427\u0430\u0442 \u0446\u0435\u043B\u0438",
     style: {
       ...heroBtn,
-      position: "relative",
-      fontSize: 17
+      position: "relative"
     }
-  }, "\uD83D\uDCAC", _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement(I.MessageCircle, {
+    size: 16,
+    strokeWidth: 2
+  }), _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
       top: -2,
@@ -1681,7 +1682,7 @@ function TeamDetailLive() {
       padding: "0 4px",
       display: "grid",
       placeItems: "center",
-      border: "1.5px solid " + (isDark ? "#151519" : "#fff")
+      border: "1.5px solid " + (H.onDark ? "rgba(0,0,0,0.45)" : "#fff")
     }
   }, chatPeek.unread > 99 ? "99+" : chatPeek.unread)))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1765,7 +1766,7 @@ function TeamDetailLive() {
       fontWeight: 800,
       marginTop: 8,
       letterSpacing: "-0.5px",
-      color: "var(--text)"
+      color: H.ink
     }
   }, /*#__PURE__*/React.createElement(CountC, {
     value: Math.round(gp * 100)
@@ -1773,15 +1774,22 @@ function TeamDetailLive() {
     style: {
       fontSize: 21,
       fontWeight: 700,
-      color: "var(--text)",
+      color: H.ink,
       marginTop: 5,
       letterSpacing: "-0.4px"
     }
-  }, t.name), desc ? /*#__PURE__*/React.createElement("div", {
+  }, t.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: H.sub,
+      marginTop: 4
+    }
+  }, modeMeta.e, " ", modeMeta.t, " \xB7 ", t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"), desc ? /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: isDark ? "rgba(255,255,255,0.72)" : "rgba(20,20,25,0.6)",
-      marginTop: 6,
+      color: H.sub,
+      marginTop: 7,
       lineHeight: 1.45,
       maxWidth: 300,
       marginLeft: "auto",
@@ -1793,19 +1801,15 @@ function TeamDetailLive() {
       flexWrap: "wrap",
       justifyContent: "center",
       gap: 6,
-      marginTop: 13
+      marginTop: 14
     }
   }, gTgt > 0 && /*#__PURE__*/React.createElement("span", {
     style: heroChip
-  }, "\uD83C\uDFAF ", gCur, "/", gTgt, " ", gUnit), gTgt > 0 && gRemaining > 0 && /*#__PURE__*/React.createElement("span", {
+  }, "\uD83C\uDFAF ", gCur, "/", gTgt, " ", gUnit), gTgt > 0 && gRemaining > 0 && !gDone && /*#__PURE__*/React.createElement("span", {
     style: heroChip
   }, "\u23F3 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", gRemaining), /*#__PURE__*/React.createElement("span", {
     style: heroChip
-  }, "\uD83D\uDC65 ", _rosterLoading ? "…" : members.length), /*#__PURE__*/React.createElement("span", {
-    style: heroChip
-  }, modeMeta.e, " ", modeMeta.t), /*#__PURE__*/React.createElement("span", {
-    style: heroChip
-  }, t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"), aiChips.map((ch, i) => /*#__PURE__*/React.createElement("span", {
+  }, "\uD83D\uDC65 ", _rosterLoading ? "…" : members.length), aiChips.map((ch, i) => /*#__PURE__*/React.createElement("span", {
     key: "ai" + i,
     style: heroChipAI
   }, ch)))), /*#__PURE__*/React.createElement("div", {

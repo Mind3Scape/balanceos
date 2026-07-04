@@ -766,20 +766,17 @@ function TeamDetailLive() {
     if (out.length < 2 && gTgt > 0 && gCur > 0 && gRemaining > 0 && (gRemaining / gTgt) <= 0.25) out.push("💪 финишная прямая");
     return out.slice(0, 2);
   })();
-  const heroTint = isDark
-    ? (teamColor ? bosMixHex(teamColor, "#101014", 0.72) : "#1b1b1f")
-    : (teamColor ? bosMixHex(teamColor, "#ffffff", 0.84) : "#ECECF1");
-  const heroBg = "linear-gradient(180deg, " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)") + ", rgba(255,255,255,0) 58%), " + heroTint;
-  const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.62)", color: isDark ? "#fff" : "#1b1b1f", flexShrink: 0 };
-  const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.62)", borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.92)" : "#2a2a30", whiteSpace: "nowrap" };
-  const heroChipAI = Object.assign({}, heroChip, { background: isDark ? "rgba(120,150,220,0.24)" : "rgba(255,255,255,0.92)", color: isDark ? "#dfe6ff" : "#3a4a68", boxShadow: isDark ? "none" : "0 1px 4px rgba(40,60,110,0.10)" });
+  const H = bosGoalHero(teamColor, isDark);
+  const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: H.btnBg, color: H.btnInk, flexShrink: 0 };
+  const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: H.chipBg, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: H.chipInk, whiteSpace: "nowrap" };
+  const heroChipAI = Object.assign({}, heroChip, { background: H.chipAiBg, color: H.chipAiInk, boxShadow: H.onDark ? "none" : "0 1px 4px rgba(40,60,110,0.12)" });
   const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: desc, joined: t.joined, habitIds: [] };
   return (
     <div className="page-in" style={{ paddingBottom: 24 }}>
       {/* HERO — full-bleed до самого верха, снизу скруглён (как у партнёра). Внутри: назад слева;
           правка(владелец)/позвать/ЧАТ стеклом справа; орбита-пульс, %, имя, описание; вся инфа
           под орбитой = ЧИПЫ (люди/осталось/режим/приватность) + 1-2 чипа «от ИИ». David-редизайн. */}
-      <div style={{ position: "relative", background: heroBg,
+      <div style={{ position: "relative", background: H.bg,
           marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
           padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
           borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
@@ -789,8 +786,8 @@ function TeamDetailLive() {
             {_isOwner && <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" data-haptic="selection" aria-label="Настройки цели" style={heroBtn}><I.Pencil size={16} strokeWidth={2} /></button>}
             <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={heroBtn}><I.Share size={16} strokeWidth={2} /></button>
             {/* ЧАТ — стеклянная кнопка справа В HERO (David); значок непрочитанных сохранён. */}
-            <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" aria-label="Чат цели" style={{ ...heroBtn, position: "relative", fontSize: 17 }}>💬
-              {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -2, right: -2, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 17, height: 17, padding: "0 4px", display: "grid", placeItems: "center", border: "1.5px solid " + (isDark ? "#151519" : "#fff") }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
+            <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" aria-label="Чат цели" style={{ ...heroBtn, position: "relative" }}><I.MessageCircle size={16} strokeWidth={2} />
+              {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -2, right: -2, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 17, height: 17, padding: "0 4px", display: "grid", placeItems: "center", border: "1.5px solid " + (H.onDark ? "rgba(0,0,0,0.45)" : "#fff") }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
             </button>
           </div>
         </div>
@@ -811,16 +808,17 @@ function TeamDetailLive() {
               <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIcon(t.emblem || "👥", 34, null)}</div>
             </div>
           )}
-          <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, letterSpacing: "-0.5px", color: "var(--text)" }}><CountC value={Math.round(gp * 100)} />%</div>
-          <div style={{ fontSize: 21, fontWeight: 700, color: "var(--text)", marginTop: 5, letterSpacing: "-0.4px" }}>{t.name}</div>
-          {desc ? <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.72)" : "rgba(20,20,25,0.6)", marginTop: 6, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
+          <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, letterSpacing: "-0.5px", color: H.ink }}><CountC value={Math.round(gp * 100)} />%</div>
+          <div style={{ fontSize: 21, fontWeight: 700, color: H.ink, marginTop: 5, letterSpacing: "-0.4px" }}>{t.name}</div>
+          {/* Контекст цели (режим + приватность) — ТИХОЙ строкой под именем, чтобы чипы ниже несли
+              ТОЛЬКО метрики (David: «чипы со смыслом, не хаотично раскиданы»). */}
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: H.sub, marginTop: 4 }}>{modeMeta.e} {modeMeta.t} · {t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</div>
+          {desc ? <div style={{ fontSize: 13, color: H.sub, marginTop: 7, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 13 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 14 }}>
           {gTgt > 0 && <span style={heroChip}>🎯 {gCur}/{gTgt} {gUnit}</span>}
-          {gTgt > 0 && gRemaining > 0 && <span style={heroChip}>⏳ осталось {gRemaining}</span>}
+          {gTgt > 0 && gRemaining > 0 && !gDone && <span style={heroChip}>⏳ осталось {gRemaining}</span>}
           <span style={heroChip}>👥 {_rosterLoading ? "…" : members.length}</span>
-          <span style={heroChip}>{modeMeta.e} {modeMeta.t}</span>
-          <span style={heroChip}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
           {aiChips.map((ch, i) => <span key={"ai" + i} style={heroChipAI}>{ch}</span>)}
         </div>
       </div>

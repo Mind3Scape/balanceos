@@ -227,6 +227,36 @@ function bosMixHex(hx, to, t) {
   var mk = function (a, b) { return Math.round(a + (b - a) * k).toString(16).padStart(2, "0"); };
   return "#" + mk(pr(hx, 1), pr(to, 1)) + mk(pr(hx, 3), pr(to, 3)) + mk(pr(hx, 5), pr(to, 5));
 }
+// Яркость цвета (0..1) — для выбора контрастного текста поверх него.
+function bosLum(hx) {
+  if (!(hx && hx[0] === "#" && hx.length >= 7)) return 1;
+  var r = parseInt(hx.slice(1, 3), 16), g = parseInt(hx.slice(3, 5), 16), b = parseInt(hx.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+// ЕДИНЫЙ premium-рецепт hero-шапки карточки ЦЕЛИ (личной И общей — David: «это одно и то же»):
+// не бледная выбеленная заливка, а НАСТОЯЩИЙ диагональный градиент цвета цели (светлее→глубже) +
+// мягкое сияние сверху; текст/кнопки/чипы адаптируются к яркости (тёмный текст на светлом тоне,
+// белый — на глубоком). Нейтральная цель (без цвета) → деликатный серый градиент, не плоскота.
+// Возвращает готовые токены, чтобы обе карточки выглядели идентично и «богаче партнёрской».
+function bosGoalHero(color, isDark) {
+  var neutral = !color || color === (typeof BOS_GREY !== "undefined" ? BOS_GREY : "#8E8E93") || ("" + color).toLowerCase() === "#0a0a0a" || color === "#8E8E93" || color === "#EAEAEF";
+  var c1, c2;
+  if (neutral) { c1 = isDark ? "#27272e" : "#F2F2F6"; c2 = isDark ? "#191920" : "#E3E3EC"; }
+  else { c1 = bosMixHex(color, isDark ? "#0e0e12" : "#ffffff", isDark ? 0.50 : 0.66); c2 = bosMixHex(color, isDark ? "#0e0e12" : "#ffffff", isDark ? 0.26 : 0.40); }
+  var onDark = bosLum(c2) < 0.58;
+  return {
+    bg: "radial-gradient(135% 100% at 50% -15%, rgba(255,255,255," + (onDark ? "0.20" : "0.55") + "), rgba(255,255,255,0) 60%), linear-gradient(157deg, " + c1 + " 0%, " + c2 + " 100%)",
+    ink: onDark ? "#ffffff" : "#16161a",
+    sub: onDark ? "rgba(255,255,255,0.78)" : "rgba(22,22,26,0.56)",
+    btnBg: onDark ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.72)",
+    btnInk: onDark ? "#ffffff" : "#1b1b1f",
+    chipBg: onDark ? "rgba(255,255,255,0.17)" : "rgba(255,255,255,0.66)",
+    chipInk: onDark ? "rgba(255,255,255,0.96)" : "#26262c",
+    chipAiBg: onDark ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.96)",
+    chipAiInk: "#3a5a8c",
+    onDark: onDark,
+  };
+}
 // Пустая клетка календаря = МЯГКИЙ тон цвета привычки (David: «пустые дни должны стать мягко-
 // зелёными/любой цвет, а не серыми»). Цвет на низкой альфе → еле-еле в тон; фолбэк серый.
 // Стеклянное кольцо «СЕГОДНЯ» — ЕДИНОЕ внутри (календарь) и снаружи (страйп на карточке), David:

@@ -281,18 +281,15 @@ function GoalDetailPersonalLive() {
   const _hn = linked.length;
   const _habitWord = (_hn % 10 === 1 && _hn % 100 !== 11) ? "привычка" : ((_hn % 10 >= 2 && _hn % 10 <= 4 && (_hn % 100 < 12 || _hn % 100 > 14)) ? "привычки" : "привычек");
   const teamColor = (g.color && ("" + g.color).toLowerCase() !== "#0a0a0a" && g.color !== "#8E8E93" && g.color !== "#EAEAEF") ? g.color : null;
-  const heroTint = isDark
-    ? (teamColor && typeof bosMixHex === "function" ? bosMixHex(teamColor, "#101014", 0.72) : "#1b1b1f")
-    : (teamColor && typeof bosMixHex === "function" ? bosMixHex(teamColor, "#ffffff", 0.84) : "#ECECF1");
-  const heroBg = "linear-gradient(180deg, " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)") + ", rgba(255,255,255,0) 58%), " + heroTint;
-  const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.62)", color: isDark ? "#fff" : "#1b1b1f", flexShrink: 0 };
-  const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.62)", borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.92)" : "#2a2a30", whiteSpace: "nowrap" };
-  const heroChipAI = Object.assign({}, heroChip, { background: isDark ? "rgba(120,150,220,0.24)" : "rgba(255,255,255,0.92)", color: isDark ? "#dfe6ff" : "#3a4a68", boxShadow: isDark ? "none" : "0 1px 4px rgba(40,60,110,0.10)" });
+  const H = bosGoalHero(teamColor, isDark);
+  const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: H.btnBg, color: H.btnInk, flexShrink: 0 };
+  const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: H.chipBg, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: H.chipInk, whiteSpace: "nowrap" };
+  const heroChipAI = Object.assign({}, heroChip, { background: H.chipAiBg, color: H.chipAiInk, boxShadow: H.onDark ? "none" : "0 1px 4px rgba(40,60,110,0.12)" });
   return (
     <div className="page-in" style={{ paddingBottom: 24 }}>
       {/* HERO — full-bleed до самого верха, снизу радиус 30 (как у общей цели/партнёра): правка+
           поделиться стеклом справа; орбита/кольцо, %, имя, ОПИСАНИЕ; инфа под орбитой = ЧИПЫ + от ИИ. */}
-      <div style={{ position: "relative", background: heroBg,
+      <div style={{ position: "relative", background: H.bg,
           marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
           padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
           borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
@@ -317,15 +314,16 @@ function GoalDetailPersonalLive() {
               <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 36, lineHeight: 1 }}>{bosIcon(g.emoji, 34, g.color)}</div>
             </div>
           )}
-          <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, letterSpacing: "-0.5px", color: "var(--text)" }}><Count value={Math.round(pct * 100)} />%</div>
-          <div style={{ fontSize: 21, fontWeight: 700, color: "var(--text)", marginTop: 5, letterSpacing: "-0.4px" }}>{g.name}</div>
-          {desc ? <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.72)" : "rgba(20,20,25,0.6)", marginTop: 6, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
+          <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, letterSpacing: "-0.5px", color: H.ink }}><Count value={Math.round(pct * 100)} />%</div>
+          <div style={{ fontSize: 21, fontWeight: 700, color: H.ink, marginTop: 5, letterSpacing: "-0.4px" }}>{g.name}</div>
+          {/* Срок — ТИХОЙ строкой под именем (контекст «когда»), чтобы чипы ниже несли ТОЛЬКО метрики. */}
+          {g.deadline ? <div style={{ fontSize: 12.5, fontWeight: 600, color: H.sub, marginTop: 4 }}>📅 до {(typeof bosFmtDeadline === "function") ? bosFmtDeadline(g.deadline) : g.deadline}</div> : null}
+          {desc ? <div style={{ fontSize: 13, color: H.sub, marginTop: 7, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 13 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 14 }}>
           {g.target > 0 && <span style={heroChip}>🎯 {cur}/{g.target} {g.unit}</span>}
-          {g.target > 0 && remaining > 0 && <span style={heroChip}>⏳ осталось {remaining}</span>}
+          {g.target > 0 && remaining > 0 && !done && <span style={heroChip}>⏳ осталось {remaining}</span>}
           {linked.length > 0 && <span style={heroChip}>🔁 {linked.length} {_habitWord}</span>}
-          {g.deadline ? <span style={heroChip}>📅 до {(typeof bosFmtDeadline === "function") ? bosFmtDeadline(g.deadline) : g.deadline}</span> : null}
           {aiChips.map((ch, i) => <span key={"ai" + i} style={heroChipAI}>{ch}</span>)}
         </div>
       </div>

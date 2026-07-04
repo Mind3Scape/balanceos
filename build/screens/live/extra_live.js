@@ -474,8 +474,7 @@ function GoalDetailPersonalLive() {
   var _hn = linked.length;
   var _habitWord = _hn % 10 === 1 && _hn % 100 !== 11 ? "привычка" : _hn % 10 >= 2 && _hn % 10 <= 4 && (_hn % 100 < 12 || _hn % 100 > 14) ? "привычки" : "привычек";
   var teamColor = g.color && ("" + g.color).toLowerCase() !== "#0a0a0a" && g.color !== "#8E8E93" && g.color !== "#EAEAEF" ? g.color : null;
-  var heroTint = isDark ? teamColor && typeof bosMixHex === "function" ? bosMixHex(teamColor, "#101014", 0.72) : "#1b1b1f" : teamColor && typeof bosMixHex === "function" ? bosMixHex(teamColor, "#ffffff", 0.84) : "#ECECF1";
-  var heroBg = "linear-gradient(180deg, " + (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)") + ", rgba(255,255,255,0) 58%), " + heroTint;
+  var H = bosGoalHero(teamColor, isDark);
   var heroBtn = {
     width: 38,
     height: 38,
@@ -484,26 +483,26 @@ function GoalDetailPersonalLive() {
     display: "grid",
     placeItems: "center",
     cursor: "pointer",
-    background: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.62)",
-    color: isDark ? "#fff" : "#1b1b1f",
+    background: H.btnBg,
+    color: H.btnInk,
     flexShrink: 0
   };
   var heroChip = {
     display: "inline-flex",
     alignItems: "center",
     gap: 4,
-    background: isDark ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.62)",
+    background: H.chipBg,
     borderRadius: 999,
     padding: "5px 11px",
     fontSize: 12,
     fontWeight: 600,
-    color: isDark ? "rgba(255,255,255,0.92)" : "#2a2a30",
+    color: H.chipInk,
     whiteSpace: "nowrap"
   };
   var heroChipAI = Object.assign({}, heroChip, {
-    background: isDark ? "rgba(120,150,220,0.24)" : "rgba(255,255,255,0.92)",
-    color: isDark ? "#dfe6ff" : "#3a4a68",
-    boxShadow: isDark ? "none" : "0 1px 4px rgba(40,60,110,0.10)"
+    background: H.chipAiBg,
+    color: H.chipAiInk,
+    boxShadow: H.onDark ? "none" : "0 1px 4px rgba(40,60,110,0.12)"
   });
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
@@ -513,7 +512,7 @@ function GoalDetailPersonalLive() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
-      background: heroBg,
+      background: H.bg,
       marginTop: "calc(-1 * max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))))",
       padding: "calc(max(60px, var(--tg-top-inset, env(safe-area-inset-top, 0px))) + 10px) 18px 20px",
       borderBottomLeftRadius: 30,
@@ -642,7 +641,7 @@ function GoalDetailPersonalLive() {
       fontWeight: 800,
       marginTop: 8,
       letterSpacing: "-0.5px",
-      color: "var(--text)"
+      color: H.ink
     }
   }, /*#__PURE__*/React.createElement(Count, {
     value: Math.round(pct * 100)
@@ -650,15 +649,22 @@ function GoalDetailPersonalLive() {
     style: {
       fontSize: 21,
       fontWeight: 700,
-      color: "var(--text)",
+      color: H.ink,
       marginTop: 5,
       letterSpacing: "-0.4px"
     }
-  }, g.name), desc ? /*#__PURE__*/React.createElement("div", {
+  }, g.name), g.deadline ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: H.sub,
+      marginTop: 4
+    }
+  }, "\uD83D\uDCC5 \u0434\u043E ", typeof bosFmtDeadline === "function" ? bosFmtDeadline(g.deadline) : g.deadline) : null, desc ? /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: isDark ? "rgba(255,255,255,0.72)" : "rgba(20,20,25,0.6)",
-      marginTop: 6,
+      color: H.sub,
+      marginTop: 7,
       lineHeight: 1.45,
       maxWidth: 300,
       marginLeft: "auto",
@@ -670,17 +676,15 @@ function GoalDetailPersonalLive() {
       flexWrap: "wrap",
       justifyContent: "center",
       gap: 6,
-      marginTop: 13
+      marginTop: 14
     }
   }, g.target > 0 && /*#__PURE__*/React.createElement("span", {
     style: heroChip
-  }, "\uD83C\uDFAF ", cur, "/", g.target, " ", g.unit), g.target > 0 && remaining > 0 && /*#__PURE__*/React.createElement("span", {
+  }, "\uD83C\uDFAF ", cur, "/", g.target, " ", g.unit), g.target > 0 && remaining > 0 && !done && /*#__PURE__*/React.createElement("span", {
     style: heroChip
   }, "\u23F3 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", remaining), linked.length > 0 && /*#__PURE__*/React.createElement("span", {
     style: heroChip
-  }, "\uD83D\uDD01 ", linked.length, " ", _habitWord), g.deadline ? /*#__PURE__*/React.createElement("span", {
-    style: heroChip
-  }, "\uD83D\uDCC5 \u0434\u043E ", typeof bosFmtDeadline === "function" ? bosFmtDeadline(g.deadline) : g.deadline) : null, aiChips.map((ch, i) => /*#__PURE__*/React.createElement("span", {
+  }, "\uD83D\uDD01 ", linked.length, " ", _habitWord), aiChips.map((ch, i) => /*#__PURE__*/React.createElement("span", {
     key: "ai" + i,
     style: heroChipAI
   }, ch)))), /*#__PURE__*/React.createElement("div", {
