@@ -312,12 +312,9 @@ function AILive() {
           активность (надёжно, офлайн), строку-контекст сверху добавляет ИИ. Раскладывает ЛЮБУЮ
           привычку/цель — пресет ИЛИ кастомную — по сфере (bosSphereFor: название + эмодзи). */}
       {!isBlank && (
-        <React.Fragment>
-          <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Колесо баланса</div>
-          <div style={{ marginTop: 8 }}>
-            <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} tint={liveTint} />
-          </div>
-        </React.Fragment>
+        <div style={{ marginTop: 14 }}>
+          <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} tint={liveTint} />
+        </div>
       )}
 
       {/* «Спроси что угодно» — вход в разговор под колесом (David: кнопка

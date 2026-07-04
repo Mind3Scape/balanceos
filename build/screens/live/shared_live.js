@@ -3023,6 +3023,24 @@ function BosBalanceWheelLive(props) {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
+      paddingBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      letterSpacing: "-0.3px",
+      color: "var(--text)"
+    }
+  }, "\u0411\u0430\u043B\u0430\u043D\u0441 \u0436\u0438\u0437\u043D\u0438"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: dark ? "#98989f" : "var(--text-4)",
+      lineHeight: 1.45,
+      marginTop: 4
+    }
+  }, "\u0418\u0418 \u0441\u0430\u043C \u0441\u043B\u0435\u0434\u0438\u0442 \u0437\u0430 \u0432\u0441\u0435\u043C\u0438 \u0442\u0432\u043E\u0438\u043C\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430\u043C\u0438 \u0438 \u0446\u0435\u043B\u044F\u043C\u0438 \u2014 \u0434\u0430\u0436\u0435 \u0437\u0430 \u043F\u0440\u0438\u0434\u0443\u043C\u0430\u043D\u043D\u044B\u043C\u0438 \u0442\u043E\u0431\u043E\u0439 \u2014 \u0440\u0430\u0441\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442 \u0438\u0445 \u043F\u043E \u0441\u0444\u0435\u0440\u0430\u043C \u0436\u0438\u0437\u043D\u0438 \u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442, \u0433\u0434\u0435 \u0442\u044B \u0432 \u0431\u0430\u043B\u0430\u043D\u0441\u0435, \u0430 \u0433\u0434\u0435 \u043F\u0440\u043E\u0441\u0435\u043B\u043E.")), /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
       justifyContent: "center",
       padding: "2px 0"
@@ -6335,24 +6353,15 @@ function CreateMenuLive({
       animation: "dimIn 0.18s ease both"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    role: "menu",
     onClick: e => e.stopPropagation(),
     style: {
       position: "fixed",
       right: pos.right,
       top: pos.top,
-      transformOrigin: "top right",
-      animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
-      minWidth: 212,
-      padding: 7,
-      borderRadius: 22,
-      // Плотный фон (David: «не делай слишком прозрачным — мешает читать что в меню»): почти
-      // непрозрачное стекло вместо полупрозрачного, содержимое читается на любом фоне.
-      background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",
-      WebkitBackdropFilter: "blur(22px) saturate(150%)",
-      backdropFilter: "blur(22px) saturate(150%)",
-      border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"),
-      boxShadow: "0 16px 44px rgba(0,0,0," + (isDark ? "0.55" : "0.20") + ")"
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      gap: 10
     }
   }, items.map((it, i) => /*#__PURE__*/React.createElement("button", {
     key: i,
@@ -6364,28 +6373,33 @@ function CreateMenuLive({
     },
     className: "tap",
     style: {
-      display: "flex",
+      display: "inline-flex",
       alignItems: "center",
-      gap: 13,
-      width: "100%",
-      padding: "12px 14px",
-      border: 0,
-      background: "transparent",
-      borderRadius: 16,
-      borderTop: i === 2 ? "0.5px solid " + (isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.08)") : 0,
-      // тонкая черта отделяет «готовое» от «своего»
-      fontSize: 16,
+      gap: 11,
+      whiteSpace: "nowrap",
+      padding: "8px 17px 8px 8px",
+      borderRadius: 999,
+      cursor: "pointer",
+      marginTop: i === 2 ? 4 : 0,
+      // лёгкий разрыв: «готовое» ≠ «своё»
+      background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",
+      WebkitBackdropFilter: "blur(22px) saturate(150%)",
+      backdropFilter: "blur(22px) saturate(150%)",
+      border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"),
+      boxShadow: "0 12px 32px rgba(0,0,0," + (isDark ? "0.5" : "0.16") + ")",
+      fontSize: 15.5,
       fontWeight: 600,
       color: isDark ? "#f2f2f5" : "#0a0a0a",
-      cursor: "pointer",
-      textAlign: "left"
+      transformOrigin: "top right",
+      animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both",
+      animationDelay: i * 0.05 + "s"
     }
   }, /*#__PURE__*/React.createElement("span", {
     "aria-hidden": true,
     style: {
-      width: 30,
-      height: 30,
-      borderRadius: 9,
+      width: 34,
+      height: 34,
+      borderRadius: "50%",
       background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.05)",
       display: "grid",
       placeItems: "center",

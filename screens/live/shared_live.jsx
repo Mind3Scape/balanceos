@@ -1434,6 +1434,12 @@ function BosBalanceWheelLive(props) {
 
   return (
     <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
+      {/* Заголовок + пояснение В КАРТОЧКЕ (David): что это ИИ сам следит и раскладывает ЛЮБЫЕ
+          привычки/цели — даже кастомные — по сферам жизни. Название «Баланс жизни» (не «колесо»). */}
+      <div style={{ paddingBottom: 12 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div>
+        <div style={{ fontSize: 12.5, color: dark ? "#98989f" : "var(--text-4)", lineHeight: 1.45, marginTop: 4 }}>ИИ сам следит за всеми твоими привычками и целями — даже за придуманными тобой — раскладывает их по сферам жизни и считает, где ты в балансе, а где просело.</div>
+      </div>
       <div style={{ display: "flex", justifyContent: "center", padding: "2px 0" }}>
         <svg width={S} height={S} viewBox={"0 0 " + S + " " + S} style={{ overflow: "visible", display: "block" }}>
           <defs>
@@ -2765,24 +2771,22 @@ function CreateMenuLive({ open, onClose, anchorRef, navigate }) {
   ];
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
-      <div role="menu" onClick={(e) => e.stopPropagation()} style={{
-        position: "fixed", right: pos.right, top: pos.top, transformOrigin: "top right",
-        animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
-        minWidth: 212, padding: 7, borderRadius: 22,
-        // Плотный фон (David: «не делай слишком прозрачным — мешает читать что в меню»): почти
-        // непрозрачное стекло вместо полупрозрачного, содержимое читается на любом фоне.
-        background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",
-        WebkitBackdropFilter: "blur(22px) saturate(150%)", backdropFilter: "blur(22px) saturate(150%)",
-        border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"), boxShadow: "0 16px 44px rgba(0,0,0," + (isDark ? "0.55" : "0.20") + ")",
-      }}>
+      {/* Три ОТДЕЛЬНЫЕ пилюли (David: «вместо цельной менюшки — три кнопки-пилюли, иконки в
+          кружочках, а не квадратики»). Выскакивают из-под «+» справа, лёгкий стаггер. */}
+      <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", right: pos.right, top: pos.top, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
         {items.map((it, i) => (
           <button key={i} role="menuitem" data-haptic="selection" onClick={() => { onClose(); it.go(); }} className="tap" style={{
-            display: "flex", alignItems: "center", gap: 13, width: "100%",
-            padding: "12px 14px", border: 0, background: "transparent", borderRadius: 16,
-            borderTop: i === 2 ? ("0.5px solid " + (isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.08)")) : 0, // тонкая черта отделяет «готовое» от «своего»
-            fontSize: 16, fontWeight: 600, color: isDark ? "#f2f2f5" : "#0a0a0a", cursor: "pointer", textAlign: "left",
+            display: "inline-flex", alignItems: "center", gap: 11, whiteSpace: "nowrap",
+            padding: "8px 17px 8px 8px", borderRadius: 999, cursor: "pointer",
+            marginTop: i === 2 ? 4 : 0, // лёгкий разрыв: «готовое» ≠ «своё»
+            background: isDark ? "rgba(28,29,34,0.97)" : "rgba(255,255,255,0.97)",
+            WebkitBackdropFilter: "blur(22px) saturate(150%)", backdropFilter: "blur(22px) saturate(150%)",
+            border: "0.5px solid " + (isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"),
+            boxShadow: "0 12px 32px rgba(0,0,0," + (isDark ? "0.5" : "0.16") + ")",
+            fontSize: 15.5, fontWeight: 600, color: isDark ? "#f2f2f5" : "#0a0a0a",
+            transformOrigin: "top right", animation: "bosMenuPop 0.32s cubic-bezier(0.34,1.5,0.4,1) both", animationDelay: (i * 0.05) + "s",
           }}>
-            <span aria-hidden style={{ width: 30, height: 30, borderRadius: 9, background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(it.icon, { size: 18, color: isDark ? "#f2f2f5" : "#0a0a0a", strokeWidth: 1.9 })}</span>
+            <span aria-hidden style={{ width: 34, height: 34, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(it.icon, { size: 18, color: isDark ? "#f2f2f5" : "#0a0a0a", strokeWidth: 1.9 })}</span>
             {it.label}
           </button>
         ))}
