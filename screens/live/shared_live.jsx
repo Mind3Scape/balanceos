@@ -1142,7 +1142,11 @@ async function bosNotifCollectLive(app) {
     // полной ленты на каждый круг; старый полный fetch остаётся фолбэком.
     ...teams.map(async (t) => {
       try {
-        const lastRead = Number(localStorage.getItem("bos:chatread:" + t.cloudId) || 0);
+        // Марка прочтения хранится как ISO-строка (created_at последнего сообщения) — читать через
+        // Date, НЕ Number (Number(ISO)=NaN→эпоха→«непрочитано» горело бы всегда). David: значок
+        // должен зажигаться честно, по реальному непрочитанному.
+        const _lrRaw = localStorage.getItem("bos:chatread:" + t.cloudId);
+        const lastRead = _lrRaw ? new Date(_lrRaw).getTime() : 0;
         if (window.bosCloud.unreadMessages) {
           const u = await window.bosCloud.unreadMessages(t.cloudId, lastRead);
           if (u && u.count) out.chats.push({ team: t, count: u.count, last: u.last });
@@ -1196,6 +1200,30 @@ async function bosNotifHasFreshLive(app) {
   if (!Array.isArray(seen.inv) && d.absorb) bosNotifAbsorbLive(d.absorb);
   return has;
 }
+
+/* Непрочитанные для ВНЕШНЕЙ плитки круга (David: «значок чата должен гореть и на внешней карточке»).
+   Лёгкий count-only HEAD-запрос (cloud.unreadMessages) + кэш 60с в памяти на cloudId, чтобы сетка
+   плиток и ре-рендеры не молотили облако. Возвращает { count } или null. Марку прочтения читаем
+   через Date (та же база времени, что у сообщений). */
+var _bosTeamUnreadCache = {};
+function bosTeamUnreadCacheGet(cloudId) { var c = _bosTeamUnreadCache[cloudId]; return (c && Date.now() - c.at < 60000) ? c : null; }
+async function bosTeamUnreadPeek(cloudId) {
+  if (!cloudId || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.unreadMessages)) return null;
+  var cached = bosTeamUnreadCacheGet(cloudId);
+  if (cached) return cached;
+  try {
+    var raw = localStorage.getItem("bos:chatread:" + cloudId);
+    var since = raw ? new Date(raw).getTime() : 0;
+    var u = await window.bosCloud.unreadMessages(cloudId, since);
+    if (!u) return _bosTeamUnreadCache[cloudId] || null;
+    var rec = { at: Date.now(), count: u.count || 0 };
+    _bosTeamUnreadCache[cloudId] = rec;
+    return rec;
+  } catch (e) { return _bosTeamUnreadCache[cloudId] || null; }
+}
+/* Когда чат прочитан внутри детали — обнулим кэш плитки, чтобы значок сразу погас и на сетке. */
+function bosTeamUnreadClear(cloudId) { if (cloudId) _bosTeamUnreadCache[cloudId] = { at: Date.now(), count: 0 }; }
+try { window.addEventListener("bos:notifSeenChanged", function () { _bosTeamUnreadCache = {}; }); } catch (e) {}
 
 /* Welcome modal shown when you open an invite LINK and land in a shared habit / team — so the
    join is never silent (David: «человек не понимает, что его позвали»). Rendered at app root
@@ -3000,18 +3028,27 @@ function bosGoalSkin(color, isDark, tint) {
     track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", fill: accent || (isDark ? "#e6e6ea" : "#0a0a0a"),
     iconBg: BOS_TILE_SHEEN + ", " + (accent ? accent + "26" : th.iconBg), iconInk: null,
   };
-  if (isDark) return {
+  if (isDark) {
+    // СТАНДАРТИЗАЦИЯ ПО ТОНАМ (David: «на превью цвет/градиент чуть отличается от внутреннего»):
+    // плитка берёт ТОТ ЖЕ градиент, что hero детали (bosGoalHero) — диагональ 157° + верхний блик,
+    // а не плоский тон. Тогда снаружи и внутри — один материал.
+    var td1 = (typeof bosMixHex === "function") ? bosMixHex(accent, "#0d0f14", 0.16) : accent;
+    var td2 = (typeof bosMixHex === "function") ? bosMixHex(accent, "#0d0f14", 0.30) : accent;
+    return {
     hasColor: true, accent: accent,
-    bg: "linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0) 62%), " + ((typeof bosMixHex === "function") ? bosMixHex(accent, "#0d0f14", 0.24) : accent),
+    bg: "radial-gradient(135% 100% at 50% -12%, rgba(255,255,255,0.16), rgba(255,255,255,0) 58%), linear-gradient(157deg, " + td1 + " 0%, " + td2 + " 100%)",
     shadow: "0 4px 12px rgba(0,0,0,0.45), inset 0 0 0 0.5px rgba(255,255,255,0.10)",
     txt: "#fff", sub: "rgba(255,255,255,0.72)", lbl: "rgba(255,255,255,0.6)", val: "rgba(255,255,255,0.85)",
     track: "rgba(0,0,0,0.35)", fill: (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.18) : accent,
     iconBg: BOS_TILE_SHEEN + ", " + accent, iconInk: "#fff",
-  };
+    };
+  }
   var soft = (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.52) : accent;
+  var stop = (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.60) : accent; // верх светлее
+  var slow = (typeof bosLightenHex === "function") ? bosLightenHex(accent, 0.45) : accent; // низ глубже
   return {
     hasColor: true, accent: accent,
-    bg: "linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 62%), " + soft,
+    bg: "radial-gradient(135% 100% at 50% -12%, rgba(255,255,255,0.5), rgba(255,255,255,0) 60%), linear-gradient(157deg, " + stop + " 0%, " + soft + " 52%, " + slow + " 100%)",
     shadow: "0 4px 11px rgba(50,40,20,0.10), inset 0 0 0 0.5px rgba(255,255,255,0.55)",
     txt: "#1b1b1f", sub: "rgba(27,27,31,0.58)", lbl: "rgba(27,27,31,0.5)", val: "rgba(27,27,31,0.72)",
     track: "rgba(255,255,255,0.55)", fill: accent,
@@ -3092,6 +3129,16 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits" }) {
   const pct = tgt > 0 ? Math.min(1, cur / tgt) : (t.progress || 0);
   const sk = bosGoalSkin(t.accent || t.color, isDark);
   const onOpen = ctx.mode ? undefined : () => navigate("team-detail", { team: t, from: from });
+  // Непрочитанные в чате круга — значок и на ВНЕШНЕЙ плитке (David), лёгким count-запросом с кэшем.
+  const [tileUnread, setTileUnread] = React.useState(() => { const c = (typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(_ck) : null; return c ? c.count : 0; });
+  React.useEffect(() => {
+    if (!_ck || ctx.mode || typeof bosTeamUnreadPeek !== "function") return;
+    let on = true;
+    bosTeamUnreadPeek(_ck).then((r) => { if (on && r) setTileUnread(r.count || 0); }).catch(() => {});
+    const f = () => { const c = (typeof bosTeamUnreadCacheGet === "function") ? bosTeamUnreadCacheGet(_ck) : null; setTileUnread(c ? c.count : 0); };
+    window.addEventListener("bos:notifSeenChanged", f);
+    return () => { on = false; window.removeEventListener("bos:notifSeenChanged", f); };
+  }, [_ck]);
   // t.members из облачного списка бывает ЧИСЛОМ (count), из снапшота — массивом лиц: guard.
   const members = (Array.isArray(_cRoster) && _cRoster.length) ? _cRoster : (Array.isArray(t.members) ? t.members : []);
   // Пульс: привычка done горит своим цветом (моя локальная копия по teamHabitId), кольцо
@@ -3111,6 +3158,17 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits" }) {
   const orbit = goalStyle.orbits && typeof GoalOrbitMini === "function"
     ? <GoalOrbitMini centerEmoji={t.emblem || "👥"} centerColor={t.accent || t.color} habits={orbitHabits} people={orbitPeople} size={banner ? 132 : 152} dark={isDark} fade progress={pct} />
     : null;
+  // ГЛАВНЫЙ ЧИП + значок чата на ВНЕШНЕЙ плитке (David: «главные чипы тоже отражены» + «уведомление
+  // о непрочитанных и на внешней карточке»). Один пульс-чип слева (сегодня в деле / достигнуто /
+  // люди) + красный значок непрочитанного справа. Плавают в углах над орбитой, тап не перехватывают.
+  const _inFlow = orbitPeople.filter((p) => p.active).length;
+  const _pulseTxt = pct >= 1 ? "🎉 Готово" : (_inFlow > 0 ? "🔥 " + _inFlow + " сегодня" : (members.length ? "👥 " + members.length : null));
+  const _tileFloat = (!ctx.mode && orbit && (_pulseTxt || tileUnread > 0)) ? (
+    <>
+      {_pulseTxt && <span style={{ position: "absolute", top: 10, left: 11, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 3, maxWidth: "60%", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: isDark ? "rgba(0,0,0,0.24)" : "rgba(255,255,255,0.66)", color: sk.hasColor ? sk.txt : sk.accent, fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", pointerEvents: "none" }}>{_pulseTxt}</span>}
+      {tileUnread > 0 && <span style={{ position: "absolute", top: 9, right: 10, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 2, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 6px", height: 18, borderRadius: 999, boxShadow: "0 1px 3px rgba(0,0,0,0.28)", pointerEvents: "none" }}>💬 {tileUnread > 99 ? "99+" : tileUnread}</span>}
+    </>
+  ) : null;
   const faces = !orbit && members.length ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><PeopleStackLive people={members} size={20} max={3} /></span> : null;
   const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
   const valTxt = t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : (Math.round(pct * 100) + "%");
@@ -3147,6 +3205,7 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits" }) {
   }
   return (
     <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      {_tileFloat}
       {orbit ? (
         <>
           <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
@@ -3180,6 +3239,18 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
   const sk = bosGoalSkin(g.color, isDark, g.tint !== false);
   const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: from });
   const orbit = (goalStyle.orbits && typeof GoalCardOrbit === "function") ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 132 : 152} dark={isDark} fade progress={pct} /> : null;
+  // ГЛАВНЫЙ ЧИП на внешней плитке цели (David: «главные чипы тоже отражены»): достигнуто / срок /
+  // сегодня по привычкам. Плавает слева над орбитой; в «плоском» стиле не показываем (там уже иконка).
+  let _dLeft = null;
+  if (g.deadline) { try { const _ms = new Date(g.deadline).getTime() - Date.now(); if (!isNaN(_ms)) _dLeft = Math.ceil(_ms / 86400000); } catch (e) {} }
+  const _linkedT = (gp.linked && gp.linked.length) ? gp.linked : [];
+  const _goalChipTxt = pct >= 1 ? "🎉 Готово"
+    : (_dLeft === 0 ? "⏳ сегодня"
+    : (_dLeft != null && _dLeft > 0 && _dLeft <= 90 ? "⏳ " + _dLeft + " дн"
+    : (_linkedT.length ? "✓ " + _linkedT.filter((h) => h.done).length + "/" + _linkedT.length + " сегодня" : null)));
+  const _goalFloat = (!ctx.mode && orbit && _goalChipTxt) ? (
+    <span style={{ position: "absolute", top: 10, left: 11, zIndex: 3, display: "inline-flex", alignItems: "center", gap: 3, maxWidth: "72%", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: isDark ? "rgba(0,0,0,0.24)" : "rgba(255,255,255,0.66)", color: sk.hasColor ? sk.txt : sk.accent, fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", pointerEvents: "none" }}>{_goalChipTxt}</span>
+  ) : null;
   const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
   const icon = <span className="bos-ticon" style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color)}</span>;
   const progBar = goalStyle.progress ? (
@@ -3213,6 +3284,7 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
   }
   return (
     <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: sk.bg, borderRadius: 22, boxShadow: sk.shadow, padding: "13px 13px 12px", height: orbit ? 146 : undefined, minHeight: 146, boxSizing: "border-box", position: "relative", display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-start", textAlign: "left", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      {_goalFloat}
       {orbit ? (
         <>
           <div aria-hidden style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }}>{orbit}</div>
@@ -3913,6 +3985,7 @@ function PartnersMapLive({ app, navigate, compact = false, from = "community" })
   const H = compact ? 156 : 280; // David: карту крупнее
   const open = (p) => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: from }); };
   const [ready, setReady] = React.useState(false); // Яндекс встал и отрисовался
+  const [failed, setFailed] = React.useState(false); // Яндекс не смог (нет ключа/офлайн/домен) → резерв
   const mapRef = React.useRef(null);
   const mapObj = React.useRef(null);
   React.useEffect(function () {
@@ -3936,8 +4009,8 @@ function PartnersMapLive({ app, navigate, compact = false, from = "community" })
         try { map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: compact ? 24 : 40 }); } catch (e) {}
         mapObj.current = map;
         if (alive) setReady(true);
-      } catch (e) { /* оставляем стилизованный резерв */ }
-    }).catch(function () { /* нет ключа/офлайн → стилизованный резерв */ });
+      } catch (e) { if (alive) setFailed(true); /* карта не построилась → стилизованный резерв */ }
+    }).catch(function () { if (alive) setFailed(true); /* нет ключа/офлайн → стилизованный резерв */ });
     return function () { alive = false; try { if (mapObj.current) { mapObj.current.destroy(); mapObj.current = null; } } catch (e) {} };
   }, [compact]);
 
@@ -3952,7 +4025,9 @@ function PartnersMapLive({ app, navigate, compact = false, from = "community" })
   const sz = compact ? 32 : 38;
   return (
     <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: "var(--card-shadow)", position: "relative", height: H, background: land }}>
-      {/* СТИЛИЗОВАННЫЙ РЕЗЕРВ (базовый слой) — виден пока грузится Яндекс и если он не встал. */}
+      {/* СТИЛИЗОВАННЫЙ РЕЗЕРВ — теперь ТОЛЬКО когда Яндекс не смог (нет ключа/офлайн/домен). Пока
+          грузится — бутафорию НЕ показываем (David: «не нравится затычка»), только крутилку ниже. */}
+      {failed && (<>
       <svg viewBox="0 0 366 232" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
         <path d="M-10 168 Q55 138 120 168 T250 168 Q300 186 262 242 L-10 242 Z" fill={park} />
         <path d="M-10 66 C90 44 120 134 230 112 S360 168 400 134 L400 162 C360 196 320 132 230 145 S90 78 -10 100 Z" fill={river} opacity="0.9" />
@@ -3977,10 +4052,17 @@ function PartnersMapLive({ app, navigate, compact = false, from = "community" })
         <div style={{ position: "absolute", inset: -11, borderRadius: "50%", background: "rgba(46,124,246,0.18)" }} />
         <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#2E7CF6", border: "2.5px solid #fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)" }} />
       </div>
+      </>)}
+      {/* Пока Яндекс грузится (ещё не готов и не упал) — спокойная крутилка на нейтральном фоне. */}
+      {!ready && !failed && (
+        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", zIndex: 3, pointerEvents: "none" }}>
+          <span className="bos-spin" style={{ width: 26, height: 26, borderRadius: "50%", border: "2.5px solid " + (isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)"), borderTopColor: isDark ? "#dfe7dd" : "#2b3a2b" }} />
+        </div>
+      )}
       {/* РЕАЛЬНАЯ Яндекс.Карта — поверх резерва, проявляется когда встала (иначе виден резерв). */}
       <div ref={mapRef} aria-hidden={!ready} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 2, opacity: ready ? 1 : 0, pointerEvents: ready ? "auto" : "none", transition: "opacity 0.35s ease" }} />
-      <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 4, pointerEvents: "none" }}>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: chipInk, background: chipBg, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: "5px 10px", borderRadius: 999 }}>🗺 Москва</span>
+      {/* Чип «Москва» убран из левого-верхнего угла (David); оставляем только счётчик мест справа. */}
+      <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", alignItems: "center", justifyContent: "flex-end", zIndex: 4, pointerEvents: "none" }}>
         <span style={{ fontSize: 11.5, fontWeight: 700, color: chipInk, background: chipBg, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: "5px 10px", borderRadius: 999 }}>{BOS_PARTNERS.length} мест поблизости</span>
       </div>
     </div>

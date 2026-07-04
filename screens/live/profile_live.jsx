@@ -99,9 +99,12 @@ function ProfileLive() {
           David: кнопке вселенной «снизу по центру между блоками не место» → ушла в шапку. */}
       <PageHeader onBack={() => navigate("home")} title="" right={
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* «Вселенная» — спираль-кнопка РАСШИРЕНА в пилюлю с подписью (David: «у спирали добавь
+              подпись вселенная, продли до кнопки в том же стиле»); то же стекло, что у карандаша. */}
           <button onClick={openUniverse} className="tap" aria-label="Вселенная" title="Вселенная"
-            style={{ width: 40, height: 40, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none") }}>
+            style={{ height: 40, borderRadius: 999, border: 0, padding: "0 15px", gap: 7, display: "flex", alignItems: "center", cursor: "pointer", color: isDark ? "#fff" : "var(--text)", background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"), boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : "none") }}>
             <I.Galaxy size={18} strokeWidth={1.8} />
+            <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px" }}>Вселенная</span>
           </button>
           {typeof EditGlassButtonLive === "function" ? <EditGlassButtonLive onClick={openAvatar} /> : null}
         </div>

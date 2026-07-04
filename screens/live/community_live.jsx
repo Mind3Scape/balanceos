@@ -565,6 +565,8 @@ function TeamDetailLive() {
     // clock). If nothing was loaded yet, store "" so the next compare treats all as read.
     try { if (_readKey) localStorage.setItem(_readKey, (chatPeek && chatPeek.lastAt) ? String(chatPeek.lastAt) : ""); } catch (e) {}
     setChatPeek((p) => p ? { ...p, unread: 0 } : p);
+    // Погасим значок и на ВНЕШНЕЙ плитке круга (сброс общего кэша непрочитанного).
+    try { if (t.cloudId && typeof bosTeamUnreadClear === "function") bosTeamUnreadClear(t.cloudId); } catch (e) {}
   };
 
   // LIVE teams: load the REAL roster (real names + avatars + roles) from the cloud, so the
@@ -810,9 +812,10 @@ function TeamDetailLive() {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {_isOwner && <button onClick={() => openSheet(<GoalFormSheetLive mode="edit" circleOn={true} navigate={navigate} returnTo={from} goal={editGoalLike} />)} className="tap" data-haptic="selection" aria-label="Настройки цели" style={heroBtn}><I.Pencil size={16} strokeWidth={2} /></button>}
             <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={heroBtn}><I.Share size={16} strokeWidth={2} /></button>
-            {/* ЧАТ — стеклянная кнопка справа В HERO (David); значок непрочитанных сохранён. */}
-            <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" aria-label="Чат цели" style={{ ...heroBtn, position: "relative" }}><I.MessageCircle size={16} strokeWidth={2} />
-              {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -2, right: -2, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 17, height: 17, padding: "0 4px", display: "grid", placeItems: "center", border: "1.5px solid " + (H.onDark ? "rgba(0,0,0,0.45)" : "#fff") }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
+            {/* ЧАТ — стеклянная кнопка-ПИЛЮЛЯ справа В HERO с надписью «Чат» (David: «добавь подпись
+                Чат справа от иконки и сделай чуть шире двух слева»); значок непрочитанных сохранён. */}
+            <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" aria-label="Чат цели" style={{ ...heroBtn, width: "auto", borderRadius: 999, padding: "0 15px", gap: 6, position: "relative" }}><I.MessageCircle size={16} strokeWidth={2} /><span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px" }}>Чат</span>
+              {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -3, right: -3, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 17, height: 17, padding: "0 4px", display: "grid", placeItems: "center", border: "1.5px solid " + (H.onDark ? "rgba(0,0,0,0.45)" : "#fff") }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
             </button>
           </div>
         </div>

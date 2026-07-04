@@ -135,6 +135,10 @@ button { font: inherit; cursor: pointer; }
 }
 .bos-jiggle { animation: bosJiggle 0.26s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .bos-jiggle { animation: none; } }
+/* Крутилка загрузки (карта партнёров и др.) — тонкое кольцо, крутится плавно. */
+@keyframes bosSpin { to { transform: rotate(360deg); } }
+.bos-spin { animation: bosSpin 0.8s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .bos-spin { animation-duration: 2s; } }
 /* Home daily state check-in — the face inside the orb «pops» each time the mood bucket changes. */
 @keyframes bosFacePop { 0% { transform: scale(0.55); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { @keyframes bosFacePop { 0%, 100% { transform: none; } } }

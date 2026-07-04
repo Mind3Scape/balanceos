@@ -1173,6 +1173,10 @@ function TeamDetailLive() {
       ...p,
       unread: 0
     } : p);
+    // Погасим значок и на ВНЕШНЕЙ плитке круга (сброс общего кэша непрочитанного).
+    try {
+      if (t.cloudId && typeof bosTeamUnreadClear === "function") bosTeamUnreadClear(t.cloudId);
+    } catch (e) {}
   };
 
   // LIVE teams: load the REAL roster (real names + avatars + roles) from the cloud, so the
@@ -1731,16 +1735,26 @@ function TeamDetailLive() {
     "aria-label": "\u0427\u0430\u0442 \u0446\u0435\u043B\u0438",
     style: {
       ...heroBtn,
+      width: "auto",
+      borderRadius: 999,
+      padding: "0 15px",
+      gap: 6,
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement(I.MessageCircle, {
     size: 16,
     strokeWidth: 2
-  }), _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      letterSpacing: "-0.2px"
+    }
+  }, "\u0427\u0430\u0442"), _chatLive && chatPeek && chatPeek.unread > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
       position: "absolute",
-      top: -2,
-      right: -2,
+      top: -3,
+      right: -3,
       background: "#FF3B30",
       color: "#fff",
       fontSize: 10,

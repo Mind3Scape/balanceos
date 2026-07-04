@@ -183,12 +183,13 @@ function ProfileLive() {
       "aria-label": "\u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F",
       title: "\u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F",
       style: {
-        width: 40,
         height: 40,
-        borderRadius: "50%",
+        borderRadius: 999,
         border: 0,
-        display: "grid",
-        placeItems: "center",
+        padding: "0 15px",
+        gap: 7,
+        display: "flex",
+        alignItems: "center",
         cursor: "pointer",
         color: isDark ? "#fff" : "var(--text)",
         background: (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.10)" : "var(--surface-3)"),
@@ -197,7 +198,13 @@ function ProfileLive() {
     }, /*#__PURE__*/React.createElement(I.Galaxy, {
       size: 18,
       strokeWidth: 1.8
-    })), typeof EditGlassButtonLive === "function" ? /*#__PURE__*/React.createElement(EditGlassButtonLive, {
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        letterSpacing: "-0.2px"
+      }
+    }, "\u0412\u0441\u0435\u043B\u0435\u043D\u043D\u0430\u044F")), typeof EditGlassButtonLive === "function" ? /*#__PURE__*/React.createElement(EditGlassButtonLive, {
       onClick: openAvatar
     }) : null)
   }), /*#__PURE__*/React.createElement("div", {
