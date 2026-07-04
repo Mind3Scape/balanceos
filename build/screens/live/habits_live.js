@@ -1108,6 +1108,7 @@ function HabitsLive() {
   // Shared store — same lists the Home / Community screens read/write.
   var habits = app?.habits || [];
   var goals = app?.goals || [];
+  var _arch = useBosArchived(); // архив (David) — спрятанные привычки/цели вне списка
   var teams = app?.teams || [];
   var toggle = app?.toggleHabit || (() => {});
   var remove = app?.removeHabit || (() => {});
@@ -1275,11 +1276,11 @@ function HabitsLive() {
   // сохранённому порядку перестановки; новые элементы — в конец.
   var entries = React.useMemo(() => {
     // shelved = «убрана с моей страницы» (Г): копия привычки круга спрятана, история и XP целы.
-    var all = habits.filter(h => !h.goalOnly && !h.shelved).map(h => ({
+    var all = habits.filter(h => !h.goalOnly && !h.shelved && !_arch["h:" + h.id]).map(h => ({
       k: "h" + h.id,
       type: "h",
       item: h
-    })).concat(goals.map(g => ({
+    })).concat(goals.filter(g => !_arch["g:" + g.id]).map(g => ({
       k: "g" + g.id,
       type: "g",
       item: g
@@ -1303,7 +1304,7 @@ function HabitsLive() {
       })).sort((a, b) => (pos[a.e.k] != null ? pos[a.e.k] : 1000 + a.i) - (pos[b.e.k] != null ? pos[b.e.k] : 1000 + b.i)).map(x => x.e);
     }
     return all;
-  }, [habits, goals, teams, orderTick]);
+  }, [habits, goals, teams, orderTick, _arch]);
 
   // ПЛИТКА ПРИВЫЧКИ — вынесена в ОБЩИЙ HabitTileLive (shared_live), чтобы страница «Привычки» и виджет
   // главной рисовали одно и то же и слушали один cardStyle (David: «унифицировать»). Тут — тонкая обёртка.

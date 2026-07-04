@@ -154,8 +154,12 @@ function HomeLive() {
   // Habits + goals come from the shared app store, so a check here shows up
   // on the Habits tab too (and vice versa). Скрытые с личных страниц копии привычек круга
   // (shelved, Г) и «только внутри цели» (goalOnly) на доску и в счёт дня не попадают.
-  var habits = (app?.habits || []).filter(h => !h.shelved && !h.goalOnly);
-  var goals = app?.goals || [];
+  // Архив (David) — спрятанные привычки/цели не на доске и не в счёте дня. Оверлей localStorage
+  // (bos:archived), по умолчанию пуст → для существующих ничего не меняется. useBosArchived →
+  // перерисовка при восстановлении/архивации.
+  var _arch = useBosArchived();
+  var habits = (app?.habits || []).filter(h => !h.shelved && !h.goalOnly && !_arch["h:" + h.id]);
+  var goals = (app?.goals || []).filter(g => !_arch["g:" + g.id]);
   // David: «унифицировать» — виджеты привычек/целей на главной = ТЕ ЖЕ плитки, что на «Привычках», и
   // слушают ТОТ ЖЕ стиль (форма/тоглы из шестерёнки). Хуки → главная перерисовывается при смене стиля.
   var cardStyle = useBosCardStyle();
@@ -965,86 +969,63 @@ function HomeLive() {
     }
     return null;
   };
+  // David: СТАНДАРТИЗИРОВАНО — зажал ЛЮБУЮ плитку → тряска (раньше привычки/цели/круги давали
+  // меню-выбор, а виджеты тряслись — непоследовательно). Поделиться теперь в самой карточке
+  // (круглая кнопка), переставить = перетащить, убрать/архивировать = минусом (onMinus ниже).
   var onCellLongPress = k => {
-    var enterRe = () => {
-      if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder();
-    };
-    if (k.indexOf("w:") === 0) {
-      enterRe();
-      return;
-    } // виджет: зажал → сразу тряска (iOS)
+    if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder();
+  };
+  // Минус в тряске: виджет/круг — просто убрать с доски; привычка/цель — шторка «Архивировать /
+  // Удалить» (David: «если не виджет, а привычка или цель — спрашивает удалить/архивировать»).
+  var onMinus = k => {
     if (k.indexOf("h:") === 0) {
       var h = habits.find(x => "h:" + x.id === k);
       if (!h) {
-        enterRe();
+        hideKey(k);
         return;
       }
-      openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
-        habit: h,
+      openSheet(/*#__PURE__*/React.createElement(ArchiveOrDeleteSheetLive, {
+        name: h.name,
+        emoji: h.emoji,
+        color: h.color,
         dark: isDark,
-        onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
-          habit: h,
-          dark: isDark
-        })),
-        onReorder: enterRe,
-        deleteIcon: /*#__PURE__*/React.createElement(I.X, {
-          size: 18
-        }),
-        deleteLabel: "\u0423\u0431\u0440\u0430\u0442\u044C \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439",
-        onDelete: () => hideKey(k)
+        onArchive: () => bosSetArchived(k, true),
+        deleteLabel: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043D\u0430\u0441\u043E\u0432\u0441\u0435\u043C",
+        deleteHint: "\u0421\u043E\u0442\u0440\u0451\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0438 \u0432\u0441\u044E \u0438\u0441\u0442\u043E\u0440\u0438\u044E \u043E\u0442\u043C\u0435\u0442\u043E\u043A. \u041D\u0430\u0432\u0441\u0435\u0433\u0434\u0430.",
+        onDelete: () => bosConfirmDelete(openSheet, {
+          title: "Удалить привычку?",
+          message: "«" + h.name + "» и вся история отметок удалятся навсегда.",
+          confirmLabel: "Удалить",
+          onConfirm: () => (app?.removeHabit || (() => {}))(h.id)
+        })
       }));
       return;
     }
     if (k.indexOf("g:") === 0) {
       var g = goals.find(x => "g:" + x.id === k);
       if (!g) {
-        enterRe();
+        hideKey(k);
         return;
       }
-      openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
-        habit: g,
+      openSheet(/*#__PURE__*/React.createElement(ArchiveOrDeleteSheetLive, {
+        name: g.name,
+        emoji: g.emoji,
+        color: g.color,
         dark: isDark,
-        kindLabel: "\u0426\u0435\u043B\u044C",
-        onShare: () => openSheet(/*#__PURE__*/React.createElement(ShareGoalSheetLive, {
-          goal: g,
-          dark: isDark
-        })),
-        onReorder: enterRe,
-        deleteIcon: /*#__PURE__*/React.createElement(I.X, {
-          size: 18
-        }),
-        deleteLabel: "\u0423\u0431\u0440\u0430\u0442\u044C \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439",
-        onDelete: () => hideKey(k)
+        onArchive: () => bosSetArchived(k, true),
+        deleteLabel: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043D\u0430\u0441\u043E\u0432\u0441\u0435\u043C",
+        deleteHint: "\u0421\u043E\u0442\u0440\u0451\u0442 \u0446\u0435\u043B\u044C \u0438 \u0435\u0451 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441. \u041D\u0430\u0432\u0441\u0435\u0433\u0434\u0430.",
+        onDelete: () => bosConfirmDelete(openSheet, {
+          title: "Удалить цель?",
+          message: "«" + g.name + "» удалится навсегда.",
+          confirmLabel: "Удалить",
+          onConfirm: () => (app?.removeGoal || (() => {}))(g.id)
+        })
       }));
       return;
     }
-    if (k.indexOf("t:") === 0) {
-      // Круг: то же меню; «Убрать с главной» прячет ПЛИТКУ (сам круг живёт на «Привычках»
-      // и в «Сообществе»), «Поделиться» — та же шторка-приглашение, что на странице Привычки.
-      var t = teams.find(x => teamKey(x) === k);
-      if (!t) {
-        enterRe();
-        return;
-      }
-      openSheet(/*#__PURE__*/React.createElement(HabitTileMenuLive, {
-        habit: {
-          name: t.name,
-          emoji: t.emblem || "👥",
-          color: t.accent || t.color
-        },
-        dark: isDark,
-        kindLabel: "\u0421\u043E\u0432\u043C\u0435\u0441\u0442\u043D\u0430\u044F \u0446\u0435\u043B\u044C",
-        onShare: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheet, {
-          team: t
-        })),
-        onReorder: enterRe,
-        deleteIcon: /*#__PURE__*/React.createElement(I.X, {
-          size: 18
-        }),
-        deleteLabel: "\u0423\u0431\u0440\u0430\u0442\u044C \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439",
-        onDelete: () => hideKey(k)
-      }));
-    }
+    // виджеты и круги — просто убрать с доски (круг живёт на «Привычках»/в «Сообществе»).
+    hideKey(k);
   };
   return /*#__PURE__*/React.createElement("div", {
     ref: wrapRef,
@@ -1163,7 +1144,10 @@ function HomeLive() {
   }), typeof CardStyleMenuLive === "function" && /*#__PURE__*/React.createElement(CardStyleMenuLive, {
     open: styleOpen,
     onClose: () => setStyleOpen(false),
-    anchorRef: addBtnRef
+    anchorRef: addBtnRef,
+    onArchiveList: () => openSheet(/*#__PURE__*/React.createElement(ArchiveSheetLive, {
+      navigate: navigate
+    }))
   }), trulyNew ? /*#__PURE__*/React.createElement(WidgetBoundaryLive, {
     wid: "hero"
   }, (() => {
@@ -1201,7 +1185,7 @@ function HomeLive() {
         height: "100%"
       }
     }, tileFor(k)), mode && /*#__PURE__*/React.createElement(WidgetMinusLive, {
-      onRemove: () => hideKey(k)
+      onRemove: () => onMinus(k)
     }))
   }) : /*#__PURE__*/React.createElement("button", {
     onClick: openAddSheet,

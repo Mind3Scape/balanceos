@@ -387,6 +387,7 @@ function HabitsLive() {
   // Shared store — same lists the Home / Community screens read/write.
   const habits = app?.habits || [];
   const goals = app?.goals || [];
+  const _arch = useBosArchived(); // архив (David) — спрятанные привычки/цели вне списка
   const teams = app?.teams || [];
   const toggle = app?.toggleHabit || (() => {});
   const remove = app?.removeHabit || (() => {});
@@ -480,8 +481,8 @@ function HabitsLive() {
   // сохранённому порядку перестановки; новые элементы — в конец.
   const entries = React.useMemo(() => {
     // shelved = «убрана с моей страницы» (Г): копия привычки круга спрятана, история и XP целы.
-    const all = habits.filter((h) => !h.goalOnly && !h.shelved).map((h) => ({ k: "h" + h.id, type: "h", item: h }))
-      .concat(goals.map((g) => ({ k: "g" + g.id, type: "g", item: g })))
+    const all = habits.filter((h) => !h.goalOnly && !h.shelved && !_arch["h:" + h.id]).map((h) => ({ k: "h" + h.id, type: "h", item: h }))
+      .concat(goals.filter((g) => !_arch["g:" + g.id]).map((g) => ({ k: "g" + g.id, type: "g", item: g })))
       // Команды (круги/командные цели) живут в ТОЙ ЖЕ сетке — их можно тащить и ставить между
       // привычками/целями, как просил David. Ключ "t<id>" (cloud _id или локальный id).
       .concat(teams.map((t) => ({ k: "t" + (t._id != null ? t._id : t.id), type: "t", item: t })));
@@ -493,7 +494,7 @@ function HabitsLive() {
         .map((x) => x.e);
     }
     return all;
-  }, [habits, goals, teams, orderTick]);
+  }, [habits, goals, teams, orderTick, _arch]);
 
   // ПЛИТКА ПРИВЫЧКИ — вынесена в ОБЩИЙ HabitTileLive (shared_live), чтобы страница «Привычки» и виджет
   // главной рисовали одно и то же и слушали один cardStyle (David: «унифицировать»). Тут — тонкая обёртка.

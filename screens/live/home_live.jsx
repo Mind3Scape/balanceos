@@ -72,8 +72,12 @@ function HomeLive() {
   // Habits + goals come from the shared app store, so a check here shows up
   // on the Habits tab too (and vice versa). Скрытые с личных страниц копии привычек круга
   // (shelved, Г) и «только внутри цели» (goalOnly) на доску и в счёт дня не попадают.
-  const habits = (app?.habits || []).filter((h) => !h.shelved && !h.goalOnly);
-  const goals = app?.goals || [];
+  // Архив (David) — спрятанные привычки/цели не на доске и не в счёте дня. Оверлей localStorage
+  // (bos:archived), по умолчанию пуст → для существующих ничего не меняется. useBosArchived →
+  // перерисовка при восстановлении/архивации.
+  const _arch = useBosArchived();
+  const habits = (app?.habits || []).filter((h) => !h.shelved && !h.goalOnly && !_arch["h:" + h.id]);
+  const goals = (app?.goals || []).filter((g) => !_arch["g:" + g.id]);
   // David: «унифицировать» — виджеты привычек/целей на главной = ТЕ ЖЕ плитки, что на «Привычках», и
   // слушают ТОТ ЖЕ стиль (форма/тоглы из шестерёнки). Хуки → главная перерисовывается при смене стиля.
   const cardStyle = useBosCardStyle();
@@ -445,34 +449,33 @@ function HomeLive() {
     if (k.indexOf("t:") === 0) { const t = teams.find((x) => teamKey(x) === k); return t && typeof TeamTileLive === "function" ? <TeamTileLive team={t} from="home" /> : null; }
     return null;
   };
+  // David: СТАНДАРТИЗИРОВАНО — зажал ЛЮБУЮ плитку → тряска (раньше привычки/цели/круги давали
+  // меню-выбор, а виджеты тряслись — непоследовательно). Поделиться теперь в самой карточке
+  // (круглая кнопка), переставить = перетащить, убрать/архивировать = минусом (onMinus ниже).
   const onCellLongPress = (k) => {
-    const enterRe = () => { if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder(); };
-    if (k.indexOf("w:") === 0) { enterRe(); return; } // виджет: зажал → сразу тряска (iOS)
+    if (gridCtl.current && gridCtl.current.enterReorder) gridCtl.current.enterReorder();
+  };
+  // Минус в тряске: виджет/круг — просто убрать с доски; привычка/цель — шторка «Архивировать /
+  // Удалить» (David: «если не виджет, а привычка или цель — спрашивает удалить/архивировать»).
+  const onMinus = (k) => {
     if (k.indexOf("h:") === 0) {
-      const h = habits.find((x) => "h:" + x.id === k); if (!h) { enterRe(); return; }
-      openSheet(<HabitTileMenuLive habit={h} dark={isDark}
-        onShare={() => openSheet(<ShareHabitSheetLive habit={h} dark={isDark} />)}
-        onReorder={enterRe}
-        deleteIcon={<I.X size={18} />} deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
+      const h = habits.find((x) => "h:" + x.id === k); if (!h) { hideKey(k); return; }
+      openSheet(<ArchiveOrDeleteSheetLive name={h.name} emoji={h.emoji} color={h.color} dark={isDark}
+        onArchive={() => bosSetArchived(k, true)}
+        deleteLabel="Удалить насовсем" deleteHint="Сотрёт привычку и всю историю отметок. Навсегда."
+        onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => (app?.removeHabit || (() => {}))(h.id) })} />);
       return;
     }
     if (k.indexOf("g:") === 0) {
-      const g = goals.find((x) => "g:" + x.id === k); if (!g) { enterRe(); return; }
-      openSheet(<HabitTileMenuLive habit={g} dark={isDark} kindLabel="Цель"
-        onShare={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)}
-        onReorder={enterRe}
-        deleteIcon={<I.X size={18} />} deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
+      const g = goals.find((x) => "g:" + x.id === k); if (!g) { hideKey(k); return; }
+      openSheet(<ArchiveOrDeleteSheetLive name={g.name} emoji={g.emoji} color={g.color} dark={isDark}
+        onArchive={() => bosSetArchived(k, true)}
+        deleteLabel="Удалить насовсем" deleteHint="Сотрёт цель и её прогресс. Навсегда."
+        onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => (app?.removeGoal || (() => {}))(g.id) })} />);
       return;
     }
-    if (k.indexOf("t:") === 0) {
-      // Круг: то же меню; «Убрать с главной» прячет ПЛИТКУ (сам круг живёт на «Привычках»
-      // и в «Сообществе»), «Поделиться» — та же шторка-приглашение, что на странице Привычки.
-      const t = teams.find((x) => teamKey(x) === k); if (!t) { enterRe(); return; }
-      openSheet(<HabitTileMenuLive habit={{ name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color }} dark={isDark} kindLabel="Совместная цель"
-        onShare={() => openSheet(<TeamShareSheet team={t} />)}
-        onReorder={enterRe}
-        deleteIcon={<I.X size={18} />} deleteLabel="Убрать с главной" onDelete={() => hideKey(k)} />);
-    }
+    // виджеты и круги — просто убрать с доски (круг живёт на «Привычках»/в «Сообществе»).
+    hideKey(k);
   };
 
   return (
@@ -504,7 +507,8 @@ function HomeLive() {
 
       <CreateMenuLive open={createOpen} onClose={() => setCreateOpen(false)} anchorRef={addBtnRef} navigate={navigate} />
       {/* «Стиль карточек» из галереи: панель под «+», доска на глазах меняет формы. */}
-      {typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleOpen} onClose={() => setStyleOpen(false)} anchorRef={addBtnRef} />}
+      {typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleOpen} onClose={() => setStyleOpen(false)} anchorRef={addBtnRef}
+        onArchiveList={() => openSheet(<ArchiveSheetLive navigate={navigate} />)} />}
 
       {/* Новому юзеру (0 привычек/целей/команд) — ПРОСТОЙ старт = ОДИН hero-блок: ИИ-сводка + пилюли
           (там уже есть «➕ Создать привычку» + мягкий ИИ-старт «Рассказать о себе»). Прежнюю большую
@@ -532,7 +536,7 @@ function HomeLive() {
           renderItem={(k, { mode }) => (
             <div style={{ position: "relative", height: "100%" }}>
               <div style={{ pointerEvents: mode ? "none" : "auto", height: "100%" }}>{tileFor(k)}</div>
-              {mode && <WidgetMinusLive onRemove={() => hideKey(k)} />}
+              {mode && <WidgetMinusLive onRemove={() => onMinus(k)} />}
             </div>
           )}
         />

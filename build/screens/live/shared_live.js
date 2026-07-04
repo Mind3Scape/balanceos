@@ -4620,11 +4620,15 @@ function BosReorderGrid({
 // Блок «Уровень» УЕХАЛ с главной на страницу «Я» (David: «золотой баннер уровня перенести внутрь Я»)
 // → его нет в списке виджетов главной. Кейс id==="level" в home_live остаётся, но не рендерится
 // (нет в DEFAULT_ORDER → отфильтровывается), чтобы откат был лёгким.
+// sym — монохромный SVG-символ (sf:) для ЧЁРНО-БЕЛОГО показа иконок виджетов в галерее «+»
+// (David: «иконки виджетов, кроме привычек, чёрно-белые, в одном стиле как плюсик»). Сам виджет
+// на доске рисуется как прежде; символ используется только в списке добавления.
 var BOS_HOME_WIDGETS = [{
   id: "hero",
   t: "Подсказки",
   d: "ИИ-сводка дня и аватар",
-  emoji: "✨"
+  emoji: "✨",
+  sym: "sf:Sparkles"
 },
 // Лента челленджей ПЕРЕЕХАЛА со страницы «Привычки» (слияние с главной, David): готовые
 // привычки/цели/«вместе» с XP-бонусом одной строкой чипов. Добирается на доску сама
@@ -4633,12 +4637,14 @@ var BOS_HOME_WIDGETS = [{
   id: "quick",
   t: "Быстрое добавление",
   d: "Челленджи с бонусом XP",
-  emoji: "⚡"
+  emoji: "⚡",
+  sym: "sf:Flame"
 }, {
   id: "week",
   t: "Эта неделя",
   d: "Недельная активность",
-  emoji: "📅"
+  emoji: "📅",
+  sym: "sf:Calendar"
 },
 // «Состояние» СКРЫТО до согласованного макета (David: «нарисуй, как оно должно выглядеть,
 // где быть и как себя вести — в масштабе человека и мультиплеера, а не тяп-ляп»). Кейс
@@ -4647,7 +4653,8 @@ var BOS_HOME_WIDGETS = [{
   id: "team",
   t: "Вместе",
   d: "Ваши совместные цели",
-  emoji: "👥"
+  emoji: "👥",
+  sym: "sf:Users"
 },
 // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
 // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
@@ -4655,7 +4662,8 @@ var BOS_HOME_WIDGETS = [{
   id: "invite",
   t: "Позови своих",
   d: "Приглашай друзей — +XP",
-  emoji: "📣"
+  emoji: "📣",
+  sym: "sf:Gift"
 }];
 
 /* iOS-style «−» remove badge for the home widget board — a small GLASS circle pinned to the
@@ -4698,6 +4706,411 @@ function WidgetMinusLive({
   }, /*#__PURE__*/React.createElement(I.Minus, {
     size: 16,
     strokeWidth: 3
+  }));
+}
+
+// ── АРХИВ (v545, David: «на минус — удалить или архивировать; архивировать = спрятать, история
+//    цела, вернуть можно»). ЛЁГКИЙ клиентский оверлей поверх привычек/целей/кругов — как «hidden»
+//    у доски: набор ключей в localStorage, НЕ трогает облако, полностью обратимо. Ключ = "h:"+id /
+//    "g:"+id / "t:"+teamKey. Фильтруется везде (доска, списки, галерея). Восстановление — шторка
+//    «Архив». Событие bos:archivedChanged → списки перерисовываются.
+function bosLoadArchived() {
+  try {
+    var v = JSON.parse(localStorage.getItem("bos:archived") || "null");
+    return v && typeof v === "object" ? v : {};
+  } catch (e) {
+    return {};
+  }
+}
+function bosIsArchived(key) {
+  return !!bosLoadArchived()[key];
+}
+function bosSetArchived(key, on) {
+  var m = bosLoadArchived();
+  if (on) m[key] = 1;else delete m[key];
+  try {
+    localStorage.setItem("bos:archived", JSON.stringify(m));
+  } catch (e) {}
+  try {
+    window.dispatchEvent(new Event("bos:archivedChanged"));
+  } catch (e) {}
+  return m;
+}
+// Хук: перерисовать компонент при смене архива.
+function useBosArchived() {
+  var st = React.useState(bosLoadArchived),
+    m = st[0],
+    setM = st[1];
+  React.useEffect(function () {
+    var h = function () {
+      setM(bosLoadArchived());
+    };
+    window.addEventListener("bos:archivedChanged", h);
+    return function () {
+      window.removeEventListener("bos:archivedChanged", h);
+    };
+  }, []);
+  return m;
+}
+
+// Круглая СТЕКЛЯННАЯ кнопка-иконка в стиле нашего плюсика (David: «в том же стиле круглых стеклянных»).
+// danger=true → красная ТОЛЬКО иконка (без обводки кнопки — David: «обводку не делай»).
+function BosGlassIconLive({
+  children,
+  dark,
+  size = 44,
+  danger
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      color: danger ? "#FF3B30" : dark ? "#fff" : "var(--text)",
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+      boxShadow: "0 3px 10px rgba(0,0,0,0.16), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)"
+    }
+  }, children);
+}
+
+/* ШТОРКА «Архивировать / Удалить» (v545, David) — на минус у привычки/цели/круга. Иконки в стиле
+   наших круглых стеклянных кнопок: архив нейтральный, удаление — красная ТОЛЬКО иконка-корзина и
+   текст (без красной обводки). Отмена = потянуть вниз/тап мимо (кнопки «Отмена» нет). */
+function ArchiveOrDeleteSheetLive({
+  name,
+  emoji,
+  color,
+  dark = false,
+  onArchive,
+  onDelete,
+  deleteLabel = "Удалить насовсем",
+  deleteHint
+}) {
+  var {
+    close
+  } = typeof useSheet === "function" ? useSheet() : {
+    close: function () {}
+  };
+  var act = fn => {
+    close();
+    if (typeof fn === "function") setTimeout(fn, 20);
+  };
+  var archBox = /*#__PURE__*/React.createElement("svg", {
+    width: "20",
+    height: "20",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.9",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "4",
+    width: "18",
+    height: "4",
+    rx: "1"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M10 12h4"
+  }));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 16px 0",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "2px 4px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      background: BOS_TILE_SHEEN + (color ? ", " + color + "26" : ", var(--surface-3)"),
+      boxShadow: bosTileGlass(dark),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20,
+      flexShrink: 0
+    }
+  }, bosIcon(emoji || "🌿", 22, color)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16.5,
+      fontWeight: 700,
+      letterSpacing: "-0.3px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, "\xAB", name, "\xBB"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-4)",
+      marginTop: 1
+    }
+  }, "\u0427\u0442\u043E \u0441 \u043D\u0435\u0439 \u0441\u0434\u0435\u043B\u0430\u0442\u044C?"))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => act(onArchive),
+    className: "tap",
+    "data-haptic": "selection",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      width: "100%",
+      border: 0,
+      borderRadius: 16,
+      padding: 12,
+      background: "var(--surface-3)",
+      textAlign: "left",
+      cursor: "pointer",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement(BosGlassIconLive, {
+    dark: dark
+  }, archBox), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 15,
+      fontWeight: 600
+    }
+  }, "\u0410\u0440\u0445\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.35
+    }
+  }, "\u0421\u043F\u0440\u044F\u0442\u0430\u0442\u044C \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439. \u0418\u0441\u0442\u043E\u0440\u0438\u044F \u0446\u0435\u043B\u0430 \u2014 \u0432\u0435\u0440\u043D\u0451\u0448\u044C \u0432 \xAB\u0410\u0440\u0445\u0438\u0432\u0435\xBB."))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => act(onDelete),
+    className: "tap",
+    "data-haptic": "warning",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 13,
+      width: "100%",
+      border: 0,
+      borderRadius: 16,
+      padding: 12,
+      marginTop: 9,
+      background: "var(--surface-3)",
+      textAlign: "left",
+      cursor: "pointer",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement(BosGlassIconLive, {
+    dark: dark,
+    danger: true
+  }, /*#__PURE__*/React.createElement(I.Trash, {
+    size: 19,
+    strokeWidth: 2
+  })), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 15,
+      fontWeight: 600,
+      color: "#FF3B30"
+    }
+  }, deleteLabel), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12,
+      color: "#B57A00",
+      marginTop: 2,
+      lineHeight: 1.35
+    }
+  }, deleteHint || "Сотрёт вместе со всей историей. Это навсегда."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-5)",
+      textAlign: "center",
+      padding: "12px 0 8px"
+    }
+  }, "\u043F\u043E\u0442\u044F\u043D\u0438 \u0432\u043D\u0438\u0437, \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "max(4px, var(--tg-bottom-inset, 0px))"
+    }
+  }));
+}
+
+/* ШТОРКА «Архив» (v545) — список архивированных привычек/целей/кругов с восстановлением. Читает
+   app.habits/goals/teams ∩ архив-набор. Тап «Вернуть» → снять из архива (появится на главной). */
+function ArchiveSheetLive({
+  navigate
+}) {
+  var app = typeof useApp === "function" ? useApp() : null;
+  var dark = app && app.themeOverride === "dark";
+  var arch = useBosArchived();
+  var teamKey = t => typeof bosTeamKeyLive === "function" ? bosTeamKeyLive(t) : "t:" + (t.cloudId || t._id || t.id);
+  var rows = [];
+  (app && app.habits || []).forEach(h => {
+    var k = "h:" + h.id;
+    if (arch[k]) rows.push({
+      k,
+      name: h.name,
+      emoji: h.emoji || "🌿",
+      color: h.color,
+      kind: "Привычка"
+    });
+  });
+  (app && app.goals || []).forEach(g => {
+    var k = "g:" + g.id;
+    if (arch[k]) rows.push({
+      k,
+      name: g.name,
+      emoji: g.emoji || "🎯",
+      color: g.color,
+      kind: "Цель"
+    });
+  });
+  (app && app.teams || []).forEach(t => {
+    var k = teamKey(t);
+    if (arch[k]) rows.push({
+      k,
+      name: t.name,
+      emoji: t.emblem || "👥",
+      color: t.accent || t.color,
+      kind: "Совместная цель"
+    });
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 18px 8px",
+      color: "var(--text)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 19,
+      fontWeight: 800,
+      letterSpacing: "-0.3px"
+    }
+  }, "\u0410\u0440\u0445\u0438\u0432"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      marginTop: 3
+    }
+  }, "\u0421\u043F\u0440\u044F\u0442\u0430\u043D\u043D\u043E\u0435 \u0441 \u0433\u043B\u0430\u0432\u043D\u043E\u0439 \u2014 \u0438\u0441\u0442\u043E\u0440\u0438\u044F \u0446\u0435\u043B\u0430, \u0432\u0435\u0440\u043D\u0451\u0448\u044C \u043E\u0434\u043D\u0438\u043C \u0442\u0430\u043F\u043E\u043C")), rows.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "26px 8px",
+      color: "var(--text-4)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 30
+    }
+  }, "\uD83D\uDDC4\uFE0F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text)",
+      marginTop: 8
+    }
+  }, "\u0410\u0440\u0445\u0438\u0432 \u043F\u0443\u0441\u0442"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      marginTop: 4,
+      lineHeight: 1.45
+    }
+  }, "\u0421\u043F\u0440\u044F\u0442\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u0438\u043B\u0438 \u0446\u0435\u043B\u044C \u043C\u043E\u0436\u043D\u043E \u043C\u0438\u043D\u0443\u0441\u043E\u043C \u0432 \u0440\u0435\u0436\u0438\u043C\u0435 \u0442\u0440\u044F\u0441\u043A\u0438.")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, rows.map(r => /*#__PURE__*/React.createElement("div", {
+    key: r.k,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      background: "var(--card)",
+      borderRadius: 16,
+      padding: "10px 12px",
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      background: BOS_TILE_SHEEN + (r.color ? ", " + r.color + "26" : ", var(--surface-3)"),
+      boxShadow: bosTileGlass(dark),
+      display: "grid",
+      placeItems: "center",
+      fontSize: 19,
+      flexShrink: 0,
+      opacity: 0.85
+    }
+  }, bosIcon(r.emoji, 20, r.color)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, r.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-4)"
+    }
+  }, r.kind)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      bosSetArchived(r.k, false);
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+    },
+    className: "tap",
+    style: {
+      flexShrink: 0,
+      border: 0,
+      borderRadius: 999,
+      padding: "8px 14px",
+      background: dark ? "rgba(255,255,255,0.10)" : "var(--surface-3)",
+      color: "var(--text)",
+      fontSize: 13,
+      fontWeight: 600,
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement(I.Refresh, {
+    size: 14,
+    strokeWidth: 2.2
+  }), " \u0412\u0435\u0440\u043D\u0443\u0442\u044C")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "max(8px, var(--tg-bottom-inset, 0px))"
+    }
   }));
 }
 
@@ -4750,8 +5163,8 @@ function HomeGalleryContentLive({
   };
   var defs = typeof BOS_HOME_WIDGETS !== "undefined" ? BOS_HOME_WIDGETS : [];
   // shelved-копии круга (Г) и goalOnly в каталоге доски не участвуют — они спрятаны со страниц.
-  var habits = (app && app.habits || []).filter(h => !h.shelved && !h.goalOnly);
-  var goals = app && app.goals || [];
+  var habits = (app && app.habits || []).filter(h => !h.shelved && !h.goalOnly && !bosIsArchived("h:" + h.id));
+  var goals = (app && app.goals || []).filter(g => !bosIsArchived("g:" + g.id));
   var teams = app && app.teams || [];
   // Локальный фолбэк для страницы настроек: там доски за шторкой нет, меню стиля
   // открывается прямо по месту (на доске шторка закрывается — это делает onStyle).
@@ -4911,7 +5324,7 @@ function HomeGalleryContentLive({
     anchorRef: null
   }), kicker("Виджеты"), card(defs.map(o => ({
     key: "w:" + o.id,
-    icon: o.emoji,
+    icon: typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 16, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji,
     name: o.t,
     sub: o.d,
     on: widgetOn(o.id),
@@ -5424,6 +5837,7 @@ function HabitTileLive({
     square: sq
   }) : null;
   var icon = /*#__PURE__*/React.createElement("span", {
+    className: "bos-ticon",
     style: {
       width: 38,
       height: 38,
@@ -5657,6 +6071,7 @@ function TeamTileLive({
     }
   }))) : null;
   var icon = /*#__PURE__*/React.createElement("span", {
+    className: "bos-ticon",
     style: {
       width: 40,
       height: 40,
@@ -5858,6 +6273,7 @@ function GoalTileLive({
     }
   }, Math.round(pct * 100), "%");
   var icon = /*#__PURE__*/React.createElement("span", {
+    className: "bos-ticon",
     style: {
       width: 40,
       height: 40,
@@ -6098,7 +6514,8 @@ function HabitMonthMini({
 function CardStyleMenuLive({
   open,
   onClose,
-  anchorRef
+  anchorRef,
+  onArchiveList
 }) {
   var [pos, setPos] = React.useState(null);
   var [tab, setTab] = React.useState("habits");
@@ -6120,6 +6537,24 @@ function CardStyleMenuLive({
     } catch (e) {}
     try {
       window.dispatchEvent(new Event("bos:glassChanged"));
+    } catch (e) {}
+  };
+  // «Чёрные иконки» (David: «привычки/цели чёрными svg-иконками, строже») — глобальный тумблер
+  // bos:monoIcons → body.bos-mono-icons → CSS приглушает цвет эмодзи на плитках. По умолчанию ВЫКЛ.
+  var [monoOn, setMonoOn] = React.useState(() => {
+    try {
+      return localStorage.getItem("bos:monoIcons") === "1";
+    } catch (e) {
+      return false;
+    }
+  });
+  var setMono = v => {
+    setMonoOn(v);
+    try {
+      localStorage.setItem("bos:monoIcons", v ? "1" : "0");
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event("bos:monoIconsChanged"));
     } catch (e) {}
   };
   React.useEffect(() => {
@@ -6416,14 +6851,53 @@ function CardStyleMenuLive({
       lineHeight: 1.4,
       padding: "4px 2px 0"
     }
-  }, "\u041E\u0440\u0431\u0438\u0442\u044B \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0432\u043E\u043A\u0440\u0443\u0433 \u0446\u0435\u043B\u0438 \u2014 \u043F\u0440\u0435\u0432\u044C\u044E, \u0432\u043E\u043A\u0440\u0443\u0433 \u0447\u0435\u0433\u043E \u043E\u043D\u0430.")) : /*#__PURE__*/React.createElement(React.Fragment, null, toggleRow("Эффект стекла", glassOn, setGlass), /*#__PURE__*/React.createElement("div", {
+  }, "\u041E\u0440\u0431\u0438\u0442\u044B \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0438 \u043B\u044E\u0434\u0435\u0439 \u0432\u043E\u043A\u0440\u0443\u0433 \u0446\u0435\u043B\u0438 \u2014 \u043F\u0440\u0435\u0432\u044C\u044E, \u0432\u043E\u043A\u0440\u0443\u0433 \u0447\u0435\u0433\u043E \u043E\u043D\u0430.")) : /*#__PURE__*/React.createElement(React.Fragment, null, toggleRow("Чёрные иконки", monoOn, setMono), toggleRow("Эффект стекла", glassOn, setGlass), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "rgba(10,10,10,0.42)",
       lineHeight: 1.4,
-      padding: "4px 2px 0"
+      padding: "4px 2px 2px"
     }
-  }, "\u0421\u0442\u0435\u043A\u043B\u044F\u043D\u043D\u044B\u0435 \u0431\u043B\u0438\u043A\u0438 \u043D\u0430 \u043F\u043B\u0438\u0442\u043A\u0430\u0445 \u0438 \u0434\u0438\u0441\u043A\u0430\u0445. \u0412\u044B\u043A\u043B\u044E\u0447\u0438 \u2014 \u0441\u0442\u0430\u043D\u0435\u0442 \u043F\u043B\u043E\u0441\u043A\u043E \u0438 \u043B\u0435\u0433\u0447\u0435 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0443.")))), document.body);
+  }, "\u0427\u0451\u0440\u043D\u044B\u0435 \u0438\u043A\u043E\u043D\u043A\u0438 \u2014 \u0441\u0442\u0440\u043E\u0433\u0438\u0439 \u0435\u0434\u0438\u043D\u044B\u0439 \u0432\u0438\u0434 \u0432\u043C\u0435\u0441\u0442\u043E \u0446\u0432\u0435\u0442\u043D\u044B\u0445 \u044D\u043C\u043E\u0434\u0437\u0438. \u0421\u0442\u0435\u043A\u043B\u043E \u2014 \u0431\u043B\u0438\u043A\u0438 \u043D\u0430 \u043F\u043B\u0438\u0442\u043A\u0430\u0445."), typeof onArchiveList === "function" && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      onClose();
+      onArchiveList();
+    },
+    className: "tap",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      width: "100%",
+      marginTop: 8,
+      border: 0,
+      borderRadius: 11,
+      padding: "9px 2px",
+      background: "transparent",
+      cursor: "pointer",
+      color: "#0a0a0a",
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      background: "rgba(10,10,10,0.05)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, "\uD83D\uDDC4\uFE0F"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 13.5,
+      fontWeight: 500
+    }
+  }, "\u0410\u0440\u0445\u0438\u0432"), /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 15,
+    color: "rgba(10,10,10,0.4)"
+  }))))), document.body);
 }
 
 // LIVE share-a-goal sheet — the goal twin of ShareHabitSheetLive, kept minimal: share

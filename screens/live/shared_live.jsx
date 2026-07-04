@@ -2161,20 +2161,23 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
 // Блок «Уровень» УЕХАЛ с главной на страницу «Я» (David: «золотой баннер уровня перенести внутрь Я»)
 // → его нет в списке виджетов главной. Кейс id==="level" в home_live остаётся, но не рендерится
 // (нет в DEFAULT_ORDER → отфильтровывается), чтобы откат был лёгким.
+// sym — монохромный SVG-символ (sf:) для ЧЁРНО-БЕЛОГО показа иконок виджетов в галерее «+»
+// (David: «иконки виджетов, кроме привычек, чёрно-белые, в одном стиле как плюсик»). Сам виджет
+// на доске рисуется как прежде; символ используется только в списке добавления.
 var BOS_HOME_WIDGETS = [
-  { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   emoji: "✨" },
+  { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   emoji: "✨", sym: "sf:Sparkles" },
   // Лента челленджей ПЕРЕЕХАЛА со страницы «Привычки» (слияние с главной, David): готовые
   // привычки/цели/«вместе» с XP-бонусом одной строкой чипов. Добирается на доску сама
   // (как плитки) — правило видимости «НЕ в hidden», см. effLayout в home_live.
-  { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", emoji: "⚡" },
-  { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅" },
+  { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", emoji: "⚡", sym: "sf:Flame" },
+  { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅", sym: "sf:Calendar" },
   // «Состояние» СКРЫТО до согласованного макета (David: «нарисуй, как оно должно выглядеть,
   // где быть и как себя вести — в масштабе человека и мультиплеера, а не тяп-ляп»). Кейс
   // id==="mood" в home_live жив; вернуть = строка {id:"mood"} сюда + добор в effLayout.
-  { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥" },
+  { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥", sym: "sf:Users" },
   // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
   // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
-  { id: "invite",  t: "Позови своих", d: "Приглашай друзей — +XP",   emoji: "📣" },
+  { id: "invite",  t: "Позови своих", d: "Приглашай друзей — +XP",   emoji: "📣", sym: "sf:Gift" },
 ];
 
 /* iOS-style «−» remove badge for the home widget board — a small GLASS circle pinned to the
@@ -2193,6 +2196,110 @@ function WidgetMinusLive({ onRemove }) {
         boxShadow: "0 2px 9px rgba(0,0,0,0.24), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)" }}>
       <I.Minus size={16} strokeWidth={3} />
     </button>
+  );
+}
+
+// ── АРХИВ (v545, David: «на минус — удалить или архивировать; архивировать = спрятать, история
+//    цела, вернуть можно»). ЛЁГКИЙ клиентский оверлей поверх привычек/целей/кругов — как «hidden»
+//    у доски: набор ключей в localStorage, НЕ трогает облако, полностью обратимо. Ключ = "h:"+id /
+//    "g:"+id / "t:"+teamKey. Фильтруется везде (доска, списки, галерея). Восстановление — шторка
+//    «Архив». Событие bos:archivedChanged → списки перерисовываются.
+function bosLoadArchived() { try { var v = JSON.parse(localStorage.getItem("bos:archived") || "null"); return (v && typeof v === "object") ? v : {}; } catch (e) { return {}; } }
+function bosIsArchived(key) { return !!bosLoadArchived()[key]; }
+function bosSetArchived(key, on) {
+  var m = bosLoadArchived();
+  if (on) m[key] = 1; else delete m[key];
+  try { localStorage.setItem("bos:archived", JSON.stringify(m)); } catch (e) {}
+  try { window.dispatchEvent(new Event("bos:archivedChanged")); } catch (e) {}
+  return m;
+}
+// Хук: перерисовать компонент при смене архива.
+function useBosArchived() {
+  var st = React.useState(bosLoadArchived), m = st[0], setM = st[1];
+  React.useEffect(function () { var h = function () { setM(bosLoadArchived()); }; window.addEventListener("bos:archivedChanged", h); return function () { window.removeEventListener("bos:archivedChanged", h); }; }, []);
+  return m;
+}
+
+// Круглая СТЕКЛЯННАЯ кнопка-иконка в стиле нашего плюсика (David: «в том же стиле круглых стеклянных»).
+// danger=true → красная ТОЛЬКО иконка (без обводки кнопки — David: «обводку не делай»).
+function BosGlassIconLive({ children, dark, size = 44, danger }) {
+  return (
+    <span style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center",
+      color: danger ? "#FF3B30" : (dark ? "#fff" : "var(--text)"),
+      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(64,64,68,0.96)" : "rgba(255,255,255,0.97)"),
+      boxShadow: "0 3px 10px rgba(0,0,0,0.16), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.08)" }}>{children}</span>
+  );
+}
+
+/* ШТОРКА «Архивировать / Удалить» (v545, David) — на минус у привычки/цели/круга. Иконки в стиле
+   наших круглых стеклянных кнопок: архив нейтральный, удаление — красная ТОЛЬКО иконка-корзина и
+   текст (без красной обводки). Отмена = потянуть вниз/тап мимо (кнопки «Отмена» нет). */
+function ArchiveOrDeleteSheetLive({ name, emoji, color, dark = false, onArchive, onDelete, deleteLabel = "Удалить насовсем", deleteHint }) {
+  const { close } = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  const act = (fn) => { close(); if (typeof fn === "function") setTimeout(fn, 20); };
+  const archBox = (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" /><path d="M10 12h4" /></svg>);
+  return (
+    <div style={{ padding: "2px 16px 0", color: "var(--text)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 4px 12px" }}>
+        <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + (color ? ", " + color + "26" : ", var(--surface-3)"), boxShadow: bosTileGlass(dark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(emoji || "🌿", 22, color)}</span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>«{name}»</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>Что с ней сделать?</div>
+        </div>
+      </div>
+      <button onClick={() => act(onArchive)} className="tap" data-haptic="selection" style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", border: 0, borderRadius: 16, padding: 12, background: "var(--surface-3)", textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
+        <BosGlassIconLive dark={dark}>{archBox}</BosGlassIconLive>
+        <span><span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>Архивировать</span><span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.35 }}>Спрятать с главной. История цела — вернёшь в «Архиве».</span></span>
+      </button>
+      <button onClick={() => act(onDelete)} className="tap" data-haptic="warning" style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", border: 0, borderRadius: 16, padding: 12, marginTop: 9, background: "var(--surface-3)", textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
+        <BosGlassIconLive dark={dark} danger><I.Trash size={19} strokeWidth={2} /></BosGlassIconLive>
+        <span><span style={{ display: "block", fontSize: 15, fontWeight: 600, color: "#FF3B30" }}>{deleteLabel}</span><span style={{ display: "block", fontSize: 12, color: "#B57A00", marginTop: 2, lineHeight: 1.35 }}>{deleteHint || "Сотрёт вместе со всей историей. Это навсегда."}</span></span>
+      </button>
+      <div style={{ fontSize: 11.5, color: "var(--text-5)", textAlign: "center", padding: "12px 0 8px" }}>потяни вниз, чтобы отменить</div>
+      <div style={{ height: "max(4px, var(--tg-bottom-inset, 0px))" }} />
+    </div>
+  );
+}
+
+/* ШТОРКА «Архив» (v545) — список архивированных привычек/целей/кругов с восстановлением. Читает
+   app.habits/goals/teams ∩ архив-набор. Тап «Вернуть» → снять из архива (появится на главной). */
+function ArchiveSheetLive({ navigate }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const dark = app && app.themeOverride === "dark";
+  const arch = useBosArchived();
+  const teamKey = (t) => (typeof bosTeamKeyLive === "function") ? bosTeamKeyLive(t) : ("t:" + (t.cloudId || t._id || t.id));
+  const rows = [];
+  (app && app.habits || []).forEach((h) => { const k = "h:" + h.id; if (arch[k]) rows.push({ k, name: h.name, emoji: h.emoji || "🌿", color: h.color, kind: "Привычка" }); });
+  (app && app.goals || []).forEach((g) => { const k = "g:" + g.id; if (arch[k]) rows.push({ k, name: g.name, emoji: g.emoji || "🎯", color: g.color, kind: "Цель" }); });
+  (app && app.teams || []).forEach((t) => { const k = teamKey(t); if (arch[k]) rows.push({ k, name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color, kind: "Совместная цель" }); });
+  return (
+    <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
+      <div style={{ textAlign: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px" }}>Архив</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3 }}>Спрятанное с главной — история цела, вернёшь одним тапом</div>
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "26px 8px", color: "var(--text-4)" }}>
+          <div style={{ fontSize: 30 }}>🗄️</div>
+          <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)", marginTop: 8 }}>Архив пуст</div>
+          <div style={{ fontSize: 12.5, marginTop: 4, lineHeight: 1.45 }}>Спрятать привычку или цель можно минусом в режиме тряски.</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {rows.map((r) => (
+            <div key={r.k} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 16, padding: "10px 12px", boxShadow: "var(--card-shadow)" }}>
+              <span style={{ width: 38, height: 38, borderRadius: 12, background: BOS_TILE_SHEEN + (r.color ? ", " + r.color + "26" : ", var(--surface-3)"), boxShadow: bosTileGlass(dark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0, opacity: 0.85 }}>{bosIcon(r.emoji, 20, r.color)}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-4)" }}>{r.kind}</div>
+              </div>
+              <button onClick={() => { bosSetArchived(r.k, false); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" style={{ flexShrink: 0, border: 0, borderRadius: 999, padding: "8px 14px", background: dark ? "rgba(255,255,255,0.10)" : "var(--surface-3)", color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><I.Refresh size={14} strokeWidth={2.2} /> Вернуть</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
+    </div>
   );
 }
 
@@ -2224,8 +2331,8 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   };
   const defs = (typeof BOS_HOME_WIDGETS !== "undefined") ? BOS_HOME_WIDGETS : [];
   // shelved-копии круга (Г) и goalOnly в каталоге доски не участвуют — они спрятаны со страниц.
-  const habits = ((app && app.habits) || []).filter((h) => !h.shelved && !h.goalOnly);
-  const goals = (app && app.goals) || [];
+  const habits = ((app && app.habits) || []).filter((h) => !h.shelved && !h.goalOnly && !bosIsArchived("h:" + h.id));
+  const goals = ((app && app.goals) || []).filter((g) => !bosIsArchived("g:" + g.id));
   const teams = (app && app.teams) || [];
   // Локальный фолбэк для страницы настроек: там доски за шторкой нет, меню стиля
   // открывается прямо по месту (на доске шторка закрывается — это делает onStyle).
@@ -2273,7 +2380,9 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
       </button>
       {!onStyle && typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleHere} onClose={() => setStyleHere(false)} anchorRef={null} />}
       {kicker("Виджеты")}
-      {card(defs.map((o) => ({ key: "w:" + o.id, icon: o.emoji, name: o.t, sub: o.d, on: widgetOn(o.id), onToggle: () => toggleWidget(o.id) })))}
+      {/* Иконки виджетов — ЧЁРНО-БЕЛЫЕ (David): монохромный sf-символ вместо цветного эмодзи, единый
+          строгий вид как у плюсика. Привычки/цели ниже остаются цветными. */}
+      {card(defs.map((o) => ({ key: "w:" + o.id, icon: (typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 16, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji), name: o.t, sub: o.d, on: widgetOn(o.id), onToggle: () => toggleWidget(o.id) })))}
       {habits.length > 0 && (
         <React.Fragment>
           {kicker("Привычки")}
@@ -2479,7 +2588,7 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
   const sq = cardStyle.cells === "square";
   const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
-  const icon = <span style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + (h.color ? h.color + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
   const chip = (typeof ChallengeProgressChip === "function") ? <ChallengeProgressChip habit={h} /> : null;
   if (rect) {
     return (
@@ -2568,7 +2677,7 @@ function TeamTileLive({ team: t, ctx = { mode: false }, from = "habits" }) {
       </div>
     </div>
   ) : null;
-  const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 22, sk.hasColor ? sk.iconInk : (t.accent || t.color))}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(t.emblem || "👥", 22, sk.hasColor ? sk.iconInk : (t.accent || t.color))}</span>;
 
   if (banner) {
     return (
@@ -2624,7 +2733,7 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
   const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: from });
   const orbit = (goalStyle.orbits && typeof GoalCardOrbit === "function") ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 132 : 152} dark={isDark} fade progress={pct} /> : null;
   const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
-  const icon = <span style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color)}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 40, height: 40, borderRadius: 13, background: sk.iconBg, boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(g.emoji || "🎯", 22, sk.hasColor ? sk.iconInk : g.color)}</span>;
   const progBar = goalStyle.progress ? (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
@@ -2699,7 +2808,7 @@ function HabitMonthMini({ habit, square = false }) {
 // грузит и сохраняет оба стиля (bosSaveCardStyle/bosSaveGoalStyle → event → список перерисовывается).
 // Привычки: форма квадрат/строка + отметки/клетки/лица/название. Цели: форма БАННЕР/квадрат + орбиты
 // (мини-орбита привычек+людей) + прогресс + название. Всплывашка у шестерёнки (как CreateMenuLive).
-function CardStyleMenuLive({ open, onClose, anchorRef }) {
+function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList }) {
   const [pos, setPos] = React.useState(null);
   const [tab, setTab] = React.useState("habits");
   const [hs, setHs] = React.useState(bosLoadCardStyle);
@@ -2708,6 +2817,10 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
   // глобальный тумблер bos:glass, что в настройках профиля, но под рукой прямо из тряски.
   const [glassOn, setGlassOn] = React.useState(() => { try { return localStorage.getItem("bos:glass") !== "0"; } catch (e) { return true; } });
   const setGlass = (v) => { setGlassOn(v); try { localStorage.setItem("bos:glass", v ? "1" : "0"); } catch (e) {} try { window.dispatchEvent(new Event("bos:glassChanged")); } catch (e) {} };
+  // «Чёрные иконки» (David: «привычки/цели чёрными svg-иконками, строже») — глобальный тумблер
+  // bos:monoIcons → body.bos-mono-icons → CSS приглушает цвет эмодзи на плитках. По умолчанию ВЫКЛ.
+  const [monoOn, setMonoOn] = React.useState(() => { try { return localStorage.getItem("bos:monoIcons") === "1"; } catch (e) { return false; } });
+  const setMono = (v) => { setMonoOn(v); try { localStorage.setItem("bos:monoIcons", v ? "1" : "0"); } catch (e) {} try { window.dispatchEvent(new Event("bos:monoIconsChanged")); } catch (e) {} };
   React.useEffect(() => {
     if (!open) return;
     setHs(bosLoadCardStyle()); setGs(bosLoadGoalStyle());
@@ -2774,8 +2887,16 @@ function CardStyleMenuLive({ open, onClose, anchorRef }) {
         ) : (
           <>
             {/* «Общий вид» — визуальные настройки всей главной (David: «общие настройки приложения»). */}
+            {toggleRow("Чёрные иконки", monoOn, setMono)}
             {toggleRow("Эффект стекла", glassOn, setGlass)}
-            <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 0" }}>Стеклянные блики на плитках и дисках. Выключи — станет плоско и легче телефону.</div>
+            <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 2px" }}>Чёрные иконки — строгий единый вид вместо цветных эмодзи. Стекло — блики на плитках.</div>
+            {typeof onArchiveList === "function" && (
+              <button onClick={() => { onClose(); onArchiveList(); }} className="tap" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginTop: 8, border: 0, borderRadius: 11, padding: "9px 2px", background: "transparent", cursor: "pointer", color: "#0a0a0a", textAlign: "left" }}>
+                <span style={{ width: 26, height: 26, borderRadius: 8, background: "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>🗄️</span>
+                <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>Архив</span>
+                <I.ChevronRight size={15} color="rgba(10,10,10,0.4)" />
+              </button>
+            )}
           </>
         )}
       </div>
