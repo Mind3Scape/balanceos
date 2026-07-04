@@ -924,12 +924,23 @@ function MoodLive() {
     t: "В огне",
     c: "#ffe1c8"
   }];
-  var [picked, setPicked] = useM(app?.mood?.t ? moods.findIndex(m => m.t === app.mood.t) : -1);
-  var [note, setNote] = useM("");
-  var [tags, setTags] = useM([]);
+  var isDarkM = app?.themeOverride === "dark";
+  var STEPS = typeof BOS_STATE !== "undefined" && BOS_STATE.length ? BOS_STATE : moods;
+  var tk = typeof bosTodayKey === "function" ? bosTodayKey() : new Date().toISOString().slice(0, 10);
 
-  // Breathing time
-  var [t, setT] = useM(0);
+  // Старт: сегодняшняя отметка (если есть) → её валентность, иначе лёгкий плюс 0.68.
+  var initV = React.useMemo(() => {
+    var di = app && app.dayMoods && app.dayMoods[tk];
+    if (di != null && STEPS[di] && STEPS[di].v != null) return STEPS[di].v;
+    return 0.68;
+  }, []);
+  var [val, setVal] = React.useState(initV);
+  var [note, setNote] = React.useState(() => app && app.dayNotes && app.dayNotes[tk] && app.dayNotes[tk].note || "");
+  var [saved, setSaved] = React.useState(false);
+  var stageRef = React.useRef(null);
+  var dragRef = React.useRef(false);
+  var lastStep = React.useRef(-1);
+  var [t, setT] = React.useState(0);
   React.useEffect(() => {
     var raf,
       s = performance.now();
@@ -940,46 +951,71 @@ function MoodLive() {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
-  var breath = 1 + Math.sin(t * 0.8) * 0.04;
-  var pulse = 1 + Math.sin(t * 1.3) * 0.06;
-  var cur = picked >= 0 ? moods[picked] : null;
-  var tint = cur ? cur.c : "#6a7a92";
-  var isDarkM = app?.themeOverride === "dark"; // тёмная тема: тёмная атмосфера вместо белой
-
-  var moodTags = cur ? MOOD_TAGS[cur.t] || [] : [];
-  var toggleTag = tg => setTags(ts => ts.includes(tg) ? ts.filter(x => x !== tg) : [...ts, tg]);
+  var breath = 1 + Math.sin(t * 0.8) * 0.035;
+  var stepIdx = typeof bosStateStepFromV === "function" ? bosStateStepFromV(val) : Math.max(0, Math.min(STEPS.length - 1, Math.round(val * (STEPS.length - 1))));
+  var step = STEPS[stepIdx] || STEPS[Math.floor(STEPS.length / 2)] || {
+    i: "🙂",
+    t: "Ровно",
+    tint: ["#f2f4f8", "#a6abb6", "#6b7280"]
+  };
+  var tint = typeof bosStateTintForV === "function" ? bosStateTintForV(val) : step.tint || ["#cfe1ff", "#7aa4d0", "#2c4d76"];
+  var glow = tint[1];
+  var setFromY = clientY => {
+    var el = stageRef.current;
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    var v = 1 - (clientY - r.top) / Math.max(1, r.height); // верх = 1 (золото), низ = 0 (графит)
+    v = Math.max(0, Math.min(1, v));
+    var b = typeof bosStateStepFromV === "function" ? bosStateStepFromV(v) : Math.round(v * (STEPS.length - 1));
+    if (b !== lastStep.current) {
+      lastStep.current = b;
+      if (window.tgHaptic) {
+        try {
+          window.tgHaptic("selection");
+        } catch (e) {}
+      }
+    }
+    setVal(v);
+  };
   var onSave = () => {
-    if (picked < 0 || !app) return navigate("home");
-    // Key by the REAL date (so check-ins accumulate per day & pay XP).
-    var dayKey = typeof bosTodayKey === "function" ? bosTodayKey() : new Date().toISOString().slice(0, 10);
-    app.setMood && app.setMood(moods[picked]);
+    if (!app) return navigate("home");
+    app.setMood && app.setMood(STEPS[stepIdx]);
     app.setDayMoods && app.setDayMoods({
       ...(app.dayMoods || {}),
-      [dayKey]: picked
+      [tk]: stepIdx
     });
     if (app.setDayNotes) {
-      var prev = (app.dayNotes || {})[dayKey] || {};
+      var prev = (app.dayNotes || {})[tk] || {};
       app.setDayNotes({
         ...(app.dayNotes || {}),
-        [dayKey]: {
-          tags: tags && tags.length ? tags : prev.tags || [],
+        [tk]: {
+          tags: prev.tags || [],
           note: note.trim() || prev.note || ""
         }
       });
     }
-    navigate("home");
+    if (window.tgHaptic) {
+      try {
+        window.tgHaptic("success");
+      } catch (e) {}
+    }
+    setSaved(true);
+    setTimeout(() => navigate("home"), 280);
   };
+  var STAGE_H = 248,
+    ORB = 150,
+    PAD = 14;
+  var orbTop = (1 - val) * (STAGE_H - ORB - 2 * PAD) + PAD;
+  var bg = isDarkM ? "linear-gradient(180deg,#111218 0%,#0a0b0e 100%)" : "linear-gradient(180deg,#ffffff 0%,#f4f4f6 100%)";
   return /*#__PURE__*/React.createElement("div", {
-    className: "mood-fullscreen",
     style: {
       position: "absolute",
       inset: 0,
       color: "var(--text)",
       overflow: "hidden",
-      background: isDarkM ? "linear-gradient(180deg, #111218 0%, #0a0b0e 100%)" : "linear-gradient(180deg, #ffffff 0%, #f2f3f6 100%)",
+      background: bg,
       display: "flex",
-      flexDirection: "column",
-      ["--mood-tint"]: tint
+      flexDirection: "column"
     }
   }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
@@ -987,22 +1023,14 @@ function MoodLive() {
       position: "absolute",
       inset: 0,
       pointerEvents: "none",
-      background: `radial-gradient(70% 45% at 50% 42%, ${tint}59 0%, ${tint}24 32%, transparent 66%)`,
-      transition: "background 0.6s ease"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
-    style: {
-      position: "absolute",
-      inset: 0,
-      pointerEvents: "none",
-      background: isDarkM ? "linear-gradient(180deg, #111218 0%, transparent 18%, transparent 82%, #0a0b0e 100%)" : "linear-gradient(180deg, #ffffff 0%, transparent 18%, transparent 82%, #f2f3f6 100%)"
+      background: "radial-gradient(85% 55% at 50% " + (16 + (1 - val) * 26) + "%, " + glow + "3a 0%, " + glow + "12 34%, transparent 66%)",
+      transition: "background 0.25s ease"
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       zIndex: 2,
-      padding: "60px 20px 0",
+      padding: "58px 20px 0",
       display: "flex",
       alignItems: "center"
     }
@@ -1034,290 +1062,159 @@ function MoodLive() {
       letterSpacing: 1.6,
       textTransform: "uppercase",
       color: "var(--text-4)",
-      fontWeight: 600
+      fontWeight: 700
     }
-  }, "\u041E\u0442\u043C\u0435\u0442\u043A\u0430 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("span", {
+  }, "\u041A\u0430\u043A \u0442\u044B \u0441\u0435\u0439\u0447\u0430\u0441"), /*#__PURE__*/React.createElement("span", {
     style: {
       width: 40
     }
   })), /*#__PURE__*/React.createElement("div", {
+    ref: stageRef,
+    onPointerDown: e => {
+      dragRef.current = true;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      setFromY(e.clientY);
+    },
+    onPointerMove: e => {
+      if (dragRef.current) setFromY(e.clientY);
+    },
+    onPointerUp: () => {
+      dragRef.current = false;
+    },
+    onPointerCancel: () => {
+      dragRef.current = false;
+    },
     style: {
       position: "relative",
       zIndex: 2,
-      flex: cur ? "0 0 auto" : 1,
-      display: "grid",
-      placeItems: "center",
-      padding: "12px 20px 0",
-      minHeight: cur ? 132 : 220,
-      transition: "min-height 0.4s ease"
+      height: STAGE_H,
+      margin: "12px 20px 0",
+      touchAction: "none",
+      cursor: "grab"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      position: "relative",
-      width: cur ? 156 : 220,
-      height: cur ? 156 : 220,
+      position: "absolute",
+      left: "50%",
+      top: 0,
+      transform: "translateX(-50%)",
+      color: "#f0a81c",
+      fontSize: 15,
+      opacity: 0.72
+    }
+  }, "\u25B4"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: "50%",
+      bottom: 0,
+      transform: "translateX(-50%)",
+      color: "#5b6373",
+      fontSize: 15,
+      opacity: 0.5
+    }
+  }, "\u25BE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: "50%",
+      top: orbTop,
+      transform: "translateX(-50%) scale(" + breath + ")",
+      transition: dragRef.current ? "none" : "top 0.16s ease",
+      width: ORB,
+      height: ORB,
       display: "grid",
-      placeItems: "center",
-      transition: "width 0.4s ease, height 0.4s ease"
+      placeItems: "center"
     }
   }, /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       position: "absolute",
-      inset: -40,
+      inset: -30,
       borderRadius: "50%",
-      background: `radial-gradient(circle, ${tint}59 0%, ${tint}1f 35%, transparent 70%)`,
-      opacity: 0.8 * pulse,
-      filter: "blur(22px)",
-      transform: `scale(${pulse})`,
-      transition: "background 0.6s ease"
+      background: "radial-gradient(circle, " + glow + "4d 0%, " + glow + "1a 40%, transparent 70%)",
+      filter: "blur(18px)"
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      transform: `scale(${breath})`,
-      transition: "transform 0.15s"
-    }
-  }, /*#__PURE__*/React.createElement(StateOrb, {
-    size: cur ? 140 : 196,
-    tint: tintFromMood(tint),
-    intensity: cur ? 1.3 : 0.7
-  })))), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement(BosStateOrb, {
+    size: ORB,
+    tint: tint
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       zIndex: 2,
-      padding: "0 24px",
-      textAlign: "center"
+      textAlign: "center",
+      padding: "8px 24px 0"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "var(--bos-title-font)",
       fontSize: 30,
-      fontWeight: 600,
-      color: "var(--text)",
-      lineHeight: 1.1,
+      fontWeight: 700,
       letterSpacing: "-0.6px",
-      minHeight: 36
+      lineHeight: 1.1,
+      color: "var(--text)"
     }
-  }, cur ? cur.t : "Как оно ощущается сейчас?"), /*#__PURE__*/React.createElement("div", {
+  }, (step.i ? step.i + " " : "") + step.t), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
-      color: "var(--text-3)",
-      marginTop: 6,
-      lineHeight: 1.5
-    }
-  }, cur ? "Отметь, что за этим стоит — или просто сохрани." : "Каждый цвет — это состояние. Выбери подходящее.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      zIndex: 2,
-      padding: cur ? "14px 20px 0" : "26px 20px 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(6, 1fr)",
-      gap: 8
-    }
-  }, moods.map((m, idx) => {
-    var active = picked === idx;
-    return /*#__PURE__*/React.createElement("button", {
-      key: idx,
-      onClick: () => {
-        setPicked(idx);
-        setTags([]);
-        setNote("");
-      },
-      className: "tap hit44",
-      "data-haptic": "selection",
-      "aria-label": m.t,
-      style: {
-        background: "transparent",
-        border: 0,
-        padding: "6px 2px 8px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 8,
-        color: "var(--text)",
-        cursor: "pointer"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        borderRadius: "50%",
-        boxShadow: active ? `0 0 0 2px #0a0a0a, 0 0 16px ${m.c}99` : "none",
-        transform: active ? "scale(1.08)" : "scale(1)",
-        transition: "transform 0.25s, box-shadow 0.25s"
-      }
-    }, /*#__PURE__*/React.createElement(StaticOrb, {
-      size: 38,
-      tint: tintFromMood(m.c),
-      seed: 1.2,
-      intensity: 0.3
-    })), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 10,
-        fontWeight: 600,
-        letterSpacing: 0.3,
-        opacity: active ? 1 : 0.6,
-        textAlign: "center",
-        lineHeight: 1.1
-      }
-    }, m.t));
-  }))), cur ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      zIndex: 2,
-      margin: "16px 20px 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "baseline",
-      gap: 8,
-      marginBottom: 11
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
+      fontSize: 12.5,
       color: "var(--text-4)",
-      fontWeight: 600
+      marginTop: 7
     }
-  }, "\u0427\u0442\u043E \u0437\u0430 \u044D\u0442\u0438\u043C \u0441\u0442\u043E\u0438\u0442?"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-5)"
-    }
-  }, "\u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u044E")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 8
-    }
-  }, moodTags.map(tg => {
-    var on = tags.includes(tg);
-    return /*#__PURE__*/React.createElement("button", {
-      key: tg,
-      onClick: () => toggleTag(tg),
-      className: "tap",
-      "data-no-haptic": true,
-      style: {
-        padding: "8px 13px",
-        borderRadius: 999,
-        fontSize: 13,
-        fontWeight: 500,
-        border: 0,
-        cursor: "pointer",
-        background: on ? "var(--cta, #0a0a0a)" : "var(--surface-3)",
-        color: on ? "var(--cta-ink, #fff)" : "var(--text-3)",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        transition: "background 0.18s, color 0.18s"
-      }
-    }, on && /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 7,
-        height: 7,
-        borderRadius: "50%",
-        background: tint
-      }
-    }), tg.replace(/_/g, " "));
-  })), /*#__PURE__*/React.createElement("textarea", {
-    value: note,
-    onChange: e => setNote(e.target.value),
-    placeholder: "\u041E\u043F\u0438\u0448\u0438, \u0447\u0442\u043E \u0447\u0443\u0432\u0441\u0442\u0432\u0443\u0435\u0448\u044C \u0441\u0435\u0439\u0447\u0430\u0441\u2026",
-    style: {
-      width: "100%",
-      marginTop: 12,
-      background: "var(--surface-3)",
-      border: "1px solid var(--line)",
-      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
-      borderRadius: 14,
-      padding: "12px 14px",
-      color: "var(--text)",
-      fontSize: 16,
-      fontFamily: "inherit",
-      lineHeight: 1.4,
-      outline: 0,
-      minHeight: 50,
-      resize: "none",
-      boxSizing: "border-box",
-      display: "block"
-    }
-  })) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      zIndex: 2,
-      margin: "18px 20px 0",
-      padding: "12px 14px",
-      background: "var(--surface-3)",
-      borderRadius: 14,
-      display: "flex",
-      alignItems: "center",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: 999,
-      background: "rgba(254,222,52,0.14)",
-      display: "grid",
-      placeItems: "center",
-      color: "#FEDE34",
-      fontSize: 18
-    }
-  }, "\u2728"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      color: "var(--text-4)",
-      fontWeight: 600
-    }
-  }, "\u0414\u043D\u0435\u0432\u043D\u0438\u043A \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u044F"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-2)",
-      marginTop: 3,
-      lineHeight: 1.35
-    }
-  }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u2014 \u043F\u043E\u0434\u0441\u043A\u0430\u0436\u0443 \u0441\u043B\u043E\u0432\u0430, \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043C\u0435\u0442\u0438\u0442\u044C, \u0447\u0442\u043E \u0437\u0430 \u043D\u0438\u043C \u0441\u0442\u043E\u0438\u0442."))), cur && /*#__PURE__*/React.createElement("div", {
+  }, "\u0412\u0435\u0434\u0438 \u043E\u0440\u0431 \u0432\u0432\u0435\u0440\u0445 \u2014 \u0442\u0435\u043F\u043B\u0435\u0435\u0442 \u043A \u0437\u043E\u043B\u043E\u0442\u0443, \u0432\u043D\u0438\u0437 \u2014 \u043A \u0433\u0440\u0430\u0444\u0438\u0442\u0443")), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       flex: 1,
-      minHeight: 6
+      minHeight: 8
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "relative",
       zIndex: 2,
-      padding: "14px 20px 28px"
+      padding: "0 20px 26px"
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("input", {
+    value: note,
+    onChange: e => setNote(e.target.value),
+    placeholder: "\u0425\u043E\u0447\u0435\u0448\u044C \u0441\u043A\u0430\u0437\u0430\u0442\u044C \u0441\u043B\u043E\u0432\u043E\u043C? \u041E\u0434\u043D\u0430 \u0441\u0442\u0440\u043E\u043A\u0430\u2026",
+    style: {
+      width: "100%",
+      background: isDarkM ? "rgba(255,255,255,0.06)" : "var(--surface-3)",
+      border: "1px solid var(--line)",
+      borderRadius: 16,
+      padding: "13px 15px",
+      color: "var(--text)",
+      fontSize: 16,
+      fontFamily: "inherit",
+      outline: 0,
+      boxSizing: "border-box",
+      marginBottom: 12
+    }
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: onSave,
-    disabled: picked < 0,
     className: "tap",
     style: {
       width: "100%",
-      background: picked < 0 ? "var(--surface-3)" : "#0a0a0a",
-      color: picked < 0 ? "var(--text-4)" : "#fff",
+      background: saved ? "#3f7a46" : "#0a0a0a",
+      color: "#fff",
       border: 0,
       borderRadius: 999,
       padding: 16,
       fontSize: 15,
       fontWeight: 600,
       letterSpacing: "-0.1px",
-      transition: "all 0.2s"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      transition: "background 0.2s"
     }
-  }, picked < 0 ? "Выбери состояние" : "Сохранить отметку")));
+  }, saved ? "Готово ✓" : "Готово", saved ? null : /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#f0a81c",
+      fontWeight: 800,
+      fontSize: 12
+    }
+  }, "\u2726"))));
 }
 
 /* JOURNAL / DAILY REFLECTION — LIVE. Real past notes from app.dayNotes (newest first),

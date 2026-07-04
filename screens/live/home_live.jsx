@@ -369,25 +369,20 @@ function HomeLive() {
     }
 
     if (id === "mood") {
-      // State check-in (not logged today) → the once-a-day slider; logged + ≥2 days → streak widget.
+      // СОСТОЯНИЕ v2 (редизайн): виджет-орб. Не отмечено сегодня → приглашение (тёмный тлеющий
+      // орб «Как ты?»); отмечено → орб в цвете состояния + след недели. Тап → Момент (жест A).
       const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
       const _loggedToday = !!(app?.dayMoods && app.dayMoods[_tk] != null);
       const _hideAction = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:mood") }];
-      if (!_loggedToday) {
-        return (
-          <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
-            <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}><StateSliderLive app={app} isDark={isDark} /></SwipeRow>
-          </div>
-        );
-      }
-      if (mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) {
-        return (
-          <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
-            <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}><MoodWidgetLive mood={mood} app={app} isDark={isDark} navigate={navigate} flush={true} /></SwipeRow>
-          </div>
-        );
-      }
-      return null;
+      return (
+        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
+          <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideAction}>
+            {(_loggedToday && mood)
+              ? <MoodWidgetLive mood={mood} app={app} isDark={isDark} navigate={navigate} flush={true} />
+              : <StateInviteLive app={app} isDark={isDark} navigate={navigate} />}
+          </SwipeRow>
+        </div>
+      );
     }
 
     if (id === "invite") {

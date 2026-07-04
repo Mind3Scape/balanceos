@@ -4161,6 +4161,179 @@ function SharedBuddiesLive({
 // instantly (+5 XP, success-haptic). No horizontal scrub → lives happily inside the card's
 // SwipeRow (swipe still reveals «Убрать», a tap just logs). Logs the real MOOD_OPTIONS index,
 // so the week-trail / calendar / MoodWidget keep reading it unchanged.
+// ── СОСТОЯНИЕ v2 — редизайн «с фундамента» (David 2026-07-04): состояние = свет орба,
+// шкала графит(тяжело)→серебро(ровно)→золото(на подъёме), НЕ радуга. Единый источник для LIVE
+// (демо НЕ трогаем — там свой MOOD_OPTIONS-fallback). dayMoods хранит индекс шага (0..5), как и
+// раньше, поэтому календарь/след недели/виджет читают его без переезда данных. {i,t,c,v,tint}. */
+var BOS_STATE = [{
+  i: "😔",
+  t: "Тяжело",
+  c: "#454e5e",
+  v: 0.00,
+  tint: ["#8a919f", "#5b6373", "#2b3140"]
+}, {
+  i: "😮‍💨",
+  t: "Непросто",
+  c: "#6a7280",
+  v: 0.20,
+  tint: ["#a6adba", "#727a89", "#414855"]
+}, {
+  i: "😐",
+  t: "Так себе",
+  c: "#9096a2",
+  v: 0.40,
+  tint: ["#c9cdd6", "#9096a2", "#5f6674"]
+}, {
+  i: "🙂",
+  t: "Ровно",
+  c: "#b3a988",
+  v: 0.60,
+  tint: ["#ece7da", "#bbac86", "#847a5f"]
+}, {
+  i: "😌",
+  t: "Хорошо",
+  c: "#dcb85c",
+  v: 0.80,
+  tint: ["#f6e7b6", "#dcb85c", "#a17f2a"]
+}, {
+  i: "🔥",
+  t: "На подъёме",
+  c: "#f0a81c",
+  v: 1.00,
+  tint: ["#fff6df", "#f3ac1d", "#a86f14"]
+}];
+function bosLerpHex(a, b, k) {
+  var pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+  var pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+  var to = function (n) {
+    return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+  };
+  return "#" + to(pa[0] + (pb[0] - pa[0]) * k) + to(pa[1] + (pb[1] - pa[1]) * k) + to(pa[2] + (pb[2] - pa[2]) * k);
+}
+// Плавный tint графит→серебро→золото по валентности 0..1 (орб «дышит» цветом во время настройки).
+function bosStateTintForV(v) {
+  v = Math.max(0, Math.min(1, typeof v === "number" && isFinite(v) ? v : 0.6));
+  var G = ["#8a919f", "#5b6373", "#2b3140"],
+    S = ["#f2f4f8", "#a6abb6", "#6b7280"],
+    Au = ["#fff6df", "#f3ac1d", "#a86f14"];
+  var a, b, k;
+  if (v < 0.5) {
+    a = G;
+    b = S;
+    k = v / 0.5;
+  } else {
+    a = S;
+    b = Au;
+    k = (v - 0.5) / 0.5;
+  }
+  return [bosLerpHex(a[0], b[0], k), bosLerpHex(a[1], b[1], k), bosLerpHex(a[2], b[2], k)];
+}
+function bosStateStepFromV(v) {
+  v = Math.max(0, Math.min(1, typeof v === "number" && isFinite(v) ? v : 0.6));
+  return Math.max(0, Math.min(BOS_STATE.length - 1, Math.round(v * (BOS_STATE.length - 1))));
+}
+// Безопасное чтение шага из dayMoods (клампит старые/чужие индексы — не роняет экран).
+function bosStateResolve(idx) {
+  idx = idx | 0;
+  return BOS_STATE[Math.max(0, Math.min(BOS_STATE.length - 1, idx))] || BOS_STATE[3];
+}
+// Орб состояния = чистая CSS-сфера (как в утверждённом макете): StateOrb/SiriOrb сделаны под
+// ХОЛОДНЫЕ тинты и мажут тёплое золото в салат — поэтому для состояния свой орб. tint=[light,mid,dark].
+function BosStateOrb(props) {
+  var size = props.size || 72;
+  var tint = props.tint && props.tint.length === 3 ? props.tint : ["#f2f4f8", "#a6abb6", "#6b7280"];
+  var breath = props.breath || 1;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      flexShrink: 0,
+      transform: breath !== 1 ? "scale(" + breath + ")" : undefined,
+      background: "radial-gradient(circle at 37% 30%, " + tint[0] + " 0%, " + tint[1] + " 46%, " + tint[2] + " 100%)",
+      boxShadow: "inset 0 " + (size * 0.028).toFixed(1) + "px " + (size * 0.17).toFixed(1) + "px rgba(255,255,255,0.5), 0 " + (size * 0.1).toFixed(1) + "px " + (size * 0.42).toFixed(1) + "px " + tint[1] + "5c"
+    }
+  });
+}
+
+// НОВЫЙ виджет-приглашение на главной, когда состояние сегодня НЕ отмечено (David: «не бейдж —
+// приглашение»): тёмный тлеющий орб + «Как ты?» → тап открывает Момент (жест A, route "mood").
+function StateInviteLive({
+  app,
+  isDark,
+  navigate
+}) {
+  var t = typeof useAIT === "function" ? useAIT() : typeof useT === "function" ? useT() : 0;
+  var bg = isDark ? "linear-gradient(160deg,#1a1a1d,#0d0d10)" : "#ffffff";
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: function () {
+      navigate && navigate("mood");
+    },
+    className: "tap",
+    "data-tour": "state",
+    style: {
+      width: "100%",
+      border: 0,
+      textAlign: "left",
+      background: bg,
+      padding: 18,
+      display: "flex",
+      alignItems: "center",
+      gap: 15,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 52,
+      height: 52,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      opacity: 0.94
+    }
+  }, /*#__PURE__*/React.createElement(BosStateOrb, {
+    size: 50,
+    tint: ["#9aa0ac", "#6b7280", "#3a4150"],
+    breath: 1 + Math.sin((t || 0) * 0.9) * 0.03
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 10.5,
+      fontWeight: 700,
+      letterSpacing: 1.2,
+      textTransform: "uppercase",
+      color: isDark ? "rgba(255,255,255,0.5)" : "var(--text-4)"
+    }
+  }, "\u041A\u0430\u043A \u0442\u044B \u0441\u0435\u0439\u0447\u0430\u0441?"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 17,
+      fontWeight: 700,
+      letterSpacing: "-0.3px",
+      color: isDark ? "#fff" : "var(--text)",
+      marginTop: 3
+    }
+  }, "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12,
+      color: isDark ? "rgba(255,255,255,0.55)" : "var(--text-4)",
+      marginTop: 3
+    }
+  }, "\u041E\u0434\u043D\u043E \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435 \u2014 \u0438 \u0434\u0435\u043D\u044C \u043E\u043A\u0440\u0430\u0448\u0435\u043D.")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text-5)",
+      fontSize: 22,
+      fontWeight: 300,
+      flexShrink: 0
+    }
+  }, "\u203A"));
+}
 function StatePromptLive({
   app,
   isDark
@@ -5181,10 +5354,15 @@ var BOS_HOME_WIDGETS = [{
   emoji: "📅",
   sym: "sf:Calendar"
 },
-// «Состояние» СКРЫТО до согласованного макета (David: «нарисуй, как оно должно выглядеть,
-// где быть и как себя вести — в масштабе человека и мультиплеера, а не тяп-ляп»). Кейс
-// id==="mood" в home_live жив; вернуть = строка {id:"mood"} сюда + добор в effLayout.
+// «Состояние» — виджет-орб (редизайн 2026-07-04): не отмечено → приглашение StateInviteLive,
+// отмечено → MoodWidgetLive (орб в цвете + след недели). Тап → Момент (жест A, route "mood").
 {
+  id: "mood",
+  t: "Состояние",
+  d: "Как ты сейчас — свет орба",
+  emoji: "☀️",
+  sym: "sf:Sun"
+}, {
   id: "team",
   t: "Вместе",
   d: "Ваши совместные цели",
@@ -7515,7 +7693,7 @@ function MoodWidgetLive({
       today: i === _monOff,
       future: off < 0,
       wd: _WD[i],
-      m: di != null && MOOD_OPTIONS[di] ? MOOD_OPTIONS[di] : null
+      m: di != null && typeof bosStateResolve === "function" ? bosStateResolve(di) : null
     };
   }), [app?.dayMoods, _monOff]);
   var logged = last7.filter(d => d.m).length;
@@ -7561,10 +7739,9 @@ function MoodWidgetLive({
       display: "grid",
       placeItems: "center"
     }
-  }, /*#__PURE__*/React.createElement(StateOrb, {
+  }, /*#__PURE__*/React.createElement(BosStateOrb, {
     size: 72,
-    tint: tintFromMood(mood.c),
-    intensity: isDark ? 1.25 : 1.05
+    tint: mood && mood.tint || tintFromMood(mood.c)
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -7606,13 +7783,13 @@ function MoodWidgetLive({
       marginTop: 4,
       color: titleColor
     }
-  }, mood.t), /*#__PURE__*/React.createElement("div", {
+  }, (mood.i ? mood.i + " " : "") + mood.t), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: subMuted,
       marginTop: 4
     }
-  }, "\u041E\u0442\u043C\u0435\u0447\u0430\u0439 \u043A\u0430\u0436\u0434\u044B\u0439 \u0434\u0435\u043D\u044C: +5 XP, +10 \u0441\u043E \u0441\u0442\u0440\u043E\u043A\u043E\u0439 \u0432 \u0434\u043D\u0435\u0432\u043D\u0438\u043A. \u0423\u0434\u0435\u0440\u0436\u0438\u0448\u044C \u043D\u0435\u0434\u0435\u043B\u044E \u043F\u043E\u0434\u0440\u044F\u0434 \u2014 \u0431\u043E\u043D\u0443\u0441 +50 XP."))), /*#__PURE__*/React.createElement("div", {
+  }, "\u041E\u0442\u043C\u0435\u0447\u0430\u0439 \u043A\u0430\u0436\u0434\u044B\u0439 \u0434\u0435\u043D\u044C, \u0434\u043E\u0431\u0430\u0432\u043B\u044F\u0439 \u0441\u0442\u0440\u043E\u043A\u0443 \u2014 \u0443\u0434\u0435\u0440\u0436\u0438\u0448\u044C \u043D\u0435\u0434\u0435\u043B\u044E \u043F\u043E\u0434\u0440\u044F\u0434, \u043F\u043E\u043B\u0443\u0447\u0438\u0448\u044C \u0431\u043E\u043D\u0443\u0441."))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       paddingTop: 14,
@@ -7642,7 +7819,7 @@ function MoodWidgetLive({
     }
   }, /*#__PURE__*/React.createElement(MiniOrb, {
     size: 22,
-    tint: tintFromMood(d.m.c)
+    tint: d.m.tint || tintFromMood(d.m.c)
   })) : /*#__PURE__*/React.createElement("span", {
     style: {
       width: 22,

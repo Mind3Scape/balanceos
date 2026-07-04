@@ -29,7 +29,7 @@
 // that has a mood mark OR a written note/tags, newest first, each row showing the state and
 // the day's journal note together. Honest empty state.
 function StateHistorySheetLive({ app, dark = false }) {
-  const moods = (typeof MOOD_OPTIONS !== "undefined") ? MOOD_OPTIONS : [];
+  const moods = (typeof BOS_STATE !== "undefined") ? BOS_STATE : [];
   const dm = (app && app.dayMoods) || {};
   const dn = (app && app.dayNotes) || {};
   const keys = {};
@@ -813,16 +813,16 @@ function HistoryLive() {
                 correctly to any month. */}
             {(() => {
               const dkey = iso(selDay);
-              const dm = app?.dayMoods?.[dkey] != null ? MOOD_OPTIONS[app.dayMoods[dkey]] : null;
+              const dm = (app?.dayMoods?.[dkey] != null && typeof bosStateResolve === "function") ? bosStateResolve(app.dayMoods[dkey]) : null;
               if (!dm) return null;
               return (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
                   <span style={{ width: 36, height: 36, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <StaticOrb size={34} tint={tintFromMood(dm.c)} seed={1.2} intensity={0.7} />
+                    <BosStateOrb size={34} tint={dm.tint || tintFromMood(dm.c)} />
                   </span>
                   <div style={{ flex: 1 }}>
                     <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Состояние</div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", marginTop: 2 }}>{dm.t}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", marginTop: 2 }}>{(dm.i ? dm.i + " " : "") + dm.t}</div>
                   </div>
                 </div>
               );

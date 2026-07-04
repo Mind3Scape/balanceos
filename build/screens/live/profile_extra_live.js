@@ -32,7 +32,7 @@ function StateHistorySheetLive({
   app,
   dark = false
 }) {
-  var moods = typeof MOOD_OPTIONS !== "undefined" ? MOOD_OPTIONS : [];
+  var moods = typeof BOS_STATE !== "undefined" ? BOS_STATE : [];
   var dm = app && app.dayMoods || {};
   var dn = app && app.dayNotes || {};
   var keys = {};
@@ -1965,7 +1965,7 @@ function HistoryLive() {
     }
   }, Math.round(selPct * 100), "%")), (() => {
     var dkey = iso(selDay);
-    var dm = app?.dayMoods?.[dkey] != null ? MOOD_OPTIONS[app.dayMoods[dkey]] : null;
+    var dm = app?.dayMoods?.[dkey] != null && typeof bosStateResolve === "function" ? bosStateResolve(app.dayMoods[dkey]) : null;
     if (!dm) return null;
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1983,11 +1983,9 @@ function HistoryLive() {
         placeItems: "center",
         flexShrink: 0
       }
-    }, /*#__PURE__*/React.createElement(StaticOrb, {
+    }, /*#__PURE__*/React.createElement(BosStateOrb, {
       size: 34,
-      tint: tintFromMood(dm.c),
-      seed: 1.2,
-      intensity: 0.7
+      tint: dm.tint || tintFromMood(dm.c)
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1
@@ -2007,7 +2005,7 @@ function HistoryLive() {
         color: "var(--text)",
         marginTop: 2
       }
-    }, dm.t)));
+    }, (dm.i ? dm.i + " " : "") + dm.t)));
   })(), (() => {
     var nkey = iso(selDay);
     var dn = app?.dayNotes?.[nkey];

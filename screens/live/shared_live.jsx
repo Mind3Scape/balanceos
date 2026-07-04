@@ -1903,6 +1903,78 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
 // instantly (+5 XP, success-haptic). No horizontal scrub → lives happily inside the card's
 // SwipeRow (swipe still reveals «Убрать», a tap just logs). Logs the real MOOD_OPTIONS index,
 // so the week-trail / calendar / MoodWidget keep reading it unchanged.
+// ── СОСТОЯНИЕ v2 — редизайн «с фундамента» (David 2026-07-04): состояние = свет орба,
+// шкала графит(тяжело)→серебро(ровно)→золото(на подъёме), НЕ радуга. Единый источник для LIVE
+// (демо НЕ трогаем — там свой MOOD_OPTIONS-fallback). dayMoods хранит индекс шага (0..5), как и
+// раньше, поэтому календарь/след недели/виджет читают его без переезда данных. {i,t,c,v,tint}. */
+var BOS_STATE = [
+  { i: "😔", t: "Тяжело",     c: "#454e5e", v: 0.00, tint: ["#8a919f", "#5b6373", "#2b3140"] },
+  { i: "😮‍💨", t: "Непросто",  c: "#6a7280", v: 0.20, tint: ["#a6adba", "#727a89", "#414855"] },
+  { i: "😐", t: "Так себе",    c: "#9096a2", v: 0.40, tint: ["#c9cdd6", "#9096a2", "#5f6674"] },
+  { i: "🙂", t: "Ровно",       c: "#b3a988", v: 0.60, tint: ["#ece7da", "#bbac86", "#847a5f"] },
+  { i: "😌", t: "Хорошо",      c: "#dcb85c", v: 0.80, tint: ["#f6e7b6", "#dcb85c", "#a17f2a"] },
+  { i: "🔥", t: "На подъёме",  c: "#f0a81c", v: 1.00, tint: ["#fff6df", "#f3ac1d", "#a86f14"] },
+];
+function bosLerpHex(a, b, k) {
+  var pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+  var pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+  var to = function (n) { return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0"); };
+  return "#" + to(pa[0] + (pb[0] - pa[0]) * k) + to(pa[1] + (pb[1] - pa[1]) * k) + to(pa[2] + (pb[2] - pa[2]) * k);
+}
+// Плавный tint графит→серебро→золото по валентности 0..1 (орб «дышит» цветом во время настройки).
+function bosStateTintForV(v) {
+  v = Math.max(0, Math.min(1, (typeof v === "number" && isFinite(v)) ? v : 0.6));
+  var G = ["#8a919f", "#5b6373", "#2b3140"], S = ["#f2f4f8", "#a6abb6", "#6b7280"], Au = ["#fff6df", "#f3ac1d", "#a86f14"];
+  var a, b, k;
+  if (v < 0.5) { a = G; b = S; k = v / 0.5; } else { a = S; b = Au; k = (v - 0.5) / 0.5; }
+  return [bosLerpHex(a[0], b[0], k), bosLerpHex(a[1], b[1], k), bosLerpHex(a[2], b[2], k)];
+}
+function bosStateStepFromV(v) {
+  v = Math.max(0, Math.min(1, (typeof v === "number" && isFinite(v)) ? v : 0.6));
+  return Math.max(0, Math.min(BOS_STATE.length - 1, Math.round(v * (BOS_STATE.length - 1))));
+}
+// Безопасное чтение шага из dayMoods (клампит старые/чужие индексы — не роняет экран).
+function bosStateResolve(idx) {
+  idx = idx | 0;
+  return BOS_STATE[Math.max(0, Math.min(BOS_STATE.length - 1, idx))] || BOS_STATE[3];
+}
+// Орб состояния = чистая CSS-сфера (как в утверждённом макете): StateOrb/SiriOrb сделаны под
+// ХОЛОДНЫЕ тинты и мажут тёплое золото в салат — поэтому для состояния свой орб. tint=[light,mid,dark].
+function BosStateOrb(props) {
+  var size = props.size || 72;
+  var tint = (props.tint && props.tint.length === 3) ? props.tint : ["#f2f4f8", "#a6abb6", "#6b7280"];
+  var breath = props.breath || 1;
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", flexShrink: 0,
+      transform: breath !== 1 ? ("scale(" + breath + ")") : undefined,
+      background: "radial-gradient(circle at 37% 30%, " + tint[0] + " 0%, " + tint[1] + " 46%, " + tint[2] + " 100%)",
+      boxShadow: "inset 0 " + (size * 0.028).toFixed(1) + "px " + (size * 0.17).toFixed(1) + "px rgba(255,255,255,0.5), 0 " + (size * 0.1).toFixed(1) + "px " + (size * 0.42).toFixed(1) + "px " + tint[1] + "5c",
+    }} />
+  );
+}
+
+// НОВЫЙ виджет-приглашение на главной, когда состояние сегодня НЕ отмечено (David: «не бейдж —
+// приглашение»): тёмный тлеющий орб + «Как ты?» → тап открывает Момент (жест A, route "mood").
+function StateInviteLive({ app, isDark, navigate }) {
+  var t = (typeof useAIT === "function") ? useAIT() : ((typeof useT === "function") ? useT() : 0);
+  var bg = isDark ? "linear-gradient(160deg,#1a1a1d,#0d0d10)" : "#ffffff";
+  return (
+    <button onClick={function () { navigate && navigate("mood"); }} className="tap" data-tour="state"
+      style={{ width: "100%", border: 0, textAlign: "left", background: bg, padding: 18, display: "flex", alignItems: "center", gap: 15, cursor: "pointer" }}>
+      <span style={{ width: 52, height: 52, flexShrink: 0, display: "grid", placeItems: "center", opacity: 0.94 }}>
+        <BosStateOrb size={50} tint={["#9aa0ac", "#6b7280", "#3a4150"]} breath={1 + Math.sin((t || 0) * 0.9) * 0.03} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: isDark ? "rgba(255,255,255,0.5)" : "var(--text-4)" }}>Как ты сейчас?</span>
+        <span style={{ display: "block", fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: isDark ? "#fff" : "var(--text)", marginTop: 3 }}>Отметить состояние</span>
+        <span style={{ display: "block", fontSize: 12, color: isDark ? "rgba(255,255,255,0.55)" : "var(--text-4)", marginTop: 3 }}>Одно движение — и день окрашен.</span>
+      </span>
+      <span style={{ color: "var(--text-5)", fontSize: 22, fontWeight: 300, flexShrink: 0 }}>›</span>
+    </button>
+  );
+}
+
 function StatePromptLive({ app, isDark }) {
   const moods = (typeof MOOD_OPTIONS !== "undefined") ? MOOD_OPTIONS : [];
   const pick = (i) => {
@@ -2372,9 +2444,9 @@ var BOS_HOME_WIDGETS = [
   // (как плитки) — правило видимости «НЕ в hidden», см. effLayout в home_live.
   { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", emoji: "⚡", sym: "sf:Flame" },
   { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅", sym: "sf:Calendar" },
-  // «Состояние» СКРЫТО до согласованного макета (David: «нарисуй, как оно должно выглядеть,
-  // где быть и как себя вести — в масштабе человека и мультиплеера, а не тяп-ляп»). Кейс
-  // id==="mood" в home_live жив; вернуть = строка {id:"mood"} сюда + добор в effLayout.
+  // «Состояние» — виджет-орб (редизайн 2026-07-04): не отмечено → приглашение StateInviteLive,
+  // отмечено → MoodWidgetLive (орб в цвете + след недели). Тап → Момент (жест A, route "mood").
+  { id: "mood",    t: "Состояние",    d: "Как ты сейчас — свет орба", emoji: "☀️", sym: "sf:Sun" },
   { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥", sym: "sf:Users" },
   // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
   // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
@@ -3144,7 +3216,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
     const off = _monOff - i; // days ago (negative = a day later this week)
     const key = (typeof bosDayKeyOffset === "function") ? bosDayKeyOffset(off) : "";
     const di = (app?.dayMoods && app.dayMoods[key] != null) ? app.dayMoods[key] : null;
-    return { key, today: i === _monOff, future: off < 0, wd: _WD[i], m: (di != null && MOOD_OPTIONS[di]) ? MOOD_OPTIONS[di] : null };
+    return { key, today: i === _monOff, future: off < 0, wd: _WD[i], m: (di != null && typeof bosStateResolve === "function") ? bosStateResolve(di) : null };
   }), [app?.dayMoods, _monOff]);
   const logged = last7.filter(d => d.m).length;
   const bg = isDark ? `linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)` : `#ffffff`;
@@ -3169,7 +3241,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
       }}>
       <div style={{ display: "flex", gap: 16, alignItems: "center", position: "relative" }}>
         <div style={{ position: "relative", flexShrink: 0, width: 72, height: 72, display: "grid", placeItems: "center" }}>
-          <StateOrb size={72} tint={tintFromMood(mood.c)} intensity={isDark ? 1.25 : 1.05} />
+          <BosStateOrb size={72} tint={(mood && mood.tint) || tintFromMood(mood.c)} />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -3181,8 +3253,8 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{mood.t}</div>
-          <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>Отмечай каждый день: +5 XP, +10 со строкой в дневник. Удержишь неделю подряд — бонус +50 XP.</div>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{(mood.i ? mood.i + " " : "") + mood.t}</div>
+          <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>Отмечай каждый день, добавляй строку — удержишь неделю подряд, получишь бонус.</div>
         </div>
       </div>
 
@@ -3194,7 +3266,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
                 width: 22, height: 22, borderRadius: "50%", display: "block",
                 boxShadow: d.today ? `0 0 0 2px ${trailRing}` : "none",
               }}>
-                <MiniOrb size={22} tint={tintFromMood(d.m.c)} />
+                <MiniOrb size={22} tint={d.m.tint || tintFromMood(d.m.c)} />
               </span>
             ) : (
               <span style={{

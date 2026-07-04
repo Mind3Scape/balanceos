@@ -402,181 +402,105 @@ function MoodLive() {
     { i: "🙂", t: "Ровно",    c: "#d6f3df" },
     { i: "🔥", t: "В огне",   c: "#ffe1c8" },
   ];
-  const [picked, setPicked] = useM(app?.mood?.t ? moods.findIndex(m => m.t === app.mood.t) : -1);
-  const [note, setNote] = useM("");
-  const [tags, setTags] = useM([]);
+  const isDarkM = app?.themeOverride === "dark";
+  const STEPS = (typeof BOS_STATE !== "undefined" && BOS_STATE.length) ? BOS_STATE : moods;
+  const tk = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
 
-  // Breathing time
-  const [t, setT] = useM(0);
+  // Старт: сегодняшняя отметка (если есть) → её валентность, иначе лёгкий плюс 0.68.
+  const initV = React.useMemo(() => {
+    const di = app && app.dayMoods && app.dayMoods[tk];
+    if (di != null && STEPS[di] && STEPS[di].v != null) return STEPS[di].v;
+    return 0.68;
+  }, []);
+  const [val, setVal] = React.useState(initV);
+  const [note, setNote] = React.useState(() => (app && app.dayNotes && app.dayNotes[tk] && app.dayNotes[tk].note) || "");
+  const [saved, setSaved] = React.useState(false);
+  const stageRef = React.useRef(null);
+  const dragRef = React.useRef(false);
+  const lastStep = React.useRef(-1);
+
+  const [t, setT] = React.useState(0);
   React.useEffect(() => {
     let raf, s = performance.now();
     const tick = (now) => { setT((now - s) / 1000); raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
-  const breath = 1 + Math.sin(t * 0.8) * 0.04;
-  const pulse  = 1 + Math.sin(t * 1.3) * 0.06;
+  const breath = 1 + Math.sin(t * 0.8) * 0.035;
 
-  const cur = picked >= 0 ? moods[picked] : null;
-  const tint = cur ? cur.c : "#6a7a92";
-  const isDarkM = app?.themeOverride === "dark"; // тёмная тема: тёмная атмосфера вместо белой
+  const stepIdx = (typeof bosStateStepFromV === "function") ? bosStateStepFromV(val) : Math.max(0, Math.min(STEPS.length - 1, Math.round(val * (STEPS.length - 1))));
+  const step = STEPS[stepIdx] || STEPS[Math.floor(STEPS.length / 2)] || { i: "🙂", t: "Ровно", tint: ["#f2f4f8", "#a6abb6", "#6b7280"] };
+  const tint = (typeof bosStateTintForV === "function") ? bosStateTintForV(val) : (step.tint || ["#cfe1ff", "#7aa4d0", "#2c4d76"]);
+  const glow = tint[1];
 
-  const moodTags = cur ? (MOOD_TAGS[cur.t] || []) : [];
-  const toggleTag = (tg) => setTags(ts => ts.includes(tg) ? ts.filter(x => x !== tg) : [...ts, tg]);
-  const onSave = () => {
-    if (picked < 0 || !app) return navigate("home");
-    // Key by the REAL date (so check-ins accumulate per day & pay XP).
-    const dayKey = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
-    app.setMood && app.setMood(moods[picked]);
-    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [dayKey]: picked });
-    if (app.setDayNotes) { const prev = (app.dayNotes || {})[dayKey] || {}; app.setDayNotes({ ...(app.dayNotes || {}), [dayKey]: { tags: (tags && tags.length) ? tags : (prev.tags || []), note: note.trim() || prev.note || "" } }); }
-    navigate("home");
+  const setFromY = (clientY) => {
+    const el = stageRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    let v = 1 - (clientY - r.top) / Math.max(1, r.height); // верх = 1 (золото), низ = 0 (графит)
+    v = Math.max(0, Math.min(1, v));
+    const b = (typeof bosStateStepFromV === "function") ? bosStateStepFromV(v) : Math.round(v * (STEPS.length - 1));
+    if (b !== lastStep.current) { lastStep.current = b; if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }
+    setVal(v);
   };
+  const onSave = () => {
+    if (!app) return navigate("home");
+    app.setMood && app.setMood(STEPS[stepIdx]);
+    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [tk]: stepIdx });
+    if (app.setDayNotes) { const prev = (app.dayNotes || {})[tk] || {}; app.setDayNotes({ ...(app.dayNotes || {}), [tk]: { tags: prev.tags || [], note: note.trim() || prev.note || "" } }); }
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    setSaved(true);
+    setTimeout(() => navigate("home"), 280);
+  };
+  const STAGE_H = 248, ORB = 150, PAD = 14;
+  const orbTop = (1 - val) * (STAGE_H - ORB - 2 * PAD) + PAD;
+  const bg = isDarkM ? "linear-gradient(180deg,#111218 0%,#0a0b0e 100%)" : "linear-gradient(180deg,#ffffff 0%,#f4f4f6 100%)";
 
   return (
-    <div className="mood-fullscreen" style={{
-      position: "absolute", inset: 0, color: "var(--text)", overflow: "hidden",
-      background: isDarkM ? "linear-gradient(180deg, #111218 0%, #0a0b0e 100%)" : "linear-gradient(180deg, #ffffff 0%, #f2f3f6 100%)",
-      display: "flex", flexDirection: "column",
-      ["--mood-tint"]: tint,
-    }}>
-      {/* Aurora vignette — centered glow that fades to pure black at top/bottom */}
-      <div aria-hidden style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        background: `radial-gradient(70% 45% at 50% 42%, ${tint}59 0%, ${tint}24 32%, transparent 66%)`,
-        transition: "background 0.6s ease",
-      }}/>
-      {/* Subtle film grain via noise gradient bands — keeps black areas alive */}
-      <div aria-hidden style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        background: isDarkM ? "linear-gradient(180deg, #111218 0%, transparent 18%, transparent 82%, #0a0b0e 100%)" : "linear-gradient(180deg, #ffffff 0%, transparent 18%, transparent 82%, #f2f3f6 100%)",
-      }}/>
+    <div style={{ position: "absolute", inset: 0, color: "var(--text)", overflow: "hidden", background: bg, display: "flex", flexDirection: "column" }}>
+      {/* тёплое поле — светлее/выше, когда состояние «на подъёме» */}
+      <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none",
+        background: "radial-gradient(85% 55% at 50% " + (16 + (1 - val) * 26) + "%, " + glow + "3a 0%, " + glow + "12 34%, transparent 66%)", transition: "background 0.25s ease" }} />
 
-      {/* Header — sits over the status bar room */}
-      <div style={{ position: "relative", zIndex: 2, padding: "60px 20px 0", display: "flex", alignItems: "center" }}>
-        {/* Inside Telegram the native Back button (driven from app.jsx's nav stack) already
-            shows — hide our in-app chevron so there aren't two "backs". The 40px spacer keeps
-            the title centred. PWA/browser keeps the chevron. (Same guard as PageHeader.) */}
+      {/* header */}
+      <div style={{ position: "relative", zIndex: 2, padding: "58px 20px 0", display: "flex", alignItems: "center" }}>
         {!(typeof window !== "undefined" && window.__TG) ? (
-          <button onClick={() => navigate("home")} className="tap"
-            style={{ width: 40, height: 40, borderRadius: 999, background: isDarkM ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", border: 0, color: "var(--text)", display: "grid", placeItems: "center", padding: 0 }}>
-            <I.ChevronLeft size={18}/>
+          <button onClick={() => navigate("home")} className="tap" style={{ width: 40, height: 40, borderRadius: 999, background: isDarkM ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", border: 0, color: "var(--text)", display: "grid", placeItems: "center", padding: 0 }}>
+            <I.ChevronLeft size={18} />
           </button>
-        ) : <span style={{ width: 40 }}/>}
-        <div style={{ flex: 1, textAlign: "center", fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 600 }}>Отметка состояния</div>
-        <span style={{ width: 40 }}/>
+        ) : <span style={{ width: 40 }} />}
+        <div style={{ flex: 1, textAlign: "center", fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 700 }}>Как ты сейчас</div>
+        <span style={{ width: 40 }} />
       </div>
 
-      {/* Hero — pure orb */}
-      <div style={{ position: "relative", zIndex: 2, flex: cur ? "0 0 auto" : 1, display: "grid", placeItems: "center", padding: "12px 20px 0", minHeight: cur ? 132 : 220, transition: "min-height 0.4s ease" }}>
-        <div style={{ position: "relative", width: cur ? 156 : 220, height: cur ? 156 : 220, display: "grid", placeItems: "center", transition: "width 0.4s ease, height 0.4s ease" }}>
-          {/* Outer aurora halo */}
-          <div aria-hidden style={{
-            position: "absolute", inset: -40, borderRadius: "50%",
-            background: `radial-gradient(circle, ${tint}59 0%, ${tint}1f 35%, transparent 70%)`,
-            opacity: 0.8 * pulse, filter: "blur(22px)",
-            transform: `scale(${pulse})`, transition: "background 0.6s ease",
-          }}/>
-          {/* Main orb — same glass orb as the rest of the app */}
-          <div style={{ transform: `scale(${breath})`, transition: "transform 0.15s" }}>
-            <StateOrb size={cur ? 140 : 196} tint={tintFromMood(tint)} intensity={cur ? 1.3 : 0.7} />
-          </div>
+      {/* сцена настройки — тянешь орб вертикально */}
+      <div ref={stageRef}
+        onPointerDown={(e) => { dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setFromY(e.clientY); }}
+        onPointerMove={(e) => { if (dragRef.current) setFromY(e.clientY); }}
+        onPointerUp={() => { dragRef.current = false; }}
+        onPointerCancel={() => { dragRef.current = false; }}
+        style={{ position: "relative", zIndex: 2, height: STAGE_H, margin: "12px 20px 0", touchAction: "none", cursor: "grab" }}>
+        <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)", color: "#f0a81c", fontSize: 15, opacity: 0.72 }}>▴</div>
+        <div style={{ position: "absolute", left: "50%", bottom: 0, transform: "translateX(-50%)", color: "#5b6373", fontSize: 15, opacity: 0.5 }}>▾</div>
+        <div style={{ position: "absolute", left: "50%", top: orbTop, transform: "translateX(-50%) scale(" + breath + ")", transition: dragRef.current ? "none" : "top 0.16s ease", width: ORB, height: ORB, display: "grid", placeItems: "center" }}>
+          <div aria-hidden style={{ position: "absolute", inset: -30, borderRadius: "50%", background: "radial-gradient(circle, " + glow + "4d 0%, " + glow + "1a 40%, transparent 70%)", filter: "blur(18px)" }} />
+          <BosStateOrb size={ORB} tint={tint} />
         </div>
       </div>
 
-      {/* Headline */}
-      <div style={{ position: "relative", zIndex: 2, padding: "0 24px", textAlign: "center" }}>
-        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 600, color: "var(--text)", lineHeight: 1.1, letterSpacing: "-0.6px", minHeight: 36 }}>
-          {cur ? cur.t : "Как оно ощущается сейчас?"}
-        </div>
-        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 6, lineHeight: 1.5 }}>
-          {cur ? "Отметь, что за этим стоит — или просто сохрани." : "Каждый цвет — это состояние. Выбери подходящее."}
-        </div>
+      {/* слово + подсказка */}
+      <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "8px 24px 0" }}>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 700, letterSpacing: "-0.6px", lineHeight: 1.1, color: "var(--text)" }}>{(step.i ? step.i + " " : "") + step.t}</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 7 }}>Веди орб вверх — теплеет к золоту, вниз — к графиту</div>
       </div>
 
-      {/* Orb selector — 6 colored orbs in a row, no emoji */}
-      <div style={{ position: "relative", zIndex: 2, padding: cur ? "14px 20px 0" : "26px 20px 0" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
-          {moods.map((m, idx) => {
-            const active = picked === idx;
-            return (
-              <button key={idx} onClick={() => { setPicked(idx); setTags([]); setNote(""); }} className="tap hit44" data-haptic="selection" aria-label={m.t} style={{
-                background: "transparent", border: 0, padding: "6px 2px 8px",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-                color: "var(--text)", cursor: "pointer",
-              }}>
-                <span aria-hidden style={{
-                  borderRadius: "50%",
-                  boxShadow: active ? `0 0 0 2px #0a0a0a, 0 0 16px ${m.c}99` : "none",
-                  transform: active ? "scale(1.08)" : "scale(1)",
-                  transition: "transform 0.25s, box-shadow 0.25s",
-                }}>
-                  <StaticOrb size={38} tint={tintFromMood(m.c)} seed={1.2} intensity={0.3} />
-                </span>
-                <span style={{
-                  fontSize: 10, fontWeight: 600, letterSpacing: 0.3,
-                  opacity: active ? 1 : 0.6,
-                  textAlign: "center", lineHeight: 1.1,
-                }}>{m.t}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <div aria-hidden style={{ flex: 1, minHeight: 8 }} />
 
-      {/* Picked → sub-state #hashtags (+ optional note). Not picked → invitation nudge. */}
-      {cur ? (
-      <div style={{ position: "relative", zIndex: 2, margin: "16px 20px 0" }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 11 }}>
-          <span style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 600 }}>Что за этим стоит?</span>
-          <span style={{ fontSize: 11, color: "var(--text-5)" }}>по желанию</span>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {moodTags.map((tg) => {
-            const on = tags.includes(tg);
-            return (
-              <button key={tg} onClick={() => toggleTag(tg)} className="tap" data-no-haptic style={{
-                padding: "8px 13px", borderRadius: 999, fontSize: 13, fontWeight: 500, border: 0, cursor: "pointer",
-                background: on ? "var(--cta, #0a0a0a)" : "var(--surface-3)", color: on ? "var(--cta-ink, #fff)" : "var(--text-3)",
-                display: "inline-flex", alignItems: "center", gap: 5, transition: "background 0.18s, color 0.18s",
-              }}>
-                {on && <span style={{ width: 7, height: 7, borderRadius: "50%", background: tint }} />}
-                {tg.replace(/_/g, " ")}
-              </button>
-            );
-          })}
-        </div>
-        {/* Note — always visible (an obvious inset field), so you can't miss that
-            you can write your own. No autoFocus → the caret never jumps on open. */}
-        <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Опиши, что чувствуешь сейчас…"
-          style={{ width: "100%", marginTop: 12, background: "var(--surface-3)", border: "1px solid var(--line)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)", borderRadius: 14, padding: "12px 14px", color: "var(--text)", fontSize: 16, fontFamily: "inherit", lineHeight: 1.4, outline: 0, minHeight: 50, resize: "none", boxSizing: "border-box", display: "block" }}/>
-      </div>
-      ) : (
-      <div style={{ position: "relative", zIndex: 2, margin: "18px 20px 0", padding: "12px 14px",
-        background: "var(--surface-3)", borderRadius: 14,
-        display: "flex", alignItems: "center", gap: 12,
-      }}>
-        <div style={{ width: 36, height: 36, borderRadius: 999, background: "rgba(254,222,52,0.14)", display: "grid", placeItems: "center", color: "#FEDE34", fontSize: 18 }}>✨</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 600 }}>Дневник состояния</div>
-          <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 3, lineHeight: 1.35 }}>
-            Выбери состояние — подскажу слова, чтобы отметить, что за ним стоит.
-          </div>
-        </div>
-      </div>
-      )}
-
-      {cur && <div aria-hidden style={{ flex: 1, minHeight: 6 }} />}
-      {/* Save bar */}
-      <div style={{ position: "relative", zIndex: 2, padding: "14px 20px 28px" }}>
-        <button onClick={onSave} disabled={picked < 0} className="tap" style={{
-          width: "100%",
-          background: picked < 0 ? "var(--surface-3)" : "#0a0a0a",
-          color: picked < 0 ? "var(--text-4)" : "#fff",
-          border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px",
-          transition: "all 0.2s",
-        }}>
-          {picked < 0 ? "Выбери состояние" : "Сохранить отметку"}
+      {/* строка в дневник (по желанию) + «Готово» */}
+      <div style={{ position: "relative", zIndex: 2, padding: "0 20px 26px" }}>
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Хочешь сказать словом? Одна строка…"
+          style={{ width: "100%", background: isDarkM ? "rgba(255,255,255,0.06)" : "var(--surface-3)", border: "1px solid var(--line)", borderRadius: 16, padding: "13px 15px", color: "var(--text)", fontSize: 16, fontFamily: "inherit", outline: 0, boxSizing: "border-box", marginBottom: 12 }} />
+        <button onClick={onSave} className="tap" style={{ width: "100%", background: saved ? "#3f7a46" : "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 0.2s" }}>
+          {saved ? "Готово ✓" : "Готово"}{saved ? null : <span style={{ color: "#f0a81c", fontWeight: 800, fontSize: 12 }}>✦</span>}
         </button>
       </div>
     </div>

@@ -738,7 +738,8 @@ function HomeLive() {
       })));
     }
     if (id === "mood") {
-      // State check-in (not logged today) → the once-a-day slider; logged + ≥2 days → streak widget.
+      // СОСТОЯНИЕ v2 (редизайн): виджет-орб. Не отмечено сегодня → приглашение (тёмный тлеющий
+      // орб «Как ты?»); отмечено → орб в цвете состояния + след недели. Тап → Момент (жест A).
       var _tk = typeof bosTodayKey === "function" ? bosTodayKey() : "";
       var _loggedToday = !!(app?.dayMoods && app.dayMoods[_tk] != null);
       var _hideAction = [{
@@ -748,44 +749,28 @@ function HomeLive() {
         icon: I.X,
         onAction: () => hideKey("w:mood")
       }];
-      if (!_loggedToday) {
-        return /*#__PURE__*/React.createElement("div", {
-          style: {
-            borderRadius: 22,
-            overflow: "hidden",
-            boxShadow: cardShadow,
-            transform: "translateZ(0)"
-          }
-        }, /*#__PURE__*/React.createElement(SwipeRow, {
-          rowBg: rowBg,
-          dark: isDark,
-          actions: _hideAction
-        }, /*#__PURE__*/React.createElement(StateSliderLive, {
-          app: app,
-          isDark: isDark
-        })));
-      }
-      if (mood && typeof bosMoodDays === "function" && bosMoodDays(app?.dayMoods) >= 2) {
-        return /*#__PURE__*/React.createElement("div", {
-          style: {
-            borderRadius: 22,
-            overflow: "hidden",
-            boxShadow: cardShadow,
-            transform: "translateZ(0)"
-          }
-        }, /*#__PURE__*/React.createElement(SwipeRow, {
-          rowBg: rowBg,
-          dark: isDark,
-          actions: _hideAction
-        }, /*#__PURE__*/React.createElement(MoodWidgetLive, {
-          mood: mood,
-          app: app,
-          isDark: isDark,
-          navigate: navigate,
-          flush: true
-        })));
-      }
-      return null;
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: cardShadow,
+          transform: "translateZ(0)"
+        }
+      }, /*#__PURE__*/React.createElement(SwipeRow, {
+        rowBg: rowBg,
+        dark: isDark,
+        actions: _hideAction
+      }, _loggedToday && mood ? /*#__PURE__*/React.createElement(MoodWidgetLive, {
+        mood: mood,
+        app: app,
+        isDark: isDark,
+        navigate: navigate,
+        flush: true
+      }) : /*#__PURE__*/React.createElement(StateInviteLive, {
+        app: app,
+        isDark: isDark,
+        navigate: navigate
+      })));
     }
     if (id === "invite") {
       // Invite / share — GOLD banner (David: «как баннер уровня»): same reward-gold language as the
