@@ -7825,11 +7825,12 @@ function bosMarkPartnerRedeemed(id) {
   return n;
 }
 
-// КАРТА ПАРТНЁРОВ (v541, David: «наверху чип "Рядом" + карта Москвы, на ней раскиданы партнёры»).
-// СТИЛИЗОВАННАЯ карта в стиле iOS (не тянем внешние карты — быстро, красиво, работает офлайн): парк,
-// река, дороги (SVG) + пины из BOS_PARTNERS (эмодзи + цвет партнёра) + синяя точка «ты». Позиции пинов
-// заданы здесь (у партнёров пока нет координат). compact — герой на обзоре «Все»; иначе крупная на
-// чипе «Рядом». Тап по пину → нативная деталь партнёра. Пока город один — показываем Москву.
+// КАРТА ПАРТНЁРОВ (v543, David: «карта должна быть РЕАЛЬНАЯ Яндекс, а не бутафорская»).
+// РЕАЛЬНАЯ Яндекс.Карта (JS API 2.1, ключ из mapkey.js → window.BOS_YANDEX_KEY), лениво грузится
+// при показе; пины партнёров (эмодзи), тап → нативная деталь партнёра. Пока город один — Москва.
+// РЕЗЕРВ: если Яндекс не загрузился (офлайн / нет ключа / домен) — под картой ЖИВЁТ прежняя
+// СТИЛИЗОВАННАЯ карта (парк/река/дороги + пины), так экран НИКОГДА не «сломается».
+// Реальные координаты 6 партнёров по центру Москвы (у самих партнёров geo пока нет).
 var BOS_PARTNER_PINS = {
   medit: [19, 47],
   bachata: [45, 41],
@@ -7838,6 +7839,44 @@ var BOS_PARTNER_PINS = {
   coffee: [31, 71],
   art: [56, 78]
 };
+var BOS_PARTNER_GEO = {
+  medit: [55.7658, 37.6384],
+  bachata: [55.7797, 37.6335],
+  box: [55.7770, 37.5890],
+  yoga: [55.7304, 37.6017],
+  coffee: [55.7636, 37.5920],
+  art: [55.7415, 37.6100]
+};
+// Ленивая загрузка Яндекс JS API 2.1 — один общий промис на всё приложение.
+function bosLoadYandexMaps() {
+  if (typeof window === "undefined") return Promise.reject();
+  if (window.__bosYmapsPromise) return window.__bosYmapsPromise;
+  var key = window.BOS_YANDEX_KEY;
+  if (!key) return window.__bosYmapsPromise = Promise.reject(new Error("no key"));
+  window.__bosYmapsPromise = new Promise(function (resolve, reject) {
+    if (window.ymaps && window.ymaps.Map) {
+      resolve(window.ymaps);
+      return;
+    }
+    var s = document.getElementById("bos-ymaps");
+    if (!s) {
+      s = document.createElement("script");
+      s.id = "bos-ymaps";
+      s.src = "https://api-maps.yandex.ru/2.1/?apikey=" + encodeURIComponent(key) + "&lang=ru_RU";
+      s.async = true;
+      document.head.appendChild(s);
+    }
+    s.addEventListener("load", function () {
+      window.ymaps ? window.ymaps.ready(function () {
+        resolve(window.ymaps);
+      }) : reject(new Error("ymaps missing"));
+    });
+    s.addEventListener("error", function () {
+      reject(new Error("ymaps load error"));
+    });
+  });
+  return window.__bosYmapsPromise;
+}
 function PartnersMapLive({
   app,
   navigate,
@@ -7857,6 +7896,63 @@ function PartnersMapLive({
       from: from
     });
   };
+  var [ready, setReady] = React.useState(false); // Яндекс встал и отрисовался
+  var mapRef = React.useRef(null);
+  var mapObj = React.useRef(null);
+  React.useEffect(function () {
+    var alive = true;
+    bosLoadYandexMaps().then(function (ymaps) {
+      if (!alive || !mapRef.current || mapObj.current) return;
+      try {
+        var map = new ymaps.Map(mapRef.current, {
+          center: [55.752, 37.615],
+          zoom: compact ? 11 : 12,
+          controls: compact ? [] : ["zoomControl"]
+        }, {
+          suppressMapOpenBlock: true,
+          yandexMapDisablePoiInteractivity: true
+        });
+        map.behaviors.disable("scrollZoom");
+        if (compact) map.behaviors.disable(["drag", "multiTouch"]);
+        var Pin = ymaps.templateLayoutFactory.createClass('<div style="position:relative;transform:translate(-50%,-100%);width:' + (compact ? 34 : 38) + 'px;height:' + (compact ? 34 : 38) + 'px;border-radius:12px;background:#fff;box-shadow:0 3px 9px rgba(20,30,20,0.30);display:grid;place-items:center;font-size:' + (compact ? 17 : 19) + 'px;">$[properties.emoji]<span style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%) rotate(45deg);width:9px;height:9px;background:#fff;border-radius:2px;"></span></div>');
+        BOS_PARTNERS.forEach(function (p) {
+          var g = BOS_PARTNER_GEO[p.id];
+          if (!g) return;
+          var pm = new ymaps.Placemark(g, {
+            emoji: p.emblem,
+            hintContent: p.name
+          }, {
+            iconLayout: Pin,
+            iconShape: {
+              type: "Rectangle",
+              coordinates: [[-18, -38], [18, 2]]
+            }
+          });
+          pm.events.add("click", function () {
+            open(p);
+          });
+          map.geoObjects.add(pm);
+        });
+        try {
+          map.setBounds(map.geoObjects.getBounds(), {
+            checkZoomRange: true,
+            zoomMargin: compact ? 24 : 40
+          });
+        } catch (e) {}
+        mapObj.current = map;
+        if (alive) setReady(true);
+      } catch (e) {/* оставляем стилизованный резерв */}
+    }).catch(function () {/* нет ключа/офлайн → стилизованный резерв */});
+    return function () {
+      alive = false;
+      try {
+        if (mapObj.current) {
+          mapObj.current.destroy();
+          mapObj.current = null;
+        }
+      } catch (e) {}
+    };
+  }, [compact]);
   var land = isDark ? "radial-gradient(120% 90% at 20% 10%, #1b2430, #141b24 60%, #10151c)" : "radial-gradient(120% 90% at 20% 10%, #f3f6ef, #e9efe6 60%, #e3ebe0)";
   var park = isDark ? "#1e2c22" : "#d7ead0";
   var river = isDark ? "#17293b" : "#bcd8f2";
@@ -7974,6 +8070,19 @@ function PartnersMapLive({
       boxShadow: "0 1px 4px rgba(0,0,0,0.25)"
     }
   })), /*#__PURE__*/React.createElement("div", {
+    ref: mapRef,
+    "aria-hidden": !ready,
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      zIndex: 2,
+      opacity: ready ? 1 : 0,
+      pointerEvents: ready ? "auto" : "none",
+      transition: "opacity 0.35s ease"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       top: 12,
@@ -7982,7 +8091,7 @@ function PartnersMapLive({
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      zIndex: 3,
+      zIndex: 4,
       pointerEvents: "none"
     }
   }, /*#__PURE__*/React.createElement("span", {
