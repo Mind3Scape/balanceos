@@ -283,6 +283,7 @@ function CommunityLive() {
   // партнёры = живые впечатления за XP, тренинги = бывшие «программы партнёров» (courses).
   var _pairFor = {
     all: "discover",
+    nearby: "discover",
     circles: "discover",
     partners: "community",
     people: "community",
@@ -499,7 +500,7 @@ function CommunityLive() {
       WebkitOverflowScrolling: "touch",
       touchAction: "pan-x"
     }
-  }, [["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Тренинги", I.Bolt]].map(([id, t, Ic]) => {
+  }, [["all", "Все", I.Globe], ["nearby", "Рядом", I.MapPin], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Тренинги", I.Bolt]].map(([id, t, Ic]) => {
     var on = filter === id;
     var glass = !on && typeof bosChipGlass === "function" ? bosChipGlass(isDark) : {};
     return /*#__PURE__*/React.createElement("button", {
@@ -829,10 +830,54 @@ function CommunityLive() {
       gap: 12,
       marginTop: 14
     }
-  }, filter === "all" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
+  }, filter === "all" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersMapLive === "function" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
+    title: "\uD83D\uDDFA \u0420\u044F\u0434\u043E\u043C \xB7 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u044B \u041C\u043E\u0441\u043A\u0432\u044B",
+    onAll: () => setFilter("nearby")
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement(PartnersMapLive, {
+    app: app,
+    navigate: navigate,
+    compact: true,
+    from: "community"
+  }))), typeof PartnersShowcaseLive === "function" && /*#__PURE__*/React.createElement(PartnersShowcaseLive, {
     app: app,
     navigate: navigate,
     onAll: () => setFilter("partners")
+  })), filter === "nearby" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof PartnersMapLive === "function" && /*#__PURE__*/React.createElement(PartnersMapLive, {
+    app: app,
+    navigate: navigate,
+    from: "community"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      padding: "4px 4px 0"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--text-4)"
+    }
+  }, "\uD83C\uDF81 \u041F\u0430\u0440\u0442\u043D\u0451\u0440\u044B \u041C\u043E\u0441\u043A\u0432\u044B"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text)"
+    }
+  }, "\uD83E\uDE99 ", typeof bosLiveSpendableXPLive === "function" ? bosLiveSpendableXPLive(app) : 0)), typeof PartnersGridLive === "function" && /*#__PURE__*/React.createElement(PartnersGridLive, {
+    app: app,
+    navigate: navigate,
+    from: "community"
   })), filter === "partners" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -878,15 +923,16 @@ function CommunityLive() {
       alignItems: "stretch",
       gap: 10,
       overflowX: "auto",
-      padding: "3px 12px 14px",
-      margin: "-2px -12px 0",
+      padding: "3px 12px 14px 4px",
+      margin: "-2px -12px 0 0",
       scrollSnapType: "x proximity",
       WebkitOverflowScrolling: "touch"
     }
-  }, LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
+  }, LIVING_CIRCLES.map((s, i) => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
     key: s.id,
     circle: s,
-    w: 324,
+    w: 300,
+    variant: i % 2 === 0 ? "chips" : "orbit",
     onTap: () => {
       if (window.tgHaptic) {
         try {
@@ -972,9 +1018,10 @@ function CommunityLive() {
     }, mine ? "Ты в деле ✓" : s.goalText + " · +" + s.reward + " XP")));
   }))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
     title: "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"
-  }), LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
+  }), LIVING_CIRCLES.map((s, i) => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
     key: s.id,
     circle: s,
+    variant: i % 2 === 0 ? "chips" : "orbit",
     onTap: () => {
       if (window.tgHaptic) {
         try {
@@ -1070,8 +1117,8 @@ function CommunityLive() {
       alignItems: "stretch",
       gap: 10,
       overflowX: "auto",
-      padding: "3px 12px 14px",
-      margin: "-2px -12px 0",
+      padding: "3px 12px 14px 4px",
+      margin: "-2px -12px 0 0",
       scrollSnapType: "x proximity",
       WebkitOverflowScrolling: "touch"
     }

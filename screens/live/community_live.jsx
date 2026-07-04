@@ -124,7 +124,7 @@ function CommunityLive() {
   // ОБА представления согласованно. courses→Партнёры, network→Люди, discover→Все.
   // «Тренинги» ОТДЕЛЬНЫЙ чип (David: «тренинги может отдельно от партнёров выделить»):
   // партнёры = живые впечатления за XP, тренинги = бывшие «программы партнёров» (courses).
-  const _pairFor = { all: "discover", circles: "discover", partners: "community", people: "community", training: "community" };
+  const _pairFor = { all: "discover", nearby: "discover", circles: "discover", partners: "community", people: "community", training: "community" };
   const _legacyFilter = section === "community" ? (commTabEff === "courses" ? "training" : "people") : "all";
   const _fOk = cv.filter && _pairFor[cv.filter] === section
     && (section !== "community" || (cv.filter === "training") === (commTabEff === "courses"));
@@ -225,10 +225,10 @@ function CommunityLive() {
       /* Full-bleed (David: «карточки должны обрезаться самим экраном»): лента выезжает за
          паддинг страницы (12px) и режется физическим краем — как в iOS, без масок. */
       <div className="bos-hscroll" style={{ display: "flex", gap: 7, padding: "2px 14px 0", margin: "0 -12px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
-        {/* ЗАГОТОВКА (Е3, план David): чип ["nearby", "Рядом"] — режим КАРТЫ партнёров города.
-            Включаем, когда партнёры появятся больше чем в одном городе. */}
+        {/* Чип «Рядом» (David) — режим КАРТЫ партнёров города, сразу после «Все». Пока город один
+            (Москва) — карта живёт и на обзоре «Все» героем, и крупно тут. */}
         {/* Иконки у категорий (David: «svg-иконок не хватает, чтобы чётче отличать»). */}
-        {[["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Тренинги", I.Bolt]].map(([id, t, Ic]) => {
+        {[["all", "Все", I.Globe], ["nearby", "Рядом", I.MapPin], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Тренинги", I.Bolt]].map(([id, t, Ic]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
           return (
@@ -329,10 +329,31 @@ function CommunityLive() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
         {filter === "all" && (
           <React.Fragment>
+            {/* КАРТА партнёров героем НАВЕРХУ обзора (David: «наверху чип Рядом + карта Москвы с
+                партнёрами»). «Карта ›» разворачивает крупно на чип «Рядом». */}
+            {typeof PartnersMapLive === "function" && (
+              <div>
+                <CommSectionHeadLive title="🗺 Рядом · партнёры Москвы" onAll={() => setFilter("nearby")} />
+                <div style={{ marginTop: 10 }}>
+                  <PartnersMapLive app={app} navigate={navigate} compact from="community" />
+                </div>
+              </div>
+            )}
             {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку.
                 Кикер живёт ВНУТРИ витрины; на «Все» правый край = «Все ›» (onAll). */}
             {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate}
               onAll={() => setFilter("partners")} />}
+          </React.Fragment>
+        )}
+        {filter === "nearby" && (
+          <React.Fragment>
+            {/* Чип «Рядом» — КРУПНАЯ карта + сетка всех партнёров под ней (David). */}
+            {typeof PartnersMapLive === "function" && <PartnersMapLive app={app} navigate={navigate} from="community" />}
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "4px 4px 0" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)" }}>🎁 Партнёры Москвы</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>🪙 {(typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0}</span>
+            </div>
+            {typeof PartnersGridLive === "function" && <PartnersGridLive app={app} navigate={navigate} from="community" />}
           </React.Fragment>
         )}
         {filter === "partners" && (
@@ -365,10 +386,13 @@ function CommunityLive() {
                   LivingCircleCardLive (лица и привычки на кольцах), фикс-ширина в ленте,
                   соседняя выглядывает; следом — компакт-плитки челленджей. */}
               <CommSectionHeadLive title="🌱 Круги" onAll={() => setFilter("circles")} />
-              {/* Full-bleed: обрезка краем экрана (margin -12 / padding 12), не паддингом страницы. */}
-              <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 12px 14px", margin: "-2px -12px 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
-                {LIVING_CIRCLES.map((s) => (
-                  <LivingCircleCardLive key={s.id} circle={s} w={324}
+              {/* Выравнивание (David): СЛЕВА первая карточка ровно под кикером (padding-left 4 от
+                  колонки страницы), СПРАВА уходит за экран (margin-right -12). Не bleed с обеих сторон.
+                  Карточки НАШЕГО размера (w=300): чётные — вариант «чипы», нечётные — «с орбитой»,
+                  чтобы David сравнил оба вживую (круги — примеры). */}
+              <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 12px 14px 4px", margin: "-2px -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
+                {LIVING_CIRCLES.map((s, i) => (
+                  <LivingCircleCardLive key={s.id} circle={s} w={300} variant={i % 2 === 0 ? "chips" : "orbit"}
                     onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
                 ))}
                 {SEED_CIRCLES.map((s) => {
@@ -393,8 +417,8 @@ function CommunityLive() {
             ) : (
               <React.Fragment>
                 <CommSectionHeadLive title="✨ Живые круги" />
-                {LIVING_CIRCLES.map((s) => (
-                  <LivingCircleCardLive key={s.id} circle={s}
+                {LIVING_CIRCLES.map((s, i) => (
+                  <LivingCircleCardLive key={s.id} circle={s} variant={i % 2 === 0 ? "chips" : "orbit"}
                     onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
                 ))}
                 <CirclesMosaicLive kicker="🔥 Челленджи">
@@ -455,8 +479,9 @@ function CommunityLive() {
                 сравнению с оригинальной — используй реальную, и ещё карточку рядом»):
                 тот же макет, что на странице «Тренинги», фикс-ширина — соседняя выглядывает. */}
             <CommSectionHeadLive title="🎓 Тренинги" onAll={() => setFilter("training")} />
-            {/* Full-bleed: обрезка краем экрана, как у кругов. */}
-            <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 12px 14px", margin: "-2px -12px 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
+            {/* Выравнивание, как у кругов (David): СЛЕВА вровень с кикером (padding-left 4), СПРАВА
+                уходит за экран (margin-right -12). */}
+            <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 12px 14px 4px", margin: "-2px -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
               {courses.map((c, i) => (
                 <button key={c.id} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
                   style={{ flex: "0 0 auto", width: 305, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", color: "var(--text)", display: "flex", flexDirection: "column", cursor: "pointer" }}>

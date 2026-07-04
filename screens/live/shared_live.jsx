@@ -3267,6 +3267,59 @@ function bosLoadRedeemedPartners() { try { return JSON.parse(localStorage.getIte
 // Общий помощник: пометить партнёра полученным (списание XP делает вызывающий через app.spendXP).
 function bosMarkPartnerRedeemed(id) { var n = Object.assign({}, bosLoadRedeemedPartners(), { [id]: true }); try { localStorage.setItem("bos:redeemedPartners", JSON.stringify(n)); } catch (e) {} try { window.dispatchEvent(new Event("bos:partnersChanged")); } catch (e) {} return n; }
 
+// КАРТА ПАРТНЁРОВ (v541, David: «наверху чип "Рядом" + карта Москвы, на ней раскиданы партнёры»).
+// СТИЛИЗОВАННАЯ карта в стиле iOS (не тянем внешние карты — быстро, красиво, работает офлайн): парк,
+// река, дороги (SVG) + пины из BOS_PARTNERS (эмодзи + цвет партнёра) + синяя точка «ты». Позиции пинов
+// заданы здесь (у партнёров пока нет координат). compact — герой на обзоре «Все»; иначе крупная на
+// чипе «Рядом». Тап по пину → нативная деталь партнёра. Пока город один — показываем Москву.
+var BOS_PARTNER_PINS = { medit: [19, 47], bachata: [45, 41], box: [73, 43], yoga: [80, 67], coffee: [31, 71], art: [56, 78] };
+function PartnersMapLive({ app, navigate, compact = false, from = "community" }) {
+  const isDark = app && app.themeOverride === "dark";
+  const H = compact ? 156 : 232;
+  const open = (p) => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("partner-detail", { partner: p, from: from }); };
+  const land = isDark ? "radial-gradient(120% 90% at 20% 10%, #1b2430, #141b24 60%, #10151c)" : "radial-gradient(120% 90% at 20% 10%, #f3f6ef, #e9efe6 60%, #e3ebe0)";
+  const park = isDark ? "#1e2c22" : "#d7ead0";
+  const river = isDark ? "#17293b" : "#bcd8f2";
+  const roadA = isDark ? "rgba(255,255,255,0.09)" : "#ffffff";
+  const roadB = isDark ? "rgba(255,255,255,0.05)" : "#e7e2d6";
+  const bub = isDark ? "#232a33" : "#ffffff";
+  const chipBg = isDark ? "rgba(20,27,24,0.6)" : "rgba(255,255,255,0.72)";
+  const chipInk = isDark ? "#dfe7dd" : "#2b3a2b";
+  const sz = compact ? 32 : 38;
+  return (
+    <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: "var(--card-shadow)", position: "relative", height: H, background: land }}>
+      <svg viewBox="0 0 366 232" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+        <path d="M-10 168 Q55 138 120 168 T250 168 Q300 186 262 242 L-10 242 Z" fill={park} />
+        <path d="M-10 66 C90 44 120 134 230 112 S360 168 400 134 L400 162 C360 196 320 132 230 145 S90 78 -10 100 Z" fill={river} opacity="0.9" />
+        <g stroke={roadA} strokeWidth="6" fill="none" opacity="0.9" strokeLinecap="round">
+          <path d="M34 -10 C50 66 26 140 60 250" />
+          <path d="M-10 48 C110 66 220 40 400 78" />
+          <path d="M-10 182 C120 170 260 198 400 182" />
+        </g>
+        <g stroke={roadB} strokeWidth="2" fill="none" opacity="0.8"><ellipse cx="183" cy="120" rx="140" ry="86" /></g>
+      </svg>
+      {BOS_PARTNERS.map((p) => {
+        const pos = BOS_PARTNER_PINS[p.id]; if (!pos) return null;
+        return (
+          <div key={p.id} className="tap" onClick={() => open(p)} aria-label={p.name}
+            style={{ position: "absolute", left: pos[0] + "%", top: pos[1] + "%", transform: "translate(-50%,-100%)", cursor: "pointer", zIndex: 2 }}>
+            <div style={{ position: "absolute", inset: -2, borderRadius: 14, background: (typeof bosMixHex === "function" && isDark) ? bosMixHex(p.accent, "#101014", 0.42) : p.accent, zIndex: -1 }} />
+            <div style={{ width: sz, height: sz, borderRadius: 12, background: bub, display: "grid", placeItems: "center", fontSize: Math.round(sz * 0.52), boxShadow: "0 3px 8px rgba(20,30,20,0.22)" }}>{p.emblem}</div>
+          </div>
+        );
+      })}
+      <div style={{ position: "absolute", left: "50%", top: "54%", transform: "translate(-50%,-50%)", zIndex: 2 }}>
+        <div style={{ position: "absolute", inset: -11, borderRadius: "50%", background: "rgba(46,124,246,0.18)" }} />
+        <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#2E7CF6", border: "2.5px solid #fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)" }} />
+      </div>
+      <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 3, pointerEvents: "none" }}>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: chipInk, background: chipBg, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: "5px 10px", borderRadius: 999 }}>🗺 Рядом · Москва</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: chipInk, background: chipBg, backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: "5px 10px", borderRadius: 999 }}>{BOS_PARTNERS.length} мест поблизости</span>
+      </div>
+    </div>
+  );
+}
+
 // Горизонтальная лента партнёров про ТРАТУ XP. Цветные карточки-впечатления (см. ниже). Тап по карточке →
 // нативная страница партнёра PartnerDetailLive (описание, адрес, даты, кнопка «Получить»).
 function PartnersShowcaseLive({ app, navigate, from = "community", onAll }) {
@@ -3297,8 +3350,10 @@ function PartnersShowcaseLive({ app, navigate, from = "community", onAll }) {
       </div>
       {/* padding-bottom 18 — иначе overflow-y (авто из-за overflow-x) СРЕЗАЕТ тень карточек в серую
           полосу «внизу обрезается» (David). Тень мягкая, чтобы не мутить фон.
-          Full-bleed (David: «обрезаться самим экраном»): -12/+12 выводит ленту за паддинг страницы. */}
-      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "3px 12px 18px", margin: "0 -12px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
+          Выравнивание (David: «слева вровень с заголовком, справа уходят за экран»): СЛЕВА обычный
+          отступ страницы + 4 (первая карточка ровно под кикером), СПРАВА margin -12 → лента режется
+          физическим краем экрана. Не bleed с ОБЕИХ сторон (прошлый v540 липнул к левому краю). */}
+      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "3px 12px 18px 4px", margin: "0 -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
         {BOS_PARTNERS.map((p) => {
           const got = !!redeemed[p.id];
           return (
@@ -3583,21 +3638,25 @@ const LIVING_CIRCLES = [
   { id: "lc-run", i: "🏃", t: "Утренние пробежки", hook: "Выходят на рассвете — вместе проще не проспать",
     about: "Круг тех, кто начинает день с пробежки. Дистанция любая — важно выйти. Отметки складываются в общую серию, а по воскресеньям делятся маршрутами.",
     faces: ["m3", "m7", "m11", "m2", "m15"], total: 18, today: 9,
+    since: "2025-10-26", together: { emoji: "🏃", text: "8 400 пробежек вместе" },
     habits: [{ emoji: "🏃", name: "Пробежка" }, { emoji: "🌅", name: "Ранний подъём" }, { emoji: "🧦", name: "Разминка" }],
     preset: { i: "🏃", t: "Утренние пробежки", accent: "#EAEAEF", goalType: "streak", goalTitle: "Бегать по утрам", target: 30, unit: "дней" } },
   { id: "lc-calm", i: "🧘", t: "Тишина по утрам", hook: "5 минут медитации — никто не сходит с дистанции",
     about: "Спокойный круг: пять минут тишины до телефона и новостей. Здесь не соревнуются — просто держат ритм вместе и делятся, что помогает не съезжать.",
     faces: ["m8", "m4", "m12", "m6", "m17", "m10"], total: 24, today: 13,
+    since: "2026-01-17", together: { emoji: "🧘", text: "3 100 практик вместе" },
     habits: [{ emoji: "🧘", name: "Медитация" }, { emoji: "📓", name: "Дневник" }],
     preset: { i: "🧘", t: "Тишина по утрам", accent: "#EAEAEF", goalType: "streak", goalTitle: "Медитировать каждый день", target: 21, unit: "дней" } },
   { id: "lc-book", i: "📚", t: "Книжный клуб", hook: "Глава в день и живое обсуждение в чате круга",
     about: "Читают по главе в день — за месяц выходит целая книга. Раз в неделю голосуют за следующую и обсуждают прочитанное. Отставать не страшно: догоняют вместе.",
     faces: ["m5", "m9", "m1", "m14"], total: 11, today: 4,
+    since: "2026-03-30", together: { emoji: "📚", text: "7 книг прочитано вместе" },
     habits: [{ emoji: "📖", name: "Глава в день" }, { emoji: "✍️", name: "Заметка о прочитанном" }],
     preset: { i: "📚", t: "Книжный клуб", accent: "#EAEAEF", goalType: "collective", goalTitle: "Прочитать вместе", target: 12, unit: "книг" } },
   { id: "lc-water", i: "💧", t: "Восемь стаканов", hook: "Пьют воду и держат друг друга в тонусе",
     about: "Самый простой круг: восемь стаканов воды в день. Идеален как первый общий ритуал — лёгкий, но каждый день видно, кто в строю.",
     faces: ["m13", "m16", "m2", "m7"], total: 9, today: 6,
+    since: "2026-05-24", together: { emoji: "💧", text: "12 000 стаканов вместе" },
     habits: [{ emoji: "💧", name: "Стакан воды" }],
     preset: { i: "💧", t: "Восемь стаканов", accent: "#EAEAEF", goalType: "collective", goalTitle: "Пить воду", target: 30, unit: "дней" } },
 ];
@@ -3679,39 +3738,93 @@ function NetworkPeekLive({ unlocked, onOpen }) {
   );
 }
 
-/* КАРТОЧКА живого круга (v527, David: «мог бы использовать карточку реальных кругов —
-   показать, как круто это должно выглядеть; орбиты нигде не использованы»): полноширинная,
-   КАК настоящая плитка совместной цели на «Привычках» — слева имя + живое «сегодня N в деле»
-   + чипы привычек, справа НАСТОЯЩАЯ орбита GoalOrbitMini (привычки круга + лица людей).
-   Тап → та же шторка-превью с «Постучаться». */
-function LivingCircleCardLive({ circle: s, onTap, w = null }) {
+/* Возраст круга «живёт N дней» — ЖИВАЯ метрика (David: «прикольная метрика типа круг живёт
+   252 дня; большие общие вещи, которые кто-то ведёт»): растёт сама от даты рождения круга,
+   с правильным русским склонением. */
+function bosCircleDays(since) {
+  if (!since) return null;
+  var ms = Date.parse(since);
+  if (isNaN(ms)) return null;
+  return Math.max(1, Math.floor((Date.now() - ms) / 86400000));
+}
+function bosRuDays(n) {
+  var a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return "день";
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return "дня";
+  return "дней";
+}
+
+/* КАРТОЧКА живого круга (v541, David: «карточка нашего размера + чипы + прикольные метрики;
+   одну с чипами, другую с орбитой — сравним вживую»): СТАНДАРТНЫЙ размер (как карточка тренинга),
+   вся живая инфа — ЧИПАМИ вместо строк вразброс. Метрики: зелёный «сегодня N в деле» (пульс),
+   золотой «живёт N дней» (история), стеклянный «8 400 пробежек вместе» (большое общее).
+   variant="chips" — лица сверху + чипы, без орбиты. variant="orbit" — то же слева + настоящая
+   орбита GoalOrbitMini справа. Тап → та же шторка-превью с «Постучаться». */
+function LivingCircleCardLive({ circle: s, onTap, w = null, variant = "chips" }) {
   const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
   const people = (s.faces || []).map(function (a) { return { avatar: a, name: "" }; });
-  // w — фикс-ширина для ГОРИЗОНТАЛЬНОЙ ленты обзора (David: «в ленте должна быть ИХ карточка
-  // с орбитами, не новая»); без w — прежняя полноширинная карточка страницы «Круги».
+  const days = bosCircleDays(s.since);
+  const glass = (typeof bosChipGlass === "function") ? bosChipGlass(isDark) : { background: "var(--card-2)" };
+  const chipBase = { display: "inline-flex", alignItems: "center", gap: 5, borderRadius: 999, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, whiteSpace: "nowrap" };
+  // Живой ЗЕЛЁНЫЙ чип «сегодня N в деле» — пульс круга (вместо сухой строки «18 человек · …»).
+  const liveChip = (
+    <span style={{ ...chipBase, background: isDark ? "rgba(52,199,89,0.15)" : "#E7F7EC", color: isDark ? "#7dd89b" : "#1E8E4E", boxShadow: isDark ? "none" : "inset 0 0 0 0.5px rgba(30,142,78,0.14)" }}>
+      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34C759", boxShadow: "0 0 0 3px rgba(52,199,89,0.16)" }} />сегодня {s.today} в деле
+    </span>
+  );
+  // ЗОЛОТОЙ чип «живёт N дней» — история круга (David: «круг живёт 252 дня»).
+  const ageChip = days ? (
+    <span style={{ ...chipBase, background: isDark ? "linear-gradient(150deg, rgba(255,214,102,0.16), rgba(239,159,20,0.14))" : "linear-gradient(150deg,#FFF7E6,#FFEFC9)", color: isDark ? "#f0c86a" : "#8a6a00", boxShadow: isDark ? "none" : "inset 0 0 0 0.5px rgba(214,168,40,0.30)" }}>
+      📅 живёт {days} {bosRuDays(days)}
+    </span>
+  ) : null;
+  // СТЕКЛЯННЫЙ чип «большое общее» — что круг наработал вместе (David: «большие общие вещи»).
+  const togetherChip = s.together ? (
+    <span style={{ ...chipBase, ...glass, color: "var(--text-2)" }}>
+      <span style={{ fontSize: 12 }}>{typeof bosIcon === "function" ? bosIcon(s.together.emoji, 12, null) : s.together.emoji}</span>{s.together.text}
+    </span>
+  ) : null;
+  const habitChips = (
+    <div style={{ display: "flex", gap: 5, marginTop: 8, flexWrap: "wrap" }}>
+      {(s.habits || []).slice(0, variant === "orbit" ? 2 : 3).map(function (h, i) {
+        return (
+          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, ...glass, padding: "4px 9px 4px 6px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
+            <span style={{ fontSize: 12 }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, 12, null) : h.emoji}</span>{h.name}
+          </span>
+        );
+      })}
+    </div>
+  );
+  const cardBase = { width: w || "100%", ...(w ? { flex: "0 0 auto", scrollSnapAlign: "start" } : {}), background: "var(--card)", border: 0, borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", textAlign: "left", color: "var(--text)", cursor: "pointer", overflow: "hidden" };
+
+  if (variant === "orbit") {
+    // Тот же СТАНДАРТНЫЙ размер, но справа — настоящая орбита (привычки + лица кружат вокруг).
+    return (
+      <button onClick={onTap} className="tap" style={{ ...cardBase, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", lineHeight: 1.2 }}>{s.t}</div>
+          <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{s.hook}</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 9, flexWrap: "wrap" }}>{liveChip}{ageChip}</div>
+        </div>
+        <div style={{ width: 108, height: 108, flexShrink: 0, display: "grid", placeItems: "center" }}>
+          {typeof GoalOrbitMini === "function"
+            ? <GoalOrbitMini centerEmoji={s.i} centerColor={null} habits={s.habits || []} people={people} size={108} dark={isDark} />
+            : <span style={{ fontSize: 36 }}>{s.i}</span>}
+        </div>
+      </button>
+    );
+  }
+  // variant "chips" — лица сверху, вся живая инфа ЧИПАМИ, без орбиты.
   return (
-    <button onClick={onTap} className="tap" style={{ width: w || "100%", ...(w ? { flex: "0 0 auto", scrollSnapAlign: "start" } : {}), background: "var(--card)", border: 0, borderRadius: 22, padding: "14px 8px 14px 16px", boxShadow: "var(--card-shadow)", textAlign: "left", color: "var(--text)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", overflow: "hidden" }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", lineHeight: 1.2 }}>{s.t}</div>
-        <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4, fontWeight: 500 }}>
-          {s.total} человек · <b style={{ color: "#1E8E4E", fontWeight: 700 }}>сегодня {s.today} в деле</b>
-        </div>
-        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 7, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{s.hook}</div>
-        <div style={{ display: "flex", gap: 5, marginTop: 9, flexWrap: "wrap" }}>
-          {(s.habits || []).slice(0, 3).map(function (h, i) {
-            return (
-              <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, ...((typeof bosChipGlass === "function") ? bosChipGlass(isDark) : { background: "var(--card-2)" }), padding: "4px 9px 4px 6px", borderRadius: 999, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
-                <span style={{ fontSize: 12 }}>{typeof bosIcon === "function" ? bosIcon(h.emoji, 12, null) : h.emoji}</span>{h.name}
-              </span>
-            );
-          })}
-        </div>
+    <button onClick={onTap} className="tap" style={{ ...cardBase, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+        <span style={{ width: 44, height: 44, borderRadius: 14, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{typeof bosIcon === "function" ? bosIcon(s.i, 22, null) : s.i}</span>
+        <div style={{ flex: 1, minWidth: 0, fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", lineHeight: 1.15 }}>{s.t}</div>
+        {typeof PeopleStackLive === "function" && <div style={{ flexShrink: 0 }}><PeopleStackLive people={people} size={26} max={3} /></div>}
       </div>
-      <div style={{ width: 132, height: 132, flexShrink: 0, display: "grid", placeItems: "center" }}>
-        {typeof GoalOrbitMini === "function"
-          ? <GoalOrbitMini centerEmoji={s.i} centerColor={null} habits={s.habits || []} people={people} size={132} dark={isDark} />
-          : <span style={{ fontSize: 40 }}>{s.i}</span>}
-      </div>
+      <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 10, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{s.hook}</div>
+      <div style={{ display: "flex", gap: 6, marginTop: 11, flexWrap: "wrap" }}>{liveChip}{ageChip}{togetherChip}</div>
+      {habitChips}
     </button>
   );
 }
