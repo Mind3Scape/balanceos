@@ -152,6 +152,29 @@ function HomeLive() {
   var [styleBottom, setStyleBottom] = React.useState(false);
   var widgets = app?.widgets || {};
   var mood = app?.mood;
+
+  // Вечерний авто-опрос состояния (David: «раз в день к вечеру всплывает, спрашивает как ты — человек
+  // быстро отмечает»). Условия: НЕ отмечено сегодня + вечер (≥18ч) + сегодня ещё не спрашивали
+  // (флаг bos:stateAsk:<день> в localStorage). Мягко, через 1.4с после захода на главную.
+  React.useEffect(() => {
+    try {
+      var tk = typeof bosTodayKey === "function" ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+      var logged = !!(app && app.dayMoods && app.dayMoods[tk] != null);
+      var askKey = "bos:stateAsk:" + tk;
+      var asked = typeof localStorage !== "undefined" && localStorage.getItem(askKey);
+      if (!logged && !asked && new Date().getHours() >= 18 && typeof StateSheetLive === "function") {
+        var id = setTimeout(() => {
+          try {
+            localStorage.setItem(askKey, "1");
+          } catch (e) {}
+          openSheet(/*#__PURE__*/React.createElement(StateSheetLive, {
+            evening: true
+          }));
+        }, 1400);
+        return () => clearTimeout(id);
+      }
+    } catch (e) {}
+  }, []);
   var wrapRef = React.useRef(null);
   var isDark = useThemeFlag(wrapRef);
   // Habits + goals come from the shared app store, so a check here shows up

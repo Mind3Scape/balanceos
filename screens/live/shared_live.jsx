@@ -1903,67 +1903,141 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
 // instantly (+5 XP, success-haptic). No horizontal scrub → lives happily inside the card's
 // SwipeRow (swipe still reveals «Убрать», a tap just logs). Logs the real MOOD_OPTIONS index,
 // so the week-trail / calendar / MoodWidget keep reading it unchanged.
-// ── СОСТОЯНИЕ v2 — редизайн «с фундамента» (David 2026-07-04): состояние = свет орба,
-// шкала графит(тяжело)→серебро(ровно)→золото(на подъёме), НЕ радуга. Единый источник для LIVE
-// (демо НЕ трогаем — там свой MOOD_OPTIONS-fallback). dayMoods хранит индекс шага (0..5), как и
-// раньше, поэтому календарь/след недели/виджет читают его без переезда данных. {i,t,c,v,tint}. */
+// ── СОСТОЯНИЕ v3 — НАШ орб + НАШИ цвета (David 2026-07-04, live-фидбек: «графит-золото и плоский
+// CSS-орб — не наши; используй наш орб и его цвета: зелёный/синий/фиолетовый/красный/жёлтый; орб не
+// должен ездить вверх; это должна быть маленькая ШТОРКА, всплывающая раз в день к вечеру»). Радуга
+// онбординга (moodSpectrum) + лица (MOOD_FACES) + слова (MOOD_WORDS), 7 шагов; рендерим НАШИМ StateOrb
+// (tintFromMood). dayMoods хранит индекс шага (0..6). Демо НЕ трогаем. См. StateSheetLive (шторка). */
 var BOS_STATE = [
-  { i: "😔", t: "Тяжело",     c: "#454e5e", v: 0.00, tint: ["#8a919f", "#5b6373", "#2b3140"] },
-  { i: "😮‍💨", t: "Непросто",  c: "#6a7280", v: 0.20, tint: ["#a6adba", "#727a89", "#414855"] },
-  { i: "😐", t: "Так себе",    c: "#9096a2", v: 0.40, tint: ["#c9cdd6", "#9096a2", "#5f6674"] },
-  { i: "🙂", t: "Ровно",       c: "#b3a988", v: 0.60, tint: ["#ece7da", "#bbac86", "#847a5f"] },
-  { i: "😌", t: "Хорошо",      c: "#dcb85c", v: 0.80, tint: ["#f6e7b6", "#dcb85c", "#a17f2a"] },
-  { i: "🔥", t: "На подъёме",  c: "#f0a81c", v: 1.00, tint: ["#fff6df", "#f3ac1d", "#a86f14"] },
+  { i: "😣", t: "Тяжело",   c: "#FF5A5F" },
+  { i: "😞", t: "Плохо",    c: "#FF884A" },
+  { i: "😕", t: "Так себе", c: "#FFB43C" },
+  { i: "😐", t: "Нормально", c: "#E7C63C" },
+  { i: "🙂", t: "Неплохо",  c: "#7CC24F" },
+  { i: "😄", t: "Хорошо",   c: "#34C759" },
+  { i: "🤩", t: "Отлично",  c: "#19B6E8" },
 ];
-function bosLerpHex(a, b, k) {
-  var pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
-  var pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
-  var to = function (n) { return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0"); };
-  return "#" + to(pa[0] + (pb[0] - pa[0]) * k) + to(pa[1] + (pb[1] - pa[1]) * k) + to(pa[2] + (pb[2] - pa[2]) * k);
-}
-// Плавный tint графит→серебро→золото по валентности 0..1 (орб «дышит» цветом во время настройки).
+// Цвет орба по валентности 0..1 = наша радуга онбординга (красный→…→синий), НАШ tintFromMood.
 function bosStateTintForV(v) {
   v = Math.max(0, Math.min(1, (typeof v === "number" && isFinite(v)) ? v : 0.6));
-  var G = ["#8a919f", "#5b6373", "#2b3140"], S = ["#f2f4f8", "#a6abb6", "#6b7280"], Au = ["#fff6df", "#f3ac1d", "#a86f14"];
-  var a, b, k;
-  if (v < 0.5) { a = G; b = S; k = v / 0.5; } else { a = S; b = Au; k = (v - 0.5) / 0.5; }
-  return [bosLerpHex(a[0], b[0], k), bosLerpHex(a[1], b[1], k), bosLerpHex(a[2], b[2], k)];
+  var hex = (typeof moodSpectrum === "function") ? moodSpectrum(v) : (BOS_STATE[Math.round(v * (BOS_STATE.length - 1))] || BOS_STATE[3]).c;
+  return (typeof tintFromMood === "function") ? tintFromMood(hex) : ["#cfe1ff", "#7aa4d0", "#2c4d76"];
 }
+// Валентность 0..1 → индекс шага (0..6). Использует наш moodBucket (7 корзин), совпадает с MOOD_FACES.
 function bosStateStepFromV(v) {
   v = Math.max(0, Math.min(1, (typeof v === "number" && isFinite(v)) ? v : 0.6));
-  return Math.max(0, Math.min(BOS_STATE.length - 1, Math.round(v * (BOS_STATE.length - 1))));
+  var n = BOS_STATE.length - 1;
+  var i = (typeof moodBucket === "function") ? moodBucket(v) : Math.round(v * n);
+  return Math.max(0, Math.min(n, i));
 }
 // Безопасное чтение шага из dayMoods (клампит старые/чужие индексы — не роняет экран).
 function bosStateResolve(idx) {
   idx = idx | 0;
   return BOS_STATE[Math.max(0, Math.min(BOS_STATE.length - 1, idx))] || BOS_STATE[3];
 }
-// Орб состояния = чистая CSS-сфера (как в утверждённом макете): StateOrb/SiriOrb сделаны под
-// ХОЛОДНЫЕ тинты и мажут тёплое золото в салат — поэтому для состояния свой орб. tint=[light,mid,dark].
-function BosStateOrb(props) {
-  var size = props.size || 72;
-  var tint = (props.tint && props.tint.length === 3) ? props.tint : ["#f2f4f8", "#a6abb6", "#6b7280"];
-  var breath = props.breath || 1;
+
+// ШТОРКА состояния (David live-фидбек 2026-07-04): маленькая всплывающая шторка «Как ты?», НАШ орб
+// (StateOrb) морфится цветом+лицом слайдером (орб НА МЕСТЕ, не ездит), быстрое «Отметить». Всплывает
+// по тапу виджета И сама раз в день к вечеру (см. home_live evening-prompt). props: { evening }.
+function StateSheetLive(props) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const sheet = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  const isDark = !!(app && app.themeOverride === "dark");
+  const tk = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+  const faces = (typeof MOOD_FACES !== "undefined") ? MOOD_FACES : ["😣", "😞", "😕", "😐", "🙂", "😄", "🤩"];
+  const words = (typeof MOOD_WORDS !== "undefined") ? MOOD_WORDS : ["Тяжело", "Плохо", "Так себе", "Нормально", "Неплохо", "Хорошо", "Отлично"];
+  const initV = React.useMemo(() => {
+    const di = app && app.dayMoods && app.dayMoods[tk];
+    if (di != null) { const n = BOS_STATE.length - 1; return n ? Math.max(0, Math.min(1, di / n)) : 0.6; }
+    return 0.72;
+  }, []);
+  const [val, setVal] = React.useState(initV);
+  const [note, setNote] = React.useState(() => (app && app.dayNotes && app.dayNotes[tk] && app.dayNotes[tk].note) || "");
+  const [saved, setSaved] = React.useState(false);
+  const trackRef = React.useRef(null), dragRef = React.useRef(false), lastB = React.useRef(-1);
+  const [t, setT] = React.useState(0);
+  React.useEffect(() => { let raf, s = performance.now(); const tick = (n) => { setT((n - s) / 1000); raf = requestAnimationFrame(tick); }; raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf); }, []);
+  const breath = 1 + Math.sin(t * 0.8) * 0.03;
+
+  const bucket = bosStateStepFromV(val);
+  const tint = bosStateTintForV(val);
+  const face = faces[bucket] || "🙂", word = words[bucket] || "Ровно";
+  const PAD = 13;
+
+  const setFromX = (clientX) => {
+    const el = trackRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    let v = (clientX - r.left - PAD) / Math.max(1, r.width - 2 * PAD);
+    v = Math.max(0, Math.min(1, v));
+    const b = bosStateStepFromV(v);
+    if (b !== lastB.current) { lastB.current = b; if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }
+    setVal(v);
+  };
+  const onMark = () => {
+    if (app) {
+      app.setMood && app.setMood(BOS_STATE[bucket]);
+      app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [tk]: bucket });
+      if (app.setDayNotes) { const prev = (app.dayNotes || {})[tk] || {}; app.setDayNotes({ ...(app.dayNotes || {}), [tk]: { tags: prev.tags || [], note: note.trim() || prev.note || "" } }); }
+    }
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    setSaved(true);
+    setTimeout(() => { try { sheet.close(); } catch (e) {} }, 240);
+  };
+
+  const cardText = isDark ? "#fff" : "var(--text)";
+  const subMuted = isDark ? "rgba(255,255,255,0.55)" : "var(--text-4)";
+  const fieldBg = isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)";
+  const trackBg = isDark ? "rgba(255,255,255,0.10)" : "#e7e7ea";
+
   return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%", flexShrink: 0,
-      transform: breath !== 1 ? ("scale(" + breath + ")") : undefined,
-      background: "radial-gradient(circle at 37% 30%, " + tint[0] + " 0%, " + tint[1] + " 46%, " + tint[2] + " 100%)",
-      boxShadow: "inset 0 " + (size * 0.028).toFixed(1) + "px " + (size * 0.17).toFixed(1) + "px rgba(255,255,255,0.5), 0 " + (size * 0.1).toFixed(1) + "px " + (size * 0.42).toFixed(1) + "px " + tint[1] + "5c",
-    }} />
+    <div style={{ padding: "2px 20px 20px", color: cardText, textAlign: "center" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: subMuted }}>{props && props.evening ? "Вечерняя отметка" : "Как ты сейчас"}</div>
+      <div style={{ position: "relative", width: 128, height: 128, margin: "12px auto 2px", display: "grid", placeItems: "center" }}>
+        <div aria-hidden style={{ position: "absolute", inset: -18, borderRadius: "50%", background: "radial-gradient(circle, " + tint[1] + "44 0%, " + tint[1] + "14 45%, transparent 72%)", filter: "blur(14px)" }} />
+        <div style={{ transform: "scale(" + breath + ")" }}>
+          <StateOrb size={116} tint={tint} intensity={1.2} />
+        </div>
+        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+          <span key={bucket} style={{ fontSize: 44, lineHeight: 1, filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.25))", animation: "bosFacePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>{face}</span>
+        </div>
+      </div>
+      <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 28, fontWeight: 700, letterSpacing: "-0.5px", lineHeight: 1.1, marginTop: 6 }}>{word}</div>
+
+      <div ref={trackRef}
+        onPointerDown={(e) => { dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setFromX(e.clientX); }}
+        onPointerMove={(e) => { if (dragRef.current) setFromX(e.clientX); }}
+        onPointerUp={() => { dragRef.current = false; }}
+        onPointerCancel={() => { dragRef.current = false; }}
+        style={{ position: "relative", height: 28, margin: "18px 4px 0", touchAction: "none", cursor: "pointer" }}>
+        <div style={{ position: "absolute", left: 0, right: 0, top: "50%", transform: "translateY(-50%)", height: 8, borderRadius: 999, background: trackBg }} />
+        <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", height: 8, borderRadius: 999, background: "linear-gradient(90deg, " + tint[0] + ", " + tint[1] + ")" }} />
+        <div style={{ position: "absolute", top: "50%", left: "calc(" + PAD + "px + " + val + " * (100% - " + (2 * PAD) + "px))", width: 24, height: 24, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #fff, #eef0f3)", boxShadow: "0 2px 7px rgba(0,0,0,0.28)", transform: "translate(-50%,-50%)", transition: dragRef.current ? "none" : "left 0.1s ease" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, padding: "0 2px", fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", color: subMuted, fontWeight: 600 }}>
+        <span>тяжело</span><span>отлично</span>
+      </div>
+
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Пара слов, если хочешь…"
+        style={{ width: "100%", marginTop: 16, background: fieldBg, border: "1px solid var(--line)", borderRadius: 14, padding: "12px 14px", color: cardText, fontSize: 16, fontFamily: "inherit", outline: 0, boxSizing: "border-box", textAlign: "left" }} />
+
+      <button onClick={onMark} className="tap" style={{ width: "100%", marginTop: 12, background: saved ? "#3f7a46" : "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600, transition: "background 0.2s" }}>
+        {saved ? "Отмечено ✓" : "Отметить"}
+      </button>
+    </div>
   );
 }
 
-// НОВЫЙ виджет-приглашение на главной, когда состояние сегодня НЕ отмечено (David: «не бейдж —
-// приглашение»): тёмный тлеющий орб + «Как ты?» → тап открывает Момент (жест A, route "mood").
+// Виджет-приглашение на главной, когда состояние сегодня НЕ отмечено (David: «не бейдж — приглашение»):
+// наш орб + «Как ты?» → тап открывает ШТОРКУ StateSheetLive (не fullscreen).
 function StateInviteLive({ app, isDark, navigate }) {
-  var t = (typeof useAIT === "function") ? useAIT() : ((typeof useT === "function") ? useT() : 0);
+  var sheet = (typeof useSheet === "function") ? useSheet() : null;
   var bg = isDark ? "linear-gradient(160deg,#1a1a1d,#0d0d10)" : "#ffffff";
+  var openState = function () { if (sheet && sheet.open) sheet.open(<StateSheetLive />); else if (navigate) navigate("mood"); };
   return (
-    <button onClick={function () { navigate && navigate("mood"); }} className="tap" data-tour="state"
+    <button onClick={openState} className="tap" data-tour="state"
       style={{ width: "100%", border: 0, textAlign: "left", background: bg, padding: 18, display: "flex", alignItems: "center", gap: 15, cursor: "pointer" }}>
-      <span style={{ width: 52, height: 52, flexShrink: 0, display: "grid", placeItems: "center", opacity: 0.94 }}>
-        <BosStateOrb size={50} tint={["#9aa0ac", "#6b7280", "#3a4150"]} breath={1 + Math.sin((t || 0) * 0.9) * 0.03} />
+      <span style={{ width: 52, height: 52, flexShrink: 0, display: "grid", placeItems: "center", opacity: 0.96 }}>
+        <StateOrb size={50} tint={["#c3cbd9", "#8f9bb0", "#586278"]} intensity={0.78} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: isDark ? "rgba(255,255,255,0.5)" : "var(--text-4)" }}>Как ты сейчас?</span>
@@ -3208,6 +3282,8 @@ function ShareGoalSheetLive({ goal, dark = false }) {
 }
 
 function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
+  const _sheet = (typeof useSheet === "function") ? useSheet() : null;
+  const _openState = () => { if (_sheet && _sheet.open) _sheet.open(<StateSheetLive />); else if (navigate) navigate("mood"); };
   const _WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const _monOff = (new Date().getDay() + 6) % 7; // 0=Пн … 6=Вс — TODAY's slot in the week
   // Rebuilt only when the day-mood map (or today's slot) changes — not on every parent
@@ -3230,7 +3306,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
   const _moodStreak = (typeof bosMoodStreak === "function") ? bosMoodStreak(app?.dayMoods) : 0;
 
   return (
-    <button onClick={() => navigate("mood")} className="tap" data-tour="state"
+    <button onClick={_openState} className="tap" data-tour="state"
       style={{
         marginTop: flush ? 0 : 12, width: "100%", border: flush ? "0" : border, textAlign: "left",
         background: bg,
@@ -3241,7 +3317,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
       }}>
       <div style={{ display: "flex", gap: 16, alignItems: "center", position: "relative" }}>
         <div style={{ position: "relative", flexShrink: 0, width: 72, height: 72, display: "grid", placeItems: "center" }}>
-          <BosStateOrb size={72} tint={(mood && mood.tint) || tintFromMood(mood.c)} />
+          <StateOrb size={72} tint={tintFromMood(mood.c)} intensity={isDark ? 1.25 : 1.05} />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>

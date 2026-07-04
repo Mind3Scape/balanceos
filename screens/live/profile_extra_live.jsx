@@ -818,7 +818,7 @@ function HistoryLive() {
               return (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
                   <span style={{ width: 36, height: 36, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <BosStateOrb size={34} tint={dm.tint || tintFromMood(dm.c)} />
+                    <StaticOrb size={34} tint={tintFromMood(dm.c)} seed={1.2} intensity={0.7} />
                   </span>
                   <div style={{ flex: 1 }}>
                     <div className="bos-sys-text-3" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Состояние</div>

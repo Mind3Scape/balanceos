@@ -388,123 +388,17 @@ function GoalDetailPersonalLive() {
   );
 }
 
-/* MOOD CHECK-IN — LIVE. Fullscreen state pulse; the check-in ALWAYS keys by the REAL
-   date (bosTodayKey()) so marks accumulate per day & pay XP. State is colored orbs (no
-   emoji), plus contextual sub-state #hashtags (MOOD_TAGS) and an optional note. */
+/* СОСТОЯНИЕ — LIVE. Отметка = маленькая ШТОРКА StateSheetLive (David live-фидбек: не полноэкранная
+   страница). Route "mood" (тап виджета / вход из ИИ) открывает шторку поверх главной; всплывает и
+   сама раз в день к вечеру (home_live evening-prompt). */
 function MoodLive() {
   const { navigate } = useNav();
-  const app = useApp ? useApp() : null;
-  const moods = (typeof MOOD_OPTIONS !== "undefined") ? MOOD_OPTIONS : [
-    { i: "😌", t: "Спокойствие",      c: "#cfe1ff" },
-    { i: "⚡️", t: "Энергия", c: "#fef3c7" },
-    { i: "😔", t: "Упадок",       c: "#e3e3e3" },
-    { i: "😤", t: "Стресс",  c: "#fde2e2" },
-    { i: "🙂", t: "Ровно",    c: "#d6f3df" },
-    { i: "🔥", t: "В огне",   c: "#ffe1c8" },
-  ];
-  const isDarkM = app?.themeOverride === "dark";
-  const STEPS = (typeof BOS_STATE !== "undefined" && BOS_STATE.length) ? BOS_STATE : moods;
-  const tk = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
-
-  // Старт: сегодняшняя отметка (если есть) → её валентность, иначе лёгкий плюс 0.68.
-  const initV = React.useMemo(() => {
-    const di = app && app.dayMoods && app.dayMoods[tk];
-    if (di != null && STEPS[di] && STEPS[di].v != null) return STEPS[di].v;
-    return 0.68;
-  }, []);
-  const [val, setVal] = React.useState(initV);
-  const [note, setNote] = React.useState(() => (app && app.dayNotes && app.dayNotes[tk] && app.dayNotes[tk].note) || "");
-  const [saved, setSaved] = React.useState(false);
-  const stageRef = React.useRef(null);
-  const dragRef = React.useRef(false);
-  const lastStep = React.useRef(-1);
-
-  const [t, setT] = React.useState(0);
+  const sheet = (typeof useSheet === "function") ? useSheet() : null;
   React.useEffect(() => {
-    let raf, s = performance.now();
-    const tick = (now) => { setT((now - s) / 1000); raf = requestAnimationFrame(tick); };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    navigate("home");
+    setTimeout(() => { if (sheet && sheet.open && typeof StateSheetLive === "function") sheet.open(<StateSheetLive />); }, 40);
   }, []);
-  const breath = 1 + Math.sin(t * 0.8) * 0.035;
-
-  const stepIdx = (typeof bosStateStepFromV === "function") ? bosStateStepFromV(val) : Math.max(0, Math.min(STEPS.length - 1, Math.round(val * (STEPS.length - 1))));
-  const step = STEPS[stepIdx] || STEPS[Math.floor(STEPS.length / 2)] || { i: "🙂", t: "Ровно", tint: ["#f2f4f8", "#a6abb6", "#6b7280"] };
-  const tint = (typeof bosStateTintForV === "function") ? bosStateTintForV(val) : (step.tint || ["#cfe1ff", "#7aa4d0", "#2c4d76"]);
-  const glow = tint[1];
-
-  const setFromY = (clientY) => {
-    const el = stageRef.current; if (!el) return;
-    const r = el.getBoundingClientRect();
-    let v = 1 - (clientY - r.top) / Math.max(1, r.height); // верх = 1 (золото), низ = 0 (графит)
-    v = Math.max(0, Math.min(1, v));
-    const b = (typeof bosStateStepFromV === "function") ? bosStateStepFromV(v) : Math.round(v * (STEPS.length - 1));
-    if (b !== lastStep.current) { lastStep.current = b; if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }
-    setVal(v);
-  };
-  const onSave = () => {
-    if (!app) return navigate("home");
-    app.setMood && app.setMood(STEPS[stepIdx]);
-    app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [tk]: stepIdx });
-    if (app.setDayNotes) { const prev = (app.dayNotes || {})[tk] || {}; app.setDayNotes({ ...(app.dayNotes || {}), [tk]: { tags: prev.tags || [], note: note.trim() || prev.note || "" } }); }
-    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
-    setSaved(true);
-    setTimeout(() => navigate("home"), 280);
-  };
-  const STAGE_H = 248, ORB = 150, PAD = 14;
-  const orbTop = (1 - val) * (STAGE_H - ORB - 2 * PAD) + PAD;
-  const bg = isDarkM ? "linear-gradient(180deg,#111218 0%,#0a0b0e 100%)" : "linear-gradient(180deg,#ffffff 0%,#f4f4f6 100%)";
-
-  return (
-    <div style={{ position: "absolute", inset: 0, color: "var(--text)", overflow: "hidden", background: bg, display: "flex", flexDirection: "column" }}>
-      {/* тёплое поле — светлее/выше, когда состояние «на подъёме» */}
-      <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none",
-        background: "radial-gradient(85% 55% at 50% " + (16 + (1 - val) * 26) + "%, " + glow + "3a 0%, " + glow + "12 34%, transparent 66%)", transition: "background 0.25s ease" }} />
-
-      {/* header */}
-      <div style={{ position: "relative", zIndex: 2, padding: "58px 20px 0", display: "flex", alignItems: "center" }}>
-        {!(typeof window !== "undefined" && window.__TG) ? (
-          <button onClick={() => navigate("home")} className="tap" style={{ width: 40, height: 40, borderRadius: 999, background: isDarkM ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", border: 0, color: "var(--text)", display: "grid", placeItems: "center", padding: 0 }}>
-            <I.ChevronLeft size={18} />
-          </button>
-        ) : <span style={{ width: 40 }} />}
-        <div style={{ flex: 1, textAlign: "center", fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", color: "var(--text-4)", fontWeight: 700 }}>Как ты сейчас</div>
-        <span style={{ width: 40 }} />
-      </div>
-
-      {/* сцена настройки — тянешь орб вертикально */}
-      <div ref={stageRef}
-        onPointerDown={(e) => { dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} setFromY(e.clientY); }}
-        onPointerMove={(e) => { if (dragRef.current) setFromY(e.clientY); }}
-        onPointerUp={() => { dragRef.current = false; }}
-        onPointerCancel={() => { dragRef.current = false; }}
-        style={{ position: "relative", zIndex: 2, height: STAGE_H, margin: "12px 20px 0", touchAction: "none", cursor: "grab" }}>
-        <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)", color: "#f0a81c", fontSize: 15, opacity: 0.72 }}>▴</div>
-        <div style={{ position: "absolute", left: "50%", bottom: 0, transform: "translateX(-50%)", color: "#5b6373", fontSize: 15, opacity: 0.5 }}>▾</div>
-        <div style={{ position: "absolute", left: "50%", top: orbTop, transform: "translateX(-50%) scale(" + breath + ")", transition: dragRef.current ? "none" : "top 0.16s ease", width: ORB, height: ORB, display: "grid", placeItems: "center" }}>
-          <div aria-hidden style={{ position: "absolute", inset: -30, borderRadius: "50%", background: "radial-gradient(circle, " + glow + "4d 0%, " + glow + "1a 40%, transparent 70%)", filter: "blur(18px)" }} />
-          <BosStateOrb size={ORB} tint={tint} />
-        </div>
-      </div>
-
-      {/* слово + подсказка */}
-      <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "8px 24px 0" }}>
-        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 30, fontWeight: 700, letterSpacing: "-0.6px", lineHeight: 1.1, color: "var(--text)" }}>{(step.i ? step.i + " " : "") + step.t}</div>
-        <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 7 }}>Веди орб вверх — теплеет к золоту, вниз — к графиту</div>
-      </div>
-
-      <div aria-hidden style={{ flex: 1, minHeight: 8 }} />
-
-      {/* строка в дневник (по желанию) + «Готово» */}
-      <div style={{ position: "relative", zIndex: 2, padding: "0 20px 26px" }}>
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Хочешь сказать словом? Одна строка…"
-          style={{ width: "100%", background: isDarkM ? "rgba(255,255,255,0.06)" : "var(--surface-3)", border: "1px solid var(--line)", borderRadius: 16, padding: "13px 15px", color: "var(--text)", fontSize: 16, fontFamily: "inherit", outline: 0, boxSizing: "border-box", marginBottom: 12 }} />
-        <button onClick={onSave} className="tap" style={{ width: "100%", background: saved ? "#3f7a46" : "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 16, fontSize: 15, fontWeight: 600, letterSpacing: "-0.1px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 0.2s" }}>
-          {saved ? "Готово ✓" : "Готово"}{saved ? null : <span style={{ color: "#f0a81c", fontWeight: 800, fontSize: 12 }}>✦</span>}
-        </button>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 /* JOURNAL / DAILY REFLECTION — LIVE. Real past notes from app.dayNotes (newest first),

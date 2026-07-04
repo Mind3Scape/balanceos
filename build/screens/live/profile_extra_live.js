@@ -1983,9 +1983,11 @@ function HistoryLive() {
         placeItems: "center",
         flexShrink: 0
       }
-    }, /*#__PURE__*/React.createElement(BosStateOrb, {
+    }, /*#__PURE__*/React.createElement(StaticOrb, {
       size: 34,
-      tint: dm.tint || tintFromMood(dm.c)
+      tint: tintFromMood(dm.c),
+      seed: 1.2,
+      intensity: 0.7
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1
