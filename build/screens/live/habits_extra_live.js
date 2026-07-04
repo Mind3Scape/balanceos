@@ -1011,10 +1011,24 @@ function GoalFormSheetLive({
   // Дефолт цвета ЦЕЛИ = НЕЙТРАЛЬНЫЙ (null → белая/светло-серая карточка, David). Цвет появляется
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
   var [color, setColor] = useHS(g0?.color ?? preset?.color ?? BOS_GREY); // новый = нейтральный «белый» BOS_GREY (единый дефолт с привычками/командами)
+  var [tint, setTint] = useHS(g0 ? g0.tint !== false : true); // тонированный фон цели — РЕАЛЬНО читается в bosGoalSkin (карточка залита цветом / чистая)
   var [target, setTarget] = useHS(g0?.target || preset?.target || 22);
   var [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
-  var [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
-  var [showCal, setShowCal] = useHS(false);
+  // Срок — храним ISO-дату (yyyy-mm-dd) у новых целей; старые «Месяц»/«14 окт» проходят как есть
+  // (bosFmtDeadline красиво форматит и то, и другое). Дефолт = месяц от сегодня. Нативный date-пикер
+  // вместо графитовых пилюль (David: «пилюли стрёмно, нужно элегантнее»).
+  var _isoOf = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  var _addDays = n => {
+    var d = new Date();
+    d.setDate(d.getDate() + n);
+    return d;
+  };
+  var _addMonths = n => {
+    var d = new Date();
+    d.setMonth(d.getMonth() + n);
+    return d;
+  };
+  var [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || _isoOf(_addMonths(1)));
   var [linkHabit, setLinkHabit] = useHS(editing ? (g0?.habitIds || []).length > 0 : false); // по умолч. свёрнуто/выкл (opt-in) — как в форме привычки
   // КРУГ — «цель + круг = команда»: включаешь круг → цель становится КОМАНДОЙ (один движок —
   // комната-орбита, режимы, вступление по ссылке team_<cloudId>). Тумблер только переключает путь
@@ -1053,8 +1067,9 @@ function GoalFormSheetLive({
     ...h,
     on: !h.on
   } : h));
-  var QUICK_TERMS = ["Неделя", "Месяц", "1 год"];
-  var svoyActive = showCal || !!deadline && !QUICK_TERMS.includes(deadline); // custom date/range → highlight «Свой срок»
+  // Единицы цели — чистые чипы (David: «в карточке цели что-то типа считать количество»); «своё» = произвольная.
+  var GOAL_UNITS = ["раз", "км", "страниц", "минут", "часов", "кг"];
+  var [customUnitOn, setCustomUnitOn] = useHS(!!unit && GOAL_UNITS.indexOf(unit) < 0);
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки.
   var saveGoal = () => {
@@ -1109,6 +1124,7 @@ function GoalFormSheetLive({
         name: nm,
         emoji: iconPick,
         color,
+        tint,
         target: tgt,
         unit,
         deadline: deadline || "Этот месяц",
@@ -1135,6 +1151,7 @@ function GoalFormSheetLive({
     var data = {
       emoji: iconPick,
       color,
+      tint,
       name: nm,
       target: tgt,
       unit,
@@ -1220,7 +1237,7 @@ function GoalFormSheetLive({
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
-      padding: 14,
+      padding: 13,
       boxShadow: "var(--card-shadow)",
       marginTop: 6
     }
@@ -1235,19 +1252,19 @@ function GoalFormSheetLive({
     "data-haptic": "selection",
     onClick: () => setView("picker"),
     style: {
-      width: 56,
-      height: 56,
-      borderRadius: 16,
-      background: color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a" ? color + "26" : "var(--surface-3)",
+      width: 52,
+      height: 52,
+      borderRadius: 15,
+      background: tint && color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a" ? color + "26" : "var(--surface-3)",
       display: "grid",
       placeItems: "center",
-      fontSize: 28,
+      fontSize: 26,
       flexShrink: 0,
       border: 0,
       cursor: "pointer",
       transition: "background 0.2s"
     }
-  }, bosIcon(iconPick, 28, color)), /*#__PURE__*/React.createElement("input", {
+  }, bosIcon(iconPick, 26, color)), /*#__PURE__*/React.createElement("input", {
     value: name,
     onChange: e => setName(e.target.value),
     placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0446\u0435\u043B\u0438",
@@ -1267,12 +1284,39 @@ function GoalFormSheetLive({
   })), typeof BosColorPickerLive === "function" && /*#__PURE__*/React.createElement(BosColorPickerLive, {
     value: color,
     onChange: setColor
-  })), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 11,
+      paddingTop: 11,
+      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))",
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 14,
+      color: "var(--text-2)"
+    }
+  }, "\u0422\u043E\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0439 \u0444\u043E\u043D", /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, "\u041A\u0430\u0440\u0442\u043E\u0447\u043A\u0430 \u0437\u0430\u043B\u0438\u0442\u0430 \u0446\u0432\u0435\u0442\u043E\u043C. \u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0448\u044C \u2014 \u0447\u0438\u0441\u0442\u0430\u044F, \u0446\u0432\u0435\u0442 \u0432 \u0430\u043A\u0446\u0435\u043D\u0442\u0435.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
+    on: tint,
+    onChange: setTint
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
-      padding: 16,
-      marginTop: 14,
+      padding: 14,
+      marginTop: 12,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1291,9 +1335,10 @@ function GoalFormSheetLive({
     className: "goal-num",
     style: {
       flex: "0 0 auto",
-      width: 72,
-      fontSize: 28,
-      fontWeight: 700,
+      width: 70,
+      fontSize: 30,
+      fontWeight: 800,
+      letterSpacing: "-1px",
       color: "var(--text)",
       border: 0,
       outline: 0,
@@ -1301,7 +1346,7 @@ function GoalFormSheetLive({
       padding: 0,
       minWidth: 0
     }
-  }), unit && /*#__PURE__*/React.createElement("span", {
+  }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 16,
       fontWeight: 600,
@@ -1311,107 +1356,402 @@ function GoalFormSheetLive({
       whiteSpace: "nowrap",
       minWidth: 0
     }
-  }, unit)), /*#__PURE__*/React.createElement("div", {
+  }, customUnitOn ? unit || "своё" : unit)), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 12
+      display: "flex",
+      gap: 6,
+      marginTop: 11,
+      overflowX: "auto",
+      padding: "1px"
     }
-  }, /*#__PURE__*/React.createElement(BosUnitSelectLive, {
-    value: unit,
-    onChange: setUnit
-  })), /*#__PURE__*/React.createElement("div", {
+  }, GOAL_UNITS.map(u => {
+    var on = !customUnitOn && unit === u;
+    return /*#__PURE__*/React.createElement("button", {
+      key: u,
+      onClick: () => {
+        setUnit(u);
+        setCustomUnitOn(false);
+      },
+      className: "tap",
+      "data-no-haptic": true,
+      style: {
+        flexShrink: 0,
+        border: 0,
+        borderRadius: 9,
+        padding: "7px 13px",
+        fontSize: 12.5,
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+        cursor: "pointer",
+        background: on ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
+        color: on ? isDark ? "#0a0a0a" : "#fff" : "var(--text-3)"
+      }
+    }, u);
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setCustomUnitOn(true);
+      if (GOAL_UNITS.indexOf(unit) >= 0) setUnit("");
+    },
+    className: "tap",
+    "data-no-haptic": true,
     style: {
-      fontSize: 12,
+      flexShrink: 0,
+      border: 0,
+      borderRadius: 9,
+      padding: "7px 13px",
+      fontSize: 12.5,
+      fontWeight: 600,
+      whiteSpace: "nowrap",
+      cursor: "pointer",
+      background: customUnitOn ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
+      color: customUnitOn ? isDark ? "#0a0a0a" : "#fff" : "var(--text-3)"
+    }
+  }, "\u0441\u0432\u043E\u0451")), customUnitOn && /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: unit || "",
+    onChange: e => setUnit(e.target.value),
+    placeholder: "\u043D\u0430\u043F\u0440. \u043A\u043D\u0438\u0433, \u0441\u0442\u0430\u043A\u0430\u043D\u043E\u0432, \u043A\u0440\u0443\u0433\u043E\u0432",
+    "aria-label": "\u0421\u0432\u043E\u044F \u0435\u0434\u0438\u043D\u0438\u0446\u0430",
+    style: {
+      width: "100%",
+      boxSizing: "border-box",
+      marginTop: 9,
+      border: 0,
+      outline: 0,
+      background: "var(--surface-3)",
+      borderRadius: 11,
+      padding: "10px 13px",
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
       color: "var(--text-4)",
-      marginTop: 10
+      marginTop: 9
     }
-  }, "\u041E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u0447\u0438\u0442\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement("div", {
+  }, "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0446\u0435\u043B\u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u043E\u0442 \u044D\u0442\u043E\u0433\u043E \u0447\u0438\u0441\u043B\u0430.")), !isTeamEdit && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
       padding: 14,
-      marginTop: 14,
+      marginTop: 12,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 12,
-      padding: "2px 2px 0"
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 24,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I.Users, {
+    size: 19,
+    color: "var(--text-3)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u0418\u0434\u0442\u0438 \u043A \u0446\u0435\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, "\u0426\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439: \u043E\u0431\u0449\u0438\u0439 \u0441\u0447\u0451\u0442, \u043B\u0438\u0446\u0430 \u043A\u0440\u0443\u0433\u0430, \u043C\u043E\u0436\u043D\u043E \u043F\u043E\u0437\u0432\u0430\u0442\u044C \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
+    on: circleOn,
+    onChange: setCircleOn
+  }))), circleOn && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginTop: 12
+    }
+  }, CIRCLE_MODES.map(m => {
+    var active = goalType === m.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: m.id,
+      type: "button",
+      onClick: () => setGoalType(m.id),
+      className: "tap",
+      style: {
+        background: "var(--card, #fff)",
+        border: active ? "2px solid " + (isDark ? "#f2f2f5" : "#0a0a0a") : "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
+        borderRadius: 18,
+        padding: 12,
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        textAlign: "left",
+        boxShadow: "var(--card-shadow)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3, #e8e8e8)",
+        color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text)",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 16,
+        flexShrink: 0
+      }
+    }, m.e), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14.5,
+        fontWeight: 600,
+        color: "var(--text)"
+      }
+    }, m.t), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-4)",
+        marginTop: 1,
+        lineHeight: 1.4
+      }
+    }, m.d)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 18,
+        height: 18,
+        borderRadius: "50%",
+        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "transparent",
+        border: active ? "0" : "1.5px solid var(--text-5)",
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center"
+      }
+    }, active && /*#__PURE__*/React.createElement(I.Check, {
+      size: 11,
+      color: isDark ? "#0a0a0a" : "#fff",
+      strokeWidth: 3
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement(Segmented, {
+    small: true,
+    value: circleVis,
+    onChange: setCircleVis,
+    options: [{
+      value: "private",
+      label: "Приватная"
+    }, {
+      value: "public",
+      label: "Открытая"
+    }]
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card, #fff)",
+      borderRadius: 22,
+      padding: 14,
+      marginTop: 12,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C XP \u043D\u0430 \u0444\u0438\u043D\u0438\u0448"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      marginTop: 2,
+      lineHeight: 1.45
+    }
+  }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u0434\u043E \u0446\u0435\u043B\u0438 \u2014 \u0431\u0430\u043D\u043A \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u043A\u0430\u0436\u0434\u043E\u043C\u0443. \u041D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E, \u043D\u043E \u0430\u0437\u0430\u0440\u0442\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
+    small: true,
+    on: stakeOn,
+    onChange: setStakeOn
+  })), stakeOn && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))",
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    pattern: "[0-9]*",
+    value: stakeAmount,
+    onChange: e => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0),
+    style: {
+      flex: "0 0 78px",
+      fontSize: 22,
+      fontWeight: 700,
+      color: "var(--text)",
+      border: 0,
+      outline: 0,
+      background: "transparent",
+      padding: 0,
+      minWidth: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-4)"
+    }
+  }, "XP \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      borderRadius: 14,
+      padding: "10px 12px",
+      background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff",
+      display: "flex",
+      alignItems: "center",
+      gap: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: "50%",
+      background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      fontSize: 14
+    }
+  }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: isDark ? "#9db8ff" : "#2b5cb8",
+      lineHeight: 1.4
+    }
+  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--card, #fff)",
+      borderRadius: 22,
+      padding: 14,
+      marginTop: 12,
+      boxShadow: "var(--card-shadow)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 22,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement(I.Calendar, {
     size: 18,
     color: "var(--text-3)"
-  }), /*#__PURE__*/React.createElement("input", {
-    value: deadline,
-    onChange: e => setDeadline(e.target.value),
-    placeholder: "\u043D\u0430\u043F\u0440. 14 \u043E\u043A\u0442",
+  })), /*#__PURE__*/React.createElement("span", {
     style: {
-      flex: 1,
-      fontSize: 16,
+      fontSize: 15,
+      fontWeight: 600,
+      color: "var(--text)"
+    }
+  }, "\u0421\u0440\u043E\u043A"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: /^\d{4}-\d{2}-\d{2}$/.test(deadline) ? deadline : "",
+    onChange: e => setDeadline(e.target.value || deadline),
+    style: {
+      marginLeft: "auto",
       border: 0,
       outline: 0,
-      background: "transparent"
+      background: "var(--surface-3)",
+      borderRadius: 999,
+      padding: "0 13px",
+      height: 32,
+      lineHeight: "32px",
+      display: "inline-flex",
+      alignItems: "center",
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: "var(--text)",
+      fontVariantNumeric: "tabular-nums",
+      letterSpacing: "-0.2px",
+      WebkitAppearance: "none",
+      appearance: "none"
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 6,
-      marginTop: 12
+      gap: 15,
+      marginTop: 12,
+      paddingLeft: 33
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowCal(v => !v),
+  }, [{
+    l: "неделя",
+    d: () => _addDays(7)
+  }, {
+    l: "месяц",
+    d: () => _addMonths(1)
+  }, {
+    l: "3 мес",
+    d: () => _addMonths(3)
+  }, {
+    l: "год",
+    d: () => _addMonths(12)
+  }].map(q => /*#__PURE__*/React.createElement("button", {
+    key: q.l,
+    onClick: () => setDeadline(_isoOf(q.d())),
     className: "tap",
     "data-no-haptic": true,
     style: {
-      flex: 1,
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 4,
-      borderRadius: 999,
-      padding: "9px 4px",
-      fontSize: 12.5,
-      whiteSpace: "nowrap",
       border: 0,
-      background: svoyActive ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
-      color: svoyActive ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)"
+      background: "transparent",
+      padding: 0,
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-4)"
     }
-  }, /*#__PURE__*/React.createElement(I.Calendar, {
-    size: 12
-  }), " \u0421\u0432\u043E\u0439 \u0441\u0440\u043E\u043A"), QUICK_TERMS.map(q => {
-    var active = !showCal && deadline === q;
-    return /*#__PURE__*/React.createElement("button", {
-      key: q,
-      onClick: () => {
-        setDeadline(q);
-        setShowCal(false);
-      },
-      className: "tap",
-      "data-no-haptic": true,
-      style: {
-        flex: 1,
-        borderRadius: 999,
-        padding: "9px 4px",
-        fontSize: 12.5,
-        whiteSpace: "nowrap",
-        textAlign: "center",
-        border: 0,
-        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3)",
-        color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)"
-      }
-    }, q);
-  })), showCal && /*#__PURE__*/React.createElement(DeadlineCalendarLive, {
-    onPick: s => {
-      setDeadline(s);
-      setShowCal(false);
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text-5)"
     }
-  })), !isTeamEdit && /*#__PURE__*/React.createElement("div", {
+  }, "+ "), q.l)))), !isTeamEdit && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--card, #fff)",
       borderRadius: 22,
-      padding: 16,
-      marginTop: 14,
+      padding: 14,
+      marginTop: 12,
       boxShadow: "var(--card-shadow)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1448,7 +1788,7 @@ function GoalFormSheetLive({
       marginTop: 2,
       lineHeight: 1.4
     }
-  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0430\u0435\u0442 \u043A \u0446\u0435\u043B\u0438.")), /*#__PURE__*/React.createElement(Switch, {
+  }, "\u041A\u0430\u0436\u0434\u0430\u044F \u043E\u0442\u043C\u0435\u0442\u043A\u0430 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0446\u0435\u043B\u044C.")), /*#__PURE__*/React.createElement(Switch, {
     small: true,
     on: linkHabit,
     onChange: setLinkHabit
@@ -1519,232 +1859,7 @@ function GoalFormSheetLive({
     }
   }, /*#__PURE__*/React.createElement(I.Plus, {
     size: 12
-  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), !isTeamEdit && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "var(--card, #fff)",
-      borderRadius: 22,
-      padding: 16,
-      marginTop: 14,
-      boxShadow: "var(--card-shadow)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 24,
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.Users, {
-    size: 19,
-    color: "var(--text-3)"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)"
-    }
-  }, "\u0418\u0434\u0442\u0438 \u043A \u0446\u0435\u043B\u0438 \u0432\u043C\u0435\u0441\u0442\u0435"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-4)",
-      marginTop: 2,
-      lineHeight: 1.4
-    }
-  }, "\u041F\u043E\u0437\u043E\u0432\u0438 \u043B\u044E\u0434\u0435\u0439 \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u043B\u0438\u0446\u0430.")), /*#__PURE__*/React.createElement(Switch, {
-    small: true,
-    on: circleOn,
-    onChange: setCircleOn
-  }))), circleOn && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginTop: 14
-    }
-  }, CIRCLE_MODES.map(m => {
-    var active = goalType === m.id;
-    return /*#__PURE__*/React.createElement("button", {
-      key: m.id,
-      type: "button",
-      onClick: () => setGoalType(m.id),
-      className: "tap",
-      style: {
-        background: "var(--card, #fff)",
-        border: active ? "2px solid " + (isDark ? "#f2f2f5" : "#0a0a0a") : "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
-        borderRadius: 22,
-        padding: 14,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        textAlign: "left",
-        boxShadow: "var(--card-shadow)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 38,
-        height: 38,
-        borderRadius: "50%",
-        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "var(--surface-3, #e8e8e8)",
-        color: active ? isDark ? "#0a0a0a" : "#fff" : "var(--text)",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 18,
-        flexShrink: 0
-      }
-    }, m.e), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 600,
-        color: "var(--text)"
-      }
-    }, m.t), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-4)",
-        marginTop: 2,
-        lineHeight: 1.45
-      }
-    }, m.d)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 18,
-        height: 18,
-        borderRadius: "50%",
-        background: active ? isDark ? "#f2f2f5" : "#0a0a0a" : "transparent",
-        border: active ? "0" : "1.5px solid var(--text-5)",
-        flexShrink: 0,
-        display: "grid",
-        placeItems: "center"
-      }
-    }, active && /*#__PURE__*/React.createElement(I.Check, {
-      size: 11,
-      color: isDark ? "#0a0a0a" : "#fff",
-      strokeWidth: 3
-    })));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14
-    }
-  }, /*#__PURE__*/React.createElement(Segmented, {
-    small: true,
-    value: circleVis,
-    onChange: setCircleVis,
-    options: [{
-      value: "private",
-      label: "Приватная"
-    }, {
-      value: "public",
-      label: "Открытая"
-    }]
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "var(--card, #fff)",
-      borderRadius: 22,
-      padding: 16,
-      marginTop: 14,
-      boxShadow: "var(--card-shadow)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--text-2)",
-      fontWeight: 500
-    }
-  }, "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C XP \u043D\u0430 \u0444\u0438\u043D\u0438\u0448"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-4)",
-      marginTop: 2,
-      lineHeight: 1.5
-    }
-  }, "\u0414\u043E\u0439\u0434\u0451\u0442\u0435 \u0434\u043E \u0446\u0435\u043B\u0438 \u2014 \u0431\u0430\u043D\u043A \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u043A\u0430\u0436\u0434\u043E\u043C\u0443. \u041D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E, \u043D\u043E \u0430\u0437\u0430\u0440\u0442\u043D\u043E.")), /*#__PURE__*/React.createElement(Switch, {
-    small: true,
-    on: stakeOn,
-    onChange: setStakeOn
-  })), stakeOn && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
-      paddingTop: 14,
-      borderTop: "1px solid var(--line)",
-      display: "flex",
-      alignItems: "baseline",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    inputMode: "numeric",
-    pattern: "[0-9]*",
-    value: stakeAmount,
-    onChange: e => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0),
-    style: {
-      flex: "0 0 80px",
-      fontSize: 22,
-      fontWeight: 700,
-      color: "var(--text)",
-      border: 0,
-      outline: 0,
-      background: "transparent",
-      padding: 0,
-      minWidth: 0
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: "var(--text-4)"
-    }
-  }, "XP \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
-      borderRadius: 14,
-      padding: "11px 12px",
-      background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff",
-      display: "flex",
-      alignItems: "center",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0,
-      fontSize: 15
-    }
-  }, "\uD83E\uDE90"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: isDark ? "#9db8ff" : "#2b5cb8",
-      lineHeight: 1.4
-    }
-  }, "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0448\u044C \u2014 \u0446\u0435\u043B\u044C \u0441\u0442\u0430\u043D\u0435\u0442 \u043E\u0431\u0449\u0435\u0439, \u0438 \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0437\u043E\u0432\u0451\u0448\u044C \u043B\u044E\u0434\u0435\u0439 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435."))), isTeamEdit && /*#__PURE__*/React.createElement("button", {
+  }), " \u041D\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430"))), isTeamEdit && /*#__PURE__*/React.createElement("button", {
     className: "tap",
     onClick: () => {
       close();
@@ -1767,8 +1882,6 @@ function GoalFormSheetLive({
     className: "tap",
     onClick: () => {
       if (isTeamEdit) {
-        // Удаление КРУГА — тот же поток, что везде (владелец удаляет / участник выходит), возврат
-        // в returnTo (не в «Сообщество»). g0.__team = сырой объект команды (для _id/cloudId/roster).
         close();
         if (typeof bosConfirmExitTeam === "function") bosConfirmExitTeam({
           app,

@@ -391,10 +391,16 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // Дефолт цвета ЦЕЛИ = НЕЙТРАЛЬНЫЙ (null → белая/светло-серая карточка, David). Цвет появляется
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
   const [color, setColor] = useHS(g0?.color ?? preset?.color ?? BOS_GREY); // новый = нейтральный «белый» BOS_GREY (единый дефолт с привычками/командами)
+  const [tint, setTint] = useHS(g0 ? (g0.tint !== false) : true); // тонированный фон цели — РЕАЛЬНО читается в bosGoalSkin (карточка залита цветом / чистая)
   const [target, setTarget] = useHS(g0?.target || preset?.target || 22);
   const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
-  const [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || "Месяц");
-  const [showCal, setShowCal] = useHS(false);
+  // Срок — храним ISO-дату (yyyy-mm-dd) у новых целей; старые «Месяц»/«14 окт» проходят как есть
+  // (bosFmtDeadline красиво форматит и то, и другое). Дефолт = месяц от сегодня. Нативный date-пикер
+  // вместо графитовых пилюль (David: «пилюли стрёмно, нужно элегантнее»).
+  const _isoOf = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const _addDays = (n) => { var d = new Date(); d.setDate(d.getDate() + n); return d; };
+  const _addMonths = (n) => { var d = new Date(); d.setMonth(d.getMonth() + n); return d; };
+  const [deadline, setDeadline] = useHS(g0?.deadline || preset?.deadline || _isoOf(_addMonths(1)));
   const [linkHabit, setLinkHabit] = useHS(editing ? ((g0?.habitIds || []).length > 0) : false); // по умолч. свёрнуто/выкл (opt-in) — как в форме привычки
   // КРУГ — «цель + круг = команда»: включаешь круг → цель становится КОМАНДОЙ (один движок —
   // комната-орбита, режимы, вступление по ссылке team_<cloudId>). Тумблер только переключает путь
@@ -417,8 +423,9 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // редактировании — заранее отмечаем уже привязанные (g0.habitIds). Эти отметки двигают кольцо цели.
   const [linkedHabits, setLinkedHabits] = useHS(() => (app?.habits || []).map((h) => ({ id: h.id, e: h.emoji || "✨", n: h.name, on: !!(g0 && (g0.habitIds || []).includes(h.id)) })));
   const toggleLinked = (i) => setLinkedHabits((hs) => hs.map((h, j) => (j === i ? { ...h, on: !h.on } : h)));
-  const QUICK_TERMS = ["Неделя", "Месяц", "1 год"];
-  const svoyActive = showCal || (!!deadline && !QUICK_TERMS.includes(deadline)); // custom date/range → highlight «Свой срок»
+  // Единицы цели — чистые чипы (David: «в карточке цели что-то типа считать количество»); «своё» = произвольная.
+  const GOAL_UNITS = ["раз", "км", "страниц", "минут", "часов", "кг"];
+  const [customUnitOn, setCustomUnitOn] = useHS(!!unit && GOAL_UNITS.indexOf(unit) < 0);
 
   // СОХРАНЕНИЕ — одна функция для «✓» в шапке и нижней кнопки.
   const saveGoal = () => {
@@ -444,7 +451,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         close();
         return;
       }
-      const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, color, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
+      const goalLike = { id: (editing && g0) ? g0.id : undefined, name: nm, emoji: iconPick, color, tint, target: tgt, unit, deadline: deadline || "Этот месяц", habitIds };
       if (preset && preset.challenge) goalLike.challenge = preset.challenge;
       close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
       if (typeof bosPromoteGoalToCircle === "function") {
@@ -454,7 +461,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
     }
     // КРУГ ВЫКЛ → личная цель; habitIds наполняют её кольцо.
     const habitIds = linkHabit ? linkedHabits.filter((h) => h.on).map((h) => h.id) : [];
-    const data = { emoji: iconPick, color, name: nm, target: tgt, unit, deadline, circle: false, habitIds };
+    const data = { emoji: iconPick, color, tint, name: nm, target: tgt, unit, deadline, circle: false, habitIds };
     if (!editing && preset && preset.challenge) data.challenge = preset.challenge; // разовый XP-бонус челленджа (derived)
     if (editing) app?.updateGoal(g0.id, data);
     else app?.addGoal(data);
@@ -478,8 +485,6 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       {typeof SheetFormHeadLive === "function"
         ? <SheetFormHeadLive title={editing ? "Изменить цель" : "Новая цель"} onClose={close} onDone={saveGoal} />
         : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{editing ? "Изменить цель" : "Новая цель"}</div>}
-      {/* Тихая дорога к ГОТОВЫМ пресетам-челленджам (David: «предложить внутри создания цели,
-          не перегружая») — только на создании. */}
       {!editing && typeof CreatePickerSheetLive === "function" && (
         <button onClick={() => openSheet(<CreatePickerSheetLive navigate={navigate} custom={false} />)} className="tap"
           style={{ display: "block", margin: "2px auto 0", background: "transparent", border: 0, padding: "4px 10px", fontSize: 12.5, fontWeight: 600, color: "var(--text-3)", cursor: "pointer" }}>
@@ -487,160 +492,165 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
         </button>
       )}
 
-      {/* Identity — icon (tap → emoji panel) + inline name in ONE card, same logic as the
-          habit create screen (David: «модифицируй создание целей в той же логике»). */}
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
+      {/* ── ОБЛИК: значок · имя · цвет · тонированный фон (та же логика, что у привычки) ── */}
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 13, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
-            style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
-            {bosIcon(iconPick, 28, color)}
+            style={{ width: 52, height: 52, borderRadius: 15, background: (tint && color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            {bosIcon(iconPick, 26, color)}
           </button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели" aria-label="Название цели"
             style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
-        {/* Цвет цели: дефолт = НЕЙТРАЛЬНЫЙ (белая карточка); выберешь цвет → карточка зальётся им
-            (партнёрский вид). David: «выбор цвета вернуть, чтобы редактировать карточку». */}
         {typeof BosColorPickerLive === "function" && <BosColorPickerLive value={color} onChange={setColor} />}
+        <div style={{ marginTop: 11, paddingTop: 11, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: "var(--text-2)" }}>Тонированный фон
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Карточка залита цветом. Выключишь — чистая, цвет в акценте.</div>
+          </div>
+          <Switch small on={tint} onChange={setTint} />
+        </div>
       </div>
 
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      {/* ── ЦЕЛЬ = «считать»: число + единица чипами (David: как счётчик привычки) ── */}
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
           <input type="text" inputMode="numeric" pattern="[0-9]*" value={target}
-            onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g,"")) || 0)}
-            className="goal-num"
-            style={{ flex: "0 0 auto", width: 72, fontSize: 28, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }}/>
-          {unit && <span style={{ fontSize: 16, fontWeight: 600, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{unit}</span>}
+            onChange={e => setTarget(parseInt(e.target.value.replace(/\D/g, "")) || 0)} className="goal-num"
+            style={{ flex: "0 0 auto", width: 70, fontSize: 30, fontWeight: 800, letterSpacing: "-1px", color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }} />
+          <span style={{ fontSize: 16, fontWeight: 600, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{customUnitOn ? (unit || "своё") : unit}</span>
         </div>
-        <div style={{ marginTop: 12 }}><BosUnitSelectLive value={unit} onChange={setUnit} /></div>
-        <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 10 }}>От этого числа будет считаться прогресс цели.</div>
-      </div>
-
-      {/* Срок — ВСЁ в ОДНОМ блоке (David: «не всё в блоках»): поле + кнопки сроков + календарь;
-          кнопки на сером стекле, не обводкой (David: «блоки не обводочкой»). */}
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 2px 0" }}>
-          <I.Calendar size={18} color="var(--text-3)"/>
-          <input value={deadline} onChange={e => setDeadline(e.target.value)} placeholder="напр. 14 окт"
-            style={{ flex: 1, fontSize: 16, border: 0, outline: 0, background: "transparent" }}/>
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-          <button onClick={() => setShowCal(v => !v)} className="tap" data-no-haptic
-            style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 999, padding: "9px 4px", fontSize: 12.5, whiteSpace: "nowrap", border: 0,
-              background: svoyActive ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: svoyActive ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>
-            <I.Calendar size={12}/> Свой срок
-          </button>
-          {QUICK_TERMS.map((q) => {
-            const active = !showCal && deadline === q;
+        <div style={{ display: "flex", gap: 6, marginTop: 11, overflowX: "auto", padding: "1px" }}>
+          {GOAL_UNITS.map((u) => {
+            const on = !customUnitOn && unit === u;
             return (
-              <button key={q} onClick={() => { setDeadline(q); setShowCal(false); }} className="tap" data-no-haptic
-                style={{ flex: 1, borderRadius: 999, padding: "9px 4px", fontSize: 12.5, whiteSpace: "nowrap", textAlign: "center", border: 0,
-                  background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)" }}>{q}</button>
+              <button key={u} onClick={() => { setUnit(u); setCustomUnitOn(false); }} className="tap" data-no-haptic
+                style={{ flexShrink: 0, border: 0, borderRadius: 9, padding: "7px 13px", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer",
+                  background: on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)" }}>{u}</button>
             );
           })}
+          <button onClick={() => { setCustomUnitOn(true); if (GOAL_UNITS.indexOf(unit) >= 0) setUnit(""); }} className="tap" data-no-haptic
+            style={{ flexShrink: 0, border: 0, borderRadius: 9, padding: "7px 13px", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer",
+              background: customUnitOn ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3)", color: customUnitOn ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)" }}>своё</button>
         </div>
-        {showCal && <DeadlineCalendarLive onPick={(s) => { setDeadline(s); setShowCal(false); }} />}
-      </div>
-
-      {!isTeamEdit && (<div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Flame size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Подкрепить привычкой</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Каждая отметка привычки приближает к цели.</div>
-          </div>
-          <Switch small on={linkHabit} onChange={setLinkHabit}/>
-        </div>
-        {linkHabit && (
-          <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", flexWrap: "wrap", alignItems: "center" }}>
-            {linkedHabits.length === 0 && (
-              <span style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4 }}>Сначала создай привычку — потом привяжешь её к цели.</span>
-            )}
-            {linkedHabits.map((h,i)=>(
-              <button key={i} className="tap" data-no-haptic onClick={() => toggleLinked(i)} style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "5px 11px 5px 5px", borderRadius: 999,
-                background: h.on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3, #e8e8e8)",
-                color: h.on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
-                border: 0, fontSize: 12, fontWeight: 500, transition: "background 0.15s, color 0.15s",
-              }}>
-                <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", fontSize: 13 }}>{bosIcon(h.e, 14, null)}</span>
-                {h.n}
-                {h.on && <I.Check size={12} strokeWidth={3}/>}
-              </button>
-            ))}
-            <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />)} style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "5px 11px", borderRadius: 999,
-              background: "transparent", border: "1px dashed rgba(0,0,0,0.18)",
-              color: "var(--text-3)", fontSize: 12, fontWeight: 500,
-            }}><I.Plus size={12}/> Новая привычка</button>
-          </div>
+        {customUnitOn && (
+          <input type="text" value={unit || ""} onChange={e => setUnit(e.target.value)} placeholder="напр. книг, стаканов, кругов" aria-label="Своя единица"
+            style={{ width: "100%", boxSizing: "border-box", marginTop: 9, border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 11, padding: "10px 13px", fontSize: 14.5, fontWeight: 600, color: "var(--text)" }} />
         )}
-      </div>)}
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 9 }}>Прогресс цели считается от этого числа.</div>
+      </div>
 
-      {/* КРУГ — «делать вместе»: цель с надетым кругом = «команда». Один тумблер (David). Тот же
-          смысл, что у привычки «Поделиться»; вкл → можно позвать людей, цель станет общей. */}
-      {!isTeamEdit && (<div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color="var(--text-3)" /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Идти к цели вместе</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Позови людей — цель станет общей, у каждого появятся лица.</div>
-          </div>
-          <Switch small on={circleOn} onChange={setCircleOn} />
-        </div>
-      </div>)}
-
-      {/* Круг ВКЛ → тут же настройки совместной цели: режим счёта + видимость + XP-ставка (David:
-          «эти три нужны, но когда активируешь „вместе" — не гнать человека потом в карандашик»).
-          Раскрываются только при тумблере, чтобы соло-цель оставалась простой. */}
-      {circleOn && (<>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
-          {CIRCLE_MODES.map((m) => {
-            const active = goalType === m.id;
-            return (
-              <button key={m.id} type="button" onClick={() => setGoalType(m.id)} className="tap"
-                style={{ background: "var(--card, #fff)", border: active ? ("2px solid " + (isDark ? "#f2f2f5" : "#0a0a0a")) : ("1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)")), borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
-                <div style={{ width: 38, height: 38, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3, #e8e8e8)", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{m.e}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{m.t}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{m.d}</div>
-                </div>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color={isDark ? "#0a0a0a" : "#fff"} strokeWidth={3} />}</div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <Segmented small value={circleVis} onChange={setCircleVis} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Открытая" }]} />
-        </div>
-
-        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
+      {/* ── ИДТИ К ЦЕЛИ ВМЕСТЕ — поднято выше (David: важный функционал), яснее, SVG-иконка ── */}
+      {!isTeamEdit && (
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: "var(--text-2)", fontWeight: 500 }}>Поставить XP на финиш</div>
-              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.5 }}>Дойдёте до цели — банк вернётся каждому. Необязательно, но азартно.</div>
+            <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Users size={19} color="var(--text-3)" /></span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Идти к цели вместе</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Цель станет общей: общий счёт, лица круга, можно позвать по ссылке.</div>
             </div>
-            <Switch small on={stakeOn} onChange={setStakeOn} />
+            <Switch small on={circleOn} onChange={setCircleOn} />
           </div>
-          {stakeOn && (
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)", display: "flex", alignItems: "baseline", gap: 8 }}>
-              <input type="text" inputMode="numeric" pattern="[0-9]*" value={stakeAmount} onChange={(e) => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0)}
-                style={{ flex: "0 0 80px", fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }} />
-              <span style={{ fontSize: 13, color: "var(--text-4)" }}>XP с каждого</span>
+        </div>
+      )}
+
+      {/* Круг ВКЛ (или редактирование круга) → настройки совместной цели: режим · видимость · XP-ставка. */}
+      {circleOn && (
+        <React.Fragment>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+            {CIRCLE_MODES.map((m) => {
+              const active = goalType === m.id;
+              return (
+                <button key={m.id} type="button" onClick={() => setGoalType(m.id)} className="tap"
+                  style={{ background: "var(--card, #fff)", border: active ? ("2px solid " + (isDark ? "#f2f2f5" : "#0a0a0a")) : ("1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)")), borderRadius: 18, padding: 12, display: "flex", alignItems: "center", gap: 11, textAlign: "left", boxShadow: "var(--card-shadow)" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3, #e8e8e8)", color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{m.e}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>{m.t}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1, lineHeight: 1.4 }}>{m.d}</div>
+                  </div>
+                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: active ? (isDark ? "#f2f2f5" : "#0a0a0a") : "transparent", border: active ? "0" : "1.5px solid var(--text-5)", flexShrink: 0, display: "grid", placeItems: "center" }}>{active && <I.Check size={11} color={isDark ? "#0a0a0a" : "#fff"} strokeWidth={3} />}</div>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Segmented small value={circleVis} onChange={setCircleVis} options={[{ value: "private", label: "Приватная" }, { value: "public", label: "Открытая" }]} />
+          </div>
+          <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>Поставить XP на финиш</div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Дойдёте до цели — банк вернётся каждому. Необязательно, но азартно.</div>
+              </div>
+              <Switch small on={stakeOn} onChange={setStakeOn} />
+            </div>
+            {stakeOn && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", alignItems: "baseline", gap: 8 }}>
+                <input type="text" inputMode="numeric" pattern="[0-9]*" value={stakeAmount} onChange={(e) => setStakeAmount(parseInt(e.target.value.replace(/\D/g, "")) || 0)}
+                  style={{ flex: "0 0 78px", fontSize: 22, fontWeight: 700, color: "var(--text)", border: 0, outline: 0, background: "transparent", padding: 0, minWidth: 0 }} />
+                <span style={{ fontSize: 13, color: "var(--text-4)" }}>XP с каждого</span>
+              </div>
+            )}
+          </div>
+          <div style={{ marginTop: 12, borderRadius: 14, padding: "10px 12px", background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff", display: "flex", alignItems: "center", gap: 9 }}>
+            <span style={{ width: 28, height: 28, borderRadius: "50%", background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 14 }}>🪐</span>
+            <div style={{ fontSize: 12, color: isDark ? "#9db8ff" : "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — цель станет общей, и сразу позовёшь людей по ссылке.</div>
+          </div>
+        </React.Fragment>
+      )}
+
+      {/* ── СРОК — элегантно: строка + нативный выбор даты + лёгкие «+неделя» (без графитовых пилюль) ── */}
+      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <span style={{ width: 22, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Calendar size={18} color="var(--text-3)" /></span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Срок</span>
+          <input type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(deadline) ? deadline : ""} onChange={e => setDeadline(e.target.value || deadline)}
+            style={{ marginLeft: "auto", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 999, padding: "0 13px", height: 32, lineHeight: "32px",
+              display: "inline-flex", alignItems: "center", fontSize: 14.5, fontWeight: 600, color: "var(--text)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.2px", WebkitAppearance: "none", appearance: "none" }} />
+        </div>
+        <div style={{ display: "flex", gap: 15, marginTop: 12, paddingLeft: 33 }}>
+          {[{ l: "неделя", d: () => _addDays(7) }, { l: "месяц", d: () => _addMonths(1) }, { l: "3 мес", d: () => _addMonths(3) }, { l: "год", d: () => _addMonths(12) }].map((q) => (
+            <button key={q.l} onClick={() => setDeadline(_isoOf(q.d()))} className="tap" data-no-haptic
+              style={{ border: 0, background: "transparent", padding: 0, cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--text-4)" }}>
+              <span style={{ color: "var(--text-5)" }}>+ </span>{q.l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── ПОДКРЕПИТЬ ПРИВЫЧКОЙ — свёрнутый тумблер (opt-in), SVG-иконка ── */}
+      {!isTeamEdit && (
+        <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, marginTop: 12, boxShadow: "var(--card-shadow)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Flame size={19} color="var(--text-3)" /></span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Подкрепить привычкой</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Каждая отметка привычки двигает цель.</div>
+            </div>
+            <Switch small on={linkHabit} onChange={setLinkHabit} />
+          </div>
+          {linkHabit && (
+            <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", flexWrap: "wrap", alignItems: "center" }}>
+              {linkedHabits.length === 0 && (
+                <span style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.4 }}>Сначала создай привычку — потом привяжешь её к цели.</span>
+              )}
+              {linkedHabits.map((h, i) => (
+                <button key={i} className="tap" data-no-haptic onClick={() => toggleLinked(i)} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 5px", borderRadius: 999,
+                  background: h.on ? (isDark ? "#f2f2f5" : "#0a0a0a") : "var(--surface-3, #e8e8e8)", color: h.on ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-3)",
+                  border: 0, fontSize: 12, fontWeight: 500, transition: "background 0.15s, color 0.15s" }}>
+                  <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center", fontSize: 13 }}>{bosIcon(h.e, 14, null)}</span>
+                  {h.n}{h.on && <I.Check size={12} strokeWidth={3} />}
+                </button>
+              ))}
+              <button className="tap" onClick={() => openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />)} style={{
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 999,
+                background: "transparent", border: "1px dashed rgba(0,0,0,0.18)", color: "var(--text-3)", fontSize: 12, fontWeight: 500 }}><I.Plus size={12} /> Новая привычка</button>
             </div>
           )}
         </div>
+      )}
 
-        <div style={{ marginTop: 14, borderRadius: 14, padding: "11px 12px", background: isDark ? "rgba(90,140,255,0.13)" : "#eef4ff", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(90,140,255,0.2)" : "#dde9ff", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🪐</span>
-          <div style={{ fontSize: 12.5, color: isDark ? "#9db8ff" : "#2b5cb8", lineHeight: 1.4 }}>Сохранишь — цель станет общей, и сразу позовёшь людей по ссылке.</div>
-        </div>
-      </>)}
-
-      {/* Нижней кнопки сохранения НЕТ — только «✓» в шапке (единый язык с формой привычки). */}
-      {/* КРУГ: управление участниками/ролями — в полном экране (сюда его не тащим, шторка компактная). */}
+      {/* КРУГ (редактирование): участники/роли — в полноэкранной странице. */}
       {isTeamEdit && (
         <button className="tap" onClick={() => { close(); if (typeof navigate === "function") navigate("team-settings", { team: g0.__team || g0, from: returnTo }); }}
           style={{ width: "100%", background: "transparent", border: 0, color: "var(--text-3)", padding: "12px", marginTop: 6, fontSize: 13.5, fontWeight: 600 }}>
@@ -650,8 +660,6 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       {editing && (
         <button className="tap" onClick={() => {
           if (isTeamEdit) {
-            // Удаление КРУГА — тот же поток, что везде (владелец удаляет / участник выходит), возврат
-            // в returnTo (не в «Сообщество»). g0.__team = сырой объект команды (для _id/cloudId/roster).
             close();
             if (typeof bosConfirmExitTeam === "function") bosConfirmExitTeam({ app, team: g0.__team || g0, isOwner: !(g0.__team || g0).joined, navigate, openSheet, returnTo: returnTo || "habits" });
           } else {

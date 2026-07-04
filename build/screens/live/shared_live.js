@@ -6593,13 +6593,22 @@ function bosTileTheme(isDark) {
     iconBg: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"
   };
 }
+// Красивый срок: ISO-дата → «4 авг» (год, если не текущий); старый терм («Месяц», «14 окт») — как есть.
+function bosFmtDeadline(s) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec("" + (s || ""));
+  if (!m) return s || "";
+  var MS = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  var d = new Date();
+  return +m[3] + " " + MS[+m[2] - 1] + (+m[1] !== d.getFullYear() ? " " + m[1] : "");
+}
 // ЕДИНЫЙ «скин» карточки цели/команды (вынесен из HabitsLive.goalSkin, самодостаточен по isDark).
-function bosGoalSkin(color, isDark) {
+// tint===false → «тонированный фон» ВЫКЛ: карточка БЕЛАЯ, но цвет остаётся в акцентах (значок, полоса).
+function bosGoalSkin(color, isDark, tint) {
   var th = bosTileTheme(isDark);
   var accent = color && ("" + color).toLowerCase() !== "#0a0a0a" && color !== "#8E8E93" ? color : null;
-  if (!accent) return {
+  if (!accent || tint === false) return {
     hasColor: false,
-    accent: isDark ? "#e8e8ea" : "#0a0a0a",
+    accent: accent || (isDark ? "#e8e8ea" : "#0a0a0a"),
     bg: th.rowBg,
     shadow: th.cardShadow,
     txt: "var(--text)",
@@ -6607,8 +6616,8 @@ function bosGoalSkin(color, isDark) {
     lbl: "var(--text-4)",
     val: "var(--text-3)",
     track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)",
-    fill: isDark ? "#e6e6ea" : "#0a0a0a",
-    iconBg: BOS_TILE_SHEEN + ", " + th.iconBg,
+    fill: accent || (isDark ? "#e6e6ea" : "#0a0a0a"),
+    iconBg: BOS_TILE_SHEEN + ", " + (accent ? accent + "26" : th.iconBg),
     iconInk: null
   };
   if (isDark) return {
@@ -7126,7 +7135,7 @@ function GoalTileLive({
   };
   var pct = gp.pct;
   var curVal = gp.current;
-  var sk = bosGoalSkin(g.color, isDark);
+  var sk = bosGoalSkin(g.color, isDark, g.tint !== false);
   var onOpen = ctx.mode ? undefined : () => navigate("goal-detail", {
     goal: g,
     from: from
@@ -7251,7 +7260,7 @@ function GoalTileLive({
         color: sk.sub,
         marginTop: 1
       }
-    }, "\u0434\u043E ", g.deadline)), !orbit && pctEl), progBar), orbit);
+    }, "\u0434\u043E ", bosFmtDeadline(g.deadline))), !orbit && pctEl), progBar), orbit);
   }
   return /*#__PURE__*/React.createElement("div", {
     className: ctx.mode ? "" : "tap",

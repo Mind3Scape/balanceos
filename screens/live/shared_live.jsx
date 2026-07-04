@@ -2864,15 +2864,24 @@ function bosTileTheme(isDark) {
     iconBg: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
   };
 }
+// Красивый срок: ISO-дата → «4 авг» (год, если не текущий); старый терм («Месяц», «14 окт») — как есть.
+function bosFmtDeadline(s) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec("" + (s || ""));
+  if (!m) return s || "";
+  var MS = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  var d = new Date();
+  return (+m[3]) + " " + MS[(+m[2]) - 1] + ((+m[1]) !== d.getFullYear() ? " " + m[1] : "");
+}
 // ЕДИНЫЙ «скин» карточки цели/команды (вынесен из HabitsLive.goalSkin, самодостаточен по isDark).
-function bosGoalSkin(color, isDark) {
+// tint===false → «тонированный фон» ВЫКЛ: карточка БЕЛАЯ, но цвет остаётся в акцентах (значок, полоса).
+function bosGoalSkin(color, isDark, tint) {
   var th = bosTileTheme(isDark);
   var accent = (color && ("" + color).toLowerCase() !== "#0a0a0a" && color !== "#8E8E93") ? color : null;
-  if (!accent) return {
-    hasColor: false, accent: isDark ? "#e8e8ea" : "#0a0a0a", bg: th.rowBg, shadow: th.cardShadow,
+  if (!accent || tint === false) return {
+    hasColor: false, accent: accent || (isDark ? "#e8e8ea" : "#0a0a0a"), bg: th.rowBg, shadow: th.cardShadow,
     txt: "var(--text)", sub: "var(--text-4)", lbl: "var(--text-4)", val: "var(--text-3)",
-    track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", fill: isDark ? "#e6e6ea" : "#0a0a0a",
-    iconBg: BOS_TILE_SHEEN + ", " + th.iconBg, iconInk: null,
+    track: isDark ? "rgba(255,255,255,0.12)" : "rgba(10,10,10,0.07)", fill: accent || (isDark ? "#e6e6ea" : "#0a0a0a"),
+    iconBg: BOS_TILE_SHEEN + ", " + (accent ? accent + "26" : th.iconBg), iconInk: null,
   };
   if (isDark) return {
     hasColor: true, accent: accent,
@@ -3051,7 +3060,7 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
   const gp = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, habits) : { pct: g.target > 0 ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0 };
   const pct = gp.pct;
   const curVal = gp.current;
-  const sk = bosGoalSkin(g.color, isDark);
+  const sk = bosGoalSkin(g.color, isDark, g.tint !== false);
   const onOpen = ctx.mode ? undefined : () => navigate("goal-detail", { goal: g, from: from });
   const orbit = (goalStyle.orbits && typeof GoalCardOrbit === "function") ? <GoalCardOrbit goal={g} habits={habits} size={banner ? 132 : 152} dark={isDark} fade progress={pct} /> : null;
   const pctEl = <span style={{ fontSize: 13, fontWeight: 800, color: sk.hasColor ? sk.txt : sk.accent, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Math.round(pct * 100)}%</span>;
@@ -3075,7 +3084,7 @@ function GoalTileLive({ goal, ctx = { mode: false }, from = "habits" }) {
             {!orbit && icon}
             <div style={{ flex: 1, minWidth: 0 }}>
               {goalStyle.name && <div style={{ fontSize: 16, fontWeight: 700, color: sk.txt, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>}
-              {g.deadline && <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>до {g.deadline}</div>}
+              {g.deadline && <div style={{ fontSize: 11.5, color: sk.sub, marginTop: 1 }}>до {bosFmtDeadline(g.deadline)}</div>}
             </div>
             {!orbit && pctEl}
           </div>
