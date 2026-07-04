@@ -117,12 +117,14 @@ function bosAid() { _bosAidN += 1; return "a" + Date.now() + "_" + _bosAidN; }
 // на этом аккаунте даже без баланса (проверено live-тестом прокси — вернула ответ; платные и :free
 // падали на «нет кредитов»/«unavailable for free»). NB: stealth-модели временные — если исчезнет,
 // пополни ключ OpenRouter и поставь платную (deepseek/deepseek-chat-v3-0324 и др. в FALLBACK_MODELS).
-const BOS_AI_MODEL = "openrouter/owl-alpha";
+const BOS_AI_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"; // David 2026-07-04 — поставить эту :free-модель
 // КАСКАД моделей на день наплыва (100 человек разом): легла/исчезла основная — тихо пробуем
-// запасные по очереди, только потом фолбэк-текст. Платная deepseek — копеечная и включится
-// сама, как только на ключе OpenRouter появится баланс; :free — на случай, если их откроют.
+// запасные по очереди, только потом фолбэк-текст. owl-alpha (stealth) работал даже без баланса —
+// держим страховкой, чтобы ИИ не умолк, если nemotron:free исчерпан/закрыт; deepseek — копеечная,
+// включится сама, как только на ключе OpenRouter появится баланс.
 const BOS_AI_MODELS = [
   BOS_AI_MODEL,
+  "openrouter/owl-alpha",
   "deepseek/deepseek-chat-v3-0324",
   "meta-llama/llama-3.3-70b-instruct:free",
 ];

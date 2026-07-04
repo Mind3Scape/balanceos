@@ -1316,7 +1316,7 @@ var BOS_SPHERES = [
   { id: "body", e: "💪", l: "Тело" },
   { id: "mind", e: "🧠", l: "Разум" },
   { id: "work", e: "💼", l: "Дело" },
-  { id: "bond", e: "❤️", l: "Связи" },
+  { id: "bond", e: "❤️", l: "Люди" },
   { id: "soul", e: "✨", l: "Дух" },
   { id: "rest", e: "🌿", l: "Отдых" },
 ];
@@ -1363,17 +1363,20 @@ function bosHabitStrength(h) {
 }
 // Данные колеса: сфера тем полнее, чем крепче держишь входящие в неё привычки/цели.
 function bosWheelData(app) {
-  var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved; });
-  var goals = (app && app.goals) || [];
-  var buckets = {}; BOS_SPHERES.forEach(function (s) { buckets[s.id] = []; });
-  habits.forEach(function (h) { buckets[bosSphereFor(h)].push(bosHabitStrength(h)); });
+  var arch = function (k) { return typeof bosIsArchived === "function" && bosIsArchived(k); };
+  var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved && !arch("h:" + h.id); });
+  var goals = ((app && app.goals) || []).filter(function (g) { return g && !arch("g:" + g.id); });
+  var strengths = {}, items = {}; BOS_SPHERES.forEach(function (s) { strengths[s.id] = []; items[s.id] = []; });
+  habits.forEach(function (h) { var id = bosSphereFor(h); strengths[id].push(bosHabitStrength(h)); items[id].push({ emoji: h.emoji || "•", name: h.name || "Привычка", kind: "habit" }); });
   goals.forEach(function (g) {
     var prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, (app && app.habits) || []) : { pct: 0, done: false };
-    buckets[bosSphereFor(g)].push(Math.max(0.30, Math.min(1, 0.30 + (prog.pct || 0) * 0.62 + (prog.done ? 0.08 : 0))));
+    var id = bosSphereFor(g);
+    strengths[id].push(Math.max(0.30, Math.min(1, 0.30 + (prog.pct || 0) * 0.62 + (prog.done ? 0.08 : 0))));
+    items[id].push({ emoji: g.emoji || "🎯", name: g.name || "Цель", kind: "goal" });
   });
   var total = 0, filled = 0;
   var spheres = BOS_SPHERES.map(function (s) {
-    var arr = buckets[s.id], v;
+    var arr = strengths[s.id], v;
     if (!arr.length) v = 0.12;                                        // пустая сфера — тонкая, оранжевая
     else {
       var avg = arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
@@ -1381,7 +1384,7 @@ function bosWheelData(app) {
       filled++;
     }
     total += v;
-    return { id: s.id, e: s.e, l: s.l, v: v, n: arr.length };
+    return { id: s.id, e: s.e, l: s.l, v: v, n: arr.length, items: items[s.id] };
   });
   return { spheres: spheres, overall: Math.round(total / spheres.length * 100), filled: filled };
 }
@@ -1391,6 +1394,7 @@ function bosZoneColor(v) { return v >= 0.70 ? "#34C759" : v >= 0.52 ? "#FFC400" 
 function BosBalanceWheelLive(props) {
   var app = props.app, dark = !!props.dark, navigate = props.navigate;
   var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
+  var pickState = React.useState(null), pick = pickState[0], setPick = pickState[1];
   var data = bosWheelData(app);
   var SPH = data.spheres, N = SPH.length, overall = data.overall;
   var S = 232, c = S / 2, R = 80, TAU = Math.PI * 2;
@@ -1430,17 +1434,18 @@ function BosBalanceWheelLive(props) {
           <path d={poly} fill={"url(#" + uid + ")"} stroke="#FFB020" strokeWidth="1.8" strokeLinejoin="round" />
           {SPH.map(function (s, i) { var q = pt(i, Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={q[0].toFixed(1)} cy={q[1].toFixed(1)} r="2.6" fill={bosZoneColor(s.v)} stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="1.2" />; })}
           {SPH.map(function (s, i) { var t2 = pol(ang(i), R + 18); return <text key={"e" + i} x={t2[0].toFixed(1)} y={t2[1].toFixed(1)} fontSize="15" textAnchor="middle" dominantBaseline="central">{s.e}</text>; })}
-          <circle cx={c} cy={c} r="27" fill={dark ? "#1c1c1e" : "#ffffff"} stroke={grid} strokeWidth="1" />
-          <text x={c} y={c - 2} fontSize="20" fontWeight="700" textAnchor="middle" fill={dark ? "#f2f2f5" : "#101828"} style={{ fontVariantNumeric: "tabular-nums" }}>{overall}</text>
-          <text x={c} y={c + 13} fontSize="8.5" fontWeight="600" letterSpacing="1" textAnchor="middle" fill="#9f9fa9">БАЛАНС</text>
+          <text x={c} y={c - 3} fontSize="26" fontWeight="800" textAnchor="middle" fill={dark ? "#f2f2f5" : "#101828"} style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>{overall}</text>
+          <text x={c} y={c + 13} fontSize="8.5" fontWeight="700" letterSpacing="1.2" textAnchor="middle" fill={dark ? "#8e8e93" : "#9f9fa9"}>БАЛАНС</text>
         </svg>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 14px", marginTop: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginTop: 12 }}>
         {SPH.map(function (s) {
           var pct = Math.round(s.v * 100);
+          var on = pick === s.id;
           return (
-            <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <button key={s.id} onClick={function () { setPick(on ? null : s.id); }} className="tap" data-no-haptic
+              style={{ display: "flex", alignItems: "center", gap: 9, background: on ? (dark ? "rgba(255,255,255,0.08)" : "#eef0f3") : "transparent", border: 0, borderRadius: 10, cursor: "pointer", textAlign: "left", padding: "4px 5px" }}>
               <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{s.e}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)", lineHeight: 1.1 }}>{s.l}</div>
@@ -1448,20 +1453,41 @@ function BosBalanceWheelLive(props) {
                   <i style={{ display: "block", height: "100%", width: pct + "%", borderRadius: 3, background: bosZoneColor(s.v) }} />
                 </div>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", minWidth: 26, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{s.n ? pct : "—"}</div>
-            </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: on ? "var(--text)" : "var(--text-3)", minWidth: 20, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{s.n ? pct : "—"}</div>
+            </button>
           );
         })}
       </div>
 
-      <button onClick={askWheel} className="tap" data-no-haptic style={{ width: "100%", textAlign: "left", cursor: "pointer", display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, padding: "11px 12px", background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"), borderRadius: 16 }}>
+      {pick ? (function () {
+        var sp = null; for (var qi = 0; qi < SPH.length; qi++) { if (SPH[qi].id === pick) sp = SPH[qi]; }
+        if (!sp) return null;
+        return (
+          <div style={{ marginTop: 10, padding: "11px 12px", background: dark ? "rgba(255,255,255,0.04)" : "#f6f6f8", borderRadius: 14, border: "0.5px solid " + (dark ? "rgba(255,255,255,0.06)" : "#ececef") }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", marginBottom: sp.items.length ? 8 : 0 }}>
+              {sp.e} {sp.l} <span style={{ color: "var(--text-4)", fontWeight: 600 }}>· {Math.round(sp.v * 100)}</span>
+            </div>
+            {sp.items.length ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {sp.items.map(function (it, ii) {
+                  return <span key={ii} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--text-2)", background: dark ? "rgba(255,255,255,0.06)" : "#fff", border: "0.5px solid var(--line)", borderRadius: 999, padding: "4px 9px" }}><span style={{ fontSize: 13 }}>{it.emoji}</span>{it.name}{it.kind === "goal" ? <span style={{ color: "var(--text-5)", marginLeft: 1 }}>· цель</span> : null}</span>;
+                })}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45 }}>Пока пусто. Заведи сюда привычку — и сфера нальётся.</div>
+            )}
+          </div>
+        );
+      })() : null}
+
+      <button onClick={askWheel} className="tap" data-no-haptic style={{ width: "100%", textAlign: "left", cursor: "pointer", display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12, padding: "11px 12px", background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"), borderRadius: 16 }}>
         <span style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "radial-gradient(circle at 38% 32%,#eaf2ff,#a9c6ee 70%,#5d7fae)", boxShadow: "0 2px 6px rgba(93,127,174,0.4)" }}>
           <I.Sparkles size={12} color="#fff" />
         </span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 12.7, lineHeight: 1.5, color: "var(--text-2)" }}>{aiLine} <span style={{ color: "#4d6f9e", fontWeight: 700, whiteSpace: "nowrap" }}>Разобрать →</span></span>
       </button>
 
-      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", marginTop: 11, padding: "0 6px" }}>Считается из твоих привычек и целей — сфера тем полнее, чем крепче ты её держишь.</div>
+      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", marginTop: 12, padding: "0 6px" }}>Нажми на сферу — покажу, какие твои привычки в неё вошли.</div>
     </div>
   );
 }

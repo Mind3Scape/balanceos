@@ -2803,7 +2803,7 @@ var BOS_SPHERES = [{
 }, {
   id: "bond",
   e: "❤️",
-  l: "Связи"
+  l: "Люди"
 }, {
   id: "soul",
   e: "✨",
@@ -2868,28 +2868,47 @@ function bosHabitStrength(h) {
 }
 // Данные колеса: сфера тем полнее, чем крепче держишь входящие в неё привычки/цели.
 function bosWheelData(app) {
+  var arch = function (k) {
+    return typeof bosIsArchived === "function" && bosIsArchived(k);
+  };
   var habits = (app && app.habits || []).filter(function (h) {
-    return h && !h.shelved;
+    return h && !h.shelved && !arch("h:" + h.id);
   });
-  var goals = app && app.goals || [];
-  var buckets = {};
+  var goals = (app && app.goals || []).filter(function (g) {
+    return g && !arch("g:" + g.id);
+  });
+  var strengths = {},
+    items = {};
   BOS_SPHERES.forEach(function (s) {
-    buckets[s.id] = [];
+    strengths[s.id] = [];
+    items[s.id] = [];
   });
   habits.forEach(function (h) {
-    buckets[bosSphereFor(h)].push(bosHabitStrength(h));
+    var id = bosSphereFor(h);
+    strengths[id].push(bosHabitStrength(h));
+    items[id].push({
+      emoji: h.emoji || "•",
+      name: h.name || "Привычка",
+      kind: "habit"
+    });
   });
   goals.forEach(function (g) {
     var prog = typeof bosGoalProgress === "function" ? bosGoalProgress(g, app && app.habits || []) : {
       pct: 0,
       done: false
     };
-    buckets[bosSphereFor(g)].push(Math.max(0.30, Math.min(1, 0.30 + (prog.pct || 0) * 0.62 + (prog.done ? 0.08 : 0))));
+    var id = bosSphereFor(g);
+    strengths[id].push(Math.max(0.30, Math.min(1, 0.30 + (prog.pct || 0) * 0.62 + (prog.done ? 0.08 : 0))));
+    items[id].push({
+      emoji: g.emoji || "🎯",
+      name: g.name || "Цель",
+      kind: "goal"
+    });
   });
   var total = 0,
     filled = 0;
   var spheres = BOS_SPHERES.map(function (s) {
-    var arr = buckets[s.id],
+    var arr = strengths[s.id],
       v;
     if (!arr.length) v = 0.12; // пустая сфера — тонкая, оранжевая
     else {
@@ -2905,7 +2924,8 @@ function bosWheelData(app) {
       e: s.e,
       l: s.l,
       v: v,
-      n: arr.length
+      n: arr.length,
+      items: items[s.id]
     };
   });
   return {
@@ -2926,6 +2946,9 @@ function BosBalanceWheelLive(props) {
   var uid = React.useMemo(function () {
     return "bw" + Math.random().toString(36).slice(2, 7);
   }, []);
+  var pickState = React.useState(null),
+    pick = pickState[0],
+    setPick = pickState[1];
   var data = bosWheelData(app);
   var SPH = data.spheres,
     N = SPH.length,
@@ -3053,46 +3076,52 @@ function BosBalanceWheelLive(props) {
       textAnchor: "middle",
       dominantBaseline: "central"
     }, s.e);
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: c,
-    cy: c,
-    r: "27",
-    fill: dark ? "#1c1c1e" : "#ffffff",
-    stroke: grid,
-    strokeWidth: "1"
   }), /*#__PURE__*/React.createElement("text", {
     x: c,
-    y: c - 2,
-    fontSize: "20",
-    fontWeight: "700",
+    y: c - 3,
+    fontSize: "26",
+    fontWeight: "800",
     textAnchor: "middle",
     fill: dark ? "#f2f2f5" : "#101828",
     style: {
-      fontVariantNumeric: "tabular-nums"
+      fontVariantNumeric: "tabular-nums",
+      letterSpacing: "-0.5px"
     }
   }, overall), /*#__PURE__*/React.createElement("text", {
     x: c,
     y: c + 13,
     fontSize: "8.5",
-    fontWeight: "600",
-    letterSpacing: "1",
+    fontWeight: "700",
+    letterSpacing: "1.2",
     textAnchor: "middle",
-    fill: "#9f9fa9"
+    fill: dark ? "#8e8e93" : "#9f9fa9"
   }, "\u0411\u0410\u041B\u0410\u041D\u0421"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: "8px 14px",
+      gap: "6px 12px",
       marginTop: 12
     }
   }, SPH.map(function (s) {
     var pct = Math.round(s.v * 100);
-    return /*#__PURE__*/React.createElement("div", {
+    var on = pick === s.id;
+    return /*#__PURE__*/React.createElement("button", {
       key: s.id,
+      onClick: function () {
+        setPick(on ? null : s.id);
+      },
+      className: "tap",
+      "data-no-haptic": true,
       style: {
         display: "flex",
         alignItems: "center",
-        gap: 9
+        gap: 9,
+        background: on ? dark ? "rgba(255,255,255,0.08)" : "#eef0f3" : "transparent",
+        border: 0,
+        borderRadius: 10,
+        cursor: "pointer",
+        textAlign: "left",
+        padding: "4px 5px"
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -3137,13 +3166,77 @@ function BosBalanceWheelLive(props) {
       style: {
         fontSize: 12,
         fontWeight: 700,
-        color: "var(--text-3)",
-        minWidth: 26,
+        color: on ? "var(--text)" : "var(--text-3)",
+        minWidth: 20,
         textAlign: "right",
         fontVariantNumeric: "tabular-nums"
       }
     }, s.n ? pct : "—"));
-  })), /*#__PURE__*/React.createElement("button", {
+  })), pick ? function () {
+    var sp = null;
+    for (var qi = 0; qi < SPH.length; qi++) {
+      if (SPH[qi].id === pick) sp = SPH[qi];
+    }
+    if (!sp) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        padding: "11px 12px",
+        background: dark ? "rgba(255,255,255,0.04)" : "#f6f6f8",
+        borderRadius: 14,
+        border: "0.5px solid " + (dark ? "rgba(255,255,255,0.06)" : "#ececef")
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-2)",
+        marginBottom: sp.items.length ? 8 : 0
+      }
+    }, sp.e, " ", sp.l, " ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--text-4)",
+        fontWeight: 600
+      }
+    }, "\xB7 ", Math.round(sp.v * 100))), sp.items.length ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6
+      }
+    }, sp.items.map(function (it, ii) {
+      return /*#__PURE__*/React.createElement("span", {
+        key: ii,
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          fontSize: 12,
+          fontWeight: 500,
+          color: "var(--text-2)",
+          background: dark ? "rgba(255,255,255,0.06)" : "#fff",
+          border: "0.5px solid var(--line)",
+          borderRadius: 999,
+          padding: "4px 9px"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 13
+        }
+      }, it.emoji), it.name, it.kind === "goal" ? /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "var(--text-5)",
+          marginLeft: 1
+        }
+      }, "\xB7 \u0446\u0435\u043B\u044C") : null);
+    })) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-4)",
+        lineHeight: 1.45
+      }
+    }, "\u041F\u043E\u043A\u0430 \u043F\u0443\u0441\u0442\u043E. \u0417\u0430\u0432\u0435\u0434\u0438 \u0441\u044E\u0434\u0430 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u2014 \u0438 \u0441\u0444\u0435\u0440\u0430 \u043D\u0430\u043B\u044C\u0451\u0442\u0441\u044F."));
+  }() : null, /*#__PURE__*/React.createElement("button", {
     onClick: askWheel,
     className: "tap",
     "data-no-haptic": true,
@@ -3154,7 +3247,7 @@ function BosBalanceWheelLive(props) {
       display: "flex",
       gap: 10,
       alignItems: "flex-start",
-      marginTop: 14,
+      marginTop: 12,
       padding: "11px 12px",
       background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)",
       border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"),
@@ -3194,10 +3287,10 @@ function BosBalanceWheelLive(props) {
       color: "var(--text-5)",
       lineHeight: 1.5,
       textAlign: "center",
-      marginTop: 11,
+      marginTop: 12,
       padding: "0 6px"
     }
-  }, "\u0421\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u0438\u0437 \u0442\u0432\u043E\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A \u0438 \u0446\u0435\u043B\u0435\u0439 \u2014 \u0441\u0444\u0435\u0440\u0430 \u0442\u0435\u043C \u043F\u043E\u043B\u043D\u0435\u0435, \u0447\u0435\u043C \u043A\u0440\u0435\u043F\u0447\u0435 \u0442\u044B \u0435\u0451 \u0434\u0435\u0440\u0436\u0438\u0448\u044C."));
+  }, "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0441\u0444\u0435\u0440\u0443 \u2014 \u043F\u043E\u043A\u0430\u0436\u0443, \u043A\u0430\u043A\u0438\u0435 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0432 \u043D\u0435\u0451 \u0432\u043E\u0448\u043B\u0438."));
 }
 
 // ПРЕВРАЩЕНИЕ ЦЕЛИ В КРУГ «НА МЕСТЕ» (David: «тумблер соло↔вместе на той же цели, без пересоздания»).
