@@ -5266,64 +5266,7 @@ function HomeGalleryContentLive({
     style: {
       color: "var(--text)"
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: openStyle,
-    className: "tap",
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      width: "100%",
-      padding: "8px 10px",
-      border: 0,
-      cursor: "pointer",
-      textAlign: "left",
-      color: "var(--text)",
-      marginTop: 2,
-      background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"),
-      borderRadius: 14,
-      boxShadow: bosTileGlass(dark)
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: 9,
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0,
-      background: dark ? "rgba(255,255,255,0.08)" : "#fff",
-      boxShadow: bosTileGlass(dark)
-    }
-  }, /*#__PURE__*/React.createElement(I.Settings, {
-    size: 15,
-    color: "var(--text)"
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      display: "flex",
-      alignItems: "baseline",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      fontWeight: 600
-    }
-  }, "\u0421\u0442\u0438\u043B\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-4)"
-    }
-  }, "\u0444\u043E\u0440\u043C\u044B, \u043E\u0442\u043C\u0435\u0442\u043A\u0438, \u043B\u0438\u0446\u0430")), /*#__PURE__*/React.createElement(I.ChevronRight, {
-    size: 15,
-    color: "var(--text-4)"
-  })), !onStyle && typeof CardStyleMenuLive === "function" && /*#__PURE__*/React.createElement(CardStyleMenuLive, {
-    open: styleHere,
-    onClose: () => setStyleHere(false),
-    anchorRef: null
-  }), kicker("Виджеты"), card(defs.map(o => ({
+  }, kicker("Виджеты"), card(defs.map(o => ({
     key: "w:" + o.id,
     bare: true,
     icon: typeof bosIcon === "function" ? bosIcon(o.sym || o.emoji, 21, dark ? "#f2f2f5" : "#1b1b1f") : o.emoji,
@@ -6760,7 +6703,7 @@ function CardStyleMenuLive({
     style: {
       position: "fixed",
       ...(pos.mode === "bottom" ? {
-        left: "calc(50% - 118px)",
+        left: "calc(50% - 134px)",
         bottom: "calc(var(--bos-safe-bottom, 0px) + 150px)",
         transformOrigin: "bottom center"
       } : {
@@ -6769,14 +6712,16 @@ function CardStyleMenuLive({
         transformOrigin: "top right"
       }),
       animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both",
-      width: 236,
-      padding: 11,
+      width: 268,
+      padding: 12,
       borderRadius: 20,
-      background: "rgba(255,255,255,0.86)",
-      WebkitBackdropFilter: "blur(34px) saturate(180%)",
-      backdropFilter: "blur(34px) saturate(180%)",
-      border: "0.5px solid rgba(255,255,255,0.7)",
-      boxShadow: "0 16px 44px rgba(20,30,60,0.26)",
+      // Плотный фон (David: «меню не должно быть прозрачным — сбивает, не видно что выбираешь»):
+      // почти непрозрачное, чтобы надписи и тумблеры читались на любой доске.
+      background: "rgba(255,255,255,0.98)",
+      WebkitBackdropFilter: "blur(20px) saturate(150%)",
+      backdropFilter: "blur(20px) saturate(150%)",
+      border: "0.5px solid rgba(0,0,0,0.07)",
+      boxShadow: "0 16px 44px rgba(20,30,60,0.22)",
       color: "#0a0a0a"
     }
   }, seg(tab, [{
@@ -6896,13 +6841,31 @@ function CardStyleMenuLive({
     style: {
       width: 26,
       height: 26,
-      borderRadius: 8,
-      background: "rgba(10,10,10,0.05)",
       display: "grid",
       placeItems: "center",
-      flexShrink: 0
+      flexShrink: 0,
+      color: "#0a0a0a"
     }
-  }, "\uD83D\uDDC4\uFE0F"), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "18",
+    height: "18",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.9",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "4",
+    width: "18",
+    height: "4",
+    rx: "1"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M10 12h4"
+  }))), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,
       fontSize: 13.5,

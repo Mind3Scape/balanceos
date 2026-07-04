@@ -2366,20 +2366,8 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   );
   return (
     <div style={{ color: "var(--text)" }}>
-      {/* «Вид» — НА САМОМ ВЕРХУ (David): тап закрывает шторку и открывает компактное меню
-          стиля НАД живой доской — карточки меняются на глазах. */}
-      <button onClick={openStyle} className="tap" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 10px",
-        border: 0, cursor: "pointer", textAlign: "left", color: "var(--text)", marginTop: 2,
-        background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), borderRadius: 14, boxShadow: bosTileGlass(dark) }}>
-        <span style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", flexShrink: 0,
-          background: dark ? "rgba(255,255,255,0.08)" : "#fff", boxShadow: bosTileGlass(dark) }}><I.Settings size={15} color="var(--text)" /></span>
-        <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 6 }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Стиль карточек</span>
-          <span style={{ fontSize: 11.5, color: "var(--text-4)" }}>формы, отметки, лица</span>
-        </span>
-        <I.ChevronRight size={15} color="var(--text-4)" />
-      </button>
-      {!onStyle && typeof CardStyleMenuLive === "function" && <CardStyleMenuLive open={styleHere} onClose={() => setStyleHere(false)} anchorRef={null} />}
+      {/* «Стиль карточек» отсюда УБРАН (David): визуальные настройки живут в шестерёнке «Оформление»
+          в режиме тряски — не дублируем на шторке «+». */}
       {kicker("Виджеты")}
       {/* Иконки виджетов — ЧЁРНО-БЕЛЫЕ (David): монохромный sf-символ вместо цветного эмодзи, единый
           строгий вид как у плюсика. Привычки/цели ниже остаются цветными. */}
@@ -2861,9 +2849,12 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(18,22,38,0.16)", animation: "dimIn 0.18s ease both" }}>
       <div role="menu" onClick={(e) => e.stopPropagation()} style={{ position: "fixed",
         ...(pos.mode === "bottom"
-          ? { left: "calc(50% - 118px)", bottom: "calc(var(--bos-safe-bottom, 0px) + 150px)", transformOrigin: "bottom center" }
+          ? { left: "calc(50% - 134px)", bottom: "calc(var(--bos-safe-bottom, 0px) + 150px)", transformOrigin: "bottom center" }
           : { right: pos.right, top: pos.top, transformOrigin: "top right" }),
-        animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 236, padding: 11, borderRadius: 20, background: "rgba(255,255,255,0.86)", WebkitBackdropFilter: "blur(34px) saturate(180%)", backdropFilter: "blur(34px) saturate(180%)", border: "0.5px solid rgba(255,255,255,0.7)", boxShadow: "0 16px 44px rgba(20,30,60,0.26)", color: "#0a0a0a" }}>
+        animation: "bosMenuPop 0.34s cubic-bezier(0.34,1.5,0.4,1) both", width: 268, padding: 12, borderRadius: 20,
+        // Плотный фон (David: «меню не должно быть прозрачным — сбивает, не видно что выбираешь»):
+        // почти непрозрачное, чтобы надписи и тумблеры читались на любой доске.
+        background: "rgba(255,255,255,0.98)", WebkitBackdropFilter: "blur(20px) saturate(150%)", backdropFilter: "blur(20px) saturate(150%)", border: "0.5px solid rgba(0,0,0,0.07)", boxShadow: "0 16px 44px rgba(20,30,60,0.22)", color: "#0a0a0a" }}>
         {/* Вкладки: Привычки / Цели */}
         {seg(tab, [{ v: "habits", l: "Привычки" }, { v: "goals", l: "Цели" }, { v: "app", l: "Общий вид" }], setTab)}
         <div style={{ height: 9 }} />
@@ -2899,7 +2890,9 @@ function CardStyleMenuLive({ open, onClose, anchorRef, onArchiveList, placement 
             <div style={{ fontSize: 11.5, color: "rgba(10,10,10,0.42)", lineHeight: 1.4, padding: "4px 2px 2px" }}>Чёрные иконки — строгий единый вид вместо цветных эмодзи. Стекло — блики на плитках.</div>
             {typeof onArchiveList === "function" && (
               <button onClick={() => { onClose(); onArchiveList(); }} className="tap" style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginTop: 8, border: 0, borderRadius: 11, padding: "9px 2px", background: "transparent", cursor: "pointer", color: "#0a0a0a", textAlign: "left" }}>
-                <span style={{ width: 26, height: 26, borderRadius: 8, background: "rgba(10,10,10,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>🗄️</span>
+                <span style={{ width: 26, height: 26, display: "grid", placeItems: "center", flexShrink: 0, color: "#0a0a0a" }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" /><path d="M10 12h4" /></svg>
+                </span>
                 <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>Архив</span>
                 <I.ChevronRight size={15} color="rgba(10,10,10,0.4)" />
               </button>
