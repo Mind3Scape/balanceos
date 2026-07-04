@@ -2930,6 +2930,69 @@ function bosZoneColor(v) {
   return v >= 0.70 ? "#34C759" : v >= 0.52 ? "#FFC400" : "#FF8A3D";
 }
 
+// Чипы «ИИ заметил» под колесом. David: одна статичная фраза внизу — тупая; лучше живые чипы того,
+// что ИИ реально подметил. Если сервер прислал brief.wheelChips (массив коротких строк) — берём их;
+// иначе выводим из САМОГО колеса (проседающие/крепкие/пустые сферы) — не бутафория, а реальное
+// состояние, и каждый чип тапаемый (→ разбор с ИИ по этой сфере).
+function bosWheelChips(data, app) {
+  var brief = app && app.aiBrief;
+  var fromAI = brief && Array.isArray(brief.wheelChips) ? brief.wheelChips.filter(function (x) {
+    return x && ("" + x).trim();
+  }) : [];
+  if (fromAI.length) return fromAI.slice(0, 4).map(function (t) {
+    return {
+      t: "" + t,
+      tone: "ai",
+      prompt: "Подробнее про: " + t
+    };
+  });
+  var SPH = data && data.spheres || [];
+  if (!data || data.filled === 0) return [{
+    t: "Заведи первую привычку",
+    tone: "empty",
+    prompt: "С чего начать, чтобы колесо баланса начало заполняться?"
+  }];
+  var out = [];
+  var lows = SPH.filter(function (s) {
+    return s.n && s.v < 0.45;
+  }).sort(function (a, b) {
+    return a.v - b.v;
+  });
+  var tops = SPH.filter(function (s) {
+    return s.n && s.v >= 0.7;
+  }).sort(function (a, b) {
+    return b.v - a.v;
+  });
+  var empties = SPH.filter(function (s) {
+    return !s.n;
+  });
+  lows.slice(0, 2).forEach(function (s) {
+    out.push({
+      t: "«" + s.l + "» проседает",
+      tone: "low",
+      prompt: "Сфера «" + s.l + "» проседает. Что сделать, чтобы её подтянуть?"
+    });
+  });
+  if (tops.length) out.push({
+    t: "«" + tops[0].l + "» держишь крепко",
+    tone: "good",
+    prompt: "«" + tops[0].l + "» у меня в порядке — как удержать и не сбиться?"
+  });
+  if (out.length < 3) empties.slice(0, 3 - out.length).forEach(function (s) {
+    out.push({
+      t: "Пусто в «" + s.l + "»",
+      tone: "empty",
+      prompt: "У меня пусто в сфере «" + s.l + "». Предложи привычку сюда."
+    });
+  });
+  if (!out.length) out.push({
+    t: "Баланс ровный — так держать",
+    tone: "good",
+    prompt: "Мой баланс ровный. Куда расти дальше?"
+  });
+  return out.slice(0, 4);
+}
+
 // Мини-версия hero-орба (тот же SiriOrb + живой t + мудовый tint) — для подсказки на колесе
 // (David: «орб в подсказке должен быть таким же, как на баннере сверху»). Самоанимируется
 // через свой useAIT, чтобы не перерисовывать всё колесо каждый кадр.
@@ -2991,16 +3054,10 @@ function BosBalanceWheelLive(props) {
   poly += "Z";
   var grid = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
   var spoke = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
-  var brief = app && app.aiBrief;
-  var lows = SPH.filter(function (s) {
-    return s.v < 0.5;
-  }).sort(function (a, b) {
-    return a.v - b.v;
-  });
-  var aiLine = brief && brief.wheelHint && ("" + brief.wheelHint).trim() || "";
-  if (!aiLine) {
-    if (data.filled === 0) aiLine = "Заведи первую привычку — и колесо начнёт заполняться.";else if (lows.length >= 2) aiLine = "«" + lows[0].l + "» и «" + lows[1].l + "» проседают — заведи привычку в этой сфере или отметься сегодня, чтобы выровнять.";else if (lows.length === 1) aiLine = "«" + lows[0].l + "» просит внимания — остальное держишь ровно.";else aiLine = "Хороший баланс — сферы держатся ровно. Так держать.";
-  }
+  var expandedState = React.useState(false),
+    expanded = expandedState[0],
+    setExpanded = expandedState[1];
+  var chips = bosWheelChips(data, app);
   var askWheel = function () {
     if (navigate) navigate("ai-chat", {
       prompt: "Разбери мой баланс по сферам жизни и подскажи, что подтянуть."
@@ -3015,7 +3072,15 @@ function BosBalanceWheelLive(props) {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      paddingBottom: 12
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: 10,
+      paddingBottom: expanded ? 12 : 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3024,14 +3089,38 @@ function BosBalanceWheelLive(props) {
       letterSpacing: "-0.3px",
       color: "var(--text)"
     }
-  }, "\u0411\u0430\u043B\u0430\u043D\u0441 \u0436\u0438\u0437\u043D\u0438"), /*#__PURE__*/React.createElement("div", {
+  }, "\u0411\u0430\u043B\u0430\u043D\u0441 \u0436\u0438\u0437\u043D\u0438"), expanded && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: dark ? "#98989f" : "var(--text-4)",
       lineHeight: 1.45,
       marginTop: 4
     }
-  }, "\u0418\u0418 \u0441\u0430\u043C \u0441\u043B\u0435\u0434\u0438\u0442 \u0437\u0430 \u0432\u0441\u0435\u043C\u0438 \u0442\u0432\u043E\u0438\u043C\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430\u043C\u0438 \u0438 \u0446\u0435\u043B\u044F\u043C\u0438 \u2014 \u0434\u0430\u0436\u0435 \u0437\u0430 \u043F\u0440\u0438\u0434\u0443\u043C\u0430\u043D\u043D\u044B\u043C\u0438 \u0442\u043E\u0431\u043E\u0439 \u2014 \u0440\u0430\u0441\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442 \u0438\u0445 \u043F\u043E \u0441\u0444\u0435\u0440\u0430\u043C \u0436\u0438\u0437\u043D\u0438 \u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442, \u0433\u0434\u0435 \u0442\u044B \u0432 \u0431\u0430\u043B\u0430\u043D\u0441\u0435, \u0430 \u0433\u0434\u0435 \u043F\u0440\u043E\u0441\u0435\u043B\u043E.")), /*#__PURE__*/React.createElement("div", {
+  }, "\u0418\u0418 \u0441\u0430\u043C \u0441\u043B\u0435\u0434\u0438\u0442 \u0437\u0430 \u0432\u0441\u0435\u043C\u0438 \u0442\u0432\u043E\u0438\u043C\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0430\u043C\u0438 \u0438 \u0446\u0435\u043B\u044F\u043C\u0438 \u2014 \u0434\u0430\u0436\u0435 \u0437\u0430 \u043F\u0440\u0438\u0434\u0443\u043C\u0430\u043D\u043D\u044B\u043C\u0438 \u0442\u043E\u0431\u043E\u0439 \u2014 \u0440\u0430\u0441\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442 \u0438\u0445 \u043F\u043E \u0441\u0444\u0435\u0440\u0430\u043C \u0436\u0438\u0437\u043D\u0438 \u0438 \u0441\u0447\u0438\u0442\u0430\u0435\u0442, \u0433\u0434\u0435 \u0442\u044B \u0432 \u0431\u0430\u043B\u0430\u043D\u0441\u0435, \u0430 \u0433\u0434\u0435 \u043F\u0440\u043E\u0441\u0435\u043B\u043E.")), /*#__PURE__*/React.createElement("button", {
+    onClick: function () {
+      setExpanded(!expanded);
+    },
+    className: "tap",
+    "data-no-haptic": true,
+    "aria-label": expanded ? "Свернуть" : "Развернуть",
+    "aria-pressed": expanded,
+    style: {
+      flexShrink: 0,
+      width: 34,
+      height: 34,
+      borderRadius: 999,
+      border: 0,
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      background: expanded ? dark ? "rgba(255,255,255,0.10)" : "#eef0f3" : "var(--surface-3)",
+      color: "var(--text-3)",
+      transition: "background 0.15s"
+    }
+  }, /*#__PURE__*/React.createElement(I.Eye, {
+    size: 18,
+    filled: expanded
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "center",
@@ -3130,7 +3219,7 @@ function BosBalanceWheelLive(props) {
     letterSpacing: "1.2",
     textAnchor: "middle",
     fill: dark ? "#8e8e93" : "#9f9fa9"
-  }, "\u0411\u0410\u041B\u0410\u041D\u0421"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u0411\u0410\u041B\u0410\u041D\u0421"))), expanded && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -3258,7 +3347,7 @@ function BosBalanceWheelLive(props) {
         style: {
           fontSize: 13
         }
-      }, it.emoji), it.name, it.kind === "goal" ? /*#__PURE__*/React.createElement("span", {
+      }, bosDeSF(it.emoji)), it.name, it.kind === "goal" ? /*#__PURE__*/React.createElement("span", {
         style: {
           color: "var(--text-5)",
           marginLeft: 1
@@ -3271,50 +3360,91 @@ function BosBalanceWheelLive(props) {
         lineHeight: 1.45
       }
     }, "\u041F\u043E\u043A\u0430 \u043F\u0443\u0441\u0442\u043E. \u0417\u0430\u0432\u0435\u0434\u0438 \u0441\u044E\u0434\u0430 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443 \u2014 \u0438 \u0441\u0444\u0435\u0440\u0430 \u043D\u0430\u043B\u044C\u0451\u0442\u0441\u044F."));
-  }() : null, /*#__PURE__*/React.createElement("button", {
+  }() : null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 22,
+      height: 22,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(BosHeroOrbMini, {
+    tint: tint,
+    size: 22
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0418\u0418 \u0437\u0430\u043C\u0435\u0442\u0438\u043B")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6
+    }
+  }, chips.map(function (ch, ci) {
+    var dot = ch.tone === "low" ? "#FF8A3D" : ch.tone === "good" ? "#34C759" : ch.tone === "empty" ? "#C7C7CC" : "#4d6f9e";
+    return /*#__PURE__*/React.createElement("button", {
+      key: ci,
+      onClick: function () {
+        if (navigate) navigate("ai-chat", {
+          prompt: ch.prompt || "Разбери мой баланс: " + ch.t
+        });
+      },
+      className: "tap",
+      "data-no-haptic": true,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 12,
+        fontWeight: 600,
+        color: "var(--text-2)",
+        background: dark ? "rgba(255,255,255,0.06)" : "#f4f5f7",
+        border: "0.5px solid var(--line)",
+        borderRadius: 999,
+        padding: "6px 11px",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: 999,
+        background: dot,
+        flexShrink: 0
+      }
+    }), ch.t);
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: askWheel,
     className: "tap",
     "data-no-haptic": true,
     style: {
       width: "100%",
-      textAlign: "left",
+      textAlign: "center",
       cursor: "pointer",
-      display: "flex",
-      gap: 10,
-      alignItems: "flex-start",
-      marginTop: 12,
-      padding: "11px 12px",
+      marginTop: 11,
+      padding: "10px 12px",
+      fontSize: 12.7,
+      fontWeight: 700,
+      color: "#4d6f9e",
       background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)",
       border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"),
-      borderRadius: 16
+      borderRadius: 14
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 28,
-      height: 28,
-      flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      marginTop: -1
-    }
-  }, /*#__PURE__*/React.createElement(BosHeroOrbMini, {
-    tint: tint,
-    size: 28
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      fontSize: 12.7,
-      lineHeight: 1.5,
-      color: "var(--text-2)"
-    }
-  }, aiLine, " ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#4d6f9e",
-      fontWeight: 700,
-      whiteSpace: "nowrap"
-    }
-  }, "\u0420\u0430\u0437\u043E\u0431\u0440\u0430\u0442\u044C \u2192"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u0420\u0430\u0437\u043E\u0431\u0440\u0430\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441 \u0441 \u0418\u0418 \u2192")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-5)",
@@ -3323,7 +3453,7 @@ function BosBalanceWheelLive(props) {
       marginTop: 12,
       padding: "0 6px"
     }
-  }, "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0441\u0444\u0435\u0440\u0443 \u2014 \u043F\u043E\u043A\u0430\u0436\u0443, \u043A\u0430\u043A\u0438\u0435 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0432 \u043D\u0435\u0451 \u0432\u043E\u0448\u043B\u0438."));
+  }, "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u0441\u0444\u0435\u0440\u0443 \u2014 \u043F\u043E\u043A\u0430\u0436\u0443, \u043A\u0430\u043A\u0438\u0435 \u0442\u0432\u043E\u0438 \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u0432 \u043D\u0435\u0451 \u0432\u043E\u0448\u043B\u0438.")));
 }
 
 // ПРЕВРАЩЕНИЕ ЦЕЛИ В КРУГ «НА МЕСТЕ» (David: «тумблер соло↔вместе на той же цели, без пересоздания»).
@@ -13316,21 +13446,66 @@ function bosSymCmp(nm) {
   return typeof BOS_SF !== "undefined" && BOS_SF[nm] || (window.I || {})[nm] || null;
 }
 
-// Render a habit/goal/team icon. A "sf:<Name>" sentinel → the monochrome glyph in `color`;
-// anything else (a normal emoji string) is returned UNCHANGED, so existing data and the
-// DEMO stay pixel-identical. Used at every live icon site so a chosen symbol shows up
-// everywhere, never as raw "sf:…" text.
+// Legacy SF-symbol → эмодзи. David убрал монохромные «Символы» из пикера (только эмодзи), поэтому
+// любую иконку, ранее сохранённую как "sf:<Name>", теперь показываем ближайшим по смыслу эмодзи —
+// везде, вживую, НЕ трогая сохранённые данные (при следующем ре-сохранении эмодзи закрепится).
+var BOS_SF_TO_EMOJI = {
+  Heart: "❤️",
+  Activity: "🏃",
+  Dumbbell: "🏋️",
+  Bicycle: "🚴",
+  Flame: "🔥",
+  Drop: "💧",
+  Bed: "🛏️",
+  Pill: "💊",
+  Apple: "🍎",
+  Cup: "☕",
+  Bulb: "💡",
+  Book: "📖",
+  Pencil: "✏️",
+  Music: "🎵",
+  Headphones: "🎧",
+  Palette: "🎨",
+  Mic: "🎤",
+  Sun: "☀️",
+  Sunrise: "🌅",
+  Moon: "🌙",
+  Clock: "⏰",
+  Bell: "🔔",
+  Calendar: "📅",
+  Target: "🎯",
+  Trophy: "🏆",
+  Flag: "🚩",
+  Sparkles: "✨",
+  Star: "⭐",
+  Sprout: "🌱",
+  ChartBar: "📊",
+  Users: "👥",
+  Globe: "🌍",
+  MapPin: "📍",
+  Mountain: "⛰️",
+  Tree: "🌳",
+  Camera: "📷",
+  Game: "🎮",
+  Gift: "🎁",
+  Compass: "🧭",
+  Briefcase: "💼",
+  Wallet: "👛",
+  Dollar: "💰",
+  Home: "🏠",
+  Phone: "📱",
+  Mail: "✉️",
+  Snowflake: "❄️"
+};
+function bosDeSF(val) {
+  if (typeof val === "string" && val.slice(0, 3) === "sf:") return BOS_SF_TO_EMOJI[val.slice(3)] || "✨";
+  return val;
+}
+// Render a habit/goal/team icon — теперь всегда эмодзи-строка (старое "sf:<Name>" → эмодзи через
+// bosDeSF). size/color для эмодзи игнорируются; оставлены в сигнатуре для совместимости вызовов.
+// Никогда не показывает сырой текст "sf:…".
 function bosIcon(val, size, color) {
-  if (typeof val === "string" && val.slice(0, 3) === "sf:") {
-    var Cmp = bosSymCmp(val.slice(3));
-    if (Cmp) return React.createElement(Cmp, {
-      size: size || 22,
-      color: color || "currentColor",
-      strokeWidth: 1.85
-    });
-    return null;
-  }
-  return val || "";
+  return bosDeSF(val) || "";
 }
 function EmojiPickerLive({
   onPick,
@@ -13341,7 +13516,6 @@ function EmojiPickerLive({
   var {
     close
   } = useSheet();
-  var [mode, setMode] = React.useState(typeof current === "string" && current.slice(0, 3) === "sf:" ? "symbol" : "emoji");
   var [cat, setCat] = React.useState(0);
   // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
   // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
@@ -13354,7 +13528,7 @@ function EmojiPickerLive({
     }
     if (!embedded) close();
   };
-  var symColor = typeof accent === "string" && accent[0] === "#" ? accent : "#0a0a0a";
+  // David: только ЭМОДЗИ — монохромные «Символы» убраны (у кого были — bosDeSF заменил на эмодзи).
   return /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "2px 10px 6px",
@@ -13368,67 +13542,6 @@ function EmojiPickerLive({
       marginBottom: 12
     }
   }, "\u0412\u044B\u0431\u0435\u0440\u0438 \u0438\u043A\u043E\u043D\u043A\u0443"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 4,
-      padding: 3,
-      background: "var(--surface-3)",
-      borderRadius: 12,
-      marginBottom: 12
-    }
-  }, [["emoji", "Эмодзи"], ["symbol", "Символы"]].map(m => /*#__PURE__*/React.createElement("button", {
-    key: m[0],
-    className: "tap",
-    "data-no-haptic": true,
-    onClick: () => setMode(m[0]),
-    style: {
-      flex: 1,
-      height: 34,
-      borderRadius: 9,
-      border: 0,
-      fontSize: 13.5,
-      fontWeight: 600,
-      cursor: "pointer",
-      background: mode === m[0] ? "#fff" : "transparent",
-      color: mode === m[0] ? "#0a0a0a" : "var(--text-3)",
-      boxShadow: mode === m[0] ? "0 1px 3px rgba(0,0,0,0.10)" : "none",
-      transition: "background 0.15s"
-    }
-  }, m[1]))), mode === "symbol" ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(6, 1fr)",
-      gap: 6,
-      maxHeight: 264,
-      overflowY: "auto",
-      WebkitOverflowScrolling: "touch",
-      padding: "2px 0"
-    }
-  }, BOS_SYMBOLS.map((nm, i) => {
-    var Cmp = bosSymCmp(nm);
-    if (!Cmp) return null;
-    return /*#__PURE__*/React.createElement("button", {
-      key: i,
-      className: "tap",
-      "data-no-haptic": true,
-      onClick: () => pick("sf:" + nm),
-      "aria-label": nm,
-      style: {
-        aspectRatio: "1 / 1",
-        borderRadius: 14,
-        border: 0,
-        background: "var(--surface-3)",
-        display: "grid",
-        placeItems: "center",
-        cursor: "pointer",
-        padding: 0
-      }
-    }, /*#__PURE__*/React.createElement(Cmp, {
-      size: 23,
-      color: symColor,
-      strokeWidth: 2
-    }));
-  })) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 4,
@@ -13454,7 +13567,7 @@ function EmojiPickerLive({
       display: "grid",
       gridTemplateColumns: "repeat(8, 1fr)",
       gap: 2,
-      maxHeight: 248,
+      maxHeight: 300,
       overflowY: "auto",
       WebkitOverflowScrolling: "touch"
     }
@@ -13472,7 +13585,7 @@ function EmojiPickerLive({
       cursor: "pointer",
       padding: 0
     }
-  }, e)))));
+  }, e))));
 }
 
 /* LIVE avatar picker — the SAME rich emoji panel as habit/goal/team creation (BOS_EMOJI_CATS,

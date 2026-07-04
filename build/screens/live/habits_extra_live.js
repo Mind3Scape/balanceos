@@ -39,7 +39,7 @@ function HabitFormSheetLive({
   var [view, setView] = useHS("form"); // form | picker | share — вторые вью внутри ОДНОЙ шторки
   var [goalOnly, setGoalOnly] = useHS(editing ? !!params.habit.goalOnly : false);
   var [name, setName] = useHS(editing ? params.habit.name : preset?.t || "Прогулка");
-  var [iconPick, setIconPick] = useHS(editing ? params.habit.emoji : preset?.i || "👟");
+  var [iconPick, setIconPick] = useHS(editing ? typeof bosDeSF === "function" ? bosDeSF(params.habit.emoji) : params.habit.emoji : preset?.i || "👟"); // старые sf:-символы → эмодзи по смыслу
   // Icon = the EmojiPickerLive panel (opens straight on emojis). The iOS keyboard can't be
   // forced into emoji mode — it opened on ABC, «непонятно что делать» (David) — so we use
   // our own emoji sheet, opened by tapping the tile below.
@@ -180,8 +180,8 @@ function HabitFormSheetLive({
       // tint = тонированный фон; type = развивать/бросить
       days: days.slice(),
       // 7-long Пн..Вс mask
-      goalPerDay: countTimes ? Math.max(2, goal) : 1,
-      // счётчик: N раз в день
+      goalPerDay: countTimes ? Math.max(1, goal) : 1,
+      // счётчик: N раз в день (без верхнего потолка — David)
       duration: countMin ? Math.max(5, duration) : 0,
       // таймер: минуты
       reminder: {
@@ -512,7 +512,7 @@ function HabitFormSheetLive({
       gap: 6
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => countUnit === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(2, goal - 1)),
+    onClick: () => countUnit === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(1, goal - 1)),
     className: "tap hit44",
     style: {
       width: 32,
@@ -528,7 +528,7 @@ function HabitFormSheetLive({
     size: 16,
     strokeWidth: 2.4
   })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => countUnit === "min" ? setDuration(Math.min(180, duration + 5)) : setGoal(Math.min(20, goal + 1)),
+    onClick: () => countUnit === "min" ? setDuration(duration + 5) : setGoal(goal + 1),
     className: "tap hit44",
     style: {
       width: 32,
@@ -1005,14 +1005,14 @@ function GoalFormSheetLive({
   // tapping «Пробежать марафон» lands you on a pre-filled goal, same as habit quick-add presets.
   var preset = !editing && presetProp ? presetProp : null;
   var [name, setName] = useHS(g0?.name || preset?.t || "Пробежать марафон");
-  var [iconPick, setIconPick] = useHS(g0?.emoji || preset?.i || "🎯");
+  var [iconPick, setIconPick] = useHS((typeof bosDeSF === "function" ? bosDeSF(g0?.emoji) : g0?.emoji) || preset?.i || "🎯"); // старые sf:-символы → эмодзи по смыслу
   // Goals carry a colour exactly like habits — default BLACK (the app's b&w base); the
   // chosen colour fills the goal's progress bar + detail ring (David: «всё один в один»).
   // Дефолт цвета ЦЕЛИ = НЕЙТРАЛЬНЫЙ (null → белая/светло-серая карточка, David). Цвет появляется
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
   var [color, setColor] = useHS(g0?.color ?? preset?.color ?? BOS_GREY); // новый = нейтральный «белый» BOS_GREY (единый дефолт с привычками/командами)
   var [tint, setTint] = useHS(g0 ? g0.tint !== false : true); // тонированный фон цели — РЕАЛЬНО читается в bosGoalSkin (карточка залита цветом / чистая)
-  var [target, setTarget] = useHS(g0?.target || preset?.target || 22);
+  var [target, setTarget] = useHS(g0?.target || preset?.target || 1); // старт с 1, без потолка (David: «в целях постоянно 22»)
   var [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
   // Срок — храним ISO-дату (yyyy-mm-dd) у новых целей; старые «Месяц»/«14 окт» проходят как есть
   // (bosFmtDeadline красиво форматит и то, и другое). Дефолт = месяц от сегодня. Нативный date-пикер

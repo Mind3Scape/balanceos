@@ -1382,6 +1382,27 @@ function bosWheelData(app) {
 }
 function bosZoneColor(v) { return v >= 0.70 ? "#34C759" : v >= 0.52 ? "#FFC400" : "#FF8A3D"; }
 
+// Чипы «ИИ заметил» под колесом. David: одна статичная фраза внизу — тупая; лучше живые чипы того,
+// что ИИ реально подметил. Если сервер прислал brief.wheelChips (массив коротких строк) — берём их;
+// иначе выводим из САМОГО колеса (проседающие/крепкие/пустые сферы) — не бутафория, а реальное
+// состояние, и каждый чип тапаемый (→ разбор с ИИ по этой сфере).
+function bosWheelChips(data, app) {
+  var brief = app && app.aiBrief;
+  var fromAI = (brief && Array.isArray(brief.wheelChips)) ? brief.wheelChips.filter(function (x) { return x && ("" + x).trim(); }) : [];
+  if (fromAI.length) return fromAI.slice(0, 4).map(function (t) { return { t: "" + t, tone: "ai", prompt: "Подробнее про: " + t }; });
+  var SPH = (data && data.spheres) || [];
+  if (!data || data.filled === 0) return [{ t: "Заведи первую привычку", tone: "empty", prompt: "С чего начать, чтобы колесо баланса начало заполняться?" }];
+  var out = [];
+  var lows = SPH.filter(function (s) { return s.n && s.v < 0.45; }).sort(function (a, b) { return a.v - b.v; });
+  var tops = SPH.filter(function (s) { return s.n && s.v >= 0.7; }).sort(function (a, b) { return b.v - a.v; });
+  var empties = SPH.filter(function (s) { return !s.n; });
+  lows.slice(0, 2).forEach(function (s) { out.push({ t: "«" + s.l + "» проседает", tone: "low", prompt: "Сфера «" + s.l + "» проседает. Что сделать, чтобы её подтянуть?" }); });
+  if (tops.length) out.push({ t: "«" + tops[0].l + "» держишь крепко", tone: "good", prompt: "«" + tops[0].l + "» у меня в порядке — как удержать и не сбиться?" });
+  if (out.length < 3) empties.slice(0, 3 - out.length).forEach(function (s) { out.push({ t: "Пусто в «" + s.l + "»", tone: "empty", prompt: "У меня пусто в сфере «" + s.l + "». Предложи привычку сюда." }); });
+  if (!out.length) out.push({ t: "Баланс ровный — так держать", tone: "good", prompt: "Мой баланс ровный. Куда расти дальше?" });
+  return out.slice(0, 4);
+}
+
 // Мини-версия hero-орба (тот же SiriOrb + живой t + мудовый tint) — для подсказки на колесе
 // (David: «орб в подсказке должен быть таким же, как на баннере сверху»). Самоанимируется
 // через свой useAIT, чтобы не перерисовывать всё колесо каждый кадр.
@@ -1413,24 +1434,23 @@ function BosBalanceWheelLive(props) {
   var grid = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
   var spoke = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
 
-  var brief = app && app.aiBrief;
-  var lows = SPH.filter(function (s) { return s.v < 0.5; }).sort(function (a, b) { return a.v - b.v; });
-  var aiLine = (brief && brief.wheelHint && ("" + brief.wheelHint).trim()) || "";
-  if (!aiLine) {
-    if (data.filled === 0) aiLine = "Заведи первую привычку — и колесо начнёт заполняться.";
-    else if (lows.length >= 2) aiLine = "«" + lows[0].l + "» и «" + lows[1].l + "» проседают — заведи привычку в этой сфере или отметься сегодня, чтобы выровнять.";
-    else if (lows.length === 1) aiLine = "«" + lows[0].l + "» просит внимания — остальное держишь ровно.";
-    else aiLine = "Хороший баланс — сферы держатся ровно. Так держать.";
-  }
+  var expandedState = React.useState(false), expanded = expandedState[0], setExpanded = expandedState[1];
+  var chips = bosWheelChips(data, app);
   var askWheel = function () { if (navigate) navigate("ai-chat", { prompt: "Разбери мой баланс по сферам жизни и подскажи, что подтянуть." }); };
 
   return (
     <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
-      {/* Заголовок + пояснение В КАРТОЧКЕ (David): что это ИИ сам следит и раскладывает ЛЮБЫЕ
-          привычки/цели — даже кастомные — по сферам жизни. Название «Баланс жизни» (не «колесо»). */}
-      <div style={{ paddingBottom: 12 }}>
-        <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div>
-        <div style={{ fontSize: 12.5, color: dark ? "#98989f" : "var(--text-4)", lineHeight: 1.45, marginTop: 4 }}>ИИ сам следит за всеми твоими привычками и целями — даже за придуманными тобой — раскладывает их по сферам жизни и считает, где ты в балансе, а где просело.</div>
+      {/* Заголовок + ГЛАЗИК компакт↔развёрнуто (David): компакт = только колесо (без расшифровок),
+          развёрнуто = + пояснение, сферы, чипы «ИИ заметил». Название «Баланс жизни» (не «колесо»). */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, paddingBottom: expanded ? 12 : 6 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div>
+          {expanded && <div style={{ fontSize: 12.5, color: dark ? "#98989f" : "var(--text-4)", lineHeight: 1.45, marginTop: 4 }}>ИИ сам следит за всеми твоими привычками и целями — даже за придуманными тобой — раскладывает их по сферам жизни и считает, где ты в балансе, а где просело.</div>}
+        </div>
+        <button onClick={function () { setExpanded(!expanded); }} className="tap" data-no-haptic aria-label={expanded ? "Свернуть" : "Развернуть"} aria-pressed={expanded}
+          style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center", background: expanded ? (dark ? "rgba(255,255,255,0.10)" : "#eef0f3") : "var(--surface-3)", color: "var(--text-3)", transition: "background 0.15s" }}>
+          <I.Eye size={18} filled={expanded} />
+        </button>
       </div>
       <div style={{ display: "flex", justifyContent: "center", padding: "2px 0" }}>
         <svg width={S} height={S} viewBox={"0 0 " + S + " " + S} style={{ overflow: "visible", display: "block" }}>
@@ -1451,6 +1471,7 @@ function BosBalanceWheelLive(props) {
         </svg>
       </div>
 
+      {expanded && (<>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginTop: 12 }}>
         {SPH.map(function (s) {
           var pct = Math.round(s.v * 100);
@@ -1482,7 +1503,7 @@ function BosBalanceWheelLive(props) {
             {sp.items.length ? (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {sp.items.map(function (it, ii) {
-                  return <span key={ii} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--text-2)", background: dark ? "rgba(255,255,255,0.06)" : "#fff", border: "0.5px solid var(--line)", borderRadius: 999, padding: "4px 9px" }}><span style={{ fontSize: 13 }}>{it.emoji}</span>{it.name}{it.kind === "goal" ? <span style={{ color: "var(--text-5)", marginLeft: 1 }}>· цель</span> : null}</span>;
+                  return <span key={ii} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--text-2)", background: dark ? "rgba(255,255,255,0.06)" : "#fff", border: "0.5px solid var(--line)", borderRadius: 999, padding: "4px 9px" }}><span style={{ fontSize: 13 }}>{bosDeSF(it.emoji)}</span>{it.name}{it.kind === "goal" ? <span style={{ color: "var(--text-5)", marginLeft: 1 }}>· цель</span> : null}</span>;
                 })}
               </div>
             ) : (
@@ -1492,14 +1513,28 @@ function BosBalanceWheelLive(props) {
         );
       })() : null}
 
-      <button onClick={askWheel} className="tap" data-no-haptic style={{ width: "100%", textAlign: "left", cursor: "pointer", display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12, padding: "11px 12px", background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"), borderRadius: 16 }}>
-        <span style={{ width: 28, height: 28, flexShrink: 0, display: "grid", placeItems: "center", marginTop: -1 }}>
-          <BosHeroOrbMini tint={tint} size={28} />
-        </span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 12.7, lineHeight: 1.5, color: "var(--text-2)" }}>{aiLine} <span style={{ color: "#4d6f9e", fontWeight: 700, whiteSpace: "nowrap" }}>Разобрать →</span></span>
-      </button>
+      {/* Чипы «ИИ заметил» — живые (из aiBrief или выведены из колеса), каждый тапаемый → разбор с ИИ. */}
+      <div style={{ marginTop: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
+          <span style={{ width: 22, height: 22, display: "grid", placeItems: "center", flexShrink: 0 }}><BosHeroOrbMini tint={tint} size={22} /></span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ИИ заметил</span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {chips.map(function (ch, ci) {
+            var dot = ch.tone === "low" ? "#FF8A3D" : ch.tone === "good" ? "#34C759" : ch.tone === "empty" ? "#C7C7CC" : "#4d6f9e";
+            return (
+              <button key={ci} onClick={function () { if (navigate) navigate("ai-chat", { prompt: ch.prompt || ("Разбери мой баланс: " + ch.t) }); }} className="tap" data-no-haptic
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-2)", background: dark ? "rgba(255,255,255,0.06)" : "#f4f5f7", border: "0.5px solid var(--line)", borderRadius: 999, padding: "6px 11px", cursor: "pointer" }}>
+                <span style={{ width: 7, height: 7, borderRadius: 999, background: dot, flexShrink: 0 }} />{ch.t}
+              </button>
+            );
+          })}
+        </div>
+        <button onClick={askWheel} className="tap" data-no-haptic style={{ width: "100%", textAlign: "center", cursor: "pointer", marginTop: 11, padding: "10px 12px", fontSize: 12.7, fontWeight: 700, color: "#4d6f9e", background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"), borderRadius: 14 }}>Разобрать баланс с ИИ →</button>
+      </div>
 
       <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", marginTop: 12, padding: "0 6px" }}>Нажми на сферу — покажу, какие твои привычки в неё вошли.</div>
+      </>)}
     </div>
   );
 }
@@ -5179,66 +5214,50 @@ const BOS_SYMBOLS = [
 ];
 function bosSymCmp(nm) { return (typeof BOS_SF !== "undefined" && BOS_SF[nm]) || (window.I || {})[nm] || null; }
 
-// Render a habit/goal/team icon. A "sf:<Name>" sentinel → the monochrome glyph in `color`;
-// anything else (a normal emoji string) is returned UNCHANGED, so existing data and the
-// DEMO stay pixel-identical. Used at every live icon site so a chosen symbol shows up
-// everywhere, never as raw "sf:…" text.
+// Legacy SF-symbol → эмодзи. David убрал монохромные «Символы» из пикера (только эмодзи), поэтому
+// любую иконку, ранее сохранённую как "sf:<Name>", теперь показываем ближайшим по смыслу эмодзи —
+// везде, вживую, НЕ трогая сохранённые данные (при следующем ре-сохранении эмодзи закрепится).
+const BOS_SF_TO_EMOJI = {
+  Heart: "❤️", Activity: "🏃", Dumbbell: "🏋️", Bicycle: "🚴", Flame: "🔥", Drop: "💧", Bed: "🛏️",
+  Pill: "💊", Apple: "🍎", Cup: "☕", Bulb: "💡", Book: "📖", Pencil: "✏️", Music: "🎵",
+  Headphones: "🎧", Palette: "🎨", Mic: "🎤", Sun: "☀️", Sunrise: "🌅", Moon: "🌙", Clock: "⏰",
+  Bell: "🔔", Calendar: "📅", Target: "🎯", Trophy: "🏆", Flag: "🚩", Sparkles: "✨", Star: "⭐",
+  Sprout: "🌱", ChartBar: "📊", Users: "👥", Globe: "🌍", MapPin: "📍", Mountain: "⛰️", Tree: "🌳",
+  Camera: "📷", Game: "🎮", Gift: "🎁", Compass: "🧭", Briefcase: "💼", Wallet: "👛", Dollar: "💰",
+  Home: "🏠", Phone: "📱", Mail: "✉️", Snowflake: "❄️",
+};
+function bosDeSF(val) {
+  if (typeof val === "string" && val.slice(0, 3) === "sf:") return BOS_SF_TO_EMOJI[val.slice(3)] || "✨";
+  return val;
+}
+// Render a habit/goal/team icon — теперь всегда эмодзи-строка (старое "sf:<Name>" → эмодзи через
+// bosDeSF). size/color для эмодзи игнорируются; оставлены в сигнатуре для совместимости вызовов.
+// Никогда не показывает сырой текст "sf:…".
 function bosIcon(val, size, color) {
-  if (typeof val === "string" && val.slice(0, 3) === "sf:") {
-    var Cmp = bosSymCmp(val.slice(3));
-    if (Cmp) return React.createElement(Cmp, { size: size || 22, color: color || "currentColor", strokeWidth: 1.85 });
-    return null;
-  }
-  return val || "";
+  return bosDeSF(val) || "";
 }
 
 function EmojiPickerLive({ onPick, accent = "#0a0a0a", current, embedded = false }) {
   const { close } = useSheet();
-  const [mode, setMode] = React.useState((typeof current === "string" && current.slice(0, 3) === "sf:") ? "symbol" : "emoji");
   const [cat, setCat] = React.useState(0);
   // embedded = живёт ВНУТРИ другой шторки (напр. создание командной привычки) → не закрывать
   // общий sheet-хост на выбор, просто вернуть значок (one-sheet host рендерит одну шторку).
   const pick = (e) => { if (onPick) onPick(e); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (_) {} } if (!embedded) close(); };
-  const symColor = (typeof accent === "string" && accent[0] === "#") ? accent : "#0a0a0a";
+  // David: только ЭМОДЗИ — монохромные «Символы» убраны (у кого были — bosDeSF заменил на эмодзи).
   return (
     <div style={{ padding: "2px 10px 6px", color: "#0a0a0a" }}>
       <div style={{ textAlign: "center", fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Выбери иконку</div>
-      {/* Toggle — colourful ЭМОДЗИ (left, default) / monochrome iOS-style СИМВОЛЫ (right). David
-          flipped the order: emoji first. */}
-      <div style={{ display: "flex", gap: 4, padding: 3, background: "var(--surface-3)", borderRadius: 12, marginBottom: 12 }}>
-        {[["emoji", "Эмодзи"], ["symbol", "Символы"]].map((m) => (
-          <button key={m[0]} className="tap" data-no-haptic onClick={() => setMode(m[0])}
-            style={{ flex: 1, height: 34, borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: 600, cursor: "pointer",
-              background: mode === m[0] ? "#fff" : "transparent", color: mode === m[0] ? "#0a0a0a" : "var(--text-3)",
-              boxShadow: mode === m[0] ? "0 1px 3px rgba(0,0,0,0.10)" : "none", transition: "background 0.15s" }}>{m[1]}</button>
+      <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+        {BOS_EMOJI_CATS.map((c, i) => (
+          <button key={i} className="tap" data-no-haptic onClick={() => setCat(i)} aria-label={"Категория " + (i + 1)}
+            style={{ flex: 1, height: 38, borderRadius: 11, border: 0, fontSize: 19, cursor: "pointer", background: i === cat ? "var(--surface-3)" : "transparent" }}>{c.ic}</button>
         ))}
       </div>
-      {mode === "symbol" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, maxHeight: 264, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "2px 0" }}>
-          {BOS_SYMBOLS.map((nm, i) => {
-            var Cmp = bosSymCmp(nm);
-            if (!Cmp) return null;
-            return (
-              <button key={i} className="tap" data-no-haptic onClick={() => pick("sf:" + nm)} aria-label={nm}
-                style={{ aspectRatio: "1 / 1", borderRadius: 14, border: 0, background: "var(--surface-3)", display: "grid", placeItems: "center", cursor: "pointer", padding: 0 }}>
-                <Cmp size={23} color={symColor} strokeWidth={2} />
-              </button>
-            );
-          })}
-        </div>
-      ) : (<>
-        <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
-          {BOS_EMOJI_CATS.map((c, i) => (
-            <button key={i} className="tap" data-no-haptic onClick={() => setCat(i)} aria-label={"Категория " + (i + 1)}
-              style={{ flex: 1, height: 38, borderRadius: 11, border: 0, fontSize: 19, cursor: "pointer", background: i === cat ? "var(--surface-3)" : "transparent" }}>{c.ic}</button>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 2, maxHeight: 248, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-          {BOS_EMOJI_CATS[cat].list.map((e, i) => (
-            <button key={i} className="tap" data-no-haptic onClick={() => pick(e)} style={{ aspectRatio: "1 / 1", borderRadius: 10, border: 0, background: "transparent", fontSize: 25, cursor: "pointer", padding: 0 }}>{e}</button>
-          ))}
-        </div>
-      </>)}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 2, maxHeight: 300, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        {BOS_EMOJI_CATS[cat].list.map((e, i) => (
+          <button key={i} className="tap" data-no-haptic onClick={() => pick(e)} style={{ aspectRatio: "1 / 1", borderRadius: 10, border: 0, background: "transparent", fontSize: 25, cursor: "pointer", padding: 0 }}>{e}</button>
+        ))}
+      </div>
     </div>
   );
 }
