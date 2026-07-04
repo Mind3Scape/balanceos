@@ -2157,10 +2157,9 @@ var BOS_HOME_WIDGETS = [
   // (как плитки) — правило видимости «НЕ в hidden», см. effLayout в home_live.
   { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", emoji: "⚡" },
   { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅" },
-  // «Состояние» ВЕРНУЛОСЬ (David: «изначально всё строилось вокруг состояния, а мы его
-  // скрыли»): раз в день отметил, как ты, — за неделю складывается картинка, и ИИ
-  // подстраивается. Добирается на доску само (как quick) — после «Эта неделя».
-  { id: "mood",    t: "Состояние",    d: "Как ты — день за днём",    emoji: "🌤" },
+  // «Состояние» СКРЫТО до согласованного макета (David: «нарисуй, как оно должно выглядеть,
+  // где быть и как себя вести — в масштабе человека и мультиплеера, а не тяп-ляп»). Кейс
+  // id==="mood" в home_live жив; вернуть = строка {id:"mood"} сюда + добор в effLayout.
   { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥" },
   // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
   // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
@@ -2201,13 +2200,12 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   const setL = (order, hid) => { if (app && app.setHomeLayout) { app.setHomeLayout({ order, hidden: hid }); haptic(); } };
   const toggleWidget = (id) => {
     const k = "w:" + id;
-    // «Быстрое добавление» и «Состояние» добираются на доску сами (как плитки)
-    // → их вкл = НЕ в hidden.
-    if (id === "quick" || id === "mood") { toggleTile(k); return; }
+    // «Быстрое добавление» добирается на доску само (как плитки) → его вкл = НЕ в hidden.
+    if (id === "quick") { toggleTile(k); return; }
     if (inOrder(k)) setL(layout.order.filter((x) => x !== k), hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden);
     else setL(layout.order.concat([k]), hidden.filter((x) => x !== k));
   };
-  const widgetOn = (id) => (id === "quick" || id === "mood") ? (hidden.indexOf("w:" + id) < 0) : inOrder("w:" + id);
+  const widgetOn = (id) => (id === "quick") ? (hidden.indexOf("w:quick") < 0) : inOrder("w:" + id);
   const tileOn = (k) => hidden.indexOf(k) < 0;
   const toggleTile = (k) => {
     if (tileOn(k)) setL(layout.order.filter((x) => x !== k), hidden.concat([k]));
@@ -3298,8 +3296,9 @@ function PartnersShowcaseLive({ app, navigate, from = "community", onAll }) {
         )}
       </div>
       {/* padding-bottom 18 — иначе overflow-y (авто из-за overflow-x) СРЕЗАЕТ тень карточек в серую
-          полосу «внизу обрезается» (David). Тень мягкая, чтобы не мутить фон. */}
-      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "3px 0 18px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
+          полосу «внизу обрезается» (David). Тень мягкая, чтобы не мутить фон.
+          Full-bleed (David: «обрезаться самим экраном»): -12/+12 выводит ленту за паддинг страницы. */}
+      <div className="bos-hscroll" style={{ display: "flex", gap: 11, overflowX: "auto", padding: "3px 12px 18px", margin: "0 -12px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
         {BOS_PARTNERS.map((p) => {
           const got = !!redeemed[p.id];
           return (

@@ -244,14 +244,9 @@ function HomeLive() {
       order.splice(hi >= 0 ? hi + 1 : 0, 0, "w:quick");
       seen["w:quick"] = 1;
     }
-    // «Состояние» (w:mood) ВЕРНУЛОСЬ на доску (David: «всё строилось вокруг состояния») —
-    // добирается само, как quick: после «Эта неделя» (или последнего из hero/quick).
-    if (!seen["w:mood"] && hidden.indexOf("w:mood") < 0) {
-      let at = -1;
-      ["w:hero", "w:quick", "w:week"].forEach((k) => { const i2 = order.indexOf(k); if (i2 > at) at = i2; });
-      order.splice(at >= 0 ? at + 1 : 0, 0, "w:mood");
-      seen["w:mood"] = 1;
-    }
+    // «Состояние» (w:mood) снова СКРЫТО до согласованного макета (David: сначала продумать,
+    // где живёт и как ведёт себя — в масштабе человека и мультиплеера). Добор убран; кейс
+    // nodeOf("mood") жив — вернуть = строка в BOS_HOME_WIDGETS + добор здесь.
     return { order, hidden };
   }, [layoutObj, habits, goals, teams, widgets]);
   const saveLayout = (patch) => { if (app?.setHomeLayout) app.setHomeLayout({ ...effLayout, ...patch }); };

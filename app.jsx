@@ -22,14 +22,15 @@ const TAB_ROUTES = new Set(["home", "habits", "community", "ai"]);
 // «Я» — четвёртая справа, прячется тумблером в настройках (bos:profileTab). Демо живёт на старом
 // TAB_ROUTES/дефолте TabBar — его не трогаем.
 const LIVE_TAB_ROUTES = new Set(["home", "community", "ai", "profile"]);
-// Иконки-СЕМЬЯ «система колец» (David: «все в одном стиле»): солнце (твой день в центре)
-// · орбита с людьми · искры ИИ · ты в кольце уровня. Демо живёт на старом дефолте TabBar.
+// Иконки-семья «система колец» (солнце · орбита · искры · ты-в-кольце) ОТКАЧЕНА до
+// согласования (David: «перерисуй и согласуй прежде чем делать») — черновые Sun/OrbitPeople/
+// PersonRing остались в icons.jsx; после отмашки по новому макету просто заменить имена тут.
 const LIVE_TABS_BASE = [
-  { id: "home", icon: "Sun" },
-  { id: "community", icon: "OrbitPeople" },
+  { id: "home", icon: "Home" },
+  { id: "community", icon: "Group" },
   { id: "ai", icon: "Sparkles" },
 ];
-const LIVE_TAB_PROFILE = { id: "profile", icon: "PersonRing" };
+const LIVE_TAB_PROFILE = { id: "profile", icon: "Person" };
 const FULLBLEED_ROUTES = new Set(["intro", "onboarding", "signup", "onb-mood"]);
 
 // Root (html/body) background per screen — matches each screen's own base
@@ -202,7 +203,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v539";
+const APP_VERSION = "v540";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.

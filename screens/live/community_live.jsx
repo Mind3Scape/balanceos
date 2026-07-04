@@ -222,8 +222,9 @@ function CommunityLive() {
           а фокус той же ленты: «Все» показывает всё подряд. Во время поиска уступают
           месту результатам. */}
       {!searching && (
-      <div className="bos-hscroll" style={{ display: "flex", gap: 7, padding: "2px 2px 0", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x",
-        WebkitMaskImage: "linear-gradient(90deg, #000 92%, transparent)", maskImage: "linear-gradient(90deg, #000 92%, transparent)" }}>
+      /* Full-bleed (David: «карточки должны обрезаться самим экраном»): лента выезжает за
+         паддинг страницы (12px) и режется физическим краем — как в iOS, без масок. */
+      <div className="bos-hscroll" style={{ display: "flex", gap: 7, padding: "2px 14px 0", margin: "0 -12px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
         {/* ЗАГОТОВКА (Е3, план David): чип ["nearby", "Рядом"] — режим КАРТЫ партнёров города.
             Включаем, когда партнёры появятся больше чем в одном городе. */}
         {/* Иконки у категорий (David: «svg-иконок не хватает, чтобы чётче отличать»). */}
@@ -364,7 +365,8 @@ function CommunityLive() {
                   LivingCircleCardLive (лица и привычки на кольцах), фикс-ширина в ленте,
                   соседняя выглядывает; следом — компакт-плитки челленджей. */}
               <CommSectionHeadLive title="🌱 Круги" onAll={() => setFilter("circles")} />
-              <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 0 14px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", marginTop: -2 }}>
+              {/* Full-bleed: обрезка краем экрана (margin -12 / padding 12), не паддингом страницы. */}
+              <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 12px 14px", margin: "-2px -12px 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
                 {LIVING_CIRCLES.map((s) => (
                   <LivingCircleCardLive key={s.id} circle={s} w={324}
                     onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
@@ -453,7 +455,8 @@ function CommunityLive() {
                 сравнению с оригинальной — используй реальную, и ещё карточку рядом»):
                 тот же макет, что на странице «Тренинги», фикс-ширина — соседняя выглядывает. */}
             <CommSectionHeadLive title="🎓 Тренинги" onAll={() => setFilter("training")} />
-            <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 0 14px", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", marginTop: -2 }}>
+            {/* Full-bleed: обрезка краем экрана, как у кругов. */}
+            <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 12px 14px", margin: "-2px -12px 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
               {courses.map((c, i) => (
                 <button key={c.id} data-tour={i === 0 ? "course" : undefined} onClick={() => navigate("course-detail", { course: c })} className="tap"
                   style={{ flex: "0 0 auto", width: 305, scrollSnapAlign: "start", background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", color: "var(--text)", display: "flex", flexDirection: "column", cursor: "pointer" }}>

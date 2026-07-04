@@ -483,18 +483,21 @@ function CommunityLive() {
   }, /*#__PURE__*/React.createElement(I.X, {
     size: 12,
     strokeWidth: 2.6
-  }))), !searching && /*#__PURE__*/React.createElement("div", {
+  }))), !searching &&
+  /*#__PURE__*/
+  /* Full-bleed (David: «карточки должны обрезаться самим экраном»): лента выезжает за
+     паддинг страницы (12px) и режется физическим краем — как в iOS, без масок. */
+  React.createElement("div", {
     className: "bos-hscroll",
     style: {
       display: "flex",
       gap: 7,
-      padding: "2px 2px 0",
+      padding: "2px 14px 0",
+      margin: "0 -12px",
       overflowX: "auto",
       scrollbarWidth: "none",
       WebkitOverflowScrolling: "touch",
-      touchAction: "pan-x",
-      WebkitMaskImage: "linear-gradient(90deg, #000 92%, transparent)",
-      maskImage: "linear-gradient(90deg, #000 92%, transparent)"
+      touchAction: "pan-x"
     }
   }, [["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Тренинги", I.Bolt]].map(([id, t, Ic]) => {
     var on = filter === id;
@@ -875,10 +878,10 @@ function CommunityLive() {
       alignItems: "stretch",
       gap: 10,
       overflowX: "auto",
-      padding: "3px 0 14px",
+      padding: "3px 12px 14px",
+      margin: "-2px -12px 0",
       scrollSnapType: "x proximity",
-      WebkitOverflowScrolling: "touch",
-      marginTop: -2
+      WebkitOverflowScrolling: "touch"
     }
   }, LIVING_CIRCLES.map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
     key: s.id,
@@ -1067,10 +1070,10 @@ function CommunityLive() {
       alignItems: "stretch",
       gap: 10,
       overflowX: "auto",
-      padding: "3px 0 14px",
+      padding: "3px 12px 14px",
+      margin: "-2px -12px 0",
       scrollSnapType: "x proximity",
-      WebkitOverflowScrolling: "touch",
-      marginTop: -2
+      WebkitOverflowScrolling: "touch"
     }
   }, courses.map((c, i) => /*#__PURE__*/React.createElement("button", {
     key: c.id,

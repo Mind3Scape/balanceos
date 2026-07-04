@@ -4617,15 +4617,10 @@ var BOS_HOME_WIDGETS = [{
   d: "Недельная активность",
   emoji: "📅"
 },
-// «Состояние» ВЕРНУЛОСЬ (David: «изначально всё строилось вокруг состояния, а мы его
-// скрыли»): раз в день отметил, как ты, — за неделю складывается картинка, и ИИ
-// подстраивается. Добирается на доску само (как quick) — после «Эта неделя».
+// «Состояние» СКРЫТО до согласованного макета (David: «нарисуй, как оно должно выглядеть,
+// где быть и как себя вести — в масштабе человека и мультиплеера, а не тяп-ляп»). Кейс
+// id==="mood" в home_live жив; вернуть = строка {id:"mood"} сюда + добор в effLayout.
 {
-  id: "mood",
-  t: "Состояние",
-  d: "Как ты — день за днём",
-  emoji: "🌤"
-}, {
   id: "team",
   t: "Вместе",
   d: "Ваши совместные цели",
@@ -4718,15 +4713,14 @@ function HomeGalleryContentLive({
   };
   var toggleWidget = id => {
     var k = "w:" + id;
-    // «Быстрое добавление» и «Состояние» добираются на доску сами (как плитки)
-    // → их вкл = НЕ в hidden.
-    if (id === "quick" || id === "mood") {
+    // «Быстрое добавление» добирается на доску само (как плитки) → его вкл = НЕ в hidden.
+    if (id === "quick") {
       toggleTile(k);
       return;
     }
     if (inOrder(k)) setL(layout.order.filter(x => x !== k), hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden);else setL(layout.order.concat([k]), hidden.filter(x => x !== k));
   };
-  var widgetOn = id => id === "quick" || id === "mood" ? hidden.indexOf("w:" + id) < 0 : inOrder("w:" + id);
+  var widgetOn = id => id === "quick" ? hidden.indexOf("w:quick") < 0 : inOrder("w:" + id);
   var tileOn = k => hidden.indexOf(k) < 0;
   var toggleTile = k => {
     if (tileOn(k)) setL(layout.order.filter(x => x !== k), hidden.concat([k]));else setL(inOrder(k) ? layout.order : layout.order.concat([k]), hidden.filter(x => x !== k));
@@ -7932,7 +7926,8 @@ function PartnersShowcaseLive({
       display: "flex",
       gap: 11,
       overflowX: "auto",
-      padding: "3px 0 18px",
+      padding: "3px 12px 18px",
+      margin: "0 -12px",
       scrollSnapType: "x proximity",
       WebkitOverflowScrolling: "touch"
     }
