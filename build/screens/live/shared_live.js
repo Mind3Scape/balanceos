@@ -8048,9 +8048,11 @@ function MoodWidgetLive({
       display: "block",
       boxShadow: d.today ? `0 0 0 2px ${trailRing}` : "none"
     }
-  }, /*#__PURE__*/React.createElement(MiniOrb, {
+  }, /*#__PURE__*/React.createElement(StaticOrb, {
     size: 22,
-    tint: d.m.tint || tintFromMood(d.m.c)
+    tint: tintFromMood(d.m.c),
+    seed: 1.2,
+    intensity: 0.45
   })) : /*#__PURE__*/React.createElement("span", {
     style: {
       width: 22,

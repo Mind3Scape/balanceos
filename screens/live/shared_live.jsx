@@ -3342,7 +3342,7 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
                 width: 22, height: 22, borderRadius: "50%", display: "block",
                 boxShadow: d.today ? `0 0 0 2px ${trailRing}` : "none",
               }}>
-                <MiniOrb size={22} tint={d.m.tint || tintFromMood(d.m.c)} />
+                <StaticOrb size={22} tint={tintFromMood(d.m.c)} seed={1.2} intensity={0.45} />
               </span>
             ) : (
               <span style={{
