@@ -1,8 +1,10 @@
 # Публикация BalanceOS на GitHub Pages СОБСТВЕННЫМ workflow.
 # Причина: легаси-конвейер «pages build and deployment» намертво заклинило зомби-ранами
-# (queued с 02.07, ни cancel, ни delete их не берут) — каждый второй деплой умирал по
-# таймауту в очереди за ними. Свой workflow = своя чистая очередь; cancel-in-progress
-# гарантирует «последний пуш побеждает» без хвостов.
+# (queued с 02.07, ни cancel, ни delete, ни disable их НЕ берут — HTTP 422/403) — из-за их
+# лока публикация actions/deploy-pages часто падает на 1-й попытке «Deployment failed, try
+# again later». Раньше лечили ручным workflow_dispatch. Теперь — АВТО-РЕТРАЙ в том же ране
+# (David: «сделай сам, чтобы больше не сталкиваться»): deploy пробуем до 3 раз с паузой, пуш
+# самолечится без ручных пинков. concurrency cancel-in-progress = «последний пуш побеждает».
 name: Deploy Pages
 on:
   push:
@@ -23,12 +25,27 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deploy3.outputs.page_url || steps.deploy2.outputs.page_url || steps.deploy1.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
-      - id: deployment
+      # Попытка 1
+      - id: deploy1
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      # Попытка 2 (только если 1-я флакнула)
+      - if: steps.deploy1.outcome == 'failure'
+        run: sleep 12
+      - id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      # Попытка 3 (последняя; если упадёт — ран честно красный)
+      - if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: sleep 20
+      - id: deploy3
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
         uses: actions/deploy-pages@v4
