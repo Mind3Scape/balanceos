@@ -758,13 +758,19 @@ function TeamDetailLive() {
   // через goal.desc), aiChips = 1-2 честных наблюдения по реальному состоянию цели.
   const desc = (gpd && gpd.desc) || t.desc || "";
   const modeMeta = ({ collective: { e: "🌊", t: "Общий счёт" }, streak: { e: "🔥", t: "Серия у каждого" }, race: { e: "🏁", t: "Гонка" } })[gType] || { e: "🌊", t: "Общий счёт" };
-  const aiChips = (function () {
+  // ЧИПЫ ОБЩЕЙ ЦЕЛИ (David: прогресс НЕ дублируем — его видно по орбите; показываем ПУЛЬС и важные
+  // данные круга): сегодня в деле · лидер/топ-вкладчик · банк · люди. gDone → празднуем. Пусто → зов.
+  const _peopleWord = function (n) { return (n % 10 === 1 && n % 100 !== 11) ? "человек" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "человека" : "человек"); };
+  const teamChips = (function () {
+    if (gDone) return [{ t: "🎉 Цель достигнута", hot: true }];
     var out = [];
-    if (gDone) { out.push("🎉 Цель достигнута"); return out; }
-    if (inFlowToday > 0) out.push("🔥 сегодня " + inFlowToday + " в деле");
-    else if (gTgt > 0 && gCur === 0) out.push("✨ Пора сделать первый шаг");
-    if (out.length < 2 && gTgt > 0 && gCur > 0 && gRemaining > 0 && (gRemaining / gTgt) <= 0.25) out.push("💪 финишная прямая");
-    return out.slice(0, 2);
+    if (inFlowToday > 0) out.push({ t: "🔥 сегодня " + inFlowToday + " в деле", hot: true });
+    var top = null; (contrib || []).forEach(function (m) { if (m && (top === null || m.value > top.value)) top = m; });
+    if (top && top.value > 0) out.push({ t: (isRace ? "🏆 лидер " : "⭐ ") + (top.me ? "Ты" : ("" + (top.name || "")).split(" ")[0]) + " · " + top.value + (gUnit ? " " + gUnit : "") });
+    if (stake > 0) out.push({ t: "🪙 банк " + bank + " XP" });
+    if (!_rosterLoading) out.push({ t: "👥 " + members.length + " " + _peopleWord(members.length) });
+    if (!out.length) out.push({ t: "✨ Позовите людей и начните", hot: true });
+    return out.slice(0, 4);
   })();
   const H = bosGoalHero(teamColor, isDark);
   const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: H.btnBg, color: H.btnInk, flexShrink: 0 };
@@ -816,10 +822,7 @@ function TeamDetailLive() {
           {desc ? <div style={{ fontSize: 13, color: H.sub, marginTop: 7, lineHeight: 1.45, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{desc}</div> : null}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 14 }}>
-          {gTgt > 0 && <span style={heroChip}>🎯 {gCur}/{gTgt} {gUnit}</span>}
-          {gTgt > 0 && gRemaining > 0 && !gDone && <span style={heroChip}>⏳ осталось {gRemaining}</span>}
-          <span style={heroChip}>👥 {_rosterLoading ? "…" : members.length}</span>
-          {aiChips.map((ch, i) => <span key={"ai" + i} style={heroChipAI}>{ch}</span>)}
+          {teamChips.map((ch, i) => <span key={i} style={ch.hot ? heroChipAI : heroChip}>{ch.t}</span>)}
         </div>
       </div>
 

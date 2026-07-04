@@ -1529,15 +1529,39 @@ function TeamDetailLive() {
     e: "🌊",
     t: "Общий счёт"
   };
-  var aiChips = function () {
+  // ЧИПЫ ОБЩЕЙ ЦЕЛИ (David: прогресс НЕ дублируем — его видно по орбите; показываем ПУЛЬС и важные
+  // данные круга): сегодня в деле · лидер/топ-вкладчик · банк · люди. gDone → празднуем. Пусто → зов.
+  var _peopleWord = function (n) {
+    return n % 10 === 1 && n % 100 !== 11 ? "человек" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "человека" : "человек";
+  };
+  var teamChips = function () {
+    if (gDone) return [{
+      t: "🎉 Цель достигнута",
+      hot: true
+    }];
     var out = [];
-    if (gDone) {
-      out.push("🎉 Цель достигнута");
-      return out;
-    }
-    if (inFlowToday > 0) out.push("🔥 сегодня " + inFlowToday + " в деле");else if (gTgt > 0 && gCur === 0) out.push("✨ Пора сделать первый шаг");
-    if (out.length < 2 && gTgt > 0 && gCur > 0 && gRemaining > 0 && gRemaining / gTgt <= 0.25) out.push("💪 финишная прямая");
-    return out.slice(0, 2);
+    if (inFlowToday > 0) out.push({
+      t: "🔥 сегодня " + inFlowToday + " в деле",
+      hot: true
+    });
+    var top = null;
+    (contrib || []).forEach(function (m) {
+      if (m && (top === null || m.value > top.value)) top = m;
+    });
+    if (top && top.value > 0) out.push({
+      t: (isRace ? "🏆 лидер " : "⭐ ") + (top.me ? "Ты" : ("" + (top.name || "")).split(" ")[0]) + " · " + top.value + (gUnit ? " " + gUnit : "")
+    });
+    if (stake > 0) out.push({
+      t: "🪙 банк " + bank + " XP"
+    });
+    if (!_rosterLoading) out.push({
+      t: "👥 " + members.length + " " + _peopleWord(members.length)
+    });
+    if (!out.length) out.push({
+      t: "✨ Позовите людей и начните",
+      hot: true
+    });
+    return out.slice(0, 4);
   }();
   var H = bosGoalHero(teamColor, isDark);
   var heroBtn = {
@@ -1803,16 +1827,10 @@ function TeamDetailLive() {
       gap: 6,
       marginTop: 14
     }
-  }, gTgt > 0 && /*#__PURE__*/React.createElement("span", {
-    style: heroChip
-  }, "\uD83C\uDFAF ", gCur, "/", gTgt, " ", gUnit), gTgt > 0 && gRemaining > 0 && !gDone && /*#__PURE__*/React.createElement("span", {
-    style: heroChip
-  }, "\u23F3 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ", gRemaining), /*#__PURE__*/React.createElement("span", {
-    style: heroChip
-  }, "\uD83D\uDC65 ", _rosterLoading ? "…" : members.length), aiChips.map((ch, i) => /*#__PURE__*/React.createElement("span", {
-    key: "ai" + i,
-    style: heroChipAI
-  }, ch)))), /*#__PURE__*/React.createElement("div", {
+  }, teamChips.map((ch, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: ch.hot ? heroChipAI : heroChip
+  }, ch.t)))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "8px 16px 0"
     }

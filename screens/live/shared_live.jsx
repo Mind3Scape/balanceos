@@ -239,22 +239,44 @@ function bosLum(hx) {
 // белый — на глубоком). Нейтральная цель (без цвета) → деликатный серый градиент, не плоскота.
 // Возвращает готовые токены, чтобы обе карточки выглядели идентично и «богаче партнёрской».
 function bosGoalHero(color, isDark) {
-  var neutral = !color || color === (typeof BOS_GREY !== "undefined" ? BOS_GREY : "#8E8E93") || ("" + color).toLowerCase() === "#0a0a0a" || color === "#8E8E93" || color === "#EAEAEF";
-  var c1, c2;
-  if (neutral) { c1 = isDark ? "#27272e" : "#F2F2F6"; c2 = isDark ? "#191920" : "#E3E3EC"; }
-  else { c1 = bosMixHex(color, isDark ? "#0e0e12" : "#ffffff", isDark ? 0.50 : 0.66); c2 = bosMixHex(color, isDark ? "#0e0e12" : "#ffffff", isDark ? 0.26 : 0.40); }
-  var onDark = bosLum(c2) < 0.58;
+  // СТАНДАРТИЗАЦИЯ ПО ТОНАМ (David: «цвет внутри и снаружи должен совпадать»): hero берёт ТОТ ЖЕ
+  // тон, что плитка цели bosGoalSkin — светлая тема bosLightenHex(accent,0.52) + ТЁМНЫЙ текст,
+  // тёмная тема bosMixHex(accent,#0d0f14,0.24) + белый. Никакого адаптивного «то тёмный, то белый»
+  // (из-за него деталь не совпадала с плиткой). Hero = та же плитка, только крупнее и с градиентом.
+  var accent = (color && ("" + color).toLowerCase() !== "#0a0a0a" && color !== "#8E8E93" && color !== "#EAEAEF" && color !== (typeof BOS_GREY !== "undefined" ? BOS_GREY : "#8E8E93")) ? color : null;
+  if (!accent) {
+    return {
+      bg: isDark
+        ? "radial-gradient(135% 100% at 50% -12%, rgba(255,255,255,0.06), rgba(255,255,255,0) 60%), linear-gradient(157deg, #26262e 0%, #191920 100%)"
+        : "radial-gradient(135% 100% at 50% -12%, rgba(255,255,255,0.6), rgba(255,255,255,0) 60%), linear-gradient(157deg, #F2F2F6 0%, #E4E4EC 100%)",
+      ink: isDark ? "#fff" : "#16161a", sub: isDark ? "rgba(255,255,255,0.72)" : "rgba(22,22,26,0.56)",
+      btnBg: isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.75)", btnInk: isDark ? "#fff" : "#1b1b1f",
+      chipBg: isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.7)", chipInk: isDark ? "rgba(255,255,255,0.92)" : "#26262c",
+      chipAiBg: isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.95)", chipAiInk: isDark ? "#cdd8f0" : "#3a5a8c",
+      onDark: isDark,
+    };
+  }
+  if (isDark) {
+    var d1 = bosMixHex(accent, "#0d0f14", 0.16), d2 = bosMixHex(accent, "#0d0f14", 0.30);
+    return {
+      bg: "radial-gradient(135% 100% at 50% -12%, rgba(255,255,255,0.16), rgba(255,255,255,0) 58%), linear-gradient(157deg, " + d1 + " 0%, " + d2 + " 100%)",
+      ink: "#fff", sub: "rgba(255,255,255,0.74)",
+      btnBg: "rgba(255,255,255,0.18)", btnInk: "#fff",
+      chipBg: "rgba(255,255,255,0.16)", chipInk: "rgba(255,255,255,0.95)",
+      chipAiBg: "rgba(255,255,255,0.92)", chipAiInk: "#3a5a8c",
+      onDark: true,
+    };
+  }
+  var soft = bosLightenHex(accent, 0.52); // = тон светлой плитки цели
+  var top = bosLightenHex(accent, 0.60);
+  var low = bosLightenHex(accent, 0.45);
   return {
-    bg: "radial-gradient(135% 100% at 50% -15%, rgba(255,255,255," + (onDark ? "0.20" : "0.55") + "), rgba(255,255,255,0) 60%), linear-gradient(157deg, " + c1 + " 0%, " + c2 + " 100%)",
-    ink: onDark ? "#ffffff" : "#16161a",
-    sub: onDark ? "rgba(255,255,255,0.78)" : "rgba(22,22,26,0.56)",
-    btnBg: onDark ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.72)",
-    btnInk: onDark ? "#ffffff" : "#1b1b1f",
-    chipBg: onDark ? "rgba(255,255,255,0.17)" : "rgba(255,255,255,0.66)",
-    chipInk: onDark ? "rgba(255,255,255,0.96)" : "#26262c",
-    chipAiBg: onDark ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.96)",
-    chipAiInk: "#3a5a8c",
-    onDark: onDark,
+    bg: "radial-gradient(135% 100% at 50% -12%, rgba(255,255,255,0.5), rgba(255,255,255,0) 60%), linear-gradient(157deg, " + top + " 0%, " + soft + " 52%, " + low + " 100%)",
+    ink: "#1b1b1f", sub: "rgba(27,27,31,0.56)",
+    btnBg: "rgba(255,255,255,0.72)", btnInk: "#1b1b1f",
+    chipBg: "rgba(255,255,255,0.62)", chipInk: "#26262c",
+    chipAiBg: "rgba(255,255,255,0.95)", chipAiInk: "#3a5a8c",
+    onDark: false,
   };
 }
 // Пустая клетка календаря = МЯГКИЙ тон цвета привычки (David: «пустые дни должны стать мягко-
