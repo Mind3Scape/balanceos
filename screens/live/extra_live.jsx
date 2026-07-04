@@ -285,6 +285,13 @@ function GoalDetailPersonalLive() {
   const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: H.btnBg, color: H.btnInk, flexShrink: 0 };
   const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: H.chipBg, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: H.chipInk, whiteSpace: "nowrap" };
   const heroChipAI = Object.assign({}, heroChip, { background: H.chipAiBg, color: H.chipAiInk, boxShadow: H.onDark ? "none" : "0 1px 4px rgba(40,60,110,0.12)" });
+  // Календарь личной цели (Stage 3 — единый календарь ВЕЗДЕ): люди=[Ты], доля = сколько привычек
+  // цели закрыто в этот день / всего привязанных. Плюс сводки для свёрнутых секций аккордеона.
+  const _cyP = new Date().getFullYear();
+  const _dkP = (d, mi) => _cyP + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  const goalDayFrac = (pi, d, mi) => { if (!linked.length) return 0; const k = _dkP(d, mi); let n = 0; linked.forEach((h) => { if (h.log && h.log[k]) n++; }); return n / linked.length; };
+  const _calPeople = [{ name: "Ты", you: true, color: goalColor, avatar: app?.avatar }];
+  const _habitWordP = (n) => (n % 10 === 1 && n % 100 !== 11) ? "привычка" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "привычки" : "привычек");
   return (
     <div className="page-in" style={{ paddingBottom: 24 }}>
       {/* HERO — full-bleed до самого верха, снизу радиус 30 (как у общей цели/партнёра): правка+
@@ -333,8 +340,12 @@ function GoalDetailPersonalLive() {
       {/* СКЛАДЫВАЕТСЯ ИЗ ПРИВЫЧЕК — цель ведут её привычки: отмечаешь ПРЯМО ТУТ (чек-кружок), кольцо
           растёт. Тап по имени → детали привычки. «+ Привычка для этой цели» заводит новую (можно
           «только внутри цели»). Пусто → мягкий призыв. Ручного «+1» больше нет (David: «нафига оно»). */}
-      <div className="section-label" style={{ marginTop: 22 }}>Складывается из привычек</div>
-      <div style={{ ...card, borderRadius: 22, marginTop: 8, overflow: "hidden" }}>
+      {/* ЕДИНЫЙ РАСКРЫВАЮЩИЙСЯ БЛОК: Привычки · Календарь (David — как у общей цели). */}
+      <BosSectionsAccordionLive dark={isDark} defaultOpen="habits" sections={[
+        {
+          key: "habits", icon: <I.Flame size={17} color="var(--text-3)" />, title: "Привычки",
+          summary: linked.length ? (linked.length + " " + _habitWordP(linked.length) + " · сегодня " + linked.filter((h) => h.done).length + " из " + linked.length) : "Добавь привычку — цель начнёт расти",
+          render: () => (<>
         {linked.map((h, i) => (
           <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
             <button onClick={() => { if (app?.toggleHabit) app.toggleHabit(h.id); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" aria-label="Отметить сегодня"
@@ -361,7 +372,16 @@ function GoalDetailPersonalLive() {
           <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
           <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
         </button>
-      </div>
+          </>),
+        },
+        {
+          key: "calendar", icon: <I.Calendar size={17} color="var(--text-3)" />, title: "Календарь",
+          summary: linked.length ? "Дни, когда двигал цель" : "Появится с первой привычкой",
+          render: () => (linked.length
+            ? <div style={{ padding: "10px 12px 12px" }}><PeopleMonthCalendarLive bare label="" people={_calPeople} dayFrac={goalDayFrac} /></div>
+            : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Заведи привычку для цели — и здесь появится карта отметок по дням.</div>),
+        },
+      ]} />
 
       {/* ИДТИ К ЦЕЛИ ВМЕСТЕ — БЕЗ шторок и подтверждений (David: «просто должен появиться блок
           с людьми, ничего в лицо не пихаем»): тап → цель тихо становится общей, остаёшься на

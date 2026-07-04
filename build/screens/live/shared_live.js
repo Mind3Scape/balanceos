@@ -693,7 +693,8 @@ function PeopleMonthCalendarLive({
   granular = false,
   selPerson: selProp,
   onSelPerson,
-  todayTap
+  todayTap,
+  bare = false
 }) {
   var app = typeof useApp === "function" ? useApp() : null;
   var isDark = app?.themeOverride === "dark";
@@ -893,7 +894,9 @@ function PeopleMonthCalendarLive({
     if (view === "year" && yearScrollRef.current) yearScrollRef.current.scrollLeft = yearScrollRef.current.scrollWidth;
   }, [view]);
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: {
+    style: bare ? {
+      padding: 0
+    } : {
       background: "var(--card)",
       borderRadius: 22,
       padding: 14,
@@ -903,7 +906,7 @@ function PeopleMonthCalendarLive({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8,
+      gap: 7,
       alignItems: "center",
       marginBottom: 12
     }
@@ -912,8 +915,8 @@ function PeopleMonthCalendarLive({
       display: "flex",
       gap: 2,
       background: chipBg,
-      borderRadius: 12,
-      padding: 3,
+      borderRadius: 11,
+      padding: 2.5,
       flex: 1
     }
   }, [["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
@@ -924,67 +927,35 @@ function PeopleMonthCalendarLive({
       flex: 1,
       border: 0,
       borderRadius: 9,
-      padding: "6px 0",
-      fontSize: 13,
+      padding: "5px 0",
+      fontSize: 12.5,
       fontWeight: view === v ? 700 : 500,
       cursor: "pointer",
       background: view === v ? isDark ? "#fff" : "#0a0a0a" : "transparent",
-      color: view === v ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)"
+      color: view === v ? isDark ? "#0a0a0a" : "#fff" : "var(--text-2)",
+      transition: "background 0.15s"
     }
   }, l))), /*#__PURE__*/React.createElement("button", {
     onClick: () => setCompact(c => !c),
     className: "tap",
     "aria-label": compact ? "Подробно" : "Компактно",
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      background: chipBg,
-      border: 0,
-      borderRadius: 999,
-      padding: "7px 11px",
-      color: "var(--text-2)",
-      fontSize: 12,
-      fontWeight: 600,
-      cursor: "pointer",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.Eye, {
-    size: 14,
-    color: "var(--text-3)"
-  }), compact ? "Подробно" : "Компактно")), !solo && /*#__PURE__*/React.createElement("div", {
-    className: "screen-scroll",
-    style: {
-      display: "flex",
-      gap: 7,
-      overflowX: "auto",
-      paddingBottom: 2,
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setSelPerson(null),
-    className: "tap",
-    style: chip(selPerson == null)
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 18,
-      height: 18,
-      borderRadius: "50%",
-      background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)",
       display: "grid",
       placeItems: "center",
-      fontSize: 10
+      background: compact ? chipBg : isDark ? "#fff" : "#0a0a0a",
+      border: 0,
+      borderRadius: 999,
+      width: 32,
+      height: 32,
+      cursor: "pointer",
+      flexShrink: 0,
+      transition: "background 0.15s"
     }
-  }, "\uD83D\uDC65"), "\u0412\u0441\u0435"), people.map((m, i) => /*#__PURE__*/React.createElement("button", {
-    key: i,
-    onClick: () => setSelPerson(i),
-    className: "tap",
-    style: chip(selPerson === i)
-  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
-    avatar: m.avatar,
-    name: m.name,
-    size: 18
-  }), m.you ? "Ты" : (m.name || "").split(" ")[0]))), view === "week" && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(I.Eye, {
+    size: 15,
+    filled: !compact,
+    color: compact ? "var(--text-3)" : isDark ? "#0a0a0a" : "#fff"
+  }))), view === "week" && /*#__PURE__*/React.createElement("div", {
     ref: weekGridRef,
     style: {
       display: "grid",
@@ -1167,28 +1138,52 @@ function PeopleMonthCalendarLive({
       }
     }) : !compact && !fut && /*#__PURE__*/React.createElement("span", null, c.d));
   })), view === "year" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3,
+      paddingTop: !compact ? 25 : 0,
+      flexShrink: 0
+    }
+  }, ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((w, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      height: 13,
+      fontSize: 9,
+      lineHeight: "13px",
+      color: "var(--text-4)",
+      fontWeight: 600,
+      letterSpacing: "-0.3px"
+    }
+  }, w))), /*#__PURE__*/React.createElement("div", {
     ref: yearScrollRef,
     className: "screen-scroll",
     style: {
       overflowX: "auto",
-      paddingBottom: 4
+      paddingBottom: 4,
+      flex: 1
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      minWidth: yearData.cols * 14,
-      margin: "0 auto"
+      minWidth: yearData.cols * 16
     }
   }, !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      marginBottom: 7
+      marginBottom: 8,
+      height: 17
     }
   }, Array.from({
     length: yearData.cols
   }, (_, c) => /*#__PURE__*/React.createElement("div", {
     key: c,
     style: {
-      width: 14,
+      width: 16,
       flexShrink: 0,
       fontSize: 11,
       fontWeight: 600,
@@ -1199,9 +1194,9 @@ function PeopleMonthCalendarLive({
   }, yearData.colLabel[c] || ""))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateRows: "repeat(7, 11px)",
+      gridTemplateRows: "repeat(7, 13px)",
       gridAutoFlow: "column",
-      gridAutoColumns: "11px",
+      gridAutoColumns: "13px",
       gap: 3
     }
   }, yearData.slots.map((s, i) => {
@@ -1209,8 +1204,8 @@ function PeopleMonthCalendarLive({
       key: i,
       "aria-hidden": true,
       style: {
-        width: 11,
-        height: 11
+        width: 13,
+        height: 13
       }
     });
     var hx = selColor && selColor[0] === "#" && selColor.length >= 7 ? selColor : "#0a0a0a";
@@ -1218,22 +1213,20 @@ function PeopleMonthCalendarLive({
     var filled = pct > 0;
     var isToday = s.m === CUR_M && s.d === today;
     var bg = pct <= 0 ? track : bosCellFill(hx, pct);
-    // «Сегодня» = тот же нейтральный серый ободок, что в «Месяце»/«Неделе»/на карточке —
-    // континьюити (David: «почему дату на годовом выделяем оранжевым — должно быть гармонично»).
     var todayRingY = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.48)";
     var sh = [filled ? bosCellGlass(isDark) : "", isToday ? "0 0 0 1.6px " + todayRingY : ""].filter(Boolean).join(", ") || "none";
     return /*#__PURE__*/React.createElement("span", {
       key: i,
       title: (MONTHS[s.m] || "") + " " + s.d,
       style: {
-        width: 11,
-        height: 11,
+        width: 13,
+        height: 13,
         borderRadius: "50%",
         background: bg,
         boxShadow: sh
       }
     });
-  })))), view === "month" && !compact && /*#__PURE__*/React.createElement("div", {
+  }))))), view === "month" && !compact && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
       paddingTop: 12,
@@ -1254,7 +1247,136 @@ function PeopleMonthCalendarLive({
     style: {
       color: "var(--text)"
     }
-  }, selName), " \xB7 ", MONTHS[mIdx], " ", selDay, " \xB7 ", granular ? `${Math.round((dayPct(selDay) || 0) * 100)}% привычек` : (dayPct(selDay) || 0) > 0 ? "отмечался ✓" : "пропустил"))));
+  }, selName), " \xB7 ", MONTHS[mIdx], " ", selDay, " \xB7 ", granular ? `${Math.round((dayPct(selDay) || 0) * 100)}% привычек` : (dayPct(selDay) || 0) > 0 ? "отмечался ✓" : "пропустил")), !solo && /*#__PURE__*/React.createElement("div", {
+    className: "screen-scroll",
+    style: {
+      display: "flex",
+      gap: 7,
+      overflowX: "auto",
+      paddingTop: 12,
+      marginTop: 12,
+      borderTop: "1px solid var(--line)"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSelPerson(null),
+    className: "tap",
+    style: chip(selPerson == null)
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 18,
+      height: 18,
+      borderRadius: "50%",
+      background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 10
+    }
+  }, "\uD83D\uDC65"), "\u0412\u0441\u0435"), people.map((m, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => setSelPerson(i),
+    className: "tap",
+    style: chip(selPerson === i)
+  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+    avatar: m.avatar,
+    name: m.name,
+    size: 18
+  }), m.you ? "Ты" : (m.name || "").split(" ")[0])))));
+}
+
+/* ЕДИНЫЙ РАСКРЫВАЮЩИЙСЯ БЛОК (David: «привычки/календарь/люди в одном блоке, который раскрывается
+   по выбранной категории; свёрнутые показывают краткую сводку»). Аккордеон: одна секция открыта,
+   тап по свёрнутой раскрывает её (и сворачивает прежнюю). sections = [{key, icon, title, summary,
+   render}]. Используется и на общей цели (TeamDetailLive), и на личной (GoalDetailPersonalLive). */
+function BosSectionsAccordionLive({
+  sections,
+  dark,
+  defaultOpen
+}) {
+  var list = (sections || []).filter(Boolean);
+  var [open, setOpen] = React.useState(defaultOpen !== undefined ? defaultOpen : list[0] && list[0].key);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+      marginTop: 20
+    }
+  }, list.map(s => {
+    var isOpen = open === s.key;
+    return /*#__PURE__*/React.createElement("div", {
+      key: s.key,
+      style: {
+        background: "var(--card)",
+        borderRadius: 22,
+        boxShadow: "var(--card-shadow)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setOpen(isOpen ? null : s.key),
+      className: "tap",
+      "data-haptic": "selection",
+      "aria-expanded": isOpen,
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "13px 15px",
+        background: "transparent",
+        border: 0,
+        cursor: "pointer",
+        textAlign: "left"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        background: dark ? "rgba(255,255,255,0.07)" : "var(--surface-3)",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0,
+        color: "var(--text-3)"
+      }
+    }, s.icon), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15.5,
+        fontWeight: 700,
+        color: "var(--text)",
+        letterSpacing: "-0.2px"
+      }
+    }, s.title), !isOpen && s.summary != null && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "var(--text-4)",
+        marginTop: 2,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, s.summary)), /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": true,
+      style: {
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center",
+        transform: isOpen ? "rotate(90deg)" : "none",
+        transition: "transform 0.22s",
+        color: "var(--text-4)"
+      }
+    }, /*#__PURE__*/React.createElement(I.ChevronRight, {
+      size: 18
+    }))), isOpen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        borderTop: "1px solid " + (dark ? "rgba(255,255,255,0.07)" : "var(--line)")
+      }
+    }, typeof s.render === "function" ? s.render() : s.render));
+  }));
 }
 
 /* NetworkLocked → live-only: the REAL ways to climb (habits / state / team). No demo

@@ -1656,6 +1656,9 @@ function TeamDetailLive() {
     joined: t.joined,
     habitIds: []
   };
+  // Сводки для свёрнутых секций единого блока (David: «краткая сводка на каждом»).
+  var _myDoneCount = teamHabits.filter(h => myDone(h)).length;
+  var _habitWordT = n => n % 10 === 1 && n % 100 !== 11 ? "привычка" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "привычки" : "привычек";
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
     style: {
@@ -1974,248 +1977,7 @@ function TeamDetailLive() {
         padding: "1px 6px"
       }
     }, "+", pay, isRace ? " 👑" : ""));
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u0421\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0438\u0437 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...card,
-      borderRadius: 22,
-      marginTop: 8,
-      overflow: "hidden"
-    }
-  }, [main].concat(others).filter(Boolean).map((h, i) => {
-    var done = myDone(h);
-    var adopted = adoptedFor(h);
-    var markInTeam = () => adopted ? markAdopted(h) : toggleMyTeamHabit(h);
-    return /*#__PURE__*/React.createElement("div", {
-      key: h.id || i,
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "10px 14px",
-        borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
-      }
-    }, _rosterLive ? /*#__PURE__*/React.createElement("button", {
-      onClick: markInTeam,
-      className: "tap",
-      "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C \u0441\u0435\u0433\u043E\u0434\u043D\u044F",
-      style: {
-        width: 30,
-        height: 30,
-        borderRadius: "50%",
-        flexShrink: 0,
-        border: 0,
-        display: "grid",
-        placeItems: "center",
-        cursor: "pointer",
-        background: done ? h.color || ringInk : isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
-        boxShadow: done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)")
-      }
-    }, done && /*#__PURE__*/React.createElement(I.Check, {
-      size: 16,
-      strokeWidth: 3,
-      color: "#fff"
-    })) : /*#__PURE__*/React.createElement("span", {
-      "aria-hidden": true,
-      style: {
-        width: 30,
-        height: 30,
-        borderRadius: "50%",
-        flexShrink: 0,
-        background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
-        boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)")
-      }
-    }), /*#__PURE__*/React.createElement("button", {
-      className: "tap",
-      onClick: () => {
-        if (adopted) navigate("habit-detail", {
-          habit: adopted,
-          from: "team-detail"
-        });
-      },
-      style: {
-        flex: 1,
-        minWidth: 0,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: 0,
-        background: "transparent",
-        border: 0,
-        textAlign: "left",
-        color: "var(--text)",
-        cursor: adopted ? "pointer" : "default"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 34,
-        height: 34,
-        borderRadius: 12,
-        background: h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 17,
-        flexShrink: 0
-      }
-    }, bosIcon(h.emoji, 18, h.color)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        color: "var(--text)",
-        fontWeight: 600,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      }
-    }, h.name, adopted && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        fontWeight: 600,
-        color: "var(--text-4)",
-        marginLeft: 7
-      }
-    }, "\xB7 \u0443 \u0441\u0435\u0431\u044F")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-4)",
-        marginTop: 1
-      }
-    }, h.isMain && /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        marginRight: 7
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 5,
-        height: 5,
-        borderRadius: "50%",
-        background: "#EF9F14",
-        display: "inline-block"
-      }
-    }), "\u042F\u043A\u043E\u0440\u044C"), h.doneToday != null && h.total != null ? h.doneToday + " из " + h.total + " сегодня" : "общая привычка")), adopted && /*#__PURE__*/React.createElement(I.ChevronRight, {
-      size: 16,
-      color: "var(--text-4)"
-    })), _isOwner && /*#__PURE__*/React.createElement("button", {
-      onClick: () => openEditTeamHabit(h),
-      className: "tap",
-      "data-haptic": "selection",
-      "aria-label": "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043E\u0431\u0449\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443",
-      style: {
-        flexShrink: 0,
-        width: 30,
-        height: 30,
-        borderRadius: 999,
-        border: 0,
-        background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
-        display: "grid",
-        placeItems: "center",
-        color: "var(--text-3)",
-        cursor: "pointer"
-      }
-    }, /*#__PURE__*/React.createElement(I.Pencil, {
-      size: 14,
-      strokeWidth: 2
-    })), _rosterLive && !adopted && /*#__PURE__*/React.createElement("button", {
-      onClick: () => adoptTeamHabit(h),
-      className: "tap",
-      style: {
-        flexShrink: 0,
-        background: "transparent",
-        border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"),
-        borderRadius: 999,
-        padding: "5px 10px",
-        fontSize: 11,
-        fontWeight: 600,
-        color: "var(--text-3)",
-        whiteSpace: "nowrap"
-      }
-    }, "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F"), _rosterLive && adopted && adopted.shelved && /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        if (app?.updateHabit) app.updateHabit(adopted.id, {
-          shelved: false
-        });
-        if (window.tgHaptic) {
-          try {
-            window.tgHaptic("success");
-          } catch (e) {}
-        }
-      },
-      className: "tap",
-      style: {
-        flexShrink: 0,
-        background: "transparent",
-        border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"),
-        borderRadius: 999,
-        padding: "5px 10px",
-        fontSize: 11,
-        fontWeight: 600,
-        color: "var(--text-3)",
-        whiteSpace: "nowrap"
-      }
-    }, "\u0412\u0435\u0440\u043D\u0443\u0442\u044C \u043A \u0441\u0435\u0431\u0435"));
-  }), teamHabits.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "14px 14px 2px",
-      fontSize: 13,
-      color: "var(--text-4)",
-      lineHeight: 1.5
-    }
-  }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u043E\u043D\u0430 \u0441\u0442\u0430\u043D\u0435\u0442 \u044F\u043A\u043E\u0440\u0435\u043C \u0446\u0435\u043B\u0438."), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: openAddHabit,
-    style: {
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "12px 14px",
-      borderTop: teamHabits.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0,
-      background: "transparent",
-      border: 0,
-      color: "var(--text-2)",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)")
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 15,
-    strokeWidth: 2.4,
-    color: isDark ? "#fff" : "var(--text-2)"
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14.5,
-      fontWeight: 600
-    }
-  }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0446\u0435\u043B\u0438"))), _rosterLive && main && mainProg && mainProg.length > 0 && /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
-    people: mainProg.map(m => ({
-      name: m.me ? "Ты" : m.name,
-      initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
-      color: accent,
-      you: !!m.me,
-      avatar: m.avatar
-    })),
-    dayFrac: (pi, d, mi) => mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0,
-    label: "Кто отметил «" + main.name + "»"
-  }), _isOwner && pending.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  })), _isOwner && pending.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "section-label",
     style: {
       marginTop: 22
@@ -2287,131 +2049,395 @@ function TeamDetailLive() {
       fontSize: 16,
       lineHeight: 1
     }
-  }, "\u2715"))))), /*#__PURE__*/React.createElement("div", {
-    className: "section-label",
-    style: {
-      marginTop: 22
-    }
-  }, "\u041B\u044E\u0434\u0438", _rosterLoading ? "" : " · " + members.length), /*#__PURE__*/React.createElement("div", {
-    style: {
-      ...card,
-      borderRadius: 22,
-      marginTop: 8,
-      overflow: "hidden"
-    }
-  }, _rosterLoading && [0, 1].map(i => /*#__PURE__*/React.createElement("div", {
-    key: "sk" + i,
-    style: {
-      padding: 12,
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-skel",
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: "50%"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "bos-skel",
-    style: {
-      display: "block",
-      width: "42%",
-      height: 12,
-      borderRadius: 6
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "bos-skel",
-    style: {
-      display: "block",
-      width: "26%",
-      height: 10,
-      borderRadius: 6,
-      marginTop: 7
-    }
-  })))), !_rosterLoading && ranked.map((m, i) => /*#__PURE__*/React.createElement("div", {
-    key: m.id || i,
-    style: {
-      padding: "10px 14px",
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      borderRadius: "50%",
-      boxShadow: flowSet[m.id] ? "0 0 0 1.5px " + (isDark ? "#0f0f12" : "#fff") + ", 0 0 0 3.5px " + ringInk : "none"
-    }
-  }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
-    avatar: m.avatar,
-    name: m.name,
-    size: 38
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      color: "var(--text)",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  }, m.id === meId ? "Ты" : m.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-4)",
-      marginTop: 1
-    }
-  }, m.role === "owner" ? "Создатель" : "Участник", flowSet[m.id] ? " · сегодня в деле" : "")))), /*#__PURE__*/React.createElement("button", {
-    className: "tap",
-    onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
-      team: t
-    })),
-    style: {
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "12px 14px",
-      borderTop: members.length || _rosterLoading ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0,
-      background: "transparent",
-      border: 0,
-      color: "var(--text-2)",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)")
-    }
-  }, /*#__PURE__*/React.createElement(I.Plus, {
-    size: 15,
-    strokeWidth: 2.4,
-    color: isDark ? "#fff" : "var(--text-2)"
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14.5,
-      fontWeight: 600
-    }
-  }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439"))), !_isOwner && /*#__PURE__*/React.createElement("button", {
+  }, "\u2715"))))), /*#__PURE__*/React.createElement(BosSectionsAccordionLive, {
+    dark: isDark,
+    defaultOpen: "habits",
+    sections: [{
+      key: "habits",
+      icon: /*#__PURE__*/React.createElement(I.Flame, {
+        size: 17,
+        color: "var(--text-3)"
+      }),
+      title: "Привычки",
+      summary: teamHabits.length ? teamHabits.length + " " + _habitWordT(teamHabits.length) + " · сегодня " + _myDoneCount + " из " + teamHabits.length : "Пока пусто — добавь первую",
+      render: () => /*#__PURE__*/React.createElement(React.Fragment, null, [main].concat(others).filter(Boolean).map((h, i) => {
+        var done = myDone(h);
+        var adopted = adoptedFor(h);
+        var markInTeam = () => adopted ? markAdopted(h) : toggleMyTeamHabit(h);
+        return /*#__PURE__*/React.createElement("div", {
+          key: h.id || i,
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "10px 14px",
+            borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
+          }
+        }, _rosterLive ? /*#__PURE__*/React.createElement("button", {
+          onClick: markInTeam,
+          className: "tap",
+          "aria-label": "\u041E\u0442\u043C\u0435\u0442\u0438\u0442\u044C \u0441\u0435\u0433\u043E\u0434\u043D\u044F",
+          style: {
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            flexShrink: 0,
+            border: 0,
+            display: "grid",
+            placeItems: "center",
+            cursor: "pointer",
+            background: done ? h.color || ringInk : isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+            boxShadow: done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)")
+          }
+        }, done && /*#__PURE__*/React.createElement(I.Check, {
+          size: 16,
+          strokeWidth: 3,
+          color: "#fff"
+        })) : /*#__PURE__*/React.createElement("span", {
+          "aria-hidden": true,
+          style: {
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            flexShrink: 0,
+            background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+            boxShadow: "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)")
+          }
+        }), /*#__PURE__*/React.createElement("button", {
+          className: "tap",
+          onClick: () => {
+            if (adopted) navigate("habit-detail", {
+              habit: adopted,
+              from: "team-detail"
+            });
+          },
+          style: {
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: 0,
+            background: "transparent",
+            border: 0,
+            textAlign: "left",
+            color: "var(--text)",
+            cursor: adopted ? "pointer" : "default"
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            width: 34,
+            height: 34,
+            borderRadius: 12,
+            background: h.color ? h.color + "26" : isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 17,
+            flexShrink: 0
+          }
+        }, bosIcon(h.emoji, 18, h.color)), /*#__PURE__*/React.createElement("div", {
+          style: {
+            flex: 1,
+            minWidth: 0
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 15,
+            color: "var(--text)",
+            fontWeight: 600,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }
+        }, h.name, adopted && /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--text-4)",
+            marginLeft: 7
+          }
+        }, "\xB7 \u0443 \u0441\u0435\u0431\u044F")), /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 12,
+            color: "var(--text-4)",
+            marginTop: 1
+          }
+        }, h.isMain && /*#__PURE__*/React.createElement("span", {
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            marginRight: 7
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            width: 5,
+            height: 5,
+            borderRadius: "50%",
+            background: "#EF9F14",
+            display: "inline-block"
+          }
+        }), "\u042F\u043A\u043E\u0440\u044C"), h.doneToday != null && h.total != null ? h.doneToday + " из " + h.total + " сегодня" : "общая привычка")), adopted && /*#__PURE__*/React.createElement(I.ChevronRight, {
+          size: 16,
+          color: "var(--text-4)"
+        })), _isOwner && /*#__PURE__*/React.createElement("button", {
+          onClick: () => openEditTeamHabit(h),
+          className: "tap",
+          "data-haptic": "selection",
+          "aria-label": "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043E\u0431\u0449\u0443\u044E \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0443",
+          style: {
+            flexShrink: 0,
+            width: 30,
+            height: 30,
+            borderRadius: 999,
+            border: 0,
+            background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)",
+            display: "grid",
+            placeItems: "center",
+            color: "var(--text-3)",
+            cursor: "pointer"
+          }
+        }, /*#__PURE__*/React.createElement(I.Pencil, {
+          size: 14,
+          strokeWidth: 2
+        })), _rosterLive && !adopted && /*#__PURE__*/React.createElement("button", {
+          onClick: () => adoptTeamHabit(h),
+          className: "tap",
+          style: {
+            flexShrink: 0,
+            background: "transparent",
+            border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"),
+            borderRadius: 999,
+            padding: "5px 10px",
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--text-3)",
+            whiteSpace: "nowrap"
+          }
+        }, "\u0412\u0435\u0441\u0442\u0438 \u0443 \u0441\u0435\u0431\u044F"), _rosterLive && adopted && adopted.shelved && /*#__PURE__*/React.createElement("button", {
+          onClick: () => {
+            if (app?.updateHabit) app.updateHabit(adopted.id, {
+              shelved: false
+            });
+            if (window.tgHaptic) {
+              try {
+                window.tgHaptic("success");
+              } catch (e) {}
+            }
+          },
+          className: "tap",
+          style: {
+            flexShrink: 0,
+            background: "transparent",
+            border: "1px dashed " + (isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)"),
+            borderRadius: 999,
+            padding: "5px 10px",
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--text-3)",
+            whiteSpace: "nowrap"
+          }
+        }, "\u0412\u0435\u0440\u043D\u0443\u0442\u044C \u043A \u0441\u0435\u0431\u0435"));
+      }), teamHabits.length === 0 && /*#__PURE__*/React.createElement("div", {
+        style: {
+          padding: "14px 14px 2px",
+          fontSize: 13,
+          color: "var(--text-4)",
+          lineHeight: 1.5
+        }
+      }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0449\u0438\u0445 \u043F\u0440\u0438\u0432\u044B\u0447\u0435\u043A. \u0414\u043E\u0431\u0430\u0432\u044C \u043F\u0435\u0440\u0432\u0443\u044E \u2014 \u043E\u043D\u0430 \u0441\u0442\u0430\u043D\u0435\u0442 \u044F\u043A\u043E\u0440\u0435\u043C \u0446\u0435\u043B\u0438."), /*#__PURE__*/React.createElement("button", {
+        className: "tap",
+        onClick: openAddHabit,
+        style: {
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 14px",
+          borderTop: teamHabits.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0,
+          background: "transparent",
+          border: 0,
+          color: "var(--text-2)",
+          cursor: "pointer"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 30,
+          height: 30,
+          borderRadius: "50%",
+          flexShrink: 0,
+          display: "grid",
+          placeItems: "center",
+          border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)")
+        }
+      }, /*#__PURE__*/React.createElement(I.Plus, {
+        size: 15,
+        strokeWidth: 2.4,
+        color: isDark ? "#fff" : "var(--text-2)"
+      })), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 14.5,
+          fontWeight: 600
+        }
+      }, "\u041F\u0440\u0438\u0432\u044B\u0447\u043A\u0430 \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0446\u0435\u043B\u0438")))
+    }, {
+      key: "calendar",
+      icon: /*#__PURE__*/React.createElement(I.Calendar, {
+        size: 17,
+        color: "var(--text-3)"
+      }),
+      title: "Календарь",
+      summary: main ? "Отметки по «" + main.name + "»" : "Отметки по дням",
+      render: () => _rosterLive && main && mainProg && mainProg.length > 0 ? /*#__PURE__*/React.createElement("div", {
+        style: {
+          padding: "10px 12px 12px"
+        }
+      }, /*#__PURE__*/React.createElement(PeopleMonthCalendarLive, {
+        bare: true,
+        label: "",
+        people: mainProg.map(m => ({
+          name: m.me ? "Ты" : m.name,
+          initials: m.me ? "Я" : (m.name || "У").charAt(0).toUpperCase(),
+          color: accent,
+          you: !!m.me,
+          avatar: m.avatar
+        })),
+        dayFrac: (pi, d, mi) => mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0
+      })) : /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          color: "var(--text-4)",
+          padding: 14,
+          lineHeight: 1.5
+        }
+      }, "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0442\u043C\u0435\u0442\u043E\u043A \u2014 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F, \u043A\u043E\u0433\u0434\u0430 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438 \u043D\u0430\u0447\u043D\u0443\u0442 \u0437\u0430\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438 \u043A\u0440\u0443\u0433\u0430.")
+    }, {
+      key: "people",
+      icon: /*#__PURE__*/React.createElement(I.Users, {
+        size: 17,
+        color: "var(--text-3)"
+      }),
+      title: "Люди",
+      summary: _rosterLoading ? "загрузка…" : members.length + " " + _peopleWord(members.length) + (inFlowToday ? " · сегодня " + inFlowToday + " в деле" : ""),
+      render: () => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+        style: {
+          overflow: "hidden"
+        }
+      }, _rosterLoading && [0, 1].map(i => /*#__PURE__*/React.createElement("div", {
+        key: "sk" + i,
+        style: {
+          padding: 12,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "bos-skel",
+        style: {
+          width: 40,
+          height: 40,
+          borderRadius: "50%"
+        }
+      }), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "bos-skel",
+        style: {
+          display: "block",
+          width: "42%",
+          height: 12,
+          borderRadius: 6
+        }
+      }), /*#__PURE__*/React.createElement("span", {
+        className: "bos-skel",
+        style: {
+          display: "block",
+          width: "26%",
+          height: 10,
+          borderRadius: 6,
+          marginTop: 7
+        }
+      })))), !_rosterLoading && ranked.map((m, i) => /*#__PURE__*/React.createElement("div", {
+        key: m.id || i,
+        style: {
+          padding: "10px 14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          borderRadius: "50%",
+          boxShadow: flowSet[m.id] ? "0 0 0 1.5px " + (isDark ? "#0f0f12" : "#fff") + ", 0 0 0 3.5px " + ringInk : "none"
+        }
+      }, /*#__PURE__*/React.createElement(BuddyFaceLive, {
+        avatar: m.avatar,
+        name: m.name,
+        size: 38
+      })), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 15,
+          fontWeight: 600,
+          color: "var(--text)",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
+      }, m.id === meId ? "Ты" : m.name), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12,
+          color: "var(--text-4)",
+          marginTop: 1
+        }
+      }, m.role === "owner" ? "Создатель" : "Участник", flowSet[m.id] ? " · сегодня в деле" : "")))), /*#__PURE__*/React.createElement("button", {
+        className: "tap",
+        onClick: () => openSheet(/*#__PURE__*/React.createElement(TeamShareSheetLive, {
+          team: t
+        })),
+        style: {
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 14px",
+          borderTop: members.length || _rosterLoading ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0,
+          background: "transparent",
+          border: 0,
+          color: "var(--text-2)",
+          cursor: "pointer"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          width: 30,
+          height: 30,
+          borderRadius: "50%",
+          flexShrink: 0,
+          display: "grid",
+          placeItems: "center",
+          border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)")
+        }
+      }, /*#__PURE__*/React.createElement(I.Plus, {
+        size: 15,
+        strokeWidth: 2.4,
+        color: isDark ? "#fff" : "var(--text-2)"
+      })), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 14.5,
+          fontWeight: 600
+        }
+      }, "\u041F\u043E\u0437\u0432\u0430\u0442\u044C \u043B\u044E\u0434\u0435\u0439"))))
+    }]
+  }), !_isOwner && /*#__PURE__*/React.createElement("button", {
     onClick: () => bosConfirmExitTeam({
       app,
       team: t,

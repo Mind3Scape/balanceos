@@ -793,6 +793,9 @@ function TeamDetailLive() {
   const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: H.chipBg, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: H.chipInk, whiteSpace: "nowrap" };
   const heroChipAI = Object.assign({}, heroChip, { background: H.chipAiBg, color: H.chipAiInk, boxShadow: H.onDark ? "none" : "0 1px 4px rgba(40,60,110,0.12)" });
   const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: desc, joined: t.joined, habitIds: [] };
+  // Сводки для свёрнутых секций единого блока (David: «краткая сводка на каждом»).
+  const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
+  const _habitWordT = (n) => (n % 10 === 1 && n % 100 !== 11) ? "привычка" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "привычки" : "привычек");
   return (
     <div className="page-in" style={{ paddingBottom: 24 }}>
       {/* HERO — full-bleed до самого верха, снизу скруглён (как у партнёра). Внутри: назад слева;
@@ -879,11 +882,31 @@ function TeamDetailLive() {
         </div>
       )}
 
-      {/* СКЛАДЫВАЕТСЯ ИЗ ПРИВЫЧЕК — ТОТ ЖЕ блок-строки, что у личной цели (David: «привычки
-          должны быть так же»). Чек-кружок отмечает В КОМАНДЕ (или личную копию, если ведёшь
-          у себя); «Вести у себя» — тихая пилюля справа; якорь — жёлтая точка в подписи. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Складывается из привычек</div>
-      <div style={{ ...card, borderRadius: 22, marginTop: 8, overflow: "hidden" }}>
+      {/* Заявки на вступление — владельцу, ПЕРЕД единым блоком (это действие, не раздел). */}
+      {_isOwner && pending.length > 0 && (<>
+        <div className="section-label" style={{ marginTop: 22 }}>Заявки на вступление ({pending.length})</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          {pending.map((p, pi) => (
+            <div key={p.id} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
+              <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{p.name || "Гость"}</div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>хочет вступить</div>
+              </div>
+              <button onClick={() => approveReq(p.id)} className="tap" style={{ flexShrink: 0, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 600 }}>Принять</button>
+              <button onClick={() => rejectReq(p.id)} className="tap" aria-label="Отклонить" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 999, width: 34, height: 34, fontSize: 16, lineHeight: 1 }}>✕</button>
+            </div>
+          ))}
+        </div>
+      </>)}
+
+      {/* ЕДИНЫЙ РАСКРЫВАЮЩИЙСЯ БЛОК: Привычки · Календарь · Люди (David: «в одном блоке, раскрывается
+          по выбранной категории; свёрнутые — краткая сводка»). */}
+      <BosSectionsAccordionLive dark={isDark} defaultOpen="habits" sections={[
+        {
+          key: "habits", icon: <I.Flame size={17} color="var(--text-3)" />, title: "Привычки",
+          summary: teamHabits.length ? (teamHabits.length + " " + _habitWordT(teamHabits.length) + " · сегодня " + _myDoneCount + " из " + teamHabits.length) : "Пока пусто — добавь первую",
+          render: () => (<>
         {[main].concat(others).filter(Boolean).map((h, i) => {
           const done = myDone(h);
           const adopted = adoptedFor(h);
@@ -934,38 +957,22 @@ function TeamDetailLive() {
           <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
           <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
         </button>
-      </div>
-
-      {/* Кто какой день отметил — календарь по якорю, ПОД зоной привычек (так якорь и привычки
-          стоят рядом, а разбор по дням — отдельным блоком ниже). */}
-      {_rosterLive && main && mainProg && mainProg.length > 0 && (
-        <PeopleMonthCalendarLive
-          people={mainProg.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "У").charAt(0).toUpperCase()), color: accent, you: !!m.me, avatar: m.avatar }))}
-          dayFrac={(pi, d, mi) => (mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0)}
-          label={"Кто отметил «" + main.name + "»"}
-        />
-      )}
-
-      {_isOwner && pending.length > 0 && (<>
-        <div className="section-label" style={{ marginTop: 22 }}>Заявки на вступление ({pending.length})</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-          {pending.map((p, pi) => (
-            <div key={p.id} style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: 12, display: "flex", alignItems: "center", gap: 12 }}>
-              <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{p.name || "Гость"}</div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>хочет вступить</div>
+          </>) },
+        {
+          key: "calendar", icon: <I.Calendar size={17} color="var(--text-3)" />, title: "Календарь",
+          summary: main ? ("Отметки по «" + main.name + "»") : "Отметки по дням",
+          render: () => ((_rosterLive && main && mainProg && mainProg.length > 0)
+            ? <div style={{ padding: "10px 12px 12px" }}><PeopleMonthCalendarLive bare label=""
+                people={mainProg.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "У").charAt(0).toUpperCase()), color: accent, you: !!m.me, avatar: m.avatar }))}
+                dayFrac={(pi, d, mi) => (mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0)} />
               </div>
-              <button onClick={() => approveReq(p.id)} className="tap" style={{ flexShrink: 0, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 600 }}>Принять</button>
-              <button onClick={() => rejectReq(p.id)} className="tap" aria-label="Отклонить" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 999, width: 34, height: 34, fontSize: 16, lineHeight: 1 }}>✕</button>
-            </div>
-          ))}
-        </div>
-      </>)}
-      {/* ЛЮДИ — «тот же блок, только с людьми» (David): одна карточка-список в языке страницы
-          цели; колечко на лице = отметился сегодня (пульс), «Позвать людей» — dashed-строкой. */}
-      <div className="section-label" style={{ marginTop: 22 }}>Люди{_rosterLoading ? "" : " · " + members.length}</div>
-      <div style={{ ...card, borderRadius: 22, marginTop: 8, overflow: "hidden" }}>
+            : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Пока нет отметок — появятся, когда участники начнут закрывать привычки круга.</div>),
+        },
+        {
+          key: "people", icon: <I.Users size={17} color="var(--text-3)" />, title: "Люди",
+          summary: _rosterLoading ? "загрузка…" : (members.length + " " + _peopleWord(members.length) + (inFlowToday ? (" · сегодня " + inFlowToday + " в деле") : "")),
+          render: () => (<>
+        <div style={{ overflow: "hidden" }}>
         {_rosterLoading && [0, 1].map((i) => (
           <div key={"sk" + i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
             <span className="bos-skel" style={{ width: 40, height: 40, borderRadius: "50%" }} />
@@ -991,7 +998,9 @@ function TeamDetailLive() {
           <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
           <span style={{ fontSize: 14.5, fontWeight: 600 }}>Позвать людей</span>
         </button>
-      </div>
+        </div>
+          </>) },
+      ]} />
 
       {/* Чат цели переехал в hero-шапку справа (David: «доступ к чату стеклянной кнопкой в блоке»). */}
 
