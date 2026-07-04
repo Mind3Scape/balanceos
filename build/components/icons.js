@@ -421,6 +421,64 @@ var I = {
     d: "M5.2 20c.9-3.8 3.6-5.9 6.8-5.9s5.9 2.1 6.8 5.9",
     fill: filled ? p.color || "currentColor" : "none"
   })),
+  // Семья live-таббара «система колец» (David: «все в одном стиле»): солнце (твой день в
+  // центре) · орбита с людьми · искры ИИ (Sparkles) · ты в кольце уровня.
+  Sun: ({
+    filled,
+    ...p
+  }) => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "4.1",
+    fill: filled ? p.color || "currentColor" : "none"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"
+  })),
+  OrbitPeople: ({
+    filled,
+    ...p
+  }) => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "8.2"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: filled ? 2.4 : 1.7,
+    fill: "currentColor",
+    stroke: "none"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "5.9",
+    cy: "8.4",
+    r: "2",
+    fill: "currentColor",
+    stroke: "none"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "19",
+    cy: "15",
+    r: "2",
+    fill: "currentColor",
+    stroke: "none"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "13.8",
+    cy: "20",
+    r: "1.5",
+    fill: "currentColor",
+    stroke: "none"
+  })),
+  PersonRing: ({
+    filled,
+    ...p
+  }) => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "9.8",
+    r: "2.7",
+    fill: filled ? p.color || "currentColor" : "none"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M7.9 16.8c.9-2.1 2.3-3.1 4.1-3.1s3.2 1 4.1 3.1"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M20.1 8.2A9 9 0 1 1 15.6 3.8"
+  })),
   Dumbbell: p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
     d: "M3 9v6M6.5 7v10M17.5 7v10M21 9v6M6.5 12h11"
   })),

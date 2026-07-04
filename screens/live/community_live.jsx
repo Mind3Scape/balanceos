@@ -435,6 +435,7 @@ function CommunityLive() {
             <NetworkLockedLive
               navigate={navigate}
               live={true}
+              onTraining={() => setFilter("training")}
               level={userLevel}
               xp={xpInLevel}
               xpMax={xpForNext}

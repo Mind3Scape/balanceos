@@ -626,7 +626,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
 
 /* NetworkLocked → live-only: the REAL ways to climb (habits / state / team). No demo
    premium-course showcase, no dev "instant unlock" bypass. */
-function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft }) {
+function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft, onTraining = null }) {
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const xpPct = Math.max(0, Math.min(1, xp / xpMax));
   const ruLvl = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "уровень" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "уровня" : "уровней"; };
@@ -652,6 +652,15 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft }) {
       cta: "Цель вместе", action: () => _openSheet(<GoalFormSheetLive mode="create" circleOn={true} navigate={navigate} />),
       meta: "Вместе с друзьями",
       accent: "#85e3a8",
+    },
+    {
+      // Быстрая дверь (David: «нигде не упоминаем, что часть контактов открывается
+      // после тренингов»): ачивка тренинга открывает свой круг сразу, без уровня.
+      i: "🎓", t: "Пройди тренинг",
+      d: "Ачивка тренинга сразу открывает свой круг контактов — не дожидаясь 10 уровня.",
+      cta: "К тренингам", action: onTraining || (() => navigate("community")),
+      meta: "Ключ к людям",
+      accent: "#d8c4ff",
     },
   ];
 
@@ -687,7 +696,7 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft }) {
         </div>
       </div>
 
-      <div className="section-label" style={{ marginTop: 6 }}>3 способа открыть</div>
+      <div className="section-label" style={{ marginTop: 6 }}>{paths.length} способа открыть</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {paths.map((p, i) => (
           <button key={i} onClick={p.action} className="tap" style={{
@@ -2148,9 +2157,11 @@ var BOS_HOME_WIDGETS = [
   // (как плитки) — правило видимости «НЕ в hidden», см. effLayout в home_live.
   { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", emoji: "⚡" },
   { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅" },
+  // «Состояние» ВЕРНУЛОСЬ (David: «изначально всё строилось вокруг состояния, а мы его
+  // скрыли»): раз в день отметил, как ты, — за неделю складывается картинка, и ИИ
+  // подстраивается. Добирается на доску само (как quick) — после «Эта неделя».
+  { id: "mood",    t: "Состояние",    d: "Как ты — день за днём",    emoji: "🌤" },
   { id: "team",    t: "Вместе",       d: "Ваши совместные цели",     emoji: "👥" },
-  // «Состояние» (mood-слайдер + виджет-состояние с упоминанием дневника) ВРЕМЕННО СКРЫТ (David) —
-  // убран из списка → кейс id==="mood" в home_live не рендерится. Вернуть = добавить строку обратно.
   // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
   // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
   { id: "invite",  t: "Позови своих", d: "Приглашай друзей — +XP",   emoji: "📣" },
@@ -2190,12 +2201,13 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   const setL = (order, hid) => { if (app && app.setHomeLayout) { app.setHomeLayout({ order, hidden: hid }); haptic(); } };
   const toggleWidget = (id) => {
     const k = "w:" + id;
-    // «Быстрое добавление» добирается на доску само (как плитки) → его вкл = НЕ в hidden.
-    if (id === "quick") { toggleTile(k); return; }
+    // «Быстрое добавление» и «Состояние» добираются на доску сами (как плитки)
+    // → их вкл = НЕ в hidden.
+    if (id === "quick" || id === "mood") { toggleTile(k); return; }
     if (inOrder(k)) setL(layout.order.filter((x) => x !== k), hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden);
     else setL(layout.order.concat([k]), hidden.filter((x) => x !== k));
   };
-  const widgetOn = (id) => (id === "quick") ? (hidden.indexOf("w:quick") < 0) : inOrder("w:" + id);
+  const widgetOn = (id) => (id === "quick" || id === "mood") ? (hidden.indexOf("w:" + id) < 0) : inOrder("w:" + id);
   const tileOn = (k) => hidden.indexOf(k) < 0;
   const toggleTile = (k) => {
     if (tileOn(k)) setL(layout.order.filter((x) => x !== k), hidden.concat([k]));
@@ -2905,7 +2917,7 @@ function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark, l
   const off = C * (1 - (pct || 0) / 100);
   const lvlSz = Math.round(size * 0.34); // level badge ≈ a third of the avatar
   return (
-    <button onClick={() => navigate("profile")} className="tap" title="Профиль" aria-label="Профиль, орбиты и настройки"
+    <button onClick={() => navigate("profile", { from: "home" })} className="tap" title="Профиль" aria-label="Профиль, орбиты и настройки"
       style={{ flexShrink: 0, position: "relative", width: size, height: size, background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>
       <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)", zIndex: 2 }}>
         <defs>
@@ -3648,7 +3660,7 @@ function NetworkPeekLive({ unlocked, onOpen }) {
       <div style={{ position: "relative" }}>
         <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(255,255,255,0.55)" }}>🧭 Нетворк · контакты</div>
         <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#fff", marginTop: 4, lineHeight: 1.2 }}>Люди, с которыми по пути</div>
-        <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.62)", marginTop: 4, lineHeight: 1.4, maxWidth: 250 }}>Знакомства по ритму и делам — приложение само подберёт, к кому присмотреться.</div>
+        <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.62)", marginTop: 4, lineHeight: 1.4, maxWidth: 250 }}>Знакомства по ритму и делам. Открывается уровнем, а часть кругов — тренингами.</div>
         <div aria-hidden style={{ filter: "blur(3px)", opacity: 0.55, pointerEvents: "none", marginTop: 12, display: "flex", flexDirection: "column", gap: 7 }}>
           {rows.map(([e, t], i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>

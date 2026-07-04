@@ -1199,7 +1199,8 @@ function NetworkLockedLive({
   level,
   xp,
   xpMax,
-  levelsLeft
+  levelsLeft,
+  onTraining = null
 }) {
   var {
     open: _openSheet
@@ -1241,6 +1242,16 @@ function NetworkLockedLive({
     })),
     meta: "Вместе с друзьями",
     accent: "#85e3a8"
+  }, {
+    // Быстрая дверь (David: «нигде не упоминаем, что часть контактов открывается
+    // после тренингов»): ачивка тренинга открывает свой круг сразу, без уровня.
+    i: "🎓",
+    t: "Пройди тренинг",
+    d: "Ачивка тренинга сразу открывает свой круг контактов — не дожидаясь 10 уровня.",
+    cta: "К тренингам",
+    action: onTraining || (() => navigate("community")),
+    meta: "Ключ к людям",
+    accent: "#d8c4ff"
   }];
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1373,7 +1384,7 @@ function NetworkLockedLive({
     style: {
       marginTop: 6
     }
-  }, "3 \u0441\u043F\u043E\u0441\u043E\u0431\u0430 \u043E\u0442\u043A\u0440\u044B\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
+  }, paths.length, " \u0441\u043F\u043E\u0441\u043E\u0431\u0430 \u043E\u0442\u043A\u0440\u044B\u0442\u044C"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -4605,14 +4616,21 @@ var BOS_HOME_WIDGETS = [{
   t: "Эта неделя",
   d: "Недельная активность",
   emoji: "📅"
+},
+// «Состояние» ВЕРНУЛОСЬ (David: «изначально всё строилось вокруг состояния, а мы его
+// скрыли»): раз в день отметил, как ты, — за неделю складывается картинка, и ИИ
+// подстраивается. Добирается на доску само (как quick) — после «Эта неделя».
+{
+  id: "mood",
+  t: "Состояние",
+  d: "Как ты — день за днём",
+  emoji: "🌤"
 }, {
   id: "team",
   t: "Вместе",
   d: "Ваши совместные цели",
   emoji: "👥"
 },
-// «Состояние» (mood-слайдер + виджет-состояние с упоминанием дневника) ВРЕМЕННО СКРЫТ (David) —
-// убран из списка → кейс id==="mood" в home_live не рендерится. Вернуть = добавить строку обратно.
 // v528 (Д): контейнеры «Привычки»/«Цели» УБРАНЫ — плитки привычек и целей теперь СВОБОДНЫЕ
 // элементы сетки главной (homeLayout, ключи h:<id>/g:<id>), их не включают из галереи.
 {
@@ -4700,14 +4718,15 @@ function HomeGalleryContentLive({
   };
   var toggleWidget = id => {
     var k = "w:" + id;
-    // «Быстрое добавление» добирается на доску само (как плитки) → его вкл = НЕ в hidden.
-    if (id === "quick") {
+    // «Быстрое добавление» и «Состояние» добираются на доску сами (как плитки)
+    // → их вкл = НЕ в hidden.
+    if (id === "quick" || id === "mood") {
       toggleTile(k);
       return;
     }
     if (inOrder(k)) setL(layout.order.filter(x => x !== k), hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden);else setL(layout.order.concat([k]), hidden.filter(x => x !== k));
   };
-  var widgetOn = id => id === "quick" ? hidden.indexOf("w:quick") < 0 : inOrder("w:" + id);
+  var widgetOn = id => id === "quick" || id === "mood" ? hidden.indexOf("w:" + id) < 0 : inOrder("w:" + id);
   var tileOn = k => hidden.indexOf(k) < 0;
   var toggleTile = k => {
     if (tileOn(k)) setL(layout.order.filter(x => x !== k), hidden.concat([k]));else setL(inOrder(k) ? layout.order : layout.order.concat([k]), hidden.filter(x => x !== k));
@@ -6711,7 +6730,9 @@ function HeroAccountAvatarLive({
   var off = C * (1 - (pct || 0) / 100);
   var lvlSz = Math.round(size * 0.34); // level badge ≈ a third of the avatar
   return /*#__PURE__*/React.createElement("button", {
-    onClick: () => navigate("profile"),
+    onClick: () => navigate("profile", {
+      from: "home"
+    }),
     className: "tap",
     title: "\u041F\u0440\u043E\u0444\u0438\u043B\u044C",
     "aria-label": "\u041F\u0440\u043E\u0444\u0438\u043B\u044C, \u043E\u0440\u0431\u0438\u0442\u044B \u0438 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
@@ -9160,7 +9181,7 @@ function NetworkPeekLive({
       lineHeight: 1.4,
       maxWidth: 250
     }
-  }, "\u0417\u043D\u0430\u043A\u043E\u043C\u0441\u0442\u0432\u0430 \u043F\u043E \u0440\u0438\u0442\u043C\u0443 \u0438 \u0434\u0435\u043B\u0430\u043C \u2014 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0441\u0430\u043C\u043E \u043F\u043E\u0434\u0431\u0435\u0440\u0451\u0442, \u043A \u043A\u043E\u043C\u0443 \u043F\u0440\u0438\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C\u0441\u044F."), /*#__PURE__*/React.createElement("div", {
+  }, "\u0417\u043D\u0430\u043A\u043E\u043C\u0441\u0442\u0432\u0430 \u043F\u043E \u0440\u0438\u0442\u043C\u0443 \u0438 \u0434\u0435\u043B\u0430\u043C. \u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0443\u0440\u043E\u0432\u043D\u0435\u043C, \u0430 \u0447\u0430\u0441\u0442\u044C \u043A\u0440\u0443\u0433\u043E\u0432 \u2014 \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0430\u043C\u0438."), /*#__PURE__*/React.createElement("div", {
     "aria-hidden": true,
     style: {
       filter: "blur(3px)",

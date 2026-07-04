@@ -1049,6 +1049,7 @@ function CommunityLive() {
   }, /*#__PURE__*/React.createElement(NetworkLockedLive, {
     navigate: navigate,
     live: true,
+    onTraining: () => setFilter("training"),
     level: userLevel,
     xp: xpInLevel,
     xpMax: xpForNext,
