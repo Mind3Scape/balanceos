@@ -877,6 +877,24 @@
     try { var res = await c.from("habit_reminders").delete().eq("user_id", id).eq("hkey", String(hkey)); return !(res && res.error); }
     catch (e) { return false; }
   }
+  // УМНЫЙ ПУШ: привычку отметили сегодня → гасим сегодняшнее напоминание (ставим last_sent_day =
+  // локальный день), чтобы бот не дёргал зря. Тот же локальный день, что считает функция remind.
+  function _localDayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  async function markReminderDone(hkey) {
+    var c = client(); var id = await uid(); if (!c || !id || !hkey) return false;
+    try { var res = await c.from("habit_reminders").update({ last_sent_day: _localDayStr() }).eq("user_id", id).eq("hkey", String(hkey)); return !(res && res.error); }
+    catch (e) { return false; }
+  }
+  // Публикуем свой часовой пояс в профиль (минуты от UTC, Москва = +180) — чтобы вечерний
+  // чек-ин слался в ЛОКАЛЬНЫЕ ~20:00. Graceful: нет колонки tz_offset → тихий no-op.
+  async function saveTz(offset) {
+    var c = client(); var id = await uid(); if (!c || !id) return false;
+    try { var res = await c.from("profiles").update({ tz_offset: (typeof offset === "number") ? offset : 0 }).eq("id", id); return !(res && res.error); }
+    catch (e) { return false; }
+  }
 
   window.bosCloud = {
     enabled: function () { return !!client(); },
@@ -896,7 +914,7 @@
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
-    upsertReminder: upsertReminder, deleteReminder: deleteReminder,
+    upsertReminder: upsertReminder, deleteReminder: deleteReminder, markReminderDone: markReminderDone, saveTz: saveTz,
     signOut: signOut,
     _client: client,
   };

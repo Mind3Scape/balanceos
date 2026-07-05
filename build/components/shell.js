@@ -2061,6 +2061,10 @@ function AppProvider({
     try {
       if (h.cloudId && _liveCloud()) window.bosCloud.toggleHabitLog(h.cloudId, tk, on);
     } catch (e) {}
+    // УМНЫЙ ПУШ: отметил привычку с напоминанием → гасим сегодняшний пуш (бот не дёрнет зря).
+    try {
+      if (on && h.reminder && h.reminder.on && _liveCloud() && window.bosCloud.markReminderDone) window.bosCloud.markReminderDone(h.cloudId || h.id);
+    } catch (e) {}
     // SHARED habit (habit buddy): mirror today's mark to the shared log so the friend sees it.
     try {
       if (h.shareCode && _liveCloud() && window.bosCloud.setSharedLog) window.bosCloud.setSharedLog(h.shareCode, tk, on);
@@ -2176,28 +2180,35 @@ function AppProvider({
     };
   }, [mode]);
 
-  // Разовая (за сессию) синхронизация напоминаний в облако — чтобы серверный планировщик слал
-  // пуши и для привычек, заведённых ДО этой фичи (форма публикует только при сохранении). Свой
-  // tz_offset. Graceful: пока патч habit_reminders не прогнан — upsert тихо вернёт false.
+  // Разовая (за сессию) синхронизация в облако: (1) часовой пояс в профиль — для вечернего
+  // чек-ина (даже если привычек нет); (2) расписание напоминаний — чтобы серверный планировщик
+  // слал пуши и для привычек, заведённых ДО фичи. Graceful: нет колонок/таблиц → тихий no-op.
   var _remSyncedRef = useRef(false);
+  var _tzSyncedRef = useRef(false);
   useEffect(() => {
-    if (mode !== "live" || _remSyncedRef.current) return;
-    if (!_liveCloud() || !window.bosCloud.upsertReminder) return;
-    if (!habits || !habits.length) return; // привычки ещё не подгрузились — подождём
-    _remSyncedRef.current = true;
-    var tz = -new Date().getTimezoneOffset();
-    habits.filter(h => h && h.reminder && h.reminder.on && !h.shelved).forEach(h => {
+    if (mode !== "live" || !_liveCloud()) return;
+    var tz = -new Date().getTimezoneOffset(); // Москва UTC+3 → +180
+    if (!_tzSyncedRef.current && window.bosCloud.saveTz) {
+      _tzSyncedRef.current = true;
       try {
-        window.bosCloud.upsertReminder(h.cloudId || h.id, {
-          name: h.name,
-          emoji: h.emoji,
-          time: h.reminder.time || "09:00",
-          days: Array.isArray(h.days) ? h.days : null,
-          tzOffset: tz,
-          active: true
-        });
+        window.bosCloud.saveTz(tz);
       } catch (e) {}
-    });
+    }
+    if (!_remSyncedRef.current && window.bosCloud.upsertReminder && habits && habits.length) {
+      _remSyncedRef.current = true;
+      habits.filter(h => h && h.reminder && h.reminder.on && !h.shelved).forEach(h => {
+        try {
+          window.bosCloud.upsertReminder(h.cloudId || h.id, {
+            name: h.name,
+            emoji: h.emoji,
+            time: h.reminder.time || "09:00",
+            days: Array.isArray(h.days) ? h.days : null,
+            tzOffset: tz,
+            active: true
+          });
+        } catch (e) {}
+      });
+    }
   }, [mode, habits]);
   var addGoal = g => {
     var ng = {
