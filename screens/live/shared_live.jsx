@@ -760,7 +760,7 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft, onTraining 
       i: "🌤️", t: "Отмечай состояние",
       d: "Отметка и пара строк в дневнике дают опыт каждый день.",
       cta: "Отметить сейчас", action: () => navigate("mood"),
-      meta: "+15 XP / день",
+      meta: "+5…15 XP / день",
       accent: "#9bd0ff",
     },
     {
@@ -1054,7 +1054,7 @@ function BuddyFaceLive({ avatar, name, size }) {
   return <div style={Object.assign({}, disc, { display: "grid", placeItems: "center", color: "var(--disc-ink, #5b6473)", fontWeight: 600, fontSize: Math.round(size * 0.44), letterSpacing: "-0.2px", lineHeight: 1, fontFamily: "-apple-system, system-ui, sans-serif" })}>{initial}</div>;
 }
 
-function HabitInviteBannerLive({ amount = 75, habit }) {
+function HabitInviteBannerLive({ amount = 150, habit }) {
   const ink = "#0a0a0a", inkSub = "rgba(0,0,0,0.62)";
   // Plain gold banner — orbits/memoji removed (David: «орбиты убрать, оставить просто золотые баннеры»).
   return (
@@ -1070,11 +1070,11 @@ function HabitInviteBannerLive({ amount = 75, habit }) {
             <span style={{ fontSize: 33, fontWeight: 800, letterSpacing: "-1.2px", lineHeight: 1 }}>+<CountUp value={amount} /></span>
             <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px" }}>XP</span>
           </div>
-          <div style={{ fontSize: 12.5, color: inkSub, marginTop: 3, lineHeight: 1.35 }}>когда друг присоединится к этой привычке</div>
+          <div style={{ fontSize: 12.5, color: inkSub, marginTop: 3, lineHeight: 1.35 }}>когда друг придёт по твоей ссылке</div>
         </div>
       </div>
       <div style={{ position: "relative", marginTop: 13, paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.10)", fontSize: 12, color: inkSub, lineHeight: 1.4 }}>
-        А когда ведёте привычку вместе — каждая отметка приносит <b style={{ color: ink }}>+15 XP</b> вместо +10.
+        А вести привычку вместе — видите отметки друг друга и держитесь оба.
       </div>
     </div>
   );
@@ -1332,8 +1332,8 @@ function JoinWelcomeLive({ info, onClose }) {
               <I.Bolt size={22} color="#fff" filled />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>+15 XP за каждую совместную отметку</div>
-              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>вместо +10, когда ведёшь один</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>+150 XP за друга по ссылке</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>если он — новичок в BalanceOS</div>
             </div>
           </div>
         )}
@@ -1965,11 +1965,11 @@ function ShareHabitSheetLive({ habit, dark = false }) {
       <div style={{ textAlign: "center" }}>
         <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{bosIcon(habit?.emoji || "✨", 30, habit?.color)}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Позови друга</div>
-        <div style={{ fontSize: 14, color: C.sub, marginTop: 3, lineHeight: 1.4 }}>«{habit?.name || "Привычка"}» вместе — больше XP. Отправь ссылку, и друг присоединится.</div>
+        <div style={{ fontSize: 14, color: C.sub, marginTop: 3, lineHeight: 1.4 }}>«{habit?.name || "Привычка"}» вместе — вы видите отметки друг друга и держитесь оба. Отправь ссылку, и друг присоединится.</div>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <HabitInviteBannerLive amount={75} habit={habit} />
+        <HabitInviteBannerLive amount={150} habit={habit} />
       </div>
 
       <button onClick={shareLink} className="tap" style={{
@@ -2079,7 +2079,7 @@ function SharedBuddiesLive({ habit, isDark, members: membersProp }) {
           <span style={{ width: 42, height: 42, borderRadius: 14, background: accent + "1f", display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>🔗</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--text)" }}>Веди привычку вместе</div>
-            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.4 }}>Позови друга: <b style={{ color: "var(--text-2)" }}>+75 XP</b>, и каждая отметка вместе — <b style={{ color: "var(--text-2)" }}>+15 XP</b> вместо +10.</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.4 }}>Новый друг по твоей ссылке — <b style={{ color: "var(--text-2)" }}>+150 XP</b>. А вести привычку вместе — видите отметки друг друга.</div>
           </div>
           <I.ChevronRight size={18} color="var(--text-4)" />
         </button>
@@ -6040,7 +6040,7 @@ function TeamShareSheetLive({ team }) {
   const link = (team && team.cloudId && typeof bosTeamInviteLink === "function")
     ? bosTeamInviteLink(team.cloudId)
     : ((typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot");
-  const shareText = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Присоединяйся к «" + (team?.name || "") + "» в BalanceOS";
+  const shareText = "Вести привычки вместе — веселее, и вы видите отметки друг друга ✨ Присоединяйся к «" + (team?.name || "") + "» в BalanceOS";
   const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
   const shareTelegram = () => {
     const url = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent(shareText);
@@ -6054,7 +6054,7 @@ function TeamShareSheetLive({ team }) {
         <div style={{ width: 60, height: 60, borderRadius: 16, margin: "0 auto 12px", background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(false), display: "grid", placeItems: "center", fontSize: 32 }}>{bosIcon(team?.emblem || "✨", 32, null)}</div>
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Позвать вместе</div>
         <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>
-          Вести привычки вместе — веселее, и за совместные привычки больше XP ✨
+          Вести привычки вместе — веселее, и вы видите отметки друг друга ✨
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", background: "var(--surface-3)", padding: "4px 11px", borderRadius: 999 }}>
           {isPublic ? "🌐 Открытый · по ссылке сразу присоединятся" : "🔒 Приватный · войдут только по этой ссылке"}

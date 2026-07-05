@@ -369,6 +369,7 @@ function SettingsLive() {
   // Grouped iOS-style sections (v279 reno): ONE card per group, hairline-divided rows inside.
   // Helpers are plain render-fns (not components) so toggling never remounts the list.
   const PRIVACY_BODY = "Мы храним только то, что нужно приложению: твои привычки, состояние и записи. Они привязаны к твоему аккаунту Telegram. Полные документы — на сайте проекта.";
+  const TERMS_BODY = "Пользуясь BalanceOS, ты ведёшь привычки и цели для собственного развития. Мы стараемся, чтобы приложение работало стабильно, но предоставляем его «как есть», без гарантий. Это инструмент поддержки, а не замена медицинской или психологической помощи. Полные условия — на сайте проекта.";
   const chip = (icon) => <span className="bos-sys-chip-bg" style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0 }}>{React.createElement(icon, { size: 16, color: "var(--text)" })}</span>;
   const row = (icon, label, onClick, last) => (
     <button key={label} onClick={onClick} className="tap" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", background: "transparent", border: 0, borderBottom: last ? "none" : "0.5px solid var(--line)", cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
@@ -415,7 +416,7 @@ function SettingsLive() {
         row(I.Compass, "Как устроен Balance", () => navigate("guide", { from: "settings" })),
         row(I.Sparkles, "Манифест", () => navigate("manifest", { from: "settings" })),
         row(null, "Политика конфиденциальности", () => openSheet(<InfoSheet title="Политика конфиденциальности" body={PRIVACY_BODY} cta="Готово" dark={routeDark}/>)),
-        row(null, "Условия использования", () => openSheet(<InfoSheet title="Условия использования" body={PRIVACY_BODY} cta="Готово" dark={routeDark}/>), true),
+        row(null, "Условия использования", () => openSheet(<InfoSheet title="Условия использования" body={TERMS_BODY} cta="Готово" dark={routeDark}/>), true),
       ])}
       <div className="bos-sys-text-3" style={{ textAlign: "center", padding: "16px 14px 2px", fontSize: 13 }}>Версия {APP_VERSION}</div>
       {/* «Сделано с 💛» ПЕРЕЕХАЛО на страницу «Я» (David: тёплой подписи место у орбит). */}
@@ -913,10 +914,10 @@ function SupportLive() {
   const [openFaq, setOpenFaq] = useP(null);
   const FAQ = [
     { q: "Как работают серии", a: "Серия прибавляет день за каждый день, когда ты выполнил хотя бы одну привычку. Пропустишь день — серия обнуляется, но история остаётся." },
-    { q: "Позвать в совместную цель", a: "Открой цель → шестерёнка → раздел «Участники» → выбери друга из подсказок. Он получит уведомление и сможет присоединиться к общей цели." },
+    { q: "Позвать в совместную цель", a: "Открой цель или круг → «Поделиться» → отправь ссылку. Друг откроет её и присоединится к общей цели." },
     { q: "Конфиденциальность и данные", a: "Твои данные о привычках видны только тебе. В совместной цели друзья видят лишь отметки по общим привычкам — не личные." },
-    { q: "Подключение Apple Health", a: "Настройки → Привязанные аккаунты. После подключения шаги и тренировки будут автоматически отмечать связанные привычки." },
-    { q: "Отмена подписки", a: "Подписка управляется в App Store: Настройки телефона → Apple ID → Подписки → BalanceOS → Отменить." },
+    { q: "Сгорает ли уровень", a: "Нет. Уровень растёт навсегда и по понедельникам не обнуляется. Прерваться может серия, но накопленный опыт и уровень остаются с тобой." },
+    { q: "Как пригласить друга", a: "На «Я» нажми «Поделиться» и отправь ссылку. Кто придёт по ней — встанет на твою орбиту, а тебе +150 XP." },
   ].filter(f => !q || f.q.toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>

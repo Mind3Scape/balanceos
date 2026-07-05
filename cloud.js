@@ -699,14 +699,24 @@
   }
   async function joinSharedHabit(code) {
     var c = client(); var id = await uid(); if (!c || !id || !code) return null;
+    var sh = null;
+    // RPC-first (patch_privacy_shared_habits): код = приглашение → SECURITY DEFINER вписывает и
+    // возвращает ТУ привычку (перечисление чужих кодов закрыто). Graceful: нет функции (до патча) →
+    // старый прямой путь upsert+select (пока read-политика ещё using(true) он работает).
     try {
-      await c.from("shared_habit_members").upsert({ code: code, user_id: id }, { onConflict: "code,user_id", ignoreDuplicates: true });
-      var r = await c.from("shared_habits").select("code,name,emoji,color,owner_id").eq("code", code).maybeSingle();
-      var sh = (r && r.data) || { code: code, name: "Привычка" };
-      // Who invited you (the habit's creator) — powers the welcome sheet «X зовёт вести вместе».
-      if (sh.owner_id) { try { var op = await c.from("profiles").select("username,avatar").eq("id", sh.owner_id).maybeSingle(); if (op && op.data) { sh.ownerName = op.data.username || ""; sh.ownerAvatar = op.data.avatar || "default"; } } catch (e2) {} }
-      return sh;
-    } catch (e) { return { code: code, name: "Привычка" }; }
+      var rp = await c.rpc("join_shared", { c: code });
+      if (rp && !rp.error && rp.data) { var d = Array.isArray(rp.data) ? rp.data[0] : rp.data; if (d && d.code) sh = { code: d.code, name: d.name, emoji: d.emoji, color: d.color, owner_id: d.owner_id }; }
+    } catch (e) {}
+    if (!sh) {
+      try {
+        await c.from("shared_habit_members").upsert({ code: code, user_id: id }, { onConflict: "code,user_id", ignoreDuplicates: true });
+        var r = await c.from("shared_habits").select("code,name,emoji,color,owner_id").eq("code", code).maybeSingle();
+        sh = (r && r.data) || { code: code, name: "Привычка" };
+      } catch (e) { return { code: code, name: "Привычка" }; }
+    }
+    // Who invited you (the habit's creator) — powers the welcome sheet «X зовёт вести вместе».
+    if (sh && sh.owner_id) { try { var op = await c.from("profiles").select("username,avatar").eq("id", sh.owner_id).maybeSingle(); if (op && op.data) { sh.ownerName = op.data.username || ""; sh.ownerAvatar = op.data.avatar || "default"; } } catch (e2) {} }
+    return sh || { code: code, name: "Привычка" };
   }
   async function setSharedLog(code, day, on) {
     if (!code || !day) return false;

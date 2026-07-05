@@ -468,10 +468,10 @@ function TeamSettingsLive() {
           deep-link (t.me/<bot>?startapp=team_<cloudId>) — тот же, что у TeamShareSheetLive. */}
       {team.cloudId && (<>
         <div style={{ background: "var(--card)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)" }}>
-          <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginBottom: 12 }}>Пришли ссылку — друг откроет цель в Telegram и присоединится к общей цели. За совместные привычки больше XP.</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginBottom: 12 }}>Пришли ссылку — друг откроет цель в Telegram и присоединится к общей цели. Вы будете видеть прогресс друг друга.</div>
           <button onClick={() => {
             var link = (typeof bosTeamInviteLink === "function") ? bosTeamInviteLink(team.cloudId) : ("https://t.me/BalanceOS8_bot?startapp=team_" + team.cloudId);
-            var text = "Вести привычки вместе — веселее, и за совместные привычки больше XP ✨ Присоединяйся к цели «" + (team.name || "") + "» в BalanceOS";
+            var text = "Вести привычки вместе — веселее, и вы видите прогресс друг друга ✨ Присоединяйся к цели «" + (team.name || "") + "» в BalanceOS";
             if (window.bosShare) window.bosShare(link, text);
             else { try { navigator.clipboard.writeText(link); } catch (e) {} }
             if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
@@ -687,9 +687,9 @@ function LevelsLive() {
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "0 0 4px" }}>Как растёт уровень</div>
         {[
           { t: "Выполнить привычку", v: "+10" },
-          { t: "Идеальный день", v: "+30" },
-          { t: "Серия 7 дней", v: "+75" },
-          { t: "Достичь цели", v: "+250" },
+          { t: "Отметить состояние", v: "+5" },
+          { t: "Серия 21 день", v: "+120" },
+          { t: "Достичь цели", v: "+200" },
           { t: "Привести друга", v: "+150", infl: true },
         ].map((r, i, arr) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : 0, fontSize: 14 }}>
