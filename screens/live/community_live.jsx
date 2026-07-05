@@ -141,10 +141,9 @@ function CommunityLive() {
   const _fOk = cv.filter && _pairFor[cv.filter] === section
     && (section !== "community" || (cv.filter === "training") === (commTabEff === "courses"));
   let filter = _fOk ? cv.filter : _legacyFilter;
-  // David: «Рядом» слит в «Партнёры» (карта+сетка одним блоком), «Тренинги» убраны из раздела —
-  // фокус на карте партнёров, партнёрах и нетворке. Старое сохранённое состояние аккуратно переводим.
+  // David: «Рядом» слит в «Партнёры» (карта+сетка одним блоком). «Курсы» ВЕРНУЛИ отдельным чипом
+  // (David: «верни вкладку Курсы с 3мя курсами»). Старое «nearby» аккуратно переводим в «partners».
   if (filter === "nearby") filter = "partners";
-  if (filter === "training") filter = "all";
   const setFilter = (f) => setView({ filter: f, section: _pairFor[f] || "discover", commTab: f === "training" ? "courses" : "network" });
   const isDark = app?.themeOverride === "dark";
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
@@ -213,7 +212,7 @@ function CommunityLive() {
   ];
   // Хиты программ считаются ЗДЕСЬ (courses объявлен строкой выше — обращение раньше уронило бы TDZ).
   const cHits = searching ? courses.filter((c) => _hit(c.t, c.d, c.lvl)) : [];
-  const nothingFound = searching && cloudHits === 0 && !lcHits.length && !pHits.length;
+  const nothingFound = searching && cloudHits === 0 && !lcHits.length && !pHits.length && !cHits.length;
 
   return (
     <div className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -246,7 +245,7 @@ function CommunityLive() {
         {/* Чип «Рядом» (David) — режим КАРТЫ партнёров города, сразу после «Все». Пока город один
             (Москва) — карта живёт и на обзоре «Все» героем, и крупно тут. */}
         {/* Иконки у категорий (David: «svg-иконок не хватает, чтобы чётче отличать»). */}
-        {[["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart]].map(([id, t, Ic]) => {
+        {[["all", "Все", I.Globe], ["circles", "Круги", I.Group], ["people", "Люди", I.Users], ["partners", "Партнёры", I.Heart], ["training", "Курсы", I.Bolt]].map(([id, t, Ic]) => {
           const on = filter === id;
           const glass = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
           return (
@@ -312,7 +311,24 @@ function CommunityLive() {
               </div>
             </div>
           )}
-          {/* Тренинги в поиске убраны (David: «тренинги пока убери из раздела все»). */}
+          {cHits.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🎓 Курсы</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {cHits.map((c) => (
+                  <button key={c.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("course-detail", { course: c }); }} className="tap"
+                    style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
+                    <span style={{ width: 44, height: 44, borderRadius: 14, background: c.accent, display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{c.i}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 600 }}>{c.t}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.lvl} · {c.price}</div>
+                    </div>
+                    <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {nothingFound && (
             <div style={{ background: "var(--card)", borderRadius: 22, padding: "26px 18px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
               <div style={{ fontSize: 30, lineHeight: 1 }}>🔭</div>
@@ -465,6 +481,61 @@ function CommunityLive() {
               onSwitchToCommunity={() => setFilter("partners")}
             />
           </div>
+        )}
+
+        {filter === "training" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
+          {/* КУРСЫ (вернули отдельным чипом — David: «верни вкладку Курсы с 3мя курсами»):
+              голд-баннер «зачем» + полные карточки → course-detail (запись роняет практику+круг). */}
+          <CommSectionHeadLive title="🎓 Курсы" />
+          <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
+            background: "linear-gradient(135deg, #FEDE34, #EF9F14)",
+            boxShadow: "0 8px 22px rgba(239,159,20,0.32)" }}>
+            <div aria-hidden style={{ position: "absolute", top: -46, right: -28, width: 168, height: 168, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
+            <div aria-hidden style={{ position: "absolute", top: 15, right: 17, fontSize: 38, lineHeight: 1, pointerEvents: "none" }}>🏆</div>
+            <div style={{ position: "relative" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(58,42,0,0.6)" }}>Зачем проходить курсы</div>
+              <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#3a2a00", marginTop: 4, maxWidth: 220, lineHeight: 1.2 }}>Каждый курс — целый уровень</div>
+              <div style={{ fontSize: 13, color: "rgba(58,42,0,0.8)", marginTop: 6, lineHeight: 1.42, maxWidth: 244 }}>Ачивка, большой опыт и доступ к новым людям. Самый быстрый рост.</div>
+              <div style={{ display: "flex", gap: 7, marginTop: 13, flexWrap: "wrap" }}>
+                {[["🏆", "+Уровень"], ["🎖️", "Ачивка"], ["⚡", "+2000 XP"]].map(([e, l], i) => (
+                  <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.55)", borderRadius: 999, padding: "6px 11px", fontSize: 12.5, fontWeight: 700, color: "#3a2a00" }}>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>{e}</span>{l}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          {courses.map((c, i) => (
+            <button key={i} data-tour={i === 0 ? "course" : undefined} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("course-detail", { course: c }); }} className="tap"
+              style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", color: "var(--text)", display: "block", width: "100%" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 700, fontSize: 17, color: "var(--text)", letterSpacing: "-0.3px" }}>{c.t}</span>
+                    <span style={{ fontSize: 10, padding: "2px 8px", background: "var(--card-2)", borderRadius: 999, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600 }}>{c.lvl}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 6, lineHeight: 1.45 }}>{c.d}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 6, display: "flex", gap: 10 }}>
+                    <span>⏱ {c.length}</span>
+                    <span>·</span>
+                    <span>📅 {c.cohort}</span>
+                  </div>
+                </div>
+                <div style={{ width: 46, height: 46, borderRadius: "50%", background: c.accent, display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>{c.i}</div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--line)", paddingTop: 12, marginTop: 12 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Стоимость</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, color: "var(--text)" }}>{c.price}</div>
+                </div>
+                <span style={{ background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", borderRadius: 999, padding: "10px 18px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500 }}>
+                  О курсе <I.ChevronRight size={14} />
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
         )}
 
 
