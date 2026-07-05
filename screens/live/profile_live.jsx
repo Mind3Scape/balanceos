@@ -18,6 +18,10 @@
    The ONLY new top-level declarations in this file are `function ProfileLive`
    and `function AILive`. */
 
+// Люди орбиты «Я»: показать СРАЗУ из кэша (память → localStorage), обновить фоном и МОЛЧА.
+// Это был единственный экран «с людьми» без кэша — аватарки «доскакивали» ~секунду при каждом заходе.
+var _bosOrbitPeopleCache = null;
+
 function ProfileLive() {
   const { navigate } = useNav();
   const app = (typeof useApp === "function") ? useApp() : null;
@@ -32,7 +36,11 @@ function ProfileLive() {
   // Real multiplayer: pull the people you've actually invited (referral circle) from
   // the cloud and put them on your orbit — PLUS the person who invited YOU (myInviter),
   // so a newcomer's orbit is never empty: the bridge works both ways from day one.
-  const [livePeople, setLivePeople] = React.useState([]);
+  const [livePeople, setLivePeople] = React.useState(() => {
+    if (Array.isArray(_bosOrbitPeopleCache)) return _bosOrbitPeopleCache;
+    try { const c = JSON.parse(localStorage.getItem("bos:cache:orbitPeople") || "null"); if (Array.isArray(c)) return c; } catch (e) {}
+    return [];
+  });
   React.useEffect(() => {
     let on = true;
     try {
@@ -45,7 +53,10 @@ function ProfileLive() {
           if (!on) return;
           const out = (Array.isArray(list) ? list : []).map(_mk);
           if (inv && inv.username) out.unshift(_mk(inv)); // зовущий — первым, ближе всех
-          setLivePeople(out);
+          _bosOrbitPeopleCache = out;
+          try { localStorage.setItem("bos:cache:orbitPeople", JSON.stringify(out)); } catch (e) {}
+          // Молча: state (и пересборку орбиты) дёргаем только если список реально изменился.
+          setLivePeople((prev) => JSON.stringify(prev) === JSON.stringify(out) ? prev : out);
         }).catch(() => {});
       }
     } catch (e) {}

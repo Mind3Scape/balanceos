@@ -41,18 +41,29 @@ function LiveTeamCard({
   var gp = tgt > 0 ? Math.min(1, cur / tgt) : t.progress || 0;
   var palette = typeof BOS_TEAM_PALETTE !== "undefined" ? BOS_TEAM_PALETTE : ["#7FB3F2"];
   var _cloud = !!(t.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamMembers);
-  var [roster, setRoster] = React.useState(null); // null = not loaded yet
+  // Ростер из ОБЩЕГО кэша круга (тот же bos:cache:team:roster:*, что ест деталь круга): лица видны
+  // СРАЗУ, сеть ревалидирует фоном — карточка не показывает скелетон при каждом заходе на список.
+  var [roster, setRoster] = React.useState(() => {
+    var c = _cloud && typeof _bosTeamGet === "function" ? _bosTeamGet("roster:" + t.cloudId) : null;
+    return Array.isArray(c) ? c : null;
+  });
   React.useEffect(() => {
     if (!_cloud) return;
     var on = true;
     window.bosCloud.teamMembers(t.cloudId).then(mem => {
       if (!on || !Array.isArray(mem)) return;
-      setRoster(mem.map((m, j) => ({
+      // Пишем в общий кэш ТОТ ЖЕ формат и порядок (owner первым), что и деталь круга — один кэш, два едока.
+      var sorted = mem.slice().sort((a, b) => a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0);
+      var mapped = sorted.map((m, j) => ({
+        id: m.id,
         name: m.name || "Участник",
         avatar: m.avatar,
+        role: m.role,
         initials: (m.name || "У").slice(0, 1).toUpperCase(),
         color: palette[j % palette.length]
-      })));
+      }));
+      if (typeof _bosTeamPut === "function") _bosTeamPut("roster:" + t.cloudId, mapped);
+      setRoster(mapped);
     }).catch(() => {
       if (on) setRoster([]);
     });

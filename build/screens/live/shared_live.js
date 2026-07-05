@@ -12429,6 +12429,19 @@ function InviteFriendsCardLive({
    когда появится публичный профиль). Упаковка БЕЗ НАЛОЖЕНИЙ по всему экрану (рандом + проверка
    расстояний). Кольца медленно крутятся, аватары/эмодзи контр-вращаются (ровные). Портал в body. */
 var _bosUniverseCache = null;
+// ПЕРЕЖИВАЕТ ПЕРЕЗАПУСК Telegram (S1 «пустое поле на входе»): последнее поле Вселенной лежит в
+// localStorage → вход рисует ПОЛНУЮ соту с первого кадра, сеть обновляет фоном и МОЛЧА (sig-skip
+// ниже: state не трогаем, если данные не изменились — никаких пере-раскладок посреди зум-въезда).
+var _bosUniStoreMem;
+function _bosUniStore() {
+  if (_bosUniStoreMem !== undefined) return _bosUniStoreMem;
+  try {
+    _bosUniStoreMem = JSON.parse(localStorage.getItem("bos:cache:universe") || "null");
+  } catch (e) {
+    _bosUniStoreMem = null;
+  }
+  return _bosUniStoreMem;
+}
 function _bosHashU(s) {
   s = "" + (s || "x");
   var h = 2166136261;
@@ -12566,16 +12579,34 @@ function useUniSpin(active) {
   var st = React.useState(0),
     v = st[0],
     setV = st[1];
+  // «ЗАМРИ-И-ПРОДОЛЖИ»: тикер отдаёт ГЛОБАЛЬНОЕ время, поэтому раньше при выкл/вкл (порог spinOn
+  // пересекается при пане) значение прыгало «сотни радиан ↔ 0» — планеты ТЕЛЕПОРТИРОВАЛИСЬ и орбита
+  // читалась как «пересобралась». Теперь держим свой сдвиг: пауза замораживает угол, возобновление
+  // продолжает ровно с него. Скорость и вид вращения не тронуты.
+  var hold = React.useRef(null);
+  if (!hold.current) hold.current = {
+    v: 0,
+    off: null
+  };
   React.useEffect(function () {
-    if (!active) return;
-    _uniSpinSubs.add(setV);
+    var h = hold.current;
+    if (!active) {
+      h.off = null;
+      return;
+    }
+    var fn = function (raw) {
+      if (h.off == null) h.off = raw - h.v;
+      h.v = raw - h.off;
+      setV(h.v);
+    };
+    _uniSpinSubs.add(fn);
     _uniSpinStart();
     return function () {
-      _uniSpinSubs.delete(setV);
+      _uniSpinSubs.delete(fn);
       if (!_uniSpinSubs.size) _uniSpinStop();
     };
   }, [active]);
-  return active ? v : 0;
+  return hold.current.v;
 }
 // Одна РАСКРЫТАЯ система: подписка на тикер только пока spinOn (глубоко под линзой). open=1 —
 // геометрия печётся раз, живое раскрытие едет CSS-переменными (--uK/--uO/--uA) с обёртки.
@@ -12735,11 +12766,19 @@ function UniverseFieldLive({
   onClose
 }) {
   var isDark = app && app.themeOverride === "dark";
-  var [friends, setFriends] = React.useState(_bosUniverseCache);
+  var [friends, setFriends] = React.useState(function () {
+    return _bosUniverseCache || (_bosUniStore() || {}).list || null;
+  });
   // Слой «Связи/созвездия» (ДОП-СТЕКЛО ПОВЕРХ): кто кого привёл. myUid = мой id (центр «Я»),
   // myRefId = кто привёл МЕНЯ. Оба нужны только слою линий — механику Вселенной не трогают.
-  var [myUid, setMyUid] = React.useState(null);
-  var [myRefId, setMyRefId] = React.useState(null);
+  // Стартуем из кэша (uidSync/диск): раскладка считается сразу с правильными значениями → прилёт
+  // тех же значений из сети НЕ дёргает пере-раскладку (React бэйлится на равном state).
+  var [myUid, setMyUid] = React.useState(function () {
+    return window.bosCloud && window.bosCloud.uidSync && window.bosCloud.uidSync() || (_bosUniStore() || {}).me || null;
+  });
+  var [myRefId, setMyRefId] = React.useState(function () {
+    return (_bosUniStore() || {}).ref || null;
+  });
   var [showLinks, setShowLinks] = React.useState(false);
   var edgeEls = React.useRef({}); // ключ ребра → { h: halo-line, c: core-line } (rAF пишет x1/y1/x2/y2)
   // «ДЫХАНИЕ»: 0 = тесная сота (браузинг), 1 = распущенная семейная (связи). Цикл плавно ведёт morphRef
@@ -12754,30 +12793,27 @@ function UniverseFieldLive({
       return;
     }
     (async function () {
-      var out = [],
-        myId = null;
-      try {
-        myId = await window.bosCloud.uid();
-      } catch (e) {}
+      var out = [];
+      // ОДНИМ ЗАЛПОМ (раньше uid → myInviter → allPublic шли ДРУГ ЗА ДРУГОМ — 3-4 похода в сеть
+      // подряд: поле пустовало до секунды-двух, а ответы прилетали ПОСРЕДИ 2.3с зум-въезда и
+      // дважды перекладывали соту в полёте). Теперь всё параллельно; myInviter ещё и кэширован.
+      var res = await Promise.all([(window.bosCloud.uid ? window.bosCloud.uid() : Promise.resolve(null)).catch(function () {
+        return null;
+      }), (window.bosCloud.myInviter ? window.bosCloud.myInviter() : Promise.resolve(null)).catch(function () {
+        return null;
+      }), (window.bosCloud.allPublic ? window.bosCloud.allPublic(240) : Promise.resolve(null)).catch(function () {
+        return null;
+      })]);
+      var myId = res[0],
+        _iv = res[1],
+        all = res[2];
       if (on) setMyUid(myId);
-      // Кто привёл МЕНЯ (для нити «Я → мой пригласивший», если он тоже в поле). Разовый фоновый
-      // запрос; если нет/не пришёл — просто не будет этой одной нити. Не блокирует загрузку систем.
-      try {
-        if (window.bosCloud.myInviter) {
-          var _iv = await window.bosCloud.myInviter();
-          if (on && _iv && _iv.id) setMyRefId(_iv.id);
-        }
-      } catch (e) {}
+      if (on && _iv && _iv.id) setMyRefId(_iv.id);
       // ВСЕ пользователи вселенной: каждый с опубликованной витриной орбиты, АНОНИМНО (аватар+уровень+
       // значки привычек, без имён/связи — David: «показываем всех всем, супер-анонимно»).
-      try {
-        if (window.bosCloud.allPublic) {
-          var all = await window.bosCloud.allPublic(240);
-          (all || []).forEach(function (p) {
-            if (p && p.id && p.id !== myId) out.push(p);
-          });
-        }
-      } catch (e) {}
+      (all || []).forEach(function (p) {
+        if (p && p.id && p.id !== myId) out.push(p);
+      });
       // Фолбэк (нет allPublic / пусто — напр. старый кэш): показать хотя бы своих (приглашённые + круги),
       // тоже анонимно. Дотягиваем их публичные орбиты по id.
       if (!out.length) {
@@ -12835,7 +12871,18 @@ function UniverseFieldLive({
       }
       if (on) {
         _bosUniverseCache = out;
-        setFriends(out);
+        _bosUniStoreMem = {
+          list: out,
+          ref: _iv && _iv.id || null,
+          me: myId || null
+        };
+        try {
+          localStorage.setItem("bos:cache:universe", JSON.stringify(_bosUniStoreMem));
+        } catch (e) {}
+        // Молчаливое обновление: state (и пере-раскладку соты) дёргаем ТОЛЬКО если данные реально другие.
+        setFriends(function (prev) {
+          return JSON.stringify(prev || null) === JSON.stringify(out) ? prev : out;
+        });
       }
     })();
     return function () {
@@ -13165,9 +13212,12 @@ function UniverseFieldLive({
         var _fx = nd.fxH + (nd.fx - nd.fxH) * _mt,
           _fy = nd.fyH + (nd.fy - nd.fyH) * _mt;
         var v = nodeVisual(_fx, _fy, cam, introK);
+        // visibility, НЕ display: у скрытых CSS-каскад «пыха» ПРОДОЛЖАЕТ идти по своему расписанию →
+        // возврат узла в кадр не перезапускает bosSysPop с его задержкой (узел «пропадал» до ~1.15с
+        // и потом пыхал заново — то самое моргание при пане в первые секунды входа).
         if (v.off) {
           if (sigs[nd.key] !== "hide") {
-            el.style.display = "none";
+            el.style.visibility = "hidden";
             sigs[nd.key] = "hide";
           }
           continue;
@@ -13176,7 +13226,7 @@ function UniverseFieldLive({
         var tf = "translate(" + v.f.sx.toFixed(1) + "px," + v.f.sy.toFixed(1) + "px) scale(" + (disc ? v.dscale : v.oscale).toFixed(4) + ")";
         var sig = tf + "|" + v.zi + "|" + v.openV.toFixed(3);
         if (sigs[nd.key] === sig) continue; // покой = ноль записей в DOM
-        if (sigs[nd.key] === "hide") el.style.display = "";
+        if (sigs[nd.key] === "hide") el.style.visibility = "";
         el.style.transform = tf;
         el.style.zIndex = v.zi;
         if (!disc) {
@@ -13470,13 +13520,17 @@ function UniverseFieldLive({
   }, allNodes.map(function (nd) {
     var sp = nd.sp,
       key = nd.key;
-    var vq = nodeVisual(nd.fx, nd.fy, camQ, 1); // структура: LOD/вращение (зум сокращается — см. calcNode)
-    var prev = lodRef.current[key];
-    var lod = vq.openV > (prev === "orbit" ? 0.10 : 0.14) ? "orbit" : "disc";
-    lodRef.current[key] = lod;
     var _mt2 = morphRef.current; // тесная↔распущенная (совпадает с циклом → без прыжка)
     var _nfx = nd.fxH + (nd.fx - nd.fxH) * _mt2,
       _nfy = nd.fyH + (nd.fy - nd.fyH) * _mt2;
+    // СТРУКТУРА (LOD/вращение) — по ТЕМ ЖЕ морфированным координатам, что и ПОКАЗ. Раньше здесь
+    // стояли сырые fx/fy РАСПУЩЕННОЙ (семейной) раскладки: при выключенных «Связях» узел рисуется
+    // в fxH тесной соты, а линза судила по fx → орбиты вспыхивали/гасли НЕВПОПАД при пане (главный
+    // источник «моргания» с v579). Теперь раскрывается ровно то, что реально под линзой.
+    var vq = nodeVisual(_nfx, _nfy, camQ, 1); // (зум сокращается — см. calcNode)
+    var prev = lodRef.current[key];
+    var lod = vq.openV > (prev === "orbit" ? 0.10 : 0.14) ? "orbit" : "disc";
+    lodRef.current[key] = lod;
     var vNow = nodeVisual(_nfx, _nfy, camRef.current, _bosLp(1.34, 1, _bosSm(introRef.current)));
     var delay = Math.min((nd.ring || 0) * 0.14, 1.0) + _bosHashU(key) % 100 / 100 * 0.15;
     var pop = introDone ? "none" : "bosSysPop 0.55s cubic-bezier(0.34,1.35,0.5,1) " + delay.toFixed(2) + "s both";
@@ -13486,7 +13540,7 @@ function UniverseFieldLive({
       top: 0,
       transformOrigin: "0px 0px",
       pointerEvents: "none",
-      display: vNow.off ? "none" : undefined,
+      visibility: vNow.off ? "hidden" : undefined,
       zIndex: vNow.zi,
       transform: "translate(" + vNow.f.sx.toFixed(1) + "px," + vNow.f.sy.toFixed(1) + "px) scale(" + (lod === "disc" ? vNow.dscale : vNow.oscale).toFixed(4) + ")"
     };

@@ -97,7 +97,14 @@ function FriendsLive() {
   const { open: openSheet } = useSheet();
   const isDark = app?.themeOverride === "dark";
   const back = (params && params.from) || "profile";
-  const [data, setData] = useP(_bosFriendsPageCache); // null = загрузка
+  // Кэш страницы ПЕРЕЖИВАЕТ перезапуск Telegram («Друзья открываются долго»): показываем прошлый
+  // список МГНОВЕННО, сеть ревалидирует фоном. Память → localStorage → null (скелетон остаётся
+  // только на самый первый вход в жизни).
+  const [data, setData] = useP(() => {
+    if (_bosFriendsPageCache) return _bosFriendsPageCache;
+    try { const c = JSON.parse(localStorage.getItem("bos:cache:friendsPage") || "null"); if (c && Array.isArray(c.people)) return c; } catch (e) {}
+    return null;
+  }); // null = загрузка
   const teamSig = (app?.teams || []).filter((t) => t.cloudId).map((t) => t.cloudId).join(",");
   React.useEffect(() => {
     let on = true;
@@ -105,29 +112,31 @@ function FriendsLive() {
       if (!(window.bosCloud && window.bosCloud.enabled())) { if (on) setData({ people: [], pub: {} }); return; }
       let myId = null; try { myId = await window.bosCloud.uid(); } catch (e) {}
       const seen = {}, out = [];
-      // 1) Приглашённые тобой (реферальный круг) — в порядке приглашения.
-      try {
-        const inv = await window.bosCloud.invitedPeople();
-        (inv || []).forEach((p) => { if (p && p.id && p.id !== myId && !seen[p.id]) { seen[p.id] = 1; out.push({ id: p.id, name: p.username || "Друг", avatar: p.avatar, invited: true, teams: [] }); } });
-      } catch (e) {}
-      // 2) Люди из твоих кругов — дедуп + запоминаем ОБЩИЕ круги (для превью).
+      // 1+2) Приглашённые тобой + люди из твоих кругов — ОДНИМ ЗАЛПОМ. Раньше гонец ходил ПО ОДНОМУ
+      // (uid → приглашённые → каждый круг по очереди ≈ (2+N) последовательных похода ≈ 1-2.5с
+      // скелетона) — теперь все запросы летят параллельно; порядок сборки списка тот же.
       const teams = (app?.teams || []).filter((t) => t.cloudId);
-      for (let i = 0; i < teams.length; i++) {
-        try {
-          const mem = await window.bosCloud.teamMembers(teams[i].cloudId);
-          (mem || []).forEach((m) => {
-            if (!m || !m.id || m.id === myId) return;
-            if (!seen[m.id]) { seen[m.id] = 1; out.push({ id: m.id, name: m.name || "Друг", avatar: m.avatar, invited: false, teams: [] }); }
-            const f = out.find((x) => x.id === m.id);
-            if (f && !f.teams.some((x) => x._id === teams[i]._id)) f.teams.push(teams[i]);
-          });
-        } catch (e) {}
-      }
+      const [inv, ...memLists] = await Promise.all([
+        window.bosCloud.invitedPeople().catch(() => []),
+        ...teams.map((t) => window.bosCloud.teamMembers(t.cloudId).catch(() => [])),
+      ]);
+      // 1) Приглашённые тобой (реферальный круг) — в порядке приглашения.
+      (inv || []).forEach((p) => { if (p && p.id && p.id !== myId && !seen[p.id]) { seen[p.id] = 1; out.push({ id: p.id, name: p.username || "Друг", avatar: p.avatar, invited: true, teams: [] }); } });
+      // 2) Люди из твоих кругов — дедуп + запоминаем ОБЩИЕ круги (для превью).
+      teams.forEach((t, ti) => {
+        (memLists[ti] || []).forEach((m) => {
+          if (!m || !m.id || m.id === myId) return;
+          if (!seen[m.id]) { seen[m.id] = 1; out.push({ id: m.id, name: m.name || "Друг", avatar: m.avatar, invited: false, teams: [] }); }
+          const f = out.find((x) => x.id === m.id);
+          if (f && !f.teams.some((x) => x._id === t._id)) f.teams.push(t);
+        });
+      });
       // 3) Публичные орбиты друзей (уровень + значки привычек) — кормят подписи и превью.
       let pub = {};
       try { pub = (await window.bosCloud.profilesPublic(out.map((f) => f.id))) || {}; } catch (e) {}
       const d = { people: out, pub };
       _bosFriendsPageCache = d;
+      try { localStorage.setItem("bos:cache:friendsPage", JSON.stringify(d)); } catch (e) {}
       if (on) setData(d);
     })();
     return () => { on = false; };

@@ -95,15 +95,35 @@
   }
   // The person who brought ME in (my profiles.referred_by → their profile), so the
   // newcomer sees their inviter on the orbit from day one — the bridge works both ways.
+  // КЭШ: данные почти write-once, а ходили мы за ними 2 ПОСЛЕДОВАТЕЛЬНЫХ запроса — с «Я», из
+  // Вселенной и из шелла, каждый раз заново. Теперь: мгновенно из памяти/localStorage, сеть —
+  // один раз за сессию фоном (авто-привязка referred_by могла появиться позже — фон подхватит).
+  var _inviterMem;            // undefined = в этой сессии ещё не знаем; null = пригласившего нет
+  var _inviterFly = null;
+  function _inviterRefresh(c, id) {
+    if (_inviterFly) return _inviterFly;
+    _inviterFly = (async function () {
+      try {
+        var me = await c.from("profiles").select("referred_by").eq("id", id).maybeSingle();
+        var rid = me.data && me.data.referred_by;
+        var out = null;
+        if (rid) { var r = await c.from("profiles").select("id,username,avatar").eq("id", rid).maybeSingle(); out = r.data || null; }
+        _inviterMem = out;
+        try { localStorage.setItem("bos:cache:inviter", JSON.stringify(out)); } catch (e) {}
+        return out;
+      } catch (e) { return _inviterMem === undefined ? null : _inviterMem; }
+    })();
+    return _inviterFly;
+  }
   async function myInviter() {
     var c = client(); var id = await uid(); if (!c || !id) return null;
-    try {
-      var me = await c.from("profiles").select("referred_by").eq("id", id).maybeSingle();
-      var rid = me.data && me.data.referred_by;
-      if (!rid) return null;
-      var r = await c.from("profiles").select("id,username,avatar").eq("id", rid).maybeSingle();
-      return r.data || null;
-    } catch (e) { return null; }
+    if (_inviterMem !== undefined) return _inviterMem;
+    var raw = null; try { raw = localStorage.getItem("bos:cache:inviter"); } catch (e) {}
+    if (raw != null) {
+      try { _inviterMem = JSON.parse(raw); } catch (e) { _inviterMem = undefined; }
+      if (_inviterMem !== undefined) { _inviterRefresh(c, id); return _inviterMem; }
+    }
+    return await _inviterRefresh(c, id);
   }
   // PUBLIC orbit for the «Вселенная»: a person's level + their habit ICONS (emoji+colour) + how many
   // people are on their orbit, so others render as REAL orbits (icons + faces), not anonymous beads.
@@ -116,7 +136,7 @@
     // МЕРЖ с последней опубликованной витриной: pub_orbit пишем ТОЛЬКО мы сами, так что локальная
     // копия авторитетна. Коллер, не знающий поля (Главная не знает `people`), НЕ затирает нулём то,
     // что опубликовал экран «Я» — иначе каждый заход на Главную стирал бы планеты у друзей.
-    var last = {}; try { last = JSON.parse(localStorage.getItem("bos:pubOrbit:last") || "{}") || {}; } catch (e) {}
+    var last = {}, lastRaw = null; try { lastRaw = localStorage.getItem("bos:pubOrbit:last"); last = JSON.parse(lastRaw || "{}") || {}; } catch (e) {}
     var hb = Array.isArray(s.habits) ? s.habits : (Array.isArray(last.habits) ? last.habits : []);
     var blob = {
       level: (s.level == null ? last.level : s.level) | 0,
@@ -125,9 +145,16 @@
       people: (s.people == null ? last.people : s.people) | 0,
       habits: hb.slice(0, 12).map(function (h) { return { e: ("" + ((h && h.e) || "✨")).slice(0, 8), c: (h && h.c) || null }; }),
     };
-    try { localStorage.setItem("bos:pubOrbit:last", JSON.stringify(blob)); } catch (e) {}
-    try { var r = await c.from("profiles").update({ pub_orbit: blob }).eq("id", id); return !r.error; }
-    catch (e) { return false; }
+    var blobStr = JSON.stringify(blob);
+    // ДЕДУП: «Я» и Главная публикуют витрину при КАЖДОМ заходе — если ничего не изменилось, не
+    // трогаем ни сеть, ни диск. Метку пишем ПОСЛЕ удачного апдейта (раньше — до), чтобы обрыв
+    // сети не «съедал» повтор: не долетело → метка старая → следующий заход дошлёт.
+    if (blobStr === lastRaw) return true;
+    try {
+      var r = await c.from("profiles").update({ pub_orbit: blob }).eq("id", id);
+      if (!r.error) { try { localStorage.setItem("bos:pubOrbit:last", blobStr); } catch (e2) {} }
+      return !r.error;
+    } catch (e) { return false; }
   }
   // Map id → { level, habits:[{e,c}], goals, people } for a set of users (invited + circle members).
   // Falls back to {} if the column doesn't exist yet, so the universe still renders pre-ALTER.

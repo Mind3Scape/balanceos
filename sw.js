@@ -6,7 +6,7 @@
    - Heavy, rarely-changing files (vendor libs, images, icons): CACHE-FIRST for
      speed; refreshed in the background.
    Bump CACHE on each release so the new worker re-precaches cleanly. */
-const CACHE = "balanceos-v580";
+const CACHE = "balanceos-v581";
 const PRECACHE = [
   "./", "index.html", "styles.css", "mobile.css", "haptics.js", "telegram.js", "aikey.js", "store.js", "supabase.js", "cloud.js",
   "vendor/react.production.min.js", "vendor/react-dom.production.min.js",
@@ -15,31 +15,36 @@ const PRECACHE = [
   // FILES on every build — do not edit between the markers (a file move would otherwise
   // silently break the offline precache).
   /* BUILD_PRECACHE_START */
-  "build/components/icons.js?v=v580",
-  "build/components/shell.js?v=v580",
-  "build/core/aliases.js?v=v580",
-  "build/core/home-kit.js?v=v580",
-  "build/core/habits-kit.js?v=v580",
-  "build/core/profile-kit.js?v=v580",
-  "build/core/community-kit.js?v=v580",
-  "build/core/extra-kit.js?v=v580",
-  "build/screens/demo/profile.js?v=v580",
-  "build/screens/demo/extra.js?v=v580",
-  "build/screens/intro.js?v=v580",
-  "build/screens/live/economy_live.js?v=v580",
-  "build/screens/live/shared_live.js?v=v580",
-  "build/screens/live/home_live.js?v=v580",
-  "build/screens/live/habits_live.js?v=v580",
-  "build/screens/live/profile_live.js?v=v580",
-  "build/screens/live/community_live.js?v=v580",
-  "build/screens/live/home_extra_live.js?v=v580",
-  "build/screens/live/habits_extra_live.js?v=v580",
-  "build/screens/live/profile_extra_live.js?v=v580",
-  "build/screens/live/community_extra_live.js?v=v580",
-  "build/screens/live/extra_live.js?v=v580",
-  "build/app.js?v=v580",
+  "build/components/icons.js?v=v581",
+  "build/components/shell.js?v=v581",
+  "build/core/aliases.js?v=v581",
+  "build/core/home-kit.js?v=v581",
+  "build/core/habits-kit.js?v=v581",
+  "build/core/profile-kit.js?v=v581",
+  "build/core/community-kit.js?v=v581",
+  "build/core/extra-kit.js?v=v581",
+  "build/screens/demo/profile.js?v=v581",
+  "build/screens/demo/extra.js?v=v581",
+  "build/screens/intro.js?v=v581",
+  "build/screens/live/economy_live.js?v=v581",
+  "build/screens/live/shared_live.js?v=v581",
+  "build/screens/live/home_live.js?v=v581",
+  "build/screens/live/habits_live.js?v=v581",
+  "build/screens/live/profile_live.js?v=v581",
+  "build/screens/live/community_live.js?v=v581",
+  "build/screens/live/home_extra_live.js?v=v581",
+  "build/screens/live/habits_extra_live.js?v=v581",
+  "build/screens/live/profile_extra_live.js?v=v581",
+  "build/screens/live/community_extra_live.js?v=v581",
+  "build/screens/live/extra_live.js?v=v581",
+  "build/app.js?v=v581",
   /* BUILD_PRECACHE_END */
   "assets/sphere.png",
+  // Лица-мемоджи в precache («секунда на лицах»): activate стирает старый кэш целиком, и без этого
+  // списка после КАЖДОГО релиза аватарки ехали по сети заново на «Я»/Друзьях/Вселенной.
+  "assets/people/m1.png", "assets/people/m2.png", "assets/people/m3.png", "assets/people/m4.png", "assets/people/m5.png", "assets/people/m6.png",
+  "assets/people/m7.png", "assets/people/m8.png", "assets/people/m9.png", "assets/people/m10.png", "assets/people/m11.png", "assets/people/m12.png",
+  "assets/people/m13.png", "assets/people/m14.png", "assets/people/m15.png", "assets/people/m16.png", "assets/people/m17.png", "assets/people/m18.png",
   "manifest.webmanifest",
   "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png",
 ];
