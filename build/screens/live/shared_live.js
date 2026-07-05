@@ -12847,13 +12847,13 @@ function UniverseFieldLive({
   var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #14161d 0%, #0a0b10 52%, #030304 100%)" : "radial-gradient(125% 95% at 50% 42%, #fbfcff 0%, #eef1f8 52%, #e4e9f2 100%)";
   var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
-  // Нити «Связей» — НЕЙТРАЛЬНЫЙ ГРАФИТ (минимализм + чёрно-белая тема David; синий убран). Ядро тонкое,
-  // гало бледнее. Плюс одноразовый «БЛЕСК»: короткий белый блик бежит по нити ОТ ЦЕНТРА наружу ПОСЛЕ
-  // распускания, волной по поколениям (до мурашек, но тихо). Белый блик виден и на светлой (перекрывает
-  // серую нить), и на тёмной — поэтому без mixBlendMode (обычное наложение, чтобы блик не гас).
-  var linkCore = isDark ? "rgba(206,212,224,0.5)" : "rgba(78,84,98,0.4)";
-  var linkHalo = isDark ? "rgba(206,212,224,0.13)" : "rgba(120,126,140,0.1)";
-  var linkShine = "rgba(255,255,255,0.95)";
+  // Нити «Связей» — СВЕТЛО-СЕРОЕ МАТОВОЕ СТЕКЛО (David: не чёрные/синие; лёгкие, полупрозрачные). Ядро
+  // тонкое светлое, гало ШИРЕ и бледнее = «фрост»-край (диффузное свечение без filter). Плюс «ДЫХАНИЕ»:
+  // мягкая ПУЛЬСАЦИЯ бежит по нити ОТ ЦЕНТРА наружу БЕСКОНЕЧНО, волной по поколениям (не разовый пшик) —
+  // паутина из стекла как будто дышит. Без mixBlendMode (обычное наложение, чтобы блик-пульс не гас).
+  var linkCore = isDark ? "rgba(214,220,232,0.44)" : "rgba(146,153,167,0.5)";
+  var linkHalo = isDark ? "rgba(214,220,232,0.14)" : "rgba(170,177,191,0.16)";
+  var linkShine = "rgba(255,255,255,0.62)";
 
   // Твой РЕАЛЬНЫЙ уровень/прогресс — кормит OrbitField (золотое кольцо + цифра) идентично стр. «Я».
   var _ux = typeof bosLiveXPLive === "function" ? bosLiveXPLive(app) : 0;
@@ -13281,8 +13281,7 @@ function UniverseFieldLive({
     }
   }
   function uUp(e) {
-    var g = vp.current;
-    var tap = g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1;
+    var g = vp.current; // тап больше НЕ закрывает — закрытие ТОЛЬКО крестиком (David)
     delete g.pts[e.pointerId];
     if (!Object.keys(g.pts).length) g.mode = null;
     var c = camRef.current;
@@ -13291,11 +13290,6 @@ function UniverseFieldLive({
       y: c.y,
       z: c.z
     }); // жест кончился → структура сразу догоняет
-    if (tap) {
-      try {
-        onClose && onClose();
-      } catch (_) {}
-    }
   }
   function uWheel(e) {
     introCamRef.current.taken = true;
@@ -13455,7 +13449,7 @@ function UniverseFieldLive({
       background: bg,
       animation: "bosUniFade 0.5s ease both"
     }
-  }, /*#__PURE__*/React.createElement("style", null, "@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkIn{from{opacity:0}to{opacity:1}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes bosLinkShine{from{stroke-dashoffset:0.15}to{stroke-dashoffset:-1}}"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("style", null, "@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkIn{from{opacity:0}to{opacity:1}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes bosLinkPulse{from{stroke-dashoffset:0.18}to{stroke-dashoffset:-1}}"), /*#__PURE__*/React.createElement("div", {
     onPointerDown: uDown,
     onPointerMove: uMove,
     onPointerUp: uUp,
@@ -13560,7 +13554,7 @@ function UniverseFieldLive({
     var dly = Math.min(ed.i * 0.03, 0.5); // лёгкий каскад «загорания» нитей
     var dep = ed.b && ed.b.ring || 1; // глубина приглашённого → затухание вглубь
     var op = Math.max(0.22, 0.85 - (dep - 1) * 0.1);
-    var shineDelay = 0.55 + Math.min((dep - 1) * 0.13, 0.9); // «блеск» ПОСЛЕ распускания, волной ОТ ЦЕНТРА наружу (по поколениям)
+    var shineDelay = 0.6 + Math.min((dep - 1) * 0.35, 1.5); // старт пульса ПОСЛЕ распускания, фаза по поколениям → волна ОТ ЦЕНТРА
     return /*#__PURE__*/React.createElement("g", {
       key: ed.key,
       style: {
@@ -13607,21 +13601,21 @@ function UniverseFieldLive({
       x2: b0.sx.toFixed(1),
       y2: b0.sy.toFixed(1),
       stroke: linkShine,
-      strokeWidth: 1.6,
+      strokeWidth: 2.4,
       strokeLinecap: "round",
       pathLength: "1",
-      strokeDasharray: "0.15 1",
+      strokeDasharray: "0.18 1",
       style: {
-        animation: "bosLinkShine 0.9s ease " + shineDelay.toFixed(2) + "s both"
+        animation: "bosLinkPulse 3.2s ease-in-out " + shineDelay.toFixed(2) + "s infinite both"
       }
     }));
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       top: "calc(18px + var(--tg-top-inset, 0px))",
-      left: 0,
-      right: 0,
-      textAlign: "center",
+      left: 20,
+      right: 150,
+      textAlign: "left",
       pointerEvents: "none",
       zIndex: 500
     }
@@ -13687,7 +13681,7 @@ function UniverseFieldLive({
     style: {
       position: "absolute",
       top: "calc(14px + var(--tg-top-inset, 0px))",
-      left: 16,
+      right: 60,
       height: 36,
       padding: "0 15px",
       borderRadius: 18,
@@ -13710,19 +13704,7 @@ function UniverseFieldLive({
       fontSize: 14,
       lineHeight: 1
     }
-  }, "\u2726"), " \u0421\u0432\u044F\u0437\u0438"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      bottom: "calc(22px + var(--tg-bottom-inset, 0px))",
-      left: 0,
-      right: 0,
-      textAlign: "center",
-      fontSize: 12,
-      color: subC,
-      pointerEvents: "none",
-      zIndex: 500
-    }
-  }, "\u043A\u043E\u0441\u043D\u0438\u0441\u044C, \u0447\u0442\u043E\u0431\u044B \u0432\u0435\u0440\u043D\u0443\u0442\u044C\u0441\u044F"));
+  }, "\u2726"), " \u0421\u0432\u044F\u0437\u0438"));
   // Portal to <body> so position:fixed escapes the page-stack's CSS transform.
   return typeof ReactDOM !== "undefined" && ReactDOM.createPortal ? ReactDOM.createPortal(node, document.body) : node;
 }

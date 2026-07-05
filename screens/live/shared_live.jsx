@@ -5009,13 +5009,13 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #14161d 0%, #0a0b10 52%, #030304 100%)" : "radial-gradient(125% 95% at 50% 42%, #fbfcff 0%, #eef1f8 52%, #e4e9f2 100%)";
   var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
-  // Нити «Связей» — НЕЙТРАЛЬНЫЙ ГРАФИТ (минимализм + чёрно-белая тема David; синий убран). Ядро тонкое,
-  // гало бледнее. Плюс одноразовый «БЛЕСК»: короткий белый блик бежит по нити ОТ ЦЕНТРА наружу ПОСЛЕ
-  // распускания, волной по поколениям (до мурашек, но тихо). Белый блик виден и на светлой (перекрывает
-  // серую нить), и на тёмной — поэтому без mixBlendMode (обычное наложение, чтобы блик не гас).
-  var linkCore = isDark ? "rgba(206,212,224,0.5)" : "rgba(78,84,98,0.4)";
-  var linkHalo = isDark ? "rgba(206,212,224,0.13)" : "rgba(120,126,140,0.1)";
-  var linkShine = "rgba(255,255,255,0.95)";
+  // Нити «Связей» — СВЕТЛО-СЕРОЕ МАТОВОЕ СТЕКЛО (David: не чёрные/синие; лёгкие, полупрозрачные). Ядро
+  // тонкое светлое, гало ШИРЕ и бледнее = «фрост»-край (диффузное свечение без filter). Плюс «ДЫХАНИЕ»:
+  // мягкая ПУЛЬСАЦИЯ бежит по нити ОТ ЦЕНТРА наружу БЕСКОНЕЧНО, волной по поколениям (не разовый пшик) —
+  // паутина из стекла как будто дышит. Без mixBlendMode (обычное наложение, чтобы блик-пульс не гас).
+  var linkCore = isDark ? "rgba(214,220,232,0.44)" : "rgba(146,153,167,0.5)";
+  var linkHalo = isDark ? "rgba(214,220,232,0.14)" : "rgba(170,177,191,0.16)";
+  var linkShine = "rgba(255,255,255,0.62)";
 
   // Твой РЕАЛЬНЫЙ уровень/прогресс — кормит OrbitField (золотое кольцо + цифра) идентично стр. «Я».
   var _ux = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
@@ -5205,11 +5205,10 @@ function UniverseFieldLive({ app, people, from, onClose }) {
     else if (g.mode === "pan" && ids.length === 1) { var ps = 178 * PACK * g.oz; var dx = e.clientX - g.sx, dy = e.clientY - g.sy; g.moved = Math.max(g.moved, Math.abs(dx) + Math.abs(dy)); camRef.current = { x: g.ox - dx / ps, y: g.oy - dy / ps, z: cam.z }; }
   }
   function uUp(e) {
-    var g = vp.current; var tap = (g.mode === "pan" && g.moved < 6 && Object.keys(g.pts).length === 1);
+    var g = vp.current;                                  // тап больше НЕ закрывает — закрытие ТОЛЬКО крестиком (David)
     delete g.pts[e.pointerId]; if (!Object.keys(g.pts).length) g.mode = null;
     var c = camRef.current;
     setCamQ({ x: c.x, y: c.y, z: c.z });               // жест кончился → структура сразу догоняет
-    if (tap) { try { onClose && onClose(); } catch (_) {} }
   }
   function uWheel(e) { introCamRef.current.taken = true; var c = camRef.current; camRef.current = { x: c.x, y: c.y, z: _cZ(c.z * (1 - (e.deltaY || 0) * 0.0012)) }; }
 
@@ -5276,7 +5275,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   }, [showLinks, links]);
   var node = (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
-      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkIn{from{opacity:0}to{opacity:1}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes bosLinkShine{from{stroke-dashoffset:0.15}to{stroke-dashoffset:-1}}"}</style>
+      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkIn{from{opacity:0}to{opacity:1}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes bosLinkPulse{from{stroke-dashoffset:0.18}to{stroke-dashoffset:-1}}"}</style>
       {/* Жесты: пинч-зум + перетаскивание + колесо; чистый тап (без сдвига) закрывает. */}
       <div onPointerDown={uDown} onPointerMove={uMove} onPointerUp={uUp} onPointerCancel={uUp} onWheel={uWheel} style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "grab" }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
@@ -5337,7 +5336,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
             var dly = Math.min(ed.i * 0.03, 0.5);                 // лёгкий каскад «загорания» нитей
             var dep = (ed.b && ed.b.ring) || 1;                   // глубина приглашённого → затухание вглубь
             var op = Math.max(0.22, 0.85 - (dep - 1) * 0.1);
-            var shineDelay = 0.55 + Math.min((dep - 1) * 0.13, 0.9);   // «блеск» ПОСЛЕ распускания, волной ОТ ЦЕНТРА наружу (по поколениям)
+            var shineDelay = 0.6 + Math.min((dep - 1) * 0.35, 1.5);    // старт пульса ПОСЛЕ распускания, фаза по поколениям → волна ОТ ЦЕНТРА
             return (
               <g key={ed.key} style={{ animation: "bosLinkIn 0.5s ease " + dly.toFixed(2) + "s both" }}>
                 <line ref={function (el) { var o = edgeEls.current[ed.key] || (edgeEls.current[ed.key] = {}); if (el) o.h = el; else delete o.h; }}
@@ -5349,8 +5348,8 @@ function UniverseFieldLive({ app, people, from, onClose }) {
                   pathLength="1" strokeDasharray="1" style={{ animation: "bosLinkDraw 0.65s ease " + dly.toFixed(2) + "s both" }} />
                 <line ref={function (el) { var o = edgeEls.current[ed.key] || (edgeEls.current[ed.key] = {}); if (el) o.s = el; else delete o.s; }}
                   x1={a0.sx.toFixed(1)} y1={a0.sy.toFixed(1)} x2={b0.sx.toFixed(1)} y2={b0.sy.toFixed(1)}
-                  stroke={linkShine} strokeWidth={1.6} strokeLinecap="round"
-                  pathLength="1" strokeDasharray="0.15 1" style={{ animation: "bosLinkShine 0.9s ease " + shineDelay.toFixed(2) + "s both" }} />
+                  stroke={linkShine} strokeWidth={2.4} strokeLinecap="round"
+                  pathLength="1" strokeDasharray="0.18 1" style={{ animation: "bosLinkPulse 3.2s ease-in-out " + shineDelay.toFixed(2) + "s infinite both" }} />
               </g>
             );
           })}
@@ -5358,7 +5357,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       )}
       {/* David: подпись «Вселенная» + счётчик систем УХОДИЛИ ПОД иконки (у систем z до ~185, у баннера
           не было z). Поднимаем баннер и подсказки НАД полем (z 500) — саму механику не трогаем. */}
-      <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none", zIndex: 500 }}>
+      <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 20, right: 150, textAlign: "left", pointerEvents: "none", zIndex: 500 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: titleC }}>Вселенная</div>
         {sub ? <div style={{ fontSize: 13, color: subC, marginTop: 3 }}>{sub}</div> : null}
       </div>
@@ -5366,11 +5365,11 @@ function UniverseFieldLive({ app, people, from, onClose }) {
         <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 96px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none", zIndex: 500 }}>Позови первых — и рядом с твоей появятся их солнечные системы.</div>
       )}
       <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "var(--text)", display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)", zIndex: 500 }}><I.X size={18} /></button>
-      {/* Тумблер «✦ Связи» — стекло, зеркалит крестик (слева-сверху). Вкл = слой созвездий (кто кого
-          привёл); подсвечен индиго. Отдельная кнопка (сиблинг НАД полем) — жестов не перехватывает. */}
+      {/* Тумблер «✦ Связи» — стекло, СПРАВА ПЕРЕД крестиком (right:60, крестик right:16 шир.36). Вкл =
+          слой созвездий (кто кого привёл); подсвечен индиго. Сиблинг НАД полем — жестов не перехватывает. */}
       {list.length > 0 && (
         <button onClick={function () { setShowLinks(function (v) { return !v; }); }} className="tap" aria-label="Связи"
-          style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", left: 16, height: 36, padding: "0 15px", borderRadius: 18, border: 0,
+          style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 60, height: 36, padding: "0 15px", borderRadius: 18, border: 0,
             background: showLinks ? (isDark ? "rgba(130,175,255,0.30)" : "rgba(74,108,214,0.16)") : (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)"),
             color: showLinks ? (isDark ? "#dce9ff" : "#3a55c0") : (isDark ? "#fff" : "var(--text)"),
             fontSize: 13.5, fontWeight: 600, letterSpacing: 0.2, display: "flex", alignItems: "center", gap: 6,
@@ -5378,7 +5377,6 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           <span style={{ fontSize: 14, lineHeight: 1 }}>✦</span> Связи
         </button>
       )}
-      <div style={{ position: "absolute", bottom: "calc(22px + var(--tg-bottom-inset, 0px))", left: 0, right: 0, textAlign: "center", fontSize: 12, color: subC, pointerEvents: "none", zIndex: 500 }}>коснись, чтобы вернуться</div>
     </div>
   );
   // Portal to <body> so position:fixed escapes the page-stack's CSS transform.
