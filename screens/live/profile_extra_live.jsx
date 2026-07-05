@@ -135,6 +135,14 @@ function FriendsLive() {
       let pub = {};
       try { pub = (await window.bosCloud.profilesPublic(out.map((f) => f.id))) || {}; } catch (e) {}
       const d = { people: out, pub };
+      // «Пусто = правда»-защита: invitedPeople/teamMembers при обрыве возвращают [] → пустой список ПРИ
+      // ЖИВОМ КЭШЕ = вероятный обрыв, не «друзей не стало» → не затираем страницу пустотой (у нового
+      // юзера кэша нет → пустой ответ проходит честно).
+      if (!out.length) {
+        let _pd = _bosFriendsPageCache;
+        if (!_pd) { try { _pd = JSON.parse(localStorage.getItem("bos:cache:friendsPage") || "null"); } catch (e) {} }
+        if (_pd && Array.isArray(_pd.people) && _pd.people.length) return;
+      }
       _bosFriendsPageCache = d;
       try { localStorage.setItem("bos:cache:friendsPage", JSON.stringify(d)); } catch (e) {}
       if (on) setData(d);

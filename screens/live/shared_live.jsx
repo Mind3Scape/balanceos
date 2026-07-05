@@ -5007,7 +5007,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
         (window.bosCloud.allPublic ? window.bosCloud.allPublic(240) : Promise.resolve(null)).catch(function () { return null; }),
       ]);
       var myId = res[0], _iv = res[1], all = res[2];
-      if (on) setMyUid(myId);
+      if (on && myId) setMyUid(myId);                 // null = обрыв uid → держим прежний «центр Я»
       if (on && _iv && _iv.id) setMyRefId(_iv.id);
       // ВСЕ пользователи вселенной: каждый с опубликованной витриной орбиты, АНОНИМНО (аватар+уровень+
       // значки привычек, без имён/связи — David: «показываем всех всем, супер-анонимно»).
@@ -5021,11 +5021,18 @@ function UniverseFieldLive({ app, people, from, onClose }) {
         try { if (window.bosCloud.profilesPublic && out.length) { var st = await window.bosCloud.profilesPublic(out.map(function (o) { return o.id; })) || {}; out.forEach(function (o) { var s = st[o.id] || {}; o.level = s.level || 0; o.lvlPct = s.lvlPct || 2; o.habits = Array.isArray(s.habits) ? s.habits : []; o.goals = s.goals || 0; o.people = s.people || 0; }); } } catch (e) {}
       }
       if (on) {
-        _bosUniverseCache = out;
-        _bosUniStoreMem = { list: out, ref: (_iv && _iv.id) || null, me: myId || null };
-        try { localStorage.setItem("bos:cache:universe", JSON.stringify(_bosUniStoreMem)); } catch (e) {}
-        // Молчаливое обновление: state (и пере-раскладку соты) дёргаем ТОЛЬКО если данные реально другие.
-        setFriends(function (prev) { return JSON.stringify(prev || null) === JSON.stringify(out) ? prev : out; });
+        // ЗАЩИТА ОТ «ПУСТО = ПРАВДА»: облачные функции глотают ошибку сети в [] — неотличимо от
+        // «честно пусто». В реальной Вселенной всегда есть другие люди, поэтому пустой ответ ПРИ
+        // ЖИВОМ КЭШЕ = почти наверняка обрыв → НЕ схлопываем соту и НЕ затираем кэш пустым (иначе
+        // поле «исчезает на глазах» на флаки-сети). Сеть до-обновит при следующем удачном заходе.
+        var _prevList = (_bosUniStore() || {}).list;
+        if (out.length || !(_prevList && _prevList.length)) {
+          _bosUniverseCache = out;
+          _bosUniStoreMem = { list: out, ref: (_iv && _iv.id) || null, me: myId || null };
+          try { localStorage.setItem("bos:cache:universe", JSON.stringify(_bosUniStoreMem)); } catch (e) {}
+          // Молчаливое обновление: state (и пере-раскладку соты) дёргаем ТОЛЬКО если данные реально другие.
+          setFriends(function (prev) { return JSON.stringify(prev || null) === JSON.stringify(out) ? prev : out; });
+        }
       }
     })();
     return function () { on = false; };
@@ -5212,7 +5219,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           if (ok && Math.abs(v.f.sx - st.sx) < 0.05 && Math.abs(v.f.sy - st.sy) < 0.05
             && Math.abs(sc - st.sc) < 0.00005 && Math.abs(v.openV - st.ov) < 0.0005
             && v.zi === st.zi && Math.abs(v.uA - st.uA) < 0.00005) continue;
-          if (st && st.h) el.style.visibility = "";
+          if (!ok) el.style.visibility = "";   // st сброшен рендером (или был скрыт) → снимаем возможный stale visibility:hidden, иначе «узел-невидимка»
           el.style.transform = "translate(" + v.f.sx.toFixed(1) + "px," + v.f.sy.toFixed(1) + "px) scale(" + sc.toFixed(4) + ")";
           if (!ok || v.zi !== st.zi) el.style.zIndex = v.zi; // zIndex-чурн: пересортировка слоёв только при реальной смене
           if (!disc) {
@@ -5309,6 +5316,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
     var raf, st = {};                                    // key → {x1,y1,x2,y2,hid} — последняя запись
     var lastE = { x: NaN, y: NaN, z: NaN, mt: NaN, ik: NaN };
     function setVis(o, v) { if (o.c) o.c.style.visibility = v; if (o.h) o.h.style.visibility = v; if (o.s) o.s.style.visibility = v; }
+    // (Пере)старт эффекта на новом наборе links: у переиспользованных линий мог остаться
+    // visibility:hidden от прошлого куллинга (свежий st стартует hid:false и сам бы не снял) → сбрасываем.
+    try { var _e0 = edgeEls.current; for (var _k in _e0) { if (_e0[_k]) setVis(_e0[_k], ""); } } catch (e) {}
     function frame() {
       raf = requestAnimationFrame(frame);
       var cam = camRef.current, introK = _bosLp(1.34, 1, _bosSm(introRef.current)), mt = morphRef.current, els = edgeEls.current;

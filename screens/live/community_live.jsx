@@ -49,6 +49,9 @@ function LiveTeamCard({ t, navigate }) {
     let on = true;
     window.bosCloud.teamMembers(t.cloudId).then((mem) => {
       if (!on || !Array.isArray(mem)) return;
+      // «Пусто = правда»-защита: teamMembers при обрыве возвращает [] → пустой ростер ПРИ ЖИВОМ КЭШЕ =
+      // обрыв (в круге всегда есть хотя бы владелец) → не затираем общий кэш круга пустым.
+      if (!mem.length) { const _c = typeof _bosTeamGet === "function" ? _bosTeamGet("roster:" + t.cloudId) : null; if (Array.isArray(_c) && _c.length) { setRoster(_c); return; } }
       // Пишем в общий кэш ТОТ ЖЕ формат и порядок (owner первым), что и деталь круга — один кэш, два едока.
       const sorted = mem.slice().sort((a, b) => (a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0));
       const mapped = sorted.map((m, j) => ({ id: m.id, name: m.name || "Участник", avatar: m.avatar, role: m.role, initials: (m.name || "У").slice(0, 1).toUpperCase(), color: palette[j % palette.length] }));

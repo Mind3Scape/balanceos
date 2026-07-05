@@ -53,6 +53,14 @@ function ProfileLive() {
           if (!on) return;
           const out = (Array.isArray(list) ? list : []).map(_mk);
           if (inv && inv.username) out.unshift(_mk(inv)); // зовущий — первым, ближе всех
+          // «Пусто = правда»-защита: invitedPeople при обрыве возвращает [] (неотличимо от «нет друзей»).
+          // Приглашённые/пригласивший сами не исчезают, поэтому пустой ответ ПРИ ЖИВОМ КЭШЕ = обрыв →
+          // не затираем орбиту пустотой (у НОВОГО юзера кэш пуст → пустой ответ проходит, это верно).
+          if (!out.length) {
+            let _lp = _bosOrbitPeopleCache;
+            if (!_lp) { try { _lp = JSON.parse(localStorage.getItem("bos:cache:orbitPeople") || "null"); } catch (e) {} }
+            if (Array.isArray(_lp) && _lp.length) return;
+          }
           _bosOrbitPeopleCache = out;
           try { localStorage.setItem("bos:cache:orbitPeople", JSON.stringify(out)); } catch (e) {}
           // Молча: state (и пересборку орбиты) дёргаем только если список реально изменился.

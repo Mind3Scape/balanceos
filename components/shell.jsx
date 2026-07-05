@@ -1570,7 +1570,13 @@ function AppProvider({ children }) {
     // David: «подгружает какой-то другой уровень»); облако тихо подтверждает следом.
     try { var c = parseInt(localStorage.getItem("bos:cache:inv:" + persistId) || "", 10); if (isFinite(c) && c > 0) setInvitedCount(c); } catch (e) {}
     window.bosCloud.invitedPeople().then(function (list) {
-      if (on && Array.isArray(list)) { setInvitedCount(list.length); try { localStorage.setItem("bos:cache:inv:" + persistId, "" + list.length); } catch (e) {} }
+      if (!on || !Array.isArray(list)) return;
+      // «Пусто = правда»-защита: invitedPeople при обрыве возвращает [] → обнуление счётчика роняло бы
+      // уровень/кольцо XP «на глазах» (David: «подгружает другой уровень»). Приглашённые не исчезают,
+      // поэтому пустой ответ ПРИ ненулевом кэше игнорируем (у нового юзера кэша нет → 0 проходит честно).
+      if (!list.length) { var _pc = parseInt(localStorage.getItem("bos:cache:inv:" + persistId) || "", 10); if (isFinite(_pc) && _pc > 0) return; }
+      setInvitedCount(list.length);
+      try { localStorage.setItem("bos:cache:inv:" + persistId, "" + list.length); } catch (e) {}
     }).catch(function () {});
     return function () { on = false; };
   }, [mode, persistId, teams]);
