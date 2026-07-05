@@ -36,9 +36,11 @@ function bosMoodStreakBonusXPLive(dayMoods) {
 // pays: +5 per day you check in your state, +10 per day you write a journal line — so
 // the orb/journal "pay" XP, which the app communicates. Monotonic (just counts of entries).
 function bosTotalXPLive(habits, extras) {
-  var n = 0;
-  (habits || []).forEach(function (h) { if (h && h.log) n += Object.keys(h.log).length; });
-  var xp = n * 10;
+  // Отметка привычки = +10; СОВМЕСТНАЯ привычка (buddy по shareCode) платит +15/отметку — вести
+  // вместе реально выгоднее (David: «начисляй как обещали»). Идеальный день (+30) капает отдельно
+  // в копилку claimedChallenges при закрытии дня (shell), суммируется в bosChallengeBonusXPLive.
+  var xp = 0;
+  (habits || []).forEach(function (h) { if (h && h.log) xp += Object.keys(h.log).length * (h.shareCode ? 15 : 10); });
   if (extras) {
     xp += Object.keys(extras.moods || {}).length * 5;              // +5 за отметку состояния
     xp += bosMoodStreakBonusXPLive(extras.moods);                  // +50 за каждую удержанную неделю состояния
@@ -323,7 +325,7 @@ function GuideLive() {
         <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
           {[
             ["✅", "Отметка привычки", "+10"],
-            ["🌤️", "Отметить состояние", "+5"],
+            ["🌅", "Весь день закрыт", "+30"],
             ["🤝", "Друг пришёл по твоей ссылке", "+150"],
             ["🏁", "Вехи друзей · 3 / 7 / 15 / 30", "+300…3000"],
             ["⚡", "Финиш челленджа", "+40…100"],

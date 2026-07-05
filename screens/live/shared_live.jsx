@@ -1074,7 +1074,7 @@ function HabitInviteBannerLive({ amount = 150, habit }) {
         </div>
       </div>
       <div style={{ position: "relative", marginTop: 13, paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.10)", fontSize: 12, color: inkSub, lineHeight: 1.4 }}>
-        А вести привычку вместе — видите отметки друг друга и держитесь оба.
+        А вести привычку вместе — каждая отметка приносит <b style={{ color: ink }}>+15 XP</b> вместо +10.
       </div>
     </div>
   );
@@ -1332,8 +1332,8 @@ function JoinWelcomeLive({ info, onClose }) {
               <I.Bolt size={22} color="#fff" filled />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>+150 XP за друга по ссылке</div>
-              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>если он — новичок в BalanceOS</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>+15 XP за каждую совместную отметку</div>
+              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>вместо +10, когда ведёшь один</div>
             </div>
           </div>
         )}
@@ -5213,22 +5213,21 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           if (v.off) { if (!(st && st.h)) { el.style.visibility = "hidden"; sigs[nd.key] = { h: true }; } continue; }
           var disc = lodRef.current[nd.key] === "disc"; // (было el.getAttribute — DOM-чтение на узел на кадр)
           var sc = disc ? v.dscale : v.oscale;
-          var ok = st && !st.h;                        // есть доверенная прошлая запись
-          // ЧИСЛОВОЙ ранний выход ДО строк (пороги = шаг прежнего toFixed-квантования): то, что
-          // записали бы, совпадает с уже записанным → узел пропускаем без единой аллокации.
-          if (ok && Math.abs(v.f.sx - st.sx) < 0.05 && Math.abs(v.f.sy - st.sy) < 0.05
-            && Math.abs(sc - st.sc) < 0.00005 && Math.abs(v.openV - st.ov) < 0.0005
-            && v.zi === st.zi && Math.abs(v.uA - st.uA) < 0.00005) continue;
-          if (!ok) el.style.visibility = "";   // st сброшен рендером (или был скрыт) → снимаем возможный stale visibility:hidden, иначе «узел-невидимка»
+          var wasHidden = !st || st.h;                 // st сброшен рендером (или узел был скрыт)
+          // Кадр уже НЕ в покое (иначе весь цикл пропущен ранним выходом выше). При движении ПИШЕМ
+          // каждый видимый узел КАЖДЫЙ кадр — без per-node порога: сама линза меняет размер узла у
+          // центра, а квантование «скипнуть-если-почти-не-сдвинулось» давало микро-рывок (скип →
+          // накопленный скачок) на медленном пане у близкого зума. Записи в стиль дёшевы; дорог
+          // только paint (не меняется). zIndex — лишь при реальной смене (не пересортировываем слои зря).
+          if (wasHidden) el.style.visibility = "";     // снять возможный stale visibility:hidden
           el.style.transform = "translate(" + v.f.sx.toFixed(1) + "px," + v.f.sy.toFixed(1) + "px) scale(" + sc.toFixed(4) + ")";
-          if (!ok || v.zi !== st.zi) el.style.zIndex = v.zi; // zIndex-чурн: пересортировка слоёв только при реальной смене
+          if (wasHidden || v.zi !== st.zi) el.style.zIndex = v.zi;
           if (!disc) {
             el.style.setProperty("--uK", _bosLp(0.3, 1, v.openV).toFixed(4));
             el.style.setProperty("--uO", v.openV.toFixed(3));
             el.style.setProperty("--uA", v.uA.toFixed(4));
           }
-          if (ok) { st.sx = v.f.sx; st.sy = v.f.sy; st.sc = sc; st.ov = v.openV; st.zi = v.zi; st.uA = v.uA; }
-          else sigs[nd.key] = { h: false, sx: v.f.sx, sy: v.f.sy, sc: sc, ov: v.openV, zi: v.zi, uA: v.uA };
+          sigs[nd.key] = { h: false, zi: v.zi };       // трекинг только для visibility/zIndex
         }
       }
       // Квантованная камера для структуры (LOD/вращение) — не чаще ~6 раз/с и только если сдвинулась.

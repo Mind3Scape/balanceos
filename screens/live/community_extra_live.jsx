@@ -687,7 +687,7 @@ function LevelsLive() {
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "0 0 4px" }}>Как растёт уровень</div>
         {[
           { t: "Выполнить привычку", v: "+10" },
-          { t: "Отметить состояние", v: "+5" },
+          { t: "Идеальный день", v: "+30" },
           { t: "Серия 21 день", v: "+120" },
           { t: "Достичь цели", v: "+200" },
           { t: "Привести друга", v: "+150", infl: true },

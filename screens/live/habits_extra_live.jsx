@@ -339,7 +339,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
               <div style={{ borderRadius: 14, padding: "11px 12px", background: isDark ? "rgba(52,199,89,0.13)" : "#edfaf0", display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDark ? "rgba(52,199,89,0.2)" : "#d6f3df", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 15 }}>🤝</span>
-                <div style={{ fontSize: 12.5, color: isDark ? "#7dd89b" : "#1a7a3a", lineHeight: 1.4 }}>Новый друг по твоей ссылке = <b>+150 XP</b>. А ведёте привычку вместе — видите отметки друг друга и держитесь оба.</div>
+                <div style={{ fontSize: 12.5, color: isDark ? "#7dd89b" : "#1a7a3a", lineHeight: 1.4 }}>Новый друг по твоей ссылке = <b>+150 XP</b>. А ведёте привычку вместе — каждая отметка <b>+15 XP</b> вместо +10.</div>
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
                 {shareFriends.length === 0 && (

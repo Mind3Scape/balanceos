@@ -1093,6 +1093,11 @@ function AppProvider({ children }) {
     (habits || []).forEach(function (h) { var c = h && h.challenge; if (!c || !c.key || claimedChallenges[c.key]) return; var need = c.days | 0; if (need > 0 && bosStreak(h.log) >= need) { add = add || {}; add[c.key] = c.bonus | 0; } });
     (goals || []).forEach(function (g) { var c = g && g.challenge; if (!c || !c.key || claimedChallenges[c.key]) return; if (g.target > 0 && (g.current || 0) >= g.target) { add = add || {}; add[c.key] = c.bonus | 0; } });
     (teams || []).forEach(function (t) { var c = t && t.challenge; if (!c || !c.key || claimedChallenges[c.key]) return; if (t.target > 0 && (t.current || 0) >= t.target) { add = add || {}; add[c.key] = c.bonus | 0; } });
+    // ИДЕАЛЬНЫЙ ДЕНЬ +30 (реально, David: «начисляй как обещали»): все активные привычки на сегодня
+    // отмечены → кладём в копилку per-day ключ НАВСЕГДА (не отберётся, если завтра пропустишь). Совпадает
+    // с условием поп-апа «день закрыт» на главной. Суммируется в bosChallengeBonusXPLive.
+    var _act = (habits || []).filter(function (h) { return h && !h.shelved && !h.goalOnly; });
+    if (_act.length && _act.every(function (h) { return h.done; })) { var _pk = "perfectday:" + bosTodayKey(); if (!claimedChallenges[_pk]) { add = add || {}; add[_pk] = 30; } }
     if (add) { var merged = Object.assign({}, claimedChallenges, add); setClaimedChallenges(merged); try { localStorage.setItem("bos:claimedXP", JSON.stringify(merged)); } catch (e) {} if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } }
   }, [habits, goals, teams]);
 

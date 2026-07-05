@@ -203,7 +203,7 @@ function HomeLive() {
       // Per-habit XP now pops on the checkmark (HabitCheck); the big top-of-screen
       // celebration is reserved for the DAY-CLOSE moment so it never double-pops.
       if (full) {
-        setCelebrate({ xp: totalCount * 10, full: true, key: Date.now() + ":" + doneCount });
+        setCelebrate({ xp: xpEarnedToday, full: true, key: Date.now() + ":" + doneCount });
         if (window.tgHaptic) { try { window.tgHaptic("heavy"); } catch (e) {} }
         const t = window.setTimeout(() => setCelebrate(null), 2000);
         prevDoneRef.current = doneCount;
