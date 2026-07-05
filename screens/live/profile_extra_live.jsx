@@ -342,6 +342,9 @@ function SettingsLive() {
   const setPushPersist = (on) => {
     setPush(on);
     try { localStorage.setItem(pushKey, on ? "1" : "0"); } catch (e) {}
+    // Реально применить: shell перепубликует расписание напоминаний с active=on → бот перестаёт/снова
+    // начинает слать пуши (раньше тумблер был плацебо — ничего не гейтил).
+    try { window.dispatchEvent(new Event("bos:pushChanged")); } catch (e) {}
   };
   const isDark = app?.themeOverride === "dark";
   const setDark = (on) => app?.setThemeOverride(on ? "dark" : "light");

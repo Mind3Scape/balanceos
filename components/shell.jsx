@@ -1007,17 +1007,28 @@ function AppProvider({ children }) {
   // слал пуши и для привычек, заведённых ДО фичи. Graceful: нет колонок/таблиц → тихий no-op.
   const _remSyncedRef = useRef(false);
   const _tzSyncedRef = useRef(false);
+  const [_pushTick, _setPushTick] = useState(0);
+  // Тумблер «Push-уведомления» РЕАЛЬНО гейтит бот-пуши (был плацебо — писал в localStorage, никто не
+  // читал). Публикуем расписание с active = pushOn: OFF → в habit_reminders active:false → функция
+  // remind (select active=true) пропускает → бот молчит. Смена тумблера шлёт bos:pushChanged →
+  // перепубликуем все напоминания с новым флагом сразу (не ждём следующего запуска).
+  useEffect(() => {
+    const f = () => { _remSyncedRef.current = false; _setPushTick(t => t + 1); };
+    try { window.addEventListener("bos:pushChanged", f); } catch (e) {}
+    return () => { try { window.removeEventListener("bos:pushChanged", f); } catch (e) {} };
+  }, []);
   useEffect(() => {
     if (mode !== "live" || !_liveCloud()) return;
     const tz = -(new Date().getTimezoneOffset()); // Москва UTC+3 → +180
     if (!_tzSyncedRef.current && window.bosCloud.saveTz) { _tzSyncedRef.current = true; try { window.bosCloud.saveTz(tz); } catch (e) {} }
     if (!_remSyncedRef.current && window.bosCloud.upsertReminder && habits && habits.length) {
       _remSyncedRef.current = true;
+      var _pushOn = true; try { _pushOn = localStorage.getItem("bos:push:" + persistId) !== "0"; } catch (e) {}
       habits.filter(h => h && h.reminder && h.reminder.on && !h.shelved).forEach(h => {
-        try { window.bosCloud.upsertReminder(h.cloudId || h.id, { name: h.name, emoji: h.emoji, time: (h.reminder.time || "09:00"), days: Array.isArray(h.days) ? h.days : null, tzOffset: tz, active: true }); } catch (e) {}
+        try { window.bosCloud.upsertReminder(h.cloudId || h.id, { name: h.name, emoji: h.emoji, time: (h.reminder.time || "09:00"), days: Array.isArray(h.days) ? h.days : null, tzOffset: tz, active: _pushOn }); } catch (e) {}
       });
     }
-  }, [mode, habits]);
+  }, [mode, habits, _pushTick]);
 
   const addGoal = (g) => {
     const ng = { id: _nid(), current: 0, ...g, cloudId: (g && g.cloudId) || _uuid() };
@@ -1448,7 +1459,19 @@ function AppProvider({ children }) {
               var _mNotes2 = bosMergeDayMap(_localNotes, _cloudNotes);
               setDayMoods(_mMoods2);
               setDayNotes(_mNotes2);
-              window.bosCloud.saveSnapshot({ teams: src.teams || [], dayMoods: _mMoods2, dayNotes: _mNotes2, wheelSpheres: src.wheelSpheres, widgets: src.widgets, homeLayout: src.homeLayout || null, claimedChallenges: _mClaimed, spentXP: _mSpent });
+              // F2: локально «новее» по времени, но НЕ затираем облачное ПУСТЫМ. Свежий-но-пустой local =
+              // почти всегда офлайн-первый-вход/переустановка (дефолт с новым savedAt), а не намеренная
+              // очистка. Для teams/widgets/homeLayout берём НЕПУСТОЕ: если у нас пусто, а в облаке есть —
+              // сохраняем облачное И подтягиваем в UI (иначе круги/раскладка исчезнут со ВСЕХ устройств,
+              // а membership интерфейс сам не восстанавливает → «пропали мои круги»).
+              var _cd = (snap && snap.data) || {};
+              var _keepTeams = (src.teams && src.teams.length) ? src.teams : (Array.isArray(_cd.teams) ? _cd.teams : (src.teams || []));
+              var _keepWidgets = src.widgets || _cd.widgets;
+              var _keepLayout = src.homeLayout || _cd.homeLayout || null;
+              if (!(src.teams && src.teams.length) && Array.isArray(_cd.teams) && _cd.teams.length) setTeams(_cd.teams);
+              if (!src.widgets && _cd.widgets) setWidgets(_cd.widgets);
+              if (!src.homeLayout && _cd.homeLayout) setHomeLayout(_cd.homeLayout);
+              window.bosCloud.saveSnapshot({ teams: _keepTeams, dayMoods: _mMoods2, dayNotes: _mNotes2, wheelSpheres: src.wheelSpheres || _cd.wheelSpheres, widgets: _keepWidgets, homeLayout: _keepLayout, claimedChallenges: _mClaimed, spentXP: _mSpent });
             }
             // Reconciliation done → allow autosave again (the join below should persist).
             _doneHydrate();

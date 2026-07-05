@@ -354,7 +354,7 @@ function bosConfirmExitTeam({ app, team, isOwner, navigate, openSheet, returnTo 
       confirmLabel={isOwner ? "Удалить цель" : "Покинуть"}
       confirmIcon={isOwner ? I.Trash : I.Logout}
       // returnTo = откуда открыли круг (Привычки/Найти). Дефолт "community" сохраняет прежнее поведение.
-      onConfirm={async () => { await bosExitTeam({ app, team, isOwner }); navigate(returnTo || "community"); }}
+      onConfirm={async () => { var _r = await bosExitTeam({ app, team, isOwner }); if (_r && _r.ok === false) { try { window.tgHaptic && window.tgHaptic("heavy"); } catch (e) {} return; } navigate(returnTo || "community"); }}
     />
   );
 }
@@ -600,12 +600,18 @@ function ConfirmActionSheet({ emoji = "⚠️", title, message, confirmLabel, co
    back to the community list. For a cloud team we hit the cloud first; a local-only
    team (no cloudId) just removes locally. Used by Team detail + Team settings. */
 async function bosExitTeam({ app, team, isOwner }) {
-  try {
-    if (team && team.cloudId && window.bosCloud) {
-      if (isOwner) { if (window.bosCloud.deleteTeam) await window.bosCloud.deleteTeam(team.cloudId); }
-      else { if (window.bosCloud.leaveTeam) await window.bosCloud.leaveTeam(team.cloudId); }
-    }
-  } catch (e) {}
+  // F7: результат облачной операции ВАЖЕН. Раньше он игнорировался и removeTeam выполнялся всегда —
+  // при обрыве сети в облаке ты ОСТАВАЛСЯ участником («призрак»: в режиме «серия у каждого» его 0
+  // морозит общую цель ВСЕЙ команде, а UI membership не восстанавливает). Теперь: облачный круг
+  // убираем локально ТОЛЬКО если облако подтвердило; обрыв → оставляем круг, юзер повторит онлайн.
+  if (team && team.cloudId && window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled()) {
+    var cloudOk = false;
+    try {
+      if (isOwner) { if (window.bosCloud.deleteTeam) cloudOk = await window.bosCloud.deleteTeam(team.cloudId); }
+      else { if (window.bosCloud.leaveTeam) cloudOk = await window.bosCloud.leaveTeam(team.cloudId); }
+    } catch (e) { cloudOk = false; }
+    if (!cloudOk) return { ok: false };
+  }
   if (app && app.removeTeam && team) app.removeTeam(team._id);
   // Копии командных привычек ПЕРЕЖИВАЮТ круг как обычные личные: отвязываем линк (миррор в
   // мёртвый круг больше не нужен) и снимаем с «полки» (shelved) — иначе спрятанная копия
@@ -618,5 +624,6 @@ async function bosExitTeam({ app, team, isOwner }) {
       if (linked) app.updateHabit(h.id, { teamId: null, teamHabitId: null, shelved: false });
     });
   } catch (e) {}
+  return { ok: true };
 }
 /* Open the iOS confirm sheet for leaving/deleting, wired to bosExitTeam + navigate-back. */
