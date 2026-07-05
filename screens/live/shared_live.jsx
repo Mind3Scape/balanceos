@@ -5141,6 +5141,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var nodeSig = React.useRef({});   // key → последние ЗАПИСАННЫЕ числа {h,sx,sy,sc,ov,zi,uA} (null после рендера)
   var lodRef = React.useRef({});    // key → "disc"|"orbit" (гистерезис переключения)
   var nodesRef = React.useRef([]);
+  var nodeRefCbs = React.useRef({}); // key → СТАБИЛЬНЫЙ ref-коллбэк (не пересоздаём каждый рендер)
   var frameDirty = React.useRef(true); // React-рендер переписал inline-стили узлов → кадру нельзя «спать»
   function _cZ(z) { return z < 0.3 ? 0.3 : z > 3 ? 3 : z; } // David: дальше отдалять на телефоне (было 0.55) — до «соты» аватарок, как на компе
   var PACK = 0.9, MC = 1.85, ME = 0.72;               // упаковка сот и магнификация линзы: центр/край
@@ -5197,6 +5198,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       // и строк-сигнатур на кадр (скипались только ЗАПИСИ) — теперь в покое ноль работы и ноль
       // мусора для GC (меньше микро-фризов, меньше батареи).
       var idle = !frameDirty.current && cam.x === lastF.x && cam.y === lastF.y && cam.z === lastF.z && _mt === lastF.mt && introK === lastF.ik;
+      var flipPending = false; // хоть один узел пересёк порог disc↔orbit → нужна структурная пере-сборка
       if (!idle) {
         lastF.x = cam.x; lastF.y = cam.y; lastF.z = cam.z; lastF.mt = _mt; lastF.ik = introK;
         frameDirty.current = false;
@@ -5212,6 +5214,8 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           // и потом пыхал заново — то самое моргание при пане в первые секунды входа).
           if (v.off) { if (!(st && st.h)) { el.style.visibility = "hidden"; sigs[nd.key] = { h: true }; } continue; }
           var disc = lodRef.current[nd.key] === "disc"; // (было el.getAttribute — DOM-чтение на узел на кадр)
+          // Узел пересёк порог disc↔orbit (та же гистерезис-логика, что в рендере) → нужна пере-сборка.
+          if (disc ? (v.openV > 0.14) : (v.openV <= 0.10)) flipPending = true;
           var sc = disc ? v.dscale : v.oscale;
           var wasHidden = !st || st.h;                 // st сброшен рендером (или узел был скрыт)
           // Кадр уже НЕ в покое (иначе весь цикл пропущен ранним выходом выше). При движении ПИШЕМ
@@ -5230,8 +5234,13 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           sigs[nd.key] = { h: false, zi: v.zi };       // трекинг только для visibility/zIndex
         }
       }
-      // Квантованная камера для структуры (LOD/вращение) — не чаще ~6 раз/с и только если сдвинулась.
-      if (now - lastQ > 160) {
+      // Структурная пере-сборка (LOD disc↔orbit + spinOn) — СОБЫТИЙНО: только когда узел реально
+      // пересёк порог (flipPending), а НЕ каждые 160мс по таймеру. Опрос давал периодический спайк
+      // React-пере-сборки ~25мс (заметный stutter на десктопе, где culling не режет большой экран, и
+      // все ~120 систем пере-собирались каждые 160мс зря — LOD-то не менялся). Троттл 100мс +
+      // страховочный опрос раз в 600мс для спина (setCamQ сам бэйлится, если камера не сдвинулась → в
+      // покое нет ре-рендера). Плавную позицию/размер пишет rAF-цикл в DOM — она не зависит от этого.
+      if (now - lastQ > 160 && (flipPending || now - lastQ > 600)) {
         lastQ = now;
         setCamQ(function (p) { var c = camRef.current; return (p.x === c.x && p.y === c.y && p.z === c.z) ? p : { x: c.x, y: c.y, z: c.z }; });
       }
@@ -5393,7 +5402,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
             if (lod !== "disc") { style["--uK"] = _bosLp(0.3, 1, vNow.openV).toFixed(4); style["--uO"] = vNow.openV.toFixed(3); style["--uA"] = vNow.uA.toFixed(4); }
             nodeSig.current[key] = null; // рендер переписал inline-стили → цикл обновит сигнатуру заново
             return (
-              <div key={key} ref={function (el) { if (el) nodeEls.current[key] = el; else { delete nodeEls.current[key]; delete nodeSig.current[key]; } }} data-lod={lod} style={style}>
+              <div key={key} ref={nodeRefCbs.current[key] || (nodeRefCbs.current[key] = function (el) { if (el) nodeEls.current[key] = el; else { delete nodeEls.current[key]; delete nodeSig.current[key]; } })} data-lod={lod} style={style}>
                 <div style={{ transformOrigin: "0px 0px", animation: pop }}>
                   {lod === "disc" ? (
                     <div style={{ position: "absolute", left: -55, top: -55 }}>
