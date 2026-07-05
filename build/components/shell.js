@@ -2721,7 +2721,7 @@ function AppProvider({
         setAiBrief(cached);
       }
     } catch (e) {}
-    if (typeof bosAiBrief !== "function") return;
+    if (typeof bosAiBriefLive !== "function") return;
     // Nothing material moved since the last line → keep the cached line, spend NO call.
     if (cached && cached.signal === _briefSignal) return;
     var on = true;
@@ -2730,7 +2730,7 @@ function AppProvider({
     // New day / first line → refresh now. A same-day check-in → wait ~8s so four quick
     // checks become ONE call, not four ("after you did something", not "on every tap").
     var tid = setTimeout(() => {
-      bosAiBrief({
+      bosAiBriefLive({
         mode: "live",
         userName,
         mood,

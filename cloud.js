@@ -82,10 +82,10 @@
     try { var r = await c.from("profiles").select("username,avatar,referred_by").eq("id", id).maybeSingle(); return r.data || null; }
     catch (e) { return null; }
   }
+  // Имя/аватар — через НАДЁЖНУЮ очередь (аудит #В2): при обрыве сети не теряются, долетят на
+  // online/visible (как привычки/цели). Ключ «saveProfile» коалесится → уедет последнее значение.
   async function saveProfile(p) {
-    var c = client(); var id = await uid(); if (!c || !id) return false;
-    try { var r = await c.from("profiles").update({ username: (p && p.username) || "", avatar: (p && p.avatar) || null }).eq("id", id); return !r.error; }
-    catch (e) { return false; }
+    return _durable({ type: "saveProfile", key: "saveProfile", args: { username: (p && p.username) || "", avatar: (p && p.avatar) || null } });
   }
   // People you've brought in (orbit): profiles referred by you, in invite order.
   async function invitedPeople() {
@@ -201,6 +201,7 @@
         case "deleteHabit": { var rh = await c.from("habits").delete().eq("id", a.cloudId); return !rh.error; }
         case "upsertGoal":  { var rg = await c.from("goals").upsert({ id: a.cloudId, user_id: id, data: a.data, sort: a.sort || 0 }, { onConflict: "id" }); return !rg.error; }
         case "deleteGoal":  { var rdg = await c.from("goals").delete().eq("id", a.cloudId); return !rdg.error; }
+        case "saveProfile": { var rpf = await c.from("profiles").update({ username: a.username || "", avatar: a.avatar || null }).eq("id", id); return !rpf.error; }
         case "sharedLog":
           if (a.on) { var rs = await c.from("shared_habit_logs").upsert({ code: a.code, user_id: id, day: a.day }, { onConflict: "code,user_id,day", ignoreDuplicates: true }); return !rs.error; }
           { var rsd = await c.from("shared_habit_logs").delete().eq("code", a.code).eq("user_id", id).eq("day", a.day); return !rsd.error; }
@@ -810,6 +811,13 @@
           if (!leader || m.value > leader.value || (m.value === leader.value && ("" + m.id) < ("" + leader.id))) leader = m;
         });
         if (!leader || leader.id !== me) return { settled: false, won: false, xp: 0, type: prog.type, bank: prog.bank, stake: prog.stake };
+        // Аудит #В3: банк гонки выплачивается ОДИН раз НА КОМАНДУ. Ключ идемпотентности —
+        // (team_id,user_id), поэтому при смене лидера НОВЫЙ лидер получал бы банк повторно.
+        // Защита: если won-строка по этой команде уже есть — банк забран, повторно не платим.
+        try {
+          var paid = await c.from("team_goal_settlements").select("user_id").eq("team_id", teamId).eq("won", true).limit(1);
+          if (paid && paid.data && paid.data.length) return { settled: false, won: false, xp: 0, type: prog.type, bank: prog.bank, stake: prog.stake, alreadyPaid: true };
+        } catch (e) {}
         xp = prog.bank || prog.stake;
       }
       var r = await c.from("team_goal_settlements").upsert({ team_id: teamId, user_id: me, xp: xp, won: won }, { onConflict: "team_id,user_id", ignoreDuplicates: true });

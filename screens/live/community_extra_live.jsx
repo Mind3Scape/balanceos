@@ -987,8 +987,15 @@ function TeamChatLive() {
   const send = () => {
     const v = text.trim(); if (!v) return;
     setText("");
-    if (cloudId) cloud.sendMessage(cloudId, { text: v }).then(absorb);
-    else push({ t: v });
+    if (cloudId) {
+      // Аудит #В2: не теряем сообщение при сбое сети — если не отправилось, ВОЗВРАЩАЕМ текст в
+      // поле (только если юзер не начал печатать новое) + тактильная ошибка, а не тихо в никуда.
+      cloud.sendMessage(cloudId, { text: v }).then((row) => {
+        if (row) { absorb(row); return; }
+        setText((cur) => cur ? cur : v);
+        if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} }
+      }).catch(() => { setText((cur) => cur ? cur : v); if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} } });
+    } else push({ t: v });
   };
   const pickPhoto = () => { if (fileRef.current) fileRef.current.click(); };
   const onFile = (e) => {
@@ -997,7 +1004,11 @@ function TeamChatLive() {
     if (!file) return;
     bosCompressImage(file, 1280, 0.72).then(src => {
       if (cloudId) {
-        fetch(src).then(r => r.blob()).then(blob => cloud.uploadChatPhoto(cloudId, blob).then(url => { if (url) cloud.sendMessage(cloudId, { imageUrl: url }).then(absorb); }));
+        // Аудит #В2: сбой загрузки фото больше не проглатывается молча — тактильная ошибка.
+        fetch(src).then(r => r.blob()).then(blob => cloud.uploadChatPhoto(cloudId, blob).then(url => {
+          if (url) cloud.sendMessage(cloudId, { imageUrl: url }).then(absorb);
+          else if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} }
+        })).catch(() => { if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} } });
       } else push({ img: src });
     }).catch(() => {});
   };

@@ -146,8 +146,10 @@ function CommunityLive() {
   const searching = qDeb.length >= 2;
   const _qq = qDeb.toLowerCase();
   const _hit = (...fs) => fs.some((f) => ("" + (f || "")).toLowerCase().indexOf(_qq) !== -1);
+  // Живые круги: фейк сведён к ОДНОМУ примеру (David) — реальные круги ищутся через
+  // CloudTeamsDiscoverLive (настоящий поиск публичных кругов). Пример может совпасть по слову.
   const lcHits = searching && typeof LIVING_CIRCLES !== "undefined"
-    ? LIVING_CIRCLES.filter((s) => _hit(s.t, s.hook, (s.habits || []).map((h) => h.name).join(" "))) : [];
+    ? LIVING_CIRCLES.slice(0, 1).filter((s) => _hit(s.t, s.hook, (s.habits || []).map((h) => h.name).join(" "))) : [];
   const pHits = searching && typeof BOS_PARTNERS !== "undefined"
     ? BOS_PARTNERS.filter((p) => _hit(p.name, p.what, (p.tags || []).join(" "))) : [];
 
@@ -367,8 +369,9 @@ function CommunityLive() {
                   Карточки НАШЕГО размера (w=300): чётные — вариант «чипы», нечётные — «с орбитой»,
                   чтобы David сравнил оба вживую (круги — примеры). */}
               <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 12px 14px 4px", margin: "-2px -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
-                {LIVING_CIRCLES.map((s, i) => (
-                  <LivingCircleCardLive key={s.id} circle={s} w={300} variant={i % 2 === 0 ? "chips" : "orbit"}
+                {/* Живые круги: ОДИН пример-карточка (David) — весь реальный список открывается по «Все ›». */}
+                {LIVING_CIRCLES.slice(0, 1).map((s, i) => (
+                  <LivingCircleCardLive key={s.id} circle={s} w={300} variant="chips"
                     onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
                 ))}
                 {SEED_CIRCLES.map((s) => {
@@ -393,10 +396,15 @@ function CommunityLive() {
             ) : (
               <React.Fragment>
                 <CommSectionHeadLive title="✨ Живые круги" />
-                {LIVING_CIRCLES.map((s, i) => (
-                  <LivingCircleCardLive key={s.id} circle={s} variant={i % 2 === 0 ? "chips" : "orbit"}
+                {/* David: живые круги теперь НАСТОЯЩИЕ (из облака) + ОДИН пример-карточка. Сделаешь
+                    свою цель открытым кругом — она появится здесь среди реальных. */}
+                <div style={{ fontSize: 12, color: "var(--text-4)", padding: "0 4px 8px", lineHeight: 1.4 }}>Пример круга — так он выглядит, когда наполнится жизнью 👇</div>
+                {LIVING_CIRCLES.slice(0, 1).map((s) => (
+                  <LivingCircleCardLive key={s.id} circle={s} variant="chips"
                     onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
                 ))}
+                {/* НАСТОЯЩИЕ открытые круги из облака (в т.ч. твоя цель-круг, если открыть её). */}
+                <div style={{ marginTop: 12 }}><CloudTeamsDiscoverLive app={app} /></div>
                 <CirclesMosaicLive kicker="🔥 Челленджи">
                   {SEED_CIRCLES.map((s) => {
                     const mine = (app?.teams || []).find((t) => t.seedId === s.id);
@@ -424,8 +432,7 @@ function CommunityLive() {
               <React.Fragment>
                 {/* Позови своих — родной выбор контактов Telegram (реферал). */}
                 {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
-                {/* Открытые круги из облака, в которые можно вступить. */}
-                <CloudTeamsDiscoverLive app={app} />
+                {/* Реальные открытые круги теперь показаны выше, под «Живые круги» (не дублируем). */}
               </React.Fragment>
             )}
           </React.Fragment>
@@ -828,7 +835,7 @@ function TeamDetailLive() {
             <button onClick={() => openSheet(<TeamShareSheetLive team={t} />)} className="tap" data-haptic="selection" aria-label="Позвать в круг" style={heroBtn}><I.Share size={16} strokeWidth={2} /></button>
             {/* ЧАТ — стеклянная кнопка-ПИЛЮЛЯ справа В HERO с надписью «Чат» (David: «добавь подпись
                 Чат справа от иконки и сделай чуть шире двух слева»); значок непрочитанных сохранён. */}
-            <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" aria-label="Чат цели" style={{ ...heroBtn, width: "auto", borderRadius: 999, padding: "0 15px", gap: 6, position: "relative" }}><I.MessageCircle size={16} strokeWidth={2} /><span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px" }}>Чат</span>
+            <button onClick={() => { markChatRead(); navigate("team-chat", { team: t, from }); }} className="tap" aria-label="Чат цели" style={{ ...heroBtn, display: "flex", alignItems: "center", justifyContent: "center", width: "auto", borderRadius: 999, padding: "0 16px", gap: 7, position: "relative" }}><I.MessageCircle size={16} strokeWidth={2} /><span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px" }}>Чат</span>
               {_chatLive && chatPeek && chatPeek.unread > 0 && <span style={{ position: "absolute", top: -3, right: -3, background: "#FF3B30", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 17, height: 17, padding: "0 4px", display: "grid", placeItems: "center", border: "1.5px solid " + (H.onDark ? "rgba(0,0,0,0.45)" : "#fff") }}>{chatPeek.unread > 99 ? "99+" : chatPeek.unread}</span>}
             </button>
           </div>

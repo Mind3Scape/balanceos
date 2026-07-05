@@ -323,7 +323,9 @@ function CommunityLive() {
   var searching = qDeb.length >= 2;
   var _qq = qDeb.toLowerCase();
   var _hit = (...fs) => fs.some(f => ("" + (f || "")).toLowerCase().indexOf(_qq) !== -1);
-  var lcHits = searching && typeof LIVING_CIRCLES !== "undefined" ? LIVING_CIRCLES.filter(s => _hit(s.t, s.hook, (s.habits || []).map(h => h.name).join(" "))) : [];
+  // Живые круги: фейк сведён к ОДНОМУ примеру (David) — реальные круги ищутся через
+  // CloudTeamsDiscoverLive (настоящий поиск публичных кругов). Пример может совпасть по слову.
+  var lcHits = searching && typeof LIVING_CIRCLES !== "undefined" ? LIVING_CIRCLES.slice(0, 1).filter(s => _hit(s.t, s.hook, (s.habits || []).map(h => h.name).join(" "))) : [];
   var pHits = searching && typeof BOS_PARTNERS !== "undefined" ? BOS_PARTNERS.filter(p => _hit(p.name, p.what, (p.tags || []).join(" "))) : [];
 
   // ── «Сейчас N человек держат практики» (VISION: живая строка вместо ленты) — честное
@@ -828,11 +830,11 @@ function CommunityLive() {
       scrollSnapType: "x proximity",
       WebkitOverflowScrolling: "touch"
     }
-  }, LIVING_CIRCLES.map((s, i) => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
+  }, LIVING_CIRCLES.slice(0, 1).map((s, i) => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
     key: s.id,
     circle: s,
     w: 300,
-    variant: i % 2 === 0 ? "chips" : "orbit",
+    variant: "chips",
     onTap: () => {
       if (window.tgHaptic) {
         try {
@@ -918,10 +920,17 @@ function CommunityLive() {
     }, mine ? "Ты в деле ✓" : s.goalText + " · +" + s.reward + " XP")));
   }))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(CommSectionHeadLive, {
     title: "\u2728 \u0416\u0438\u0432\u044B\u0435 \u043A\u0440\u0443\u0433\u0438"
-  }), LIVING_CIRCLES.map((s, i) => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-4)",
+      padding: "0 4px 8px",
+      lineHeight: 1.4
+    }
+  }, "\u041F\u0440\u0438\u043C\u0435\u0440 \u043A\u0440\u0443\u0433\u0430 \u2014 \u0442\u0430\u043A \u043E\u043D \u0432\u044B\u0433\u043B\u044F\u0434\u0438\u0442, \u043A\u043E\u0433\u0434\u0430 \u043D\u0430\u043F\u043E\u043B\u043D\u0438\u0442\u0441\u044F \u0436\u0438\u0437\u043D\u044C\u044E \uD83D\uDC47"), LIVING_CIRCLES.slice(0, 1).map(s => /*#__PURE__*/React.createElement(LivingCircleCardLive, {
     key: s.id,
     circle: s,
-    variant: i % 2 === 0 ? "chips" : "orbit",
+    variant: "chips",
     onTap: () => {
       if (window.tgHaptic) {
         try {
@@ -933,6 +942,12 @@ function CommunityLive() {
         navigate: navigate
       }));
     }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
+    app: app
   })), /*#__PURE__*/React.createElement(CirclesMosaicLive, {
     kicker: "\uD83D\uDD25 \u0427\u0435\u043B\u043B\u0435\u043D\u0434\u0436\u0438"
   }, SEED_CIRCLES.map(s => {
@@ -987,8 +1002,6 @@ function CommunityLive() {
     navigate: navigate
   }), filter === "circles" && /*#__PURE__*/React.createElement(React.Fragment, null, typeof InviteFriendsCardLive === "function" && /*#__PURE__*/React.createElement(InviteFriendsCardLive, {
     isDark: isDark
-  }), /*#__PURE__*/React.createElement(CloudTeamsDiscoverLive, {
-    app: app
   }))), filter === "people" &&
   /*#__PURE__*/
   // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
@@ -1757,10 +1770,13 @@ function TeamDetailLive() {
     "aria-label": "\u0427\u0430\u0442 \u0446\u0435\u043B\u0438",
     style: {
       ...heroBtn,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       width: "auto",
       borderRadius: 999,
-      padding: "0 15px",
-      gap: 6,
+      padding: "0 16px",
+      gap: 7,
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement(I.MessageCircle, {

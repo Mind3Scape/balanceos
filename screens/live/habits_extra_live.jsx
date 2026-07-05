@@ -124,7 +124,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     // ОБЩАЯ (командная) привычка — ТА ЖЕ форма, но сохраняем в КОМАНДУ (create/update), не в личное.
     // Личные поля (напоминание/дни/тип/«вместе») для общего определения не пишем — они у каждого свои.
     if (teamFor) {
-      const _gpdT = (countOn && countUnit === "times") ? Math.max(1, goal) : 1;
+      const _gpdT = (countOn && countUnit === "times") ? Math.max(2, goal) : 1;
       if (teamFor.onSave) teamFor.onSave({ name: nm, emoji: iconPick, color, tint, goalPerDay: _gpdT, isMain: isMain }, editing ? params.habit.id : null);
       close();
       return;
@@ -136,7 +136,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     const base = {
       emoji: iconPick, name: nm, color, tint, type,        // tint = тонированный фон; type = развивать/бросить
       days: days.slice(),                                  // 7-long Пн..Вс mask
-      goalPerDay: countTimes ? Math.max(1, goal) : 1,      // счётчик: N раз в день (без верхнего потолка — David)
+      goalPerDay: countTimes ? Math.max(2, goal) : 1,      // счётчик: ≥2 раза (1 раз = обычная галочка); без верхнего потолка
       duration: countMin ? Math.max(5, duration) : 0,      // таймер: минуты
       reminder: { on: reminderOn, time: reminderTime },
     };
@@ -217,13 +217,16 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
             style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
         <BosColorPickerLive value={color} onChange={setColor} />
-        {/* Тонированный фон — сразу под цветом (David: «понравился тогл тонированный фон, под цветом»). */}
+        {/* Тонированный фон — сразу под цветом (David: «понравился тогл тонированный фон, под цветом»).
+            У ОБЩЕЙ привычки скрыт: её плитка тоном не заливается, тумблер ни на что не влиял. */}
+        {!teamFor && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: "var(--text-2)" }}>Тонированный фон
             <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Плитка залита цветом. Выключишь — чистый значок.</div>
           </div>
           <Switch small on={tint} onChange={setTint} />
         </div>
+        )}
       </div>
 
       {/* ── РАЗВИВАТЬ / БРОСИТЬ — тумблер (по умолч. Развивать). У общей привычки скрыт (не применимо). ── */}
@@ -256,7 +259,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
                 <div style={{ fontSize: 13, color: "var(--text-4)" }}>{countUnit === "min" ? "отсчёт времени за день" : "или больше в день"}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => countUnit === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(1, goal - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4} /></button>
+                <button onClick={() => countUnit === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(2, goal - 1))} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Minus size={16} strokeWidth={2.4} /></button>
                 <button onClick={() => countUnit === "min" ? setDuration(duration + 5) : setGoal(goal + 1)} className="tap hit44" style={{ width: 32, height: 32, borderRadius: 999, background: "var(--surface-3)", border: 0, display: "grid", placeItems: "center", color: "var(--text-2)" }}><I.Plus size={16} strokeWidth={2.4} /></button>
               </div>
             </div>

@@ -85,6 +85,33 @@ function buildAiContextLive(app) {
   } catch (e) { return ""; }
 }
 
+/* ИИ-СВОДКА для главной (David: «сводка должна быть РЕАЛЬНАЯ, а при недоступном ИИ — заготовки как
+   сейчас»). Пайплайн (стейт+кэш+сигнал+эффект) уже живёт в shell.jsx, но раньше звал `bosAiBrief`
+   из ДЕМО-бандла (live его не грузит) → эффект всегда падал, и показывалась заготовка. Это ЖИВАЯ
+   версия: спрашивает у ИИ-прокси ОДНУ тёплую фразу по реальному состоянию. Получилось → real; не
+   получилось (ключ исчерпан/офлайн) → null → главная берёт заготовку AI_BRIEF, как раньше. Только
+   summary — плитки/маршруты не трогаем (без риска). Кэш/частота — на стороне эффекта (≈1 раз в день). */
+var BRIEF_SYSTEM_LIVE = "Ты — тёплый, внимательный наставник в приложении привычек BalanceOS. По контексту пользователя дай РОВНО ОДНУ короткую фразу на сегодня (до 90 символов): живое наблюдение или мягкую подсказку. По-русски, по-доброму, конкретно, без общих слов и воды. Верни ТОЛЬКО фразу — без кавычек, без префиксов, без списков.";
+function bosCleanBriefLine(raw) {
+  if (!raw) return "";
+  var s = ("" + raw).trim();
+  s = (s.split(/\r?\n/).map(function (x) { return x.trim(); }).filter(Boolean)[0]) || "";
+  s = s.replace(/^["'«»•\*\-\d\.\)\s]+/, "").replace(/["'«»\s]+$/, "").trim();
+  if (s.length > 140) s = s.slice(0, 138).trim() + "…";
+  return s;
+}
+async function bosAiBriefLive(app) {
+  try {
+    if (typeof aiRaw !== "function" || typeof buildAiContextLive !== "function") return null;
+    var ctx = buildAiContextLive(app);
+    if (!ctx) return null;
+    var raw = await aiRaw([{ role: "system", content: BRIEF_SYSTEM_LIVE }, { role: "user", content: ctx }]);
+    var summary = bosCleanBriefLine(raw);
+    if (!summary) return null; // ИИ недоступен/пусто → главная возьмёт заготовку AI_BRIEF
+    return { summary: summary };
+  } catch (e) { return null; }
+}
+
 /* FeedbackSheet → live-only: hands the message to the real support email composer
    (no demo "delivered" success animation). */
 function FeedbackSheetLive({ title = "Написать в поддержку", dark = false }) {
@@ -3668,14 +3695,14 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
   const AI_BRIEF = {
     "Энергия":     "Энергии много — берись за самое важное сейчас.",
     "Радость":     "Ты в ресурсе — отличный день, чтобы закрыть серию.",
-    "Спокойствие": "Спокойствие — твоё время для глубокого чтения.",
+    "Спокойствие": "Спокойствие — время для дела, что требует сосредоточенности.",
     "Тревога":     "Начни с двух минут дыхания — и день станет легче.",
     "Упадок":      "Сделай одно маленькое дело — этого сегодня достаточно.",
     "Усталость":   "Сбавь темп: закрой одну привычку — и довольно.",
   };
   const aiBrief = (totalCount && doneCount >= totalCount)
     ? "День закрыт — ты в потоке. Так держи ритм."
-    : (AI_BRIEF[mood && mood.t] || "Чтение легче даётся вечером — оставь его на потом.");
+    : (AI_BRIEF[mood && mood.t] || "Один маленький шаг сегодня — и ритм на твоей стороне.");
   // For LIVE the summary + pills come from the AI login brief (heuristic fallback if absent).
   const _liveBrief = heroApp?.aiBrief || null;
   const _homeSummary = (_liveBrief && _liveBrief.summary) || aiBrief;
@@ -4385,7 +4412,7 @@ function CircleFriendsStripLive({ app, navigate }) {
         <div className="bos-hscroll" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 2 }}>
           {shown.map(function (f) {
             return (
-              <button key={f.id} className="tap" onClick={function () { navigate("team-detail", { team: f.team }); }}
+              <button key={f.id} className="tap" onClick={function () { navigate("team-detail", { team: f.team, from: "community" }); }}
                 style={{ flex: "0 0 auto", width: 60, background: "transparent", border: 0, padding: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                 <BuddyFaceLive avatar={f.avatar} name={f.name} size={48} />
                 <span style={{ fontSize: 11.5, color: "var(--text-2)", fontWeight: 500, maxWidth: 60, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(f.name || "").split(" ")[0]}</span>

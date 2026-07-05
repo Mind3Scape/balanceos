@@ -174,7 +174,7 @@ function HabitFormSheetLive({
     // ОБЩАЯ (командная) привычка — ТА ЖЕ форма, но сохраняем в КОМАНДУ (create/update), не в личное.
     // Личные поля (напоминание/дни/тип/«вместе») для общего определения не пишем — они у каждого свои.
     if (teamFor) {
-      var _gpdT = countOn && countUnit === "times" ? Math.max(1, goal) : 1;
+      var _gpdT = countOn && countUnit === "times" ? Math.max(2, goal) : 1;
       if (teamFor.onSave) teamFor.onSave({
         name: nm,
         emoji: iconPick,
@@ -199,8 +199,8 @@ function HabitFormSheetLive({
       // tint = тонированный фон; type = развивать/бросить
       days: days.slice(),
       // 7-long Пн..Вс mask
-      goalPerDay: countTimes ? Math.max(1, goal) : 1,
-      // счётчик: N раз в день (без верхнего потолка — David)
+      goalPerDay: countTimes ? Math.max(2, goal) : 1,
+      // счётчик: ≥2 раза (1 раз = обычная галочка); без верхнего потолка
       duration: countMin ? Math.max(5, duration) : 0,
       // таймер: минуты
       reminder: {
@@ -412,7 +412,7 @@ function HabitFormSheetLive({
   })), /*#__PURE__*/React.createElement(BosColorPickerLive, {
     value: color,
     onChange: setColor
-  }), /*#__PURE__*/React.createElement("div", {
+  }), !teamFor && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
       paddingTop: 12,
@@ -562,7 +562,7 @@ function HabitFormSheetLive({
       gap: 6
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => countUnit === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(1, goal - 1)),
+    onClick: () => countUnit === "min" ? setDuration(Math.max(5, duration - 5)) : setGoal(Math.max(2, goal - 1)),
     className: "tap hit44",
     style: {
       width: 32,
