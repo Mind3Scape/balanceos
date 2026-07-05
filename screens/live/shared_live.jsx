@@ -5442,7 +5442,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       {friends != null && list.length === 0 && (
         <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 96px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none", zIndex: 500 }}>Позови первых — и рядом с твоей появятся их солнечные системы.</div>
       )}
-      <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "var(--text)", display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)", zIndex: 500 }}><I.X size={18} /></button>
+      <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "var(--text)", display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: isDark ? "blur(8px)" : "none", backdropFilter: isDark ? "blur(8px)" : "none", zIndex: 500 }}><I.X size={18} /></button>
       {/* Тумблер «✦ Связи» — стекло, СПРАВА ПЕРЕД крестиком (right:60, крестик right:16 шир.36). Вкл =
           слой созвездий (кто кого привёл); подсвечен индиго. Сиблинг НАД полем — жестов не перехватывает. */}
       {list.length > 0 && (
@@ -5451,7 +5451,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
             background: showLinks ? (isDark ? "rgba(130,175,255,0.30)" : "rgba(74,108,214,0.16)") : (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)"),
             color: showLinks ? (isDark ? "#dce9ff" : "#3a55c0") : (isDark ? "#fff" : "var(--text)"),
             fontSize: 13.5, fontWeight: 600, letterSpacing: 0.2, display: "flex", alignItems: "center", gap: 6,
-            boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)", zIndex: 500 }}>
+            /* blur только когда пилюля полупрозрачна: тёмная (12% белого) или АКТИВНА (16% индиго) — там
+               frost виден. В светлой-выкл (82% белого) блюр невидим, но пере-блюрил бы фон каждый кадр пана. */
+            boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: (isDark || showLinks) ? "blur(8px)" : "none", backdropFilter: (isDark || showLinks) ? "blur(8px)" : "none", zIndex: 500 }}>
           <span style={{ fontSize: 14, lineHeight: 1 }}>✦</span> Связи
         </button>
       )}
