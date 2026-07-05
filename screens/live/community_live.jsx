@@ -986,13 +986,18 @@ function TeamDetailLive() {
           );
         })}
         {teamHabits.length === 0 && (
-          <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>Пока нет общих привычек. Добавь первую — она станет якорем цели.</div>
+          <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>{_isOwner ? "Пока нет общих привычек. Добавь первую — она станет якорем цели." : "Пока нет общих привычек — их добавляет создатель цели."}</div>
         )}
+        {/* Создавать общие привычки может ТОЛЬКО владелец цели (David: участники не должны заводить
+            привычки для всех). Участник видит их и может «вести у себя», но не создаёт. RLS дублирует
+            гейт (patch_team_habits_owner_only.sql) — UI-обход не пройдёт. */}
+        {_isOwner && (
         <button className="tap" onClick={openAddHabit}
           style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: teamHabits.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0, background: "transparent", border: 0, color: "var(--text-2)", cursor: "pointer" }}>
           <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
           <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
         </button>
+        )}
           </>) },
         {
           key: "calendar", icon: <I.Calendar size={17} color="var(--text-3)" />, title: "Календарь",

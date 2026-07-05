@@ -5373,6 +5373,16 @@ function UniverseFieldLive({ app, people, from, onClose }) {
             var lod = vq.openV > (prev === "orbit" ? 0.10 : 0.14) ? "orbit" : "disc";
             lodRef.current[key] = lod;
             var vNow = nodeVisual(_nfx, _nfy, camRef.current, _bosLp(1.34, 1, _bosSm(introRef.current)));
+            // VIEWPORT CULLING (David: «рендерить только то, что в видимой области»): после интро НЕ
+            // монтируем узлы дальше поля-запаса (~0.8 вьюпорта) за краем экрана. Раньше все 121 систем
+            // висели в DOM (при ~11 видимых на близком зуме), React их пересобирал, а rAF-цикл считал
+            // математику. Теперь их нет в дереве → меньше DOM/React И цикла (loop пропускает по !el до
+            // математики). Во время интро (раскрытие толпы) не куллим; поп после интро = "none" → въезд
+            // в кадр без мерцания. Слой «Связи» рисует нити по координатам, не по DOM → не ломается.
+            if (introDone) {
+              var _cm = Math.max(W, H) * 0.8, _fs = vNow.f.size;
+              if (vNow.f.sx < -_fs - _cm || vNow.f.sx > W + _fs + _cm || vNow.f.sy < -_fs - _cm || vNow.f.sy > H + _fs + _cm) return null;
+            }
             var delay = Math.min((nd.ring || 0) * 0.14, 1.0) + ((_bosHashU(key) % 100) / 100) * 0.15;
             var pop = introDone ? "none" : ("bosSysPop 0.55s cubic-bezier(0.34,1.35,0.5,1) " + delay.toFixed(2) + "s both");
             var style = {
