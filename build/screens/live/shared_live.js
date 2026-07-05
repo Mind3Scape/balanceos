@@ -12445,6 +12445,21 @@ function _bosSm(x) {
 function _bosLp(a, b, k) {
   return a + (b - a) * k;
 }
+// Мягкая спринг-доводка (easeOutBack): к концу движение чуть «перелетает» цель и оседает
+// назад — отсюда живое, пружинистое ощущение. s правит силу перелёта (больше = заметнее).
+function _bosEaseOutBack(x, s) {
+  x = x < 0 ? 0 : x > 1 ? 1 : x;
+  s = s == null ? 1.3 : s;
+  var p = x - 1;
+  return 1 + (s + 1) * p * p * p + s * p * p;
+}
+// ВХОД во «Вселенную» — ДОП. фаза поверх introK (аддитивно): подержать кадр, пока рядом
+// «проступают» люди, затем мягко ОТЪЕХАТЬ — из-за краёв в кадр вплывают чужие солнечные
+// системы (масштаб людей вокруг). Тайминги — секунды от монтирования; z<1 = отдаление. z
+// сокращается в calcNode → линза/LOD/раскрытость НЕ меняются, просто видно больше систем.
+var BOS_UNI_HOLD_END = 1.25; // до этого z = 1: системы загораются и оседают (как сейчас)
+var BOS_UNI_PULL_END = 2.95; // к этому моменту отъезд-раскрытие завершён (~1.7с плавно)
+var BOS_UNI_PULL_Z = 0.64; // конечный зум «раскрытия толпы» (в пределах _cZ [0.3..3])
 // СТАТИЧНЫЙ диск дальней системы (иконка): аватар + одно золотое кольцо уровня + бейдж. БЕЗ часов и
 // SVG-орбиты → не крутится, не ре-рендерится на 30fps (главная оптимизация: дальних систем много,
 // им не нужна анимация). Вид совпадает со свёрнутым OrbitField → переход бесшовный.
@@ -12823,6 +12838,18 @@ function UniverseFieldLive({
   }); // квантованная камера — только для структуры
   var [introDone, setIntroDone] = React.useState(false); // после каскада появления pop-анимации гасим
   var introRef = React.useRef(0);
+  // Одноразовая режиссура камеры входа (см. BOS_UNI_* выше). reduce-motion → сразу «занята»:
+  // камеру не двигаем, остаётся текущий вход. Первое касание/колесо тоже освобождает камеру.
+  var introCamRef = React.useRef();
+  if (!introCamRef.current) {
+    var _rm = false;
+    try {
+      _rm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    } catch (e) {}
+    introCamRef.current = {
+      taken: _rm
+    };
+  }
   var nodeEls = React.useRef({}); // key → DOM-обёртка системы (loop пишет transform/vars сюда)
   var nodeSig = React.useRef({}); // key → последняя записанная сигнатура (скип одинаковых записей)
   var lodRef = React.useRef({}); // key → "disc"|"orbit" (гистерезис переключения)
@@ -12888,6 +12915,28 @@ function UniverseFieldLive({
       if (ip > 1) ip = 1;
       introRef.current = ip;
       var introK = _bosLp(1.34, 1, _bosSm(ip)); // зум-аут входа: ты крупно → поле «разгорается»
+      // ДОП. ФАЗА ВХОДА (см. BOS_UNI_* выше): держим кадр, затем мягкий отъезд-раскрытие толпы.
+      // z пишем ТОЛЬКО пока пользователь сам не взялся за камеру (introCamRef.taken=true → не мешаем
+      // жесту). Меняем лишь z → линза/LOD/раскрытость systems не трогаются (z сокращается в calcNode).
+      if (!introCamRef.current.taken) {
+        var _T = (now - t0) / 1000,
+          _z;
+        if (_T < BOS_UNI_HOLD_END) {
+          _z = 1;
+        } else if (_T < BOS_UNI_PULL_END) {
+          _z = _bosLp(1, BOS_UNI_PULL_Z, _bosEaseOutBack((_T - BOS_UNI_HOLD_END) / (BOS_UNI_PULL_END - BOS_UNI_HOLD_END)));
+        } else {
+          _z = BOS_UNI_PULL_Z;
+          introCamRef.current.taken = true;
+        }
+        _z = _cZ(_z);
+        var _cc = camRef.current;
+        if (_cc.z !== _z) camRef.current = {
+          x: _cc.x,
+          y: _cc.y,
+          z: _z
+        };
+      }
       var cam = camRef.current;
       var nodes = nodesRef.current,
         els = nodeEls.current,
@@ -12957,6 +13006,7 @@ function UniverseFieldLive({
   });
   function uDown(e) {
     var g = vp.current;
+    introCamRef.current.taken = true;
     g.pts[e.pointerId] = {
       x: e.clientX,
       y: e.clientY
@@ -13029,6 +13079,7 @@ function UniverseFieldLive({
     }
   }
   function uWheel(e) {
+    introCamRef.current.taken = true;
     var c = camRef.current;
     camRef.current = {
       x: c.x,
