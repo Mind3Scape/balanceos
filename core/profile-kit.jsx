@@ -250,7 +250,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
         const gs = ((sz / 16) * pop).toFixed(3);            // canonical r=16, scaled per ring
         if (n.kind === "more") {
           return (
-            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow && !minimal ? "url(#orbShadow)" : undefined}>
               <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
               <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
               <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
@@ -260,7 +260,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
         }
         if (n.kind === "h") {
           return (
-            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+            <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={op.toFixed(2)} filter={PAL.shadow && !minimal ? "url(#orbShadow)" : undefined}>
               {dark && <circle cx="0" cy="0" r="19" fill={glow} opacity="0.18" style={{ filter: "blur(5px)" }} />}
               <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
               <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
@@ -273,7 +273,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
         const href = isMemoji ? "./assets/people/" + av + ".png" : "./assets/sphere.png";
         const pOp = (n.lit === false ? 0.5 : 1) * op; // dim members not active today (lit opt-in; profile passes none → full)
         return (
-          <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={pOp.toFixed(2)} filter={PAL.shadow ? "url(#orbShadow)" : undefined}>
+          <g key={n.key} transform={"translate(" + x.toFixed(2) + " " + y.toFixed(2) + ") scale(" + gs + ")"} opacity={pOp.toFixed(2)} filter={PAL.shadow && !minimal ? "url(#orbShadow)" : undefined}>
             {dark && <circle cx="0" cy="0" r="18.5" fill={glow} opacity="0.16" style={{ filter: "blur(5px)" }} />}
             <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
             {isEmoji
@@ -297,6 +297,10 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
       <svg viewBox="-160 -160 320 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none", overflow: "visible" }}>
         <defs>
           <clipPath id="orbAvClip"><circle cx="0" cy="0" r="16" /></clipPath>
+          {/* Тень планет: НЕ применяется в minimal (Вселенная) — на её масштабе 0.16-альфа/2px тень
+              глазом не видна (проверено A/B-кадрами), а WebKit на iPhone честно растеризовал ДЕСЯТКИ
+              feDropShadow каждый кадр пана/зума → просадки FPS на близком зуме. На стр.«Я» (крупная
+              орбита, !minimal) тень остаётся. Определение оставляем — на «Я» ссылка живёт. */}
           <filter id="orbShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="2.2" floodColor="#000" floodOpacity="0.16" /></filter>
           {/* glass for the orbiting discs — SAME tile-glass vocabulary as the pencil button
               (BOS_TILE_SHEEN directional sheen + a bright top edge), not a soft radial blob. */}
