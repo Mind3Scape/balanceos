@@ -4905,6 +4905,12 @@ function UniSpinOrbit({ sp, moodC, isDark, spinOn }) {
 function UniverseFieldLive({ app, people, from, onClose }) {
   var isDark = app && app.themeOverride === "dark";
   var [friends, setFriends] = React.useState(_bosUniverseCache);
+  // Слой «Связи/созвездия» (ДОП-СТЕКЛО ПОВЕРХ): кто кого привёл. myUid = мой id (центр «Я»),
+  // myRefId = кто привёл МЕНЯ. Оба нужны только слою линий — механику Вселенной не трогают.
+  var [myUid, setMyUid] = React.useState(null);
+  var [myRefId, setMyRefId] = React.useState(null);
+  var [showLinks, setShowLinks] = React.useState(false);
+  var edgeEls = React.useRef({});   // ключ ребра → { h: halo-line, c: core-line } (rAF пишет x1/y1/x2/y2)
   React.useEffect(function () {
     var on = true;
     var seed = Array.isArray(people) ? people : [];
@@ -4912,6 +4918,10 @@ function UniverseFieldLive({ app, people, from, onClose }) {
     (async function () {
       var out = [], myId = null;
       try { myId = await window.bosCloud.uid(); } catch (e) {}
+      if (on) setMyUid(myId);
+      // Кто привёл МЕНЯ (для нити «Я → мой пригласивший», если он тоже в поле). Разовый фоновый
+      // запрос; если нет/не пришёл — просто не будет этой одной нити. Не блокирует загрузку систем.
+      try { if (window.bosCloud.myInviter) { var _iv = await window.bosCloud.myInviter(); if (on && _iv && _iv.id) setMyRefId(_iv.id); } } catch (e) {}
       // ВСЕ пользователи вселенной: каждый с опубликованной витриной орбиты, АНОНИМНО (аватар+уровень+
       // значки привычек, без имён/связи — David: «показываем всех всем, супер-анонимно»).
       try {
@@ -4937,6 +4947,13 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #14161d 0%, #0a0b10 52%, #030304 100%)" : "radial-gradient(125% 95% at 50% 42%, #fbfcff 0%, #eef1f8 52%, #e4e9f2 100%)";
   var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
+  // Нити «Связей»: люминесцентный индиго (в палитре Apple-цветов приложения). Ядро — тонкое, низкая
+  // альфа; гало — широкое ещё бледнее (мягкое свечение БЕЗ SVG-filter → дёшево/предсказуемо на телефоне).
+  // mixBlendMode: на светлой multiply (нити глубже на пересечениях-хабах, как перо/чернила), на тёмной
+  // screen (нити СВЕТЯТСЯ, ярче в узлах) — так «паутина» читается как созвездие, а не график.
+  var linkCore = isDark ? "rgba(150,205,255,0.6)" : "rgba(68,98,208,0.4)";
+  var linkHalo = isDark ? "rgba(150,205,255,0.14)" : "rgba(104,122,228,0.11)";
+  var linkBlend = isDark ? "screen" : "multiply";
 
   // Твой РЕАЛЬНЫЙ уровень/прогресс — кормит OrbitField (золотое кольцо + цифра) идентично стр. «Я».
   var _ux = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
@@ -5109,9 +5126,48 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       .concat(layout.nodes.map(function (n, j) { return { sp: n.sp, fx: n.fx, fy: n.fy, ring: n.ring, key: "o" + j }; }));
   }, [youSp, layout]);
   nodesRef.current = allNodes; // rAF-цикл всегда видит свежий список
+  // ── СЛОЙ СВЯЗЕЙ (созвездия): рёбра «пригласивший → приглашённый» ────────────────────────
+  // Граф из referredBy КАЖДОГО узла (у чужих — из allPublic; у «Я» — myRefId). Ребро рисуем
+  // ТОЛЬКО когда ОБА конца present в поле. Чистая read-only логика: НЕ трогает раскладку/линзу/
+  // камеру — лишь читает fx/fy узлов. Строим лишь при включённом тумблере (иначе [] → нет слоя).
+  var links = React.useMemo(function () {
+    if (!showLinks) return [];
+    var byId = {};
+    allNodes.forEach(function (nd) { var id = nd.you ? myUid : (nd.sp && nd.sp.s && nd.sp.s.id); if (id) byId[id] = nd; });
+    var out = [];
+    allNodes.forEach(function (nd) {
+      var id = nd.you ? myUid : (nd.sp && nd.sp.s && nd.sp.s.id);
+      var rb = nd.you ? myRefId : (nd.sp && nd.sp.s && nd.sp.s.referredBy);
+      if (!id || !rb || rb === id) return;             // нет id/пригласившего или самоссылка — пропуск
+      var inv = byId[rb];
+      if (!inv || inv === nd) return;                  // пригласивший не в поле — нить не рисуем
+      out.push({ key: inv.key + "→" + nd.key, a: inv, b: nd, i: out.length });  // a=пригласивший, b=приглашённый
+    });
+    return out;
+  }, [allNodes, myUid, myRefId, showLinks]);
+  // Отдельный rAF ТОЛЬКО для эндпоинтов нитей: читает camRef+introRef (те же, что systems-loop),
+  // зовёт calcNode для двух концов ребра и пишет x1/y1/x2/y2 прямо в DOM линий. Основной цикл не
+  // трогает. Живёт лишь пока связи включены (иначе эффект не стартует — ноль работы в покое).
+  React.useEffect(function () {
+    if (!showLinks || !links.length) return;
+    var raf;
+    function frame() {
+      raf = requestAnimationFrame(frame);
+      var cam = camRef.current, introK = _bosLp(1.34, 1, _bosSm(introRef.current)), els = edgeEls.current;
+      for (var i = 0; i < links.length; i++) {
+        var ed = links[i], o = els[ed.key]; if (!o) continue;
+        var a = calcNode(ed.a.fx, ed.a.fy, cam, introK), b = calcNode(ed.b.fx, ed.b.fy, cam, introK);
+        var x1 = a.sx.toFixed(1), y1 = a.sy.toFixed(1), x2 = b.sx.toFixed(1), y2 = b.sy.toFixed(1);
+        if (o.c) { o.c.setAttribute("x1", x1); o.c.setAttribute("y1", y1); o.c.setAttribute("x2", x2); o.c.setAttribute("y2", y2); }
+        if (o.h) { o.h.setAttribute("x1", x1); o.h.setAttribute("y1", y1); o.h.setAttribute("x2", x2); o.h.setAttribute("y2", y2); }
+      }
+    }
+    raf = requestAnimationFrame(frame);
+    return function () { cancelAnimationFrame(raf); };
+  }, [showLinks, links]);
   var node = (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
-      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}"}</style>
+      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkIn{from{opacity:0}to{opacity:1}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"}</style>
       {/* Жесты: пинч-зум + перетаскивание + колесо; чистый тап (без сдвига) закрывает. */}
       <div onPointerDown={uDown} onPointerMove={uMove} onPointerUp={uUp} onPointerCancel={uUp} onWheel={uWheel} style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "grab" }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
@@ -5156,6 +5212,30 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           })}
         </div>
       </div>
+      {/* СЛОЙ СВЯЗЕЙ/СОЗВЕЗДИЙ (ДОП-СТЕКЛО ПОВЕРХ поля, z:200 — над системами, под баннером/кнопками).
+          pointerEvents:none → жесты пан/зум проходят СКВОЗЬ к полю. Нити соединяют ЦЕНТРЫ систем
+          (sx,sy — те же, что у аватарок), эндпоинты гонит отдельный rAF выше. Каждое ребро = «гало»
+          (широкая мягкая линия) + «ядро» (тонкая яркая, эффект прорисовки). Анонимно — только линии. */}
+      {showLinks && links.length > 0 && (
+        <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 200, mixBlendMode: linkBlend }}>
+          {links.map(function (ed) {
+            var iK = _bosLp(1.34, 1, _bosSm(introRef.current));   // те же значения, что читает rAF — без «прыжка» в 1-й кадр
+            var a0 = calcNode(ed.a.fx, ed.a.fy, camRef.current, iK), b0 = calcNode(ed.b.fx, ed.b.fy, camRef.current, iK);
+            var dly = Math.min(ed.i * 0.03, 0.5);                 // лёгкий каскад «загорания» нитей
+            return (
+              <g key={ed.key} style={{ animation: "bosLinkIn 0.5s ease " + dly.toFixed(2) + "s both" }}>
+                <line ref={function (el) { var o = edgeEls.current[ed.key] || (edgeEls.current[ed.key] = {}); if (el) o.h = el; else delete o.h; }}
+                  x1={a0.sx.toFixed(1)} y1={a0.sy.toFixed(1)} x2={b0.sx.toFixed(1)} y2={b0.sy.toFixed(1)}
+                  stroke={linkHalo} strokeWidth={3.4} strokeLinecap="round" />
+                <line ref={function (el) { var o = edgeEls.current[ed.key] || (edgeEls.current[ed.key] = {}); if (el) o.c = el; else delete o.c; }}
+                  x1={a0.sx.toFixed(1)} y1={a0.sy.toFixed(1)} x2={b0.sx.toFixed(1)} y2={b0.sy.toFixed(1)}
+                  stroke={linkCore} strokeWidth={1.2} strokeLinecap="round"
+                  pathLength="1" strokeDasharray="1" style={{ animation: "bosLinkDraw 0.65s ease " + dly.toFixed(2) + "s both" }} />
+              </g>
+            );
+          })}
+        </svg>
+      )}
       {/* David: подпись «Вселенная» + счётчик систем УХОДИЛИ ПОД иконки (у систем z до ~185, у баннера
           не было z). Поднимаем баннер и подсказки НАД полем (z 500) — саму механику не трогаем. */}
       <div style={{ position: "absolute", top: "calc(18px + var(--tg-top-inset, 0px))", left: 0, right: 0, textAlign: "center", pointerEvents: "none", zIndex: 500 }}>
@@ -5166,6 +5246,18 @@ function UniverseFieldLive({ app, people, from, onClose }) {
         <div style={{ position: "absolute", left: 0, right: 0, top: "calc(50% + 96px)", textAlign: "center", padding: "0 44px", color: subC, fontSize: 13.5, lineHeight: 1.5, pointerEvents: "none", zIndex: 500 }}>Позови первых — и рядом с твоей появятся их солнечные системы.</div>
       )}
       <button onClick={onClose} aria-label="Закрыть" className="tap" style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", right: 16, width: 36, height: 36, borderRadius: "50%", border: 0, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)", color: isDark ? "#fff" : "var(--text)", display: "grid", placeItems: "center", boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)", zIndex: 500 }}><I.X size={18} /></button>
+      {/* Тумблер «✦ Связи» — стекло, зеркалит крестик (слева-сверху). Вкл = слой созвездий (кто кого
+          привёл); подсвечен индиго. Отдельная кнопка (сиблинг НАД полем) — жестов не перехватывает. */}
+      {list.length > 0 && (
+        <button onClick={function () { setShowLinks(function (v) { return !v; }); }} className="tap" aria-label="Связи"
+          style={{ position: "absolute", top: "calc(14px + var(--tg-top-inset, 0px))", left: 16, height: 36, padding: "0 15px", borderRadius: 18, border: 0,
+            background: showLinks ? (isDark ? "rgba(130,175,255,0.30)" : "rgba(74,108,214,0.16)") : (isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.82)"),
+            color: showLinks ? (isDark ? "#dce9ff" : "#3a55c0") : (isDark ? "#fff" : "var(--text)"),
+            fontSize: 13.5, fontWeight: 600, letterSpacing: 0.2, display: "flex", alignItems: "center", gap: 6,
+            boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)", WebkitBackdropFilter: "blur(8px)", backdropFilter: "blur(8px)", zIndex: 500 }}>
+          <span style={{ fontSize: 14, lineHeight: 1 }}>✦</span> Связи
+        </button>
+      )}
       <div style={{ position: "absolute", bottom: "calc(22px + var(--tg-bottom-inset, 0px))", left: 0, right: 0, textAlign: "center", fontSize: 12, color: subC, pointerEvents: "none", zIndex: 500 }}>коснись, чтобы вернуться</div>
     </div>
   );

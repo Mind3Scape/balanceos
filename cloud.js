@@ -146,11 +146,14 @@
     var c = client(); if (!c) return [];
     var me = null; try { me = await uid(); } catch (e) {}
     try {
-      var r = await c.from("profiles").select("id,avatar,pub_orbit").not("pub_orbit", "is", null).limit(limit || 240);
+      // referred_by = id того, кто привёл этого человека (world-readable, это ID а не имя →
+      // остаётся анонимно). Отдаём как referredBy для слоя «Связи»/созвездий во «Вселенной».
+      // Graceful: если колонки нет (до ALTER) — Supabase просто не вернёт поле → referredBy=null.
+      var r = await c.from("profiles").select("id,avatar,pub_orbit,referred_by").not("pub_orbit", "is", null).limit(limit || 240);
       if (r.error || !r.data) return [];
       return r.data.filter(function (p) { return p && p.id && p.id !== me; }).map(function (p) {
         var o = p.pub_orbit || {};
-        return { id: p.id, avatar: p.avatar || "default", name: "", level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0 };
+        return { id: p.id, avatar: p.avatar || "default", name: "", level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0, referredBy: p.referred_by || null };
       });
     } catch (e) { return []; }
   }
