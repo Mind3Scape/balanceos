@@ -941,11 +941,21 @@ function AppProvider({ children }) {
     try { if (u.cloudId && _liveCloud()) window.bosCloud.upsertHabit(u); } catch (e) {}
     return u;
   }));
-  const removeHabit = (id) => setHabits(hs => {
-    const h = hs.find(x => x.id === id);
-    try { if (h && h.cloudId && _liveCloud()) window.bosCloud.deleteHabit(h.cloudId); } catch (e) {}
-    return hs.filter(x => x.id !== id);
-  });
+  const removeHabit = (id) => {
+    setHabits(hs => {
+      const h = hs.find(x => x.id === id);
+      try { if (h && h.cloudId && _liveCloud()) window.bosCloud.deleteHabit(h.cloudId); } catch (e) {}
+      return hs.filter(x => x.id !== id);
+    });
+    // Аудит #3: убрать удалённую привычку из habitIds всех целей — иначе остаётся «мёртвая
+    // ссылка» и цель молча теряет её вклад. Чистим связь и миррорим цель в облако.
+    setGoals(gs => gs.map(g => {
+      if (!Array.isArray(g.habitIds) || g.habitIds.indexOf(id) < 0) return g;
+      const ng = { ...g, habitIds: g.habitIds.filter(x => x !== id) };
+      try { if (ng.cloudId && _liveCloud()) window.bosCloud.upsertGoal(ng); } catch (e) {}
+      return ng;
+    }));
+  };
   // Drag-to-reorder: apply the new id order, renumber `sort`, and mirror the moved rows to the
   // cloud (loadHabits orders by sort, so the order persists across sessions — David's account).
   const reorderHabits = (orderedIds) => setHabits(hs => {
@@ -986,11 +996,22 @@ function AppProvider({ children }) {
     try { if (u.cloudId && _liveCloud()) window.bosCloud.upsertGoal(u); } catch (e) {}
     return u;
   }));
-  const removeGoal = (id) => setGoals(gs => {
-    const g = gs.find(x => x.id === id);
-    try { if (g && g.cloudId && _liveCloud()) window.bosCloud.deleteGoal(g.cloudId); } catch (e) {}
-    return gs.filter(x => x.id !== id);
-  });
+  const removeGoal = (id) => {
+    // Аудит #4: освободить «только внутри цели» привычки, иначе после удаления цели они
+    // становятся невидимыми призраками (нигде не видно, не удалить, но копят XP). Снимаем
+    // goalOnly/goalId → привычка снова видна на главной. (Промоушен в круг уже делает это сам.)
+    setHabits(hs => hs.map(h => {
+      if (h.goalId !== id) return h;
+      const nh = { ...h, goalOnly: false, goalId: null };
+      try { if (nh.cloudId && _liveCloud()) window.bosCloud.upsertHabit(nh); } catch (e) {}
+      return nh;
+    }));
+    setGoals(gs => {
+      const g = gs.find(x => x.id === id);
+      try { if (g && g.cloudId && _liveCloud()) window.bosCloud.deleteGoal(g.cloudId); } catch (e) {}
+      return gs.filter(x => x.id !== id);
+    });
+  };
   const reorderGoals = (orderedIds) => setGoals(gs => {
     const by = {}; gs.forEach(g => { by[g.id] = g; });
     const next = [];

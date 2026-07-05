@@ -348,12 +348,20 @@ function GoalDetailPersonalLive() {
           render: () => (<>
         {linked.map((h, i) => (
           <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+            {/* Аудит #5: count/timer-привычка внутри цели ведётся ТЕМ ЖЕ контролом, что на главной
+                (счётчик/таймер), а не закрывается одним тапом. Простая привычка — прежний кружок. */}
+            {(typeof HabitCountCheck === "function" && h.goalPerDay > 1) ? (
+              <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}><HabitCountCheck habit={h} app={app} xp={10} /></span>
+            ) : (typeof HabitTimerCheck === "function" && h.duration > 0) ? (
+              <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}><HabitTimerCheck habit={h} app={app} xp={10} /></span>
+            ) : (
             <button onClick={() => { if (app?.toggleHabit) app.toggleHabit(h.id); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap" aria-label="Отметить сегодня"
               style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, border: 0, display: "grid", placeItems: "center", cursor: "pointer",
                 background: h.done ? (h.color || goalColor) : (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
                 boxShadow: h.done ? "none" : "inset 0 0 0 1.5px " + (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.14)") }}>
               {h.done && <I.Check size={16} strokeWidth={3} color="#fff" />}
             </button>
+            )}
             <button className="tap" onClick={() => navigate("habit-detail", { habit: h, from: "goal-detail" })} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, padding: 0, background: "transparent", border: 0, textAlign: "left", color: "var(--text)" }}>
               <span style={{ width: 34, height: 34, borderRadius: 12, background: h.color ? h.color + "26" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{bosIcon(h.emoji, 18, h.color)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>

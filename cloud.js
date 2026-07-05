@@ -476,7 +476,10 @@
   async function teamMembers(teamId) {
     var c = client(); if (!c || !teamId) return [];
     try {
-      var r = await c.from("team_members").select("user_id,role,profiles(username,avatar)").eq("team_id", teamId);
+      // Аудит #7: НЕ считать ещё-не-принятых (role=pending) участниками — иначе они светятся
+      // в ростере и завышают счётчики «N из M сделали» и кольца. Заявки живут отдельно
+      // (pendingRequests). Принятые (owner/admin/member) — остаются.
+      var r = await c.from("team_members").select("user_id,role,profiles(username,avatar)").eq("team_id", teamId).neq("role", "pending");
       return (r.data || []).map(function (m) { return { id: m.user_id, role: m.role, name: (m.profiles && m.profiles.username) || "", avatar: (m.profiles && m.profiles.avatar) || "default" }; });
     } catch (e) { return []; }
   }
@@ -591,9 +594,13 @@
     var c = client(); var me = await uid(); if (!c || !me || !habitId) return false;
     var today = new Date().toISOString().slice(0, 10);
     try {
-      if (on) { await c.from("team_habit_logs").upsert({ team_habit_id: habitId, user_id: me, day: today }, { onConflict: "team_habit_id,user_id,day", ignoreDuplicates: true }); }
-      else { await c.from("team_habit_logs").delete().eq("team_habit_id", habitId).eq("user_id", me).eq("day", today); }
-      return true;
+      // Аудит #8: Supabase при отказе (RLS/ограничение) НЕ бросает исключение, а возвращает
+      // { error } — раньше мы всё равно возвращали true, и галочка «врала» (стоит, а на сервере
+      // пусто → пропадала при след. загрузке). Теперь честно возвращаем успех записи.
+      var r;
+      if (on) { r = await c.from("team_habit_logs").upsert({ team_habit_id: habitId, user_id: me, day: today }, { onConflict: "team_habit_id,user_id,day", ignoreDuplicates: true }); }
+      else { r = await c.from("team_habit_logs").delete().eq("team_habit_id", habitId).eq("user_id", me).eq("day", today); }
+      return !(r && r.error);
     } catch (e) { return false; }
   }
 

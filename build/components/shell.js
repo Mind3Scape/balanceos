@@ -2101,13 +2101,28 @@ function AppProvider({
     } catch (e) {}
     return u;
   }));
-  var removeHabit = id => setHabits(hs => {
-    var h = hs.find(x => x.id === id);
-    try {
-      if (h && h.cloudId && _liveCloud()) window.bosCloud.deleteHabit(h.cloudId);
-    } catch (e) {}
-    return hs.filter(x => x.id !== id);
-  });
+  var removeHabit = id => {
+    setHabits(hs => {
+      var h = hs.find(x => x.id === id);
+      try {
+        if (h && h.cloudId && _liveCloud()) window.bosCloud.deleteHabit(h.cloudId);
+      } catch (e) {}
+      return hs.filter(x => x.id !== id);
+    });
+    // Аудит #3: убрать удалённую привычку из habitIds всех целей — иначе остаётся «мёртвая
+    // ссылка» и цель молча теряет её вклад. Чистим связь и миррорим цель в облако.
+    setGoals(gs => gs.map(g => {
+      if (!Array.isArray(g.habitIds) || g.habitIds.indexOf(id) < 0) return g;
+      var ng = {
+        ...g,
+        habitIds: g.habitIds.filter(x => x !== id)
+      };
+      try {
+        if (ng.cloudId && _liveCloud()) window.bosCloud.upsertGoal(ng);
+      } catch (e) {}
+      return ng;
+    }));
+  };
   // Drag-to-reorder: apply the new id order, renumber `sort`, and mirror the moved rows to the
   // cloud (loadHabits orders by sort, so the order persists across sessions — David's account).
   var reorderHabits = orderedIds => setHabits(hs => {
@@ -2180,13 +2195,30 @@ function AppProvider({
     } catch (e) {}
     return u;
   }));
-  var removeGoal = id => setGoals(gs => {
-    var g = gs.find(x => x.id === id);
-    try {
-      if (g && g.cloudId && _liveCloud()) window.bosCloud.deleteGoal(g.cloudId);
-    } catch (e) {}
-    return gs.filter(x => x.id !== id);
-  });
+  var removeGoal = id => {
+    // Аудит #4: освободить «только внутри цели» привычки, иначе после удаления цели они
+    // становятся невидимыми призраками (нигде не видно, не удалить, но копят XP). Снимаем
+    // goalOnly/goalId → привычка снова видна на главной. (Промоушен в круг уже делает это сам.)
+    setHabits(hs => hs.map(h => {
+      if (h.goalId !== id) return h;
+      var nh = {
+        ...h,
+        goalOnly: false,
+        goalId: null
+      };
+      try {
+        if (nh.cloudId && _liveCloud()) window.bosCloud.upsertHabit(nh);
+      } catch (e) {}
+      return nh;
+    }));
+    setGoals(gs => {
+      var g = gs.find(x => x.id === id);
+      try {
+        if (g && g.cloudId && _liveCloud()) window.bosCloud.deleteGoal(g.cloudId);
+      } catch (e) {}
+      return gs.filter(x => x.id !== id);
+    });
+  };
   var reorderGoals = orderedIds => setGoals(gs => {
     var by = {};
     gs.forEach(g => {

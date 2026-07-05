@@ -731,7 +731,27 @@ function GoalDetailPersonalLive() {
           padding: "10px 14px",
           borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0
         }
-      }, /*#__PURE__*/React.createElement("button", {
+      }, typeof HabitCountCheck === "function" && h.goalPerDay > 1 ? /*#__PURE__*/React.createElement("span", {
+        onPointerDown: e => e.stopPropagation(),
+        onClick: e => e.stopPropagation(),
+        style: {
+          flexShrink: 0
+        }
+      }, /*#__PURE__*/React.createElement(HabitCountCheck, {
+        habit: h,
+        app: app,
+        xp: 10
+      })) : typeof HabitTimerCheck === "function" && h.duration > 0 ? /*#__PURE__*/React.createElement("span", {
+        onPointerDown: e => e.stopPropagation(),
+        onClick: e => e.stopPropagation(),
+        style: {
+          flexShrink: 0
+        }
+      }, /*#__PURE__*/React.createElement(HabitTimerCheck, {
+        habit: h,
+        app: app,
+        xp: 10
+      })) : /*#__PURE__*/React.createElement("button", {
         onClick: () => {
           if (app?.toggleHabit) app.toggleHabit(h.id);
           if (window.tgHaptic) {

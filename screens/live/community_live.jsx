@@ -635,7 +635,21 @@ function TeamDetailLive() {
       return { ...x, doneByMe: next, doneToday: doneToday };
     }));
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-    window.bosCloud.toggleTeamHabitToday(h.id, !h.doneByMe).then(() => setHabitsTick((n) => n + 1));
+    const _wantOn = !h.doneByMe;
+    window.bosCloud.toggleTeamHabitToday(h.id, _wantOn).then((ok) => {
+      // Аудит #8: сервер отклонил запись → откатываем оптимистичную отметку, чтобы галочка не
+      // «врала» (стоит, а на сервере пусто). При успехе — просто освежаем с сервера.
+      if (ok === false) {
+        setLiveTeamHabits((list) => (list || []).map((x) => {
+          if (x.id !== h.id) return x;
+          const cap = Number.isFinite(x.total) ? x.total : (x.doneToday + 1);
+          const doneToday = Math.max(0, Math.min(cap, x.doneToday + (_wantOn ? -1 : 1)));
+          return { ...x, doneByMe: !_wantOn, doneToday: doneToday };
+        }));
+        if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} }
+      }
+      setHabitsTick((n) => n + 1);
+    });
   };
   const addTeamHabitCloud = (h) => { var first = !(liveTeamHabits && liveTeamHabits.length); window.bosCloud.addTeamHabit(t.cloudId, { ...h, isMain: (h && h.isMain) || first }).then(() => setHabitsTick((n) => n + 1)); };
   // A CLOUD team's roster lives in the cloud; the passed-in t.members is a STALE local

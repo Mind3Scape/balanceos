@@ -1288,7 +1288,29 @@ function TeamDetailLive() {
         window.tgHaptic("light");
       } catch (e) {}
     }
-    window.bosCloud.toggleTeamHabitToday(h.id, !h.doneByMe).then(() => setHabitsTick(n => n + 1));
+    var _wantOn = !h.doneByMe;
+    window.bosCloud.toggleTeamHabitToday(h.id, _wantOn).then(ok => {
+      // Аудит #8: сервер отклонил запись → откатываем оптимистичную отметку, чтобы галочка не
+      // «врала» (стоит, а на сервере пусто). При успехе — просто освежаем с сервера.
+      if (ok === false) {
+        setLiveTeamHabits(list => (list || []).map(x => {
+          if (x.id !== h.id) return x;
+          var cap = Number.isFinite(x.total) ? x.total : x.doneToday + 1;
+          var doneToday = Math.max(0, Math.min(cap, x.doneToday + (_wantOn ? -1 : 1)));
+          return {
+            ...x,
+            doneByMe: !_wantOn,
+            doneToday: doneToday
+          };
+        }));
+        if (window.tgHaptic) {
+          try {
+            window.tgHaptic("error");
+          } catch (e) {}
+        }
+      }
+      setHabitsTick(n => n + 1);
+    });
   };
   var addTeamHabitCloud = h => {
     var first = !(liveTeamHabits && liveTeamHabits.length);
