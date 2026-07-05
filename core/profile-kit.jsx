@@ -265,7 +265,7 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
               <circle cx="0" cy="0" r="16" fill="url(#orbDiscBg)" />
               <circle cx="0" cy="0" r="16" fill="url(#orbGlass)" />
               <circle cx="0" cy="0" r="16" fill="none" stroke="url(#orbEdge)" strokeWidth="1.3" />
-              <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{n.emoji}</text>
+              <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="17" style={{ pointerEvents: "none" }}>{typeof bosDeSF === "function" ? bosDeSF(n.emoji) : n.emoji}</text>
             </g>
           );
         }

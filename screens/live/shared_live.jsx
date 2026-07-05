@@ -5741,8 +5741,13 @@ const BOS_SF_TO_EMOJI = {
   Home: "🏠", Phone: "📱", Mail: "✉️", Snowflake: "❄️",
 };
 function bosDeSF(val) {
-  if (typeof val === "string" && val.slice(0, 3) === "sf:") return BOS_SF_TO_EMOJI[val.slice(3)] || "✨";
-  return val;
+  if (typeof val !== "string" || val.slice(0, 3) !== "sf:") return val;   // обычный эмодзи — как есть
+  var k = val.slice(3);
+  if (BOS_SF_TO_EMOJI[k]) return BOS_SF_TO_EMOJI[k];
+  // savePublicStats ОБРЕЗАЕТ эмодзи до 8 симв (cloud.js) → "sf:Bicycle"→"sf:Bicyc", ключ "Bicyc" не
+  // матчился точно. Матчим по ПРЕФИКСУ: ищем полное имя, начинающееся с обрезка (Bicyc→Bicycle→🚴).
+  if (k) { for (var key in BOS_SF_TO_EMOJI) { if (key.indexOf(k) === 0) return BOS_SF_TO_EMOJI[key]; } }
+  return "✨";
 }
 // Render a habit/goal/team icon — теперь всегда эмодзи-строка (старое "sf:<Name>" → эмодзи через
 // bosDeSF). size/color для эмодзи игнорируются; оставлены в сигнатуре для совместимости вызовов.
