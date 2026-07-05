@@ -98,8 +98,8 @@ function HomeLive() {
   // (bos:archived), по умолчанию пуст → для существующих ничего не меняется. useBosArchived →
   // перерисовка при восстановлении/архивации.
   const _arch = useBosArchived();
-  const habits = (app?.habits || []).filter((h) => !h.shelved && !h.goalOnly && !_arch["h:" + h.id]);
-  const goals = (app?.goals || []).filter((g) => !_arch["g:" + g.id]);
+  const habits = (app?.habits || []).filter((h) => !h.shelved && !h.goalOnly && !bosIsArch(_arch, "h", h));
+  const goals = (app?.goals || []).filter((g) => !bosIsArch(_arch, "g", g));
   // David: «унифицировать» — виджеты привычек/целей на главной = ТЕ ЖЕ плитки, что на «Привычках», и
   // слушают ТОТ ЖЕ стиль (форма/тоглы из шестерёнки). Хуки → главная перерисовывается при смене стиля.
   const cardStyle = useBosCardStyle();
@@ -481,7 +481,7 @@ function HomeLive() {
     if (k.indexOf("h:") === 0) {
       const h = habits.find((x) => "h:" + x.id === k); if (!h) { hideKey(k); return; }
       openSheet(<ArchiveOrDeleteSheetLive name={h.name} emoji={h.emoji} color={h.color} dark={isDark}
-        onArchive={() => bosSetArchived(k, true)}
+        onArchive={() => bosSetArchived(bosArchKey("h", h), true)}
         deleteLabel="Удалить насовсем" deleteHint="Сотрёт привычку и всю историю отметок. Навсегда."
         onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить привычку?", message: "«" + h.name + "» и вся история отметок удалятся навсегда.", confirmLabel: "Удалить", onConfirm: () => (app?.removeHabit || (() => {}))(h.id) })} />);
       return;
@@ -489,7 +489,7 @@ function HomeLive() {
     if (k.indexOf("g:") === 0) {
       const g = goals.find((x) => "g:" + x.id === k); if (!g) { hideKey(k); return; }
       openSheet(<ArchiveOrDeleteSheetLive name={g.name} emoji={g.emoji} color={g.color} dark={isDark}
-        onArchive={() => bosSetArchived(k, true)}
+        onArchive={() => bosSetArchived(bosArchKey("g", g), true)}
         deleteLabel="Удалить насовсем" deleteHint="Сотрёт цель и её прогресс. Навсегда."
         onDelete={() => bosConfirmDelete(openSheet, { title: "Удалить цель?", message: "«" + g.name + "» удалится навсегда.", confirmLabel: "Удалить", onConfirm: () => (app?.removeGoal || (() => {}))(g.id) })} />);
       return;

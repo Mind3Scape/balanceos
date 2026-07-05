@@ -397,6 +397,23 @@
     try { var r = await c.from("team_members").select("team_id").eq("user_id", id).neq("role", "pending"); return (r.data || []).map(function (m) { return m.team_id; }); }
     catch (e) { return []; }
   }
+  // ПОЛНАЯ правда о моих кругах — для сверки после гидрации (v594, после пропажи «Крипто
+  // монстров»): членство (без pending) + круги, где я владелец (страховка для легаси-владельца
+  // без строки участника). null = не дозвонились: звонящий обязан НЕ трогать локальный список
+  // («пусто из-за обрыва ≠ правда», урок v583). [] = точно ни одного круга.
+  async function myTeamsLive() {
+    var c = client(); var id = await uid(); if (!c || !id) return null;
+    try {
+      var m = await c.from("team_members").select("role,teams(id,name,emblem,vis,owner_id,goal_kind,goal_target,goal)").eq("user_id", id).neq("role", "pending");
+      if (m.error) return null;
+      var own = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,goal").eq("owner_id", id);
+      if (own.error) return null;
+      var out = [], seen = {};
+      (m.data || []).forEach(function (r) { var t = r && r.teams; if (t && t.id && !seen[t.id]) { seen[t.id] = 1; out.push({ role: r.role || "member", team: t }); } });
+      (own.data || []).forEach(function (t) { if (t && t.id && !seen[t.id]) { seen[t.id] = 1; out.push({ role: "owner", team: t }); } });
+      return out;
+    } catch (e) { return null; }
+  }
   // Create a real cloud team (you become owner + first member). Returns the row (with id).
   async function createTeam(t) {
     var c = client(); var id = await uid(); if (!c || !id) return null;
@@ -968,7 +985,7 @@
     loadGoals: loadGoals, upsertGoal: upsertGoal, deleteGoal: deleteGoal,
     createTeam: createTeam, updateTeam: updateTeam, discoverTeams: discoverTeams, searchTeams: searchTeams, activeToday: activeToday, joinTeam: joinTeam,
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
-    teamMembers: teamMembers, myTeamIds: myTeamIds, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
+    teamMembers: teamMembers, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,

@@ -481,8 +481,8 @@ function HabitsLive() {
   // сохранённому порядку перестановки; новые элементы — в конец.
   const entries = React.useMemo(() => {
     // shelved = «убрана с моей страницы» (Г): копия привычки круга спрятана, история и XP целы.
-    const all = habits.filter((h) => !h.goalOnly && !h.shelved && !_arch["h:" + h.id]).map((h) => ({ k: "h" + h.id, type: "h", item: h }))
-      .concat(goals.filter((g) => !_arch["g:" + g.id]).map((g) => ({ k: "g" + g.id, type: "g", item: g })))
+    const all = habits.filter((h) => !h.goalOnly && !h.shelved && !bosIsArch(_arch, "h", h)).map((h) => ({ k: "h" + h.id, type: "h", item: h }))
+      .concat(goals.filter((g) => !bosIsArch(_arch, "g", g)).map((g) => ({ k: "g" + g.id, type: "g", item: g })))
       // Команды (круги/командные цели) живут в ТОЙ ЖЕ сетке — их можно тащить и ставить между
       // привычками/целями, как просил David. Ключ "t<id>" (cloud _id или локальный id).
       .concat(teams.map((t) => ({ k: "t" + (t._id != null ? t._id : t.id), type: "t", item: t })));

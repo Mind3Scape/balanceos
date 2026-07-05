@@ -1147,6 +1147,9 @@ function AppProvider({ children }) {
     var out = { redeemedPartners: {}, knockedCircles: {} };
     try { out.redeemedPartners = JSON.parse(localStorage.getItem("bos:redeemedPartners") || "{}") || {}; } catch (e) {}
     try { out.knockedCircles = JSON.parse(localStorage.getItem("bos:knockedCircles") || "{}") || {}; } catch (e) {}
+    // v594: архив едет в облачный снимок — переживает переустановку и синкается между устройствами
+    // (до этого жил ТОЛЬКО в localStorage и терялся вместе с телефоном).
+    try { out.archived = JSON.parse(localStorage.getItem("bos:archived") || "null") || {}; } catch (e) {}
     return out;
   };
 
@@ -1432,6 +1435,12 @@ function AppProvider({ children }) {
                 localStorage.setItem("bos:redeemedPartners", JSON.stringify(Object.assign({}, _cx.redeemedPartners || {}, _lr)));
                 var _lk = {}; try { _lk = JSON.parse(localStorage.getItem("bos:knockedCircles") || "{}") || {}; } catch (e1) {}
                 localStorage.setItem("bos:knockedCircles", JSON.stringify(Object.assign({}, _cx.knockedCircles || {}, _lk)));
+                // v594: архив из облака — union с локальным (локальные пометки главнее при споре).
+                if (_cx.archived && typeof _cx.archived === "object") {
+                  var _la = {}; try { _la = JSON.parse(localStorage.getItem("bos:archived") || "null") || {}; } catch (e2) {}
+                  localStorage.setItem("bos:archived", JSON.stringify(Object.assign({}, _cx.archived, _la)));
+                  window.dispatchEvent(new Event("bos:archivedChanged"));
+                }
                 window.dispatchEvent(new Event("bos:partnersChanged"));
                 window.dispatchEvent(new Event("bos:circlesKnocked"));
               }
@@ -1439,7 +1448,13 @@ function AppProvider({ children }) {
             if (snap && snap.data && cloudAt >= localAt) {
               var d = snap.data;
               // habits/goals are NO LONGER in the blob — they're loaded from rows below.
-              if (Array.isArray(d.teams)) setTeams(d.teams);
+              // v594 (пропажа «Крипто монстров»): ПУСТОЙ список кругов из облака НЕ затирает
+              // непустой локальный — зеркало F2 для этой ветки (v587 прикрыл только «local wins»).
+              // Отравленный ранее пустой снапшот при каждой загрузке разносил пустоту по
+              // устройствам. Правду о членстве восстановит сверка ниже (myTeamsLive).
+              var _locTeams = (saved && saved.teams) || [];
+              var _teamsHeld = Array.isArray(d.teams) && !d.teams.length && _locTeams.length > 0;
+              if (Array.isArray(d.teams) && !_teamsHeld) setTeams(d.teams);
               var _mMoods = bosMergeDayMap(_cloudMoods, _localMoods); // cloud wins, local fills gaps
               var _mNotes = bosMergeDayMap(_cloudNotes, _localNotes);
               setDayMoods(_mMoods);
@@ -1450,8 +1465,9 @@ function AppProvider({ children }) {
               if (d.widgets) setWidgets(d.widgets);
               if (d.homeLayout) setHomeLayout(d.homeLayout);
               // If local held days the cloud lacked, push the union up so the cloud is whole too.
-              if (Object.keys(_mMoods).length > Object.keys(_cloudMoods).length || Object.keys(_mNotes).length > Object.keys(_cloudNotes).length) {
-                window.bosCloud.saveSnapshot({ teams: Array.isArray(d.teams) ? d.teams : ((saved && saved.teams) || []), dayMoods: _mMoods, dayNotes: _mNotes, wheelSpheres: d.wheelSpheres, widgets: d.widgets, homeLayout: d.homeLayout || (saved && saved.homeLayout) || null, claimedChallenges: _mClaimed, spentXP: _mSpent });
+              // (v594: и если мы удержали локальные круги от пустого облака — лечим облачный снимок сразу.)
+              if (_teamsHeld || Object.keys(_mMoods).length > Object.keys(_cloudMoods).length || Object.keys(_mNotes).length > Object.keys(_cloudNotes).length) {
+                window.bosCloud.saveSnapshot({ teams: (Array.isArray(d.teams) && !_teamsHeld) ? d.teams : _locTeams, dayMoods: _mMoods, dayNotes: _mNotes, wheelSpheres: d.wheelSpheres, widgets: d.widgets, homeLayout: d.homeLayout || (saved && saved.homeLayout) || null, claimedChallenges: _mClaimed, spentXP: _mSpent });
               }
             } else {
               var src = saved || {};
@@ -1543,6 +1559,30 @@ function AppProvider({ children }) {
                 try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
               });
             }
+            // ── СВЕРКА С ЧЛЕНСТВОМ (v594, после пропажи «Крипто монстров») ──────────
+            // Список кругов на экране мог разойтись с правдой облака (отравленный пустой
+            // снапшот, старые гонки). Членство в team_members + мои teams-строки = источник
+            // правды: чего не хватает — ДОБАВЛЯЕМ (круг сам возвращается на устройство),
+            // чей cloudId облако точно не знает — убираем (кроме вступаемого по ссылке —
+            // гонка с joinViaLink). null = не дозвонились → НЕ трогаем ничего (урок v583).
+            try {
+              if (window.bosCloud.myTeamsLive) window.bosCloud.myTeamsLive().then(function (mem) {
+                if (!mem) return;
+                setTeams(function (prev) {
+                  var p = prev || [];
+                  var have = {}; p.forEach(function (x) { if (x && x.cloudId) have[x.cloudId] = 1; });
+                  var truth = {}; mem.forEach(function (m) { if (m && m.team) truth[m.team.id] = 1; });
+                  var add = [];
+                  mem.forEach(function (m) {
+                    var row = m && m.team; if (!row || have[row.id]) return;
+                    add.push({ _id: "cloud-" + row.id, cloudId: row.id, joined: m.role !== "owner", name: row.name || "Совместная цель", emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: row.goal || "", goalKind: row.goal_kind || null, target: row.goal_target || 0, current: 0, progress: 0, members: [], habits: [] });
+                  });
+                  var keep = p.filter(function (x) { return !x.cloudId || truth[x.cloudId] || (_joinTeamId && x.cloudId === _joinTeamId); });
+                  if (!add.length && keep.length === p.length) return prev;
+                  return add.concat(keep);
+                });
+              });
+            } catch (e) {}
           }).catch(_doneHydrate);
         }).catch(_doneHydrate);
       }

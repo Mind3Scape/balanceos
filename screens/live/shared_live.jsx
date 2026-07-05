@@ -1112,7 +1112,7 @@ function bosDueRemindersLive(habits) {
   var nowMin = now.getHours() * 60 + now.getMinutes();
   habits.forEach(function (h) {
     if (!h || !h.reminder || !h.reminder.on) return;
-    if (h.shelved || (arch && arch["h:" + h.id])) return;   // архив/полка — не напоминаем
+    if (h.shelved || bosIsArch(arch, "h", h)) return;   // архив/полка — не напоминаем (v594: стабильный ключ)
     if (h.done) return;                                     // уже сделано сегодня
     if (Array.isArray(h.days) && h.days.length === 7 && !h.days[dow]) return; // не сегодня по расписанию
     var parts = ("" + (h.reminder.time || "09:00")).split(":");
@@ -1602,7 +1602,9 @@ function BosBalanceWheelLive(props) {
   var grid = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
   var spoke = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
 
-  var expandedState = React.useState(false), expanded = expandedState[0], setExpanded = expandedState[1];
+  // v594 (David): по умолчанию РАЗВЁРНУТО — компакт только если юзер сам свернул глазиком
+  // (выбор запоминаем, чтобы не спорить с ним при каждом заходе).
+  var expandedState = React.useState(function () { try { return localStorage.getItem("bos:wheelExpanded") !== "0"; } catch (e) { return true; } }), expanded = expandedState[0], setExpanded = expandedState[1];
   var chips = bosWheelChips(data, app);
   var askWheel = function () { if (navigate) navigate("ai-chat", { prompt: "Разбери мой баланс по сферам жизни и подскажи, что подтянуть." }); };
 
@@ -1615,7 +1617,7 @@ function BosBalanceWheelLive(props) {
           <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div>
           {expanded && <div style={{ fontSize: 12.5, color: dark ? "#98989f" : "var(--text-4)", lineHeight: 1.45, marginTop: 4 }}>ИИ сам следит за всеми твоими привычками и целями — даже за придуманными тобой — раскладывает их по сферам жизни и считает, где ты в балансе, а где просело.</div>}
         </div>
-        <button onClick={function () { setExpanded(!expanded); }} className="tap" data-no-haptic aria-label={expanded ? "Свернуть" : "Развернуть"} aria-pressed={expanded}
+        <button onClick={function () { var nv = !expanded; setExpanded(nv); try { localStorage.setItem("bos:wheelExpanded", nv ? "1" : "0"); } catch (e) {} }} className="tap" data-no-haptic aria-label={expanded ? "Свернуть" : "Развернуть"} aria-pressed={expanded}
           style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center", background: expanded ? (dark ? "rgba(255,255,255,0.10)" : "#eef0f3") : "var(--surface-3)", color: "var(--text-3)", transition: "background 0.15s" }}>
           <I.Eye size={18} filled={expanded} />
         </button>
@@ -2761,6 +2763,21 @@ function bosSetArchived(key, on) {
   try { window.dispatchEvent(new Event("bos:archivedChanged")); } catch (e) {}
   return m;
 }
+// СТАБИЛЬНЫЙ ключ архива (v594, «архив не работает» — David). Локальные id привычек/целей
+// раздаются ЗАНОВО при каждом старте (upsert строк в облако выкидывает id), поэтому метка
+// "h:"+id протухала за одну перезагрузку: спрятанное возвращалось, шторка «Архив» пустела.
+// Ключ = облачный cloudId (вечный); фолбэк на локальный id — для локального режима без облака.
+// Читатели проверяют ОБА ключа (старые метки текущей сессии не ломаем).
+function bosArchKey(kind, it) { return kind + ":" + ((it && (it.cloudId != null ? it.cloudId : (it._id != null ? it._id : it.id))) || ""); }
+function bosIsArch(arch, kind, it) {
+  if (!arch || !it) return false;
+  return !!((it.cloudId != null && arch[kind + ":" + it.cloudId]) || arch[kind + ":" + (it._id != null ? it._id : it.id)]);
+}
+function bosClearArch(kind, it) {
+  if (!it) return;
+  if (it.cloudId != null) bosSetArchived(kind + ":" + it.cloudId, false);
+  bosSetArchived(kind + ":" + (it._id != null ? it._id : it.id), false);
+}
 // Хук: перерисовать компонент при смене архива.
 function useBosArchived() {
   var st = React.useState(bosLoadArchived), m = st[0], setM = st[1];
@@ -2815,11 +2832,11 @@ function ArchiveSheetLive({ navigate }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const dark = app && app.themeOverride === "dark";
   const arch = useBosArchived();
-  const teamKey = (t) => (typeof bosTeamKeyLive === "function") ? bosTeamKeyLive(t) : ("t:" + (t.cloudId || t._id || t.id));
   const rows = [];
-  (app && app.habits || []).forEach((h) => { const k = "h:" + h.id; if (arch[k]) rows.push({ k, name: h.name, emoji: h.emoji || "🌿", color: h.color, kind: "Привычка" }); });
-  (app && app.goals || []).forEach((g) => { const k = "g:" + g.id; if (arch[k]) rows.push({ k, name: g.name, emoji: g.emoji || "🎯", color: g.color, kind: "Цель" }); });
-  (app && app.teams || []).forEach((t) => { const k = teamKey(t); if (arch[k]) rows.push({ k, name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color, kind: "Совместная цель" }); });
+  // v594: сверка по СТАБИЛЬНОМУ ключу (cloudId) с фолбэком на локальный — bosIsArch смотрит оба.
+  (app && app.habits || []).forEach((h) => { if (bosIsArch(arch, "h", h)) rows.push({ k: bosArchKey("h", h), it: h, kd: "h", name: h.name, emoji: h.emoji || "🌿", color: h.color, kind: "Привычка" }); });
+  (app && app.goals || []).forEach((g) => { if (bosIsArch(arch, "g", g)) rows.push({ k: bosArchKey("g", g), it: g, kd: "g", name: g.name, emoji: g.emoji || "🎯", color: g.color, kind: "Цель" }); });
+  (app && app.teams || []).forEach((t) => { if (bosIsArch(arch, "t", t)) rows.push({ k: bosArchKey("t", t), it: t, kd: "t", name: t.name, emoji: t.emblem || "👥", color: t.accent || t.color, kind: "Совместная цель" }); });
   return (
     <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
       <div style={{ textAlign: "center", marginBottom: 14 }}>
@@ -2841,7 +2858,7 @@ function ArchiveSheetLive({ navigate }) {
                 <div style={{ fontSize: 14.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
                 <div style={{ fontSize: 11.5, color: "var(--text-4)" }}>{r.kind}</div>
               </div>
-              <button onClick={() => { bosSetArchived(r.k, false); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" style={{ flexShrink: 0, border: 0, borderRadius: 999, padding: "8px 14px", background: dark ? "rgba(255,255,255,0.10)" : "var(--surface-3)", color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><I.Refresh size={14} strokeWidth={2.2} /> Вернуть</button>
+              <button onClick={() => { bosClearArch(r.kd, r.it); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" style={{ flexShrink: 0, border: 0, borderRadius: 999, padding: "8px 14px", background: dark ? "rgba(255,255,255,0.10)" : "var(--surface-3)", color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><I.Refresh size={14} strokeWidth={2.2} /> Вернуть</button>
             </div>
           ))}
         </div>
@@ -3677,6 +3694,11 @@ function HeroAccountAvatarLive({ navigate, avatar, pct = 0, size = 60, isDark, l
 /* HomeHeroSwipe → live-only: the real new user's hero — page 1 ONLY (the demo's balance
    wheel / orbit 2nd page was removed). newbie (no habits) → "С чего начать" hints; else →
    AI-brief summary + action pills. The account avatar (XP ring) lives here — the main AI block. */
+// ЕДИНЫЙ шрифт «живой строки ИИ» (v594, David: «такие вещи должны быть стандартизированы
+// сквозь всё приложение»). Один источник для hero-баннера главной И блока «Сейчас» на
+// странице ИИ — меняешь здесь, меняется везде.
+var BOS_AI_TEXT = { fontSize: 13, fontWeight: 400, lineHeight: 1.45, letterSpacing: "-0.1px", color: "var(--text)" };
+
 function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark }) {
   const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
   const [ringShown, setRingShown] = React.useState(0);
@@ -3720,7 +3742,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div key={_homeSummary} style={{ fontSize: 13, fontWeight: 400, color: "var(--text)", lineHeight: 1.45, letterSpacing: "-0.1px", animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}><span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
+          <div key={_homeSummary} style={{ ...BOS_AI_TEXT, animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}><span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
         <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={56} isDark={isDark} />
       </div>
@@ -3743,7 +3765,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     <div key="quote" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div key={_homeSummary} style={{ fontSize: 13, fontWeight: 400, color: "var(--text)", lineHeight: 1.45, letterSpacing: "-0.1px", animation: "briefFade 0.5s ease both" }}>
+          <div key={_homeSummary} style={{ ...BOS_AI_TEXT, animation: "briefFade 0.5s ease both" }}>
             <span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_homeSummary}
           </div>
         </div>

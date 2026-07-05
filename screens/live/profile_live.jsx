@@ -325,7 +325,9 @@ function AILive() {
           <div style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>
             {moodName ? "Сейчас · " + (moodIcon ? moodIcon + " " : "") + moodName : "Сегодня"}
           </div>
-          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 14.5, lineHeight: 1.4, marginTop: 5, letterSpacing: "-0.2px", color: "var(--text)" }}>{headline}</div>
+          {/* v594: шрифт = БАЙТ-В-БАЙТ как у ИИ-строки hero-баннера главной (BOS_AI_TEXT,
+              David: «такие вещи должны быть стандартизированы сквозь всё приложение»). */}
+          <div style={{ ...BOS_AI_TEXT, marginTop: 5 }}>{headline}</div>
           {hint && <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 4, lineHeight: 1.45 }}>{hint}</div>}
         </div>
       </div>
