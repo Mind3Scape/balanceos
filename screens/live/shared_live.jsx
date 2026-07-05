@@ -4916,6 +4916,50 @@ function UniSpinOrbit({ sp, moodC, isDark, spinOn }) {
   if (!UniOrbitMemo) return null;
   return <UniOrbitMemo avatar={sp.s && sp.s.avatar} name={(sp.s && sp.s.name) || ""} habits={sp.habits} people={sp.people} levelPct={sp.lvlPct} moodC={moodC} dark={isDark} hideLevelArc={true} hideLevelRing={true} editable={false} levelBadge={sp.level} open={1} minimal={true} spinT={spin} />;
 }
+// РАССТАНОВКА ПО РОДСТВУ (v578): та же honeycomb-геометрия (hexAt в раскладке), но ПОРЯДОК ячеек = по
+// семье, а не по активности. Считаем глубину-от-тебя (BFS по рёбрам referredBy, НЕнаправленно: и твои
+// приглашённые, и твой пригласивший = глубина 1) и «ломоть неба» (угловой сектор, ширина ∝ размеру
+// поддерева → кто привёл больше, у того шире сектор и заметнее ветка). Возвращаем карту id→{d:глубина,
+// a:угол 0..1}; раскладка кладёт узел в кольцо=глубина, ячейку — по углу (дети в кольце прямо ЗА
+// родителем под тем же углом → нити «Связей» короткие, лучами от центра, без клубка; масштаб держится,
+// перегруз кольца аккуратно вытекает наружу). Незнакомцы (не связаны с тобой) — свои мини-деревья в
+// дальнем «гало»-поясе (тускло на периферии). Ничего в отрисовке/линзе/LOD не меняем — только КТО где.
+function _bosFamilyTree(systems, meId, myRef) {
+  var byId = {};
+  systems.forEach(function (sp) { if (sp && sp.s && sp.s.id) byId[sp.s.id] = sp; });
+  var adj = {};
+  function link(a, b) { (adj[a] || (adj[a] = [])).push(b); (adj[b] || (adj[b] = [])).push(a); }
+  systems.forEach(function (sp) { var id = sp.s && sp.s.id, rb = sp.s && sp.s.referredBy; if (id && rb && byId[rb]) link(id, rb); });
+  var depth = {}, parent = {}, q = [];
+  systems.forEach(function (sp) { var id = sp.s && sp.s.id; if (id && meId && sp.s.referredBy === meId && depth[id] == null) { depth[id] = 1; parent[id] = "__me"; q.push(id); } });
+  if (myRef && byId[myRef] && depth[myRef] == null) { depth[myRef] = 1; parent[myRef] = "__me"; q.push(myRef); }
+  var qi = 0;
+  while (qi < q.length) { var cid = q[qi++]; (adj[cid] || []).forEach(function (n) { if (depth[n] == null) { depth[n] = depth[cid] + 1; parent[n] = cid; q.push(n); } }); }
+  var maxD = 0, kk; for (kk in depth) { if (depth[kk] > maxD) maxD = depth[kk]; }
+  var haloBase = maxD + 2;
+  systems.forEach(function (sp) {
+    var rid = sp.s && sp.s.id; if (!rid || depth[rid] != null) return;
+    depth[rid] = haloBase; parent[rid] = "__halo"; var fq = [rid], fi = 0;
+    while (fi < fq.length) { var id = fq[fi++]; (adj[id] || []).forEach(function (n) { if (depth[n] == null) { depth[n] = depth[id] + 1; parent[n] = id; fq.push(n); } }); }
+  });
+  var kids = {}, all = [];
+  systems.forEach(function (sp) { var id = sp.s && sp.s.id; if (id) all.push(id); });
+  all.forEach(function (id) { var p = parent[id] || "__me"; (kids[p] || (kids[p] = [])).push(id); if (!kids[id]) kids[id] = []; });
+  var subtree = {};
+  all.slice().sort(function (a, b) { return depth[b] - depth[a]; }).forEach(function (id) { var s = 1; (kids[id] || []).forEach(function (c) { s += (subtree[c] || 1); }); subtree[id] = s; });
+  var angle = {};
+  function assign(pid, a0, a1) {
+    var ch = (kids[pid] || []).slice().sort(function (x, y) { return (subtree[y] - subtree[x]) || (x < y ? -1 : 1); });
+    var tot = 0; ch.forEach(function (c) { tot += subtree[c]; }); if (!tot) return;
+    var a = a0;
+    ch.forEach(function (c) { var w = (a1 - a0) * (subtree[c] / tot); angle[c] = (a + a + w) / 2; assign(c, a, a + w); a += w; });
+  }
+  assign("__me", 0, 1);
+  assign("__halo", 0, 1);
+  var out = {};
+  all.forEach(function (id) { out[id] = { d: depth[id] == null ? 9999 : depth[id], a: angle[id] || 0 }; });
+  return out;
+}
 function UniverseFieldLive({ app, people, from, onClose }) {
   var isDark = app && app.themeOverride === "dark";
   var [friends, setFriends] = React.useState(_bosUniverseCache);
@@ -4925,6 +4969,10 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var [myRefId, setMyRefId] = React.useState(null);
   var [showLinks, setShowLinks] = React.useState(false);
   var edgeEls = React.useRef({});   // ключ ребра → { h: halo-line, c: core-line } (rAF пишет x1/y1/x2/y2)
+  // «ДЫХАНИЕ»: 0 = тесная сота (браузинг), 1 = распущенная семейная (связи). Цикл плавно ведёт morphRef
+  // к цели (showLinksRef) и интерполирует позиции узлов fxH/fyH↔fx/fy — сота распускается/собирается.
+  var morphRef = React.useRef(0);
+  var showLinksRef = React.useRef(false);
   React.useEffect(function () {
     var on = true;
     var seed = Array.isArray(people) ? people : [];
@@ -4961,13 +5009,13 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var bg = isDark ? "radial-gradient(125% 95% at 50% 42%, #14161d 0%, #0a0b10 52%, #030304 100%)" : "radial-gradient(125% 95% at 50% 42%, #fbfcff 0%, #eef1f8 52%, #e4e9f2 100%)";
   var titleC = isDark ? "rgba(220,230,255,0.7)" : "rgba(40,52,74,0.55)";
   var subC = isDark ? "rgba(200,215,255,0.5)" : "rgba(40,52,74,0.42)";
-  // Нити «Связей»: люминесцентный индиго (в палитре Apple-цветов приложения). Ядро — тонкое, низкая
-  // альфа; гало — широкое ещё бледнее (мягкое свечение БЕЗ SVG-filter → дёшево/предсказуемо на телефоне).
-  // mixBlendMode: на светлой multiply (нити глубже на пересечениях-хабах, как перо/чернила), на тёмной
-  // screen (нити СВЕТЯТСЯ, ярче в узлах) — так «паутина» читается как созвездие, а не график.
-  var linkCore = isDark ? "rgba(150,205,255,0.6)" : "rgba(68,98,208,0.4)";
-  var linkHalo = isDark ? "rgba(150,205,255,0.14)" : "rgba(104,122,228,0.11)";
-  var linkBlend = isDark ? "screen" : "multiply";
+  // Нити «Связей» — НЕЙТРАЛЬНЫЙ ГРАФИТ (минимализм + чёрно-белая тема David; синий убран). Ядро тонкое,
+  // гало бледнее. Плюс одноразовый «БЛЕСК»: короткий белый блик бежит по нити ОТ ЦЕНТРА наружу ПОСЛЕ
+  // распускания, волной по поколениям (до мурашек, но тихо). Белый блик виден и на светлой (перекрывает
+  // серую нить), и на тёмной — поэтому без mixBlendMode (обычное наложение, чтобы блик не гас).
+  var linkCore = isDark ? "rgba(206,212,224,0.5)" : "rgba(78,84,98,0.4)";
+  var linkHalo = isDark ? "rgba(206,212,224,0.13)" : "rgba(120,126,140,0.1)";
+  var linkShine = "rgba(255,255,255,0.95)";
 
   // Твой РЕАЛЬНЫЙ уровень/прогресс — кормит OrbitField (золотое кольцо + цифра) идентично стр. «Я».
   var _ux = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
@@ -4999,24 +5047,46 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   // центра (ты — в центре, index 0; далее кольца по 6, 12, 18…), идеально СИММЕТРИЧНО, каждая система
   // в своей ячейке (спейсинг ровно 1). Линза fish() ниже раздувает центр, сохраняя симметрию.
   var layout = React.useMemo(function () {
-    var others = list.slice(0, 240).map(function (f) { return buildSystem(f); }).sort(function (a, b) { return b.weight - a.weight; });
-    var AX = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];   // 6 направлений гекс-соседей
-    function hexAt(index) {                                          // index 0 = центр, далее по кольцам
+    // ПОРЯДОК ячеек — по родству (семья у тебя), а не по активности. Геометрия honeycomb ниже — та же.
+    var built = list.slice(0, 240).map(function (f) { return buildSystem(f); });
+    var da = _bosFamilyTree(built, myUid, myRefId);                  // id → {d: глубина-от-тебя, a: угол-сектор 0..1}
+    // СОТА ИЗ СЕМЕЙНЫХ ТЕРРИТОРИЙ (David-«C», v578): та же honeycomb-СЕТКА (плотно, как ты любишь), но
+    // ячейки раздаются ПО СЕМЬЯМ. Радиус ≥ поколение-от-тебя (свои — ближний круг), угол = сектор семьи
+    // (шире у того, кто привёл больше). Каждый садится в СВОБОДНУЮ ячейку СВОЕГО угла на кольце ≥ своей
+    // глубины; при тесноте наследники уходят ГЛУБЖЕ тем же углом (а не в чужой конец кольца) → семья =
+    // связная радиальная колонна, нити коротки лучами и почти не режут чужие (замерено: ≤80 чел ~0-2
+    // пересечения против 78 у равномерной соты). Сота «бугрится» там, где семья разрослась. Линза/LOD те же.
+    var AX = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+    function hexAt(index) {
       if (index <= 0) return { q: 0, r: 0, k: 0 };
-      var k = 1; while (index > 3 * k * (k + 1)) k++;                // номер кольца
-      var idxInRing = index - (3 * (k - 1) * k + 1);                 // позиция внутри кольца (0..6k-1)
-      var q = AX[4][0] * k, r = AX[4][1] * k;                        // старт кольца — угол
+      var k = 1; while (index > 3 * k * (k + 1)) k++;
+      var idxInRing = index - (3 * (k - 1) * k + 1);
+      var q = AX[4][0] * k, r = AX[4][1] * k;
       var side = Math.floor(idxInRing / k), step = idxInRing % k;
       for (var s = 0; s < side; s++) { q += AX[s][0] * k; r += AX[s][1] * k; }
       q += AX[side][0] * step; r += AX[side][1] * step;
       return { q: q, r: r, k: k };
     }
-    var nodes = others.map(function (sp, j) {
-      var h = hexAt(j + 1);                                          // axial → плоскость, спейсинг ровно 1
-      return { sp: sp, fx: h.q + h.r * 0.5, fy: h.r * 0.8660254, ring: h.k };
+    var MAXR = 20, RINGS = [];                                       // предгенерим ячейки колец 1..MAXR (угол нормирован 0..1)
+    for (var rr = 1; rr <= MAXR; rr++) { var cap = 6 * rr, base = 3 * (rr - 1) * rr + 1, cs = []; for (var pp = 0; pp < cap; pp++) { var h = hexAt(base + pp); var cfx = h.q + h.r * 0.5, cfy = h.r * 0.8660254; var ca = Math.atan2(cfy, cfx) / (2 * Math.PI); if (ca < 0) ca += 1; cs.push({ fx: cfx, fy: cfy, a: ca, r: rr, used: false }); } cs.sort(function (x, y) { return x.a - y.a; }); RINGS[rr] = cs; }
+    var order = built.slice().sort(function (A, B) { var pa = da[A.s && A.s.id] || { d: 9999 }, pb = da[B.s && B.s.id] || { d: 9999 }; return pa.d - pb.d; });  // мелкие поколения первыми — занимают ближние кольца
+    var nodes = [];
+    order.forEach(function (sp) {
+      var info = da[sp.s && sp.s.id] || { d: 1, a: 0 };
+      var d = Math.min(info.d, MAXR), mid = info.a, best = null, bs = 9;
+      for (var ri = d; ri <= Math.min(MAXR, d + 12); ri++) {          // свободная ячейка СВОЕГО угла; тесно → глубже тем же углом
+        var cells = RINGS[ri];
+        for (var ci = 0; ci < cells.length; ci++) { if (cells[ci].used) continue; var dd = Math.abs(cells[ci].a - mid); if (dd > 0.5) dd = 1 - dd; var score = dd + 0.03 * (ri - d); if (score < bs) { bs = score; best = cells[ci]; } }
+      }
+      if (best) { best.used = true; nodes.push({ sp: sp, fx: best.fx, fy: best.fy, ring: best.r }); }
     });
+    // ТЕСНАЯ СОТА (браузинг, связи ВЫКЛ): те же узлы, но плотный hexAt-спираль без дыр (симметричная
+    // сота, что ты любишь). Порядок = (кольцо,угол) распущенной → «дыхание» идёт радиально, без хаоса:
+    // fxH/fyH = тесная позиция, fx/fy = распущенная. Цикл интерполирует между ними по morphRef.
+    var tightOrder = nodes.map(function (nd) { return { nd: nd, d: nd.ring, a: Math.atan2(nd.fy, nd.fx) }; }).sort(function (x, y) { return x.d - y.d || x.a - y.a; });
+    tightOrder.forEach(function (o, idx) { var h = hexAt(idx + 1); o.nd.fxH = h.q + h.r * 0.5; o.nd.fyH = h.r * 0.8660254; });
     return { nodes: nodes };
-  }, [friends]);
+  }, [friends, myUid, myRefId]);
 
   // ЛИНЗА (fisheye, как главное меню Apple Watch): поле тесно упаковано, а в центре экрана — «лупа».
   // ─── ДВИЖОК БЕЗ REACT НА КАЖДЫЙ КАДР ───────────────────────────────────────────────
@@ -5071,6 +5141,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       if (t0 == null) t0 = now;
       var ip = (now - t0) / 820; if (ip > 1) ip = 1;
       introRef.current = ip;
+      // «дыхание» соты: плавно ведём morphRef к цели (связи вкл=1 распущено / выкл=0 тесно), у цели — защёлк.
+      var _mtgt = showLinksRef.current ? 1 : 0, _mc = morphRef.current;
+      morphRef.current = Math.abs(_mtgt - _mc) < 0.002 ? _mtgt : _mc + (_mtgt - _mc) * 0.1;
       var introK = _bosLp(1.34, 1, _bosSm(ip));       // зум-аут входа: ты крупно → поле «разгорается»
       // ЕДИНЫЙ ВХОД-ОТЪЕЗД (см. BOS_UNI_* выше): ОДНА кривая ведёт видимое приближение M от «крупно
       // на тебе» до раскрытия толпы — медленный старт → разгон → лёгкая пружинка. z = M/introK, чтобы
@@ -5088,7 +5161,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       for (var i = 0; i < nodes.length; i++) {
         var nd = nodes[i], el = els[nd.key];
         if (!el) continue;
-        var v = nodeVisual(nd.fx, nd.fy, cam, introK);
+        var _mt = morphRef.current;                    // тесная(fxH)↔распущенная(fx) по «дыханию»
+        var _fx = nd.fxH + (nd.fx - nd.fxH) * _mt, _fy = nd.fyH + (nd.fy - nd.fyH) * _mt;
+        var v = nodeVisual(_fx, _fy, cam, introK);
         if (v.off) { if (sigs[nd.key] !== "hide") { el.style.display = "none"; sigs[nd.key] = "hide"; } continue; }
         var disc = el.getAttribute("data-lod") === "disc";
         var tf = "translate(" + v.f.sx.toFixed(1) + "px," + v.f.sy.toFixed(1) + "px) scale(" + (disc ? v.dscale : v.oscale).toFixed(4) + ")";
@@ -5151,10 +5226,11 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var youPeople = React.useMemo(function () { return Array.isArray(people) ? people.slice(0, 10) : []; }, [people]);
   var youSp = React.useMemo(function () { return { s: { avatar: app && app.avatar, name: (app && app.userName) || "" }, level: lvlNum, lvlPct: lvlPct, habits: youHabits, people: youPeople }; }, [app, lvlNum, lvlPct, youHabits, youPeople]);
   var allNodes = React.useMemo(function () {
-    return [{ sp: youSp, fx: 0, fy: 0, you: true, ring: 0, key: "you" }]
-      .concat(layout.nodes.map(function (n, j) { return { sp: n.sp, fx: n.fx, fy: n.fy, ring: n.ring, key: "o" + j }; }));
+    return [{ sp: youSp, fx: 0, fy: 0, fxH: 0, fyH: 0, you: true, ring: 0, key: "you" }]
+      .concat(layout.nodes.map(function (n, j) { return { sp: n.sp, fx: n.fx, fy: n.fy, fxH: n.fxH, fyH: n.fyH, ring: n.ring, key: "o" + j }; }));
   }, [youSp, layout]);
   nodesRef.current = allNodes; // rAF-цикл всегда видит свежий список
+  showLinksRef.current = showLinks; // цикл видит текущую цель «дыхания» без своей подписки
   // ── СЛОЙ СВЯЗЕЙ (созвездия): рёбра «пригласивший → приглашённый» ────────────────────────
   // Граф из referredBy КАЖДОГО узла (у чужих — из allPublic; у «Я» — myRefId). Ребро рисуем
   // ТОЛЬКО когда ОБА конца present в поле. Чистая read-only логика: НЕ трогает раскладку/линзу/
@@ -5185,10 +5261,14 @@ function UniverseFieldLive({ app, people, from, onClose }) {
       var cam = camRef.current, introK = _bosLp(1.34, 1, _bosSm(introRef.current)), els = edgeEls.current;
       for (var i = 0; i < links.length; i++) {
         var ed = links[i], o = els[ed.key]; if (!o) continue;
-        var a = calcNode(ed.a.fx, ed.a.fy, cam, introK), b = calcNode(ed.b.fx, ed.b.fy, cam, introK);
+        var mt = morphRef.current;                       // концы держатся за распускающиеся центры
+        var afx = ed.a.fxH + (ed.a.fx - ed.a.fxH) * mt, afy = ed.a.fyH + (ed.a.fy - ed.a.fyH) * mt;
+        var bfx = ed.b.fxH + (ed.b.fx - ed.b.fxH) * mt, bfy = ed.b.fyH + (ed.b.fy - ed.b.fyH) * mt;
+        var a = calcNode(afx, afy, cam, introK), b = calcNode(bfx, bfy, cam, introK);
         var x1 = a.sx.toFixed(1), y1 = a.sy.toFixed(1), x2 = b.sx.toFixed(1), y2 = b.sy.toFixed(1);
         if (o.c) { o.c.setAttribute("x1", x1); o.c.setAttribute("y1", y1); o.c.setAttribute("x2", x2); o.c.setAttribute("y2", y2); }
         if (o.h) { o.h.setAttribute("x1", x1); o.h.setAttribute("y1", y1); o.h.setAttribute("x2", x2); o.h.setAttribute("y2", y2); }
+        if (o.s) { o.s.setAttribute("x1", x1); o.s.setAttribute("y1", y1); o.s.setAttribute("x2", x2); o.s.setAttribute("y2", y2); }
       }
     }
     raf = requestAnimationFrame(frame);
@@ -5196,7 +5276,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   }, [showLinks, links]);
   var node = (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
-      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkIn{from{opacity:0}to{opacity:1}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"}</style>
+      <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkIn{from{opacity:0}to{opacity:1}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes bosLinkShine{from{stroke-dashoffset:0.15}to{stroke-dashoffset:-1}}"}</style>
       {/* Жесты: пинч-зум + перетаскивание + колесо; чистый тап (без сдвига) закрывает. */}
       <div onPointerDown={uDown} onPointerMove={uMove} onPointerUp={uUp} onPointerCancel={uUp} onWheel={uWheel} style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "grab" }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
@@ -5213,7 +5293,9 @@ function UniverseFieldLive({ app, people, from, onClose }) {
             var prev = lodRef.current[key];
             var lod = vq.openV > (prev === "orbit" ? 0.10 : 0.14) ? "orbit" : "disc";
             lodRef.current[key] = lod;
-            var vNow = nodeVisual(nd.fx, nd.fy, camRef.current, _bosLp(1.34, 1, _bosSm(introRef.current)));
+            var _mt2 = morphRef.current;                 // тесная↔распущенная (совпадает с циклом → без прыжка)
+            var _nfx = nd.fxH + (nd.fx - nd.fxH) * _mt2, _nfy = nd.fyH + (nd.fy - nd.fyH) * _mt2;
+            var vNow = nodeVisual(_nfx, _nfy, camRef.current, _bosLp(1.34, 1, _bosSm(introRef.current)));
             var delay = Math.min((nd.ring || 0) * 0.14, 1.0) + ((_bosHashU(key) % 100) / 100) * 0.15;
             var pop = introDone ? "none" : ("bosSysPop 0.55s cubic-bezier(0.34,1.35,0.5,1) " + delay.toFixed(2) + "s both");
             var style = {
@@ -5241,25 +5323,34 @@ function UniverseFieldLive({ app, people, from, onClose }) {
           })}
         </div>
       </div>
-      {/* СЛОЙ СВЯЗЕЙ/СОЗВЕЗДИЙ (ДОП-СТЕКЛО ПОВЕРХ поля, z:200 — над системами, под баннером/кнопками).
-          pointerEvents:none → жесты пан/зум проходят СКВОЗЬ к полю. Нити соединяют ЦЕНТРЫ систем
-          (sx,sy — те же, что у аватарок), эндпоинты гонит отдельный rAF выше. Каждое ребро = «гало»
-          (широкая мягкая линия) + «ядро» (тонкая яркая, эффект прорисовки). Анонимно — только линии. */}
+      {/* СЛОЙ СВЯЗЕЙ/СОЗВЕЗДИЙ: ПОД системами (z:10 — нити выходят ИЗ-ПОД дисков-аватарок, аватарки сидят
+          поверх → чисто, без резки по лицам). pointerEvents:none → жесты пан/зум проходят СКВОЗЬ. Дальние
+          поколения бледнее (op ∝ глубина b.ring) — глаз держится на ближнем круге «своих». Эндпоинты
+          гонит отдельный rAF выше; гало+ядро (свечение без filter), прорисовка draw-in, mixBlendMode. */}
       {showLinks && links.length > 0 && (
-        <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 200, mixBlendMode: linkBlend }}>
+        <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10 }}>
           {links.map(function (ed) {
             var iK = _bosLp(1.34, 1, _bosSm(introRef.current));   // те же значения, что читает rAF — без «прыжка» в 1-й кадр
-            var a0 = calcNode(ed.a.fx, ed.a.fy, camRef.current, iK), b0 = calcNode(ed.b.fx, ed.b.fy, camRef.current, iK);
+            var mt0 = morphRef.current;                            // концы от распускающихся центров (совпадает с rAF)
+            var a0 = calcNode(ed.a.fxH + (ed.a.fx - ed.a.fxH) * mt0, ed.a.fyH + (ed.a.fy - ed.a.fyH) * mt0, camRef.current, iK);
+            var b0 = calcNode(ed.b.fxH + (ed.b.fx - ed.b.fxH) * mt0, ed.b.fyH + (ed.b.fy - ed.b.fyH) * mt0, camRef.current, iK);
             var dly = Math.min(ed.i * 0.03, 0.5);                 // лёгкий каскад «загорания» нитей
+            var dep = (ed.b && ed.b.ring) || 1;                   // глубина приглашённого → затухание вглубь
+            var op = Math.max(0.22, 0.85 - (dep - 1) * 0.1);
+            var shineDelay = 0.55 + Math.min((dep - 1) * 0.13, 0.9);   // «блеск» ПОСЛЕ распускания, волной ОТ ЦЕНТРА наружу (по поколениям)
             return (
               <g key={ed.key} style={{ animation: "bosLinkIn 0.5s ease " + dly.toFixed(2) + "s both" }}>
                 <line ref={function (el) { var o = edgeEls.current[ed.key] || (edgeEls.current[ed.key] = {}); if (el) o.h = el; else delete o.h; }}
                   x1={a0.sx.toFixed(1)} y1={a0.sy.toFixed(1)} x2={b0.sx.toFixed(1)} y2={b0.sy.toFixed(1)}
-                  stroke={linkHalo} strokeWidth={3.4} strokeLinecap="round" />
+                  stroke={linkHalo} strokeWidth={3.0} strokeLinecap="round" strokeOpacity={(op * 0.5).toFixed(2)} />
                 <line ref={function (el) { var o = edgeEls.current[ed.key] || (edgeEls.current[ed.key] = {}); if (el) o.c = el; else delete o.c; }}
                   x1={a0.sx.toFixed(1)} y1={a0.sy.toFixed(1)} x2={b0.sx.toFixed(1)} y2={b0.sy.toFixed(1)}
-                  stroke={linkCore} strokeWidth={1.2} strokeLinecap="round"
+                  stroke={linkCore} strokeWidth={1.1} strokeLinecap="round" strokeOpacity={op.toFixed(2)}
                   pathLength="1" strokeDasharray="1" style={{ animation: "bosLinkDraw 0.65s ease " + dly.toFixed(2) + "s both" }} />
+                <line ref={function (el) { var o = edgeEls.current[ed.key] || (edgeEls.current[ed.key] = {}); if (el) o.s = el; else delete o.s; }}
+                  x1={a0.sx.toFixed(1)} y1={a0.sy.toFixed(1)} x2={b0.sx.toFixed(1)} y2={b0.sy.toFixed(1)}
+                  stroke={linkShine} strokeWidth={1.6} strokeLinecap="round"
+                  pathLength="1" strokeDasharray="0.15 1" style={{ animation: "bosLinkShine 0.9s ease " + shineDelay.toFixed(2) + "s both" }} />
               </g>
             );
           })}
