@@ -874,6 +874,20 @@ function AppProvider({ children }) {
   const [themeOverride, setThemeOverride] = useState(() => { try { return localStorage.getItem("bos:theme") || "auto"; } catch (e) { return "auto"; } });
   useEffect(() => { try { localStorage.setItem("bos:theme", themeOverride); } catch (e) {} }, [themeOverride]);
 
+  // ПРОГРЕВ ЛИЦ в свободную минуту после старта: 18 мемоджи + сфера декодируются заранее, пока
+  // никто не смотрит — первое появление дисков во Вселенной / людей на «Я» больше не декодирует
+  // PNG посреди анимации (микро-фризы зум-въезда). URL те же самые, ничего не подменяется.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const warm = (src) => { const im = new Image(); im.src = src; if (im.decode) im.decode().catch(() => {}); };
+        for (let i = 1; i <= 18; i++) warm("./assets/people/m" + i + ".png");
+        warm("./assets/sphere.png");
+      } catch (e) {}
+    }, 2500);
+    return () => clearTimeout(t);
+  }, []);
+
   // Demo vs. fresh-start experience. Default = demo (a reload always lands on the
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.
   const [mode, setMode] = useState("demo");      // "demo" | "fresh"

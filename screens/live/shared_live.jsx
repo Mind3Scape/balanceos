@@ -5131,9 +5131,10 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   var introCamRef = React.useRef();
   if (!introCamRef.current) { var _rm = false; try { _rm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) {} introCamRef.current = { taken: _rm }; }
   var nodeEls = React.useRef({});   // key → DOM-обёртка системы (loop пишет transform/vars сюда)
-  var nodeSig = React.useRef({});   // key → последняя записанная сигнатура (скип одинаковых записей)
+  var nodeSig = React.useRef({});   // key → последние ЗАПИСАННЫЕ числа {h,sx,sy,sc,ov,zi,uA} (null после рендера)
   var lodRef = React.useRef({});    // key → "disc"|"orbit" (гистерезис переключения)
   var nodesRef = React.useRef([]);
+  var frameDirty = React.useRef(true); // React-рендер переписал inline-стили узлов → кадру нельзя «спать»
   function _cZ(z) { return z < 0.3 ? 0.3 : z > 3 ? 3 : z; } // David: дальше отдалять на телефоне (было 0.55) — до «соты» аватарок, как на компе
   var PACK = 0.9, MC = 1.85, ME = 0.72;               // упаковка сот и магнификация линзы: центр/край
   // Геометрия одной системы из камеры. ВАЖНО: q = rf·(178·PACK/235) — НЕ зависит от зума/intro
@@ -5162,6 +5163,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   }
   React.useEffect(function () {
     var raf, t0 = null, lastQ = 0;
+    var lastF = { x: NaN, y: NaN, z: NaN, mt: NaN, ik: NaN }; // подпись прошлого кадра (полный ранний выход)
     function frame(now) {
       raf = requestAnimationFrame(frame);
       if (t0 == null) t0 = now;
@@ -5182,31 +5184,45 @@ function UniverseFieldLive({ app, people, from, onClose }) {
         var _cc = camRef.current; if (_cc.z !== _mz) camRef.current = { x: _cc.x, y: _cc.y, z: _mz };
         if (_done) introCamRef.current.taken = true;
       }
-      var cam = camRef.current;
-      var nodes = nodesRef.current, els = nodeEls.current, sigs = nodeSig.current;
-      for (var i = 0; i < nodes.length; i++) {
-        var nd = nodes[i], el = els[nd.key];
-        if (!el) continue;
-        var _mt = morphRef.current;                    // тесная(fxH)↔распущенная(fx) по «дыханию»
-        var _fx = nd.fxH + (nd.fx - nd.fxH) * _mt, _fy = nd.fyH + (nd.fy - nd.fyH) * _mt;
-        var v = nodeVisual(_fx, _fy, cam, introK);
-        // visibility, НЕ display: у скрытых CSS-каскад «пыха» ПРОДОЛЖАЕТ идти по своему расписанию →
-        // возврат узла в кадр не перезапускает bosSysPop с его задержкой (узел «пропадал» до ~1.15с
-        // и потом пыхал заново — то самое моргание при пане в первые секунды входа).
-        if (v.off) { if (sigs[nd.key] !== "hide") { el.style.visibility = "hidden"; sigs[nd.key] = "hide"; } continue; }
-        var disc = el.getAttribute("data-lod") === "disc";
-        var tf = "translate(" + v.f.sx.toFixed(1) + "px," + v.f.sy.toFixed(1) + "px) scale(" + (disc ? v.dscale : v.oscale).toFixed(4) + ")";
-        var sig = tf + "|" + v.zi + "|" + v.openV.toFixed(3);
-        if (sigs[nd.key] === sig) continue;            // покой = ноль записей в DOM
-        if (sigs[nd.key] === "hide") el.style.visibility = "";
-        el.style.transform = tf;
-        el.style.zIndex = v.zi;
-        if (!disc) {
-          el.style.setProperty("--uK", _bosLp(0.3, 1, v.openV).toFixed(4));
-          el.style.setProperty("--uO", v.openV.toFixed(3));
-          el.style.setProperty("--uA", v.uA.toFixed(4));
+      var cam = camRef.current, _mt = morphRef.current; // тесная(fxH)↔распущенная(fx) по «дыханию»
+      // ПОЛНЫЙ РАННИЙ ВЫХОД КАДРА: камера/морф/вход на месте и React не переписывал стили →
+      // кадру нечего делать. Раньше «покой» всё равно стоил ~240×(sqrt+atan) + тысячи toFixed
+      // и строк-сигнатур на кадр (скипались только ЗАПИСИ) — теперь в покое ноль работы и ноль
+      // мусора для GC (меньше микро-фризов, меньше батареи).
+      var idle = !frameDirty.current && cam.x === lastF.x && cam.y === lastF.y && cam.z === lastF.z && _mt === lastF.mt && introK === lastF.ik;
+      if (!idle) {
+        lastF.x = cam.x; lastF.y = cam.y; lastF.z = cam.z; lastF.mt = _mt; lastF.ik = introK;
+        frameDirty.current = false;
+        var nodes = nodesRef.current, els = nodeEls.current, sigs = nodeSig.current;
+        for (var i = 0; i < nodes.length; i++) {
+          var nd = nodes[i], el = els[nd.key];
+          if (!el) continue;
+          var _fx = nd.fxH + (nd.fx - nd.fxH) * _mt, _fy = nd.fyH + (nd.fy - nd.fyH) * _mt;
+          var v = nodeVisual(_fx, _fy, cam, introK);
+          var st = sigs[nd.key];                       // {h,...} | null (после React-рендера — не доверяем)
+          // visibility, НЕ display: у скрытых CSS-каскад «пыха» ПРОДОЛЖАЕТ идти по своему расписанию →
+          // возврат узла в кадр не перезапускает bosSysPop с его задержкой (узел «пропадал» до ~1.15с
+          // и потом пыхал заново — то самое моргание при пане в первые секунды входа).
+          if (v.off) { if (!(st && st.h)) { el.style.visibility = "hidden"; sigs[nd.key] = { h: true }; } continue; }
+          var disc = lodRef.current[nd.key] === "disc"; // (было el.getAttribute — DOM-чтение на узел на кадр)
+          var sc = disc ? v.dscale : v.oscale;
+          var ok = st && !st.h;                        // есть доверенная прошлая запись
+          // ЧИСЛОВОЙ ранний выход ДО строк (пороги = шаг прежнего toFixed-квантования): то, что
+          // записали бы, совпадает с уже записанным → узел пропускаем без единой аллокации.
+          if (ok && Math.abs(v.f.sx - st.sx) < 0.05 && Math.abs(v.f.sy - st.sy) < 0.05
+            && Math.abs(sc - st.sc) < 0.00005 && Math.abs(v.openV - st.ov) < 0.0005
+            && v.zi === st.zi && Math.abs(v.uA - st.uA) < 0.00005) continue;
+          if (st && st.h) el.style.visibility = "";
+          el.style.transform = "translate(" + v.f.sx.toFixed(1) + "px," + v.f.sy.toFixed(1) + "px) scale(" + sc.toFixed(4) + ")";
+          if (!ok || v.zi !== st.zi) el.style.zIndex = v.zi; // zIndex-чурн: пересортировка слоёв только при реальной смене
+          if (!disc) {
+            el.style.setProperty("--uK", _bosLp(0.3, 1, v.openV).toFixed(4));
+            el.style.setProperty("--uO", v.openV.toFixed(3));
+            el.style.setProperty("--uA", v.uA.toFixed(4));
+          }
+          if (ok) { st.sx = v.f.sx; st.sy = v.f.sy; st.sc = sc; st.ov = v.openV; st.zi = v.zi; st.uA = v.uA; }
+          else sigs[nd.key] = { h: false, sx: v.f.sx, sy: v.f.sy, sc: sc, ov: v.openV, zi: v.zi, uA: v.uA };
         }
-        sigs[nd.key] = sig;
       }
       // Квантованная камера для структуры (LOD/вращение) — не чаще ~6 раз/с и только если сдвинулась.
       if (now - lastQ > 160) {
@@ -5218,6 +5234,10 @@ function UniverseFieldLive({ app, people, from, onClose }) {
     return function () { cancelAnimationFrame(raf); };
   }, []);
   React.useEffect(function () { var t = setTimeout(function () { setIntroDone(true); }, 2000); return function () { clearTimeout(t); }; }, []);
+  // Пока Вселенная открыта — глушим общий орб-клок страниц (aliases.jsx): страница «Я» под
+  // непрозрачным оверлеем продолжала ре-рендерить свою орбиту 30 раз/сек (пылинки, тени) —
+  // невидимо и недёшево, ровно когда Вселенной нужен весь бюджет кадра. Закрыли → часы идут дальше.
+  React.useEffect(function () { try { window.__bosOrbPause = true; } catch (e) {} return function () { try { window.__bosOrbPause = false; } catch (e) {} }; }, []);
   var vp = React.useRef({ pts: {}, mode: null, sd: 1, ox: 0, oy: 0, oz: 1, sx: 0, sy: 0, moved: 0 });
   function uDown(e) {
     var g = vp.current; introCamRef.current.taken = true; g.pts[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(g.pts);
@@ -5280,19 +5300,34 @@ function UniverseFieldLive({ app, people, from, onClose }) {
   }, [allNodes, myUid, myRefId, showLinks]);
   // Отдельный rAF ТОЛЬКО для эндпоинтов нитей: читает camRef+introRef (те же, что systems-loop),
   // зовёт calcNode для двух концов ребра и пишет x1/y1/x2/y2 прямо в DOM линий. Основной цикл не
-  // трогает. Живёт лишь пока связи включены (иначе эффект не стартует — ноль работы в покое).
+  // трогает. Живёт лишь пока связи включены. Э3: (1) ранний выход кадра — в покое ноль записей
+  // (раньше 12 атрибутов × нить × 60fps даже без движения = вечная инвалидация SVG-слоя);
+  // (2) числовой скип на нить; (3) куллинг — нить целиком за кадром прячется visibility (пульс
+  // «дыхания» ПРОДОЛЖАЕТ идти по своей фазе → возврат в кадр не сбивает каскад волны от центра).
   React.useEffect(function () {
     if (!showLinks || !links.length) return;
-    var raf;
+    var raf, st = {};                                    // key → {x1,y1,x2,y2,hid} — последняя запись
+    var lastE = { x: NaN, y: NaN, z: NaN, mt: NaN, ik: NaN };
+    function setVis(o, v) { if (o.c) o.c.style.visibility = v; if (o.h) o.h.style.visibility = v; if (o.s) o.s.style.visibility = v; }
     function frame() {
       raf = requestAnimationFrame(frame);
-      var cam = camRef.current, introK = _bosLp(1.34, 1, _bosSm(introRef.current)), els = edgeEls.current;
+      var cam = camRef.current, introK = _bosLp(1.34, 1, _bosSm(introRef.current)), mt = morphRef.current, els = edgeEls.current;
+      if (cam.x === lastE.x && cam.y === lastE.y && cam.z === lastE.z && mt === lastE.mt && introK === lastE.ik) return;
+      lastE.x = cam.x; lastE.y = cam.y; lastE.z = cam.z; lastE.mt = mt; lastE.ik = introK;
+      var M = 90;                                        // запас за краем экрана
       for (var i = 0; i < links.length; i++) {
         var ed = links[i], o = els[ed.key]; if (!o) continue;
-        var mt = morphRef.current;                       // концы держатся за распускающиеся центры
         var afx = ed.a.fxH + (ed.a.fx - ed.a.fxH) * mt, afy = ed.a.fyH + (ed.a.fy - ed.a.fyH) * mt;
         var bfx = ed.b.fxH + (ed.b.fx - ed.b.fxH) * mt, bfy = ed.b.fyH + (ed.b.fy - ed.b.fyH) * mt;
         var a = calcNode(afx, afy, cam, introK), b = calcNode(bfx, bfy, cam, introK);
+        var s = st[ed.key] || (st[ed.key] = { x1: NaN, y1: NaN, x2: NaN, y2: NaN, hid: false });
+        if (Math.max(a.sx, b.sx) < -M || Math.min(a.sx, b.sx) > W + M || Math.max(a.sy, b.sy) < -M || Math.min(a.sy, b.sy) > H + M) {
+          if (!s.hid) { s.hid = true; setVis(o, "hidden"); }
+          continue;
+        }
+        if (s.hid) { s.hid = false; setVis(o, ""); }
+        if (Math.abs(a.sx - s.x1) < 0.05 && Math.abs(a.sy - s.y1) < 0.05 && Math.abs(b.sx - s.x2) < 0.05 && Math.abs(b.sy - s.y2) < 0.05) continue;
+        s.x1 = a.sx; s.y1 = a.sy; s.x2 = b.sx; s.y2 = b.sy;
         var x1 = a.sx.toFixed(1), y1 = a.sy.toFixed(1), x2 = b.sx.toFixed(1), y2 = b.sy.toFixed(1);
         if (o.c) { o.c.setAttribute("x1", x1); o.c.setAttribute("y1", y1); o.c.setAttribute("x2", x2); o.c.setAttribute("y2", y2); }
         if (o.h) { o.h.setAttribute("x1", x1); o.h.setAttribute("y1", y1); o.h.setAttribute("x2", x2); o.h.setAttribute("y2", y2); }
@@ -5302,6 +5337,7 @@ function UniverseFieldLive({ app, people, from, onClose }) {
     raf = requestAnimationFrame(frame);
     return function () { cancelAnimationFrame(raf); };
   }, [showLinks, links]);
+  frameDirty.current = true; // этот рендер перепишет inline-стили узлов (nodeSig → null в map ниже)
   var node = (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, overflow: "hidden", background: bg, animation: "bosUniFade 0.5s ease both" }}>
       <style>{"@keyframes bosUniFade{from{opacity:0}to{opacity:1}}@keyframes bosSysPop{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkIn{from{opacity:0}to{opacity:1}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes bosLinkPulse{from{stroke-dashoffset:0.18}to{stroke-dashoffset:-1}}"}</style>

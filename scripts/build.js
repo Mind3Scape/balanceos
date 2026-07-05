@@ -49,7 +49,10 @@ for (const f of FILES) {
   const out = Babel.transform(src, {
     presets: ["react"],
     plugins: ["transform-block-scoping"],   // const/let → var: global, no cross-file collisions
-    compact: false,
+    // Э4: compact+без комментариев = −40% байт на ПАРС каждого холодного старта Telegram.
+    // Имена НЕ минифицируются (глобальная схема var/function между файлами не тронута).
+    compact: true,
+    comments: false,
   }).code + "\n";
   const outPath = path.join(root, "build", f.replace(/\.jsx$/, ".js"));
   fs.mkdirSync(path.dirname(outPath), { recursive: true });

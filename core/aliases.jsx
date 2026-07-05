@@ -22,6 +22,9 @@ const _orbSubs = new Set();
 function _orbTick(now) {
   _orbRAF = requestAnimationFrame(_orbTick);
   if (now - _orbLastMs < 33) return;          // ~30 fps gate on the broadcast/re-render
+  // Вселенная-оверлей открыт (страниц под ним не видно) → не рассылаем тик: скрытые орбиты
+  // не ре-рендерятся, весь бюджет кадра достаётся Вселенной. Флаг ставит UniverseFieldLive.
+  if (typeof window !== "undefined" && window.__bosOrbPause) return;
   _orbLastMs = now;
   const sec = now / 1000;
   _orbSubs.forEach((s) => { if (s.t0 == null) s.t0 = sec; try { s.cb(sec - s.t0); } catch (e) {} });
