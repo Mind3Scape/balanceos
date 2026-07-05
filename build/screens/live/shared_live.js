@@ -12806,8 +12806,8 @@ function UniverseFieldLive({
   var lodRef = React.useRef({}); // key → "disc"|"orbit" (гистерезис переключения)
   var nodesRef = React.useRef([]);
   function _cZ(z) {
-    return z < 0.55 ? 0.55 : z > 3 ? 3 : z;
-  }
+    return z < 0.3 ? 0.3 : z > 3 ? 3 : z;
+  } // David: дальше отдалять на телефоне (было 0.55) — до «соты» аватарок, как на компе
   var PACK = 0.9,
     MC = 1.85,
     ME = 0.72; // упаковка сот и магнификация линзы: центр/край
@@ -13172,7 +13172,8 @@ function UniverseFieldLive({
       left: 0,
       right: 0,
       textAlign: "center",
-      pointerEvents: "none"
+      pointerEvents: "none",
+      zIndex: 500
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -13199,7 +13200,8 @@ function UniverseFieldLive({
       color: subC,
       fontSize: 13.5,
       lineHeight: 1.5,
-      pointerEvents: "none"
+      pointerEvents: "none",
+      zIndex: 500
     }
   }, "\u041F\u043E\u0437\u043E\u0432\u0438 \u043F\u0435\u0440\u0432\u044B\u0445 \u2014 \u0438 \u0440\u044F\u0434\u043E\u043C \u0441 \u0442\u0432\u043E\u0435\u0439 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u0438\u0445 \u0441\u043E\u043B\u043D\u0435\u0447\u043D\u044B\u0435 \u0441\u0438\u0441\u0442\u0435\u043C\u044B."), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
@@ -13219,7 +13221,8 @@ function UniverseFieldLive({
       placeItems: "center",
       boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.12)",
       WebkitBackdropFilter: "blur(8px)",
-      backdropFilter: "blur(8px)"
+      backdropFilter: "blur(8px)",
+      zIndex: 500
     }
   }, /*#__PURE__*/React.createElement(I.X, {
     size: 18
@@ -13232,7 +13235,8 @@ function UniverseFieldLive({
       textAlign: "center",
       fontSize: 12,
       color: subC,
-      pointerEvents: "none"
+      pointerEvents: "none",
+      zIndex: 500
     }
   }, "\u043A\u043E\u0441\u043D\u0438\u0441\u044C, \u0447\u0442\u043E\u0431\u044B \u0432\u0435\u0440\u043D\u0443\u0442\u044C\u0441\u044F"));
   // Portal to <body> so position:fixed escapes the page-stack's CSS transform.
