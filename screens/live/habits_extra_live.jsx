@@ -144,6 +144,20 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     // Привычка ДЛЯ цели: несёт goalId (+ goalOnly = скрыть из общего списка). После создания
     // привязываем её к цели (habitIds) — деталь цели под шторкой обновится сама.
     if (goalFor) { base.goalId = goalFor.id; base.goalOnly = goalOnly; }
+    // Публикуем расписание напоминания в облако (для пуша ботом, когда приложение закрыто). Ключ =
+    // стабильный cloudId привычки; свой tz_offset (сервер не знает пояс). Выкл → удаляем строку.
+    // Graceful: пока патч habit_reminders не прогнан — тихий no-op, ничего не ломается.
+    const _syncReminder = (h) => {
+      try {
+        if (!(window.bosCloud && window.bosCloud.enabled())) return;
+        const key = h && (h.cloudId || h.id);
+        if (!key) return;
+        if (reminderOn) {
+          const tzOffset = -(new Date().getTimezoneOffset()); // Москва UTC+3 → +180
+          window.bosCloud.upsertReminder(key, { name: nm, emoji: iconPick, time: reminderTime, days: days.slice(), tzOffset: tzOffset, active: true });
+        } else { window.bosCloud.deleteReminder(key); }
+      } catch (e) {}
+    };
     const linkToGoal = (nh) => {
       if (!goalFor || !nh) return false;
       const g = (app?.goals || []).find((x) => x.id === goalFor.id);
@@ -154,13 +168,13 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     // SHARED habit: if sharing is on, save + swap this sheet for the share sheet
     // (one-sheet host: содержимое шторки меняется, форма уже сохранена).
     if (shareOn && !goalFor) {
-      if (editing) app?.updateHabit(params.habit.id, base);
-      else app?.addHabit(base);
+      if (editing) { app?.updateHabit(params.habit.id, base); _syncReminder(params.habit); }
+      else { const nh = app?.addHabit(base); _syncReminder(nh); }
       openSheet(<ShareHabitSheetLive habit={{ name: nm, emoji: iconPick, color }} />);
       return;
     }
-    if (editing) { app?.updateHabit(params.habit.id, base); }
-    else { const nh = app?.addHabit(base); if (linkToGoal(nh)) { close(); return; } }
+    if (editing) { app?.updateHabit(params.habit.id, base); _syncReminder(params.habit); }
+    else { const nh = app?.addHabit(base); _syncReminder(nh); if (linkToGoal(nh)) { close(); return; } }
     close();
   };
 
@@ -280,7 +294,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
           <span style={{ width: 24, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Bell size={19} color="var(--text-3)" /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Напоминание</div>
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{reminderOn ? (daysSummary(days) + " · тихий пуш") : "Каждый день · без пушей. Тут же — дни и время."}</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{reminderOn ? (daysSummary(days) + " · напомним в " + reminderTime) : "Без напоминаний. Тут же — дни и время."}</div>
           </div>
           <Switch small on={reminderOn} onChange={setReminderOn} />
         </div>

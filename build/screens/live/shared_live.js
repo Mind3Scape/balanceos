@@ -2232,6 +2232,32 @@ function bosNotifSeenSet(uid, patch) {
     localStorage.setItem("bos:notifseen:" + (uid || "local"), JSON.stringify(Object.assign(cur, patch)));
   } catch (e) {}
 }
+/* НАПОМИНАНИЯ ПРИВЫЧЕК (в приложении). Возвращает список привычек, у которых напоминание
+   ВКЛ, сегодня активный день, время УЖЕ наступило, и они ЕЩЁ НЕ отмечены — их и показываем
+   в шторке + точкой на колокольчике. Пуш в Телеграм (когда приложение закрыто) шлёт отдельная
+   серверная функция; это — половина «в приложении», работает без деплоя. Синхронно и дёшево. */
+function bosDueRemindersLive(habits) {
+  var out = [];
+  if (!Array.isArray(habits)) return out;
+  var arch = typeof bosLoadArchived === "function" ? bosLoadArchived() : {};
+  var now = new Date();
+  var dow = (now.getDay() + 6) % 7; // Пн=0 … Вс=6 (как везде в приложении)
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  habits.forEach(function (h) {
+    if (!h || !h.reminder || !h.reminder.on) return;
+    if (h.shelved || arch && arch["h:" + h.id]) return; // архив/полка — не напоминаем
+    if (h.done) return; // уже сделано сегодня
+    if (Array.isArray(h.days) && h.days.length === 7 && !h.days[dow]) return; // не сегодня по расписанию
+    var parts = ("" + (h.reminder.time || "09:00")).split(":");
+    var tMin = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+    if (nowMin < tMin) return; // время ещё не наступило
+    out.push({
+      habit: h,
+      time: h.reminder.time || "09:00"
+    });
+  });
+  return out;
+}
 /* Полный сбор для шторки. Возвращает { requests, joined, invited, accepted, chats, absorb };
    absorb скармливается bosNotifAbsorbLive ПОСЛЕ показа (метит виденное, гасит точку). */
 async function bosNotifCollectLive(app) {

@@ -215,6 +215,29 @@ function HabitFormSheetLive({
       base.goalId = goalFor.id;
       base.goalOnly = goalOnly;
     }
+    // Публикуем расписание напоминания в облако (для пуша ботом, когда приложение закрыто). Ключ =
+    // стабильный cloudId привычки; свой tz_offset (сервер не знает пояс). Выкл → удаляем строку.
+    // Graceful: пока патч habit_reminders не прогнан — тихий no-op, ничего не ломается.
+    var _syncReminder = h => {
+      try {
+        if (!(window.bosCloud && window.bosCloud.enabled())) return;
+        var key = h && (h.cloudId || h.id);
+        if (!key) return;
+        if (reminderOn) {
+          var tzOffset = -new Date().getTimezoneOffset(); // Москва UTC+3 → +180
+          window.bosCloud.upsertReminder(key, {
+            name: nm,
+            emoji: iconPick,
+            time: reminderTime,
+            days: days.slice(),
+            tzOffset: tzOffset,
+            active: true
+          });
+        } else {
+          window.bosCloud.deleteReminder(key);
+        }
+      } catch (e) {}
+    };
     var linkToGoal = nh => {
       if (!goalFor || !nh) return false;
       var g = (app?.goals || []).find(x => x.id === goalFor.id);
@@ -227,7 +250,13 @@ function HabitFormSheetLive({
     // SHARED habit: if sharing is on, save + swap this sheet for the share sheet
     // (one-sheet host: содержимое шторки меняется, форма уже сохранена).
     if (shareOn && !goalFor) {
-      if (editing) app?.updateHabit(params.habit.id, base);else app?.addHabit(base);
+      if (editing) {
+        app?.updateHabit(params.habit.id, base);
+        _syncReminder(params.habit);
+      } else {
+        var nh = app?.addHabit(base);
+        _syncReminder(nh);
+      }
       openSheet(/*#__PURE__*/React.createElement(ShareHabitSheetLive, {
         habit: {
           name: nm,
@@ -239,9 +268,11 @@ function HabitFormSheetLive({
     }
     if (editing) {
       app?.updateHabit(params.habit.id, base);
+      _syncReminder(params.habit);
     } else {
-      var nh = app?.addHabit(base);
-      if (linkToGoal(nh)) {
+      var _nh = app?.addHabit(base);
+      _syncReminder(_nh);
+      if (linkToGoal(_nh)) {
         close();
         return;
       }
@@ -682,7 +713,7 @@ function HabitFormSheetLive({
       marginTop: 2,
       lineHeight: 1.4
     }
-  }, reminderOn ? daysSummary(days) + " · тихий пуш" : "Каждый день · без пушей. Тут же — дни и время.")), /*#__PURE__*/React.createElement(Switch, {
+  }, reminderOn ? daysSummary(days) + " · напомним в " + reminderTime : "Без напоминаний. Тут же — дни и время.")), /*#__PURE__*/React.createElement(Switch, {
     small: true,
     on: reminderOn,
     onChange: setReminderOn

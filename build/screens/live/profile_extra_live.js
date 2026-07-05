@@ -1105,7 +1105,8 @@ function NotifFeedLive({
   onOpenChat,
   onOpenAccepted,
   onOpenFriends,
-  onOpenBuddy
+  onOpenBuddy,
+  onOpenReminder
 }) {
   var secHead = t => /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1182,7 +1183,24 @@ function NotifFeedLive({
       flexDirection: "column",
       gap: 10
     }
-  }, data.requests.length > 0 && secHead("Требует решения"), data.requests.map(r => {
+  }, (data.reminders || []).length > 0 && secHead("Напоминания"), (data.reminders || []).map((r, i) => row("rem-" + i, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      flexShrink: 0,
+      background: r.habit && r.habit.color ? r.habit.color + "26" : "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 20
+    }
+  }, typeof bosIcon === "function" ? bosIcon(r.habit && r.habit.emoji || "⏰", 20, r.habit && r.habit.color) : r.habit && r.habit.emoji || "⏰"), "Пора: " + (r.habit && r.habit.name || "привычка"), "Ты просил напомнить в " + r.time + " · ещё не отмечено", /*#__PURE__*/React.createElement(I.ChevronRight, {
+    size: 16,
+    className: "bos-sys-text-3",
+    style: {
+      flexShrink: 0
+    }
+  }), () => onOpenReminder && onOpenReminder(r.habit))), data.requests.length > 0 && secHead("Требует решения"), data.requests.map(r => {
     var k = r.team.cloudId + ":" + r.user.id;
     var st = busy[k];
     return row(k, face(r.user), (r.user.name || "Гость") + " хочет в «" + r.team.name + "»", st === "done" ? "Принят — уже в круге ✓" : st === "rejected" ? "Заявка отклонена" : "Заявка на вступление", st === "done" || st === "rejected" ? null : /*#__PURE__*/React.createElement("div", {
@@ -1371,6 +1389,10 @@ function NotificationsLive() {
     habit: h,
     from: "notifications"
   });
+  var openReminder = h => navigate("habit-detail", {
+    habit: h,
+    from: "notifications"
+  });
   var openAccepted = row => {
     // Круг ещё не в моих «Целях» (вступление подтвердил владелец, не я) → добавим локально
     // тем же форматом, что joinViaLink в shell, снимем «стук» и откроем комнату.
@@ -1408,16 +1430,29 @@ function NotificationsLive() {
     } catch (e) {}
     setCleared(true);
   };
+  // Напоминания привычек — локальные, мгновенные (не ждут облако): показываем сразу.
+  var dueRem = typeof bosDueRemindersLive === "function" ? bosDueRemindersLive(app?.habits) : [];
   var loading = data === null;
-  var shown = loading ? null : cleared ? Object.assign({}, data, {
+  var emptyBase = {
+    requests: [],
+    joined: [],
+    invited: [],
+    accepted: [],
+    buddies: [],
+    chats: []
+  };
+  var base = loading ? emptyBase : cleared ? Object.assign({}, data, {
     joined: [],
     invited: [],
     accepted: [],
     buddies: [],
     chats: []
   }) : data;
+  var shown = Object.assign({}, base, {
+    reminders: dueRem
+  });
   var _bud = shown && shown.buddies || [];
-  var isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !_bud.length && !shown.chats.length;
+  var isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !_bud.length && !shown.chats.length && !dueRem.length;
   var canClear = shown && (shown.joined.length || shown.invited.length || shown.accepted.length || _bud.length || shown.chats.length) ? true : false;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in",
@@ -1436,7 +1471,7 @@ function NotificationsLive() {
         fontSize: 13
       }
     }, "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C") : null
-  }), loading ? /*#__PURE__*/React.createElement("div", {
+  }), loading && !dueRem.length ? /*#__PURE__*/React.createElement("div", {
     className: "bos-acc-in",
     style: {
       display: "flex",
@@ -1513,7 +1548,8 @@ function NotificationsLive() {
     onOpenChat: openChat,
     onOpenAccepted: openAccepted,
     onOpenFriends: openFriends,
-    onOpenBuddy: openBuddy
+    onOpenBuddy: openBuddy,
+    onOpenReminder: openReminder
   }));
 }
 function HistoryLive() {

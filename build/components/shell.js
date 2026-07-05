@@ -2107,6 +2107,10 @@ function AppProvider({
       try {
         if (h && h.cloudId && _liveCloud()) window.bosCloud.deleteHabit(h.cloudId);
       } catch (e) {}
+      // Удалить и напоминание из облака, чтобы не приходил пуш по несуществующей привычке.
+      try {
+        if (h && _liveCloud() && window.bosCloud.deleteReminder) window.bosCloud.deleteReminder(h.cloudId || h.id);
+      } catch (e) {}
       return hs.filter(x => x.id !== id);
     });
     // Аудит #3: убрать удалённую привычку из habitIds всех целей — иначе остаётся «мёртвая
@@ -2171,6 +2175,30 @@ function AppProvider({
       document.removeEventListener("visibilitychange", roll);
     };
   }, [mode]);
+
+  // Разовая (за сессию) синхронизация напоминаний в облако — чтобы серверный планировщик слал
+  // пуши и для привычек, заведённых ДО этой фичи (форма публикует только при сохранении). Свой
+  // tz_offset. Graceful: пока патч habit_reminders не прогнан — upsert тихо вернёт false.
+  var _remSyncedRef = useRef(false);
+  useEffect(() => {
+    if (mode !== "live" || _remSyncedRef.current) return;
+    if (!_liveCloud() || !window.bosCloud.upsertReminder) return;
+    if (!habits || !habits.length) return; // привычки ещё не подгрузились — подождём
+    _remSyncedRef.current = true;
+    var tz = -new Date().getTimezoneOffset();
+    habits.filter(h => h && h.reminder && h.reminder.on && !h.shelved).forEach(h => {
+      try {
+        window.bosCloud.upsertReminder(h.cloudId || h.id, {
+          name: h.name,
+          emoji: h.emoji,
+          time: h.reminder.time || "09:00",
+          days: Array.isArray(h.days) ? h.days : null,
+          tzOffset: tz,
+          active: true
+        });
+      } catch (e) {}
+    });
+  }, [mode, habits]);
   var addGoal = g => {
     var ng = {
       id: _nid(),

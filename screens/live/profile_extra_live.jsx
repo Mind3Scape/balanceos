@@ -409,7 +409,7 @@ function SettingsLive() {
 /* Лента уведомлений — ПРЕЗЕНТАЦИЯ (секция Б): «Требует решения» (заявки, Принять/✕),
    «Новое» (тебя приняли / вступили в круг / пришли по твоей ссылке), «Сообщения»
    (непрочитанные чаты). Отделена от загрузки, чтобы рендериться и с готовыми данными. */
-function NotifFeedLive({ data, busy, onApprove, onReject, onOpenTeam, onOpenChat, onOpenAccepted, onOpenFriends, onOpenBuddy }) {
+function NotifFeedLive({ data, busy, onApprove, onReject, onOpenTeam, onOpenChat, onOpenAccepted, onOpenFriends, onOpenBuddy, onOpenReminder }) {
   const secHead = (t) => (
     <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "8px 4px 0" }}>{t}</div>
   );
@@ -432,6 +432,15 @@ function NotifFeedLive({ data, busy, onApprove, onReject, onOpenTeam, onOpenChat
   const chatWord = (n) => n === 1 ? "новое сообщение" : (n < 5 ? "новых сообщения" : "новых сообщений");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* НАПОМИНАНИЯ ПРИВЫЧЕК — вверху: самое личное и срочное. Тап → страница привычки. */}
+      {(data.reminders || []).length > 0 && secHead("Напоминания")}
+      {(data.reminders || []).map((r, i) => row("rem-" + i,
+        <span style={{ width: 40, height: 40, borderRadius: 13, flexShrink: 0, background: (r.habit && r.habit.color) ? (r.habit.color + "26") : "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", display: "grid", placeItems: "center", fontSize: 20 }}>{typeof bosIcon === "function" ? bosIcon((r.habit && r.habit.emoji) || "⏰", 20, r.habit && r.habit.color) : ((r.habit && r.habit.emoji) || "⏰")}</span>,
+        "Пора: " + ((r.habit && r.habit.name) || "привычка"),
+        "Ты просил напомнить в " + r.time + " · ещё не отмечено",
+        <I.ChevronRight size={16} className="bos-sys-text-3" style={{ flexShrink: 0 }} />,
+        () => onOpenReminder && onOpenReminder(r.habit)))}
+
       {data.requests.length > 0 && secHead("Требует решения")}
       {data.requests.map((r) => {
         const k = r.team.cloudId + ":" + r.user.id;
@@ -527,6 +536,7 @@ function NotificationsLive() {
   const openTeam = (t) => navigate("team-detail", { team: t, from: "notifications" });
   const openFriends = () => navigate("friends", { from: "notifications" });
   const openBuddy = (h) => navigate("habit-detail", { habit: h, from: "notifications" });
+  const openReminder = (h) => navigate("habit-detail", { habit: h, from: "notifications" });
   const openAccepted = (row) => {
     // Круг ещё не в моих «Целях» (вступление подтвердил владелец, не я) → добавим локально
     // тем же форматом, что joinViaLink в shell, снимем «стук» и откроем комнату.
@@ -542,17 +552,21 @@ function NotificationsLive() {
     try { window.dispatchEvent(new Event("bos:notifSeenChanged")); } catch (e) {}
     setCleared(true);
   };
+  // Напоминания привычек — локальные, мгновенные (не ждут облако): показываем сразу.
+  const dueRem = (typeof bosDueRemindersLive === "function") ? bosDueRemindersLive(app?.habits) : [];
   const loading = data === null;
-  const shown = loading ? null : (cleared ? Object.assign({}, data, { joined: [], invited: [], accepted: [], buddies: [], chats: [] }) : data);
+  const emptyBase = { requests: [], joined: [], invited: [], accepted: [], buddies: [], chats: [] };
+  const base = loading ? emptyBase : (cleared ? Object.assign({}, data, { joined: [], invited: [], accepted: [], buddies: [], chats: [] }) : data);
+  const shown = Object.assign({}, base, { reminders: dueRem });
   const _bud = (shown && shown.buddies) || [];
-  const isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !_bud.length && !shown.chats.length;
+  const isEmpty = shown && !shown.requests.length && !shown.joined.length && !shown.invited.length && !shown.accepted.length && !_bud.length && !shown.chats.length && !dueRem.length;
   const canClear = shown && (shown.joined.length || shown.invited.length || shown.accepted.length || _bud.length || shown.chats.length) ? true : false;
   return (
     <div className="page-in" style={{ padding: "0 16px 24px" }}>
       <PageHeader title="Уведомления" onBack={() => navigate(params?.from || "profile")} right={
         canClear ? <button onClick={clearAll} className="tap bos-sys-text-2" style={{ background: "transparent", border: 0, fontSize: 13 }}>Очистить</button> : null
       }/>
-      {loading ? (
+      {(loading && !dueRem.length) ? (
         <div className="bos-acc-in" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[0, 1].map((i) => (
             <div key={i} className="bos-sys-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 14 }}>
@@ -574,7 +588,8 @@ function NotificationsLive() {
         <NotifFeedLive data={shown} busy={busy}
           onApprove={approve} onReject={reject}
           onOpenTeam={openTeam} onOpenChat={openChat}
-          onOpenAccepted={openAccepted} onOpenFriends={openFriends} onOpenBuddy={openBuddy} />
+          onOpenAccepted={openAccepted} onOpenFriends={openFriends} onOpenBuddy={openBuddy}
+          onOpenReminder={openReminder} />
       )}
     </div>
   );

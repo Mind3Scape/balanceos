@@ -318,7 +318,10 @@ function HomeLive() {
       on = false;
     };
   }, [teams, notifTick]);
-  var showBellDot = hasUnread;
+  // Точка также зажигается, когда пришло время привычки-напоминания, а она ещё не отмечена
+  // (локально, мгновенно — не ждёт облако). Гаснет сама, когда отметишь или день кончится.
+  var _dueRem = typeof bosDueRemindersLive === "function" ? bosDueRemindersLive(app?.habits || []).length : 0;
+  var showBellDot = hasUnread || _dueRem > 0;
 
   // Celebration when a habit gets completed: float +XP near the avatar ring,
   // sparkle burst when the whole day closes (doneCount reaches total).

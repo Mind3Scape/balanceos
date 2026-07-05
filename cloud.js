@@ -851,6 +851,33 @@
     try { var r = await c.rpc("bos_wallet"); if (r.error) return null; return r.data || null; } catch (e) { return null; }
   }
 
+  // ── Напоминания привычек (пуш через бота) ────────────────────────────────────
+  // Клиент публикует своё расписание в таблицу habit_reminders (со СВОИМ tz_offset —
+  // сервер не знает пояс). Планировщик (edge-функция remind + cron) читает её и в нужную
+  // локальную минуту шлёт сообщение ботом на profiles.tg_id. Всё graceful: если патч
+  // habit_reminders ещё не прогнан — upsert вернёт {error} → false, ничего не ломается.
+  async function upsertReminder(hkey, r) {
+    var c = client(); var id = await uid(); if (!c || !id || !hkey || !r) return false;
+    try {
+      var row = {
+        user_id: id, hkey: String(hkey),
+        name: r.name || "Привычка", emoji: r.emoji || null,
+        time: r.time || "09:00",
+        days: (Array.isArray(r.days) && r.days.length === 7) ? r.days : null,
+        tz_offset: (typeof r.tzOffset === "number") ? r.tzOffset : 0,
+        active: r.active !== false,
+        updated_at: new Date().toISOString(),
+      };
+      var res = await c.from("habit_reminders").upsert(row, { onConflict: "user_id,hkey" });
+      return !(res && res.error);
+    } catch (e) { return false; }
+  }
+  async function deleteReminder(hkey) {
+    var c = client(); var id = await uid(); if (!c || !id || !hkey) return false;
+    try { var res = await c.from("habit_reminders").delete().eq("user_id", id).eq("hkey", String(hkey)); return !(res && res.error); }
+    catch (e) { return false; }
+  }
+
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
@@ -869,6 +896,7 @@
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
+    upsertReminder: upsertReminder, deleteReminder: deleteReminder,
     signOut: signOut,
     _client: client,
   };
