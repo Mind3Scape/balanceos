@@ -214,7 +214,7 @@
   function _qSave() { try { localStorage.setItem(QKEY, JSON.stringify(_q)); } catch (e) {} }
   function _qAdd(op) {
     _q = _q.filter(function (o) { return o.key !== op.key; });           // latest state per key wins
-    if (op.type === "deleteHabit") _q = _q.filter(function (o) { return o.key !== "upsertHabit:" + op.args.cloudId; }); // delete supersedes a pending create
+    if (op.type === "deleteHabit") { var _hlp = "habitLog:" + op.args.cloudId + ":"; _q = _q.filter(function (o) { return o.key !== "upsertHabit:" + op.args.cloudId && o.key.indexOf(_hlp) !== 0; }); } // delete supersedes pending create И его отметки — иначе offline «создал→отметил→удалил» оставлял habitLog-оп, который на реплее упирался в FK удалённой привычки и НАВСЕГДА глушил очередь синка (break)
     if (op.type === "deleteGoal")  _q = _q.filter(function (o) { return o.key !== "upsertGoal:" + op.args.cloudId; });
     _q.push(op); _qSave();
   }
@@ -285,7 +285,15 @@
   // Try an op now; on failure queue it for retry. On success, drain any backlog (the network is up).
   async function _durable(op) {
     var ok = await runOp(op);
-    if (ok) { if (_q.length) { flushQueue(); } return true; }
+    if (ok) {
+      // Прямая запись удалась → она авторитетна. Вычищаем ЛЮБОЙ застрявший queued-оп с тем же
+      // ключом (более старое значение), иначе flushQueue ниже переиграл бы его ПОВЕРХ свежего
+      // (например «неубиваемая» отметка: off записался, а в очереди висел старый on). Та же
+      // философия, что _qAdd — «последнее состояние по ключу побеждает».
+      _q = _q.filter(function (o) { return o.key !== op.key; }); _qSave();
+      if (_q.length) { flushQueue(); }
+      return true;
+    }
     _qAdd(op); return false;
   }
   var _flushing = false;
@@ -561,17 +569,17 @@
       if (hs.error) hs = await c.from("team_habits").select("id,name,emoji,is_main").eq("team_id", teamId).order("created_at", { ascending: true }); // pre-SQL: нет и goal_per_day → graceful fallback
       var habits = (hs.data) || []; if (!habits.length) return [];
       var ids = habits.map(function (h) { return h.id; });
-      var since = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+      var since = _localDay(new Date(Date.now() - 6 * 86400000));
       var lg = await c.from("team_habit_logs").select("team_habit_id,user_id,day").in("team_habit_id", ids).gte("day", since);
       var rows = (lg.data) || [];
       var mem = await teamMembers(teamId); var total = mem.length || 1;
-      var today = new Date().toISOString().slice(0, 10);
+      var today = _localDay();
       return habits.map(function (h) {
         var hl = rows.filter(function (r) { return r.team_habit_id === h.id; });
         var todayUsers = {}; hl.forEach(function (r) { if (r.day === today) todayUsers[r.user_id] = 1; });
         var weekSum = 0;
         for (var d = 0; d < 7; d++) {
-          var day = new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
+          var day = _localDay(new Date(Date.now() - d * 86400000));
           var u = {}; hl.forEach(function (r) { if (r.day === day) u[r.user_id] = 1; });
           weekSum += total ? Object.keys(u).length / total : 0;
         }
@@ -623,7 +631,7 @@
   // Toggle MY "done today" mark on a team habit.
   async function toggleTeamHabitToday(habitId, on) {
     var c = client(); var me = await uid(); if (!c || !me || !habitId) return false;
-    var today = new Date().toISOString().slice(0, 10);
+    var today = _localDay();
     try {
       // Аудит #8: Supabase при отказе (RLS/ограничение) НЕ бросает исключение, а возвращает
       // { error } — раньше мы всё равно возвращали true, и галочка «врала» (стоит, а на сервере
@@ -784,6 +792,11 @@
 
   // Current consecutive-day streak ending today (or yesterday, if today isn't marked yet)
   // from a {dayKey:true} set. Used to derive the «серия у каждого» goal mode.
+  // ЛОКАЛЬНЫЙ день-ключ YYYY-MM-DD (как bosTodayKey в shell + как ключи _bosStreakDays). Командный
+  // слой раньше писал/читал день по UTC (toISOString) — расходилось с личными логами (локальные) и
+  // с _bosStreakDays: ночью в РФ отметка уходила «не в тот день», а «снять» после полуночи стирала
+  // вчерашний вклад. Теперь весь командный слой считает день ЛОКАЛЬНО → сходится везде.
+  function _localDay(dt) { var d = dt || new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function _bosStreakDays(daySet) {
     var d = new Date(); d.setHours(0, 0, 0, 0);
     var k = function (dt) { return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); };
