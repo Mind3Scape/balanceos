@@ -178,8 +178,8 @@ function HabitDetailLive() {
         {/* Верхний ряд: плитка-иконка слева + название, справа НАШ реальный компонент отметки (тот же,
             что на главной — таймер/счётчик/галочка по типу привычки, масштаб 1.8). */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 72, height: 72, borderRadius: 20, flexShrink: 0, display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
-            <span style={{ fontSize: 36 }}>{bosIcon(h.emoji, 34, h.color)}</span>
+          <div style={{ width: 58, height: 58, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
+            <span style={{ fontSize: 30 }}>{bosIcon(h.emoji, 28, h.color)}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", lineHeight: 1.12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
@@ -187,8 +187,8 @@ function HabitDetailLive() {
               Ежедневно{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
             </div>
           </div>
-          <div style={{ flexShrink: 0, width: 66, height: 66, display: "grid", placeItems: "center" }}>
-            <div style={{ transform: "scale(1.8)", transformOrigin: "center" }}>
+          <div style={{ flexShrink: 0, width: 54, height: 54, display: "grid", placeItems: "center" }}>
+            <div style={{ transform: "scale(1.45)", transformOrigin: "center" }}>
               {(h.duration > 0 && !((h.goalPerDay || 1) > 1) && typeof HabitTimerCheck === "function")
                 ? <HabitTimerCheck habit={h} app={app} xp={10} />
                 : ((h.goalPerDay || 1) > 1 && typeof HabitCountCheck === "function")
