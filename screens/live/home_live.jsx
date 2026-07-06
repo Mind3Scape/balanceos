@@ -81,8 +81,10 @@ function bosKbFocus(e) {
     const r = input.getBoundingClientRect();
     const vTop = vv ? vv.offsetTop : 0;
     const vH = vv ? vv.height : window.innerHeight;
-    const kb = Math.max(0, window.innerHeight - vH - vTop);
-    const target = kb > 2 ? (vTop + vH - 14) : (vTop + vH * 0.5); // низ поля над клавой (таб-бар спрятан)
+    // Цель = САМЫЙ НИЗ видимой зоны (у David resizes-content ужимает viewport до зоны над клавой,
+    // значит её нижний край И ЕСТЬ верх клавиатуры). Целить в середину (×0.5) было ошибкой — уезжало
+    // слишком высоко. Таб-бар спрятан (bos-kb-typing), так что поле садится ВПРИТЫК над клавой.
+    const target = vTop + vH - 12;
     const delta = r.bottom - target;
     if (Math.abs(delta) > 2) sc.scrollTop += delta;
   };

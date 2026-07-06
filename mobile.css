@@ -117,7 +117,9 @@ body.bos-sheet-open .bos-reorder-float { opacity: 0; pointer-events: none; trans
 /* Пока печатаешь в ИНЛАЙН-поле «Дел» (виджет вешает bos-kb-typing на body при фокусе) — таб-бар
    прячется, чтобы не всплывать над клавиатурой ПОВЕРХ поля (David: «меню прилипает к клаве вместо
    задач»). Возвращается на blur. */
-body.bos-kb-typing .bos-tabbar { opacity: 0; pointer-events: none; transform: translateY(24px); transition: opacity 0.18s ease, transform 0.18s ease; }
+/* !important ОБЯЗАТЕЛЕН: у .bos-tabbar есть keyframe-анимация tabRaise, а анимация в каскаде бьёт
+   обычное правило opacity (в песочнице анимации нет → пряталось; на телефоне была — не пряталось). */
+body.bos-kb-typing .bos-tabbar { opacity: 0 !important; pointer-events: none !important; transform: translateY(24px) !important; transition: opacity 0.16s ease !important; }
 /* «Эффект стекла» (тумблер в настройках, David): ВЫКЛ глушит ТЯЖЁЛОЕ стекло — все
    backdrop-размытия разом (!important бьёт и inline-стили меню/панелей). Дешёвые
    градиенты-блики остаются — вид почти тот же, но без нагрузки на GPU телефона.
