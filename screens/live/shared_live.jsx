@@ -5995,7 +5995,10 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   };
   const startLP = (e) => { e.stopPropagation(); suppress.current = false; lpTimer.current = setTimeout(function () { suppress.current = true; if (window.tgHaptic) { try { window.tgHaptic("rigid"); } catch (_) {} } apply(count - 1); }, 480); };
   const endLP = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } };
-  const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } apply(isDone ? 0 : count + 1); };
+  // Тап ТОЛЬКО прибавляет (David: убрать случайное обнуление тапом по заполненному счётчику — лёгкий
+  // способ потерять прогресс). На заполненном тап = no-op (apply клампит к goal). Убавить/сбросить —
+  // ОСОЗНАННО долгим зажатием (−1 за раз), это уже реализовано в startLP.
+  const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } apply(count + 1); };
 
   // Ring geometry is 44px, but the LAYOUT box stays 30px — the ring renders as an OVERFLOWING overlay
   // so the disc lines up EXACTLY with the plain 30px checks in the column (David: «центрируй

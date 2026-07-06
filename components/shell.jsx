@@ -1210,10 +1210,15 @@ function AppProvider({ children }) {
   useEffect(() => {
     if (!persistId || !window.bosStore) return;
     if (hydratingRef.current) return; // don't persist until the cloud load has reconciled
+    // ЛОКАЛЬНО — СРАЗУ и синхронно (David: «телефон главный»; отметка не должна теряться, даже если
+    // Telegram убьёт webview до дебаунса). localStorage.setItem синхронен и дёшев (данные — килобайты),
+    // серия тапов = серия мелких записей, это ок. РАНЬШЕ эта запись сидела в 400мс-дебаунсе → последние
+    // тапы могли не успеть на диск при жёстком закрытии → «прокликал 24, вернулся — 5». Облако осталось
+    // с дебаунсом ниже (сеть дорогая; строки привычек и так уходят из мутаторов upsertHabit/toggleHabitLog).
+    window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, taskLists });
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    // Debounce: a flurry of taps coalesces into one write.
+    // Debounce ТОЛЬКО облачного зеркала: серия тапов коалесится в одну сетевую запись.
     saveTimer.current = setTimeout(() => {
-      window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, taskLists });
       try {
         if (window.bosCloud && window.bosCloud.enabled()) {
           // Profile (name/avatar) — write only when it changed (it almost never does per tap).
@@ -1520,7 +1525,12 @@ function AppProvider({ children }) {
             try {
               window.bosCloud.loadHabits().then(function (rows) {
                 if (rows === null) return;
-                if (rows.length) { setHabits(rows.map(function (h) { return bosRollHabit(Object.assign({ id: _nid() }, h)); })); return; }
+                // «ТЕЛЕФОН — ГЛАВНЫЙ» (David, фикс потери счётчика 24→5): облако НЕ перезаписывает уже
+                // существующие локальные привычки — устаревшая облачная копия (напр. counts=5, пока свежий
+                // локальный =24 ещё летел вверх) затирала прогресс. Есть данные локально → они и есть правда,
+                // телефон сам синкает их ВВЕРХ. Облачные строки применяем ТОЛЬКО для ВОССТАНОВЛЕНИЯ на пустом
+                // устройстве (новый телефон / переустановка / потеря localStorage). Та же философия, что v594 у кругов.
+                if (rows.length) { setHabits(function (prev) { return (prev && prev.length) ? prev : rows.map(function (h) { return bosRollHabit(Object.assign({ id: _nid() }, h)); }); }); return; }
                 if (!_seedHabits.length) return;
                 // CONFIRM truly-empty before migrating local habits → rows. A transient false-empty
                 // read (auth/RLS race just after sign-in) once re-ran this migration on an account that
@@ -1531,7 +1541,8 @@ function AppProvider({ children }) {
                   .then(function () { return window.bosCloud.loadHabits(); })
                   .then(function (rows2) {
                     if (rows2 === null) return;
-                    if (rows2.length) { setHabits(rows2.map(function (h) { return bosRollHabit(Object.assign({ id: _nid() }, h)); })); return; }
+                    // «Телефон — главный» и здесь: не затираем существующие локальные привычки (см. выше).
+                    if (rows2.length) { setHabits(function (prev) { return (prev && prev.length) ? prev : rows2.map(function (h) { return bosRollHabit(Object.assign({ id: _nid() }, h)); }); }); return; }
                     var wi = _seedHabits.map(function (h) { return Object.assign({ id: _nid() }, h, { cloudId: h.cloudId || _uuid() }); });
                     setHabits(wi.map(bosRollHabit));
                     wi.forEach(function (h) { try { window.bosCloud.upsertHabit(h); var lg = h.log || {}; Object.keys(lg).forEach(function (day) { if (lg[day]) window.bosCloud.toggleHabitLog(h.cloudId, day, true); }); } catch (e) {} });
@@ -1556,7 +1567,9 @@ function AppProvider({ children }) {
               });
               window.bosCloud.loadGoals().then(function (rows) {
                 if (rows === null) return;
-                if (rows.length) { setGoals(rows.map(function (g) { return Object.assign({ id: _nid() }, g); })); return; }
+                // «Телефон — главный» (как у привычек): облако не затирает локальные цели/их прогресс,
+                // только восстанавливает на пустом устройстве.
+                if (rows.length) { setGoals(function (prev) { return (prev && prev.length) ? prev : rows.map(function (g) { return Object.assign({ id: _nid() }, g); }); }); return; }
                 if (!_seedGoals.length) return;
                 // Same dup-guard as habits: confirm truly-empty (re-read after a beat) before migrating
                 // local goals → rows, so a transient false-empty read can't create a second copy.
@@ -1564,7 +1577,7 @@ function AppProvider({ children }) {
                   .then(function () { return window.bosCloud.loadGoals(); })
                   .then(function (rows2) {
                     if (rows2 === null) return;
-                    if (rows2.length) { setGoals(rows2.map(function (g) { return Object.assign({ id: _nid() }, g); })); return; }
+                    if (rows2.length) { setGoals(function (prev) { return (prev && prev.length) ? prev : rows2.map(function (g) { return Object.assign({ id: _nid() }, g); }); }); return; }
                     var wg = _seedGoals.map(function (g) { return Object.assign({ id: _nid() }, g, { cloudId: g.cloudId || _uuid() }); });
                     setGoals(wg);
                     wg.forEach(function (g) { try { window.bosCloud.upsertGoal(g); } catch (e) {} });
