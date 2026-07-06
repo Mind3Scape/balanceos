@@ -84,7 +84,7 @@ function bosKbFocus(e) {
     // Цель = САМЫЙ НИЗ видимой зоны (у David resizes-content ужимает viewport до зоны над клавой,
     // значит её нижний край И ЕСТЬ верх клавиатуры). Целить в середину (×0.5) было ошибкой — уезжало
     // слишком высоко. Таб-бар спрятан (bos-kb-typing), так что поле садится ВПРИТЫК над клавой.
-    const target = vTop + vH - 12;
+    const target = vTop + vH - 26; // −26 (не −12): низ КАРТОЧКИ (поле+паддинги ~13px) даёт зазор ~12px от клавы, как между блоками
     const delta = r.bottom - target;
     if (Math.abs(delta) > 2) sc.scrollTop += delta;
   };
@@ -224,13 +224,13 @@ function TasksWidgetLive({ isDark, openSheet }) {
             ))}
           </div>
           {/* ИНЛАЙН-поле: фокус прячет таб-бар и подвигает страницу так, чтобы поле село над клавой (David) */}
-          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 3px", marginTop: tasks.length ? 0 : 2, borderTop: tasks.length ? hair : "none" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 3px", marginTop: tasks.length ? 0 : 2, borderTop: tasks.length ? hair : "none", cursor: "text" }}>
             <span style={{ ...ck, border: "1.7px dashed " + ckBorder, color: "var(--text-4)" }}><I.Plus size={13} /></span>
             <input value={taskText} onChange={(e) => setTaskText(e.target.value)} onFocus={bosKbFocus} onBlur={bosKbBlur}
-              onKeyDown={(e) => { if (e.key === "Enter") commitTask(); if (e.key === "Escape") { setTaskText(""); e.target.blur(); } }}
+              onKeyDown={(e) => { if (e.key === "Enter") { commitTask(); var _el = e.target; setTimeout(function () { if (_el._bosAdjust) _el._bosAdjust(); }, 50); } if (e.key === "Escape") { setTaskText(""); e.target.blur(); } }}
               placeholder="Добавить дело…"
               style={{ flex: 1, border: 0, outline: "none", fontFamily: "inherit", fontSize: 14.5, color: "var(--text)", background: "transparent" }} />
-          </div>
+          </label>
         </>
       )}
     </div>
