@@ -215,6 +215,7 @@ function DeadlineCalendarLive({ onPick }) {
    a directional tint of the habit's colour `hx`, intensity by p (0..1). Capped well below full
    saturation → soft, never neon; black lands as a soft graphite, not pure black. */
 function bosCellFill(hx, p) {
+  if (typeof bosCanonColor === "function") hx = bosCanonColor(hx);
   if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#0a0a0a";
   var bot = 0.30 + 0.55 * Math.max(0, Math.min(1, p));  // bottom alpha — PRESENT, caps ~0.85 (never full)
   var top = bot * 0.6;                                    // lighter top → directional sheen
@@ -270,6 +271,7 @@ function bosGoalHero(color, isDark) {
   // тон, что плитка цели bosGoalSkin — светлая тема bosLightenHex(accent,0.52) + ТЁМНЫЙ текст,
   // тёмная тема bosMixHex(accent,#0d0f14,0.24) + белый. Никакого адаптивного «то тёмный, то белый»
   // (из-за него деталь не совпадала с плиткой). Hero = та же плитка, только крупнее и с градиентом.
+  if (typeof bosCanonColor === "function") color = bosCanonColor(color);
   var accent = (color && ("" + color).toLowerCase() !== "#0a0a0a" && color !== "#8E8E93" && color !== "#EAEAEF" && color !== (typeof BOS_GREY !== "undefined" ? BOS_GREY : "#8E8E93")) ? color : null;
   if (!accent) {
     return {
@@ -312,6 +314,7 @@ function bosGoalHero(color, isDark) {
 // «текущий день выделен одинаково, кольцом стекла, без плюсика». Светлый внутр. блик + тонкий контур
 // + мягкая тень = вид стеклянного чекбокса; читается и на белом, и на цветной клетке.
 function bosTodayRing(isDark, accent) {
+  if (typeof bosCanonColor === "function") accent = bosCanonColor(accent);
   // Контур кольца окрашивается в ТОН привычки (David: «должно подстраиваться под выбранный тон, а не
   // оставаться серым»). Реальный цвет → контур в этот цвет; нейтральный (чёрный/серый/нет) → мягкий графит.
   var real = accent && accent[0] === "#" && accent.length === 7 &&
@@ -324,6 +327,7 @@ function bosTodayRing(isDark, accent) {
   return "inset 0 0 0 1.5px rgba(255,255,255,0.95), 0 0 0 1.4px " + ring + ", 0 1px 2.5px rgba(0,0,0,0.10)";
 }
 function bosCellEmpty(accent, isDark, mul) {
+  if (typeof bosCanonColor === "function") accent = bosCanonColor(accent);
   mul = (mul == null) ? 1 : mul; // 1=пустой день (~19-23%); <1 = слабее (будущее/соседний месяц)
   if (accent && accent[0] === "#" && accent.length === 7) {
     var a = Math.max(3, Math.round((isDark ? 0x3a : 0x30) * mul));
@@ -2967,7 +2971,7 @@ function ArchiveOrDeleteSheetLive({ name, emoji, color, dark = false, onArchive,
   return (
     <div style={{ padding: "2px 16px 0", color: "var(--text)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 4px 12px" }}>
-        <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + (color ? ", " + color + "26" : ", var(--surface-3)"), boxShadow: bosTileGlass(dark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(emoji || "🌿", 22, color)}</span>
+        <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + (color ? ", " + bosCanonColor(color) + "26" : ", var(--surface-3)"), boxShadow: bosTileGlass(dark), display: "grid", placeItems: "center", fontSize: 20, flexShrink: 0 }}>{bosIcon(emoji || "🌿", 22, bosCanonColor(color))}</span>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>«{name}»</div>
           <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 1 }}>Что с ней сделать?</div>
@@ -3014,7 +3018,7 @@ function ArchiveSheetLive({ navigate }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {rows.map((r) => (
             <div key={r.k} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 16, padding: "10px 12px", boxShadow: "var(--card-shadow)" }}>
-              <span style={{ width: 38, height: 38, borderRadius: 12, background: BOS_TILE_SHEEN + (r.color ? ", " + r.color + "26" : ", var(--surface-3)"), boxShadow: bosTileGlass(dark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0, opacity: 0.85 }}>{bosIcon(r.emoji, 20, r.color)}</span>
+              <span style={{ width: 38, height: 38, borderRadius: 12, background: BOS_TILE_SHEEN + (r.color ? ", " + bosCanonColor(r.color) + "26" : ", var(--surface-3)"), boxShadow: bosTileGlass(dark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0, opacity: 0.85 }}>{bosIcon(r.emoji, 20, bosCanonColor(r.color))}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
                 <div style={{ fontSize: 11.5, color: "var(--text-4)" }}>{r.kind}</div>
@@ -3248,6 +3252,7 @@ function bosFmtDeadline(s) {
 // ЕДИНЫЙ «скин» карточки цели/команды (вынесен из HabitsLive.goalSkin, самодостаточен по isDark).
 // tint===false → «тонированный фон» ВЫКЛ: карточка БЕЛАЯ, но цвет остаётся в акцентах (значок, полоса).
 function bosGoalSkin(color, isDark, tint) {
+  if (typeof bosCanonColor === "function") color = bosCanonColor(color);
   var th = bosTileTheme(isDark);
   var accent = (color && ("" + color).toLowerCase() !== "#0a0a0a" && color !== "#8E8E93") ? color : null;
   if (!accent || tint === false) return {
@@ -3291,17 +3296,19 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   const th = bosTileTheme(isDark), rowBg = th.rowBg, cardShadow = th.cardShadow;
   const toggle = (app && app.toggleHabit) || function () {};
   const h = habit;
+  const hc = (typeof bosCanonColor === "function") ? bosCanonColor(h.color) : h.color;
+  const hcNeutral = !hc || hc === "#0a0a0a" || ("" + hc).toLowerCase() === "#8e8e93";
   const rect = cardStyle.form === "rect";
   const onOpen = ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: from });
   const control = h.duration > 0 && !(h.goalPerDay > 1)
     ? <HabitTimerCheck habit={h} app={app} xp={10} />
     : h.goalPerDay > 1 ? <HabitCountCheck habit={h} app={app} xp={10} />
-    : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float color={h.color} dark={isDark} />;
+    : <HabitCheck done={h.done} onToggle={() => toggle(h.id)} xp={10} float color={hc} dark={isDark} />;
   const ctrl = <span onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{control}</span>;
   const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
   const sq = cardStyle.cells === "square";
   const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
-  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + ((h.color && h.tint !== false) ? h.color + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, h.color)}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + ((hc && h.tint !== false && !hcNeutral) ? hc + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, hc)}</span>;
   const chip = (typeof ChallengeProgressChip === "function") ? <ChallengeProgressChip habit={h} /> : null;
   if (rect) {
     return (
@@ -5650,7 +5657,14 @@ function UniverseFieldLive({ app, people, from, onClose }) {
    HOME card stays the compact row — only the Привычки-page card grows this strip.
    Colours = the Apple JOURNAL palette (David found it: «такие же цвета, как в Журнале») —
    muted warm→cool tints, softer & more refined than the raw system colours. ── */
-const BOS_APPLE_COLORS = ["#A06A86", "#F0564C", "#E08AC4", "#E59B9B", "#CBA98D", "#F0A24E", "#19B89B", "#54C3E4", "#4A6CD6", "#84A4B8", "#7F9AF2", "#8676E6"];
+const BOS_APPLE_COLORS = ["#32ADE6", "#007AFF", "#5856D6", "#AF52DE", "#FF2D55", "#FF3B30", "#FF9500", "#FFCC00", "#34C759", "#00C7BE", "#30B0C7", "#A2845E"];
+// Миграция старой «журнальной» палитры (v235) → новые системные тона (David: «унифицировать
+// сквозь всё, реальные цвета»). Старые привычки/цели сразу читаются в новой палитре, а не остаются
+// приглушёнными. Меняются ТОЛЬКО известные старые hex; всё прочее (новые, #0a0a0a, #8E8E93, свой
+// цвет) проходит как есть. Применяется в точках-заливках (bosCellFill/Empty/TodayRing/GoalSkin/Hero/плитки).
+const BOS_COLOR_MIGRATE = { "#A06A86": "#AF52DE", "#F0564C": "#FF3B30", "#E08AC4": "#FF2D55", "#E59B9B": "#FF2D55", "#CBA98D": "#A2845E", "#F0A24E": "#FF9500", "#19B89B": "#00C7BE", "#54C3E4": "#32ADE6", "#4A6CD6": "#007AFF", "#84A4B8": "#30B0C7", "#7F9AF2": "#5856D6", "#8676E6": "#5856D6",
+  "#0A84FF": "#007AFF", "#30D158": "#34C759", "#FF453A": "#FF3B30", "#FF9F0A": "#FF9500", "#FFD60A": "#FFCC00", "#BF5AF2": "#AF52DE", "#FF375F": "#FF2D55", "#64D2FF": "#32ADE6", "#5E5CE6": "#5856D6", "#63E6E2": "#00C7BE", "#40C8E0": "#30B0C7" };
+function bosCanonColor(hx) { if (typeof hx !== "string" || hx[0] !== "#") return hx; return BOS_COLOR_MIGRATE[hx.toUpperCase()] || hx; }
 
 // 7 LOCAL day-keys for the CURRENT week, Пн→Вс (left→right) — matches the strip order.
 function bosWeekKeys() {
@@ -5786,9 +5800,9 @@ function HomeWeekStripClassicLive({ habits = [], isDark }) {
 
 // Names for the live Apple palette (the create-screen picker label). Includes the old
 // core #0A84FF so habits made before the v235 palette still read a colour name.
-const BOS_APPLE_COLOR_NAMES = { "#A06A86": "Сливовый", "#F0564C": "Коралловый", "#E08AC4": "Орхидея", "#E59B9B": "Лосось", "#CBA98D": "Глина", "#F0A24E": "Оранжевый", "#19B89B": "Мятный", "#54C3E4": "Голубой", "#4A6CD6": "Синий", "#84A4B8": "Грифельный", "#7F9AF2": "Барвинок", "#8676E6": "Индиго",
-  /* legacy system hues — kept so habits made before the Journal palette still read a name */
-  "#34C759": "Зелёный", "#007AFF": "Синий", "#0A84FF": "Синий", "#FF9500": "Оранжевый", "#AF52DE": "Фиолетовый", "#FF2D55": "Розовый", "#30B0C7": "Бирюзовый", "#5856D6": "Индиго", "#FF3B30": "Красный", "#FFCC00": "Жёлтый" };
+const BOS_APPLE_COLOR_NAMES = { "#32ADE6": "Небесный", "#007AFF": "Синий", "#5856D6": "Индиго", "#AF52DE": "Пурпур", "#FF2D55": "Розовый", "#FF3B30": "Красный", "#FF9500": "Оранжевый", "#FFCC00": "Жёлтый", "#34C759": "Зелёный", "#00C7BE": "Мятный", "#30B0C7": "Бирюзовый", "#A2845E": "Коричневый", "#8E8E93": "Серый",
+  /* legacy hues — habits made before the systemic palette still read a name */
+  "#A06A86": "Сливовый", "#F0564C": "Коралловый", "#E08AC4": "Орхидея", "#E59B9B": "Лосось", "#CBA98D": "Глина", "#F0A24E": "Оранжевый", "#19B89B": "Мятный", "#54C3E4": "Голубой", "#4A6CD6": "Синий", "#84A4B8": "Грифельный", "#7F9AF2": "Барвинок", "#8676E6": "Индиго", "#0A84FF": "Синий" };
 
 // Neutral DEFAULT colour — a soft grey (David: «дефолтный цвет серый», в духе наших серых стеклянных
 // кружков). Lives at the head of the palette next to «Чёрный».
@@ -5796,50 +5810,55 @@ const BOS_GREY = "#8E8E93";
 // A glassy colour swatch — a glossy sphere: bright top-left specular + soft bottom inner shadow over
 // the colour, so every picker circle reads «в стекле» (David's example). Returns {background,boxShadow};
 // `selected` adds the white-gap halo ring in the swatch's own colour. ONE source → identical everywhere.
-function bosColorSwatch(hx, selected) {
-  var raw = (typeof hx === "string" && hx[0] === "#") ? hx : BOS_GREY;
-  // Свотч = СТЕКЛЯННЫЙ кружок (верт. блик + стекло-тень), НЕ глянцевый шар (David). Тон = МЯГКАЯ
-  // ПАСТЕЛЬ = ровно тот цвет, что выйдет на карточке. Серый(станд) → СВЕТЛО-серый (базовый нейтраль,
-  // «который везде»), чёрный → графит — оба различимы и отражают выбор.
-  var isBlack = raw.toLowerCase() === "#0a0a0a";
-  var isGrey = raw === BOS_GREY;
-  var tone = isBlack ? "#3b3f47" : (isGrey ? "#e9ebf0" : ((typeof bosLightenHex === "function") ? bosLightenHex(raw, 0.42) : raw));
-  // Круглое стекло: блик внутри, края чистые — иначе выбеленный верх сливался с белым зазором
-  // кольца выбора и кольцо казалось несимметричным (David). Тень — равномерная, без капли вниз.
-  var sheen = (typeof BOS_ORB_SHEEN !== "undefined") ? BOS_ORB_SHEEN : "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)";
-  var glass = (typeof bosOrbGlass === "function") ? bosOrbGlass(false) : "inset 0 0 1px rgba(255,255,255,0.7), 0 0 2px rgba(0,0,0,0.1)";
-  var ring = isGrey ? "#c2c7d2" : raw;
-  return {
-    background: sheen + ", " + tone,
-    boxShadow: (selected ? "0 0 0 2px #fff, 0 0 0 4px " + ring + ", " : "") + glass, // кольцо 2px (как у колеса), не 1px «кривое»
-  };
+function bosColorSwatch(hx, selected, isDark) {
+  var raw = (typeof bosCanonColor === "function") ? bosCanonColor(hx) : hx;
+  if (!(typeof raw === "string" && raw[0] === "#")) raw = "#0a0a0a";
+  var low = raw.toLowerCase();
+  var isStd = low === "#0a0a0a";
+  // Свотч = САМ цвет (ярко — видно, что выбираешь), МАТОВОЕ стекло (BOS_TILE_SHEEN линейный, как у
+  // плиток), НЕ радиальный «шар» (David). «Стандарт» → светло-серая нейтраль-плитка. Выбор — ГАЛОЧКОЙ
+  // (рисует пикер), без спорной обводки. `ink` = цвет галочки (контраст к тону).
+  var tone = isStd ? (isDark ? "rgba(255,255,255,0.14)" : "#E9EBF0") : raw;
+  var ink = isStd ? (isDark ? "#eef0f4" : "#3a3d44") : ((typeof bosLum === "function" && bosLum(raw) > 0.62) ? "#141416" : "#ffffff");
+  var sheen = (typeof BOS_TILE_SHEEN !== "undefined") ? BOS_TILE_SHEEN : "linear-gradient(165deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 46%, rgba(255,255,255,0) 72%)";
+  var glass = (typeof bosTileGlass === "function") ? bosTileGlass(!!isDark) : "inset 0 1px 0.5px rgba(255,255,255,0.9), 0 1px 2px rgba(0,0,0,0.06)";
+  return { background: sheen + ", " + tone, boxShadow: glass, ink: ink };
 }
 /* THE colour picker — ONE component for привычки / цели / команды so the choice is pixel-identical
    everywhere (David: «определись с палитрой основной»). Custom wheel + Серый + Чёрный + the Apple
    palette (BOS_APPLE_COLORS — the habit colours David likes), every circle glassy (bosColorSwatch). */
 function BosColorPickerLive({ value, onChange }) {
-  const isHex = typeof value === "string" && value[0] === "#";
-  const custom = isHex && value !== "#0a0a0a" && value !== BOS_GREY && !BOS_APPLE_COLORS.includes(value);
-  const sheen = (typeof BOS_ORB_SHEEN !== "undefined") ? BOS_ORB_SHEEN : "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)"; // круглое стекло: края чистые → кольцо выбора симметрично (David)
-  const glass = (typeof bosOrbGlass === "function") ? bosOrbGlass(false) : "inset 0 0 1px rgba(255,255,255,0.7), 0 0 2px rgba(0,0,0,0.1)";
-  const base = { width: 32, height: 32, borderRadius: "50%", border: 0, flexShrink: 0, cursor: "pointer", transition: "box-shadow 0.15s" };
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const isDark = !!(app && app.themeOverride === "dark");
+  const val = (typeof bosCanonColor === "function") ? bosCanonColor(value) : value; // старый цвет → канон, чтобы свотч подсветился
+  const isHex = typeof val === "string" && val[0] === "#";
+  const custom = isHex && val !== "#0a0a0a" && val !== BOS_GREY && !BOS_APPLE_COLORS.includes(val);
+  const sheen = (typeof BOS_ORB_SHEEN !== "undefined") ? BOS_ORB_SHEEN : "linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.06) 58%, rgba(255,255,255,0) 85%)";
+  const glass = (typeof bosOrbGlass === "function") ? bosOrbGlass(isDark) : "inset 0 0 1px rgba(255,255,255,0.7), 0 0 2px rgba(0,0,0,0.1)";
+  const base = { width: 32, height: 32, borderRadius: "50%", border: 0, flexShrink: 0, cursor: "pointer", transition: "box-shadow 0.15s", display: "grid", placeItems: "center", padding: 0 };
+  // Один свотч = стеклянный кружок + галочка при выборе (David: «галочка на выбранный, без обводки»).
+  const swatchBtn = (hx, label) => {
+    const sel = val === hx;
+    const s = bosColorSwatch(hx, sel, isDark);
+    return (
+      <button key={hx} type="button" className="tap" data-haptic="selection" onClick={() => onChange(hx)} aria-label={label}
+        style={{ ...base, background: s.background, boxShadow: s.boxShadow }}>
+        {sel ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke={s.ink} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg> : null}
+      </button>
+    );
+  };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "10px 8px" }}>
       <label className="tap" data-haptic="selection" style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", flexShrink: 0, cursor: "pointer",
         background: sheen + ", conic-gradient(from 0deg, #FF3B30, #FF9500, #FFCC00, #34C759, #30B0C7, #007AFF, #AF52DE, #FF2D55, #FF3B30)",
-        boxShadow: (custom ? "0 0 0 2px #fff, 0 0 0 4px var(--text-3), " : "") + glass }}>
-        <input type="color" value={isHex ? value : BOS_GREY} onChange={(e) => onChange(e.target.value)} aria-label="Свой цвет"
+        boxShadow: (custom ? "0 0 0 2px var(--surface-1, #fff), 0 0 0 4px var(--text-3), " : "") + glass }}>
+        <input type="color" value={isHex ? val : "#0a0a0a"} onChange={(e) => onChange(e.target.value)} aria-label="Свой цвет"
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, cursor: "pointer" }} />
       </label>
       <span style={{ width: 1, height: 26, background: "var(--line)", flexShrink: 0 }} />
-      {[{ c: BOS_GREY, l: "Серый (стандарт)" }, { c: "#0a0a0a", l: "Чёрный" }].map((n) => (
-        <button key={n.c} type="button" className="tap" data-haptic="selection" onClick={() => onChange(n.c)} aria-label={n.l}
-          style={{ ...base, ...bosColorSwatch(n.c, value === n.c) }} />
-      ))}
-      {BOS_APPLE_COLORS.map((c) => (
-        <button key={c} type="button" className="tap" data-haptic="selection" onClick={() => onChange(c)} aria-label={BOS_APPLE_COLOR_NAMES[c] || "Цвет"}
-          style={{ ...base, ...bosColorSwatch(c, value === c) }} />
-      ))}
+      {swatchBtn("#0a0a0a", "Стандарт")}
+      {BOS_APPLE_COLORS.map((c) => swatchBtn(c, BOS_APPLE_COLOR_NAMES[c] || "Цвет"))}
+      {swatchBtn(BOS_GREY, "Серый")}
     </div>
   );
 }

@@ -42,7 +42,7 @@ function TeamCreateLive() {
   const preset = params?.preset || null;
   const [name, setName] = useCS(preset?.t || "");
   const [emblem, setEmblem] = useCS(preset?.i || "✨");
-  const [accent, setAccent] = useCS(preset?.accent || BOS_GREY);   // neutral GREY default (David: «дефолтный цвет серый»); a chip preset overrides it
+  const [accent, setAccent] = useCS(preset?.accent || "#0a0a0a");   // «Стандарт» (графит-нейтраль) по умолчанию; чип-пресет перекрывает
   const [duration, setDuration] = useCS("month");
   const [vis, setVis] = useCS("private");
   const [saving, setSaving] = useCS(false);
@@ -299,7 +299,7 @@ function TeamSettingsLive() {
   const backFrom = params?.from || "habits";
   const [name, setName] = useCS(team.name || "");
   const [emblem, setEmblem] = useCS(team.emblem || "✨");
-  const [accent, setAccent] = useCS(team.accent || BOS_GREY);
+  const [accent, setAccent] = useCS(team.accent || "#0a0a0a");
   const [goal, setGoal] = useCS(team.goal || "");
   const [priv, setPriv] = useCS(team.vis !== "public");
   const [notify, setNotify] = useCS(team.notify !== false);

@@ -34,7 +34,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   // our own emoji sheet, opened by tapping the tile below.
   // Every habit carries an Apple colour now (coherent with the week-strip). Old null-colour
   // habits resolve to their stable bosHabitColor when edited.
-  const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a")) : (preset?.color ?? BOS_GREY)); // новый = нейтральный «белый» BOS_GREY (David: пикер по дефолту на белом везде)
+  const [color, setColor] = useHS(editing ? (params.habit.color ?? (typeof bosHabitColor === "function" ? bosHabitColor(params.habit) : "#0a0a0a")) : (preset?.color ?? "#0a0a0a")); // новый = «Стандарт» (графит-нейтраль): графит на днях/чекбоксе, светло-серая плитка
   const [goal, setGoal] = useHS(editing ? (params.habit.goalPerDay || 1) : 1);
   const [duration, setDuration] = useHS(editing ? (params.habit.duration || 0) : 0); // минуты; 0 = без таймера
   // Отмечать = просто ГАЛОЧКА по умолчанию. Тумблер «Считать количество» (countOn) раскрывает число +
@@ -439,7 +439,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // chosen colour fills the goal's progress bar + detail ring (David: «всё один в один»).
   // Дефолт цвета ЦЕЛИ = НЕЙТРАЛЬНЫЙ (null → белая/светло-серая карточка, David). Цвет появляется
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
-  const [color, setColor] = useHS(g0?.color ?? preset?.color ?? BOS_GREY); // новый = нейтральный «белый» BOS_GREY (единый дефолт с привычками/командами)
+  const [color, setColor] = useHS(g0?.color ?? preset?.color ?? "#0a0a0a"); // новый = «Стандарт» (графит-нейтраль), единый дефолт с привычками/командами
   const [tint, setTint] = useHS(g0 ? (g0.tint !== false) : true); // тонированный фон цели — РЕАЛЬНО читается в bosGoalSkin (карточка залита цветом / чистая)
   const [target, setTarget] = useHS(g0?.target || preset?.target || 1); // старт с 1, без потолка (David: «в целях постоянно 22»)
   const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
