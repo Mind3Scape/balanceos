@@ -46,7 +46,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   const pickUnit = (u) => { setCountUnit(u); if (u === "min") { if (duration < 5) setDuration(15); } else if (goal < 2) setGoal(2); };
   // «Тонированный фон» — плитка залита цветом привычки (по умолч.) или чистая, только значок.
   // Реально читается в HabitTileLive (не бутафория).
-  const [tint, setTint] = useHS(editing ? (params.habit.tint !== false) : true);
+  const [cardTint, setCardTint] = useHS(editing ? (params.habit.cardTint === true) : false); // тон ВСЕЙ карточки; деф ВЫКЛ (David: обе белые по умолчанию)
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
   const [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7
     ? params.habit.days.slice()
@@ -125,7 +125,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     // Личные поля (напоминание/дни/тип/«вместе») для общего определения не пишем — они у каждого свои.
     if (teamFor) {
       const _gpdT = (countOn && countUnit === "times") ? Math.max(2, goal) : 1;
-      if (teamFor.onSave) teamFor.onSave({ name: nm, emoji: iconPick, color, tint, goalPerDay: _gpdT, isMain: isMain }, editing ? params.habit.id : null);
+      if (teamFor.onSave) teamFor.onSave({ name: nm, emoji: iconPick, color, cardTint, goalPerDay: _gpdT, isMain: isMain }, editing ? params.habit.id : null);
       close();
       return;
     }
@@ -134,7 +134,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
     const countTimes = countOn && countUnit === "times";
     const countMin = countOn && countUnit === "min";
     const base = {
-      emoji: iconPick, name: nm, color, tint, type,        // tint = тонированный фон; type = развивать/бросить
+      emoji: iconPick, name: nm, color, cardTint, type,        // cardTint = тон всей карточки; type = развивать/бросить
       days: days.slice(),                                  // 7-long Пн..Вс mask
       goalPerDay: countTimes ? Math.max(2, goal) : 1,      // счётчик: ≥2 раза (1 раз = обычная галочка); без верхнего потолка
       duration: countMin ? Math.max(5, duration) : 0,      // таймер: минуты
@@ -210,7 +210,7 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
-            style={{ width: 56, height: 56, borderRadius: 16, background: (tint && color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 28, color)}
           </button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
@@ -222,9 +222,9 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         {!teamFor && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: "var(--text-2)" }}>Тонированный фон
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Плитка залита цветом. Выключишь — чистый значок.</div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Вся карточка в цвете. Выключишь — карточка белая, цвет на значке и днях.</div>
           </div>
-          <Switch small on={tint} onChange={setTint} />
+          <Switch small on={cardTint} onChange={setCardTint} />
         </div>
         )}
       </div>
@@ -440,7 +440,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // Дефолт цвета ЦЕЛИ = НЕЙТРАЛЬНЫЙ (null → белая/светло-серая карточка, David). Цвет появляется
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
   const [color, setColor] = useHS(g0?.color ?? preset?.color ?? "#0a0a0a"); // новый = «Стандарт» (графит-нейтраль), единый дефолт с привычками/командами
-  const [tint, setTint] = useHS(g0 ? (g0.tint !== false) : true); // тонированный фон цели — РЕАЛЬНО читается в bosGoalSkin (карточка залита цветом / чистая)
+  const [tint, setTint] = useHS(g0 ? (g0.tint !== false) : false); // тон всей карточки цели (bosGoalSkin); деф ВЫКЛ (David: обе белые по умолчанию)
   const [target, setTarget] = useHS(g0?.target || preset?.target || 1); // старт с 1, без потолка (David: «в целях постоянно 22»)
   const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
   const [desc, setDesc] = useHS(g0?.desc || ""); // заметка создателя под целью; у команды синкается через goal.desc всем
@@ -605,7 +605,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 13, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
-            style={{ width: 52, height: 52, borderRadius: 15, background: (tint && color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            style={{ width: 52, height: 52, borderRadius: 15, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 26, color)}
           </button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели" aria-label="Название цели"

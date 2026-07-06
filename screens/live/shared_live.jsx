@@ -3299,6 +3299,14 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   const hc = (typeof bosCanonColor === "function") ? bosCanonColor(h.color) : h.color;
   const hcNeutral = !hc || hc === "#0a0a0a" || ("" + hc).toLowerCase() === "#8e8e93";
   const rect = cardStyle.form === "rect";
+  // Тумблер «Тонировать фон» (cardTint) = весь фон карточки в цвете (как у цели); выкл (по умолч.) → белая.
+  // Плитка/дни/чекбокс цветные ВСЕГДА. Нейтраль (Стандарт) не тонируется. Существующие привычки без
+  // cardTint → белая карточка (спокойная главная не меняется).
+  const _tinted = h.cardTint === true && !hcNeutral && typeof bosGoalSkin === "function";
+  const _sk = _tinted ? bosGoalSkin(hc, isDark, true) : null;
+  const _cardBg = _tinted ? _sk.bg : rowBg;
+  const _cardSh = _tinted ? _sk.shadow : cardShadow;
+  const _nameCol = _tinted ? _sk.txt : "var(--text)";
   const onOpen = ctx.mode ? undefined : () => navigate("habit-detail", { habit: h, from: from });
   const control = h.duration > 0 && !(h.goalPerDay > 1)
     ? <HabitTimerCheck habit={h} app={app} xp={10} />
@@ -3308,14 +3316,14 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   const faces = cardStyle.faces ? <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}><HabitBuddyAvatarsLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />{typeof CircleFacesLive === "function" && <CircleFacesLive habit={h} size={rect ? 16 : 20} max={rect ? 5 : 3} />}</span> : null;
   const sq = cardStyle.cells === "square";
   const marks = cardStyle.marks === "week" ? <HabitWeekStrip habit={h} fill square={sq} /> : cardStyle.marks === "month" ? <HabitMonthMini habit={h} square={sq} /> : null;
-  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: BOS_TILE_SHEEN + ", " + ((hc && h.tint !== false && !hcNeutral) ? hc + "26" : th.iconBg), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, hc)}</span>;
+  const icon = <span className="bos-ticon" style={{ width: 38, height: 38, borderRadius: 13, background: _tinted ? _sk.iconBg : (BOS_TILE_SHEEN + ", " + ((hc && !hcNeutral) ? hc + "26" : th.iconBg)), boxShadow: bosTileGlass(isDark), display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{bosIcon(h.emoji, 21, hc)}</span>;
   const chip = (typeof ChallengeProgressChip === "function") ? <ChallengeProgressChip habit={h} /> : null;
   if (rect) {
     return (
-      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 18, boxShadow: cardShadow, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+      <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: _cardBg, borderRadius: 18, boxShadow: _cardSh, padding: "11px 14px", display: "flex", alignItems: "center", gap: 13, pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
         {icon}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
+          <div style={{ fontSize: 15.5, fontWeight: 600, color: _nameCol, letterSpacing: "-0.2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</div>
           {chip}
           {marks && <div style={{ marginTop: 8 }}>{marks}</div>}
         </div>
@@ -3325,13 +3333,13 @@ function HabitTileLive({ habit, ctx = { mode: false }, from = "habits" }) {
   }
   const compact = cardStyle.marks === "none";
   return (
-    <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: rowBg, borderRadius: 22, boxShadow: cardShadow, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
+    <div className={ctx.mode ? "" : "tap"} onClick={onOpen} style={{ background: _cardBg, borderRadius: 22, boxShadow: _cardSh, padding: "13px 13px 12px", minHeight: compact ? undefined : 146, display: "flex", flexDirection: "column", pointerEvents: ctx.mode ? "none" : "auto", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         {icon}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>{faces}{ctrl}</div>
       </div>
       {chip}
-      {cardStyle.name && <div style={{ marginTop: "auto", paddingTop: 10, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>}
+      {cardStyle.name && <div style={{ marginTop: "auto", paddingTop: 10, fontSize: 15, fontWeight: 600, color: _nameCol, letterSpacing: "-0.2px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>}
       {marks && <div style={{ marginTop: cardStyle.name ? 7 : "auto", paddingTop: cardStyle.name ? 0 : 12 }}>{marks}</div>}
     </div>
   );

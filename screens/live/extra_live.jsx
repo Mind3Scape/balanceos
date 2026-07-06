@@ -87,7 +87,9 @@ function HabitDetailLive() {
 
   // Neutral by default (cohesive with the gray tiles outside); the habit's own
   // colour only if the user picked one — it tints the tile and fills the grid.
-  const tileBg  = h.color ? h.color + "20" : (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
+  const _hc = (typeof bosCanonColor === "function") ? bosCanonColor(h.color) : h.color;
+  const _hcNeutral = !_hc || _hc === "#0a0a0a" || ("" + _hc).toLowerCase() === "#8e8e93";
+  const tileBg  = _hcNeutral ? (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)") : (_hc + "20");
 
   // SHARED habit (buddy): pull BOTH members' real day-maps so the month calendar AND the
   // «Вместе» card show WHO did WHICH day, each in their own colour-coded track (David:
@@ -100,8 +102,8 @@ function HabitDetailLive() {
   const _calYear = new Date().getFullYear();
   const _calKey = (d, mi) => _calYear + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
   const calPeople = _shared
-    ? buddies.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "Д").charAt(0).toUpperCase()), color: h.color || "#0a0a0a", you: !!m.me, avatar: m.avatar }))
-    : [{ name: "Ты", initials: "Я", color: h.color || "#0a0a0a", you: true }];
+    ? buddies.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "Д").charAt(0).toUpperCase()), color: _hc || "#0a0a0a", you: !!m.me, avatar: m.avatar }))
+    : [{ name: "Ты", initials: "Я", color: _hc || "#0a0a0a", you: true }];
   // For a SHARED habit, YOUR row reads the PERSONAL log (h.log) — the complete source of truth for
   // your own check-ins — while buddies read the cloud shared log. Without this YOUR calendar showed
   // only today (David: «серия 4, а на календаре только сегодня»): check-ins aren't mirrored into
@@ -179,7 +181,7 @@ function HabitDetailLive() {
             что на главной — таймер/счётчик/галочка по типу привычки, масштаб 1.8). */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 58, height: 58, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
-            <span style={{ fontSize: 30 }}>{bosIcon(h.emoji, 28, h.color)}</span>
+            <span style={{ fontSize: 30 }}>{bosIcon(h.emoji, 28, _hc)}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", lineHeight: 1.12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
