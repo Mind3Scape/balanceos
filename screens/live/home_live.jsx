@@ -58,36 +58,40 @@ function HomeQuickStripLive({ isDark }) {
   );
 }
 
-// Держит поле ввода НАД клавиатурой (фикс David: в Telegram-webview клава ОВЕРЛЕИТ контент —
-// viewport не сжимается, поле уезжает под клаву). Ловим высоту клавы через visualViewport, даём
-// ближайшему скролл-контейнеру временный padding-bottom (чтобы было куда доскроллить, даже если
-// контент короткий) и двигаем поле так, чтобы оно село прямо над клавиатурой. На blur — откат.
+// Держит поле ввода НАД клавиатурой (фикс David: экран не «магнитится» к полю). Причина была в
+// двух вещах: (1) у скролл-контейнера главной (.bos-page) не было ЗАПАСА снизу — короткий контент
+// нельзя доскроллить, поле оставалось под клавой (поэтому и scrollIntoView не спасал); (2) в
+// Telegram-iOS клава часто НЕ отражается в visualViewport → высоту не узнать. Решение: ВСЕГДА даём
+// контейнеру большой padding-bottom (есть куда двигать), и поднимаем поле — точно над клавой, если
+// её видно через visualViewport, ИНАЧЕ в верхнюю зону экрана (эвристика, работает без API). На blur — откат.
 function bosKbScroll(e) {
   const input = e.target;
-  const vv = (typeof window !== "undefined") && window.visualViewport;
-  if (!vv) { setTimeout(() => { try { input.scrollIntoView({ block: "center" }); } catch (_) {} }, 350); return; }
   let sc = input.parentElement;
   while (sc && sc !== document.body) {
     const oy = getComputedStyle(sc).overflowY;
     if (oy === "auto" || oy === "scroll") break;
     sc = sc.parentElement;
   }
-  const scrollable = sc && sc !== document.body ? sc : null;
+  if (!sc || sc === document.body) sc = document.scrollingElement || document.documentElement;
+  const vv = (typeof window !== "undefined") ? window.visualViewport : null;
+  const prevPad = sc.style.paddingBottom;
+  sc.style.paddingBottom = "60vh"; // запас снизу под любую клавиатуру — без него доскроллить некуда
   const adjust = () => {
-    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    if (scrollable && kb > 0) scrollable.style.paddingBottom = (kb + 24) + "px";
     const r = input.getBoundingClientRect();
-    const delta = r.bottom - (vv.offsetTop + vv.height - 16);
-    if (delta > 0) { if (scrollable) scrollable.scrollTop += delta; else window.scrollBy(0, delta); }
+    const vTop = vv ? vv.offsetTop : 0;
+    const vH = vv ? vv.height : window.innerHeight;
+    const kb = Math.max(0, window.innerHeight - vH - vTop); // высота клавы, если её видно
+    const targetBottom = kb > 2 ? (vTop + vH - 20) : (vTop + vH * 0.45); // над клавой ИЛИ в верхнюю зону
+    const delta = r.bottom - targetBottom;
+    if (delta > 2) sc.scrollTop += delta; // двигаем только если поле НИЖЕ цели (вверх не дёргаем)
   };
-  const onResize = () => adjust();
-  vv.addEventListener("resize", onResize);
-  const t1 = setTimeout(adjust, 300);
-  const t2 = setTimeout(adjust, 560);
+  const onvv = () => adjust();
+  if (vv) { vv.addEventListener("resize", onvv); vv.addEventListener("scroll", onvv); }
+  const timers = [60, 250, 450, 700, 1000].map((ms) => setTimeout(adjust, ms));
   const cleanup = () => {
-    clearTimeout(t1); clearTimeout(t2);
-    vv.removeEventListener("resize", onResize);
-    if (scrollable) scrollable.style.paddingBottom = "";
+    timers.forEach(clearTimeout);
+    if (vv) { vv.removeEventListener("resize", onvv); vv.removeEventListener("scroll", onvv); }
+    sc.style.paddingBottom = prevPad;
     input.removeEventListener("blur", cleanup);
   };
   input.addEventListener("blur", cleanup);
