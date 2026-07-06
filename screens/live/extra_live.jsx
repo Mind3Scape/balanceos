@@ -35,7 +35,7 @@
    thin line icons (not emoji) and SF numerals. Replaces the three "boxy" emoji cards that
    read as vibe-coded (David: «три блока серия/лучшая/всего выглядят как вайп-кодинг»). Used by
    BOTH habit + goal detail so the whole app keeps one rhythm. `items`: {icon, l, v, suf?, text?}. */
-function StatTrioLive({ items, card, isDark }) {
+function StatTrioLive({ items, card, isDark, bare = false }) {
   const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
   const div = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.11)";
   const sufStyle = { fontSize: 11, color: "var(--text-4)", fontWeight: 600, marginLeft: 1 };
@@ -44,7 +44,7 @@ function StatTrioLive({ items, card, isDark }) {
   // разделители жирнее. Icon в линию со значением; все значения одного кегля (16px) — ровный низ.
   const glassBg = (typeof BOS_TILE_SHEEN !== "undefined" ? BOS_TILE_SHEEN + ", " : "") + (isDark ? "rgba(255,255,255,0.06)" : "var(--surface-3)");
   return (
-    <div style={{ background: glassBg, boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : (card && card.boxShadow) || "none"), borderRadius: 18, padding: "13px 0", display: "flex", alignItems: "stretch" }}>
+    <div style={bare ? { display: "flex", alignItems: "stretch" } : { background: glassBg, boxShadow: (typeof bosTileGlass === "function" ? bosTileGlass(isDark) : (card && card.boxShadow) || "none"), borderRadius: 18, padding: "13px 0", display: "flex", alignItems: "stretch" }}>
       {items.map((s, i) => (
         <div key={i} style={{ flex: 1, minWidth: 0, padding: "0 6px", borderLeft: i > 0 ? ("0.5px solid " + div) : "none",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
@@ -171,43 +171,49 @@ function HabitDetailLive() {
         </div>
       } />
 
-      {/* Hero — плитка-иконка СЛЕВА + название, СПРАВА наш компонент отметки (David: «как на примере»).
-          Компонент — ТОТ ЖЕ, что на главной (таймер/счётчик/галочка по типу привычки), просто крупнее:
-          так видно, что отмечать можно прямо тут, а не только тыкая день в календаре. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "6px 2px 14px" }}>
-        <div style={{ width: 72, height: 72, borderRadius: 20, flexShrink: 0, display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
-          <span style={{ fontSize: 36 }}>{bosIcon(h.emoji, 34, h.color)}</span>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", lineHeight: 1.12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
-          <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
-            Ежедневно{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
+      {/* ЕДИНЫЙ БЛОК (David: «как на макете — всё внутри одного блока»): герой (иконка+название+отметка)
+          → календарь (пилюля справа) → Серия/Лучшая/Всего снизу — всё в одной карточке, не тремя. */}
+      <div style={{ ...card, borderRadius: 22, padding: 16, marginTop: 4 }}>
+
+        {/* Верхний ряд: плитка-иконка слева + название, справа НАШ реальный компонент отметки (тот же,
+            что на главной — таймер/счётчик/галочка по типу привычки, масштаб 1.8). */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 72, height: 72, borderRadius: 20, flexShrink: 0, display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
+            <span style={{ fontSize: 36 }}>{bosIcon(h.emoji, 34, h.color)}</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", lineHeight: 1.12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
+            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
+              Ежедневно{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
+            </div>
+          </div>
+          <div style={{ flexShrink: 0, width: 66, height: 66, display: "grid", placeItems: "center" }}>
+            <div style={{ transform: "scale(1.8)", transformOrigin: "center" }}>
+              {(h.duration > 0 && !((h.goalPerDay || 1) > 1) && typeof HabitTimerCheck === "function")
+                ? <HabitTimerCheck habit={h} app={app} xp={10} />
+                : ((h.goalPerDay || 1) > 1 && typeof HabitCountCheck === "function")
+                  ? <HabitCountCheck habit={h} app={app} xp={10} />
+                  : <HabitCheck done={h.done} onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} xp={10} float color={h.color} dark={isDark} />}
+            </div>
           </div>
         </div>
-        {/* Наш реальный компонент отметки (не копия) — масштабирован в герой. Диспетчер как на главной. */}
-        <div style={{ flexShrink: 0, width: 66, height: 66, display: "grid", placeItems: "center" }}>
-          <div style={{ transform: "scale(1.8)", transformOrigin: "center" }}>
-            {(h.duration > 0 && !((h.goalPerDay || 1) > 1) && typeof HabitTimerCheck === "function")
-              ? <HabitTimerCheck habit={h} app={app} xp={10} />
-              : ((h.goalPerDay || 1) > 1 && typeof HabitCountCheck === "function")
-                ? <HabitCountCheck habit={h} app={app} xp={10} />
-                : <HabitCheck done={h.done} onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} xp={10} float color={h.color} dark={isDark} />}
-          </div>
+
+        {/* Календарь — тот же ОБЩИЙ компонент, но bare (без своей карточки): живёт внутри единого блока. */}
+        <div style={{ marginTop: 18 }}>
+          <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" />
         </div>
+
+        {/* Серия / Лучшая / Всего — СНИЗУ, внутри блока (David), тонкая линия сверху, без своей плашки
+            (bare). Иконки нейтральные — цвет привычки живёт на тайле и в календаре. */}
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+          <StatTrioLive bare isDark={isDark} items={[
+            { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={isDark ? "#fff" : "#0a0a0a"} /> },
+            { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
+            { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
+          ]} />
+        </div>
+
       </div>
-
-      {/* Stat row — native: thin line icons, one card, hairline dividers (StatTrioLive) */}
-      {/* Иконки в стекле НЕЙТРАЛЬНЫЕ — цвет привычки их НЕ красит (David: «зелёный не должен влиять на
-          иконки серия/лучшая в стекле»); цвет живёт на иконке-тайле привычки и в календаре. */}
-      <StatTrioLive isDark={isDark} card={card} items={[
-        { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={isDark ? "#fff" : "#0a0a0a"} /> },
-        { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-        { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-      ]} />
-
-      {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
-         so the whole app reads one way. Live = your own real days. */}
-      <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" todayTap={_todayTap} defaultView="year" />
 
       {/* СКРЫТО (David: «убери баннеры „Веди вместе“ и „Инсайт“ — может, потом пригодятся»).
           Приглашение переехало в стеклянную кнопку «поделиться» в шапке. Код сохранён:

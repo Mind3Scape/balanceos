@@ -558,26 +558,31 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         {/* Компактный переключатель масштаба (David): сегменты + глазик-кнопка (только иконка,
             залита когда «Подробно»). Чипы людей переехали ВНИЗ, под календарь. */}
         <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {!scopeOpen ? (
-              /* Тихая пилюля: по умолчанию — только текущий срок + галка ⌄. Минимализм не трогаем;
-                 тап раскрывает сегмент. Это НЕ «глазик» (глаз = плотность, отдельная ось). */
-              <button onClick={() => setScopeOpen(true)} className="tap" data-no-haptic aria-label="Сменить срок"
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, border: 0, cursor: "pointer", background: chipBg, color: "var(--text-2)", padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.2px" }}>
-                {({ week: "Неделя", month: "Месяц", year: "Год" })[view]}
-                <span style={{ fontSize: 11, opacity: 0.55, transform: "translateY(-1px)" }}>⌄</span>
-              </button>
-            ) : (
-              /* Раскрытый сегмент — тот же вид, что был; выбор срока сворачивает пилюлю обратно. Лёгкий
-                 пружинный «pop» на появлении (WAAPI, как у волны). */
+          {!scopeOpen && (
+            /* Период СЛЕВА — как в макете («Декабрь 2025» / «2025 год»), контролы справа. */
+            <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {view === "year" ? (year + " год") : (view === "week" ? "Эта неделя" : (MONTHS[mIdx] + " " + year))}
+            </div>
+          )}
+          {!scopeOpen ? (
+            /* Тихая пилюля СПРАВА (David: «год должен быть справа, как в макете»): срок + галка ⌄. Тап
+               раскрывает сегмент. Это НЕ «глазик» (глаз = плотность, отдельная ось). */
+            <button onClick={() => setScopeOpen(true)} className="tap" data-no-haptic aria-label="Сменить срок"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, border: 0, cursor: "pointer", background: chipBg, color: "var(--text-2)", padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.2px", flexShrink: 0 }}>
+              {({ week: "Неделя", month: "Месяц", year: "Год" })[view]}
+              <span style={{ fontSize: 11, opacity: 0.55, transform: "translateY(-1px)" }}>⌄</span>
+            </button>
+          ) : (
+            /* Раскрытый сегмент занимает строку; выбор срока сворачивает обратно. Пружинный pop (WAAPI). */
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div ref={(el) => { if (el) { try { el.animate([{ opacity: 0, transform: "scale(0.75)" }, { opacity: 1, transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(0.2,1.3,0.4,1)" }); } catch (_) {} } }}
                 style={{ display: "flex", gap: 2, background: chipBg, borderRadius: 11, padding: 2.5 }}>
                 {[["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
                   <button key={v} onClick={() => { setView(v); setScopeOpen(false); }} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "5px 0", fontSize: 12.5, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)", transition: "background 0.15s" }}>{l}</button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
           <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
             style={{ display: "grid", placeItems: "center", background: compact ? chipBg : (isDark ? "#fff" : "#0a0a0a"), border: 0, borderRadius: 999, width: 32, height: 32, cursor: "pointer", flexShrink: 0, transition: "background 0.15s" }}>
             <I.Eye size={15} filled={!compact} color={compact ? "var(--text-3)" : (isDark ? "#0a0a0a" : "#fff")} />
@@ -673,11 +678,14 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             чекбокс (bosCellFill+glass+кольцо сегодня), как на главной. */}
         {view === "year" && (
           <div style={{ display: "flex", gap: 6 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 3, paddingTop: !compact ? 25 : 0, flexShrink: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, paddingTop: !compact ? 29 : 4, flexShrink: 0 }}>
               {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((w, i) => <div key={i} style={{ height: 13, fontSize: 9, lineHeight: "13px", color: "var(--text-4)", fontWeight: 600, letterSpacing: "-0.3px" }}>{w}</div>)}
             </div>
             <div ref={yearScrollRef} className="screen-scroll" style={{ overflowX: "auto", paddingBottom: 4, flex: 1 }}>
-              <div style={{ minWidth: yearData.cols * 16 }}>
+              {/* padding = воздух вокруг грядки, чтобы КОЛЬЦО сегодня (box-shadow) не обрезалось краем
+                  скролла (David: «колесо вокруг сегодняшнего дня обрезается»). paddingTop согласован с
+                  подписями дней слева (29/4) → строки не разъезжаются. */}
+              <div style={{ minWidth: yearData.cols * 16, padding: "4px 5px 2px 2px" }}>
                 {!compact && (
                   <div style={{ display: "flex", marginBottom: 8, height: 17 }}>
                     {Array.from({ length: yearData.cols }, (_, c) => (
@@ -697,7 +705,10 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
                     const filled = pct > 0;
                     const bg = pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : track) : bosCellFill(hx, pct);
                     const todayRingY = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.48)";
-                    const sh = [filled ? bosCellGlass(isDark) : "", isToday ? ("0 0 0 1.6px " + (itx ? hx : todayRingY)) : ""].filter(Boolean).join(", ") || "none";
+                    // Кольцо сегодня — ВНУТРЕННЕЕ (inset): рисуется внутри клетки → НЕ обрезается краем
+                    // горизонтального скролла (David: «колесо вокруг сегодня обрезается»). Нейтральный тон
+                    // виден и на пустой клетке, и на залитой (в отличие от hx, который сливается с заливкой).
+                    const sh = [filled ? bosCellGlass(isDark) : "", isToday ? ("inset 0 0 0 1.6px " + todayRingY) : ""].filter(Boolean).join(", ") || "none";
                     const yst = { width: 13, height: 13, borderRadius: "50%", background: bg, boxShadow: sh };
                     if (itx) return <button key={i} onClick={fireToday} data-no-haptic className="tap" title={(MONTHS[s.m] || "") + " " + s.d} style={{ ...yst, border: 0, padding: 0, cursor: "pointer" }} />;
                     return <span key={i} title={(MONTHS[s.m] || "") + " " + s.d} style={yst} />;
