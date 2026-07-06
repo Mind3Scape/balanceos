@@ -35,9 +35,9 @@
    thin line icons (not emoji) and SF numerals. Replaces the three "boxy" emoji cards that
    read as vibe-coded (David: «три блока серия/лучшая/всего выглядят как вайп-кодинг»). Used by
    BOTH habit + goal detail so the whole app keeps one rhythm. `items`: {icon, l, v, suf?, text?}. */
-function StatTrioLive({ items, card, isDark, bare = false }) {
+function StatTrioLive({ items, card, isDark, bare = false, tintInk = null }) {
   const Count = (typeof CountUp !== "undefined") ? CountUp : ({ value }) => value;
-  const div = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.11)";
+  const div = tintInk ? (isDark ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.5)") : (isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.11)");
   const sufStyle = { fontSize: 11, color: "var(--text-4)", fontWeight: 600, marginLeft: 1 };
   // ПОД СТЕКЛО (David: «верхний блок в стекло, чтобы гармонировал с нижним календарём, иконки
   // выразительнее — сейчас нет ощущения разграничения»): тот же sheen+glass-тень, что у иконки-тайла,
@@ -48,7 +48,7 @@ function StatTrioLive({ items, card, isDark, bare = false }) {
       {items.map((s, i) => (
         <div key={i} style={{ flex: 1, minWidth: 0, padding: "0 6px", borderLeft: i > 0 ? ("0.5px solid " + div) : "none",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text)", fontWeight: 700, fontSize: 17, letterSpacing: "-0.3px", lineHeight: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, color: tintInk || "var(--text)", fontWeight: 700, fontSize: 17, letterSpacing: "-0.3px", lineHeight: 1 }}>
             {s.icon}
             <span style={{ display: "inline-flex", alignItems: "baseline", minWidth: 0 }}>
               {s.text ? s.text : <Count value={s.v} />}
@@ -117,7 +117,6 @@ function HabitDetailLive() {
   // Календарь+статы кладём на матовую подложку _panelBg, чтобы читались на цвете. Нейтраль не тонируется.
   const _tinted = h.cardTint === true && !_hcNeutral && typeof bosGoalSkin === "function";
   const _sk = _tinted ? bosGoalSkin(_hc, isDark, true) : null;
-  const _panelBg = isDark ? "rgba(12,12,14,0.44)" : "rgba(255,255,255,0.66)";
   const card = _tinted
     ? { background: _sk.bg, boxShadow: _sk.shadow }
     : (isDark
@@ -207,19 +206,18 @@ function HabitDetailLive() {
           </div>
         </div>
 
-        {/* Календарь + статы. На тонированном фоне — на матовой подложке (David: «фон тонируем, но
-            календарь/статы должны читаться»); на белом — как было, без подложки. */}
-        <div style={_tinted ? { marginTop: 14, borderRadius: 16, padding: "2px 12px 12px", background: _panelBg } : { marginTop: 0 }}>
-          <div style={{ marginTop: _tinted ? 6 : 18 }}>
-            <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" />
-          </div>
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
-            <StatTrioLive bare isDark={isDark} items={[
-              { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={isDark ? "#fff" : "#0a0a0a"} /> },
-              { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} filled strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-              { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2.8} color={isDark ? "#fff" : "#0a0a0a"} /> },
-            ]} />
-          </div>
+        {/* Календарь — ПРЯМО на тонированном фоне, единый тон (David: «как в макете, без подложки»). */}
+        <div style={{ marginTop: 18 }}>
+          <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" />
+        </div>
+
+        {/* Серия / Лучшая / Всего — снизу; на тоне линия и иконки светлее/в тон. */}
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid " + (_tinted ? (isDark ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.5)") : "var(--line)") }}>
+          <StatTrioLive bare isDark={isDark} tintInk={_tinted ? _sk.txt : null} items={[
+            { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={_tinted ? _sk.txt : (isDark ? "#fff" : "#0a0a0a")} /> },
+            { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} filled strokeWidth={2} color={_tinted ? _sk.txt : (isDark ? "#fff" : "#0a0a0a")} /> },
+            { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2.8} color={_tinted ? _sk.txt : (isDark ? "#fff" : "#0a0a0a")} /> },
+          ]} />
         </div>
 
       </div>

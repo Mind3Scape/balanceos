@@ -47,6 +47,10 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   // «Тонированный фон» — плитка залита цветом привычки (по умолч.) или чистая, только значок.
   // Реально читается в HabitTileLive (не бутафория).
   const [cardTint, setCardTint] = useHS(editing ? (params.habit.cardTint === true) : false); // тон ВСЕЙ карточки; деф ВЫКЛ (David: обе белые по умолчанию)
+  // Живое превью: карточка «Облик» в форме сама тонируется при cardTint (David: «сама карточка прямо там меняет тон»).
+  const _pc = (typeof bosCanonColor === "function") ? bosCanonColor(color) : color;
+  const _pTint = cardTint && _pc && _pc !== "#0a0a0a" && ("" + _pc).toLowerCase() !== "#8e8e93" && typeof bosGoalSkin === "function";
+  const _pSk = _pTint ? bosGoalSkin(_pc, isDark, true) : null;
   // Days-of-week schedule — 7-long 0/1 mask, Пн..Вс. Default = every day.
   const [days, setDays] = useHS(editing && Array.isArray(params.habit.days) && params.habit.days.length === 7
     ? params.habit.days.slice()
@@ -207,22 +211,22 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         : <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", marginBottom: 2 }}>{teamFor ? (editing ? "Изменить общую привычку" : "Общая привычка") : (editing ? "Изменить привычку" : "Новая привычка")}</div>}
 
       {/* ── ОБЛИК: значок (тап → эмодзи) · имя · цвет · тонированный фон. Всё в одной карточке. ── */}
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
+      <div style={{ background: _pTint ? _pSk.bg : "var(--card, #fff)", borderRadius: 22, padding: 14, boxShadow: _pTint ? _pSk.shadow : "var(--card-shadow)", marginTop: 6, transition: "background 0.25s" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
-            style={{ width: 56, height: 56, borderRadius: 16, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            style={{ width: 56, height: 56, borderRadius: 16, background: _pTint ? _pSk.iconBg : ((color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 28, color)}
           </button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название привычки" aria-label="Название привычки"
-            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
+            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: _pTint ? _pSk.txt : "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
         <BosColorPickerLive value={color} onChange={setColor} />
         {/* Тонированный фон — сразу под цветом (David: «понравился тогл тонированный фон, под цветом»).
             У ОБЩЕЙ привычки скрыт: её плитка тоном не заливается, тумблер ни на что не влиял. */}
         {!teamFor && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: "var(--text-2)" }}>Тонированный фон
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Вся карточка в цвете. Выключишь — карточка белая, цвет на значке и днях.</div>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid " + (_pTint ? (isDark ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.5)") : "var(--line-2, rgba(0,0,0,0.06))"), display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: _pTint ? _pSk.txt : "var(--text-2)" }}>Тонированный фон
+            <div style={{ fontSize: 12, color: _pTint ? _pSk.sub : "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Вся карточка в цвете. Выключишь — карточка белая, цвет на значке и днях.</div>
           </div>
           <Switch small on={cardTint} onChange={setCardTint} />
         </div>
@@ -441,6 +445,10 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   // только если задан пресетом/пикером — тогда карточка заливается им (как партнёрские карточки).
   const [color, setColor] = useHS(g0?.color ?? preset?.color ?? "#0a0a0a"); // новый = «Стандарт» (графит-нейтраль), единый дефолт с привычками/командами
   const [tint, setTint] = useHS(g0 ? (g0.tint !== false) : false); // тон всей карточки цели (bosGoalSkin); деф ВЫКЛ (David: обе белые по умолчанию)
+  // Живое превью: карточка «Облик» в форме цели тонируется при tint (David: «сама карточка меняет тон»).
+  const _gpc = (typeof bosCanonColor === "function") ? bosCanonColor(color) : color;
+  const _gTint = tint && _gpc && _gpc !== "#0a0a0a" && ("" + _gpc).toLowerCase() !== "#8e8e93" && typeof bosGoalSkin === "function";
+  const _gSk = _gTint ? bosGoalSkin(_gpc, isDark, true) : null;
   const [target, setTarget] = useHS(g0?.target || preset?.target || 1); // старт с 1, без потолка (David: «в целях постоянно 22»)
   const [unit, setUnit] = useHS(g0?.unit || preset?.unit || "раз"); // дефолт = режим «Количество» (David: 3 простых режима)
   const [desc, setDesc] = useHS(g0?.desc || ""); // заметка создателя под целью; у команды синкается через goal.desc всем
@@ -602,19 +610,19 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       )}
 
       {/* ── ОБЛИК: значок · имя · цвет · тонированный фон (та же логика, что у привычки) ── */}
-      <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 13, boxShadow: "var(--card-shadow)", marginTop: 6 }}>
+      <div style={{ background: _gTint ? _gSk.bg : "var(--card, #fff)", borderRadius: 22, padding: 13, boxShadow: _gTint ? _gSk.shadow : "var(--card-shadow)", marginTop: 6, transition: "background 0.25s" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button type="button" data-haptic="selection" onClick={() => setView("picker")}
-            style={{ width: 52, height: 52, borderRadius: 15, background: (color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
+            style={{ width: 52, height: 52, borderRadius: 15, background: _gTint ? _gSk.iconBg : ((color && color !== BOS_GREY && ("" + color).toLowerCase() !== "#0a0a0a") ? color + "26" : "var(--surface-3)"), display: "grid", placeItems: "center", fontSize: 26, flexShrink: 0, border: 0, cursor: "pointer", transition: "background 0.2s" }}>
             {bosIcon(iconPick, 26, color)}
           </button>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Название цели" aria-label="Название цели"
-            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
+            style={{ flex: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: 17, fontWeight: 600, color: _gTint ? _gSk.txt : "var(--text)", letterSpacing: "-0.2px", padding: "6px 0" }} />
         </div>
         {typeof BosColorPickerLive === "function" && <BosColorPickerLive value={color} onChange={setColor} />}
-        <div style={{ marginTop: 11, paddingTop: 11, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: "var(--text-2)" }}>Тонированный фон
-            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Карточка залита цветом. Выключишь — чистая, цвет в акценте.</div>
+        <div style={{ marginTop: 11, paddingTop: 11, borderTop: "1px solid " + (_gTint ? (isDark ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.5)") : "var(--line-2, rgba(0,0,0,0.06))"), display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: _gTint ? _gSk.txt : "var(--text-2)" }}>Тонированный фон
+            <div style={{ fontSize: 12, color: _gTint ? _gSk.sub : "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Карточка залита цветом. Выключишь — чистая, цвет в акценте.</div>
           </div>
           <Switch small on={tint} onChange={setTint} />
         </div>
