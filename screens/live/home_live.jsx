@@ -58,6 +58,140 @@ function HomeQuickStripLive({ isDark }) {
   );
 }
 
+// ── Виджет «Дела»: локальный todo с вкладками-списками. Всё управление ВНУТРИ карточки:
+// ＋ (справа) — новое дело, ••• — настройки текущего списка (имя · цвет · удалить), ＋-чип —
+// новая вкладка. Данные в app.taskLists (локально, без облака). Разовые дела: отметил — насовсем.
+function TasksWidgetLive({ isDark }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const lists = (app && Array.isArray(app.taskLists)) ? app.taskLists : [];
+  const [activeId, setActiveId] = React.useState(null);
+  const [editing, setEditing] = React.useState(false);
+  const [addingList, setAddingList] = React.useState(false);
+  const [addingTask, setAddingTask] = React.useState(false);
+  const [listName, setListName] = React.useState("");
+  const [taskText, setTaskText] = React.useState("");
+  const PAL = ["#0a0a0a", "#0a84ff", "#34c759", "#ff9f0a", "#bf5af2", "#ff375f"];
+  const L = lists.find((l) => l.id === activeId) || lists[0] || null;
+  const tasks = L ? (L.tasks || []) : [];
+
+  const subtle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  const hair = isDark ? "1px solid #242427" : "1px solid #f2f2f4";
+  const ckBorder = isDark ? "#3a3a3e" : "#d7d7db";
+  const doneInk = isDark ? "#6a6a6e" : "#b6b6bb";
+  const ib = { width: 30, height: 30, borderRadius: "50%", border: 0, background: subtle, color: "var(--text)", display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" };
+  const chip = { borderRadius: 999, padding: "7px 13px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, border: 0, cursor: "pointer", fontFamily: "inherit" };
+  const ck = { width: 23, height: 23, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", cursor: "pointer", padding: 0, background: "transparent" };
+
+  const commitList = () => {
+    const n = listName.trim();
+    if (n && app && app.addTaskList) { const nl = app.addTaskList(n, PAL[lists.length % PAL.length]); setActiveId(nl.id); }
+    setListName(""); setAddingList(false);
+  };
+  const commitTask = () => {
+    const t = taskText.trim();
+    if (t && L && app && app.addTask) app.addTask(L.id, t);
+    setTaskText("");
+  };
+
+  return (
+    <div style={{ padding: "13px 14px 10px", color: "var(--text)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1px 10px" }}>
+        <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>Дела</span>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button className="tap" aria-label="Настройки списка" onClick={() => { setEditing((e) => !e); setAddingList(false); setAddingTask(false); }} style={ib}><I.More size={17} /></button>
+          <button className="tap" aria-label="Добавить дело" onClick={() => { if (!L) return; setAddingTask(true); setEditing(false); }} style={ib}><I.Plus size={16} strokeWidth={2.5} /></button>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 7, overflowX: "auto", padding: "1px 1px 3px" }}>
+        {lists.map((list) => {
+          const on = L && list.id === L.id;
+          return (
+            <button key={list.id} className="tap" onClick={() => { if (on) { setEditing((e) => !e); } else { setActiveId(list.id); setEditing(false); } setAddingList(false); setAddingTask(false); }}
+              style={{ ...chip, background: on ? list.color : subtle, color: on ? "#fff" : "var(--text-2)" }}>
+              {list.name}{on ? " ⌄" : ""}
+            </button>
+          );
+        })}
+        {addingList ? (
+          <input autoFocus value={listName} onChange={(e) => setListName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") commitList(); if (e.key === "Escape") { setAddingList(false); setListName(""); } }}
+            onBlur={commitList} placeholder="Название…"
+            style={{ ...chip, background: subtle, color: "var(--text)", outline: "none", width: 108, boxShadow: "inset 0 0 0 1.5px rgba(10,132,255,0.5)" }} />
+        ) : (
+          <button className="tap" aria-label="Новый список" onClick={() => { setAddingList(true); setEditing(false); setAddingTask(false); }}
+            style={{ ...chip, background: "transparent", color: "var(--text-4)", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "#2c2c30" : "#e3e3e3"), fontWeight: 700 }}>＋</button>
+        )}
+      </div>
+
+      {editing && L && (
+        <div style={{ background: isDark ? "rgba(40,40,44,0.92)" : "rgba(255,255,255,0.92)", borderRadius: 16, boxShadow: "0 10px 28px rgba(0,0,0,0.14), inset 0 0 0 0.5px rgba(0,0,0,0.05)", padding: "11px 12px", margin: "8px 1px 2px" }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: "var(--text-4)", padding: "0 1px 7px" }}>Список</div>
+          <input value={L.name} onChange={(e) => app.updateTaskList(L.id, { name: e.target.value })} placeholder="Название списка"
+            style={{ width: "100%", border: 0, outline: "none", fontFamily: "inherit", fontSize: 15, fontWeight: 600, color: "var(--text)", background: subtle, borderRadius: 10, padding: "9px 11px", marginBottom: 11 }} />
+          <div style={{ display: "flex", gap: 9, padding: "0 1px 12px" }}>
+            {PAL.map((clr) => (
+              <button key={clr} className="tap" aria-label="Цвет списка" onClick={() => app.updateTaskList(L.id, { color: clr })}
+                style={{ width: 26, height: 26, borderRadius: "50%", border: 0, background: clr, cursor: "pointer", display: "grid", placeItems: "center" }}>
+                {L.color === clr ? <I.Check size={13} color="#fff" /> : null}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: 10 }}>
+            {lists.length > 1 && (
+              <button className="tap" onClick={() => { app.removeTaskList(L.id); setActiveId(null); setEditing(false); }}
+                style={{ flex: 1, border: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: 9, borderRadius: 11, cursor: "pointer", color: "#ff3b30", background: "rgba(255,59,48,0.09)" }}>Удалить</button>
+            )}
+            <button className="tap" onClick={() => setEditing(false)}
+              style={{ flex: 1, border: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: 9, borderRadius: 11, cursor: "pointer", color: "#fff", background: "#0a0a0a" }}>Готово</button>
+          </div>
+        </div>
+      )}
+
+      {!L ? (
+        <div style={{ textAlign: "center", padding: "16px 0 12px" }}>
+          <div style={{ fontSize: 13, color: "var(--text-4)", marginBottom: 11 }}>Пока нет списков</div>
+          <button className="tap" onClick={() => { if (!app || !app.addTaskList) return; const nl = app.addTaskList("Сегодня", PAL[0]); setActiveId(nl.id); setAddingTask(true); }}
+            style={{ border: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: "9px 16px", borderRadius: 999, cursor: "pointer", color: "#fff", background: "#0a0a0a" }}>＋ Создать список</button>
+        </div>
+      ) : (
+        <>
+          {tasks.length > 0 && (
+            <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600, padding: "9px 3px 3px", letterSpacing: "0.2px" }}>
+              {tasks.filter((t) => t.done).length} из {tasks.length} · {L.name.toLowerCase()}
+            </div>
+          )}
+          <div>
+            {tasks.slice().sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0)).map((t, i) => (
+              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 2px", borderTop: i === 0 ? "none" : hair }}>
+                <button className="tap" aria-label={t.done ? "Снять отметку" : "Отметить"} onClick={() => app.toggleTask(L.id, t.id)}
+                  style={{ ...ck, border: t.done ? "1.7px solid transparent" : ("1.7px solid " + ckBorder), background: t.done ? L.color : "transparent" }}>
+                  {t.done ? <I.Check size={13} color="#fff" /> : null}
+                </button>
+                <div style={{ flex: 1, fontSize: 14.5, letterSpacing: "-0.1px", color: t.done ? doneInk : "var(--text)", textDecoration: t.done ? "line-through" : "none" }}>{t.text}</div>
+                <button className="tap" aria-label="Убрать дело" onClick={() => app.removeTask(L.id, t.id)}
+                  style={{ border: 0, background: "transparent", color: "var(--text-4)", cursor: "pointer", padding: "2px 4px", opacity: 0.5, display: "grid", placeItems: "center" }}><I.X size={14} /></button>
+              </div>
+            ))}
+            {tasks.length === 0 && !addingTask && (
+              <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-4)", padding: "16px 0 14px" }}>Пусто. Нажми ＋ справа сверху</div>
+            )}
+          </div>
+          {addingTask && (
+            <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 4px", borderTop: hair }}>
+              <span style={{ ...ck, border: "1.7px dashed " + ckBorder, color: "var(--text-4)" }}><I.Plus size={13} /></span>
+              <input autoFocus value={taskText} onChange={(e) => setTaskText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") commitTask(); if (e.key === "Escape") { setAddingTask(false); setTaskText(""); } }}
+                onBlur={() => { if (!taskText.trim()) setAddingTask(false); }} placeholder="Новое дело…"
+                style={{ flex: 1, border: 0, outline: "none", fontFamily: "inherit", fontSize: 14.5, color: "var(--text)", background: "transparent" }} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function HomeLive() {
   const { navigate } = useNav();
   const { open: openSheet, close: closeSheet } = useSheet();
@@ -402,6 +536,18 @@ function HomeLive() {
             {(_loggedToday && mood)
               ? <MoodWidgetLive mood={mood} app={app} isDark={isDark} navigate={navigate} flush={true} />
               : <StateInviteLive app={app} isDark={isDark} navigate={navigate} />}
+          </SwipeRow>
+        </div>
+      );
+    }
+
+    if (id === "tasks") {
+      // «Дела» — локальный todo-виджет (списки-вкладки, разовые дела). Свайп ряда → «Убрать».
+      const _hideTasks = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:tasks") }];
+      return (
+        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
+          <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideTasks}>
+            <TasksWidgetLive isDark={isDark} />
           </SwipeRow>
         </div>
       );

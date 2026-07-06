@@ -923,6 +923,9 @@ function AppProvider({ children }) {
   // Shared habit / goal store + mutators (the app's single source of truth).
   const [habits, setHabits] = useState(SEED_HABITS);
   const [goals, setGoals] = useState(SEED_GOALS);
+  // v598: локальный todo-виджет «Дела» — списки-вкладки со своими делами (разовые дела).
+  // ТОЛЬКО локально (в телефоне): в облачный снапшот НЕ уходит; синк устройств — отдельный этап.
+  const [taskLists, setTaskLists] = useState([]);
 
   // Demo/fresh: simple boolean flip (curated showcase). Live: idempotent date-keyed
   // UPSERT into the habit's log, with done/streak re-derived from it (T0.2).
@@ -1182,14 +1185,14 @@ function AppProvider({ children }) {
   // Always holds the latest state so an unload/background flush writes what's on screen
   // right now (a stale effect-closure would miss the very last tap).
   const latestRef = useRef(null);
-  latestRef.current = { persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP };
+  latestRef.current = { persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, taskLists };
   useEffect(() => {
     if (!persistId || !window.bosStore) return;
     if (hydratingRef.current) return; // don't persist until the cloud load has reconciled
     if (saveTimer.current) clearTimeout(saveTimer.current);
     // Debounce: a flurry of taps coalesces into one write.
     saveTimer.current = setTimeout(() => {
-      window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres });
+      window.bosStore.save(persistId, { savedAt: Date.now(), userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, taskLists });
       try {
         if (window.bosCloud && window.bosCloud.enabled()) {
           // Profile (name/avatar) — write only when it changed (it almost never does per tap).
@@ -1205,7 +1208,7 @@ function AppProvider({ children }) {
       } catch (e) {}
     }, 400);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, extrasTick]);
+  }, [persistId, userName, avatar, habits, goals, teams, dayMoods, dayNotes, widgets, homeLayout, wheelSpheres, claimedChallenges, spentXP, taskLists, extrasTick]);
 
   // Flush synchronously when the app is backgrounded/closed: the 400 ms debounce above
   // would otherwise lose the very last check-in if the user swipes the app away. localStorage
@@ -1216,7 +1219,7 @@ function AppProvider({ children }) {
       if (!s || !s.persistId || !window.bosStore || hydratingRef.current) return;
       try {
         if (saveTimer.current) clearTimeout(saveTimer.current);
-        window.bosStore.save(s.persistId, { savedAt: Date.now(), userName: s.userName, avatar: s.avatar, habits: s.habits, goals: s.goals, teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres });
+        window.bosStore.save(s.persistId, { savedAt: Date.now(), userName: s.userName, avatar: s.avatar, habits: s.habits, goals: s.goals, teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, taskLists: s.taskLists });
         if (window.bosCloud && window.bosCloud.enabled()) {
           var _extras = _walletExtras();
           var _blobStr = JSON.stringify({ teams: s.teams, dayMoods: s.dayMoods, dayNotes: s.dayNotes, widgets: s.widgets, homeLayout: s.homeLayout, wheelSpheres: s.wheelSpheres, claimedChallenges: s.claimedChallenges, spentXP: s.spentXP, extras: _extras });
@@ -1303,7 +1306,7 @@ function AppProvider({ children }) {
   const enterFresh = (name = "") => {
     setMode("fresh"); setUserName((name || "").trim()); setAvatar(null);
     setHabits([]); setGoals([]); setTeams([]);
-    setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS); setHomeLayout(null);
+    setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS); setHomeLayout(null); setTaskLists([]);
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // Arm the welcome sheets; mark home as already-introduced so only the OTHER
     // tabs trigger a contextual intro when the user first opens them.
@@ -1332,7 +1335,7 @@ function AppProvider({ children }) {
     if (_avWasEmpty && typeof bosRandomFaceAvatar === "function") _av0 = bosRandomFaceAvatar();
     if (saved) {
       setUserName(saved.userName || name); setAvatar(_av0);
-      setHabits((saved.habits || []).map(bosRollHabit)); setGoals(saved.goals || []); setTeams(saved.teams || []);
+      setHabits((saved.habits || []).map(bosRollHabit)); setGoals(saved.goals || []); setTeams(saved.teams || []); setTaskLists(saved.taskLists || []);
       setDayMoods(saved.dayMoods || {}); setDayNotes(saved.dayNotes || {});
       setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS); setHomeLayout(saved.homeLayout || null);
       // Restore today's state (the orb) from the saved per-day record, so reopening lands
@@ -1343,7 +1346,7 @@ function AppProvider({ children }) {
     } else {
       setUserName(name); setAvatar(_av0);
       setHabits([]); setGoals([]); setTeams([]);
-      setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS); setHomeLayout(null);
+      setDayMoods({}); setDayNotes({}); setMood(_onbMood() || MOOD_OPTIONS[2]); setWheelSpheres(DEFAULT_SPHERES); setWidgets(FRESH_WIDGETS); setHomeLayout(null); setTaskLists([]);
     }
     setCommunityView({ networkUnlocked: false, discTab: "teams", section: "discover", commTab: "network" });
     // First-time real users get the welcome sheets; returning ones skip straight in.
@@ -1668,6 +1671,24 @@ function AppProvider({ children }) {
   const [communityView, setCommunityViewRaw] = useState({ section: "discover", discTab: "teams", commTab: "network", networkUnlocked: false });
   const setCommunityView = (patch) => setCommunityViewRaw(v => ({ ...v, ...patch }));
 
+  // ── «Дела»: локальный todo-виджет главной (списки-вкладки, разовые дела). Без облака. ──
+  const addTaskList = (name, color) => {
+    const nl = { id: _nid(), name: ((name || "").trim() || "Список"), color: color || "#0a0a0a", tasks: [] };
+    setTaskLists(ls => [...ls, nl]);
+    return nl;
+  };
+  const updateTaskList = (id, patch) => setTaskLists(ls => ls.map(l => l.id === id ? { ...l, ...patch } : l));
+  const removeTaskList = (id) => setTaskLists(ls => ls.filter(l => l.id !== id));
+  const addTask = (listId, text) => {
+    const t = (text || "").trim(); if (!t) return null;
+    const nt = { id: _nid(), text: t, done: false };
+    setTaskLists(ls => ls.map(l => l.id === listId ? { ...l, tasks: [...(l.tasks || []), nt] } : l));
+    return nt;
+  };
+  const toggleTask = (listId, taskId) => setTaskLists(ls => ls.map(l => l.id !== listId ? l : { ...l, tasks: (l.tasks || []).map(t => t.id === taskId ? { ...t, done: !t.done } : t) }));
+  const removeTask = (listId, taskId) => setTaskLists(ls => ls.map(l => l.id !== listId ? l : { ...l, tasks: (l.tasks || []).filter(t => t.id !== taskId) }));
+  const updateTask = (listId, taskId, patch) => setTaskLists(ls => ls.map(l => l.id !== listId ? l : { ...l, tasks: (l.tasks || []).map(t => t.id === taskId ? { ...t, ...patch } : t) }));
+
   return <AppStateCtx.Provider value={{
     mood, setMood,
     dayMoods, setDayMoods,
@@ -1686,6 +1707,7 @@ function AppProvider({ children }) {
     habits, goals,
     toggleHabit, addHabit, updateHabit, removeHabit, reorderHabits,
     addGoal, updateGoal, removeGoal, reorderGoals,
+    taskLists, addTaskList, updateTaskList, removeTaskList, addTask, toggleTask, removeTask, updateTask,
     teams, addTeam, removeTeam, updateTeam, reorderTeams, addTeamHabit, removeTeamHabit,
     communityView, setCommunityView,
   }}>{children}</AppStateCtx.Provider>;
