@@ -671,6 +671,18 @@ function TeamDetailLive() {
     window.bosCloud.uid().then((id) => { if (on) setMeId(id || null); }).catch(() => {});
     return () => { on = false; };
   }, [_rosterLive, t.cloudId]);
+  // «Баланс круга» — опт-аут владельцем (teams.circle_balance_on). По умолчанию ВКЛ; читаем ЖИВОЕ
+  // облачное значение, чтобы участники видели ту же настройку, что выставил владелец (локальная копия
+  // владельца тоже несёт t.circleBalanceOn мгновенно). До patch_circle_balance_toggle.sql teamById
+  // вернёт undefined → `!== false` → раздел показывается (прежнее поведение, graceful).
+  const [circleBalOn, setCircleBalOn] = React.useState(t.circleBalanceOn !== false);
+  React.useEffect(() => {
+    setCircleBalOn(t.circleBalanceOn !== false);
+    if (!(window.bosCloud && window.bosCloud.enabled() && t.cloudId && window.bosCloud.teamById)) return;
+    let on = true;
+    window.bosCloud.teamById(t.cloudId).then((row) => { if (on && row) setCircleBalOn(row.circleBalanceOn !== false); }).catch(() => {});
+    return () => { on = false; };
+  }, [t.cloudId, t.circleBalanceOn]);
   React.useEffect(() => {
     if (!_rosterLive) return;
     let on = true;
@@ -898,7 +910,7 @@ function TeamDetailLive() {
   const heroBtn = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", background: H.btnBg, color: H.btnInk, flexShrink: 0 };
   const heroChip = { display: "inline-flex", alignItems: "center", gap: 4, background: H.chipBg, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: H.chipInk, whiteSpace: "nowrap" };
   const heroChipAI = Object.assign({}, heroChip, { background: H.chipAiBg, color: H.chipAiInk, boxShadow: H.onDark ? "none" : "0 1px 4px rgba(40,60,110,0.12)" });
-  const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: desc, joined: t.joined, habitIds: [] };
+  const editGoalLike = { _id: t._id, id: t.id, cloudId: t.cloudId, __isTeam: true, __team: t, name: t.name, emoji: t.emblem, color: t.accent, target: t.target, unit: t.unit, deadline: t.date || t.deadline || "", circle: true, type: t.type, vis: t.vis, stake: t.stake, goal: t.goal, desc: desc, joined: t.joined, circleBalanceOn: circleBalOn, habitIds: [] };
   // Сводки для свёрнутых секций единого блока (David: «краткая сводка на каждом»).
   const _myDoneCount = teamHabits.filter((h) => myDone(h)).length;
   const _habitWordT = (n) => (n % 10 === 1 && n % 100 !== 11) ? "привычка" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "привычки" : "привычек");
@@ -1080,9 +1092,10 @@ function TeamDetailLive() {
               </div>
             : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Пока нет отметок — появятся, когда участники начнут закрывать привычки круга.</div>),
         },
-        {
+        (circleBalOn ? {
           // БАЛАНС КРУГА — та же аналитика, что «Баланс окружения», но В РАМКАХ ЦЕЛИ (кольцо-состояние
           // круга + темп каждого + поддержи отстающего). Секцией между Календарём и Людьми (David).
+          // Гейт: раздел прячется целиком, если владелец выключил тумблер «Баланс круга» (circleBalOn).
           key: "circle", icon: <I.Sparkles size={16} color="var(--text-3)" />, title: "Баланс круга",
           summary: (_rosterLive && members.length >= 2) ? "как круг держит цель — темп каждого" : "нужно ≥2 участника",
           render: () => ((_rosterLive && members.length >= 2 && typeof BosCircleBalanceLive === "function")
@@ -1090,7 +1103,7 @@ function TeamDetailLive() {
                 members={ranked.map(function (m) { var _p = _pulseFor(m); return { id: m.id, name: m.id === meId ? "Ты" : m.name, avatar: m.avatar, you: m.id === meId, pace: (_p == null ? (flowSet[m.id] ? 1 : 0) : _p) }; })}
                 fallbackProgress={gp} dark={isDark} navigate={navigate} />
             : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Появится, когда в круге будет хотя бы двое.</div>),
-        },
+        } : null),
         {
           key: "people", icon: <I.Users size={17} color="var(--text-3)" />, title: "Люди",
           summary: _rosterLoading ? "загрузка…" : (members.length + " " + _peopleWord(members.length) + (inFlowToday ? (" · сегодня " + inFlowToday + " в деле") : "")),
@@ -1123,7 +1136,7 @@ function TeamDetailLive() {
         </button>
         </div>
           </>) },
-      ]} />
+      ].filter(Boolean)} />
 
       {/* Чат цели переехал в hero-шапку справа (David: «доступ к чату стеклянной кнопкой в блоке»). */}
 

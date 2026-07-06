@@ -463,6 +463,9 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
   const [circleVis, setCircleVis] = useHS(g0?.vis || "private");
   const [stakeOn, setStakeOn] = useHS((g0?.stake || 0) > 0);
   const [stakeAmount, setStakeAmount] = useHS(g0?.stake || 100);
+  // «Баланс круга» — раздел-аналитика на странице цели (кольцо-состояние круга + темп каждого).
+  // По умолчанию ВКЛ; владелец может выключить. Хранится на команде (teams.circle_balance_on).
+  const [circleBalanceOn, setCircleBalanceOn] = useHS(g0?.circleBalanceOn !== false);
   const CIRCLE_MODES = [
     { id: "collective", e: "🌊", t: "Общий счёт",     d: "Отметки всех складываются в одно число." },
     { id: "streak",     e: "🔥", t: "Серия у каждого", d: "Каждый держит серию — засчитывается, только если прошли все." },
@@ -492,11 +495,11 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       if (isTeamEdit) {
         const goalText = (g0.goal && ("" + g0.goal).trim()) || (tgt + (unit ? " " + unit : ""));
         const _desc = (desc || "").trim();
-        const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc };
+        const patch = { name: nm, emblem: iconPick, accent: color, goal: goalText, vis: circleVis, type: goalType, target: tgt, unit, stake: _stake, deadline, desc: _desc, circleBalanceOn };
         app?.updateTeam(g0._id, patch);
         try {
           if (g0.cloudId && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.updateTeam) {
-            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, vis: circleVis, goalKind: goalText, goalTarget: tgt, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc } });
+            window.bosCloud.updateTeam(g0.cloudId, { name: nm, emblem: iconPick, vis: circleVis, goalKind: goalText, goalTarget: tgt, circleBalanceOn, goal: { type: goalType, target: tgt, unit, title: goalText, stake: _stake, desc: _desc } });
           }
         } catch (e) {}
         close();
@@ -506,7 +509,7 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
       if (preset && preset.challenge) goalLike.challenge = preset.challenge;
       close(); // шторку вниз — helper сам уводит в комнату круга и поднимает шторку приглашения
       if (typeof bosPromoteGoalToCircle === "function") {
-        bosPromoteGoalToCircle(app, goalLike, { navigate, from: "habits", vis: circleVis, type: goalType, stake: _stake, onShare: (t) => openSheet(<TeamShareSheetLive team={t} />) });
+        bosPromoteGoalToCircle(app, goalLike, { navigate, from: "habits", vis: circleVis, type: goalType, stake: _stake, circleBalanceOn, onShare: (t) => openSheet(<TeamShareSheetLive team={t} />) });
       }
       return;
     }
@@ -555,6 +558,13 @@ function GoalFormSheetLive({ mode = "create", goal: goalProp = null, preset: pre
           <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{circleVis === "public" ? "Виден в поиске — войдёт кто угодно." : "Только по личной ссылке-приглашению."}</div>
         </div>
         <Switch small on={circleVis === "public"} onChange={(v) => setCircleVis(v ? "public" : "private")} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Баланс круга</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>Раздел на странице цели: как круг держит её — темп каждого. Видят только участники.</div>
+        </div>
+        <Switch small on={circleBalanceOn} onChange={setCircleBalanceOn} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-2, rgba(0,0,0,0.06))" }}>
         <div style={{ flex: 1, minWidth: 0 }}>

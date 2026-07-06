@@ -1849,11 +1849,12 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
   opts = opts || {};
   if (!app || !goalLike) return null;
   var vis = opts.vis || "private", type = opts.type || "collective", stake = Math.max(0, opts.stake || 0);
+  var circleBalanceOn = opts.circleBalanceOn !== false; // «Баланс круга» по умолч. ВКЛ; владелец мог снять
   var linked = (app.habits || []).filter(function (h) { return (goalLike.habitIds || []).indexOf(h.id) >= 0; });
   var teamObj = {
     name: goalLike.name || "Цель", emblem: goalLike.emoji || "🎯", accent: goalLike.color || BOS_GREY, vis: vis,
     goal: (goalLike.target || 0) + " " + (goalLike.unit || ""), type: type,
-    target: goalLike.target || 0, current: 0, unit: goalLike.unit || "", stake: stake,
+    target: goalLike.target || 0, current: 0, unit: goalLike.unit || "", stake: stake, circleBalanceOn: circleBalanceOn,
     date: goalLike.deadline || "Этот месяц", progress: 0, members: [],
     habits: linked.map(function (h, i) { return { name: h.name, emoji: h.emoji, isMain: i === 0 }; }),
   };
@@ -1872,6 +1873,9 @@ function bosPromoteGoalToCircle(app, goalLike, opts) {
         var row = await window.bosCloud.createTeam({ name: nt.name, emblem: teamObj.emblem, vis: vis, goalKind: nt.goal, goalTarget: nt.target, goal: { type: type, target: nt.target, unit: nt.unit, title: nt.name, stake: stake } });
         if (row && row.id) {
           if (app.updateTeam) app.updateTeam(nt._id, { cloudId: row.id });
+          // Персистим тумблер «Баланс круга» только когда он ВЫКЛючен (в БД default true = вкл, значит
+          // отличие от дефолта = только «выкл»; лишней записи на каждый круг не делаем). Graceful до ALTER.
+          if (!circleBalanceOn && window.bosCloud.updateTeam) { try { window.bosCloud.updateTeam(row.id, { circleBalanceOn: false }); } catch (e) {} }
           for (var i = 0; i < linked.length; i++) {
             var th = await window.bosCloud.addTeamHabit(row.id, { name: linked[i].name, emoji: linked[i].emoji, isMain: i === 0, goalPerDay: linked[i].goalPerDay });
             if (th && th.id && app.updateHabit) app.updateHabit(linked[i].id, { teamId: row.id, teamHabitId: th.id });
