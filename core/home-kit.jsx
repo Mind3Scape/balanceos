@@ -45,6 +45,7 @@ function XpFloat({ tick, xp, anchorRef }) {
 function HabitCheck({ done, onToggle, xp = 10, float = false, color = null, dark = false }) {
   const [tick, setTick] = React.useState(0);
   const btnRef = React.useRef(null);
+  if (typeof bosCanonColor === "function") color = bosCanonColor(color); // старый журнальный цвет → новый
   // Цвет привычки красит отмеченный кружок (David: «зелёная привычка → зелёный чекбокс»).
   // Нейтральные (нет цвета / чёрный / системный серый) → дефолтный --check-color темы.
   const realColor = (typeof color === "string" && color[0] === "#" && color.toLowerCase() !== "#0a0a0a" && color !== "#8E8E93") ? color : null;

@@ -113,7 +113,7 @@ function TaskListsSettingsLive({ isDark }) {
   const [confirmDel, setConfirmDel] = React.useState(null);
   const [justAdded, setJustAdded] = React.useState(null);
   const nameRefs = React.useRef({});
-  const PAL = ["#0a0a0a", "#0a84ff", "#34c759", "#ff9f0a", "#bf5af2", "#ff375f"];
+  const PAL = ["#0a0a0a", "#007AFF", "#34C759", "#FF9500", "#AF52DE", "#FF2D55"];
   const subtle = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
   const hair = isDark ? "1px solid #2a2a2e" : "1px solid #ededf0";
   const glassEdge = isDark ? "inset 0 0.5px 0 rgba(255,255,255,0.06)" : "inset 0 0.5px 0 rgba(255,255,255,0.7)";
@@ -201,7 +201,7 @@ function TasksWidgetLive({ isDark, openSheet }) {
   const lists = (app && Array.isArray(app.taskLists)) ? app.taskLists : [];
   const [activeId, setActiveId] = React.useState(null);
   const [taskText, setTaskText] = React.useState("");
-  const PAL = ["#0a0a0a", "#0a84ff", "#34c759", "#ff9f0a", "#bf5af2", "#ff375f"];
+  const PAL = ["#0a0a0a", "#007AFF", "#34C759", "#FF9500", "#AF52DE", "#FF2D55"];
   const L = lists.find((l) => l.id === activeId) || lists[0] || null;
   const tasks = L ? (L.tasks || []) : [];
 
@@ -255,8 +255,10 @@ function TasksWidgetLive({ isDark, openSheet }) {
             {tasks.slice().sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0)).map((t, i) => (
               <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 2px", borderTop: i === 0 ? "none" : hair }}>
                 <button className="tap" aria-label={t.done ? "Снять отметку" : "Отметить"} onClick={() => app.toggleTask(L.id, t.id)}
-                  style={{ ...ck, border: t.done ? "1.7px solid transparent" : ("1.7px solid " + ckBorder), background: t.done ? L.color : "transparent" }}>
-                  {t.done ? <I.Check size={13} color="#fff" /> : null}
+                  style={{ ...ck, ...(t.done
+                    ? { background: BOS_TILE_SHEEN + ", " + bosCanonColor(L.color), boxShadow: bosTileGlass(isDark) }
+                    : { background: BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)"), boxShadow: bosTileGlass(isDark) }) }}>
+                  {t.done ? <I.Check size={13} color={(typeof bosLum === "function" && bosLum(bosCanonColor(L.color)) > 0.62) ? "#141416" : "#fff"} /> : null}
                 </button>
                 <div style={{ flex: 1, fontSize: 14.5, letterSpacing: "-0.1px", color: t.done ? doneInk : "var(--text)", textDecoration: t.done ? "line-through" : "none" }}>{t.text}</div>
                 <button className="tap" aria-label="Убрать дело" onClick={() => app.removeTask(L.id, t.id)}

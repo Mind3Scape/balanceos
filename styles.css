@@ -284,10 +284,10 @@ button { font: inherit; cursor: pointer; }
 /* Unchecked = a minimalist GLASS disc (David: убрать толстое серое кольцо, под стекло): soft grey
    fill, a bright top highlight + a 0.7px hairline edge instead of the old 2px ring. */
 .check-btn.unchecked {
-  background: linear-gradient(180deg, #f5f6f9, #e8eaf0);
+  background: linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.55)), var(--sheen-b, rgba(255,255,255,0.12)) 46%, rgba(255,255,255,0) 72%), var(--surface-3, #eef0f4);
   color: transparent;
   border: 0;
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.85), inset 0 -2px 3px rgba(0,0,0,0.05), inset 0 0 0 0.7px rgba(0,0,0,0.08);
+  box-shadow: inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05);
 }
 
 /* labels */
@@ -461,9 +461,9 @@ button { font: inherit; cursor: pointer; }
 }
 .theme-dark .bos-progress { background: rgba(255,255,255,0.08); }
 .theme-dark .check-btn.unchecked {
-  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  background: linear-gradient(165deg, var(--sheen-a, rgba(255,255,255,0.055)), var(--sheen-b, rgba(255,255,255,0.014)) 46%, rgba(255,255,255,0) 72%), rgba(255,255,255,0.08);
   border: 0;
-  box-shadow: inset 0 1px 0.5px rgba(255,255,255,0.08), inset 0 0 0 0.7px rgba(255,255,255,0.07);
+  box-shadow: inset 0 1px 0.5px rgba(255,255,255,0.12), inset 0 0 0 0.7px rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.18);
 }
 
 /* Page-level scrollable region inside the phone frame.
