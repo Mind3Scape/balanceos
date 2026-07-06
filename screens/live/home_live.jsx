@@ -58,6 +58,41 @@ function HomeQuickStripLive({ isDark }) {
   );
 }
 
+// Держит поле ввода НАД клавиатурой (фикс David: в Telegram-webview клава ОВЕРЛЕИТ контент —
+// viewport не сжимается, поле уезжает под клаву). Ловим высоту клавы через visualViewport, даём
+// ближайшему скролл-контейнеру временный padding-bottom (чтобы было куда доскроллить, даже если
+// контент короткий) и двигаем поле так, чтобы оно село прямо над клавиатурой. На blur — откат.
+function bosKbScroll(e) {
+  const input = e.target;
+  const vv = (typeof window !== "undefined") && window.visualViewport;
+  if (!vv) { setTimeout(() => { try { input.scrollIntoView({ block: "center" }); } catch (_) {} }, 350); return; }
+  let sc = input.parentElement;
+  while (sc && sc !== document.body) {
+    const oy = getComputedStyle(sc).overflowY;
+    if (oy === "auto" || oy === "scroll") break;
+    sc = sc.parentElement;
+  }
+  const scrollable = sc && sc !== document.body ? sc : null;
+  const adjust = () => {
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    if (scrollable && kb > 0) scrollable.style.paddingBottom = (kb + 24) + "px";
+    const r = input.getBoundingClientRect();
+    const delta = r.bottom - (vv.offsetTop + vv.height - 16);
+    if (delta > 0) { if (scrollable) scrollable.scrollTop += delta; else window.scrollBy(0, delta); }
+  };
+  const onResize = () => adjust();
+  vv.addEventListener("resize", onResize);
+  const t1 = setTimeout(adjust, 300);
+  const t2 = setTimeout(adjust, 560);
+  const cleanup = () => {
+    clearTimeout(t1); clearTimeout(t2);
+    vv.removeEventListener("resize", onResize);
+    if (scrollable) scrollable.style.paddingBottom = "";
+    input.removeEventListener("blur", cleanup);
+  };
+  input.addEventListener("blur", cleanup);
+}
+
 // ── Настройки списков «Дел» — БОЛЬШОЙ поп-ап (шторка), открывается из «•••».
 // Всё управление вкладками здесь: создать, переименовать, цвет, удалить. (David: настройки живут
 // ТОЛЬКО на «•••», а не по тапу на чип; ＋-чипа в ряду нет.)
@@ -68,7 +103,7 @@ function TaskListsSettingsLive({ isDark }) {
   const PAL = ["#0a0a0a", "#0a84ff", "#34c759", "#ff9f0a", "#bf5af2", "#ff375f"];
   const subtle = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
   const hair = isDark ? "1px solid #2a2a2e" : "1px solid #f0f0f2";
-  const focusScroll = (e) => { const el = e.target; setTimeout(() => { try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {} }, 300); };
+  const focusScroll = bosKbScroll;
   return (
     <div style={{ padding: "2px 2px 8px", color: "var(--text)" }}>
       <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px", padding: "0 2px 4px" }}>Списки дел</div>
@@ -132,7 +167,7 @@ function TasksWidgetLive({ isDark, openSheet }) {
 
   const openSettings = () => { if (openSheet) openSheet(<TaskListsSettingsLive isDark={isDark} />); };
   const commitTask = () => { const t = taskText.trim(); if (t && L && app && app.addTask) app.addTask(L.id, t); setTaskText(""); };
-  const focusScroll = (e) => { const el = e.target; setTimeout(() => { try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {} }, 300); };
+  const focusScroll = bosKbScroll;
 
   return (
     <div style={{ padding: "12px 14px 10px", color: "var(--text)" }}>
