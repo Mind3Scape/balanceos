@@ -49,7 +49,10 @@ function bosEnvRing(index, word, sub, size, dark) {
   return (
     <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ display: "block", overflow: "visible" }}>
       <circle cx={c} cy={c} r={R} fill="none" stroke={dark ? "rgba(255,255,255,0.09)" : "#eef0f3"} strokeWidth={sw} />
-      <circle cx={c} cy={c} r={R} fill="none" stroke={col} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash + " " + (C - dash).toFixed(1)} transform={"rotate(-90 " + c + " " + c + ")"} />
+      {/* петля-награда: кольцо ЗАПОЛНЯЕТСЯ снизу-вверх при появлении (отметился → выросло) */}
+      <circle cx={c} cy={c} r={R} fill="none" stroke={col} strokeWidth={sw} strokeLinecap="round" strokeDasharray={C.toFixed(1)} strokeDashoffset={(C - dash).toFixed(1)} transform={"rotate(-90 " + c + " " + c + ")"}>
+        <animate attributeName="stroke-dashoffset" from={C.toFixed(1)} to={(C - dash).toFixed(1)} dur="0.95s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.34 0 0.18 1" />
+      </circle>
       <text x={c} y={c - size * 0.02} fontSize={Math.round(size * 0.28)} fontWeight="800" textAnchor="middle" fill={dark ? "#f2f2f5" : "#101828"} style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-1.5px" }}>{index}</text>
       <text x={c} y={c + size * 0.095} fontSize={Math.round(size * 0.088)} fontWeight="700" textAnchor="middle" fill={dark ? "#f2f2f5" : "#101828"}>{word}</text>
       {sub ? <text x={c} y={c + size * 0.17} fontSize={Math.round(size * 0.062)} fontWeight="600" letterSpacing="0.8" textAnchor="middle" fill={dark ? "#8e8e93" : "#9f9fa9"}>{sub}</text> : null}
@@ -311,6 +314,74 @@ function BosEnvBalanceFullLive() {
       </div>
 
       <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", margin: "16px 8px 2px", fontStyle: "italic" }}>Ты сам создаёшь окружение — как только сам в балансе.</div>
+    </div>
+  );
+}
+
+/* ═══════════ БАЛАНС КРУГА — та же аналитика, но В РАМКАХ ЦЕЛИ ═══════════
+   Тот же язык, что «Баланс окружения», но скоупнут на участников совместной цели:
+   кольцо-состояние круга (средний темп по цели) + темп каждого + поддержи отстающего.
+   Самодостаточный: TeamDetailLive кормит members [{id,name,avatar,you,pace 0..1}] +
+   fallbackProgress (прогресс цели, если у цели нет дневных привычек). Только участники. */
+function BosCircleBalanceLive(props) {
+  var members = Array.isArray(props.members) ? props.members : [];
+  var dark = !!props.dark;
+  var navigate = props.navigate || function () {};
+  if (members.length < 2) return null;
+
+  var paces = members.map(function (m) { return typeof m.pace === "number" ? Math.max(0, Math.min(1, m.pace)) : 0; });
+  var avg = paces.reduce(function (s, v) { return s + v; }, 0) / (paces.length || 1);
+  var anyPace = paces.some(function (v) { return v > 0; });
+  var index = Math.round((anyPace ? avg : (props.fallbackProgress || 0)) * 100);
+  var word = bosEnvWord(index);
+  var total = members.length;
+
+  var others = members.filter(function (m) { return !m.you; });
+  var lag = others.reduce(function (m, n) { return (!m || (n.pace || 0) < (m.pace || 0)) ? n : m; }, null);
+  var nudge = null;
+  if (lag && (lag.pace || 0) < 0.4 && lag.name) {
+    var lnm = lag.name;
+    nudge = { text: <span><b>{lnm} сейчас отстаёт по цели.</b> Поддержи — и круг подтянется вместе.</span>, on: function () { navigate("ai-chat", { prompt: "Как по-доброму поддержать участника круга (" + lnm + "), который отстаёт по общей цели?" }); } };
+  }
+
+  var ordered = members.slice().sort(function (a, b) { return (a.pace || 0) - (b.pace || 0); });
+
+  return (
+    <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px", marginBottom: 12 }}>
+      <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс круга</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>Как круг держит цель — темп каждого. Видно только участникам.</div>
+
+      <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 2px" }}>{bosEnvRing(index, word, total + " В КРУГЕ", 152, dark)}</div>
+
+      <div style={{ marginTop: 8 }}>
+        {ordered.map(function (m, i) {
+          var pct = Math.round((m.pace || 0) * 100);
+          return (
+            <div key={m.id || i} style={{ display: "flex", alignItems: "center", gap: 11, padding: "8px 2px" }}>
+              {bosEnvNode(m.avatar, m.name, 34, dark, !!m.you)}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.you ? "Ты" : (m.name || "Участник")}</div>
+                <div style={{ height: 5, borderRadius: 3, background: "var(--surface-3)", marginTop: 5, overflow: "hidden" }}><i style={{ display: "block", height: "100%", width: Math.max(4, pct) + "%", borderRadius: 3, background: bosEnvZone(pct) }} /></div>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", minWidth: 34, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{pct}%</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {nudge ? (
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 10, padding: "12px 13px", borderRadius: 16, border: dark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid #e7ebf2", background: dark ? "rgba(255,255,255,0.04)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)" }}>
+          <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "radial-gradient(circle at 38% 32%,#eaf2ff,#a9c6ee 70%,#5d7fae)", boxShadow: "0 2px 6px rgba(93,127,174,0.4)" }}>
+            {typeof I !== "undefined" && I.Sparkles ? <I.Sparkles size={13} color="#fff" filled /> : <span style={{ color: "#fff", fontSize: 12 }}>✦</span>}
+          </div>
+          <div style={{ fontSize: 12.7, lineHeight: 1.5, color: "var(--text-2)" }}>
+            {nudge.text}
+            <div><button className="tap" onClick={nudge.on} style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, borderRadius: 999, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", border: 0, background: "#101828", color: "#fff" }}>Написать</button></div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: "var(--text-4)", textAlign: "center", marginTop: 6, fontStyle: "italic" }}>Круг держит ритм — так цель и берётся вместе.</div>
+      )}
     </div>
   );
 }

@@ -1007,6 +1007,15 @@ function TeamDetailLive() {
         </div>
       </>)}
 
+      {/* БАЛАНС КРУГА — та же аналитика, что «Баланс окружения», но В РАМКАХ ЦЕЛИ: кольцо-состояние
+          круга (средний темп по цели) + темп каждого + поддержи отстающего. Только участники (их
+          страница цели). David 2026-07-06. Данные — уже посчитанные members + _pulseFor. */}
+      {_rosterLive && members.length >= 2 && typeof BosCircleBalanceLive === "function" && (
+        <BosCircleBalanceLive
+          members={ranked.map(function (m) { var _p = _pulseFor(m); return { id: m.id, name: m.id === meId ? "Ты" : m.name, avatar: m.avatar, you: m.id === meId, pace: (_p == null ? (flowSet[m.id] ? 1 : 0) : _p) }; })}
+          fallbackProgress={gp} dark={isDark} navigate={navigate} />
+      )}
+
       {/* ЕДИНЫЙ РАСКРЫВАЮЩИЙСЯ БЛОК: Привычки · Календарь · Люди (David: «в одном блоке, раскрывается
           по выбранной категории; свёрнутые — краткая сводка»). */}
       <BosSectionsAccordionLive dark={isDark} defaultOpen="habits" sections={[
