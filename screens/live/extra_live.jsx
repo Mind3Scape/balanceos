@@ -113,9 +113,16 @@ function HabitDetailLive() {
     ? (pi, d, mi) => { const m = buddies[pi]; if (!m) return 0; const k = _calKey(d, mi); return ((m.me ? (_log[k] || m.days[k]) : m.days[k]) ? 1 : 0); }
     : (pi, d, mi) => (_log[_calKey(d, mi)] ? 1 : 0);
 
-  const card = isDark
-    ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
-    : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" };
+  // Тумблер «Тонировать фон» (cardTint) красит и ВНУТРЕННЮЮ карточку (David: «почему тут не тонирован?»).
+  // Календарь+статы кладём на матовую подложку _panelBg, чтобы читались на цвете. Нейтраль не тонируется.
+  const _tinted = h.cardTint === true && !_hcNeutral && typeof bosGoalSkin === "function";
+  const _sk = _tinted ? bosGoalSkin(_hc, isDark, true) : null;
+  const _panelBg = isDark ? "rgba(12,12,14,0.44)" : "rgba(255,255,255,0.66)";
+  const card = _tinted
+    ? { background: _sk.bg, boxShadow: _sk.shadow }
+    : (isDark
+      ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
+      : { background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" });
 
   // Tap-to-mark from the calendar's TODAY cell — the ONE completion control now (David removed the
   // bottom button: «некуда тыкнуть, тапаешь день — бумс»). Quantitative habits (goalPerDay>1) fill
@@ -180,12 +187,12 @@ function HabitDetailLive() {
         {/* Верхний ряд: плитка-иконка слева + название, справа НАШ реальный компонент отметки (тот же,
             что на главной — таймер/счётчик/галочка по типу привычки, масштаб 1.8). */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 58, height: 58, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
+          <div style={{ width: 58, height: 58, borderRadius: 16, flexShrink: 0, display: "grid", placeItems: "center", background: _tinted ? _sk.iconBg : (BOS_TILE_SHEEN + ", " + tileBg), boxShadow: bosTileGlass(isDark) }}>
             <span style={{ fontSize: 30 }}>{bosIcon(h.emoji, 28, _hc)}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", lineHeight: 1.12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
-            <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: _tinted ? _sk.txt : "var(--text)", letterSpacing: "-0.4px", lineHeight: 1.12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
+            <div style={{ fontSize: 13, color: _tinted ? _sk.sub : "var(--text-4)", marginTop: 3 }}>
               Ежедневно{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
             </div>
           </div>
@@ -200,19 +207,19 @@ function HabitDetailLive() {
           </div>
         </div>
 
-        {/* Календарь — тот же ОБЩИЙ компонент, но bare (без своей карточки): живёт внутри единого блока. */}
-        <div style={{ marginTop: 18 }}>
-          <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" />
-        </div>
-
-        {/* Серия / Лучшая / Всего — СНИЗУ, внутри блока (David), тонкая линия сверху, без своей плашки
-            (bare). Иконки нейтральные — цвет привычки живёт на тайле и в календаре. */}
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
-          <StatTrioLive bare isDark={isDark} items={[
-            { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={isDark ? "#fff" : "#0a0a0a"} /> },
-            { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} filled strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-            { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2.8} color={isDark ? "#fff" : "#0a0a0a"} /> },
-          ]} />
+        {/* Календарь + статы. На тонированном фоне — на матовой подложке (David: «фон тонируем, но
+            календарь/статы должны читаться»); на белом — как было, без подложки. */}
+        <div style={_tinted ? { marginTop: 14, borderRadius: 16, padding: "2px 12px 12px", background: _panelBg } : { marginTop: 0 }}>
+          <div style={{ marginTop: _tinted ? 6 : 18 }}>
+            <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" />
+          </div>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+            <StatTrioLive bare isDark={isDark} items={[
+              { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={isDark ? "#fff" : "#0a0a0a"} /> },
+              { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} filled strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
+              { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2.8} color={isDark ? "#fff" : "#0a0a0a"} /> },
+            ]} />
+          </div>
         </div>
 
       </div>
