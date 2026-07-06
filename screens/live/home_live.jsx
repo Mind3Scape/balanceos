@@ -58,55 +58,45 @@ function HomeQuickStripLive({ isDark }) {
   );
 }
 
-// ── «Добавить дело» — компактная ШТОРКА (BottomSheet). ПОЧЕМУ шторка (а не инлайн-поле): в этом
-// webview #root {position:fixed} iOS ужимает ПОД клавиатуру, поэтому всё прилеплённое к низу #root
-// (таб-бар, шторки) само встаёт НАД клавой — David это заметил («меню прилипает к клаве»). Поле в
-// потоке прокрутки так не умеет (3 захода со scrollIntoView/scrollTop не спасли). Значит поле ввода
-// живёт в шторке: список дел + поле сверху, всё гарантированно над клавиатурой.
-function TaskAddSheetLive({ listId, isDark }) {
-  const app = (typeof useApp === "function") ? useApp() : null;
-  const lists = (app && Array.isArray(app.taskLists)) ? app.taskLists : [];
-  const L = lists.find((l) => l.id === listId) || lists[0] || null;
-  const [text, setText] = React.useState("");
-  const tasks = L ? (L.tasks || []) : [];
-  const ckBorder = isDark ? "#3a3a3e" : "#d7d7db";
-  const doneInk = isDark ? "#6a6a6e" : "#b6b6bb";
-  const hair = isDark ? "1px solid #242427" : "1px solid #f2f2f4";
-  const subtle = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
-  const ck = { width: 23, height: 23, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", cursor: "pointer", padding: 0, background: "transparent" };
-  const add = () => { const t = text.trim(); if (t && L && app && app.addTask) app.addTask(L.id, t); setText(""); };
-  if (!L) return <div style={{ padding: 20, textAlign: "center", color: "var(--text-4)" }}>Нет списка</div>;
-  return (
-    <div style={{ padding: "2px 4px 4px", color: "var(--text)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 2px 12px" }}>
-        <span style={{ width: 12, height: 12, borderRadius: "50%", background: L.color, flexShrink: 0 }} />
-        <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px" }}>{L.name}</div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", borderRadius: 14, background: subtle, marginBottom: 8 }}>
-        <span style={{ ...ck, border: "1.7px dashed " + ckBorder, color: "var(--text-4)" }}><I.Plus size={13} /></span>
-        <input autoFocus value={text} onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder="Новое дело…"
-          style={{ flex: 1, minWidth: 0, border: 0, outline: "none", fontFamily: "inherit", fontSize: 15, color: "var(--text)", background: "transparent" }} />
-        {text.trim() ? (
-          <button className="tap" onClick={add} style={{ border: 0, background: L.color, color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: "6px 13px", borderRadius: 999, cursor: "pointer", flexShrink: 0 }}>Добавить</button>
-        ) : null}
-      </div>
-      <div>
-        {tasks.slice().sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0)).map((t, i) => (
-          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 4px", borderTop: i === 0 ? "none" : hair }}>
-            <button className="tap" aria-label={t.done ? "Снять отметку" : "Отметить"} onClick={() => app.toggleTask(L.id, t.id)}
-              style={{ ...ck, border: t.done ? "1.7px solid transparent" : ("1.7px solid " + ckBorder), background: t.done ? L.color : "transparent" }}>
-              {t.done ? <I.Check size={13} color="#fff" /> : null}
-            </button>
-            <div style={{ flex: 1, fontSize: 14.5, color: t.done ? doneInk : "var(--text)", textDecoration: t.done ? "line-through" : "none" }}>{t.text}</div>
-            <button className="tap" aria-label="Убрать дело" onClick={() => app.removeTask(L.id, t.id)}
-              style={{ border: 0, background: "transparent", color: "var(--text-4)", cursor: "pointer", padding: "2px 4px", opacity: 0.5, display: "grid", placeItems: "center" }}><I.X size={14} /></button>
-          </div>
-        ))}
-        {!tasks.length && <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-4)", padding: "14px 0 6px" }}>Впиши первое дело выше ↑</div>}
-      </div>
-    </div>
-  );
+// ── Клавиатура для ИНЛАЙН-поля «Дел» (David: поле в блоке, страница подъезжает к клаве, БЕЗ шторки).
+// В этом webview #root {position:fixed} iOS ужимает под клаву → таб-бар (absolute bottom) ВСПЛЫВАЕТ
+// над клавой и ПЕРЕКРЫВАЕТ подскролленное поле (David: «меню прилипает к клаве вместо задач»). Поэтому
+// на фокусе: (1) ПРЯЧЕМ таб-бар (body.bos-kb-typing → CSS в mobile.css), (2) даём скролл-контейнеру
+// запас снизу и двигаем страницу так, чтобы низ поля сел над клавой (высоту берём из visualViewport).
+function bosKbFocus(e) {
+  const input = e.target;
+  document.body.classList.add("bos-kb-typing");
+  let sc = input.parentElement;
+  while (sc && sc !== document.body) {
+    const oy = getComputedStyle(sc).overflowY;
+    if (oy === "auto" || oy === "scroll") break;
+    sc = sc.parentElement;
+  }
+  if (!sc || sc === document.body) sc = document.scrollingElement || document.documentElement;
+  input._bosSc = sc;
+  input._bosPad = sc.style.paddingBottom;
+  sc.style.paddingBottom = "55vh"; // запас, чтобы странице было куда подъехать
+  const vv = (typeof window !== "undefined") ? window.visualViewport : null;
+  const adjust = () => {
+    const r = input.getBoundingClientRect();
+    const vTop = vv ? vv.offsetTop : 0;
+    const vH = vv ? vv.height : window.innerHeight;
+    const kb = Math.max(0, window.innerHeight - vH - vTop);
+    const target = kb > 2 ? (vTop + vH - 14) : (vTop + vH * 0.5); // низ поля над клавой (таб-бар спрятан)
+    const delta = r.bottom - target;
+    if (Math.abs(delta) > 2) sc.scrollTop += delta;
+  };
+  input._bosAdjust = adjust;
+  if (vv) { vv.addEventListener("resize", adjust); vv.addEventListener("scroll", adjust); }
+  input._bosTimers = [60, 220, 420, 650].map((ms) => setTimeout(adjust, ms));
+}
+function bosKbBlur(e) {
+  const input = e.target;
+  document.body.classList.remove("bos-kb-typing");
+  const vv = (typeof window !== "undefined") ? window.visualViewport : null;
+  if (vv && input._bosAdjust) { vv.removeEventListener("resize", input._bosAdjust); vv.removeEventListener("scroll", input._bosAdjust); }
+  if (input._bosTimers) input._bosTimers.forEach(clearTimeout);
+  if (input._bosSc) input._bosSc.style.paddingBottom = input._bosPad || "";
 }
 
 // ── Настройки списков «Дел» — БОЛЬШОЙ поп-ап (шторка), открывается из «•••».
@@ -162,11 +152,12 @@ function TaskListsSettingsLive({ isDark }) {
 
 // ── Виджет «Дела»: локальный todo с вкладками-списками. Верхний ряд = чипы-вкладки + «•••»
 // (все настройки списков — в шторке TaskListsSettingsLive). Тап по чипу = просто переключить.
-// «Добавить дело» открывает шторку TaskAddSheetLive (встаёт над клавиатурой, как таб-бар). Разовые дела.
+// «Добавить дело» — ИНЛАЙН-поле снизу; фокус прячет таб-бар и подвигает страницу к клаве (bosKbFocus). Разовые дела.
 function TasksWidgetLive({ isDark, openSheet }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const lists = (app && Array.isArray(app.taskLists)) ? app.taskLists : [];
   const [activeId, setActiveId] = React.useState(null);
+  const [taskText, setTaskText] = React.useState("");
   const PAL = ["#0a0a0a", "#0a84ff", "#34c759", "#ff9f0a", "#bf5af2", "#ff375f"];
   const L = lists.find((l) => l.id === activeId) || lists[0] || null;
   const tasks = L ? (L.tasks || []) : [];
@@ -180,7 +171,7 @@ function TasksWidgetLive({ isDark, openSheet }) {
   const ck = { width: 23, height: 23, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", cursor: "pointer", padding: 0, background: "transparent" };
 
   const openSettings = () => { if (openSheet) openSheet(<TaskListsSettingsLive isDark={isDark} />); };
-  const openAdd = () => { if (openSheet && L) openSheet(<TaskAddSheetLive listId={L.id} isDark={isDark} />); };
+  const commitTask = () => { const t = taskText.trim(); if (t && L && app && app.addTask) app.addTask(L.id, t); setTaskText(""); };
 
   return (
     <div style={{ padding: "12px 14px 10px", color: "var(--text)" }}>
@@ -230,12 +221,14 @@ function TasksWidgetLive({ isDark, openSheet }) {
               </div>
             ))}
           </div>
-          {/* «Добавить дело» → шторка (встаёт над клавиатурой, как таб-бар/чат) — David */}
-          <button className="tap" onClick={openAdd}
-            style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 3px", marginTop: tasks.length ? 0 : 2, borderTop: tasks.length ? hair : "none", width: "100%", background: "transparent", border: 0, cursor: "pointer", textAlign: "left" }}>
+          {/* ИНЛАЙН-поле: фокус прячет таб-бар и подвигает страницу так, чтобы поле село над клавой (David) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 3px", marginTop: tasks.length ? 0 : 2, borderTop: tasks.length ? hair : "none" }}>
             <span style={{ ...ck, border: "1.7px dashed " + ckBorder, color: "var(--text-4)" }}><I.Plus size={13} /></span>
-            <span style={{ flex: 1, fontSize: 14.5, color: "var(--text-4)" }}>Добавить дело…</span>
-          </button>
+            <input value={taskText} onChange={(e) => setTaskText(e.target.value)} onFocus={bosKbFocus} onBlur={bosKbBlur}
+              onKeyDown={(e) => { if (e.key === "Enter") commitTask(); if (e.key === "Escape") { setTaskText(""); e.target.blur(); } }}
+              placeholder="Добавить дело…"
+              style={{ flex: 1, border: 0, outline: "none", fontFamily: "inherit", fontSize: 14.5, color: "var(--text)", background: "transparent" }} />
+          </div>
         </>
       )}
     </div>
