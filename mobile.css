@@ -120,6 +120,30 @@ body.bos-sheet-open .bos-reorder-float { opacity: 0; pointer-events: none; trans
 /* !important ОБЯЗАТЕЛЕН: у .bos-tabbar есть keyframe-анимация tabRaise, а анимация в каскаде бьёт
    обычное правило opacity (в песочнице анимации нет → пряталось; на телефоне была — не пряталось). */
 body.bos-kb-typing .bos-tabbar { opacity: 0 !important; pointer-events: none !important; transform: translateY(24px) !important; transition: opacity 0.16s ease !important; }
+/* Плавающая стеклянная «Готово» у клавиатуры для ИНЛАЙН-поля «Дел» (David: круглая кнопка-галочка
+   справа, прилипшая к клаве). Портал в .page-stack (position:absolute; inset:0) — в fixed-root
+   webview iOS ужимает root под клаву, поэтому absolute-кружок внизу встаёт НАД клавиатурой, как
+   таб-бар. Виден ТОЛЬКО пока печатаешь дело (body.bos-kb-typing). Тап → blur поля → дело коммитится
+   (onBlur) и клава прячется. Под шторкой (bos-sheet-open) и в покое — спрятан. */
+.bos-kbdone {
+  position: absolute; right: 15px; bottom: calc(12px + var(--bos-safe-bottom, 0px));
+  width: 46px; height: 46px; border: 0; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer; color: #0a0a0a;
+  background: rgba(255,255,255,0.74);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.20), inset 0 0.5px 0 rgba(255,255,255,0.9), inset 0 0 0 0.5px rgba(0,0,0,0.06);
+  z-index: 280;
+  opacity: 0; pointer-events: none; transform: translateY(14px) scale(0.84);
+  transition: opacity 0.18s ease, transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+body.bos-kb-typing .bos-kbdone { opacity: 1; pointer-events: auto; transform: none; }
+body.bos-sheet-open .bos-kbdone { opacity: 0; pointer-events: none; }
+.phone-shell.is-dark .bos-kbdone {
+  color: #fff; background: rgba(60,60,64,0.82);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.14), inset 0 0 0 0.5px rgba(255,255,255,0.06);
+}
+body.bos-noglass .bos-kbdone { background: rgba(255,255,255,0.97); }
+body.bos-noglass .phone-shell.is-dark .bos-kbdone { background: rgba(58,58,62,0.98); }
 /* «Эффект стекла» (тумблер в настройках, David): ВЫКЛ глушит ТЯЖЁЛОЕ стекло — все
    backdrop-размытия разом (!important бьёт и inline-стили меню/панелей). Дешёвые
    градиенты-блики остаются — вид почти тот же, но без нагрузки на GPU телефона.

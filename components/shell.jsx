@@ -539,6 +539,27 @@ const _nid = () => ++_bosNextId;
 // that resets to 1000 + collides across users/sessions, so it can NOT key cloud rows.
 // The habits.id column is `text`, so any string works.
 const _uuid = () => { try { if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {} return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); };
+// «Дела»-списки хранятся ЛОКАЛЬНО и раньше брали id из _nid() (счётчик, что сбрасывается в 1000
+// каждую загрузку) → первый новый список после перезагрузки получал 1001 и СТАЛКИВАЛСЯ с уже
+// сохранённым 1001: два списка с одним id → правка/удаление задевали ОБА («дубли», «всё удаляется»).
+// Теперь новые id = _uuid() (не сталкиваются никогда), а этот нормализатор ЛЕЧИТ старые снимки:
+// любой пропущенный или повторный id (списка или дела) переписывается на свежий uuid при загрузке.
+const _bosNormLists = (arr) => {
+  const seen = {};
+  return (Array.isArray(arr) ? arr : []).map((l) => {
+    let id = l && l.id;
+    if (id == null || seen[id]) id = _uuid();
+    seen[id] = 1;
+    const tseen = {};
+    const tasks = (Array.isArray(l && l.tasks) ? l.tasks : []).map((t) => {
+      let tid = t && t.id;
+      if (tid == null || tseen[tid]) tid = _uuid();
+      tseen[tid] = 1;
+      return { ...t, id: tid };
+    });
+    return { ...l, id, tasks };
+  });
+};
 
 /* Home widgets: full for the demo; minimal for a fresh new user — don't overwhelm.
    Stat cards / calendar / team / energy stay off until there's something to show. */
@@ -1335,7 +1356,7 @@ function AppProvider({ children }) {
     if (_avWasEmpty && typeof bosRandomFaceAvatar === "function") _av0 = bosRandomFaceAvatar();
     if (saved) {
       setUserName(saved.userName || name); setAvatar(_av0);
-      setHabits((saved.habits || []).map(bosRollHabit)); setGoals(saved.goals || []); setTeams(saved.teams || []); setTaskLists(saved.taskLists || []);
+      setHabits((saved.habits || []).map(bosRollHabit)); setGoals(saved.goals || []); setTeams(saved.teams || []); setTaskLists(_bosNormLists(saved.taskLists));
       setDayMoods(saved.dayMoods || {}); setDayNotes(saved.dayNotes || {});
       setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS); setHomeLayout(saved.homeLayout || null);
       // Restore today's state (the orb) from the saved per-day record, so reopening lands
@@ -1673,7 +1694,7 @@ function AppProvider({ children }) {
 
   // ── «Дела»: локальный todo-виджет главной (списки-вкладки, разовые дела). Без облака. ──
   const addTaskList = (name, color) => {
-    const nl = { id: _nid(), name: ((name || "").trim() || "Список"), color: color || "#0a0a0a", tasks: [] };
+    const nl = { id: _uuid(), name: ((name || "").trim() || "Список"), color: color || "#0a0a0a", tasks: [] };
     setTaskLists(ls => [...ls, nl]);
     return nl;
   };
@@ -1681,7 +1702,7 @@ function AppProvider({ children }) {
   const removeTaskList = (id) => setTaskLists(ls => ls.filter(l => l.id !== id));
   const addTask = (listId, text) => {
     const t = (text || "").trim(); if (!t) return null;
-    const nt = { id: _nid(), text: t, done: false };
+    const nt = { id: _uuid(), text: t, done: false };
     setTaskLists(ls => ls.map(l => l.id === listId ? { ...l, tasks: [...(l.tasks || []), nt] } : l));
     return nt;
   };

@@ -101,41 +101,81 @@ function bosKbBlur(e) {
   if (input._bosSc) input._bosSc.style.paddingBottom = input._bosPad || "";
 }
 
-// ── Настройки списков «Дел» — БОЛЬШОЙ поп-ап (шторка), открывается из «•••».
-// Всё управление вкладками здесь: создать, переименовать, цвет, удалить. (David: настройки живут
-// ТОЛЬКО на «•••», а не по тапу на чип; ＋-чипа в ряду нет.)
+// ── Настройки списков «Дел» — iOS-шторка, открывается из «•••». Всё управление вкладками здесь:
+// создать, переименовать, цвет, удалить. (David: настройки живут ТОЛЬКО на «•••», а не по тапу на чип.)
+// НАДЁЖНОСТЬ: id списков теперь _uuid() (shell.jsx) → правка/удаление всегда бьют РОВНО один список,
+// без дублей и без «всё удаляется». Удаление — с мягким подтверждением прямо в строке (без красного).
+// Новый список создаётся ОДИН и сразу открывает поле имени для ввода (как «Новый список» в iOS).
 function TaskListsSettingsLive({ isDark }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const lists = (app && Array.isArray(app.taskLists)) ? app.taskLists : [];
   const [colorFor, setColorFor] = React.useState(null);
+  const [confirmDel, setConfirmDel] = React.useState(null);
+  const [justAdded, setJustAdded] = React.useState(null);
+  const nameRefs = React.useRef({});
   const PAL = ["#0a0a0a", "#0a84ff", "#34c759", "#ff9f0a", "#bf5af2", "#ff375f"];
   const subtle = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
-  const hair = isDark ? "1px solid #2a2a2e" : "1px solid #f0f0f2";
+  const hair = isDark ? "1px solid #2a2a2e" : "1px solid #ededf0";
+  const glassEdge = isDark ? "inset 0 0.5px 0 rgba(255,255,255,0.06)" : "inset 0 0.5px 0 rgba(255,255,255,0.7)";
+
+  // Только что созданный список: фокус + выделение имени, чтобы сразу набрать своё (шторка сама
+  // поднимается над клавой — она absolute bottom, root ужимается под клавиатуру).
+  React.useEffect(() => {
+    if (!justAdded) return;
+    const el = nameRefs.current[justAdded];
+    if (el) { try { el.focus(); el.select(); el.scrollIntoView({ block: "nearest" }); } catch (e) {} }
+    setJustAdded(null);
+  }, [justAdded]);
+
+  const addOne = () => {
+    if (!app || !app.addTaskList) return;
+    const nl = app.addTaskList("Новый список", PAL[lists.length % PAL.length]);
+    setColorFor(null); setConfirmDel(null); setJustAdded(nl.id);
+  };
+
   return (
-    <div style={{ padding: "2px 2px 8px", color: "var(--text)" }}>
-      <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px", padding: "0 2px 4px" }}>Списки дел</div>
-      <div style={{ fontSize: 12.5, color: "var(--text-4)", padding: "0 2px 14px", lineHeight: 1.4 }}>Вкладки над делами — по одной под каждую сторону жизни. Имя, цвет, удаление.</div>
-      <div style={{ borderRadius: 16, background: subtle, overflow: "hidden" }}>
+    <div className="bos-sheet-scroll" style={{ padding: "2px 16px 8px", color: "var(--text)" }}>
+      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.4px", padding: "2px 2px 3px" }}>Списки</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-4)", padding: "0 2px 15px", lineHeight: 1.4 }}>Вкладки над делами — по одной под каждую сторону жизни. Переименуй, поменяй цвет, удали.</div>
+
+      <div style={{ borderRadius: 16, background: subtle, overflow: "hidden", boxShadow: glassEdge }}>
         {lists.map((l, i) => (
           <div key={l.id} style={{ borderTop: i === 0 ? "none" : hair }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px" }}>
-              <button className="tap" aria-label="Цвет списка" onClick={() => setColorFor(colorFor === l.id ? null : l.id)}
-                style={{ width: 24, height: 24, borderRadius: "50%", border: 0, background: l.color, flexShrink: 0, cursor: "pointer", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.18)" }} />
-              <input value={l.name} onChange={(e) => app.updateTaskList(l.id, { name: e.target.value })} placeholder="Название"
-                style={{ flex: 1, minWidth: 0, border: 0, outline: "none", fontFamily: "inherit", fontSize: 15, fontWeight: 600, color: "var(--text)", background: "transparent" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 13px" }}>
+              <button className="tap" aria-label="Цвет списка"
+                onClick={() => { setConfirmDel(null); setColorFor(colorFor === l.id ? null : l.id); }}
+                style={{ width: 25, height: 25, borderRadius: "50%", border: 0, background: l.color, flexShrink: 0, cursor: "pointer", boxShadow: "inset 0 1px 1.5px rgba(255,255,255,0.4), inset 0 0 0 0.5px rgba(0,0,0,0.2)" }} />
+              <input ref={(el) => { if (el) nameRefs.current[l.id] = el; }}
+                value={l.name} onChange={(e) => app.updateTaskList(l.id, { name: e.target.value })} placeholder="Название"
+                onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
+                style={{ flex: 1, minWidth: 0, border: 0, outline: "none", fontFamily: "inherit", fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.2px", color: "var(--text)", background: "transparent" }} />
               {lists.length > 1 && (
-                <button className="tap" aria-label="Удалить список" onClick={() => { app.removeTaskList(l.id); setColorFor(null); }}
-                  style={{ border: 0, background: "transparent", color: "var(--text-4)", cursor: "pointer", padding: 4, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Trash size={17} /></button>
+                <button className="tap" aria-label="Удалить список"
+                  onClick={() => { setColorFor(null); setConfirmDel(confirmDel === l.id ? null : l.id); }}
+                  style={{ border: 0, background: "transparent", color: confirmDel === l.id ? "var(--text-2)" : "var(--text-4)", cursor: "pointer", padding: 4, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Trash size={17} /></button>
               )}
             </div>
+
             {colorFor === l.id && (
-              <div style={{ display: "flex", gap: 10, padding: "0 12px 12px 47px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 12, padding: "1px 13px 13px 50px", flexWrap: "wrap" }}>
                 {PAL.map((clr) => (
                   <button key={clr} className="tap" aria-label="Цвет" onClick={() => { app.updateTaskList(l.id, { color: clr }); setColorFor(null); }}
-                    style={{ width: 26, height: 26, borderRadius: "50%", border: 0, background: clr, cursor: "pointer", display: "grid", placeItems: "center" }}>
-                    {l.color === clr ? <I.Check size={13} color="#fff" /> : null}
+                    style={{ width: 27, height: 27, borderRadius: "50%", border: 0, background: clr, cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "inset 0 1px 1.5px rgba(255,255,255,0.4), inset 0 0 0 0.5px rgba(0,0,0,0.2)" }}>
+                    {l.color === clr ? <I.Check size={14} color="#fff" strokeWidth={3} /> : null}
                   </button>
                 ))}
+              </div>
+            )}
+
+            {confirmDel === l.id && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "3px 13px 13px 50px" }}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text-3)", lineHeight: 1.35 }}>
+                  Удалить «{l.name.trim() || "список"}» с делами?
+                </span>
+                <button className="tap" onClick={() => setConfirmDel(null)}
+                  style={{ border: 0, background: subtle, color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: "7px 13px", borderRadius: 999, cursor: "pointer", flexShrink: 0 }}>Отмена</button>
+                <button className="tap" onClick={() => { app.removeTaskList(l.id); setConfirmDel(null); setColorFor(null); }}
+                  style={{ border: 0, background: "#FF3B30", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, padding: "7px 14px", borderRadius: 999, cursor: "pointer", flexShrink: 0 }}>Удалить</button>
               </div>
             )}
           </div>
@@ -144,9 +184,10 @@ function TaskListsSettingsLive({ isDark }) {
           <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-4)", padding: "18px 0" }}>Списков ещё нет — создай первый ↓</div>
         )}
       </div>
-      <button className="tap" onClick={() => { if (!app || !app.addTaskList) return; const nl = app.addTaskList("Новый список", PAL[lists.length % PAL.length]); setColorFor(nl.id); }}
-        style={{ width: "100%", marginTop: 12, border: 0, fontFamily: "inherit", fontSize: 15, fontWeight: 600, padding: "13px", borderRadius: 16, cursor: "pointer", color: "var(--text)", background: subtle, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <I.Plus size={17} strokeWidth={2.5} /> Новый список
+
+      <button className="tap" onClick={addOne}
+        style={{ width: "100%", marginTop: 12, border: 0, fontFamily: "inherit", fontSize: 15.5, fontWeight: 600, padding: "13px", borderRadius: 16, cursor: "pointer", color: "var(--text)", background: subtle, boxShadow: glassEdge, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <I.Plus size={18} strokeWidth={2.5} /> Новый список
       </button>
     </div>
   );
@@ -226,11 +267,24 @@ function TasksWidgetLive({ isDark, openSheet }) {
           {/* ИНЛАЙН-поле: фокус прячет таб-бар и подвигает страницу так, чтобы поле село над клавой (David) */}
           <label style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 3px", marginTop: tasks.length ? 0 : 2, borderTop: tasks.length ? hair : "none", cursor: "text" }}>
             <span style={{ ...ck, border: "1.7px dashed " + ckBorder, color: "var(--text-4)" }}><I.Plus size={13} /></span>
-            <input value={taskText} onChange={(e) => setTaskText(e.target.value)} onFocus={bosKbFocus} onBlur={bosKbBlur}
+            <input value={taskText} onChange={(e) => setTaskText(e.target.value)} onFocus={bosKbFocus}
+              onBlur={(e) => { commitTask(); bosKbBlur(e); }}
               onKeyDown={(e) => { if (e.key === "Enter") { commitTask(); var _el = e.target; setTimeout(function () { if (_el._bosAdjust) _el._bosAdjust(); }, 50); } if (e.key === "Escape") { setTaskText(""); e.target.blur(); } }}
               placeholder="Добавить дело…"
               style={{ flex: 1, border: 0, outline: "none", fontFamily: "inherit", fontSize: 14.5, color: "var(--text)", background: "transparent" }} />
           </label>
+          {/* Плавающая стеклянная «Готово» у клавиатуры (David: круглая кнопка-галочка справа, прилипшая
+              к клаве). Портал в .page-stack (absolute inset:0): в fixed-root webview iOS ужимает root под
+              клаву → кружок встаёт НАД клавиатурой, как таб-бар. Виден только пока печатаешь дело
+              (body.bos-kb-typing, CSS в mobile.css). Тап → preventDefault держит фокус до нашего blur →
+              поле теряет фокус → onBlur коммитит набранное и клава прячется. */}
+          {typeof ReactDOM !== "undefined" && ReactDOM.createPortal && ReactDOM.createPortal(
+            <button className="bos-kbdone" aria-label="Готово" data-haptic="selection"
+              onPointerDown={(e) => { e.preventDefault(); const el = document.activeElement; if (el && typeof el.blur === "function") el.blur(); }}>
+              <I.Check size={22} strokeWidth={2.6} />
+            </button>,
+            (typeof document !== "undefined" && document.querySelector(".page-stack")) || document.body
+          )}
         </>
       )}
     </div>
