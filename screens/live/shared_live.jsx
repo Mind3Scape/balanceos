@@ -521,12 +521,9 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const yearData = React.useMemo(() => {
     const jan1 = new Date(year, 0, 1);
     const wd0 = (jan1.getDay() + 6) % 7;                                  // Mon-first offset of Jan 1
-    const todayDate = new Date(year, CUR_M, today);
-    const twd = (todayDate.getDay() + 6) % 7;                            // Mon-first weekday of today
-    // Тянем грядку до КОНЦА текущей недели (вс), а не до сегодня — чтобы последний столбец был ПОЛНЫМ,
-    // а не «висел» одной клеткой (David: «сегодня один в колонке; у других цельно заполнено»). Дни после
-    // сегодня = без отметок → тон-track, некликабельны; сегодня по-прежнему с кольцом.
-    const tot = Math.round((todayDate - jan1) / 86400000) + 1 + (6 - twd); // Jan 1 → конец недели
+    // Грядка идёт с начала года ДО СЕГОДНЯ: сегодня — край-«фронтир» (как в contribution-графике GitHub),
+    // последний столбец = текущая неполная неделя. Узнаваемо и честно — David: «люди привыкли, так норм».
+    const tot = Math.round((new Date(year, CUR_M, today) - jan1) / 86400000) + 1; // days Jan 1 → today
     const cols = Math.ceil((wd0 + tot) / 7);
     const firstCol = {}, slots = [], colLabel = {};
     for (let c = 0; c < cols; c++) for (let r = 0; r < 7; r++) {
