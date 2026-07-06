@@ -58,17 +58,65 @@ function HomeQuickStripLive({ isDark }) {
   );
 }
 
-// ── Виджет «Дела»: локальный todo с вкладками-списками. Всё управление ВНУТРИ карточки:
-// ＋ (справа) — новое дело, ••• — настройки текущего списка (имя · цвет · удалить), ＋-чип —
-// новая вкладка. Данные в app.taskLists (локально, без облака). Разовые дела: отметил — насовсем.
-function TasksWidgetLive({ isDark }) {
+// ── Настройки списков «Дел» — БОЛЬШОЙ поп-ап (шторка), открывается из «•••».
+// Всё управление вкладками здесь: создать, переименовать, цвет, удалить. (David: настройки живут
+// ТОЛЬКО на «•••», а не по тапу на чип; ＋-чипа в ряду нет.)
+function TaskListsSettingsLive({ isDark }) {
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const lists = (app && Array.isArray(app.taskLists)) ? app.taskLists : [];
+  const [colorFor, setColorFor] = React.useState(null);
+  const PAL = ["#0a0a0a", "#0a84ff", "#34c759", "#ff9f0a", "#bf5af2", "#ff375f"];
+  const subtle = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
+  const hair = isDark ? "1px solid #2a2a2e" : "1px solid #f0f0f2";
+  const focusScroll = (e) => { const el = e.target; setTimeout(() => { try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {} }, 300); };
+  return (
+    <div style={{ padding: "2px 2px 8px", color: "var(--text)" }}>
+      <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px", padding: "0 2px 4px" }}>Списки дел</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-4)", padding: "0 2px 14px", lineHeight: 1.4 }}>Вкладки над делами — по одной под каждую сторону жизни. Имя, цвет, удаление.</div>
+      <div style={{ borderRadius: 16, background: subtle, overflow: "hidden" }}>
+        {lists.map((l, i) => (
+          <div key={l.id} style={{ borderTop: i === 0 ? "none" : hair }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px" }}>
+              <button className="tap" aria-label="Цвет списка" onClick={() => setColorFor(colorFor === l.id ? null : l.id)}
+                style={{ width: 24, height: 24, borderRadius: "50%", border: 0, background: l.color, flexShrink: 0, cursor: "pointer", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.18)" }} />
+              <input value={l.name} onChange={(e) => app.updateTaskList(l.id, { name: e.target.value })} onFocus={focusScroll} placeholder="Название"
+                style={{ flex: 1, minWidth: 0, border: 0, outline: "none", fontFamily: "inherit", fontSize: 15, fontWeight: 600, color: "var(--text)", background: "transparent" }} />
+              {lists.length > 1 && (
+                <button className="tap" aria-label="Удалить список" onClick={() => { app.removeTaskList(l.id); setColorFor(null); }}
+                  style={{ border: 0, background: "transparent", color: "var(--text-4)", cursor: "pointer", padding: 4, display: "grid", placeItems: "center", flexShrink: 0 }}><I.Trash size={17} /></button>
+              )}
+            </div>
+            {colorFor === l.id && (
+              <div style={{ display: "flex", gap: 10, padding: "0 12px 12px 47px", flexWrap: "wrap" }}>
+                {PAL.map((clr) => (
+                  <button key={clr} className="tap" aria-label="Цвет" onClick={() => { app.updateTaskList(l.id, { color: clr }); setColorFor(null); }}
+                    style={{ width: 26, height: 26, borderRadius: "50%", border: 0, background: clr, cursor: "pointer", display: "grid", placeItems: "center" }}>
+                    {l.color === clr ? <I.Check size={13} color="#fff" /> : null}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        {!lists.length && (
+          <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-4)", padding: "18px 0" }}>Списков ещё нет — создай первый ↓</div>
+        )}
+      </div>
+      <button className="tap" onClick={() => { if (!app || !app.addTaskList) return; const nl = app.addTaskList("Новый список", PAL[lists.length % PAL.length]); setColorFor(nl.id); }}
+        style={{ width: "100%", marginTop: 12, border: 0, fontFamily: "inherit", fontSize: 15, fontWeight: 600, padding: "13px", borderRadius: 16, cursor: "pointer", color: "var(--text)", background: subtle, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <I.Plus size={17} strokeWidth={2.5} /> Новый список
+      </button>
+    </div>
+  );
+}
+
+// ── Виджет «Дела»: локальный todo с вкладками-списками. Верхний ряд = чипы-вкладки + «•••»
+// (все настройки списков — в шторке TaskListsSettingsLive). Тап по чипу = просто переключить.
+// Снизу — всегда видимая строка «Добавить дело» (фокус скроллит её над клавиатурой). Разовые дела.
+function TasksWidgetLive({ isDark, openSheet }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const lists = (app && Array.isArray(app.taskLists)) ? app.taskLists : [];
   const [activeId, setActiveId] = React.useState(null);
-  const [editing, setEditing] = React.useState(false);
-  const [addingList, setAddingList] = React.useState(false);
-  const [addingTask, setAddingTask] = React.useState(false);
-  const [listName, setListName] = React.useState("");
   const [taskText, setTaskText] = React.useState("");
   const PAL = ["#0a0a0a", "#0a84ff", "#34c759", "#ff9f0a", "#bf5af2", "#ff375f"];
   const L = lists.find((l) => l.id === activeId) || lists[0] || null;
@@ -82,82 +130,42 @@ function TasksWidgetLive({ isDark }) {
   const chip = { borderRadius: 999, padding: "7px 13px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, border: 0, cursor: "pointer", fontFamily: "inherit" };
   const ck = { width: 23, height: 23, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", cursor: "pointer", padding: 0, background: "transparent" };
 
-  const commitList = () => {
-    const n = listName.trim();
-    if (n && app && app.addTaskList) { const nl = app.addTaskList(n, PAL[lists.length % PAL.length]); setActiveId(nl.id); }
-    setListName(""); setAddingList(false);
-  };
-  const commitTask = () => {
-    const t = taskText.trim();
-    if (t && L && app && app.addTask) app.addTask(L.id, t);
-    setTaskText("");
-  };
+  const openSettings = () => { if (openSheet) openSheet(<TaskListsSettingsLive isDark={isDark} />); };
+  const commitTask = () => { const t = taskText.trim(); if (t && L && app && app.addTask) app.addTask(L.id, t); setTaskText(""); };
+  const focusScroll = (e) => { const el = e.target; setTimeout(() => { try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {} }, 300); };
 
   return (
-    <div style={{ padding: "13px 14px 10px", color: "var(--text)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1px 10px" }}>
-        <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px" }}>Дела</span>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button className="tap" aria-label="Настройки списка" onClick={() => { setEditing((e) => !e); setAddingList(false); setAddingTask(false); }} style={ib}><I.More size={17} /></button>
-          <button className="tap" aria-label="Добавить дело" onClick={() => { if (!L) return; setAddingTask(true); setEditing(false); }} style={ib}><I.Plus size={16} strokeWidth={2.5} /></button>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", gap: 7, overflowX: "auto", padding: "1px 1px 3px" }}>
-        {lists.map((list) => {
-          const on = L && list.id === L.id;
-          return (
-            <button key={list.id} className="tap" onClick={() => { if (on) { setEditing((e) => !e); } else { setActiveId(list.id); setEditing(false); } setAddingList(false); setAddingTask(false); }}
-              style={{ ...chip, background: on ? list.color : subtle, color: on ? "#fff" : "var(--text-2)" }}>
-              {list.name}{on ? " ⌄" : ""}
-            </button>
-          );
-        })}
-        {addingList ? (
-          <input autoFocus value={listName} onChange={(e) => setListName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") commitList(); if (e.key === "Escape") { setAddingList(false); setListName(""); } }}
-            onBlur={commitList} placeholder="Название…"
-            style={{ ...chip, background: subtle, color: "var(--text)", outline: "none", width: 108, boxShadow: "inset 0 0 0 1.5px rgba(10,132,255,0.5)" }} />
-        ) : (
-          <button className="tap" aria-label="Новый список" onClick={() => { setAddingList(true); setEditing(false); setAddingTask(false); }}
-            style={{ ...chip, background: "transparent", color: "var(--text-4)", boxShadow: "inset 0 0 0 1.5px " + (isDark ? "#2c2c30" : "#e3e3e3"), fontWeight: 700 }}>＋</button>
-        )}
-      </div>
-
-      {editing && L && (
-        <div style={{ background: isDark ? "rgba(40,40,44,0.92)" : "rgba(255,255,255,0.92)", borderRadius: 16, boxShadow: "0 10px 28px rgba(0,0,0,0.14), inset 0 0 0 0.5px rgba(0,0,0,0.05)", padding: "11px 12px", margin: "8px 1px 2px" }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: "var(--text-4)", padding: "0 1px 7px" }}>Список</div>
-          <input value={L.name} onChange={(e) => app.updateTaskList(L.id, { name: e.target.value })} placeholder="Название списка"
-            style={{ width: "100%", border: 0, outline: "none", fontFamily: "inherit", fontSize: 15, fontWeight: 600, color: "var(--text)", background: subtle, borderRadius: 10, padding: "9px 11px", marginBottom: 11 }} />
-          <div style={{ display: "flex", gap: 9, padding: "0 1px 12px" }}>
-            {PAL.map((clr) => (
-              <button key={clr} className="tap" aria-label="Цвет списка" onClick={() => app.updateTaskList(L.id, { color: clr })}
-                style={{ width: 26, height: 26, borderRadius: "50%", border: 0, background: clr, cursor: "pointer", display: "grid", placeItems: "center" }}>
-                {L.color === clr ? <I.Check size={13} color="#fff" /> : null}
+    <div style={{ padding: "12px 14px 10px", color: "var(--text)" }}>
+      {/* верхний ряд: чипы-вкладки (слева, скролл) + «•••» настройки (справа) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", gap: 7, overflowX: "auto", flex: 1, minWidth: 0, padding: "1px 0 3px" }}>
+          {lists.length ? lists.map((list) => {
+            const on = L && list.id === L.id;
+            return (
+              <button key={list.id} className="tap" onClick={() => setActiveId(list.id)}
+                style={{ ...chip, background: on ? list.color : subtle, color: on ? "#fff" : "var(--text-2)" }}>
+                {list.name}
               </button>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 8, borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: 10 }}>
-            {lists.length > 1 && (
-              <button className="tap" onClick={() => { app.removeTaskList(L.id); setActiveId(null); setEditing(false); }}
-                style={{ flex: 1, border: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: 9, borderRadius: 11, cursor: "pointer", color: "#ff3b30", background: "rgba(255,59,48,0.09)" }}>Удалить</button>
-            )}
-            <button className="tap" onClick={() => setEditing(false)}
-              style={{ flex: 1, border: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: 9, borderRadius: 11, cursor: "pointer", color: "#fff", background: "#0a0a0a" }}>Готово</button>
-          </div>
+            );
+          }) : (
+            <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px", padding: "6px 2px" }}>Дела</span>
+          )}
         </div>
-      )}
+        <button className="tap" aria-label="Настройки списков" onClick={openSettings} style={ib}><I.More size={17} /></button>
+      </div>
 
       {!L ? (
-        <div style={{ textAlign: "center", padding: "16px 0 12px" }}>
+        <div style={{ textAlign: "center", padding: "14px 0 10px" }}>
           <div style={{ fontSize: 13, color: "var(--text-4)", marginBottom: 11 }}>Пока нет списков</div>
-          <button className="tap" onClick={() => { if (!app || !app.addTaskList) return; const nl = app.addTaskList("Сегодня", PAL[0]); setActiveId(nl.id); setAddingTask(true); }}
-            style={{ border: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: "9px 16px", borderRadius: 999, cursor: "pointer", color: "#fff", background: "#0a0a0a" }}>＋ Создать список</button>
+          <button className="tap" onClick={() => { if (!app || !app.addTaskList) return; const nl = app.addTaskList("Сегодня", PAL[0]); setActiveId(nl.id); }}
+            style={{ border: 0, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, padding: "9px 16px", borderRadius: 999, cursor: "pointer", color: "#fff", background: "#0a0a0a", display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <I.Plus size={15} strokeWidth={2.5} /> Создать список
+          </button>
         </div>
       ) : (
         <>
           {tasks.length > 0 && (
-            <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600, padding: "9px 3px 3px", letterSpacing: "0.2px" }}>
+            <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600, padding: "8px 3px 2px", letterSpacing: "0.2px" }}>
               {tasks.filter((t) => t.done).length} из {tasks.length} · {L.name.toLowerCase()}
             </div>
           )}
@@ -173,19 +181,15 @@ function TasksWidgetLive({ isDark }) {
                   style={{ border: 0, background: "transparent", color: "var(--text-4)", cursor: "pointer", padding: "2px 4px", opacity: 0.5, display: "grid", placeItems: "center" }}><I.X size={14} /></button>
               </div>
             ))}
-            {tasks.length === 0 && !addingTask && (
-              <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-4)", padding: "16px 0 14px" }}>Пусто. Нажми ＋ справа сверху</div>
-            )}
           </div>
-          {addingTask && (
-            <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 4px", borderTop: hair }}>
-              <span style={{ ...ck, border: "1.7px dashed " + ckBorder, color: "var(--text-4)" }}><I.Plus size={13} /></span>
-              <input autoFocus value={taskText} onChange={(e) => setTaskText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") commitTask(); if (e.key === "Escape") { setAddingTask(false); setTaskText(""); } }}
-                onBlur={() => { if (!taskText.trim()) setAddingTask(false); }} placeholder="Новое дело…"
-                style={{ flex: 1, border: 0, outline: "none", fontFamily: "inherit", fontSize: 14.5, color: "var(--text)", background: "transparent" }} />
-            </div>
-          )}
+          {/* всегда видимая строка добавления — при фокусе скроллится над клавиатурой (фикс David) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 2px 3px", marginTop: tasks.length ? 0 : 2, borderTop: tasks.length ? hair : "none" }}>
+            <span style={{ ...ck, border: "1.7px dashed " + ckBorder, color: "var(--text-4)" }}><I.Plus size={13} /></span>
+            <input value={taskText} onChange={(e) => setTaskText(e.target.value)} onFocus={focusScroll}
+              onKeyDown={(e) => { if (e.key === "Enter") commitTask(); if (e.key === "Escape") { setTaskText(""); e.target.blur(); } }}
+              placeholder="Добавить дело…"
+              style={{ flex: 1, border: 0, outline: "none", fontFamily: "inherit", fontSize: 14.5, color: "var(--text)", background: "transparent" }} />
+          </div>
         </>
       )}
     </div>
@@ -547,7 +551,7 @@ function HomeLive() {
       return (
         <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
           <SwipeRow rowBg={rowBg} dark={isDark} actions={_hideTasks}>
-            <TasksWidgetLive isDark={isDark} />
+            <TasksWidgetLive isDark={isDark} openSheet={openSheet} />
           </SwipeRow>
         </div>
       );
