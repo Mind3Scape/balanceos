@@ -87,6 +87,27 @@
   async function saveProfile(p) {
     return _durable({ type: "saveProfile", key: "saveProfile", args: { username: (p && p.username) || "", avatar: (p && p.avatar) || null } });
   }
+  // «Чем могу быть полезен» (profiles.offer) — короткое предложение помощи, которое видит твой круг.
+  // НАДЁЖНАЯ очередь как saveProfile (коалес по ключу «saveOffer» → уедет последнее значение), но с
+  // graceful-drop до patch_profile_offer.sql: если колонки ещё нет, runOp роняет оп как «успех», чтобы
+  // отсутствующая колонка НЕ заклинила общую очередь синка (та останавливается на первой ошибке).
+  async function saveOffer(text) {
+    return _durable({ type: "saveOffer", key: "saveOffer", args: { offer: ("" + (text || "")).trim().slice(0, 200) } });
+  }
+  // Свежесть «кто затих» (profiles.last_active) — метка активности (отметка привычки / вход). НЕ через
+  // очередь (это сердцебиение, потерять одну не жалко): прямая запись, тихий no-op при ошибке/отсутствии
+  // колонки. Троттл ~1/час через localStorage, чтобы не бить в БД на каждую отметку/фокус.
+  async function touchActive() {
+    try {
+      var last = 0; try { last = parseInt(localStorage.getItem("bos:lastActive:touch") || "0", 10) || 0; } catch (e) {}
+      if (Date.now() - last < 3600000) return; // не чаще раза в час
+      var c = client(); var id = await uid(); if (!c || !id) return;
+      var r = await c.from("profiles").update({ last_active: new Date().toISOString() }).eq("id", id);
+      // Метку троттла ставим только на реальную запись — если колонки ещё нет (до ALTER), НЕ помечаем,
+      // тогда после применения патча первая же активность долетит, а не будет ждать час.
+      if (!r.error) { try { localStorage.setItem("bos:lastActive:touch", "" + Date.now()); } catch (e2) {} }
+    } catch (e) {}
+  }
   // People you've brought in (orbit): profiles referred by you, in invite order.
   async function invitedPeople() {
     var c = client(); var id = await uid(); if (!c || !id) return [];
@@ -161,9 +182,14 @@
   async function profilesPublic(ids) {
     var c = client(); if (!c || !ids || !ids.length) return {};
     try {
-      var r = await c.from("profiles").select("id,pub_orbit").in("id", ids);
-      if (r.error || !r.data) return {};
-      var out = {}; r.data.forEach(function (p) { var o = p.pub_orbit || {}; out[p.id] = { level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0 }; }); return out;
+      // offer (patch_profile_offer.sql) и last_active (patch_profile_last_active.sql) — независимые
+      // колонки, каждая своим патчем; селектим СЛОЯМИ (обе → offer → last_active → база), чтобы каждая
+      // фича светилась, как только прогнан ЕЁ патч, и ничего не ломалось до ALTER (не рушит Вселенную).
+      var cols = ["id,pub_orbit,offer,last_active", "id,pub_orbit,offer", "id,pub_orbit,last_active", "id,pub_orbit"];
+      var r = null;
+      for (var i = 0; i < cols.length; i++) { r = await c.from("profiles").select(cols[i]).in("id", ids); if (!r.error) break; }
+      if (!r || r.error || !r.data) return {};
+      var out = {}; r.data.forEach(function (p) { var o = p.pub_orbit || {}; out[p.id] = { level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0, offer: p.offer || null, lastActive: p.last_active || null }; }); return out;
     } catch (e) { return {}; }
   }
   // ВСЕ пользователи для «Вселенной»: каждый, кто опубликовал витрину орбиты (pub_orbit not null).
@@ -176,11 +202,12 @@
       // referred_by = id того, кто привёл этого человека (world-readable, это ID а не имя →
       // остаётся анонимно). Отдаём как referredBy для слоя «Связи»/созвездий во «Вселенной».
       // Graceful: если колонки нет (до ALTER) — Supabase просто не вернёт поле → referredBy=null.
-      var r = await c.from("profiles").select("id,avatar,pub_orbit,referred_by").not("pub_orbit", "is", null).limit(limit || 240);
+      var r = await c.from("profiles").select("id,avatar,pub_orbit,referred_by,offer").not("pub_orbit", "is", null).limit(limit || 240);
+      if (r.error) r = await c.from("profiles").select("id,avatar,pub_orbit,referred_by").not("pub_orbit", "is", null).limit(limit || 240); // до patch_profile_offer.sql
       if (r.error || !r.data) return [];
       return r.data.filter(function (p) { return p && p.id && p.id !== me; }).map(function (p) {
         var o = p.pub_orbit || {};
-        return { id: p.id, avatar: p.avatar || "default", name: "", level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0, referredBy: p.referred_by || null };
+        return { id: p.id, avatar: p.avatar || "default", name: "", level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0, referredBy: p.referred_by || null, offer: p.offer || null };
       });
     } catch (e) { return []; }
   }
@@ -232,6 +259,14 @@
         case "upsertGoal":  { var rg = await c.from("goals").upsert({ id: a.cloudId, user_id: id, data: a.data, sort: a.sort || 0 }, { onConflict: "id" }); return !rg.error; }
         case "deleteGoal":  { var rdg = await c.from("goals").delete().eq("id", a.cloudId); return !rdg.error; }
         case "saveProfile": { var rpf = await c.from("profiles").update({ username: a.username || "", avatar: a.avatar || null }).eq("id", id); return !rpf.error; }
+        case "saveOffer": {
+          var rof = await c.from("profiles").update({ offer: (a.offer || "").slice(0, 200) }).eq("id", id);
+          if (!rof.error) return true;
+          // Колонки offer ещё нет (до patch_profile_offer.sql) → роняем оп как «успех», иначе он навсегда
+          // заклинил бы очередь синка (flushQueue стоп на первой ошибке). Записать всё равно некуда.
+          if (_isMissingCol(rof.error)) return true;
+          return false; // обычная сеть/сервер — ретрай
+        }
         case "sharedLog":
           if (a.on) { var rs = await c.from("shared_habit_logs").upsert({ code: a.code, user_id: id, day: a.day }, { onConflict: "code,user_id,day", ignoreDuplicates: true }); return !rs.error; }
           { var rsd = await c.from("shared_habit_logs").delete().eq("code", a.code).eq("user_id", id).eq("day", a.day); return !rsd.error; }
@@ -266,6 +301,12 @@
   function _isMissingFn(err) {
     var m = ((err && (err.code || "")) + " " + (err && (err.message || ""))).toLowerCase();
     return m.indexOf("pgrst202") >= 0 || m.indexOf("could not find the function") >= 0 || m.indexOf("does not exist") >= 0;
+  }
+  // Ошибка «колонки нет» (PostgREST): schema-cache miss PGRST204 / undefined_column 42703 / текст
+  // «could not find the 'X' column» / «column ... does not exist». Для graceful-drop записей до ALTER.
+  function _isMissingCol(err) {
+    var m = ((err && (err.code || "")) + " " + (err && (err.message || ""))).toLowerCase();
+    return m.indexOf("pgrst204") >= 0 || m.indexOf("42703") >= 0 || (m.indexOf("column") >= 0 && (m.indexOf("does not exist") >= 0 || m.indexOf("could not find") >= 0 || m.indexOf("schema cache") >= 0));
   }
   var _ledgerFlushing = false;
   async function flushLedgerBacklog() {
@@ -311,7 +352,8 @@
   }
   try {
     window.addEventListener("online", function () { flushQueue(); flushLedgerBacklog(); });
-    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { flushQueue(); flushLedgerBacklog(); } });
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { flushQueue(); flushLedgerBacklog(); touchActive(); } });
+    touchActive(); // «вход» — метка свежести при загрузке (троттл ~1/час внутри)
   } catch (e) {}
 
   // ── D2 · cross-device snapshot ──────────────────────────────────────────────
@@ -371,6 +413,7 @@
   // Toggle ONE day's mark (idempotent — the (habit_id,day) PK makes re-tap safe).
   async function toggleHabitLog(cloudId, day, on) {
     if (!cloudId || !day) return false;
+    if (on) { try { touchActive(); } catch (e) {} } // отметка = активность → метка свежести (троттл внутри)
     return _durable({ type: "habitLog", key: "habitLog:" + cloudId + ":" + day, args: { cloudId: cloudId, day: day, on: !!on } });
   }
   async function loadGoals() {
@@ -1003,7 +1046,7 @@
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, uidSync: uidSync, currentUser: currentUser,
-    loadProfile: loadProfile, saveProfile: saveProfile, invitedPeople: invitedPeople, myInviter: myInviter, refCode: refCode, inviteCode: inviteCode,
+    loadProfile: loadProfile, saveProfile: saveProfile, saveOffer: saveOffer, touchActive: touchActive, invitedPeople: invitedPeople, myInviter: myInviter, refCode: refCode, inviteCode: inviteCode,
     savePublicStats: savePublicStats, profilesPublic: profilesPublic, allPublic: allPublic,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,

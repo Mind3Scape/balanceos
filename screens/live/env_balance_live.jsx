@@ -27,6 +27,31 @@ function bosEnvWord(v) { return v >= 70 ? "Крепкое" : v >= 55 ? "Живо
 function bosEnvZone(v100) { return (typeof bosZoneColor === "function") ? bosZoneColor(v100 / 100) : (v100 >= 70 ? "#34C759" : v100 >= 52 ? "#FFC400" : "#FF8A3D"); }
 function bosEnvPlural(n) { var a = Math.abs(n) % 100, b = a % 10; if (a > 10 && a < 20) return "близких"; if (b === 1) return "близкий"; if (b >= 2 && b <= 4) return "близких"; return "близких"; }
 
+// СВЕЖЕСТЬ: сколько дней человек не отмечался (по last_active). null = данных нет (НЕ врём «давно
+// не заходил», пока метки нет — patch_profile_last_active.sql / до первой активности).
+function bosEnvStaleDays(lastActive) {
+  if (!lastActive) return null;
+  var t = new Date(lastActive).getTime();
+  if (isNaN(t)) return null;
+  var d = (Date.now() - t) / 86400000;
+  return d < 0 ? 0 : d;
+}
+// Кого поддержать (честно): сперва самый ЗАТИХШИЙ по свежести (данные есть и давно ≥3 дней), иначе
+// самый просевший по крепости орбиты (bond). reason «quiet» = знаем, что давно молчит; «dip» = просто
+// слабая орбита (без ложных слов о «давно не заходил»). Порог свежести намеренно мягкий.
+function bosEnvSupportTarget(people) {
+  var quiet = people
+    .map(function (p) { return { p: p, days: bosEnvStaleDays(p.lastActive) }; })
+    .filter(function (x) { return x.days != null && x.days >= 3 && x.p.name; })
+    .sort(function (a, b) { return b.days - a.days; })[0];
+  if (quiet) return { p: quiet.p, reason: "quiet", days: Math.round(quiet.days) };
+  var dip = people.reduce(function (m, n) { return (!m || n.b < m.b) ? n : m; }, null);
+  if (dip && dip.b < 0.42 && dip.name) return { p: dip, reason: "dip" };
+  return null;
+}
+// Ближний с предложением помощи (offer) — для тёплой подсказки «{Имя} может помочь: …».
+function bosEnvOfferer(people) { return people.filter(function (p) { return p.offer && p.name; })[0] || null; }
+
 // глянцевый СТАНДАРТНЫЙ диск (как во Вселенной) + лицо (мемоджи→эмодзи→инициал→силуэт)
 function bosEnvNode(avatar, name, size, dark, youRing) {
   var a = "" + (avatar || "");
@@ -89,7 +114,7 @@ function bosEnvUsePeople() {
         }
         var finish = function (stats) {
           if (!on) return; stats = stats || {};
-          var out = base.map(function (p) { var s = stats[p.id] || {}; return { id: p.id, avatar: p.avatar, name: p.name, inviter: !!p.inviter, mine: !!p.mine, b: bosEnvBond(s), level: s.level || 0, habits: Array.isArray(s.habits) ? s.habits : [] }; });
+          var out = base.map(function (p) { var s = stats[p.id] || {}; return { id: p.id, avatar: p.avatar, name: p.name, inviter: !!p.inviter, mine: !!p.mine, b: bosEnvBond(s), level: s.level || 0, habits: Array.isArray(s.habits) ? s.habits : [], offer: s.offer || null, lastActive: s.lastActive || null }; });
           _bosEnvPeopleCache = out;
           try { localStorage.setItem("bos:cache:envPeople", JSON.stringify(out)); } catch (e) {}
           setPeople(function (prev) { return JSON.stringify(prev) === JSON.stringify(out) ? prev : out; });
@@ -161,14 +186,22 @@ function BosEnvBalanceLive(props) {
   var VW = 320, VH = 240, cx = 160, cy = 116, Rp = 98, N = ringNodes.length;
   var pos = ringNodes.map(function (p, i) { var a = (-90 + i * (360 / N)) * Math.PI / 180; return { x: cx + Math.cos(a) * Rp, y: cy + Math.sin(a) * Rp * 0.9, p: p }; });
 
-  // подсказка ИИ — реципрокность (честно, по самому «просевшему»)
-  var dim = shown.reduce(function (m, n) { return (!m || n.b < m.b) ? n : m; }, null);
+  // подсказка ИИ — реципрокность. Приоритет ЧЕСТНО: (1) кто затих/просел → поддержи; (2) кто предлагает
+  // помощь (offer) → загляни к нему; (3) иначе — поделись сам. Имена в ИМЕНИТЕЛЬНОМ, глаголы нейтральные.
+  var support = bosEnvSupportTarget(shown);
+  var offerer = bosEnvOfferer(shown);
   var nudge;
-  if (dim && dim.b < 0.42 && dim.name) {
-    var nm = dim.name;
-    nudge = { text: <span><b>Ты сейчас в балансе — самое время делиться.</b> {nm} сейчас в спаде — поддержи, и общий баланс подрастёт. Так вы и растёте вместе.</span>, act: "💬 Поддержать", on: function () { navigate("ai-chat", { prompt: "Как по-доброму поддержать близкого (" + nm + "), у которого сейчас спад?" }); } };
+  if (support) {
+    var nm = support.p.name;
+    var body = support.reason === "quiet"
+      ? <span><b>Ты сейчас в балансе — самое время делиться.</b> {nm} — давно тихо, {support.days} дн. без отметок. Загляни, поддержи — и вы снова в ритме.</span>
+      : <span><b>Ты сейчас в балансе — самое время делиться.</b> {nm} сейчас в спаде — поддержи, и общий баланс подрастёт. Так вы и растёте вместе.</span>;
+    var q = support.reason === "quiet" ? "давно не отмечался" : "сейчас в спаде";
+    nudge = { text: body, act: "💬 Поддержать", on: function () { navigate("ai-chat", { prompt: "Как по-доброму поддержать близкого (" + nm + "), который " + q + "?" }); } };
+  } else if (offerer) {
+    nudge = { text: <span><b>{offerer.name} рядом и может помочь:</b> «{offerer.offer}». Загляни — так добро и ходит по кругу.</span>, act: "Подробнее →", on: function () { try { navigate("env-balance"); } catch (e) {} } };
   } else {
-    nudge = { text: <span><b>Окружение держится на тебе.</b> Поделись, чем ты силён — кому-то это сейчас нужно, и вы вырастете вместе.</span>, act: "＋ Чем могу быть полезен", on: bosEnvInvite(openSheet, navigate, dark) };
+    nudge = { text: <span><b>Окружение держится на тебе.</b> Поделись, чем ты силён — кому-то это сейчас нужно, и вы вырастете вместе.</span>, act: "＋ Чем могу быть полезен", on: function () { try { navigate("env-balance"); } catch (e) {} } };
   }
 
   return (
@@ -249,6 +282,13 @@ function BosEnvBalanceFullLive() {
   var people = bosEnvUsePeople();
   var myLight = bosEnvMyLight(app);
 
+  // «Чем могу быть полезен» (offer) — моё предложение помощи, которое видит круг. Прелоад из
+  // localStorage (мгновенно + graceful до колонки); пишем в localStorage на ввод и в облако на blur.
+  var offerSt = React.useState(function () { try { return localStorage.getItem("bos:myOffer") || ""; } catch (e) { return ""; } });
+  var myOffer = offerSt[0], setMyOffer = offerSt[1];
+  var onOfferChange = function (e) { var v = (e.target.value || "").slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} };
+  var onOfferBlur = function (e) { var v = (e.target.value || "").trim().slice(0, 200); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} try { if (window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.saveOffer) window.bosCloud.saveOffer(v); } catch (er2) {} };
+
   var list = Array.isArray(people) ? people : [];
   var total = list.length;
   var index = bosEnvIndex(list, myLight);
@@ -297,16 +337,23 @@ function BosEnvBalanceFullLive() {
 
       {/* люди окружения — с их состоянием */}
       <div style={{ marginTop: 12 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color: "var(--text-4)", padding: "0 4px 8px" }}>Твои близкие · {total}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color: "var(--text-4)", padding: "0 4px 3px" }}>Твои близкие · {total}</div>
+        <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.4, padding: "0 4px 8px" }}>Полоска — насколько живёт их орбита{list.some(function (p) { var d = bosEnvStaleDays(p.lastActive); return d != null && d >= 3; }) ? "; 🌙 — кто затих" : ""}. Слабее сверху.</div>
         <div style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
           {list.slice().sort(function (a, b) { return a.b - b.b; }).map(function (p, i, arr) {
             var pct = Math.round(p.b * 100);
+            // Честная мета под полоской: если реально давно молчит (есть свежесть) → «давно тихо»;
+            // иначе, если предлагает помощь → его offer. Без данных свежести — ничего не выдумываем.
+            var staleDays = bosEnvStaleDays(p.lastActive);
+            var quiet = staleDays != null && staleDays >= 3;
+            var meta = quiet ? ("🌙 давно тихо · " + Math.round(staleDays) + " дн.") : (p.offer ? ("🤝 " + p.offer) : null);
             return (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 13px", borderBottom: i < arr.length - 1 ? "0.5px solid var(--line)" : "none" }}>
                 {bosEnvNode(p.avatar, p.name, 38, dark, false)}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name || "Близкий"}{p.inviter ? <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-5)" }}>  · позвал тебя</span> : null}</div>
                   <div style={{ height: 5, borderRadius: 3, background: "var(--surface-3)", marginTop: 5, overflow: "hidden" }}><i style={{ display: "block", height: "100%", width: pct + "%", borderRadius: 3, background: bosEnvZone(pct) }} /></div>
+                  {meta ? <div style={{ fontSize: 11, color: quiet ? "var(--text-5)" : "var(--text-4)", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.3 }}>{meta}</div> : null}
                 </div>
                 <button className="tap" onClick={function () { navigate("ai-chat", { prompt: "Как поддержать близкого (" + (p.name || "друга") + "), чтобы вернуть ему тонус?" }); }} style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color: "var(--text-2)", background: "var(--surface-3)", border: 0, borderRadius: 999, padding: "6px 12px", cursor: "pointer" }}>Поддержать</button>
               </div>
@@ -318,8 +365,16 @@ function BosEnvBalanceFullLive() {
       {/* чем могу быть полезен + пригласить */}
       <div style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: "15px 15px", marginTop: 12 }}>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text)" }}>Расти вместе</div>
-        <div style={{ fontSize: 12.7, color: "var(--text-3)", lineHeight: 1.5, marginTop: 4 }}>Ты в балансе — самое время нести добро. Позови ещё близких и поделись, чем ты силён: чем крепче каждый, тем выше общий баланс.</div>
-        <button className="tap hit44" onClick={bosEnvInvite(openSheet, navigate, dark)} style={{ display: "block", width: "100%", marginTop: 12, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, border: 0, borderRadius: 999, padding: "12px", cursor: "pointer" }}>＋ Позвать своего</button>
+        <div style={{ fontSize: 12.7, color: "var(--text-3)", lineHeight: 1.5, marginTop: 4 }}>Ты в балансе — самое время нести добро. Поделись, чем ты силён, и позови ещё близких: чем крепче каждый, тем выше общий баланс.</div>
+        {/* «Чем могу быть полезен» — короткое предложение помощи, которое увидят твои близкие. */}
+        <div style={{ marginTop: 13 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Чем ты можешь быть полезен</div>
+          <input value={myOffer} onChange={onOfferChange} onBlur={onOfferBlur} maxLength={200}
+            placeholder="Напр.: помогу с английским · выслушаю · подскажу по спорту"
+            style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 12, padding: "11px 13px", fontSize: 14, color: "var(--text)", fontFamily: "inherit" }} />
+          <div style={{ fontSize: 11, color: "var(--text-5)", lineHeight: 1.4, marginTop: 6 }}>Увидят твои близкие в «Балансе окружения» — и заглянут, когда нужно.</div>
+        </div>
+        <button className="tap hit44" onClick={bosEnvInvite(openSheet, navigate, dark)} style={{ display: "block", width: "100%", marginTop: 14, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, border: 0, borderRadius: 999, padding: "12px", cursor: "pointer" }}>＋ Позвать своего</button>
       </div>
 
       <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", margin: "16px 8px 2px", fontStyle: "italic" }}>Ты сам создаёшь окружение — как только сам в балансе.</div>
