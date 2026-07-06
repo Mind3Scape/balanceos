@@ -434,7 +434,7 @@ function bosCellInk(hx, p, isDark) {
 }
 
 /* PeopleMonthCalendar → live-only: always the REAL calendar (demo's frozen showcase date gone). */
-function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap, bare = false, defaultView = "month" }) {
+function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap, bare = false, defaultView = "month", tintInk = null }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
@@ -465,6 +465,9 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const todayBg = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)";
   const selRing = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.28)";
   const chipBg = isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)";
+  // На тонированной карточке (tintInk задан) пилюля срока/сегмент/глазик — матовое стекло в тон, не серый чип.
+  const chip2 = tintInk ? (isDark ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.5)") : chipBg;
+  const lblCol = tintInk || "var(--text)";
   const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px 5px 6px", borderRadius: 999, background: active ? (isDark ? "#fff" : "#0a0a0a") : chipBg, color: active ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)", border: 0, flexShrink: 0, fontSize: 13, fontWeight: active ? 700 : 500, whiteSpace: "nowrap", cursor: "pointer" });
   const weekday = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
   // Edges show the adjacent months' days as BARELY-grey discs (David: «едва серенькие выпирания
@@ -579,7 +582,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 12 }}>
           {!scopeOpen && (
             /* Период СЛЕВА — как в макете («Декабрь 2025» / «2025 год»), контролы справа. */
-            <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, letterSpacing: "-0.3px", color: lblCol, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {view === "year" ? (year + " год") : (view === "week" ? "Эта неделя" : (MONTHS[mIdx] + " " + year))}
             </div>
           )}
@@ -587,7 +590,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             /* Тихая пилюля СПРАВА (David: «год должен быть справа, как в макете»): срок + галка ⌄. Тап
                раскрывает сегмент. Это НЕ «глазик» (глаз = плотность, отдельная ось). */
             <button onClick={() => setScopeOpen(true)} className="tap" data-no-haptic aria-label="Сменить срок"
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, border: 0, cursor: "pointer", background: chipBg, color: "var(--text-2)", padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.2px", flexShrink: 0 }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, border: 0, cursor: "pointer", background: chip2, color: tintInk || "var(--text-2)", padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.2px", flexShrink: 0 }}>
               {({ week: "Неделя", month: "Месяц", year: "Год" })[view]}
               <span style={{ fontSize: 11, opacity: 0.55, transform: "translateY(-1px)" }}>⌄</span>
             </button>
@@ -595,16 +598,16 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             /* Раскрытый сегмент занимает строку; выбор срока сворачивает обратно. Пружинный pop (WAAPI). */
             <div style={{ flex: 1, minWidth: 0 }}>
               <div ref={(el) => { if (el) { try { el.animate([{ opacity: 0, transform: "scale(0.75)" }, { opacity: 1, transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(0.2,1.3,0.4,1)" }); } catch (_) {} } }}
-                style={{ display: "flex", gap: 2, background: chipBg, borderRadius: 11, padding: 2.5 }}>
+                style={{ display: "flex", gap: 2, background: chip2, borderRadius: 11, padding: 2.5 }}>
                 {[["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
-                  <button key={v} onClick={() => { setView(v); setScopeOpen(false); }} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "5px 0", fontSize: 12.5, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)", transition: "background 0.15s" }}>{l}</button>
+                  <button key={v} onClick={() => { setView(v); setScopeOpen(false); }} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "5px 0", fontSize: 12.5, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : (tintInk || "var(--text-2)"), transition: "background 0.15s" }}>{l}</button>
                 ))}
               </div>
             </div>
           )}
           <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
-            style={{ display: "grid", placeItems: "center", background: compact ? chipBg : (isDark ? "#fff" : "#0a0a0a"), border: 0, borderRadius: 999, width: 32, height: 32, cursor: "pointer", flexShrink: 0, transition: "background 0.15s" }}>
-            <I.Eye size={15} filled={!compact} color={compact ? "var(--text-3)" : (isDark ? "#0a0a0a" : "#fff")} />
+            style={{ display: "grid", placeItems: "center", background: compact ? chip2 : (isDark ? "#fff" : "#0a0a0a"), border: 0, borderRadius: 999, width: 32, height: 32, cursor: "pointer", flexShrink: 0, transition: "background 0.15s" }}>
+            <I.Eye size={15} filled={!compact} color={compact ? (tintInk || "var(--text-3)") : (isDark ? "#0a0a0a" : "#fff")} />
           </button>
         </div>
 

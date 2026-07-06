@@ -208,7 +208,7 @@ function HabitDetailLive() {
 
         {/* Календарь — ПРЯМО на тонированном фоне, единый тон (David: «как в макете, без подложки»). */}
         <div style={{ marginTop: 18 }}>
-          <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" />
+          <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} bare todayTap={_todayTap} defaultView="year" tintInk={_tinted ? _sk.txt : null} />
         </div>
 
         {/* Серия / Лучшая / Всего — снизу; на тоне линия и иконки светлее/в тон. */}
