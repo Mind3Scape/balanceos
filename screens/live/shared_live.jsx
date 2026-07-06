@@ -908,35 +908,39 @@ function ShareHeroLive({ kind, subject, dark, appCenter, heroVariant }) {
     );
   }
 
-  // ── Variant 3 (default for app): GROW — a core of people appears, the camera pulls
-  // back, more bloom around and connect PROGRESSIVELY (core first, then the rest), then it
-  // settles static. One-shot on open (no loop). David: «ощущение соединения».
+  // ── GROW (default for app): a people-constellation that GROWS OUTWARD from the centre.
+  // Centre → ring1 → ring2 → a faint far crowd; EVERY glass thread draws from its parent
+  // (inner) toward the child (outer), so the whole thing radiates out (David: «всё из центра
+  // вовне»). The far ring is many small, semi-transparent faces = depth without clutter. The
+  // camera pulls back as it blooms, then it settles static (one-shot on open).
   if (heroVariant === "grow" || (isApp && heroVariant == null)) {
-    const H = 236;
-    const IN = ["m2", "m12", "m9", "m10", "m18", "m4"];
-    const OUT = ["m3", "m7", "m16", "m13", "m18", "m10", "m9", "m2"];
-    const innerA = [-90, -30, 30, 90, 150, 210];
-    const outerA = [22, 67, 112, 157, 202, 247, 292, 337];
-    const inner = innerA.map((a, i) => ({ m: IN[i], sz: 32, c: P(48, a), d: 0.06 + 0.05 * i }));
-    const outer = outerA.map((a, i) => ({ m: OUT[i], sz: 23, c: P(92, a), d: 0.55 + 0.045 * i }));
-    const centre = { m: "m13", sz: 44, c: [CX, CY], d: 0 };
-    const nearest = (a) => { let bi = 0, bd = 999; innerA.forEach((ia, idx) => { const d = Math.abs(((a - ia + 180) % 360 + 360) % 360 - 180); if (d < bd) { bd = d; bi = idx; } }); return inner[bi]; };
+    const H = 246, CYg = 120;
+    const Pg = (r, a) => [CX + r * Math.cos(a * Math.PI / 180), CYg + r * Math.sin(a * Math.PI / 180)];
+    const POOL = ["m2", "m12", "m9", "m10", "m18", "m4", "m3", "m7", "m16", "m13", "m6", "m1"];
+    const nearest = (a, arr) => { let bi = 0, bd = 999; arr.forEach((ia, idx) => { const d = Math.abs(((a - ia + 180) % 360 + 360) % 360 - 180); if (d < bd) { bd = d; bi = idx; } }); return bi; };
+    const A1 = [-90, -30, 30, 90, 150, 210];
+    const A2 = []; for (let j = 0; j < 10; j++) A2.push(j * 36 + 18);
+    const A3 = []; for (let k = 0; k < 15; k++) A3.push(k * 24);
+    const r1 = A1.map((a, i) => ({ m: POOL[i % POOL.length], sz: 30, c: Pg(46, a), op: 1, nd: 0.16 + 0.025 * i }));
+    const r2 = A2.map((a, j) => ({ m: POOL[(j + 3) % POOL.length], sz: 22, c: Pg(84, a), op: 1, nd: 0.46 + 0.022 * j }));
+    const r3 = A3.map((a, k) => ({ m: POOL[(k + 7) % POOL.length], sz: 15, c: Pg(114, a), op: 0.58, nd: 0.74 + 0.018 * k }));
+    const centre = { m: "m13", sz: 42, c: [CX, CYg], op: 1, nd: 0 };
     const L = [];
-    inner.forEach((n, i) => L.push({ p: [CX, CY, n.c[0], n.c[1]], d: 0.26 + 0.04 * i }));
-    inner.forEach((n, i) => { const nx = inner[(i + 1) % 6]; L.push({ p: [n.c[0], n.c[1], nx.c[0], nx.c[1]], d: 0.33 + 0.04 * i }); });
-    outer.forEach((n, i) => { const ni = nearest(outerA[i]); L.push({ p: [n.c[0], n.c[1], ni.c[0], ni.c[1]], d: 0.7 + 0.04 * i }); });
-    const all = [centre].concat(inner).concat(outer);
+    r1.forEach((n, i) => L.push({ p: [CX, CYg, n.c[0], n.c[1]], w: 1.3, o: 1, d: 0.1 + 0.025 * i }));
+    r2.forEach((n, j) => { const pr = r1[nearest(A2[j], A1)]; L.push({ p: [pr.c[0], pr.c[1], n.c[0], n.c[1]], w: 1.1, o: 1, d: 0.4 + 0.022 * j }); });
+    r3.forEach((n, k) => { const pr = r2[nearest(A3[k], A2)]; L.push({ p: [pr.c[0], pr.c[1], n.c[0], n.c[1]], w: 0.8, o: 0.5, d: 0.7 + 0.018 * k }); });
+    const all = [centre].concat(r1).concat(r2).concat(r3);
     return (
       <div style={{ position: "relative", width: 264, height: H, margin: "2px auto 0", overflow: "visible" }}>
-        <style>{"@keyframes shareZoom{from{transform:scale(1.6)}to{transform:scale(1)}}@keyframes sharePop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"}</style>
-        <div style={{ position: "absolute", inset: 0, transformOrigin: "50% 50%", animation: "shareZoom 1.15s cubic-bezier(.2,.7,.2,1) both" }}>
+        <style>{"@keyframes shareZoom{from{transform:scale(1.5)}to{transform:scale(1)}}@keyframes sharePop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}@keyframes sharePopF{from{opacity:0;transform:scale(.4)}to{opacity:.58;transform:scale(1)}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"}</style>
+        <div style={{ position: "absolute", inset: 0, transformOrigin: "50% 50%", animation: "shareZoom 1.25s cubic-bezier(.2,.7,.2,1) both" }}>
           <svg viewBox={"0 0 264 " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
             {L.map((l, i) => (
-              <line key={i} x1={l.p[0]} y1={l.p[1]} x2={l.p[2]} y2={l.p[3]} stroke={linkCore} strokeWidth="1.2" strokeLinecap="round" pathLength="1" strokeDasharray="1" style={{ animation: "bosLinkDraw 0.5s ease " + l.d.toFixed(2) + "s both" }} />
+              <line key={i} x1={l.p[0]} y1={l.p[1]} x2={l.p[2]} y2={l.p[3]} stroke={linkCore} strokeWidth={l.w} strokeOpacity={l.o} strokeLinecap="round" pathLength="1" strokeDasharray="1" style={{ animation: "bosLinkDraw 0.42s ease " + l.d.toFixed(2) + "s both" }} />
             ))}
           </svg>
           {all.map((n, i) => (
-            <div key={i} style={{ position: "absolute", left: n.c[0] - n.sz / 2, top: n.c[1] - n.sz / 2, width: n.sz, height: n.sz, borderRadius: "50%", boxShadow: faceShadow, animation: "sharePop 0.5s cubic-bezier(.2,1.3,.4,1) " + n.d.toFixed(2) + "s both" }}>
+            <div key={i} style={{ position: "absolute", left: n.c[0] - n.sz / 2, top: n.c[1] - n.sz / 2, width: n.sz, height: n.sz, borderRadius: "50%", boxShadow: faceShadow, animation: (n.op < 1 ? "sharePopF" : "sharePop") + " 0.46s cubic-bezier(.2,1.3,.4,1) " + n.nd.toFixed(2) + "s both" }}>
               <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: discBase }} />
               <div style={{ position: "absolute", inset: 0, borderRadius: "50%", backgroundImage: "url(./assets/people/" + n.m + ".png)", backgroundSize: "cover", backgroundPosition: "center" }} />
               <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: sheen, boxShadow: rim }} />
