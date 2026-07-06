@@ -510,9 +510,9 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
     else if (view === "year") { const yi = yearData.slots.findIndex((s) => s && s.m === CUR_M && s.d === today); if (yi >= 0) triggerRipple(yi, yearGridRef.current, true); }
     else triggerRipple(todayIdx, gridRef.current);
   };
-  // Тап по КЛЕТКЕ сегодня: волна + отметка. Флажок _skipPulse гасит дубль от pct-эффекта ниже.
-  const _skipPulseRef = React.useRef(false);
-  const fireToday = () => { _skipPulseRef.current = true; rippleToday(); if (todayTap && todayTap.onTap) todayTap.onTap(); };
+  // Тап по КЛЕТКЕ сегодня = просто отметка; ВОЛНУ пускает pct-эффект ниже — единый источник ряби для
+  // клетки И кольца-чекбокса сверху, и только при ПРОДВИЖЕНИИ вперёд (не при снятии).
+  const fireToday = () => { setSelDay(today); if (todayTap && todayTap.onTap) todayTap.onTap(); };
 
   // ── «Месяц · Год» — тот же кружок-день в двух масштабах (David; неделя живёт на карточке). Год =
   //    «грядка» с начала года до сегодня; месяцы СКРЫТЫ пока не нажат глазик («Подробно»).
@@ -553,13 +553,15 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
     return out;
   }, [year, CUR_M, today]);
   React.useEffect(() => { if (view === "year" && yearScrollRef.current) yearScrollRef.current.scrollLeft = yearScrollRef.current.scrollWidth; }, [view]);
-  // Волна-отклик на ЛЮБУЮ отметку сегодня — в т.ч. по кольцу-чекбоксу СВЕРХУ (вне календаря): следим за
-  // todayTap.pct. Сменился → рябь от сегодня. Пропускаем первый маунт и тап-по-клетке (тот уже пустил).
-  const _pulseFirst = React.useRef(true);
+  // Волна — ТОЛЬКО при ПРОДВИЖЕНИИ сегодня вперёд: галочка поставлена / +1 к счёту (pct ВЫРОС). Снятие
+  // галочки или −1 (pct упал) волну НЕ пускают — иначе нелогично (David: «убрать чекбокс не должно давать
+  // волну»). Единый источник для клетки И кольца-чекбокса сверху (оба меняют todayTap.pct).
+  const _prevPctRef = React.useRef(null);
   React.useEffect(() => {
-    if (_pulseFirst.current) { _pulseFirst.current = false; return; }
-    if (_skipPulseRef.current) { _skipPulseRef.current = false; return; }
-    rippleToday();
+    const pct = todayTap ? todayTap.pct : null;
+    const prev = _prevPctRef.current;
+    _prevPctRef.current = pct;
+    if (prev != null && pct != null && pct > prev) rippleToday();
   }, [todayTap && todayTap.pct]);
 
   return (
