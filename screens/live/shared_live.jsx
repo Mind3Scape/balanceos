@@ -845,87 +845,200 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft, onTraining 
 
 /* ShareAppSheet → live-only: the user's REAL referral circle + ?ref=<uid> invite link
    (no demo sample faces, no demo "истории/ещё" share targets). */
-function ShareAppSheetLive({ dark = false }) {
-  const { close } = useSheet();
-  const APP_URL = (typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot";
-  const [copied, setCopied] = React.useState(false);
-  const [shareUrl, setShareUrl] = React.useState(APP_URL);
+/* ── Unified share sheet (v595) ────────────────────────────────────────────────
+   ODNA shtorka for the whole app: share the APP, a HABIT or a GOAL. Only the centre of
+   the orbit, the words and the colour change — the rest is identical. Built from the REAL
+   parts David asked for (no approximations): real Memoji (./assets/people/mN.png), the app's
+   real ORBIT ring look (thin rgba(92,120,165) rings), SOLID matte fills (no "plasticine"
+   gloss / no gradients-from-nowhere), the real theme (sheetColors), and the real native
+   Telegram share (bosShare). ONE button «Поделиться», no copy-link (David). */
+function ShareHeroLive({ kind, subject, dark, appCenter, heroVariant }) {
+  const isApp = kind === "app";
+  const col = (subject && subject.color) || "#0a0a0a";
+  // Glass vocabulary lifted from the Вселенная: a frosted sheen + bright top rim on every face,
+  // matte-glass threads that softly pulse. Real Memoji (./assets/people) — young, clean faces.
+  const linkCore = dark ? "rgba(214,220,232,0.5)" : "rgba(120,130,152,0.5)";
+  const linkShine = "rgba(255,255,255,0.7)";
+  const sheen = dark
+    ? "linear-gradient(150deg, rgba(255,255,255,0.22), rgba(255,255,255,0.05) 46%, rgba(255,255,255,0) 72%)"
+    : "linear-gradient(150deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 72%)";
+  const rim = dark
+    ? "inset 0 1px 0.5px rgba(255,255,255,0.28), inset 0 0 0 1px rgba(255,255,255,0.12)"
+    : "inset 0 1.5px 1px rgba(255,255,255,0.92), inset 0 0 0 1px rgba(255,255,255,0.45)";
+  const faceShadow = dark ? "0 8px 20px -4px rgba(0,0,0,0.6)" : "0 8px 20px -5px rgba(0,0,0,0.22)";
+  const discBase = dark ? "#2a2d33" : "#e6e9ef";
+  const discShadow = dark ? "0 16px 34px -14px rgba(0,0,0,0.6)" : "0 16px 34px -14px rgba(0,0,0,0.28)";
+  const CX = 132, CY = 112;
+  const P = (r, a) => [CX + r * Math.cos(a * Math.PI / 180), CY + r * Math.sin(a * Math.PI / 180)];
+
+  // one glass-framed real Memoji (Вселенная-style frosted disc: image + sheen + bright rim)
+  const glassFace = (m, sz, cx, cy, k) => (
+    <div key={k} style={{ position: "absolute", left: cx - sz / 2, top: cy - sz / 2, width: sz, height: sz, borderRadius: "50%", background: discBase, boxShadow: faceShadow }}>
+      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", backgroundImage: "url(./assets/people/" + m + ".png)", backgroundSize: "cover", backgroundPosition: "center" }} />
+      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: sheen, boxShadow: rim }} />
+    </div>
+  );
+  // glass thread layer (soft matte core + a pulse that breathes along it)
+  const threads = (arr, h) => (
+    <svg viewBox={"0 0 264 " + h} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
+      <style>{"@keyframes bosLinkPulse{from{stroke-dashoffset:0.2}to{stroke-dashoffset:-1}}"}</style>
+      {arr.map((l, i) => (
+        <g key={"lk" + i}>
+          <line x1={l[0]} y1={l[1]} x2={l[2]} y2={l[3]} stroke={linkCore} strokeWidth="1.4" strokeLinecap="round" />
+          <line x1={l[0]} y1={l[1]} x2={l[2]} y2={l[3]} stroke={linkShine} strokeWidth="2.3" strokeLinecap="round" pathLength="1" strokeDasharray="0.2 1" style={{ animation: "bosLinkPulse 3.4s ease-in-out " + (0.2 + i * 0.16).toFixed(2) + "s infinite both" }} />
+        </g>
+      ))}
+    </svg>
+  );
+
+  // ── Variant 2: HONEYCOMB of people — the Вселенная сота, just a few faces ────
+  if (heroVariant === "honeycomb") {
+    const H = 220, RH = 60, fS = 48;
+    const ring = [0, 60, 120, 180, 240, 300].map((a) => P(RH, a));
+    const FCS = ["m2", "m12", "m9", "m10", "m18", "m4"];
+    const links = [];
+    ring.forEach((p) => links.push([CX, CY, p[0], p[1]]));
+    ring.forEach((p, i) => { const n = ring[(i + 1) % 6]; links.push([p[0], p[1], n[0], n[1]]); });
+    return (
+      <div style={{ position: "relative", width: 264, height: H, margin: "2px auto 0" }}>
+        {threads(links, H)}
+        {ring.map((p, i) => glassFace(FCS[i], fS, p[0], p[1], "r" + i))}
+        {glassFace("m13", 54, CX, CY, "c")}
+      </div>
+    );
+  }
+
+  // ── Variant 3 (default for app): GROW — a core of people appears, the camera pulls
+  // back, more bloom around and connect PROGRESSIVELY (core first, then the rest), then it
+  // settles static. One-shot on open (no loop). David: «ощущение соединения».
+  if (heroVariant === "grow" || (isApp && heroVariant == null)) {
+    const H = 236;
+    const IN = ["m2", "m12", "m9", "m10", "m18", "m4"];
+    const OUT = ["m3", "m7", "m16", "m13", "m18", "m10", "m9", "m2"];
+    const innerA = [-90, -30, 30, 90, 150, 210];
+    const outerA = [22, 67, 112, 157, 202, 247, 292, 337];
+    const inner = innerA.map((a, i) => ({ m: IN[i], sz: 32, c: P(48, a), d: 0.06 + 0.05 * i }));
+    const outer = outerA.map((a, i) => ({ m: OUT[i], sz: 23, c: P(92, a), d: 0.55 + 0.045 * i }));
+    const centre = { m: "m13", sz: 44, c: [CX, CY], d: 0 };
+    const nearest = (a) => { let bi = 0, bd = 999; innerA.forEach((ia, idx) => { const d = Math.abs(((a - ia + 180) % 360 + 360) % 360 - 180); if (d < bd) { bd = d; bi = idx; } }); return inner[bi]; };
+    const L = [];
+    inner.forEach((n, i) => L.push({ p: [CX, CY, n.c[0], n.c[1]], d: 0.26 + 0.04 * i }));
+    inner.forEach((n, i) => { const nx = inner[(i + 1) % 6]; L.push({ p: [n.c[0], n.c[1], nx.c[0], nx.c[1]], d: 0.33 + 0.04 * i }); });
+    outer.forEach((n, i) => { const ni = nearest(outerA[i]); L.push({ p: [n.c[0], n.c[1], ni.c[0], ni.c[1]], d: 0.7 + 0.04 * i }); });
+    const all = [centre].concat(inner).concat(outer);
+    return (
+      <div style={{ position: "relative", width: 264, height: H, margin: "2px auto 0", overflow: "visible" }}>
+        <style>{"@keyframes shareZoom{from{transform:scale(1.6)}to{transform:scale(1)}}@keyframes sharePop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"}</style>
+        <div style={{ position: "absolute", inset: 0, transformOrigin: "50% 50%", animation: "shareZoom 1.15s cubic-bezier(.2,.7,.2,1) both" }}>
+          <svg viewBox={"0 0 264 " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
+            {L.map((l, i) => (
+              <line key={i} x1={l.p[0]} y1={l.p[1]} x2={l.p[2]} y2={l.p[3]} stroke={linkCore} strokeWidth="1.2" strokeLinecap="round" pathLength="1" strokeDasharray="1" style={{ animation: "bosLinkDraw 0.5s ease " + l.d.toFixed(2) + "s both" }} />
+            ))}
+          </svg>
+          {all.map((n, i) => (
+            <div key={i} style={{ position: "absolute", left: n.c[0] - n.sz / 2, top: n.c[1] - n.sz / 2, width: n.sz, height: n.sz, borderRadius: "50%", boxShadow: faceShadow, animation: "sharePop 0.5s cubic-bezier(.2,1.3,.4,1) " + n.d.toFixed(2) + "s both" }}>
+              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: discBase }} />
+              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", backgroundImage: "url(./assets/people/" + n.m + ".png)", backgroundSize: "cover", backgroundPosition: "center" }} />
+              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: sheen, boxShadow: rim }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Variant 1: a small glass WEB — icon centre + 3 glass Memoji ──────────────
+  // Asymmetric, varied sizes (one big / one small, like the reference); young clean faces.
+  const H = 224;
+  const nodes = [
+    { m: "m13", sz: 66, o: 80, a: -36 },   // big, upper-right
+    { m: "m2", sz: 50, o: 84, a: 152 },    // medium, lower-left
+    { m: "m12", sz: 42, o: 94, a: 56 },    // small, lower-right (further orbit)
+  ].map((n) => Object.assign({}, n, { c: P(n.o, n.a) }));
+  const links = [];
+  nodes.forEach((n) => links.push([CX, CY, n.c[0], n.c[1]]));
+  links.push([nodes[0].c[0], nodes[0].c[1], nodes[1].c[0], nodes[1].c[1]]);
+  links.push([nodes[1].c[0], nodes[1].c[1], nodes[2].c[0], nodes[2].c[1]]);
+  links.push([nodes[2].c[0], nodes[2].c[1], nodes[0].c[0], nodes[0].c[1]]);
+  let centre;
+  if (isApp && appCenter === "name") {
+    centre = (
+      <div style={{ position: "absolute", left: CX - 42, top: CY - 42, width: 84, height: 84, borderRadius: 24, background: "#FEDE34", display: "grid", placeItems: "center", boxShadow: discShadow }}>
+        <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.5px", color: "#0a0a0a" }}>balanceOS</div>
+      </div>
+    );
+  } else if (isApp) {
+    centre = (
+      <div style={{ position: "absolute", left: CX - 42, top: CY - 42, width: 84, height: 84, borderRadius: "50%", background: dark ? "#26262b" : "#0a0a0a", boxShadow: (dark ? "inset 0 0 0 1px rgba(255,255,255,0.10), " : "") + discShadow, display: "grid", placeItems: "center" }}>
+        <I.Send size={34} color="#fff" />
+      </div>
+    );
+  } else {
+    const emo = (typeof bosDeSF === "function") ? bosDeSF(subject && subject.emoji) : (subject && subject.emoji);
+    centre = (
+      <div style={{ position: "absolute", left: CX - 42, top: CY - 42, width: 84, height: 84, borderRadius: "50%", background: col, display: "grid", placeItems: "center", boxShadow: discShadow }}>
+        <span style={{ fontSize: 40, lineHeight: 1 }}>{emo || "✨"}</span>
+      </div>
+    );
+  }
+  return (
+    <div style={{ position: "relative", width: 264, height: H, margin: "2px auto 0" }}>
+      {threads(links, H)}
+      {centre}
+      {nodes.map((n) => glassFace(n.m, n.sz, n.c[0], n.c[1], n.m))}
+    </div>
+  );
+}
+
+function ShareSheetLive({ kind = "app", subject, dark = false, appCenter, heroVariant }) {
+  const isApp = kind === "app";
+  const sheet = (typeof useSheet === "function") ? useSheet() : null;
+  const close = (sheet && sheet.close) || function () {};
+  const C = (typeof sheetColors === "function") ? sheetColors(dark)
+    : (dark ? { text: "#fff", sub: "rgba(255,255,255,0.55)", btn: "#fff", btnFg: "#0a0a0a" } : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", btn: "#0a0a0a", btnFg: "#fff" });
+  const [shareUrl, setShareUrl] = React.useState((subject && subject.link) ? subject.link : ((typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot"));
   React.useEffect(() => {
+    if (!isApp) return;
     let on = true;
     if (window.bosCloud && window.bosCloud.uid) {
-      (window.bosCloud.inviteCode ? window.bosCloud.inviteCode() : window.bosCloud.uid()).then((code) => { if (on && code) setShareUrl((typeof bosInviteLink === "function") ? bosInviteLink(code) : (APP_URL + "?ref=" + code)); }).catch(() => {});
+      (window.bosCloud.inviteCode ? window.bosCloud.inviteCode() : window.bosCloud.uid()).then((code) => { if (on && code) setShareUrl((typeof bosInviteLink === "function") ? bosInviteLink(code) : ("https://t.me/BalanceOS8_bot?ref=" + code)); }).catch(() => {});
     }
     return () => { on = false; };
   }, []);
-  const copyLink = () => {
-    try { navigator.clipboard.writeText(shareUrl); } catch (e) {}
-    setCopied(true); window.setTimeout(() => setCopied(false), 1600);
+  const nm = (subject && subject.name) || "";
+  const COPY = isApp
+    ? { kick: "СДЕЛАЕМ ЭТО ВМЕСТЕ?", title: "Позовите близких", sub: "Вместе держать баланс проще · +150 XP за друга", text: "Держим баланс вместе — BalanceOS" }
+    : kind === "goal"
+      ? { kick: "К ЦЕЛИ ВМЕСТЕ", title: nm || "Ваша цель", sub: "Идите к цели не в одиночку", text: "Идём к цели вместе — «" + nm + "» в BalanceOS ✨" }
+      : { kick: "ВМЕСТЕ ЛЕГЧЕ", title: nm || "Ваша привычка", sub: "Позови друга — держите привычку рядом", text: "Ведём привычку вместе — «" + nm + "» в BalanceOS ✨" };
+  const doShare = () => {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    if (window.bosShare) { if (!window.bosShare(shareUrl, COPY.text)) { try { navigator.clipboard.writeText(shareUrl); } catch (e) {} } }
+    else { try { navigator.clipboard.writeText(shareUrl); } catch (e) {} }
   };
-  const shareLink = () => {
-    if (window.bosShare ? !window.bosShare(shareUrl, "Держим баланс вместе — BalanceOS") : true) copyLink();
-    else if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-  };
-  const C = dark
-    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.09)" }
-    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", line: "rgba(0,0,0,0.06)" };
-  const _FCOLORS = ["#f0c8a8", "#a8c0e8", "#e8b8d4", "#b8e8c8", "#d4c8e8", "#a8d4e8", "#e8d0a8"];
-  const [liveFriends, setLiveFriends] = React.useState([]);
-  React.useEffect(() => {
-    if (!(window.bosCloud && window.bosCloud.enabled())) return;
-    let on = true;
-    try {
-      window.bosCloud.invitedPeople().then((list) => {
-        if (!on || !Array.isArray(list)) return;
-        setLiveFriends(list.map((p, idx) => {
-          const nm = (p && p.username) ? p.username : "Друг";
-          return { name: nm, i: nm.charAt(0).toUpperCase(), c: _FCOLORS[idx % _FCOLORS.length] };
-        }));
-      }).catch(() => {});
-    } catch (e) {}
-    return () => { on = false; };
-  }, []);
-  const friends = liveFriends;
-  // Real referral progress → the live milestone the user is ACTUALLY working toward
-  // (no fake "2 из 3"; a fresh user honestly sees "0 из 3"). Same CIRCLE_MILESTONES as community.
-  const _nextMile = [{ n: 3, bonus: 300 }, { n: 7, bonus: 700 }, { n: 15, bonus: 1500 }, { n: 30, bonus: 3000 }].find((m) => m.n > friends.length) || { n: 30, bonus: 3000 };
   return (
-    <div style={{ padding: "2px 20px 0", color: C.text }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: 64, height: 64, borderRadius: "50%", margin: "0 auto 12px",
-          background: "radial-gradient(circle at 37% 29%, #ffffff 0%, #dbe6f6 14%, #7aa4d0 46%, #3f5f86 72%, #243b5c 100%)",
-          boxShadow: "0 8px 24px rgba(122,164,208,0.42)" }} />
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться BalanceOS</div>
-        <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>+150 XP за друга — и бонусы круга до +3000 XP 🔥</div>
+    <div style={{ padding: "4px 20px 0", color: C.text }}>
+      <ShareHeroLive kind={kind} subject={subject} dark={dark} appCenter={appCenter || "send"} heroVariant={heroVariant} />
+      <div style={{ textAlign: "center", marginTop: 8 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: "1.3px", textTransform: "uppercase", color: C.sub }}>{COPY.kick}</div>
+        <div style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-0.5px", marginTop: 8 }}>{COPY.title}</div>
+        <div style={{ fontSize: 14, color: C.sub, marginTop: 8, lineHeight: 1.45, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>{COPY.sub}</div>
       </div>
-
-      <div style={{ marginTop: 18 }}>
-        <XPRewardCard amount={150} reason="когда друг начнёт пользоваться приложением" dark={dark} circleNow={friends.length} circleGoal={_nextMile.n} circleBonus={_nextMile.bonus} flat />
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.tile, borderRadius: 14, padding: "11px 14px", marginTop: 14 }}>
-        <span style={{ fontSize: 16 }}>🔗</span>
-        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-          <div style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>Твоя личная ссылка</div>
-          <div style={{ fontSize: 13.5, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>{("" + shareUrl).replace(/^https?:\/\//, "")}</div>
-        </div>
-        <button onClick={copyLink} className="tap" style={{ background: copied ? "#34C759" : (dark ? "#fff" : "#0a0a0a"), color: copied ? "#fff" : (dark ? "#0a0a0a" : "#fff"), border: 0, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 600, transition: "background 0.2s", whiteSpace: "nowrap" }}>{copied ? "Скопировано ✓" : "Копировать"}</button>
-      </div>
-
-      {/* ONE clear, labelled primary action — Telegram's native "forward to a contact"
-          picker with the bot invite link. Friends list removed (David: «всё равно шлётся
-          через Telegram» → лишний выбор, минималистично). */}
-      <button onClick={shareLink} className="tap" style={{
-        width: "100%", marginTop: 18, border: 0, borderRadius: 16, padding: "15px 16px",
-        background: "#229ED9", color: "#fff", fontSize: 15.5, fontWeight: 600,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
-      }}>
-        <I.Send size={18} /> Поделиться в Telegram
+      <button onClick={doShare} className="tap" style={{ width: "100%", marginTop: 20, border: 0, borderRadius: 16, padding: "16px", background: C.btn, color: C.btnFg, fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+        <I.Send size={19} /> Поделиться
       </button>
-
-      <button className="tap" onClick={close} style={{ width: "100%", marginTop: 22, background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>Готово</button>
+      <button onClick={close} className="tap" style={{ width: "100%", marginTop: 8, border: 0, background: "transparent", color: C.sub, fontSize: 14.5, fontWeight: 600, padding: "9px" }}>Закрыть</button>
+      <div style={{ height: "max(6px, var(--tg-bottom-inset, 0px))" }} />
     </div>
   );
+}
+
+function ShareAppSheetLive({ dark = false }) {
+  // Unified share sheet (v595): the animated «grow» people-constellation for the app invite
+  // (core appears → camera pulls back → more people bloom & connect → settles static). The
+  // real referral link + native Telegram share (bosShare → t.me/share picker) live inside
+  // ShareSheetLive. Replaces the old blue-sphere + XP-card + link-box + two-buttons sheet.
+  return <ShareSheetLive kind="app" dark={dark} />;
 }
 
 /* ShareHabitSheet → live-only: REAL referral circle + ?ref=<uid> link (no demo friends,
