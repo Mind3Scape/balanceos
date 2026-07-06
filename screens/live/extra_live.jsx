@@ -171,14 +171,28 @@ function HabitDetailLive() {
         </div>
       } />
 
-      {/* Hero — neutral tile (or the habit's soft colour), like the lists outside */}
-      <div style={{ textAlign: "center", padding: "6px 0 12px" }}>
-        <div style={{ width: 88, height: 88, borderRadius: 22, margin: "0 auto", display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
-          <span style={{ fontSize: 44 }}>{bosIcon(h.emoji, 40, h.color)}</span>
+      {/* Hero — плитка-иконка СЛЕВА + название, СПРАВА наш компонент отметки (David: «как на примере»).
+          Компонент — ТОТ ЖЕ, что на главной (таймер/счётчик/галочка по типу привычки), просто крупнее:
+          так видно, что отмечать можно прямо тут, а не только тыкая день в календаре. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "6px 2px 14px" }}>
+        <div style={{ width: 72, height: 72, borderRadius: 20, flexShrink: 0, display: "grid", placeItems: "center", background: BOS_TILE_SHEEN + ", " + tileBg, boxShadow: bosTileGlass(isDark) }}>
+          <span style={{ fontSize: 36 }}>{bosIcon(h.emoji, 34, h.color)}</span>
         </div>
-        <div style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", marginTop: 16, letterSpacing: "-0.5px" }}>{h.name}</div>
-        <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
-          Ежедневно{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", lineHeight: 1.12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{h.name}</div>
+          <div style={{ fontSize: 13, color: "var(--text-4)", marginTop: 3 }}>
+            Ежедневно{h.duration ? ` · ${h.duration} мин` : ""}{h.done ? " · выполнено сегодня" : ""}
+          </div>
+        </div>
+        {/* Наш реальный компонент отметки (не копия) — масштабирован в герой. Диспетчер как на главной. */}
+        <div style={{ flexShrink: 0, width: 66, height: 66, display: "grid", placeItems: "center" }}>
+          <div style={{ transform: "scale(1.8)", transformOrigin: "center" }}>
+            {(h.duration > 0 && !((h.goalPerDay || 1) > 1) && typeof HabitTimerCheck === "function")
+              ? <HabitTimerCheck habit={h} app={app} xp={10} />
+              : ((h.goalPerDay || 1) > 1 && typeof HabitCountCheck === "function")
+                ? <HabitCountCheck habit={h} app={app} xp={10} />
+                : <HabitCheck done={h.done} onToggle={() => { if (app && app.toggleHabit) app.toggleHabit(h.id); }} xp={10} float color={h.color} dark={isDark} />}
+          </div>
         </div>
       </div>
 
@@ -193,7 +207,7 @@ function HabitDetailLive() {
 
       {/* Per-habit calendar — the SAME full month calendar the team uses (paged, dated),
          so the whole app reads one way. Live = your own real days. */}
-      <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" todayTap={_todayTap} />
+      <PeopleMonthCalendarLive people={calPeople} dayFrac={habitFrac} label="Календарь привычки" todayTap={_todayTap} defaultView="year" />
 
       {/* СКРЫТО (David: «убери баннеры „Веди вместе“ и „Инсайт“ — может, потом пригодятся»).
           Приглашение переехало в стеклянную кнопку «поделиться» в шапке. Код сохранён:

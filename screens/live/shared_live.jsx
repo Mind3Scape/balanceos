@@ -430,7 +430,7 @@ function bosCellInk(hx, p, isDark) {
 }
 
 /* PeopleMonthCalendar → live-only: always the REAL calendar (demo's frozen showcase date gone). */
-function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap, bare = false }) {
+function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap, bare = false, defaultView = "month" }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
@@ -443,7 +443,8 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const setSelPerson = (v) => { if (onSelPerson) onSelPerson(v); else setSelInner(v); };
   const [selDay, setSelDay] = React.useState(today);
   const [compact, setCompact] = React.useState(true); // «красиво» (default, just cells) ↔ «подробно» по глазику
-  const [view, setView] = React.useState("month"); // Неделя · Месяц · Год — один кружок-день в трёх масштабах (David)
+  const [view, setView] = React.useState(defaultView); // Неделя · Месяц · Год — один кружок-день в трёх масштабах (David). defaultView — проп на экран (детальная привычка = «year»), у целей/личного остаётся «month» → соседи не задеты.
+  const [scopeOpen, setScopeOpen] = React.useState(false); // Пилюля срока: свёрнута → «текущий срок ⌄», тап раскрывает Неделя|Месяц|Год, выбор сворачивает.
   const daysInMonth = new Date(year, mIdx + 1, 0).getDate();
   const startWeekday = new Date(year, mIdx, 1).getDay();
   const isCurMonth = mIdx === CUR_M;
@@ -479,14 +480,19 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   // staggered by grid distance; auto-cleans, no React state churn.
   const gridRef = React.useRef(null);
   const weekGridRef = React.useRef(null); // «Неделя»-грядка имеет СВОЙ ref → волна расходится и здесь.
+  const yearGridRef = React.useRef(null); // «Год»-грядка тоже свой ref → волна расходится и в годовом виде (David: «волны и во внутренней карточке»).
   const todayIdx = startWeekday + today - 1; // flat index of «today» within the month `cells`
-  const triggerRipple = (originIdx, gridEl) => {
+  const triggerRipple = (originIdx, gridEl, colMajor = false) => {
     const grid = gridEl || gridRef.current; if (!grid) return;
-    const cols = 7, kids = grid.children;
-    const or = Math.floor(originIdx / cols), oc = originIdx % cols;
+    const kids = grid.children;
+    // Месяц/Неделя — 7 КОЛОНОК, ряд-мажор. Год — 7 РЯДОВ, колонка-мажор (грядка). Позицию клетки
+    // считаем по раскладке, чтобы волна расходилась геометрически верно в любом масштабе.
+    const rc = (idx) => colMajor ? { r: idx % 7, c: Math.floor(idx / 7) } : { r: Math.floor(idx / 7), c: idx % 7 };
+    const o = rc(originIdx);
     for (let i = 0; i < kids.length; i++) {
       const el = kids[i]; if (!el || el.getAttribute("aria-hidden")) continue;
-      const dist = Math.hypot(Math.floor(i / cols) - or, (i % cols) - oc);
+      const p = rc(i);
+      const dist = Math.hypot(p.r - o.r, p.c - o.c);
       try {
         // Волна = не только размер, но и лёгкий БЛЕСК (осветление) проходящий по клетке (David).
         el.animate([{ transform: "scale(1)", filter: "brightness(1)" }, { transform: "scale(1.18)", filter: "brightness(1.32)" }, { transform: "scale(1)", filter: "brightness(1)" }],
@@ -500,6 +506,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const fireToday = () => {
     setSelDay(today);
     if (view === "week") { const wi = weeksData.findIndex((w) => w.isToday); triggerRipple(wi < 0 ? 28 : wi, weekGridRef.current); }
+    else if (view === "year") { const yi = yearData.slots.findIndex((s) => s && s.m === CUR_M && s.d === today); if (yi >= 0) triggerRipple(yi, yearGridRef.current, true); }
     else triggerRipple(todayIdx, gridRef.current);
     if (todayTap && todayTap.onTap) todayTap.onTap();
   };
@@ -551,10 +558,25 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
         {/* Компактный переключатель масштаба (David): сегменты + глазик-кнопка (только иконка,
             залита когда «Подробно»). Чипы людей переехали ВНИЗ, под календарь. */}
         <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 12 }}>
-          <div style={{ display: "flex", gap: 2, background: chipBg, borderRadius: 11, padding: 2.5, flex: 1 }}>
-            {[["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
-              <button key={v} onClick={() => setView(v)} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "5px 0", fontSize: 12.5, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)", transition: "background 0.15s" }}>{l}</button>
-            ))}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {!scopeOpen ? (
+              /* Тихая пилюля: по умолчанию — только текущий срок + галка ⌄. Минимализм не трогаем;
+                 тап раскрывает сегмент. Это НЕ «глазик» (глаз = плотность, отдельная ось). */
+              <button onClick={() => setScopeOpen(true)} className="tap" data-no-haptic aria-label="Сменить срок"
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, border: 0, cursor: "pointer", background: chipBg, color: "var(--text-2)", padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.2px" }}>
+                {({ week: "Неделя", month: "Месяц", year: "Год" })[view]}
+                <span style={{ fontSize: 11, opacity: 0.55, transform: "translateY(-1px)" }}>⌄</span>
+              </button>
+            ) : (
+              /* Раскрытый сегмент — тот же вид, что был; выбор срока сворачивает пилюлю обратно. Лёгкий
+                 пружинный «pop» на появлении (WAAPI, как у волны). */
+              <div ref={(el) => { if (el) { try { el.animate([{ opacity: 0, transform: "scale(0.75)" }, { opacity: 1, transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(0.2,1.3,0.4,1)" }); } catch (_) {} } }}
+                style={{ display: "flex", gap: 2, background: chipBg, borderRadius: 11, padding: 2.5 }}>
+                {[["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].map(([v, l]) => (
+                  <button key={v} onClick={() => { setView(v); setScopeOpen(false); }} className="tap" style={{ flex: 1, border: 0, borderRadius: 9, padding: "5px 0", fontSize: 12.5, fontWeight: view === v ? 700 : 500, cursor: "pointer", background: view === v ? (isDark ? "#fff" : "#0a0a0a") : "transparent", color: view === v ? (isDark ? "#0a0a0a" : "#fff") : "var(--text-2)", transition: "background 0.15s" }}>{l}</button>
+                ))}
+              </div>
+            )}
           </div>
           <button onClick={() => setCompact((c) => !c)} className="tap" aria-label={compact ? "Подробно" : "Компактно"}
             style={{ display: "grid", placeItems: "center", background: compact ? chipBg : (isDark ? "#fff" : "#0a0a0a"), border: 0, borderRadius: 999, width: 32, height: 32, cursor: "pointer", flexShrink: 0, transition: "background 0.15s" }}>
@@ -663,17 +685,22 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
                     ))}
                   </div>
                 )}
-                <div style={{ display: "grid", gridTemplateRows: "repeat(7, 13px)", gridAutoFlow: "column", gridAutoColumns: "13px", gap: 3 }}>
+                <div ref={yearGridRef} style={{ display: "grid", gridTemplateRows: "repeat(7, 13px)", gridAutoFlow: "column", gridAutoColumns: "13px", gap: 3 }}>
                   {yearData.slots.map((s, i) => {
                     if (!s) return <span key={i} aria-hidden style={{ width: 13, height: 13 }} />;
                     const hx = (selColor && selColor[0] === "#" && selColor.length >= 7) ? selColor : "#0a0a0a";
-                    const pct = yearPct(s.m, s.d);
-                    const filled = pct > 0;
                     const isToday = s.m === CUR_M && s.d === today;
-                    const bg = pct <= 0 ? track : bosCellFill(hx, pct);
+                    // Сегодня в «Годе» — тоже ЖИВАЯ клетка: тап отмечает и пускает волну по грядке (David:
+                    // «волны и во внутренней карточке»). Интерактив только в СВОём фильтре (solo/«Все»/твой чип).
+                    const itx = !!(todayTap && isToday && (solo || selPerson == null || (people[selPerson] && people[selPerson].you)));
+                    const pct = itx ? todayTap.pct : yearPct(s.m, s.d);
+                    const filled = pct > 0;
+                    const bg = pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : track) : bosCellFill(hx, pct);
                     const todayRingY = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.48)";
-                    const sh = [filled ? bosCellGlass(isDark) : "", isToday ? ("0 0 0 1.6px " + todayRingY) : ""].filter(Boolean).join(", ") || "none";
-                    return <span key={i} title={(MONTHS[s.m] || "") + " " + s.d} style={{ width: 13, height: 13, borderRadius: "50%", background: bg, boxShadow: sh }} />;
+                    const sh = [filled ? bosCellGlass(isDark) : "", isToday ? ("0 0 0 1.6px " + (itx ? hx : todayRingY)) : ""].filter(Boolean).join(", ") || "none";
+                    const yst = { width: 13, height: 13, borderRadius: "50%", background: bg, boxShadow: sh };
+                    if (itx) return <button key={i} onClick={fireToday} data-no-haptic className="tap" title={(MONTHS[s.m] || "") + " " + s.d} style={{ ...yst, border: 0, padding: 0, cursor: "pointer" }} />;
+                    return <span key={i} title={(MONTHS[s.m] || "") + " " + s.d} style={yst} />;
                   })}
                 </div>
               </div>
