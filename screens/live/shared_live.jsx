@@ -214,13 +214,29 @@ function DeadlineCalendarLive({ onPick }) {
    чёрный; и хочется градиент с лёгким блеском Liquid-Glass, а не сплошняк»). A light TOP sheen over
    a directional tint of the habit's colour `hx`, intensity by p (0..1). Capped well below full
    saturation → soft, never neon; black lands as a soft graphite, not pure black. */
-function bosCellFill(hx, p) {
+function bosCellFill(hx, p, isDark) {
   if (typeof bosCanonColor === "function") hx = bosCanonColor(hx);
   if (!(hx && hx[0] === "#" && hx.length >= 7)) hx = "#0a0a0a";
-  var bot = 0.30 + 0.55 * Math.max(0, Math.min(1, p));  // bottom alpha — PRESENT, caps ~0.85 (never full)
-  var top = bot * 0.6;                                    // lighter top → directional sheen
-  var hex = function (a) { return Math.round(a * 255).toString(16).padStart(2, "0"); };
-  return "linear-gradient(180deg, " + hx + hex(top) + ", " + hx + hex(bot) + ")";
+  var pp = Math.max(0, Math.min(1, p));
+  if (isDark === undefined) isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  if (isDark) {
+    // ТЁМНАЯ: закрашенный день — ЯРКИЙ, «светящийся», в тон чекбоксу (David: «в референсе точки яркие,
+    // а у нас тусклые — альфа гасит цвет на тёмном»). Плотный цвет + светлый верхний блик, НЕ альфа.
+    var low = ("" + hx).toLowerCase();
+    if (low === "#0a0a0a" || low === "#8e8e93") {
+      // Нейтраль (Стандарт/серый) в тёмной → СВЕТЛЫЙ день (графит инвертируется в белый), иначе не видно на тёмном.
+      var wb = 0.60 + 0.34 * pp, wt = Math.min(1, wb + 0.13);
+      return "linear-gradient(180deg, rgba(247,249,252," + wt.toFixed(2) + "), rgba(212,219,230," + wb.toFixed(2) + "))";
+    }
+    var deep = 0.44 * (1 - pp); // p=1 → чистый яркий цвет; меньше p → глубже к подложке
+    var base = (typeof bosMixHex === "function") ? bosMixHex(hx, "#181a20", deep) : hx;
+    var top = (typeof bosLightenHex === "function") ? bosLightenHex(base, 0.17) : base;
+    return "linear-gradient(180deg, " + top + ", " + base + ")";
+  }
+  var bot = 0.30 + 0.55 * pp;  // СВЕТЛАЯ — мягкая альфа, как было (не трогаем)
+  var topA = bot * 0.6;
+  var hx2 = function (a) { return Math.round(a * 255).toString(16).padStart(2, "0"); };
+  return "linear-gradient(180deg, " + hx + hx2(topA) + ", " + hx + hx2(bot) + ")";
 }
 // Осветлить hex к белому на amt (0..1) → МЯГКАЯ ПАСТЕЛЬ. Наши BOS_APPLE_COLORS средне-насыщенные;
 // заливать карточку целиком ими = «убого» (David). Осветляем до партнёрской пастели (#B9D4FF-класс),
@@ -620,7 +636,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
               const fut = pct == null;
               const filled = !fut && pct > 0;
               const done = !fut && pct >= 1;
-              const bg = fut ? bosCellEmpty(hx, isDark, 0.42) : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : bosCellEmpty(hx, isDark)) : bosCellFill(hx, pct));
+              const bg = fut ? bosCellEmpty(hx, isDark, 0.42) : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14, isDark) : bosCellEmpty(hx, isDark)) : bosCellFill(hx, pct, isDark));
               // Сегодня = единое стеклянное кольцо (bosTodayRing) в ТОНЕ привычки, как снаружи; без «+».
               const sh = [filled ? bosCellGlass(isDark) : "", wd.isToday ? bosTodayRing(isDark, hx) : ""].filter(Boolean).join(", ") || "none";
               return (
@@ -668,7 +684,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             const filled = !fut && pct > 0;
             // Empty interactive today = a faint accent wash + accent ring + «+», so it reads «tap me».
             const bg = fut ? bosCellEmpty(hx, isDark, 0.42)
-              : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : bosCellEmpty(hx, isDark)) : bosCellFill(hx, pct));
+              : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14, isDark) : bosCellEmpty(hx, isDark)) : bosCellFill(hx, pct, isDark));
             // One COHESIVE today-glyph colour (David: «цвет цифры прыгает с чёрного на белый на 4→5 —
             // бред; пусть пока копится и в конце ВСЕГДА белый; „+" пусть остаётся в цвете обводки»).
             // Filled today = ALWAYS white number/✓ (never flips) + soft shadow so it reads on any fill;
@@ -725,7 +741,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
                     const itx = !!(todayTap && isToday && (solo || selPerson == null || (people[selPerson] && people[selPerson].you)));
                     const pct = itx ? todayTap.pct : yearPct(s.m, s.d);
                     const filled = pct > 0;
-                    const bg = pct <= 0 ? (itx ? bosCellFill(hx, 0.14) : track) : bosCellFill(hx, pct);
+                    const bg = pct <= 0 ? (itx ? bosCellFill(hx, 0.14, isDark) : track) : bosCellFill(hx, pct, isDark);
                     const todayRingY = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.48)";
                     // Кольцо сегодня — ВНУТРЕННЕЕ (inset): рисуется внутри клетки → НЕ обрезается краем
                     // горизонтального скролла (David: «колесо вокруг сегодня обрезается»). Нейтральный тон
