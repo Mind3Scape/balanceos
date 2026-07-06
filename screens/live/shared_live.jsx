@@ -1715,7 +1715,7 @@ function BosHeroOrbMini(props) {
 
 // РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint }.
 function BosBalanceWheelLive(props) {
-  var app = props.app, dark = !!props.dark, navigate = props.navigate, tint = props.tint || ["#cfe1ff", "#7aa4d0", "#1a2c48"], hideTitle = !!props.hideTitle;
+  var app = props.app, dark = !!props.dark, navigate = props.navigate, tint = props.tint || ["#cfe1ff", "#7aa4d0", "#1a2c48"], hideTitle = !!props.hideTitle, bare = !!props.bare;
   var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
   var pickState = React.useState(null), pick = pickState[0], setPick = pickState[1];
   var data = bosWheelData(app);
@@ -1737,7 +1737,7 @@ function BosBalanceWheelLive(props) {
   var askWheel = function () { if (navigate) navigate("ai-chat", { prompt: "Разбери мой баланс по сферам жизни и подскажи, что подтянуть." }); };
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
+    <div style={bare ? { padding: "0" } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
       {/* Заголовок + ГЛАЗИК компакт↔развёрнуто (David): компакт = только колесо (без расшифровок),
           развёрнуто = + пояснение, сферы, чипы «ИИ заметил». Название «Баланс жизни» (не «колесо»). */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, paddingBottom: expanded ? 12 : 6 }}>

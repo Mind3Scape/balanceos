@@ -130,6 +130,8 @@ function BosEnvBalanceLive(props) {
   var openSheet = props.openSheet || function () {};
   var dark = !!props.dark;
   var hideTitle = !!props.hideTitle; // в переключателе «Жизнь/Окружение» заголовок = пилюля сверху
+  var bare = !!props.bare;           // без своей карточки (внутри общей карточки переключателя)
+  var wrapStyle = bare ? { padding: "0" } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" };
   var people = bosEnvUsePeople();
   var myLight = bosEnvMyLight(app);
   if (people === null) return null;
@@ -139,7 +141,7 @@ function BosEnvBalanceLive(props) {
   // ПУСТОЕ
   if (!people.length) {
     return (
-      <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 15px" }}>
+      <div style={wrapStyle}>
         <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс окружения</div>
         <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 4, marginBottom: 14 }}>Состояние, которое вы держите вместе. Пока в нём только ты — позови первого своего.</div>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>{bosEnvNode(app.avatar, app.userName || "", 60, dark, true)}</div>
@@ -170,7 +172,7 @@ function BosEnvBalanceLive(props) {
   }
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
+    <div style={wrapStyle}>
       {hideTitle ? (
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button onClick={open} className="tap" data-no-haptic style={{ background: "transparent", border: 0, cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 2, padding: "0 0 4px" }}>Подробнее {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} /> : "›"}</button>
@@ -334,6 +336,7 @@ function BosCircleBalanceLive(props) {
   var members = Array.isArray(props.members) ? props.members : [];
   var dark = !!props.dark;
   var navigate = props.navigate || function () {};
+  var bare = !!props.bare; // внутри аккордеона цели: без своей карточки и без заголовка (его даёт секция)
   if (members.length < 2) return null;
 
   var paces = members.map(function (m) { return typeof m.pace === "number" ? Math.max(0, Math.min(1, m.pace)) : 0; });
@@ -354,9 +357,9 @@ function BosCircleBalanceLive(props) {
   var ordered = members.slice().sort(function (a, b) { return (a.pace || 0) - (b.pace || 0); });
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px", marginBottom: 12 }}>
-      <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс круга</div>
-      <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>Как круг держит цель — темп каждого. Видно только участникам.</div>
+    <div style={bare ? { padding: "2px 0 4px" } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px", marginBottom: 12 }}>
+      {!bare && <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс круга</div>}
+      {!bare && <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>Как круг держит цель — темп каждого. Видно только участникам.</div>}
 
       <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 2px" }}>{bosEnvRing(index, word, total + " В КРУГЕ", 152, dark)}</div>
 
@@ -406,8 +409,8 @@ function BosBalanceTabsLive(props) {
     var on = tab === v;
     return (
       <button onClick={function () { pick(v); }} className="tap" data-no-haptic aria-pressed={on} style={{
-        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: 0, cursor: "pointer",
-        borderRadius: 999, padding: "9px 8px", fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.2px",
+        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, border: 0, cursor: "pointer", whiteSpace: "nowrap",
+        borderRadius: 999, padding: "9px 6px", fontSize: 12.5, fontWeight: 700, letterSpacing: "-0.3px",
         color: on ? "var(--text)" : "var(--text-4)",
         background: on ? (dark ? "rgba(255,255,255,0.15)" : "#fff") : "transparent",
         boxShadow: on ? (dark ? "0 1px 3px rgba(0,0,0,0.4)" : "0 1px 3px rgba(0,0,0,0.12), inset 0 0 0 0.5px rgba(0,0,0,0.04)") : "none",
@@ -419,16 +422,16 @@ function BosBalanceTabsLive(props) {
   var iconEnv = (typeof I !== "undefined" && I.Users) ? <I.Users size={15} /> : <span style={{ fontSize: 13 }}>✦</span>;
 
   return (
-    <div>
-      {/* стеклянный сегмент-переключатель (две пилюли) */}
+    <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "12px 14px 14px" }}>
+      {/* стеклянный сегмент-переключатель (две пилюли) — ЧАСТЬ карточки, наверху */}
       <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", boxShadow: dark ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.05)" }}>
         {pill("life", iconLife, "Баланс жизни")}
         {pill("env", iconEnv, "Баланс окружения")}
       </div>
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 6 }}>
         {tab === "life"
-          ? (typeof BosBalanceWheelLive === "function" ? <BosBalanceWheelLive app={app} dark={dark} navigate={navigate} tint={tint} hideTitle={true} /> : null)
-          : <BosEnvBalanceLive app={app} dark={dark} navigate={navigate} openSheet={openSheet} tint={tint} hideTitle={true} />}
+          ? (typeof BosBalanceWheelLive === "function" ? <BosBalanceWheelLive app={app} dark={dark} navigate={navigate} tint={tint} hideTitle={true} bare={true} /> : null)
+          : <BosEnvBalanceLive app={app} dark={dark} navigate={navigate} openSheet={openSheet} tint={tint} hideTitle={true} bare={true} />}
       </div>
     </div>
   );

@@ -1007,18 +1007,9 @@ function TeamDetailLive() {
         </div>
       </>)}
 
-      {/* БАЛАНС КРУГА — та же аналитика, что «Баланс окружения», но В РАМКАХ ЦЕЛИ: кольцо-состояние
-          круга (средний темп по цели) + темп каждого + поддержи отстающего. Только участники (их
-          страница цели). David 2026-07-06. Данные — уже посчитанные members + _pulseFor. */}
-      {_rosterLive && members.length >= 2 && typeof BosCircleBalanceLive === "function" && (
-        <BosCircleBalanceLive
-          members={ranked.map(function (m) { var _p = _pulseFor(m); return { id: m.id, name: m.id === meId ? "Ты" : m.name, avatar: m.avatar, you: m.id === meId, pace: (_p == null ? (flowSet[m.id] ? 1 : 0) : _p) }; })}
-          fallbackProgress={gp} dark={isDark} navigate={navigate} />
-      )}
-
-      {/* ЕДИНЫЙ РАСКРЫВАЮЩИЙСЯ БЛОК: Привычки · Календарь · Люди (David: «в одном блоке, раскрывается
-          по выбранной категории; свёрнутые — краткая сводка»). */}
-      <BosSectionsAccordionLive dark={isDark} defaultOpen="habits" sections={[
+      {/* ЕДИНЫЙ РАСКРЫВАЮЩИЙСЯ БЛОК: Привычки · Календарь · Баланс круга · Люди. ВСЕ свёрнуты по
+          умолчанию (David: человек раскрывает сам). «Баланс круга» — между Календарём и Людьми. */}
+      <BosSectionsAccordionLive dark={isDark} defaultOpen={null} sections={[
         {
           key: "habits", icon: <I.Flame size={17} color="var(--text-3)" />, title: "Привычки",
           summary: teamHabits.length ? (teamHabits.length + " " + _habitWordT(teamHabits.length) + " · сегодня " + _myDoneCount + " из " + teamHabits.length) : "Пока пусто — добавь первую",
@@ -1088,6 +1079,17 @@ function TeamDetailLive() {
                 dayFrac={(pi, d, mi) => (mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0)} />
               </div>
             : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Пока нет отметок — появятся, когда участники начнут закрывать привычки круга.</div>),
+        },
+        {
+          // БАЛАНС КРУГА — та же аналитика, что «Баланс окружения», но В РАМКАХ ЦЕЛИ (кольцо-состояние
+          // круга + темп каждого + поддержи отстающего). Секцией между Календарём и Людьми (David).
+          key: "circle", icon: <I.Sparkles size={16} color="var(--text-3)" />, title: "Баланс круга",
+          summary: (_rosterLive && members.length >= 2) ? "как круг держит цель — темп каждого" : "нужно ≥2 участника",
+          render: () => ((_rosterLive && members.length >= 2 && typeof BosCircleBalanceLive === "function")
+            ? <BosCircleBalanceLive bare
+                members={ranked.map(function (m) { var _p = _pulseFor(m); return { id: m.id, name: m.id === meId ? "Ты" : m.name, avatar: m.avatar, you: m.id === meId, pace: (_p == null ? (flowSet[m.id] ? 1 : 0) : _p) }; })}
+                fallbackProgress={gp} dark={isDark} navigate={navigate} />
+            : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Появится, когда в круге будет хотя бы двое.</div>),
         },
         {
           key: "people", icon: <I.Users size={17} color="var(--text-3)" />, title: "Люди",
