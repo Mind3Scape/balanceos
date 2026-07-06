@@ -129,6 +129,7 @@ function BosEnvBalanceLive(props) {
   var navigate = props.navigate || function () {};
   var openSheet = props.openSheet || function () {};
   var dark = !!props.dark;
+  var hideTitle = !!props.hideTitle; // в переключателе «Жизнь/Окружение» заголовок = пилюля сверху
   var people = bosEnvUsePeople();
   var myLight = bosEnvMyLight(app);
   if (people === null) return null;
@@ -170,6 +171,11 @@ function BosEnvBalanceLive(props) {
 
   return (
     <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
+      {hideTitle ? (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button onClick={open} className="tap" data-no-haptic style={{ background: "transparent", border: 0, cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 2, padding: "0 0 4px" }}>Подробнее {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} /> : "›"}</button>
+        </div>
+      ) : (
       <button onClick={open} className="tap" data-no-haptic style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent", border: 0, padding: 0, cursor: "pointer", textAlign: "left" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс окружения</div>
@@ -177,6 +183,7 @@ function BosEnvBalanceLive(props) {
         </div>
         <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 2 }}>Подробнее {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} /> : "›"}</span>
       </button>
+      )}
 
       {/* кольцо-состояние + хоровод людей */}
       <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, margin: "8px 0 2px" }}>
@@ -382,6 +389,47 @@ function BosCircleBalanceLive(props) {
       ) : (
         <div style={{ fontSize: 12, color: "var(--text-4)", textAlign: "center", marginTop: 6, fontStyle: "italic" }}>Круг держит ритм — так цель и берётся вместе.</div>
       )}
+    </div>
+  );
+}
+
+/* ═══════════ ПЕРЕКЛЮЧАТЕЛЬ «Баланс жизни ↔ Баланс окружения» (стр. ИИ) ═══════════
+   David: объединить оба баланса в стеклянные пилюли-переключатель наверху, контент — под ним
+   (заголовок = пилюля, внутренние заголовки скрыты через hideTitle). Выбор запоминается. */
+function BosBalanceTabsLive(props) {
+  var app = props.app, dark = !!props.dark, navigate = props.navigate, openSheet = props.openSheet, tint = props.tint;
+  var st = React.useState(function () { try { return localStorage.getItem("bos:balTab") === "env" ? "env" : "life"; } catch (e) { return "life"; } });
+  var tab = st[0], setTab = st[1];
+  var pick = function (v) { setTab(v); try { localStorage.setItem("bos:balTab", v); } catch (e) {} };
+
+  var pill = function (v, icon, label) {
+    var on = tab === v;
+    return (
+      <button onClick={function () { pick(v); }} className="tap" data-no-haptic aria-pressed={on} style={{
+        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: 0, cursor: "pointer",
+        borderRadius: 999, padding: "9px 8px", fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.2px",
+        color: on ? "var(--text)" : "var(--text-4)",
+        background: on ? (dark ? "rgba(255,255,255,0.15)" : "#fff") : "transparent",
+        boxShadow: on ? (dark ? "0 1px 3px rgba(0,0,0,0.4)" : "0 1px 3px rgba(0,0,0,0.12), inset 0 0 0 0.5px rgba(0,0,0,0.04)") : "none",
+        transition: "color .18s, background .18s, box-shadow .18s"
+      }}>{icon}<span>{label}</span></button>
+    );
+  };
+  var iconLife = (typeof I !== "undefined" && I.PieChart) ? <I.PieChart size={15} /> : <span style={{ fontSize: 13 }}>◔</span>;
+  var iconEnv = (typeof I !== "undefined" && I.Users) ? <I.Users size={15} /> : <span style={{ fontSize: 13 }}>✦</span>;
+
+  return (
+    <div>
+      {/* стеклянный сегмент-переключатель (две пилюли) */}
+      <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", boxShadow: dark ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.05)" }}>
+        {pill("life", iconLife, "Баланс жизни")}
+        {pill("env", iconEnv, "Баланс окружения")}
+      </div>
+      <div style={{ marginTop: 12 }}>
+        {tab === "life"
+          ? (typeof BosBalanceWheelLive === "function" ? <BosBalanceWheelLive app={app} dark={dark} navigate={navigate} tint={tint} hideTitle={true} /> : null)
+          : <BosEnvBalanceLive app={app} dark={dark} navigate={navigate} openSheet={openSheet} tint={tint} hideTitle={true} />}
+      </div>
     </div>
   );
 }

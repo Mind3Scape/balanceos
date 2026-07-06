@@ -332,21 +332,12 @@ function AILive() {
         </div>
       </div>
 
-      {/* КОЛЕСО БАЛАНСА — прямо под баннером «Состояние сейчас» (David 2026-07-04). База считает
-          активность (надёжно, офлайн), строку-контекст сверху добавляет ИИ. Раскладывает ЛЮБУЮ
-          привычку/цель — пресет ИЛИ кастомную — по сфере (bosSphereFor: название + эмодзи). */}
-      {!isBlank && (
+      {/* БАЛАНС ЖИЗНИ ↔ БАЛАНС ОКРУЖЕНИЯ — один блок со стеклянным переключателем-пилюлями наверху
+          (David 2026-07-06). Жизнь = колесо баланса по сферам; Окружение = кольцо-состояние близких.
+          Заголовок = активная пилюля (внутренние заголовки скрыты через hideTitle). */}
+      {!isBlank && typeof BosBalanceTabsLive === "function" && (
         <div style={{ marginTop: 14 }}>
-          <BosBalanceWheelLive app={app} dark={isDarkAI} navigate={navigate} tint={liveTint} />
-        </div>
-      )}
-
-      {/* БАЛАНС ОКРУЖЕНИЯ — среднее кольцо «Ты → Окружение → Вселенная» (David 2026-07-06,
-          вариант A «Созвездие»). Свет твоих близких (кого позвал + кто позвал тебя) + твой
-          вклад; живые данные (invitedPeople + profilesPublic). Отдельный файл env_balance_live.jsx. */}
-      {!isBlank && typeof BosEnvBalanceLive === "function" && (
-        <div style={{ marginTop: 14 }}>
-          <BosEnvBalanceLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />
+          <BosBalanceTabsLive app={app} dark={isDarkAI} navigate={navigate} openSheet={openSheet} tint={liveTint} />
         </div>
       )}
 

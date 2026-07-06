@@ -1715,7 +1715,7 @@ function BosHeroOrbMini(props) {
 
 // РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint }.
 function BosBalanceWheelLive(props) {
-  var app = props.app, dark = !!props.dark, navigate = props.navigate, tint = props.tint || ["#cfe1ff", "#7aa4d0", "#1a2c48"];
+  var app = props.app, dark = !!props.dark, navigate = props.navigate, tint = props.tint || ["#cfe1ff", "#7aa4d0", "#1a2c48"], hideTitle = !!props.hideTitle;
   var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
   var pickState = React.useState(null), pick = pickState[0], setPick = pickState[1];
   var data = bosWheelData(app);
@@ -1741,10 +1741,12 @@ function BosBalanceWheelLive(props) {
       {/* Заголовок + ГЛАЗИК компакт↔развёрнуто (David): компакт = только колесо (без расшифровок),
           развёрнуто = + пояснение, сферы, чипы «ИИ заметил». Название «Баланс жизни» (не «колесо»). */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, paddingBottom: expanded ? 12 : 6 }}>
+        {hideTitle ? <div style={{ flex: 1 }} /> : (
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div>
           {expanded && <div style={{ fontSize: 12.5, color: dark ? "#98989f" : "var(--text-4)", lineHeight: 1.45, marginTop: 4 }}>ИИ сам следит за всеми твоими привычками и целями — даже за придуманными тобой — раскладывает их по сферам жизни и считает, где ты в балансе, а где просело.</div>}
         </div>
+        )}
         <button onClick={function () { var nv = !expanded; setExpanded(nv); try { localStorage.setItem("bos:wheelExpanded", nv ? "1" : "0"); } catch (e) {} }} className="tap" data-no-haptic aria-label={expanded ? "Свернуть" : "Развернуть"} aria-pressed={expanded}
           style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center", background: expanded ? (dark ? "rgba(255,255,255,0.10)" : "#eef0f3") : "var(--surface-3)", color: "var(--text-3)", transition: "background 0.15s" }}>
           <I.Eye size={18} filled={expanded} />
