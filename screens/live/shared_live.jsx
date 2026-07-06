@@ -503,13 +503,16 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   // Волна работает в ОБОИХ масштабах: «Месяц» → его сетка; «Неделя» → 5-нед грядка (свой ref + индекс
   // сегодня = строка current-week). Раньше fireToday всегда бил по gridRef месяца, которого в недельном
   // виде НЕТ в DOM → в «Неделе» волны не было (David: «волна во всех видах и внутри»).
-  const fireToday = () => {
+  // rippleToday = ТОЛЬКО волна от сегодня в текущем виде (месяц/неделя/год), без отметки.
+  const rippleToday = () => {
     setSelDay(today);
     if (view === "week") { const wi = weeksData.findIndex((w) => w.isToday); triggerRipple(wi < 0 ? 28 : wi, weekGridRef.current); }
     else if (view === "year") { const yi = yearData.slots.findIndex((s) => s && s.m === CUR_M && s.d === today); if (yi >= 0) triggerRipple(yi, yearGridRef.current, true); }
     else triggerRipple(todayIdx, gridRef.current);
-    if (todayTap && todayTap.onTap) todayTap.onTap();
   };
+  // Тап по КЛЕТКЕ сегодня: волна + отметка. Флажок _skipPulse гасит дубль от pct-эффекта ниже.
+  const _skipPulseRef = React.useRef(false);
+  const fireToday = () => { _skipPulseRef.current = true; rippleToday(); if (todayTap && todayTap.onTap) todayTap.onTap(); };
 
   // ── «Месяц · Год» — тот же кружок-день в двух масштабах (David; неделя живёт на карточке). Год =
   //    «грядка» с начала года до сегодня; месяцы СКРЫТЫ пока не нажат глазик («Подробно»).
@@ -518,7 +521,12 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
   const yearData = React.useMemo(() => {
     const jan1 = new Date(year, 0, 1);
     const wd0 = (jan1.getDay() + 6) % 7;                                  // Mon-first offset of Jan 1
-    const tot = Math.round((new Date(year, CUR_M, today) - jan1) / 86400000) + 1; // days Jan 1 → today
+    const todayDate = new Date(year, CUR_M, today);
+    const twd = (todayDate.getDay() + 6) % 7;                            // Mon-first weekday of today
+    // Тянем грядку до КОНЦА текущей недели (вс), а не до сегодня — чтобы последний столбец был ПОЛНЫМ,
+    // а не «висел» одной клеткой (David: «сегодня один в колонке; у других цельно заполнено»). Дни после
+    // сегодня = без отметок → тон-track, некликабельны; сегодня по-прежнему с кольцом.
+    const tot = Math.round((todayDate - jan1) / 86400000) + 1 + (6 - twd); // Jan 1 → конец недели
     const cols = Math.ceil((wd0 + tot) / 7);
     const firstCol = {}, slots = [], colLabel = {};
     for (let c = 0; c < cols; c++) for (let r = 0; r < 7; r++) {
@@ -548,6 +556,14 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
     return out;
   }, [year, CUR_M, today]);
   React.useEffect(() => { if (view === "year" && yearScrollRef.current) yearScrollRef.current.scrollLeft = yearScrollRef.current.scrollWidth; }, [view]);
+  // Волна-отклик на ЛЮБУЮ отметку сегодня — в т.ч. по кольцу-чекбоксу СВЕРХУ (вне календаря): следим за
+  // todayTap.pct. Сменился → рябь от сегодня. Пропускаем первый маунт и тап-по-клетке (тот уже пустил).
+  const _pulseFirst = React.useRef(true);
+  React.useEffect(() => {
+    if (_pulseFirst.current) { _pulseFirst.current = false; return; }
+    if (_skipPulseRef.current) { _skipPulseRef.current = false; return; }
+    rippleToday();
+  }, [todayTap && todayTap.pct]);
 
   return (
     <>

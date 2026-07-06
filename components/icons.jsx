@@ -67,7 +67,7 @@ const I = {
   Mic: (p) => <Icon {...p}><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></Icon>,
   More: (p) => <Icon {...p}><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></Icon>,
   Users: (p) => <Icon {...p}><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="8" r="2.5"/><path d="M14 16c2.5 0 7 1.5 7 4"/></Icon>,
-  Trophy: (p) => <Icon {...p}><path d="M8 4h8v6a4 4 0 0 1-8 0V4z"/><path d="M5 4h3v3a3 3 0 0 1-3-3z"/><path d="M19 4h-3v3a3 3 0 0 0 3-3z"/><path d="M10 14v3h4v-3M8 21h8"/></Icon>,
+  Trophy: ({filled, ...p}) => <Icon {...p}><path d="M8 4h8v6a4 4 0 0 1-8 0V4z" fill={filled ? p.color || "currentColor" : "none"}/><path d="M5 4h3v3a3 3 0 0 1-3-3z"/><path d="M19 4h-3v3a3 3 0 0 0 3-3z"/><path d="M10 14v3h4v-3M8 21h8"/></Icon>,
   Flag: (p) => <Icon {...p}><path d="M4 21V4h12l-2 4 2 4H4"/></Icon>,
   Smile: (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="10" r="0.6" fill="currentColor"/><circle cx="15" cy="10" r="0.6" fill="currentColor"/></Icon>,
   Person: ({filled, ...p}) => <Icon {...p}><circle cx="12" cy="7.6" r="3.5" fill={filled ? p.color || "currentColor" : "none"}/><path d="M5.2 20c.9-3.8 3.6-5.9 6.8-5.9s5.9 2.1 6.8 5.9" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,

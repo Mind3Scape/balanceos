@@ -208,8 +208,8 @@ function HabitDetailLive() {
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
           <StatTrioLive bare isDark={isDark} items={[
             { l: "Серия", v: streak, suf: "д", icon: <I.Flame size={16} filled color={isDark ? "#fff" : "#0a0a0a"} /> },
-            { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
-            { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
+            { l: "Лучшая", v: best, suf: "д", icon: <I.Trophy size={16} filled strokeWidth={2} color={isDark ? "#fff" : "#0a0a0a"} /> },
+            { l: "Всего", v: total, suf: "", icon: <I.ChartBar size={16} strokeWidth={2.8} color={isDark ? "#fff" : "#0a0a0a"} /> },
           ]} />
         </div>
 
