@@ -908,44 +908,53 @@ function ShareHeroLive({ kind, subject, dark, appCenter, heroVariant }) {
     );
   }
 
-  // ── GROW (default for app): a people-constellation that GROWS OUTWARD from the centre.
-  // Centre → ring1 → ring2 → a faint far crowd; EVERY glass thread draws from its parent
-  // (inner) toward the child (outer), so the whole thing radiates out (David: «всё из центра
-  // вовне»). The far ring is many small, semi-transparent faces = depth without clutter. The
-  // camera pulls back as it blooms, then it settles static (one-shot on open).
-  if (heroVariant === "grow" || (isApp && heroVariant == null)) {
+  // ── GROW (default for app/habit/goal): a people-constellation that GROWS OUTWARD from the
+  // centre. Centre → ring1 → ring2 → a faint far crowd; EVERY glass thread draws from its
+  // parent (inner) toward the child (outer) so the whole thing radiates out. Ring stagger is
+  // SCRAMBLED (jit), not by angle, so the shell blooms radially — no spiral sweep (David). After
+  // drawing, threads keep the Вселенная BREATHING pulse. Centre = the SUBJECT: send-icon for the
+  // app, the habit/goal image (colour + emoji) for habit/goal — never a random person.
+  if (heroVariant === "grow" || heroVariant == null) {
     const H = 246, CYg = 120;
     const Pg = (r, a) => [CX + r * Math.cos(a * Math.PI / 180), CYg + r * Math.sin(a * Math.PI / 180)];
     const POOL = ["m2", "m12", "m9", "m10", "m18", "m4", "m3", "m7", "m16", "m13", "m6", "m1"];
     const nearest = (a, arr) => { let bi = 0, bd = 999; arr.forEach((ia, idx) => { const d = Math.abs(((a - ia + 180) % 360 + 360) % 360 - 180); if (d < bd) { bd = d; bi = idx; } }); return bi; };
+    const jit = (n) => { const s = Math.sin(n * 12.9898) * 43758.5453; return s - Math.floor(s); }; // deterministic 0..1 (scrambles order → no spiral)
     const A1 = [-90, -30, 30, 90, 150, 210];
     const A2 = []; for (let j = 0; j < 10; j++) A2.push(j * 36 + 18);
     const A3 = []; for (let k = 0; k < 15; k++) A3.push(k * 24);
-    const r1 = A1.map((a, i) => ({ m: POOL[i % POOL.length], sz: 30, c: Pg(46, a), op: 1, nd: 0.16 + 0.025 * i }));
-    const r2 = A2.map((a, j) => ({ m: POOL[(j + 3) % POOL.length], sz: 22, c: Pg(84, a), op: 1, nd: 0.46 + 0.022 * j }));
-    const r3 = A3.map((a, k) => ({ m: POOL[(k + 7) % POOL.length], sz: 15, c: Pg(114, a), op: 0.58, nd: 0.74 + 0.018 * k }));
-    const centre = { m: "m13", sz: 42, c: [CX, CYg], op: 1, nd: 0 };
+    const r1 = A1.map((a, i) => ({ m: POOL[i % POOL.length], sz: 30, c: Pg(46, a), op: 1, nd: 0.14 + 0.05 * jit(i + 1) }));
+    const r2 = A2.map((a, j) => ({ m: POOL[(j + 3) % POOL.length], sz: 22, c: Pg(84, a), op: 1, nd: 0.40 + 0.14 * jit(j + 11) }));
+    const r3 = A3.map((a, k) => ({ m: POOL[(k + 7) % POOL.length], sz: 15, c: Pg(114, a), op: 0.58, nd: 0.62 + 0.22 * jit(k + 40) }));
     const L = [];
-    r1.forEach((n, i) => L.push({ p: [CX, CYg, n.c[0], n.c[1]], w: 1.3, o: 1, d: 0.1 + 0.025 * i }));
-    r2.forEach((n, j) => { const pr = r1[nearest(A2[j], A1)]; L.push({ p: [pr.c[0], pr.c[1], n.c[0], n.c[1]], w: 1.1, o: 1, d: 0.4 + 0.022 * j }); });
-    r3.forEach((n, k) => { const pr = r2[nearest(A3[k], A2)]; L.push({ p: [pr.c[0], pr.c[1], n.c[0], n.c[1]], w: 0.8, o: 0.5, d: 0.7 + 0.018 * k }); });
-    const all = [centre].concat(r1).concat(r2).concat(r3);
+    r1.forEach((n) => L.push({ p: [CX, CYg, n.c[0], n.c[1]], w: 1.3, o: 1, d: Math.max(0.02, n.nd - 0.12) }));
+    r2.forEach((n, j) => { const pr = r1[nearest(A2[j], A1)]; L.push({ p: [pr.c[0], pr.c[1], n.c[0], n.c[1]], w: 1.1, o: 1, d: Math.max(0.1, n.nd - 0.12) }); });
+    r3.forEach((n, k) => { const pr = r2[nearest(A3[k], A2)]; L.push({ p: [pr.c[0], pr.c[1], n.c[0], n.c[1]], w: 0.8, o: 0.45, d: Math.max(0.2, n.nd - 0.12) }); });
+    const people = r1.concat(r2).concat(r3);
+    const emo = (typeof bosDeSF === "function") ? bosDeSF(subject && subject.emoji) : (subject && subject.emoji);
+    const cSz = 48;
     return (
       <div style={{ position: "relative", width: 264, height: H, margin: "2px auto 0", overflow: "visible" }}>
-        <style>{"@keyframes shareZoom{from{transform:scale(1.5)}to{transform:scale(1)}}@keyframes sharePop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}@keyframes sharePopF{from{opacity:0;transform:scale(.4)}to{opacity:.58;transform:scale(1)}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"}</style>
+        <style>{"@keyframes shareZoom{from{transform:scale(1.5)}to{transform:scale(1)}}@keyframes sharePop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}@keyframes sharePopF{from{opacity:0;transform:scale(.4)}to{opacity:.58;transform:scale(1)}}@keyframes bosLinkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes bosLinkPulse{from{stroke-dashoffset:0.2}to{stroke-dashoffset:-1}}"}</style>
         <div style={{ position: "absolute", inset: 0, transformOrigin: "50% 50%", animation: "shareZoom 1.25s cubic-bezier(.2,.7,.2,1) both" }}>
           <svg viewBox={"0 0 264 " + H} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
             {L.map((l, i) => (
-              <line key={i} x1={l.p[0]} y1={l.p[1]} x2={l.p[2]} y2={l.p[3]} stroke={linkCore} strokeWidth={l.w} strokeOpacity={l.o} strokeLinecap="round" pathLength="1" strokeDasharray="1" style={{ animation: "bosLinkDraw 0.42s ease " + l.d.toFixed(2) + "s both" }} />
+              <g key={i}>
+                <line x1={l.p[0]} y1={l.p[1]} x2={l.p[2]} y2={l.p[3]} stroke={linkCore} strokeWidth={l.w} strokeOpacity={l.o} strokeLinecap="round" pathLength="1" strokeDasharray="1" style={{ animation: "bosLinkDraw 0.42s ease " + l.d.toFixed(2) + "s both" }} />
+                <line x1={l.p[0]} y1={l.p[1]} x2={l.p[2]} y2={l.p[3]} stroke={linkShine} strokeWidth={(l.w + 1).toFixed(1)} strokeOpacity={l.o} strokeLinecap="round" pathLength="1" strokeDasharray="0.2 1" style={{ animation: "bosLinkPulse 3.4s ease-in-out " + (l.d + 0.6).toFixed(2) + "s infinite both" }} />
+              </g>
             ))}
           </svg>
-          {all.map((n, i) => (
+          {people.map((n, i) => (
             <div key={i} style={{ position: "absolute", left: n.c[0] - n.sz / 2, top: n.c[1] - n.sz / 2, width: n.sz, height: n.sz, borderRadius: "50%", boxShadow: faceShadow, animation: (n.op < 1 ? "sharePopF" : "sharePop") + " 0.46s cubic-bezier(.2,1.3,.4,1) " + n.nd.toFixed(2) + "s both" }}>
               <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: discBase }} />
               <div style={{ position: "absolute", inset: 0, borderRadius: "50%", backgroundImage: "url(./assets/people/" + n.m + ".png)", backgroundSize: "cover", backgroundPosition: "center" }} />
               <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: sheen, boxShadow: rim }} />
             </div>
           ))}
+          <div style={{ position: "absolute", left: CX - cSz / 2, top: CYg - cSz / 2, width: cSz, height: cSz, borderRadius: "50%", zIndex: 2, background: isApp ? (dark ? "#26262b" : "#0a0a0a") : col, display: "grid", placeItems: "center", boxShadow: (isApp && dark ? "inset 0 0 0 1px rgba(255,255,255,0.10), " : "") + discShadow, animation: "sharePop 0.46s cubic-bezier(.2,1.3,.4,1) 0s both" }}>
+            {isApp ? <I.Send size={22} color="#fff" /> : <span style={{ fontSize: 26, lineHeight: 1 }}>{emo || "✨"}</span>}
+          </div>
         </div>
       </div>
     );
@@ -1009,6 +1018,8 @@ function ShareSheetLive({ kind = "app", subject, dark = false, appCenter, heroVa
     }
     return () => { on = false; };
   }, []);
+  // habit/goal/team pass the referral link via subject.link — it resolves async, so flow it in.
+  React.useEffect(() => { if (!isApp && subject && subject.link) setShareUrl(subject.link); }, [subject && subject.link]);
   const nm = (subject && subject.name) || "";
   const COPY = isApp
     ? { kick: "СДЕЛАЕМ ЭТО ВМЕСТЕ?", title: "Позовите близких", sub: "Вместе держать баланс проще · +150 XP за друга", text: "Держим баланс вместе — BalanceOS" }
@@ -2071,37 +2082,8 @@ function ShareHabitSheetLive({ habit, dark = false }) {
     })();
     return () => { on = false; };
   }, []);
-  const shareLink = () => {
-    if (window.bosShare) window.bosShare(shareUrl, "Делаем привычку «" + (habit?.name || "") + "» вместе в BalanceOS");
-    else { try { navigator.clipboard.writeText(shareUrl); } catch (e) {} }
-    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-  };
-  const C = dark
-    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.09)", ring: "#1c1c1e" }
-    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", line: "rgba(0,0,0,0.06)", ring: "#fff" };
-  return (
-    <div style={{ padding: "2px 20px 0", color: C.text }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{bosIcon(habit?.emoji || "✨", 30, habit?.color)}</div>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Позови друга</div>
-        <div style={{ fontSize: 14, color: C.sub, marginTop: 3, lineHeight: 1.4 }}>«{habit?.name || "Привычка"}» вместе — вы видите отметки друг друга и держитесь оба. Отправь ссылку, и друг присоединится.</div>
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-        <HabitInviteBannerLive amount={150} habit={habit} />
-      </div>
-
-      <button onClick={shareLink} className="tap" style={{
-        width: "100%", marginTop: 20, border: 0, borderRadius: 999, padding: 15,
-        background: "#229ED9", color: "#fff", fontSize: 15.5, fontWeight: 600,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
-      }}>
-        <I.Send size={18} /> Поделиться в Telegram
-      </button>
-
-      <button className="tap" onClick={close} style={{ width: "100%", marginTop: 22, background: dark ? "#fff" : "#0a0a0a", color: dark ? "#0a0a0a" : "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>Готово</button>
-    </div>
-  );
+  // Visual = the unified animated ShareSheetLive (centre = this habit's image, people grow around).
+  return <ShareSheetLive kind="habit" dark={dark} subject={{ name: habit && habit.name, emoji: habit && habit.emoji, color: habit && habit.color, link: shareUrl }} />;
 }
 
 /* Shared-habit «Вместе» card — the multiplayer view for a habit buddy. Each member (you +
@@ -3646,27 +3628,8 @@ function ShareGoalSheetLive({ goal, dark = false }) {
     })();
     return () => { on = false; };
   }, []);
-  const doShare = () => {
-    const msg = "Иду к цели «" + (goal?.name || "") + "» в BalanceOS — попробуй со мной";
-    if (window.bosShare) window.bosShare(shareUrl, msg);
-    else { try { navigator.clipboard.writeText(shareUrl); } catch (e) {} }
-    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-  };
-  const C = dark
-    ? { text: "#fff", sub: "rgba(255,255,255,0.5)", tile: "rgba(255,255,255,0.08)", btnBg: "#fff", btnFg: "#0a0a0a" }
-    : { text: "#0a0a0a", sub: "rgba(0,0,0,0.5)", tile: "#f1f1f3", btnBg: "#0a0a0a", btnFg: "#fff" };
-  return (
-    <div style={{ padding: "2px 20px 22px", color: C.text }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: C.tile, display: "grid", placeItems: "center", fontSize: 30, margin: "0 auto 10px" }}>{bosIcon(goal?.emoji || "🎯", 30, goal?.color)}</div>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Поделиться целью</div>
-        <div style={{ fontSize: 14, color: C.sub, marginTop: 3 }}>«{goal?.name || "Цель"}» — расскажи, к чему идёшь</div>
-      </div>
-      <button onClick={doShare} className="tap" style={{ marginTop: 18, width: "100%", border: 0, borderRadius: 16, padding: "15px 16px", background: C.btnBg, color: C.btnFg, fontSize: 15.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <I.Share size={17} /> Поделиться ссылкой
-      </button>
-    </div>
-  );
+  // Visual = the unified animated ShareSheetLive (centre = this goal's image, people grow around).
+  return <ShareSheetLive kind="goal" dark={dark} subject={{ name: goal && goal.name, emoji: goal && goal.emoji, color: goal && goal.color, link: shareUrl }} />;
 }
 
 function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
@@ -6198,41 +6161,11 @@ function EditGlassButtonLive({ onClick, label = "Изменить" }) {
    which can't open the Mini App from Telegram). The launch path decodes that start_param
    → joinViaLink. A local team without a cloudId falls back to the plain bot link. */
 function TeamShareSheetLive({ team }) {
-  const [copied, setCopied] = React.useState(false);
-  const { close } = (typeof useSheet === "function") ? useSheet() : {};
-  const isPublic = team?.vis === "public";
+  // Общий круг/цель = «goal» в единой шторке: центр = эмблема круга, вокруг растут люди.
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const dark = !!(app && app.themeOverride === "dark");
   const link = (team && team.cloudId && typeof bosTeamInviteLink === "function")
     ? bosTeamInviteLink(team.cloudId)
     : ((typeof bosInviteLink === "function") ? bosInviteLink(null) : "https://t.me/BalanceOS8_bot");
-  const shareText = "Вести привычки вместе — веселее, и вы видите отметки друг друга ✨ Присоединяйся к «" + (team?.name || "") + "» в BalanceOS";
-  const copyLink = () => { try { navigator.clipboard.writeText(link); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1600); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
-  const shareTelegram = () => {
-    const url = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent(shareText);
-    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
-    try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) { window.Telegram.WebApp.openTelegramLink(url); return; } } catch (e) {}
-    try { window.open(url, "_blank"); } catch (e) {}
-  };
-  return (
-    <div style={{ padding: "2px 20px 0", color: "var(--text)" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: 60, height: 60, borderRadius: 16, margin: "0 auto 12px", background: BOS_TILE_SHEEN + ", var(--surface-3)", boxShadow: bosTileGlass(false), display: "grid", placeItems: "center", fontSize: 32 }}>{bosIcon(team?.emblem || "✨", 32, null)}</div>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.3px" }}>Позвать вместе</div>
-        <div style={{ fontSize: 13.5, color: "var(--text-3)", marginTop: 6, maxWidth: 290, marginInline: "auto", lineHeight: 1.45 }}>
-          Вести привычки вместе — веселее, и вы видите отметки друг друга ✨
-        </div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", background: "var(--surface-3)", padding: "4px 11px", borderRadius: 999 }}>
-          {isPublic ? "🌐 Открытый · по ссылке сразу присоединятся" : "🔒 Приватный · войдут только по этой ссылке"}
-        </div>
-      </div>
-      <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10, background: "var(--surface-3)", borderRadius: 14, padding: "11px 8px 11px 14px" }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{link}</span>
-        <button onClick={copyLink} className="tap" style={{ flexShrink: 0, border: 0, background: "#0a0a0a", color: "#fff", borderRadius: 999, padding: "8px 15px", fontSize: 12.5, fontWeight: 600 }}>{copied ? "Готово" : "Копировать"}</button>
-      </div>
-      <button onClick={shareTelegram} className="tap" style={{ width: "100%", marginTop: 18, border: 0, borderRadius: 999, padding: 15, background: "#229ED9", color: "#fff", fontSize: 15.5, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
-        <I.Send size={18}/> Поделиться в Telegram
-      </button>
-      <button onClick={() => close && close()} className="tap" style={{ width: "100%", marginTop: 12, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: 15, fontSize: 15, fontWeight: 600 }}>Готово</button>
-      <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />
-    </div>
-  );
+  return <ShareSheetLive kind="goal" dark={dark} subject={{ name: team && team.name, emoji: team && (team.emblem || "✨"), color: team && (team.accent || team.color), link: link }} />;
 }
