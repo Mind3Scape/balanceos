@@ -2124,9 +2124,9 @@ function bosHabitStrength(h) {
 }
 // Данные колеса: сфера тем полнее, чем крепче держишь входящие в неё привычки/цели.
 function bosWheelData(app) {
-  var arch = function (k) { return typeof bosIsArchived === "function" && bosIsArchived(k); };
-  var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved && !arch("h:" + h.id); });
-  var goals = ((app && app.goals) || []).filter(function (g) { return g && !arch("g:" + g.id); });
+  var _archM = bosLoadArchived(); // по cloudId (bosIsArch), не по переиздаваемому числовому id
+  var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved && !bosIsArch(_archM, "h", h); });
+  var goals = ((app && app.goals) || []).filter(function (g) { return g && !bosIsArch(_archM, "g", g); });
   var strengths = {}, items = {}; BOS_SPHERES.forEach(function (s) { strengths[s.id] = []; items[s.id] = []; });
   habits.forEach(function (h) { var id = bosSphereFor(h); strengths[id].push(bosHabitStrength(h)); items[id].push({ emoji: h.emoji || "•", name: h.name || "Привычка", kind: "habit" }); });
   goals.forEach(function (g) {
@@ -3397,7 +3397,13 @@ function bosSetArchived(key, on) {
 function bosArchKey(kind, it) { return kind + ":" + ((it && (it.cloudId != null ? it.cloudId : (it._id != null ? it._id : it.id))) || ""); }
 function bosIsArch(arch, kind, it) {
   if (!arch || !it) return false;
-  return !!((it.cloudId != null && arch[kind + ":" + it.cloudId]) || arch[kind + ":" + (it._id != null ? it._id : it.id)]);
+  // Есть вечный облачный ключ → архивность определяет ТОЛЬКО он. Локальный числовой id (_nid)
+  // раздаётся заново 1001,1002… при каждом старте, поэтому матч по нему ЛОЖНО прятал НОВУЮ
+  // привычку, чей свежий id совпал со старой архивной меткой «h:1001» (David: «создал — на
+  // орбитах есть, а в списке привычек нет»). Фолбэк на локальный id — ТОЛЬКО для чисто
+  // локального режима (привычка без cloudId), где иначе архив вообще не сматчить.
+  if (it.cloudId != null) return !!arch[kind + ":" + it.cloudId];
+  return !!arch[kind + ":" + (it._id != null ? it._id : it.id)];
 }
 function bosClearArch(kind, it) {
   if (!it) return;
@@ -3522,8 +3528,10 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   };
   const defs = (typeof BOS_HOME_WIDGETS !== "undefined") ? BOS_HOME_WIDGETS : [];
   // shelved-копии круга (Г) и goalOnly в каталоге доски не участвуют — они спрятаны со страниц.
-  const habits = ((app && app.habits) || []).filter((h) => !h.shelved && !h.goalOnly && !bosIsArchived("h:" + h.id));
-  const goals = ((app && app.goals) || []).filter((g) => !bosIsArchived("g:" + g.id));
+  // Через bosIsArch (по cloudId), а не bosIsArchived("h:"+id): числовой id переиздаётся и ложно прячет новые.
+  const _archM = bosLoadArchived();
+  const habits = ((app && app.habits) || []).filter((h) => !h.shelved && !h.goalOnly && !bosIsArch(_archM, "h", h));
+  const goals = ((app && app.goals) || []).filter((g) => !bosIsArch(_archM, "g", g));
   const teams = (app && app.teams) || [];
   // Локальный фолбэк для страницы настроек: там доски за шторкой нет, меню стиля
   // открывается прямо по месту (на доске шторка закрывается — это делает onStyle).
