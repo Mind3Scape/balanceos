@@ -181,8 +181,9 @@ function GuideLive() {
   var app = (typeof useApp === "function") ? useApp() : null;
   var isDark = !!(app && app.themeOverride === "dark");
   var back = function () { navigate(params.from || "profile"); };
-  var _tb = React.useState(params.tab || "suti");
-  var tab = _tb[0], setTab = _tb[1];
+  var _oi = React.useState(params.tab && params.tab !== "suti" ? params.tab : null);
+  var openId = _oi[0], setOpenId = _oi[1];
+  var secRefs = React.useRef({});
   var sheen = (typeof BOS_TILE_SHEEN !== "undefined") ? BOS_TILE_SHEEN + ", " : "";
   var glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none";
   var chipBg = sheen + (isDark ? "rgba(255,255,255,0.08)" : "#fff");
@@ -243,25 +244,48 @@ function GuideLive() {
       </div>
     );
   };
+  var goTo = function (id) {
+    if (id !== "suti") setOpenId(id);
+    setTimeout(function () { var el = secRefs.current[id]; if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 70);
+  };
+  // Свёрнутый заголовок этапа-«уровня»: номер-чип + название + подзаголовок + шеврон.
+  var stageHeader = function (id, n, title, sub) {
+    var open = openId === id;
+    return (
+      <button onClick={function () { var willOpen = !open; setOpenId(willOpen ? id : null); if (willOpen) setTimeout(function () { var el = secRefs.current[id]; if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 70); }}
+        className="tap" data-haptic="selection"
+        style={{ width: "100%", border: 0, cursor: "pointer", textAlign: "left", background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: "15px 16px", display: "flex", alignItems: "center", gap: 13 }}>
+        <span style={{ width: 32, height: 32, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 14, fontWeight: 800, fontVariantNumeric: "tabular-nums", background: open ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : softBg, color: open ? "#0a0a0a" : "var(--text-3)", boxShadow: open ? "0 4px 12px rgba(239,159,20,0.35)" : "none" }}>{n}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", fontFamily: "var(--bos-title-font)", letterSpacing: "-0.3px" }}>{title}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.4 }}>{sub}</div>
+        </div>
+        <span aria-hidden style={{ flexShrink: 0, color: "var(--text-4)", display: "grid", placeItems: "center", transition: "transform 0.22s", transform: open ? "rotate(90deg)" : "none" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+        </span>
+      </button>
+    );
+  };
   return (
     <div className="page-in" style={{ padding: "0 16px 28px" }}>
       <PageHeader title="Как устроена игра" onBack={back} />
-      {/* Пилюли-вкладки (как фильтры Сообщества): активная — CTA, прочие — стекло.
-          Полная простыня разбита на разделы игры — David: «внутри тоже классные пилюли». */}
-      <div className="bos-hscroll" style={{ display: "flex", gap: 7, padding: "8px 16px 4px", margin: "2px -16px 2px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
-        {[["suti", "Суть"], ["day", "Каждый день"], ["level", "Уровни"], ["together", "Вместе"], ["world", "Мир"]].map(function (p) {
-          var on = tab === p[0];
-          var g = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
-          return (
-            <button key={p[0]} onClick={function () { setTab(p[0]); }} className="tap" data-haptic="selection"
-              style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap", transition: "background 0.2s, color 0.2s", ...g, background: on ? "var(--cta, #0a0a0a)" : g.background, color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>{p[1]}</button>
-          );
-        })}
+      {/* Липкое быстрое меню-прыжок (David: «наверху меню из пилюль, скролл по категориям»).
+          Тап = раскрыть этап + доскроллить к нему. Матовое стекло, чтобы не спорить с фоном. */}
+      <div style={{ position: "sticky", top: 0, zIndex: 6, margin: "2px -16px 4px", padding: "8px 16px", background: isDark ? "rgba(18,18,20,0.72)" : "rgba(244,244,247,0.72)", backdropFilter: "saturate(180%) blur(18px)", WebkitBackdropFilter: "saturate(180%) blur(18px)" }}>
+        <div className="bos-hscroll" style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
+          {[["suti", "Суть"], ["day", "Каждый день"], ["level", "Уровни"], ["together", "Вместе"], ["world", "Мир"]].map(function (p) {
+            var on = openId ? (openId === p[0]) : (p[0] === "suti");
+            var g = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
+            return (
+              <button key={p[0]} onClick={function () { goTo(p[0]); }} className="tap" data-haptic="selection"
+                style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap", transition: "background 0.2s, color 0.2s", ...g, background: on ? "var(--cta, #0a0a0a)" : g.background, color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>{p[1]}</button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ── ВКЛАДКА: СУТЬ — «ты играешь в игру про свою жизнь» (вайб + манифест + цепочка). */}
-      {tab === "suti" && (
-        <React.Fragment>
+      {/* ── СУТЬ — всегда открыта: вход и вайб «ты играешь в игру про свою жизнь». */}
+      <div ref={function (el) { secRefs.current["suti"] = el; }} style={{ scrollMarginTop: 64 }}>
           {tabIntro("Ты играешь в игру про свою жизнь", "Balance — не трекер, а игра. Маленькие ходы каждый день, а на кону — твоё состояние и твои люди. Здесь — как она устроена: честно, по-настоящему, без мелкого шрифта.", true)}
 
           <div style={{ ...cardStyle, marginTop: 14 }}>
@@ -316,13 +340,13 @@ function GuideLive() {
             )}
             {body("Одна отметка — целая вселенная", "Один ход тянет за собой всё: отметка даёт опыт, опыт растит уровень, уровень открывает людей и партнёров, а все вместе вы — целая Вселенная. Каждый шаг разберём в своей вкладке.")}
           </div>
-        </React.Fragment>
-      )}
+      </div>
 
-      {/* ── ВКЛАДКА: КАЖДЫЙ ДЕНЬ */}
-      {tab === "day" && (
-        <React.Fragment>
-          {tabIntro("Каждый день", "Фундамент: касание, ритм недели и твоё состояние.")}
+      {/* ── ЭТАП 1: КАЖДЫЙ ДЕНЬ (свёрнут по умолчанию) */}
+      <div ref={function (el) { secRefs.current["day"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
+        {stageHeader("day", "1", "Каждый день", "Фундамент: касание, ритм недели и твоё состояние.")}
+        {openId === "day" && (
+          <React.Fragment>
 
       {kicker("01", "Самое маленькое")}
       <div style={cardStyle}>
@@ -385,13 +409,15 @@ function GuideLive() {
         {body("Состояние и дневник", "Раз в день — один свайп «как ты?» и, если хочется, пара слов в дневник. Это твоя личная погода: по ней ИИ подстраивает подсказки, а календарь потом показывает, как состояние ходит вместе с привычками.")}
       </div>
 
-        </React.Fragment>
-      )}
+          </React.Fragment>
+        )}
+      </div>
 
-      {/* ── ВКЛАДКА: УРОВНИ */}
-      {tab === "level" && (
-        <React.Fragment>
-          {tabIntro("Опыт и уровни", "Опыт, уровень и награды — след пути, а не счётчик вины.")}
+      {/* ── ЭТАП 2: ОПЫТ И УРОВНИ */}
+      <div ref={function (el) { secRefs.current["level"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
+        {stageHeader("level", "2", "Опыт и уровни", "Опыт, уровень и награды — след пути, а не счётчик вины.")}
+        {openId === "level" && (
+          <React.Fragment>
 
       {kicker("01", "Твой след")}
       <div style={cardStyle}>
@@ -462,13 +488,15 @@ function GuideLive() {
         {body("Челленджи", "Готовые вызовы на несколько дней: тапнул — привычка создана, серия пошла. Дотянул до финиша — бонус XP сверху. Пропустил день — бонус НЕ сгорает: правило «ничего не сжигается» работает и тут.")}
       </div>
 
-        </React.Fragment>
-      )}
+          </React.Fragment>
+        )}
+      </div>
 
-      {/* ── ВКЛАДКА: ВМЕСТЕ */}
-      {tab === "together" && (
-        <React.Fragment>
-          {tabIntro("Вместе", "Всё в Balance может быть совместным — так держится дольше.")}
+      {/* ── ЭТАП 3: ВМЕСТЕ */}
+      <div ref={function (el) { secRefs.current["together"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
+        {stageHeader("together", "3", "Вместе", "Всё в Balance может быть совместным — так держится дольше.")}
+        {openId === "together" && (
+          <React.Fragment>
 
       {kicker("01", "Одна орбита")}
       <div style={cardStyle}>
@@ -543,13 +571,15 @@ function GuideLive() {
         {body("Друзья и вехи", "Каждый, кто придёт по твоей ссылке, встаёт на твою орбиту на «Я» — и приносит +150 XP. А вехи добавляют сверху: 3 друга → +300, 7 → +700, 15 → +1500, 30 → +3000. В «Друзьях» видно живой прогресс до следующей.")}
       </div>
 
-        </React.Fragment>
-      )}
+          </React.Fragment>
+        )}
+      </div>
 
-      {/* ── ВКЛАДКА: МИР */}
-      {tab === "world" && (
-        <React.Fragment>
-          {tabIntro("Мир", "Куда ведёт уровень: партнёры, нетворк и карта всех.")}
+      {/* ── ЭТАП 4: МИР */}
+      <div ref={function (el) { secRefs.current["world"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
+        {stageHeader("world", "4", "Мир", "Куда ведёт уровень: партнёры, нетворк и карта всех.")}
+        {openId === "world" && (
+          <React.Fragment>
 
       {kicker("01", "Куда тратить")}
       <div style={cardStyle}>
@@ -606,11 +636,11 @@ function GuideLive() {
         {body("Вселенная", "Каждый в Balance — своя система: человек в центре, привычки — планеты на орбитах. «Вселенная» на странице «Я» показывает всех — анонимно, как огни ночного города: имён не видно, но видно, что город живой. Ты уже один из этих огней.")}
       </div>
 
-        </React.Fragment>
-      )}
+          </React.Fragment>
+        )}
+      </div>
 
-      <button onClick={back} className="tap" style={{ width: "100%", marginTop: 24, border: 0, borderRadius: 999, padding: 16, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontSize: 15.5, fontWeight: 700, cursor: "pointer" }}>Начали!</button>
-      <button onClick={function () { navigate("ai-chat", { prompt: "Объясни, как устроен Balance и с чего мне лучше начать" }); }} className="tap" style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 999, padding: 14, background: "transparent", color: "var(--text-3)", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Остались вопросы — спроси Balance AI ›</button>
+      <button onClick={function () { navigate("ai-chat", { prompt: "Объясни, как устроен Balance и с чего мне лучше начать" }); }} className="tap" style={{ width: "100%", marginTop: 26, border: 0, borderRadius: 999, padding: 15, background: softBg, color: "var(--text-2)", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Остались вопросы — спроси Balance AI ›</button>
     </div>
   );
 }

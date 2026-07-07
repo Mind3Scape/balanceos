@@ -358,7 +358,7 @@ function CommunityLive() {
               })}
               <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(200,215,255,0.62)" }}>✦ Гид по игре</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(200,215,255,0.62)" }}>✦ Гид по Balance</div>
                   <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#fff", marginTop: 5, lineHeight: 1.18 }}>Как устроена игра</div>
                   <div style={{ fontSize: 12.5, color: "rgba(220,228,245,0.66)", marginTop: 5, lineHeight: 1.4, maxWidth: 240 }}>Отметки, уровни, круги, Вселенная — как всё связано и зачем. За пару минут.</div>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 12.5, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.13)", borderRadius: 999, padding: "7px 14px", boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.22)" }}>Открыть гид ›</span>
