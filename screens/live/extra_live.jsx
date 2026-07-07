@@ -319,6 +319,16 @@ function GoalDetailPersonalLive() {
   const goalDayFrac = (pi, d, mi) => { if (!linked.length) return 0; const k = _dkP(d, mi); let n = 0; linked.forEach((h) => { if (h.log && h.log[k]) n++; }); return n / linked.length; };
   const _calPeople = [{ name: "Ты", you: true, color: goalColor, avatar: app?.avatar }];
   const _habitWordP = (n) => (n % 10 === 1 && n % 100 !== 11) ? "привычка" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "привычки" : "привычек");
+  // ДЕЛА цели (David: «Дела должны появиться в целях»): конкретные шаги к цели. Хранятся на самой
+  // цели (g.tasks = [{id,text,done}]) и правятся через updateGoal → persist локально + облако.
+  const _goalTasks = Array.isArray(g.tasks) ? g.tasks : [];
+  const [newTask, setNewTask] = React.useState("");
+  const _mkTaskId = () => (typeof _uuid === "function" ? _uuid() : "t-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7));
+  const _saveTasks = (next) => { if (app && app.updateGoal) app.updateGoal(g.id, { tasks: next }); };
+  const _addGoalTask = () => { const tx = newTask.trim(); if (!tx) return; _saveTasks(_goalTasks.concat([{ id: _mkTaskId(), text: tx, done: false }])); setNewTask(""); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  const _toggleGoalTask = (id) => { _saveTasks(_goalTasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t))); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } };
+  const _delGoalTask = (id) => { _saveTasks(_goalTasks.filter((t) => t.id !== id)); };
+  const _tasksDone = _goalTasks.filter((t) => t.done).length;
   return (
     <div className="page-in" style={{ paddingBottom: 24 }}>
       {/* HERO — full-bleed до самого верха, снизу радиус 30 (как у общей цели/партнёра): правка+
@@ -407,6 +417,28 @@ function GoalDetailPersonalLive() {
           <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
           <span style={{ fontSize: 14.5, fontWeight: 600 }}>Привычка для этой цели</span>
         </button>
+          </>),
+        },
+        {
+          key: "tasks", icon: <I.Check size={17} color="var(--text-3)" />, title: "Дела",
+          summary: _goalTasks.length ? (_tasksDone + " из " + _goalTasks.length + " сделано") : "Разбей цель на конкретные шаги",
+          render: () => (<>
+            {_goalTasks.map((t, i) => (
+              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+                <button onClick={() => _toggleGoalTask(t.id)} className={"check-btn" + (t.done ? "" : " unchecked")} aria-label={t.done ? "Снять отметку" : "Отметить сделанным"}
+                  style={{ width: 26, height: 26, flexShrink: 0, cursor: "pointer", ...(t.done ? { "--check-color": (g.color || "#0a0a0a") } : {}) }}>
+                  {t.done && <I.Check size={14} strokeWidth={3} color="#fff" />}
+                </button>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: t.done ? "var(--text-4)" : "var(--text)", textDecoration: t.done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.text}</span>
+                <button onClick={() => _delGoalTask(t.id)} className="tap" aria-label="Удалить дело" style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: "var(--text-5)", cursor: "pointer", display: "grid", placeItems: "center" }}><I.X size={15} /></button>
+              </div>
+            ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: _goalTasks.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={14} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
+              <input value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); _addGoalTask(); } }} placeholder="Добавить дело…"
+                style={{ flex: 1, minWidth: 0, background: "transparent", border: 0, outline: 0, fontSize: 15, color: "var(--text)", fontFamily: "inherit" }} />
+              {newTask.trim() && <button onClick={_addGoalTask} className="tap" style={{ flexShrink: 0, border: 0, background: g.color || "#0a0a0a", color: "#fff", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Добавить</button>}
+            </div>
           </>),
         },
         {
