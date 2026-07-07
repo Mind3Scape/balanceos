@@ -6094,10 +6094,11 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
   };
   const startLP = (e) => { e.stopPropagation(); suppress.current = false; lpTimer.current = setTimeout(function () { suppress.current = true; if (window.tgHaptic) { try { window.tgHaptic("rigid"); } catch (_) {} } apply(count - 1); }, 480); };
   const endLP = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } };
-  // Тап ТОЛЬКО прибавляет (David: убрать случайное обнуление тапом по заполненному счётчику — лёгкий
-  // способ потерять прогресс). На заполненном тап = no-op (apply клампит к goal). Убавить/сбросить —
-  // ОСОЗНАННО долгим зажатием (−1 за раз), это уже реализовано в startLP.
-  const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } apply(count + 1); };
+  // Тап прибавляет +1. На ПОЛНОСТЬЮ заполненном (done) тап снимает отметку целиком → день снова
+  // чистый, счёт в ноль (David 2026-07-07: «как обычная привычка — а то заполненный счётчик застревал,
+  // не прокликивался»). Совпадает с тапом по today-клетке календаря на детальной (h.done ? 0). Тонкая
+  // правка на −1 остаётся долгим зажатием (startLP).
+  const onClick = (e) => { e.stopPropagation(); if (suppress.current) { suppress.current = false; return; } if (isDone) { apply(0); return; } apply(count + 1); };
 
   // Ring geometry is 44px, but the LAYOUT box stays 30px — the ring renders as an OVERFLOWING overlay
   // so the disc lines up EXACTLY with the plain 30px checks in the column (David: «центрируй
@@ -6135,7 +6136,7 @@ function HabitCountCheck({ habit, app, xp = 10 }) {
       <XpFloat tick={tick} xp={xp} anchorRef={btnRef} />
       <button ref={btnRef} className="tap hit44" data-no-haptic onClick={onClick}
         onPointerDown={startLP} onPointerUp={endLP} onPointerLeave={endLP} onPointerCancel={endLP}
-        aria-label={"Прогресс " + count + " из " + goal + ", тап +1, удержание −1"}
+        aria-label={isDone ? ("Выполнено " + goal + " из " + goal + ", тап — снять отметку") : ("Прогресс " + count + " из " + goal + ", тап +1, удержание −1")}
         style={{ position: "relative", border: 0, background: "transparent", padding: 0, width: 30, height: 30, display: "grid", placeItems: "center", cursor: "pointer", overflow: "visible" }}>
         {/* ring OVERFLOWS the 30px box (centered on the disc) so it never shifts the disc off the column */}
         {!isDone && <svg width={SIZE} height={SIZE} viewBox={"0 0 " + SIZE + " " + SIZE} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none", overflow: "visible" }}>{ringEls}</svg>}

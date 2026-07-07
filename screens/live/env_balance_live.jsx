@@ -460,28 +460,26 @@ function BosBalanceTabsLive(props) {
   var tab = st[0], setTab = st[1];
   var pick = function (v) { setTab(v); try { localStorage.setItem("bos:balTab", v); } catch (e) {} };
 
-  var pill = function (v, icon, label) {
+  var pill = function (v, label) {
     var on = tab === v;
     return (
       <button onClick={function () { pick(v); }} className="tap" data-no-haptic aria-pressed={on} style={{
-        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, border: 0, cursor: "pointer", whiteSpace: "nowrap",
+        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", border: 0, cursor: "pointer", whiteSpace: "nowrap",
         borderRadius: 999, padding: "9px 6px", fontSize: 12.5, fontWeight: 700, letterSpacing: "-0.3px",
         color: on ? "var(--text)" : "var(--text-4)",
         background: on ? (dark ? "rgba(255,255,255,0.15)" : "#fff") : "transparent",
         boxShadow: on ? (dark ? "0 1px 3px rgba(0,0,0,0.4)" : "0 1px 3px rgba(0,0,0,0.12), inset 0 0 0 0.5px rgba(0,0,0,0.04)") : "none",
         transition: "color .18s, background .18s, box-shadow .18s"
-      }}>{icon}<span>{label}</span></button>
+      }}><span>{label}</span></button>
     );
   };
-  var iconLife = (typeof I !== "undefined" && I.PieChart) ? <I.PieChart size={15} /> : <span style={{ fontSize: 13 }}>◔</span>;
-  var iconEnv = (typeof I !== "undefined" && I.Users) ? <I.Users size={15} /> : <span style={{ fontSize: 13 }}>✦</span>;
 
   return (
     <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "12px 14px 14px" }}>
       {/* стеклянный сегмент-переключатель (две пилюли) — ЧАСТЬ карточки, наверху */}
       <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", boxShadow: dark ? "none" : "inset 0 0 0 0.5px rgba(0,0,0,0.05)" }}>
-        {pill("life", iconLife, "Баланс жизни")}
-        {pill("env", iconEnv, "Баланс окружения")}
+        {pill("life", "Баланс жизни")}
+        {pill("env", "Баланс окружения")}
       </div>
       <div style={{ marginTop: 6 }}>
         {tab === "life"
