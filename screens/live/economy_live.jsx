@@ -244,6 +244,40 @@ function GuideLive() {
       </div>
     );
   };
+  var pathLoop = function () {
+    var steps = [["🌤", "Ресурс", "понял себя"], ["✅", "Ход", "сделал сегодня"], ["✦", "XP", "видимый след"], ["⬆", "Уровень", "двери дальше"], ["🤝", "Люди", "держаться вместе"]];
+    return (
+      <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: "13px 12px", background: softBg, boxShadow: glass }}>
+        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)", marginBottom: 10 }}>основной цикл</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 }}>
+          {steps.map(function (s, i) {
+            return (
+              <div key={s[1]} style={{ position: "relative", minWidth: 0, borderRadius: 15, padding: "9px 5px 8px", background: chipBg, boxShadow: glass, textAlign: "center" }}>
+                {i < steps.length - 1 && <span aria-hidden style={{ position: "absolute", right: -7, top: 27, color: "var(--text-4)", opacity: 0.5, fontSize: 12, zIndex: 2 }}>→</span>}
+                <div style={{ fontSize: 19, lineHeight: 1 }}>{s[0]}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)", marginTop: 6, letterSpacing: "-0.15px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s[1]}</div>
+                <div style={{ fontSize: 9.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.18 }}>{s[2]}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+  var guideAction = function (emoji, title, sub, route, params, strong) {
+    return (
+      <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate(route, params || {}); }} className="tap"
+        style={{ width: "100%", border: 0, cursor: "pointer", textAlign: "left", borderRadius: 18, padding: "12px 13px", display: "flex", alignItems: "center", gap: 11,
+          background: strong ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : softBg, color: strong ? "#0a0a0a" : "var(--text)", boxShadow: strong ? "0 8px 18px rgba(239,159,20,0.28)" : glass }}>
+        <span style={{ width: 34, height: 34, borderRadius: 12, display: "grid", placeItems: "center", background: strong ? "rgba(255,255,255,0.35)" : chipBg, boxShadow: strong ? "inset 0 0 0 0.5px rgba(255,255,255,0.45)" : glass, fontSize: 17 }}>{emoji}</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 13.5, fontWeight: 800, letterSpacing: "-0.15px" }}>{title}</span>
+          {sub && <span style={{ display: "block", fontSize: 11.5, marginTop: 2, lineHeight: 1.3, color: strong ? "rgba(10,10,10,0.62)" : "var(--text-4)" }}>{sub}</span>}
+        </span>
+        <span aria-hidden style={{ fontSize: 16, opacity: 0.55 }}>›</span>
+      </button>
+    );
+  };
   var goTo = function (id) {
     if (id !== "suti") setOpenId(id);
     setTimeout(function () { var el = secRefs.current[id]; if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 70);
@@ -273,7 +307,7 @@ function GuideLive() {
           Тап = раскрыть этап + доскроллить к нему. Матовое стекло, чтобы не спорить с фоном. */}
       <div style={{ position: "sticky", top: 0, zIndex: 6, margin: "2px -16px 4px", padding: "8px 16px", background: isDark ? "rgba(18,18,20,0.72)" : "rgba(244,244,247,0.72)", backdropFilter: "saturate(180%) blur(18px)", WebkitBackdropFilter: "saturate(180%) blur(18px)" }}>
         <div className="bos-hscroll" style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
-          {[["suti", "Суть"], ["day", "Каждый день"], ["level", "Уровни"], ["together", "Вместе"], ["world", "Мир"]].map(function (p) {
+          {[["suti", "Старт"], ["day", "Ход"], ["level", "XP"], ["together", "Люди"], ["world", "Мир"]].map(function (p) {
             var on = openId ? (openId === p[0]) : (p[0] === "suti");
             var g = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
             return (
@@ -286,26 +320,26 @@ function GuideLive() {
 
       {/* ── СУТЬ — всегда открыта: вход и вайб «ты играешь в игру про свою жизнь». */}
       <div ref={function (el) { secRefs.current["suti"] = el; }} style={{ scrollMarginTop: 64 }}>
-          {tabIntro("Ты играешь в игру про свою жизнь", "Balance — не трекер, а игра. Маленькие ходы каждый день, а на кону — твоё состояние и твои люди. Здесь — как она устроена: честно, по-настоящему, без мелкого шрифта.", true)}
+          {tabIntro("Твой путь в Balance", "Каждый день ты делаешь маленький ход: отмечаешь состояние, закрываешь привычку или зовёшь своих. Ход даёт XP, XP растит уровень, а уровень открывает людей, круги, партнёров и живой мир приложения.", true)}
 
           <div style={{ ...cardStyle, marginTop: 14 }}>
-            <div style={{ padding: "22px 16px 4px", display: "flex", justifyContent: "center" }}>
-              <div style={{ position: "relative", width: 128, height: 128, display: "grid", placeItems: "center" }}>
-                <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "radial-gradient(circle at 50% 42%, rgba(126,210,168,0.55), rgba(143,180,232,0.22) 56%, transparent 72%)", filter: "blur(1px)" }} />
-                <span aria-hidden style={{ position: "absolute", inset: 28, borderRadius: "50%", background: "radial-gradient(circle at 50% 38%, #FEDE6B, #F5A46B 72%)", boxShadow: "0 8px 26px rgba(245,164,107,0.45)" }} />
-                <span style={{ position: "relative", fontSize: 34 }}>🌅</span>
-              </div>
-            </div>
-            {body("Всё начинается с состояния", "Ты видишь мир не таким, какой он есть, — а таким, в каком ты состоянии. В сильном возможностей больше, рядом со своими — ещё больше. Вся игра про то, чтобы почаще быть в ресурсе и звать своих.")}
+            {visWrap(pathLoop(), "18px 14px 4px")}
+            {body("Сначала — один ход сегодня", "Не нужно проходить всё приложение. Отметь состояние, закрой одну привычку или позови человека — Balance сразу покажет след: XP, серию, уровень и следующую дверь.")}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+            {guideAction("🌤", "Отметить состояние", "первый ход", "home", null, true)}
+            {guideAction("✅", "К привычкам", "создать или отметить", "habits", null, false)}
           </div>
 
           {kicker("01", "Правила простые")}
           <div style={cardStyle}>
             <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
               {[
-                ["✅", "Отмечай, что делаешь", "Каждый ход виден: растут опыт и уровень."],
-                ["🤝", "Зови своих", "Вместе держится дольше — и очков больше."],
-                ["🛡", "Ничего не сгорает", "Пропуск не наказывает. Продолжаешь с любого дня."],
+                ["🌤", "Начни с состояния", "Один свайп показывает, с каким ресурсом ты играешь."],
+                ["✅", "Сделай маленький ход", "Привычка, дневник или дело — каждое действие оставляет след."],
+                ["🤝", "Зови своих", "С людьми ритм держится дольше, а путь быстрее становится живым."],
+                ["🛡", "Без наказания", "Пропуск не сжигает уровень. Просто возвращаешься в игру."],
               ].map(function (r, i) {
                 return (
                   <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: softBg, borderRadius: 16, padding: "11px 12px" }}>
@@ -318,33 +352,19 @@ function GuideLive() {
                 );
               })}
             </div>
-            {body("Игра без наказания", "Три правила — весь фундамент. Дальше только глубже: за что дают очки, как растёт уровень, что открывается с людьми. Листай пилюли сверху.")}
+            {body("Игра без вины", "Здесь нет наказания за паузу: опыт и уровень остаются с тобой. Смысл — не закрыть идеальный календарь, а чаще возвращаться к себе и своим людям.")}
           </div>
 
           {kicker("02", "Как всё связано")}
           <div style={cardStyle}>
-            {visWrap(
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                {[["🎯", "отметка"], ["✦", "опыт"], ["⬆️", "уровень"], ["🤝", "люди"], ["🌌", "Вселенная"]].map(function (s, i, arr) {
-                  return (
-                    <React.Fragment key={i}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-                        <span style={{ width: 44, height: 44, borderRadius: 14, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 20 }}>{s[0]}</span>
-                        <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>{s[1]}</span>
-                      </div>
-                      {i < arr.length - 1 && <span style={{ color: "var(--text-4)", fontSize: 14, opacity: 0.5, marginTop: 14 }}>→</span>}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            )}
-            {body("Одна отметка — целая вселенная", "Один ход тянет за собой всё: отметка даёт опыт, опыт растит уровень, уровень открывает людей и партнёров, а все вместе вы — целая Вселенная. Каждый шаг разберём в своей вкладке.")}
+            {visWrap(pathLoop(), "18px 14px 4px")}
+            {body("Один ход тянет всю систему", "Отметка или состояние дают видимый след. XP растит уровень, уровень открывает людей, партнёров и круги, а вместе это превращается в твою живую Вселенную Balance.")}
           </div>
       </div>
 
       {/* ── ЭТАП 1: КАЖДЫЙ ДЕНЬ (свёрнут по умолчанию) */}
       <div ref={function (el) { secRefs.current["day"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
-        {stageHeader("day", "1", "Каждый день", "Фундамент: касание, ритм недели и твоё состояние.")}
+        {stageHeader("day", "1", "Первый ход", "Что делать сегодня: состояние, привычка, серия.")}
         {openId === "day" && (
           <React.Fragment>
 
@@ -415,7 +435,7 @@ function GuideLive() {
 
       {/* ── ЭТАП 2: ОПЫТ И УРОВНИ */}
       <div ref={function (el) { secRefs.current["level"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
-        {stageHeader("level", "2", "Опыт и уровни", "Опыт, уровень и награды — след пути, а не счётчик вины.")}
+        {stageHeader("level", "2", "XP и уровни", "Видимый след пути: опыт, награды и двери дальше.")}
         {openId === "level" && (
           <React.Fragment>
 
@@ -494,7 +514,7 @@ function GuideLive() {
 
       {/* ── ЭТАП 3: ВМЕСТЕ */}
       <div ref={function (el) { secRefs.current["together"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
-        {stageHeader("together", "3", "Вместе", "Всё в Balance может быть совместным — так держится дольше.")}
+        {stageHeader("together", "3", "Люди рядом", "Круги, друзья и общие привычки — чтобы не тянуть одному.")}
         {openId === "together" && (
           <React.Fragment>
 
@@ -577,7 +597,7 @@ function GuideLive() {
 
       {/* ── ЭТАП 4: МИР */}
       <div ref={function (el) { secRefs.current["world"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
-        {stageHeader("world", "4", "Мир", "Куда ведёт уровень: партнёры, нетворк и карта всех.")}
+        {stageHeader("world", "4", "Мир Balance", "Партнёры, нетворк и Вселенная: зачем растёт уровень.")}
         {openId === "world" && (
           <React.Fragment>
 
@@ -640,7 +660,15 @@ function GuideLive() {
         )}
       </div>
 
-      <button onClick={function () { navigate("ai-chat", { prompt: "Объясни, как устроен Balance и с чего мне лучше начать" }); }} className="tap" style={{ width: "100%", marginTop: 26, border: 0, borderRadius: 999, padding: 15, background: softBg, color: "var(--text-2)", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Остались вопросы — спроси Balance AI ›</button>
+      <div style={{ marginTop: 26, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ padding: "0 4px 2px" }}>
+          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 19, fontWeight: 800, letterSpacing: "-0.35px", color: "var(--text)" }}>Выбери следующий ход</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>Гайд работает лучше, когда сразу ведёт в действие — маленькое, но настоящее.</div>
+        </div>
+        {guideAction("✅", "Перейти к привычкам", "создать или отметить свой первый ритуал", "habits", null, true)}
+        {guideAction("🤝", "Посмотреть круги и людей", "найти, с кем держаться дольше", "community", null, false)}
+        <button onClick={function () { navigate("ai-chat", { prompt: "Объясни, как устроен Balance и с чего мне лучше начать" }); }} className="tap" style={{ width: "100%", border: 0, borderRadius: 999, padding: 15, background: softBg, color: "var(--text-2)", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: glass }}>Остались вопросы — спроси Balance AI ›</button>
+      </div>
     </div>
   );
 }

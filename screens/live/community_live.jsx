@@ -352,24 +352,30 @@ function CommunityLive() {
                 в Сообществе, между строкой «в потоке» и партнёрами). Тёмное ночное небо +
                 мини-орбита — перекличка с героем гида «целая вселенная». */}
             <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }} className="tap"
-              style={{ position: "relative", width: "100%", border: 0, borderRadius: 22, padding: "18px 16px 16px", textAlign: "left", overflow: "hidden", cursor: "pointer",
-                background: "radial-gradient(130% 120% at 82% -12%, rgba(120,140,255,0.30), transparent 52%), radial-gradient(90% 90% at 10% 116%, rgba(255,214,90,0.16), transparent 55%), linear-gradient(160deg,#0e1a2e,#0a1120)",
-                boxShadow: "0 12px 30px rgba(10,10,25,0.34), inset 0 0 0 0.5px rgba(255,255,255,0.10)" }}>
-              {[[14, 26, 2], [30, 66, 1.5], [52, 18, 2], [70, 72, 1.5], [86, 34, 2], [93, 60, 1.5], [22, 84, 1.5], [62, 10, 2]].map(function (d, i) {
-                return <span key={i} aria-hidden style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: "rgba(200,220,255,0.85)", boxShadow: "0 0 6px rgba(170,205,255,0.8)" }} />;
+              style={{ position: "relative", width: "100%", border: 0, borderRadius: 24, padding: "18px 16px 16px", textAlign: "left", overflow: "hidden", cursor: "pointer",
+                background: "radial-gradient(120% 110% at 84% 4%, rgba(254,222,52,0.28), transparent 42%), radial-gradient(100% 90% at 8% 110%, rgba(126,210,168,0.18), transparent 52%), linear-gradient(160deg,#101a2d 0%,#08111f 62%,#050a12 100%)",
+                boxShadow: "0 14px 34px rgba(8,14,28,0.36), inset 0 0 0 0.5px rgba(255,255,255,0.12)" }}>
+              {[[12, 22, 2], [27, 70, 1.5], [45, 18, 2], [67, 74, 1.5], [86, 34, 2], [94, 62, 1.5], [22, 86, 1.5], [58, 12, 2], [76, 18, 1.5]].map(function (d, i) {
+                return <span key={i} aria-hidden style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: "rgba(210,226,255,0.88)", boxShadow: "0 0 7px rgba(170,205,255,0.85)" }} />;
               })}
               <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(200,215,255,0.62)" }}>✦ Гид по Balance</div>
-                  <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#fff", marginTop: 5, lineHeight: 1.18 }}>Как устроена игра</div>
-                  <div style={{ fontSize: 12.5, color: "rgba(220,228,245,0.66)", marginTop: 5, lineHeight: 1.4, maxWidth: 240 }}>Отметки, уровни, круги, Вселенная — как всё связано и зачем. За пару минут.</div>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 12.5, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.13)", borderRadius: 999, padding: "7px 14px", boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.22)" }}>Открыть гид ›</span>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.35, textTransform: "uppercase", color: "rgba(214,224,255,0.66)" }}>✦ путь игрока</div>
+                  <div style={{ fontSize: 20, fontWeight: 850, letterSpacing: "-0.55px", color: "#fff", marginTop: 5, lineHeight: 1.12 }}>Сделай ход — открой мир</div>
+                  <div style={{ fontSize: 12.5, color: "rgba(226,234,250,0.72)", marginTop: 6, lineHeight: 1.42, maxWidth: 270 }}>Отметка даёт XP, уровень открывает людей, круги и партнёров. Посмотри, куда ведёт первый шаг.</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 11 }}>
+                    {[["✅", "ход"], ["✦", "XP"], ["⬆", "уровень"], ["🤝", "люди"]].map(function (s, i) {
+                      return <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 999, padding: "5px 8px", background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.92)", fontSize: 11.5, fontWeight: 700, boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.16)" }}><span>{s[0]}</span>{s[1]}</span>;
+                    })}
+                  </div>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 12.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999, padding: "8px 14px", boxShadow: "0 6px 16px rgba(239,159,20,0.34)" }}>Понять игру за 2 минуты ›</span>
                 </div>
-                <span aria-hidden style={{ position: "relative", width: 64, height: 64, flexShrink: 0, display: "grid", placeItems: "center" }}>
-                  <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.18)" }} />
-                  <span style={{ position: "absolute", inset: 13, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.12)" }} />
-                  <span style={{ fontSize: 26 }}>🙂</span>
-                  <span style={{ position: "absolute", top: -1, right: 9, width: 8, height: 8, borderRadius: "50%", background: "#FEDE34", boxShadow: "0 0 8px rgba(254,222,52,0.9)" }} />
+                <span aria-hidden style={{ position: "relative", width: 70, height: 70, flexShrink: 0, display: "grid", placeItems: "center" }}>
+                  <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.20)" }} />
+                  <span style={{ position: "absolute", inset: 13, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.13)" }} />
+                  <span style={{ position: "absolute", left: 2, top: 34, width: 12, height: 12, borderRadius: "50%", background: "rgba(126,210,168,0.95)", boxShadow: "0 0 10px rgba(126,210,168,0.65)" }} />
+                  <span style={{ position: "absolute", right: 9, top: 3, width: 9, height: 9, borderRadius: "50%", background: "#FEDE34", boxShadow: "0 0 10px rgba(254,222,52,0.95)" }} />
+                  <span style={{ position: "relative", width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(165deg,rgba(255,255,255,0.30),rgba(255,255,255,0.08))", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.38), 0 8px 20px rgba(0,0,0,0.30)", fontSize: 24 }}>🙂</span>
                 </span>
               </div>
             </button>
