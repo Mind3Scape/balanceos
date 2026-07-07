@@ -754,6 +754,36 @@ function TeamDetailLive() {
     });
   };
   const addTeamHabitCloud = (h) => { var first = !(liveTeamHabits && liveTeamHabits.length); window.bosCloud.addTeamHabit(t.cloudId, { ...h, isMain: (h && h.isMain) || first }).then(() => setHabitsTick((n) => n + 1)); };
+
+  // ── «ДЕЛА» СОВМЕСТНОЙ ЦЕЛИ (David: «Дела в совместных целях») ──────────────────
+  // Автор (владелец) ставит задания; участник отмечает СВОЁ выполнение + видит «кто уже сделал».
+  // Кросс-участниковая синхронизация через облако (patch_team_tasks.sql). Пока таблиц нет →
+  // teamTasks() вернёт null → _teamTasksAvail=false → раздел ПРЯЧЕТСЯ (живое не ломается).
+  const [teamTaskData, setTeamTaskData] = React.useState(() => _bosTeamGet("tasks:" + t.cloudId));
+  const [tasksTick, setTasksTick] = React.useState(0);
+  const [newTeamTask, setNewTeamTask] = React.useState("");
+  React.useEffect(() => {
+    if (!_rosterLive || !window.bosCloud.teamTasks) return;
+    let on = true;
+    window.bosCloud.teamTasks(t.cloudId).then((d) => { if (on && d) setTeamTaskData(_bosTeamPut("tasks:" + t.cloudId, d)); }).catch(() => {});
+    return () => { on = false; };
+  }, [_rosterLive, t.cloudId, tasksTick]);
+  const _teamTasks = (teamTaskData && Array.isArray(teamTaskData.tasks)) ? teamTaskData.tasks : [];
+  const _teamTasksAvail = !!(teamTaskData && Array.isArray(teamTaskData.tasks)); // облако вернуло валидную структуру → таблицы есть
+  const _teamTasksTotal = (teamTaskData && teamTaskData.total) || 1; // total приходит из teamTasks(); members определён ниже
+  const _teamTasksMine = _teamTasks.filter((x) => x.doneByMe).length;
+  const toggleMyTeamTask = (tk) => {
+    if (!tk || !tk.id) return;
+    const next = !tk.doneByMe;
+    setTeamTaskData((d) => (d ? { ...d, tasks: (d.tasks || []).map((x) => (x.id === tk.id ? { ...x, doneByMe: next, doneCount: Math.max(0, (x.doneCount || 0) + (next ? 1 : -1)) } : x)) } : d));
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    window.bosCloud.toggleTeamTaskMine(tk.id, next).then((ok) => {
+      if (ok === false) { setTeamTaskData((d) => (d ? { ...d, tasks: (d.tasks || []).map((x) => (x.id === tk.id ? { ...x, doneByMe: !next, doneCount: Math.max(0, (x.doneCount || 0) + (next ? -1 : 1)) } : x)) } : d)); if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} } }
+      setTasksTick((n) => n + 1);
+    });
+  };
+  const addTeamTaskCloud = () => { const tx = newTeamTask.trim(); if (!tx || !window.bosCloud.addTeamTask) return; setNewTeamTask(""); window.bosCloud.addTeamTask(t.cloudId, tx).then(() => setTasksTick((n) => n + 1)); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
+  const removeTeamTaskCloud = (id) => { if (!window.bosCloud.removeTeamTask) return; setTeamTaskData((d) => (d ? { ...d, tasks: (d.tasks || []).filter((x) => x.id !== id) } : d)); window.bosCloud.removeTeamTask(id).then(() => setTasksTick((n) => n + 1)); };
   // A CLOUD team's roster lives in the cloud; the passed-in t.members is a STALE local
   // cache (the «3 снаружи / 0 внутри» mismatch). Until the real roster loads we show a
   // skeleton — NEVER the stale members, which used to flash phantom people for a beat
@@ -1070,6 +1100,40 @@ function TeamDetailLive() {
         </button>
         )}
           </>) },
+        // ДЕЛА — задания совместной цели: автор ставит, участник отмечает своё + видит «кто выполнил».
+        // Раздел появляется только когда облако поддерживает team_tasks (после patch_team_tasks.sql).
+        (_rosterLive && _teamTasksAvail ? {
+          key: "tasks", icon: <I.Check size={17} color="var(--text-3)" />, title: "Дела",
+          summary: _teamTasks.length ? (_teamTasksMine + " из " + _teamTasks.length + " у тебя") : (_isOwner ? "Поставь задания участникам" : "Автор ещё не добавил заданий"),
+          render: () => (<>
+            {_teamTasks.map((tk, i) => (
+              <div key={tk.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+                <button onClick={() => toggleMyTeamTask(tk)} className={"check-btn" + (tk.doneByMe ? "" : " unchecked")} aria-label={tk.doneByMe ? "Снять мою отметку" : "Я выполнил"}
+                  style={{ width: 26, height: 26, flexShrink: 0, cursor: "pointer", ...(tk.doneByMe ? { "--check-color": accent } : {}) }}>
+                  {tk.doneByMe && <I.Check size={14} strokeWidth={3} color="#fff" />}
+                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, color: tk.doneByMe ? "var(--text-4)" : "var(--text)", textDecoration: tk.doneByMe ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tk.text}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>{(tk.doneCount || 0) + " из " + _teamTasksTotal + " выполнили"}</div>
+                </div>
+                {_isOwner && (
+                  <button onClick={() => removeTeamTaskCloud(tk.id)} className="tap" aria-label="Удалить задание" style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: "var(--text-5)", cursor: "pointer", display: "grid", placeItems: "center" }}><I.X size={15} /></button>
+                )}
+              </div>
+            ))}
+            {_teamTasks.length === 0 && (
+              <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>{_isOwner ? "Пока нет заданий. Добавь первое — участники будут отмечать выполнение." : "Автор цели пока не добавил заданий."}</div>
+            )}
+            {_isOwner && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: _teamTasks.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+                <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={14} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
+                <input value={newTeamTask} onChange={(e) => setNewTeamTask(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTeamTaskCloud(); } }} placeholder="Добавить задание…"
+                  style={{ flex: 1, minWidth: 0, background: "transparent", border: 0, outline: 0, fontSize: 15, color: "var(--text)", fontFamily: "inherit" }} />
+                {newTeamTask.trim() && <button onClick={addTeamTaskCloud} className="tap" style={{ flexShrink: 0, border: 0, background: accent, color: "#fff", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Добавить</button>}
+              </div>
+            )}
+          </>),
+        } : null),
         {
           key: "calendar", icon: <I.Calendar size={17} color="var(--text-3)" />, title: "Календарь",
           summary: main ? ("Отметки по «" + main.name + "»") : "Отметки по дням",

@@ -728,6 +728,48 @@
     } catch (e) { return false; }
   }
 
+  // ── РЕАЛЬНЫЕ «ДЕЛА» СОВМЕСТНОЙ ЦЕЛИ ──────────────────────────────────────────
+  // Автор (владелец цели) ставит задания; каждый участник отмечает СВОЁ выполнение и видит,
+  // «кто уже сделал». teamTasks → null, если таблиц team_tasks ещё нет (pre-SQL) → клиент
+  // прячет раздел «Дела» (живое не ломается). После patch_team_tasks.sql раздел оживает.
+  async function teamTasks(teamId) {
+    var c = client(); var me = await uid(); if (!c || !teamId) return null;
+    try {
+      var ts = await c.from("team_tasks").select("id,text,sort,created_at").eq("team_id", teamId).order("sort", { ascending: true }).order("created_at", { ascending: true });
+      if (ts.error) return null; // таблиц ещё нет → graceful: раздел скрыт
+      var tasks = ts.data || [];
+      var mem = await teamMembers(teamId); var total = mem.length || 1;
+      if (!tasks.length) return { total: total, tasks: [] };
+      var ids = tasks.map(function (t) { return t.id; });
+      var dn = await c.from("team_task_done").select("task_id,user_id").in("task_id", ids);
+      var rows = (dn.data) || [];
+      return { total: total, tasks: tasks.map(function (t) {
+        var du = rows.filter(function (r) { return r.task_id === t.id; }).map(function (r) { return r.user_id; });
+        return { id: t.id, text: t.text, doneUsers: du, doneCount: du.length, doneByMe: !!(me && du.indexOf(me) >= 0) };
+      }) };
+    } catch (e) { return null; }
+  }
+  // Владелец добавляет задание (RLS: insert только owner_id цели).
+  async function addTeamTask(teamId, text) {
+    var c = client(); if (!c || !teamId || !text) return null;
+    try { var r = await c.from("team_tasks").insert({ team_id: teamId, text: ("" + text).slice(0, 200) }).select().single(); return (!r.error && r.data) ? r.data : null; } catch (e) { return null; }
+  }
+  // Владелец удаляет задание (его отметки каскадом). RLS: delete только owner.
+  async function removeTeamTask(taskId) {
+    var c = client(); var id = await uid(); if (!c || !id || !taskId) return false;
+    try { var r = await c.from("team_tasks").delete().eq("id", taskId); return !r.error; } catch (e) { return false; }
+  }
+  // Участник ставит/снимает СВОЮ отметку «выполнил». RLS: пишет/удаляет только свою строку.
+  async function toggleTeamTaskMine(taskId, on) {
+    var c = client(); var me = await uid(); if (!c || !me || !taskId) return false;
+    try {
+      var r;
+      if (on) { r = await c.from("team_task_done").upsert({ task_id: taskId, user_id: me }, { onConflict: "task_id,user_id", ignoreDuplicates: true }); }
+      else { r = await c.from("team_task_done").delete().eq("task_id", taskId).eq("user_id", me); }
+      return !(r && r.error);
+    } catch (e) { return false; }
+  }
+
   // ── D4 · живой чат команды (сообщения + фото + realtime) ─────────────────────
   async function loadMessages(teamId, limit) {
     var c = client(); if (!c || !teamId) return [];
@@ -1055,6 +1097,7 @@
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
     teamMembers: teamMembers, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
+    teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
