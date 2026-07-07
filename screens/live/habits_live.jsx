@@ -389,6 +389,13 @@ function HabitsLive() {
   const goals = app?.goals || [];
   const _arch = useBosArchived(); // архив (David) — спрятанные привычки/цели вне списка
   const teams = app?.teams || [];
+  // СТАБИЛЬНЫЙ ключ плитки = cloudId (вечный, уникальный), НЕ локальный h.id: _nid раздаётся заново
+  // 1001,1002… при каждом старте, поэтому две привычки могли получить ОДИН ключ «h1001» → React-коллизия
+  // ключей: вторая (только что созданная) плитка схлопывалась и НЕ рисовалась (David: «создаю — в списке
+  // нет, а на орбитах есть»). Орбиты рендерят по cloudId — потому там обе видны. Фолбэк на id — для
+  // редкой чисто-локальной привычки без cloudId.
+  const _kh = (h) => "h" + (h && (h.cloudId != null ? h.cloudId : h.id));
+  const _kg = (g) => "g" + (g && (g.cloudId != null ? g.cloudId : g.id));
   const toggle = app?.toggleHabit || (() => {});
   const remove = app?.removeHabit || (() => {});
   const removeGoal = app?.removeGoal || (() => {});
@@ -417,7 +424,7 @@ function HabitsLive() {
   const onTileLongPress = (key) => {
     const openReorder = () => { if (gridCtl.current) gridCtl.current.enterReorder(); };
     if (("" + key)[0] === "g") {
-      const g = goals.find((x) => ("g" + x.id) === key); if (!g) return;
+      const g = goals.find((x) => _kg(x) === key); if (!g) return;
       openSheet(
         <HabitTileMenuLive habit={g} dark={isDark} kindLabel="Цель"
           onShare={() => openSheet(<ShareGoalSheetLive goal={g} dark={isDark} />)}
@@ -446,7 +453,7 @@ function HabitsLive() {
       );
       return;
     }
-    const h = habits.find((x) => ("h" + x.id) === key); if (!h) return;
+    const h = habits.find((x) => _kh(x) === key); if (!h) return;
     if (h.teamHabitId) {
       // Г (David): привычку круга участник НЕ удаляет — её задаёт создатель круга как условие.
       // Вместо «Удалить» → «Убрать с моей страницы»: копия прячется (shelved), история и опыт
@@ -481,8 +488,8 @@ function HabitsLive() {
   // сохранённому порядку перестановки; новые элементы — в конец.
   const entries = React.useMemo(() => {
     // shelved = «убрана с моей страницы» (Г): копия привычки круга спрятана, история и XP целы.
-    const all = habits.filter((h) => !h.goalOnly && !h.shelved && !bosIsArch(_arch, "h", h)).map((h) => ({ k: "h" + h.id, type: "h", item: h }))
-      .concat(goals.filter((g) => !bosIsArch(_arch, "g", g)).map((g) => ({ k: "g" + g.id, type: "g", item: g })))
+    const all = habits.filter((h) => !h.goalOnly && !h.shelved && !bosIsArch(_arch, "h", h)).map((h) => ({ k: _kh(h), type: "h", item: h }))
+      .concat(goals.filter((g) => !bosIsArch(_arch, "g", g)).map((g) => ({ k: _kg(g), type: "g", item: g })))
       // Команды (круги/командные цели) живут в ТОЙ ЖЕ сетке — их можно тащить и ставить между
       // привычками/целями, как просил David. Ключ "t<id>" (cloud _id или локальный id).
       .concat(teams.map((t) => ({ k: "t" + (t._id != null ? t._id : t.id), type: "t", item: t })));

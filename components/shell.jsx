@@ -539,6 +539,23 @@ const _nid = () => ++_bosNextId;
 // that resets to 1000 + collides across users/sessions, so it can NOT key cloud rows.
 // The habits.id column is `text`, so any string works.
 const _uuid = () => { try { if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {} return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); };
+// Because _nid resets to 1000 and is reissued every session, two DIFFERENT habits/goals could end up
+// with the SAME local id. That broke BOTH the list's React keys (the duplicate tile silently didn't
+// render — David: «создаю привычку, в списке нет, а на орбитах есть») AND toggle/remove-by-id (a tap
+// marked the twin too). On profile hydration: give every item its own permanent cloudId and a UNIQUE
+// local id, and lift the counter above them all so freshly created items never collide either.
+function _uniqLocal(arr) {
+  arr = arr || [];
+  arr.forEach(function (x) { if (x) { var n = Number(x.id); if (isFinite(n) && n >= _bosNextId) _bosNextId = n; } }); // seed counter above max existing id
+  var seen = {};
+  arr.forEach(function (x) {
+    if (!x) return;
+    if (x.cloudId == null) x.cloudId = _uuid();
+    if (x.id == null || seen[x.id] != null) x.id = _nid(); // duplicate/missing → fresh id (guaranteed > all)
+    seen[x.id] = 1;
+  });
+  return arr;
+}
 // «Дела»-списки хранятся ЛОКАЛЬНО и раньше брали id из _nid() (счётчик, что сбрасывается в 1000
 // каждую загрузку) → первый новый список после перезагрузки получал 1001 и СТАЛКИВАЛСЯ с уже
 // сохранённым 1001: два списка с одним id → правка/удаление задевали ОБА («дубли», «всё удаляется»).
@@ -1384,7 +1401,7 @@ function AppProvider({ children }) {
     if (_avWasEmpty && typeof bosRandomFaceAvatar === "function") _av0 = bosRandomFaceAvatar();
     if (saved) {
       setUserName(saved.userName || name); setAvatar(_av0);
-      setHabits((saved.habits || []).map(bosRollHabit)); setGoals(saved.goals || []); setTeams(saved.teams || []); setTaskLists(_bosNormLists(saved.taskLists));
+      setHabits(_uniqLocal((saved.habits || []).map(bosRollHabit))); setGoals(_uniqLocal(saved.goals || [])); setTeams(saved.teams || []); setTaskLists(_bosNormLists(saved.taskLists));
       setDayMoods(saved.dayMoods || {}); setDayNotes(saved.dayNotes || {});
       setWheelSpheres(saved.wheelSpheres || DEFAULT_SPHERES); setWidgets(saved.widgets || FRESH_WIDGETS); setHomeLayout(saved.homeLayout || null);
       // Restore today's state (the orb) from the saved per-day record, so reopening lands

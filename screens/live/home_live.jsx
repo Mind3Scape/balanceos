@@ -335,6 +335,11 @@ function HomeLive() {
   const _arch = useBosArchived();
   const habits = (app?.habits || []).filter((h) => !h.shelved && !h.goalOnly && !bosIsArch(_arch, "h", h));
   const goals = (app?.goals || []).filter((g) => !bosIsArch(_arch, "g", g));
+  // Ключ плитки на доске = cloudId (уникальный, вечный), НЕ локальный id: _nid раздаётся заново с 1001
+  // каждый старт → две привычки получали один ключ «h:1001» → React-коллизия ключей, новая плитка не
+  // рисовалась (David: «в списке нет, на орбитах есть»). teamKey ниже уже так делает. См. habits_live/_kh.
+  const _khHome = (h) => "h:" + (h.cloudId || h.id);
+  const _kgHome = (g) => "g:" + (g.cloudId || g.id);
   // David: «унифицировать» — виджеты привычек/целей на главной = ТЕ ЖЕ плитки, что на «Привычках», и
   // слушают ТОТ ЖЕ стиль (форма/тоглы из шестерёнки). Хуки → главная перерисовывается при смене стиля.
   const cardStyle = useBosCardStyle();
@@ -474,8 +479,8 @@ function HomeLive() {
     const savedW = (Array.isArray(widgets.order) ? widgets.order : []).filter((id) => DEFAULT_ORDER.includes(id) || id === "habits" || id === "goals");
     const wOrder = [...savedW, ...["hero", "week", "habits", "goals", "team", "invite"].filter((id) => !savedW.includes(id))];
     wOrder.forEach((id) => {
-      if (id === "habits") { habits.forEach((h) => out.push("h:" + h.id)); return; }
-      if (id === "goals") { goals.forEach((g) => out.push("g:" + g.id)); return; }
+      if (id === "habits") { habits.forEach((h) => out.push(_khHome(h))); return; }
+      if (id === "goals") { goals.forEach((g) => out.push(_kgHome(g))); return; }
       if (isWidgetOn(id)) out.push("w:" + id);
     });
     return out;
@@ -486,8 +491,8 @@ function HomeLive() {
     const hidden = Array.isArray(base.hidden) ? base.hidden : [];
     const seen = {};
     const alive = (k) => {
-      if (k.startsWith("h:")) return habits.some((h) => "h:" + h.id === k);
-      if (k.startsWith("g:")) return goals.some((g) => "g:" + g.id === k);
+      if (k.startsWith("h:")) return habits.some((h) => _khHome(h) === k);
+      if (k.startsWith("g:")) return goals.some((g) => _kgHome(g) === k);
       if (k.startsWith("t:")) return teams.some((t) => teamKey(t) === k);
       if (k.startsWith("w:")) return BOS_HOME_WIDGETS.some((w) => "w:" + w.id === k);
       return false;
@@ -495,8 +500,8 @@ function HomeLive() {
     const order = base.order.filter((k) => { if (seen[k] || !alive(k)) return false; seen[k] = 1; return true; });
     // Добор НОВЫХ привычек/целей/кругов: сразу на главную — после последней плитки своего вида.
     const insertAfterLast = (pref, key) => { let at = -1; order.forEach((k, i) => { if (k.indexOf(pref) === 0) at = i; }); if (at >= 0) order.splice(at + 1, 0, key); else order.push(key); };
-    habits.forEach((h) => { const k = "h:" + h.id; if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("h:", k); seen[k] = 1; } });
-    goals.forEach((g) => { const k = "g:" + g.id; if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("g:", k); seen[k] = 1; } });
+    habits.forEach((h) => { const k = _khHome(h); if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("h:", k); seen[k] = 1; } });
+    goals.forEach((g) => { const k = _kgHome(g); if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("g:", k); seen[k] = 1; } });
     // Совместные цели — тоже ПЛИТКАМИ на доске (David: «захочу цель на главной»); прежний
     // авто-виджет «Вместе» больше не добавляем сами — он остался в галерее как сводка по желанию.
     teams.forEach((t) => { const k = teamKey(t); if (!seen[k] && hidden.indexOf(k) < 0) { insertAfterLast("t:", k); seen[k] = 1; } });
@@ -711,8 +716,8 @@ function HomeLive() {
   // «Привычках»); long-press ловит сетка → меню (Поделиться / Переставить / Убрать с главной).
   const tileFor = (k) => {
     if (k.indexOf("w:") === 0) { const id = k.slice(2); return nodes[id] ? <WidgetBoundaryLive wid={id}>{nodes[id]}</WidgetBoundaryLive> : null; }
-    if (k.indexOf("h:") === 0) { const h = habits.find((x) => "h:" + x.id === k); return h ? <HabitTileLive habit={h} from="home" /> : null; }
-    if (k.indexOf("g:") === 0) { const g = goals.find((x) => "g:" + x.id === k); return g ? <GoalTileLive goal={g} from="home" /> : null; }
+    if (k.indexOf("h:") === 0) { const h = habits.find((x) => _khHome(x) === k); return h ? <HabitTileLive habit={h} from="home" /> : null; }
+    if (k.indexOf("g:") === 0) { const g = goals.find((x) => _kgHome(x) === k); return g ? <GoalTileLive goal={g} from="home" /> : null; }
     if (k.indexOf("t:") === 0) { const t = teams.find((x) => teamKey(x) === k); return t && typeof TeamTileLive === "function" ? <TeamTileLive team={t} from="home" /> : null; }
     return null;
   };
@@ -726,7 +731,7 @@ function HomeLive() {
   // Удалить» (David: «если не виджет, а привычка или цель — спрашивает удалить/архивировать»).
   const onMinus = (k) => {
     if (k.indexOf("h:") === 0) {
-      const h = habits.find((x) => "h:" + x.id === k); if (!h) { hideKey(k); return; }
+      const h = habits.find((x) => _khHome(x) === k); if (!h) { hideKey(k); return; }
       openSheet(<ArchiveOrDeleteSheetLive name={h.name} emoji={h.emoji} color={h.color} dark={isDark}
         onArchive={() => bosSetArchived(bosArchKey("h", h), true)}
         deleteLabel="Удалить насовсем" deleteHint="Сотрёт привычку и всю историю отметок. Навсегда."
@@ -734,7 +739,7 @@ function HomeLive() {
       return;
     }
     if (k.indexOf("g:") === 0) {
-      const g = goals.find((x) => "g:" + x.id === k); if (!g) { hideKey(k); return; }
+      const g = goals.find((x) => _kgHome(x) === k); if (!g) { hideKey(k); return; }
       openSheet(<ArchiveOrDeleteSheetLive name={g.name} emoji={g.emoji} color={g.color} dark={isDark}
         onArchive={() => bosSetArchived(bosArchKey("g", g), true)}
         deleteLabel="Удалить насовсем" deleteHint="Сотрёт цель и её прогресс. Навсегда."
