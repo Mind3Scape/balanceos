@@ -1173,6 +1173,13 @@ function AppProvider({ children }) {
     return true;
   };
 
+  // Отразить трату, УЖЕ проведённую на сервере (бронь bos_book_offer сама пишет в xp_ledger) —
+  // двигаем локальный счётчик кошелька БЕЗ второй записи в журнал. Уровень трата не трогает.
+  const noteSpentXP = (amount) => {
+    var a = Math.max(0, amount | 0); if (!a) return;
+    setSpentXP(function (prev) { var next = (prev | 0) + a; try { localStorage.setItem("bos:spentXP", String(next)); } catch (e) {} return next; });
+  };
+
   // СЕЙФ (Этап 1): «получено у партнёра» и «постучался в круг» раньше жили ТОЛЬКО в
   // localStorage — потеря телефона их стирала. Теперь едут в облачный блоб (extras);
   // события ниже дёргают пересохранение, слияние при входе — union (полученное не отменяется).
@@ -1753,7 +1760,7 @@ function AppProvider({ children }) {
     themeOverride, setThemeOverride,
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
     aiBrief, invitedCount, teamGoalXP, refreshTeamGoalXP,
-    claimedChallenges, spentXP, spendXP, grantBonusXP,
+    claimedChallenges, spentXP, spendXP, grantBonusXP, noteSpentXP,
     pendingAch, clearPendingAch,
     pendingJoinWelcome, clearPendingJoinWelcome,
     tourStep, setTourStep, startTour, endTour, tourMode,

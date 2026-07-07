@@ -931,57 +931,76 @@ var BOS_NET_TIERS = [
   { lvl: 20, i: "🌍", t: "Собрать своих",      d: "Встреча или ретрит сообщества" },
 ];
 
-/* Твоя РЕДАКТИРУЕМАЯ карточка (аватар, уровень, знак Основателя, «чем могу быть полезен»
-   + лесенка) + РЕАЛЬНЫЙ список тех, кто тоже дошёл (облако allPublic — анонимно, но
-   по-настоящему). Без выдуманных людей/цен: пока David первый — честная пустая полка. */
+// ISO-неделя ('2026-W28') — ключ периода для лимита слотов и броней.
+function bosNetWeek(d) {
+  d = d ? new Date(d) : new Date();
+  var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  var day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  var ys = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  var wk = Math.ceil((((t - ys) / 86400000) + 1) / 7);
+  return t.getUTCFullYear() + "-W" + ("0" + wk).slice(-2);
+}
+
+/* НЕТВОРК · LIVE (v643): твоя карточка ПУБЛИКУЕТ пользу (структурные предложения — цена XP,
+   расписание, лимит мест/неделю) + витрина реальных людей ≥10 задизайненными карточками
+   (NetPersonCardLive → детали с бронью). Пусто честно, пока никто не опубликовал. */
 function NetworkLive({ navigate, app, level, isDark }) {
-  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
-  // «Чем могу быть полезен» — то же поле (localStorage + облако), что и в «Балансе окружения».
-  const offSt = React.useState(function () { try { return localStorage.getItem("bos:myOffer") || ""; } catch (e) { return ""; } });
-  const myOffer = offSt[0], setMyOffer = offSt[1];
-  const onOfferChange = function (e) { var v = (e.target.value || "").slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} };
-  const onOfferBlur = function (e) { var v = (e.target.value || "").trim().slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} try { if (window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.saveOffer) window.bosCloud.saveOffer(v); } catch (er2) {} };
+  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  const week = bosNetWeek();
   const isFounder = (function () { try { return localStorage.getItem("bos:founder") === "1"; } catch (e) { return false; } })();
   const myName = (app && app.userName) || "Ты";
   const myAvatar = app && app.avatar;
 
-  // Реальные люди, дошедшие до Нетворка (10+). allPublic отдаёт анонимные орбиты — честно.
-  const peersSt = React.useState(null); // null = грузим
-  const peers = peersSt[0], setPeers = peersSt[1];
+  // Подпись одной строкой (то же поле offer, что в Балансе окружения).
+  const offSt = React.useState(function () { try { return localStorage.getItem("bos:myOffer") || ""; } catch (e) { return ""; } });
+  const myOffer = offSt[0], setMyOffer = offSt[1];
+  const onOfferChange = function (e) { var v = (e.target.value || "").slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} };
+  const onOfferBlur = function (e) { var v = (e.target.value || "").trim().slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} try { if (window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.saveOffer) window.bosCloud.saveOffer(v); } catch (er2) {} };
+
+  const [tick, setTick] = React.useState(0);
+  const [myOffers, setMyOffers] = React.useState(null);
+  const [people, setPeople] = React.useState(null);
+  const [counts, setCounts] = React.useState({});
   React.useEffect(function () {
     var on = true;
-    try {
-      if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.allPublic) {
-        window.bosCloud.allPublic(240).then(function (rows) {
-          if (!on) return;
-          var net = (Array.isArray(rows) ? rows : []).filter(function (r) { return r && (r.level | 0) >= 10; });
-          setPeers(net);
-        }).catch(function () { if (on) setPeers([]); });
-      } else { setPeers([]); }
-    } catch (e) { setPeers([]); }
+    (async function () {
+      var C = window.bosCloud;
+      if (!(C && C.enabled && C.enabled() && C.netOffers)) { if (on) { setMyOffers([]); setPeople([]); } return; }
+      var myId = null; try { myId = await C.uid(); } catch (e) {}
+      var all = [], mine = [];
+      try { all = (await C.netOffers(200)) || []; } catch (e) {}
+      try { mine = (await C.netMyOffers()) || []; } catch (e) {}
+      if (!on) return;
+      setMyOffers(mine);
+      var cnt = {};
+      try { for (var m = 0; m < mine.length; m++) { var bk = (await C.netOfferBookings(mine[m].id)) || []; cnt[mine[m].id] = bk.filter(function (b) { return b.week === week; }).length; } } catch (e) {}
+      if (on) setCounts(cnt);
+      var others = all.filter(function (o) { return o.owner_id && o.owner_id !== myId; });
+      var pub = {}; try { var pv = (await C.allPublic(240)) || []; pv.forEach(function (p) { pub[p.id] = p; }); } catch (e) {}
+      var byOwner = {}; others.forEach(function (o) { (byOwner[o.owner_id] = byOwner[o.owner_id] || []).push(o); });
+      var ppl = Object.keys(byOwner).map(function (oid) { var pr = pub[oid] || {}; return { ownerId: oid, avatar: pr.avatar || "default", level: pr.level || 10, offers: byOwner[oid] }; });
+      if (on) setPeople(ppl);
+    })();
     return function () { on = false; };
-  }, []);
+  }, [tick]);
 
-  const unlockedTiers = BOS_NET_TIERS.filter(function (t) { return t.lvl <= level; });
-  const nextTier = BOS_NET_TIERS.find(function (t) { return t.lvl > level; });
+  const openEditor = function (offer) { if (typeof NetOfferEditSheetLive === "function") _openSheet(<NetOfferEditSheetLive offer={offer || null} onDone={function () { setTick(function (t) { return t + 1; }); }} />); };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-      {/* ГЕРОЙ — открыто (золото вместо тёмного замка). */}
-      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
-        background: "linear-gradient(140deg, #FEDE34 0%, #F6B31E 46%, #EF9F14 100%)",
-        boxShadow: "0 10px 26px rgba(239,159,20,0.34)" }}>
+      {/* ГЕРОЙ */}
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px", background: "linear-gradient(140deg, #FEDE34 0%, #F6B31E 46%, #EF9F14 100%)", boxShadow: "0 10px 26px rgba(239,159,20,0.34)" }}>
         <div aria-hidden style={{ position: "absolute", top: -44, right: -30, width: 170, height: 170, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(70,45,0,0.62)" }}>Нетворк · открыт</div>
           <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", color: "#3a2600", marginTop: 4, lineHeight: 1.16 }}>{isFounder ? "Ты открыл его первым" : "Круг своих"}</div>
-          <div style={{ fontSize: 13, color: "rgba(58,38,0,0.72)", marginTop: 6, lineHeight: 1.45, maxWidth: 264 }}>Ты дошёл до 10 уровня. Здесь — те, кто тоже добрался, и твоя карточка для них.</div>
+          <div style={{ fontSize: 13, color: "rgba(58,38,0,0.72)", marginTop: 6, lineHeight: 1.45, maxWidth: 264 }}>Публикуй, чем полезен окружению, — и записывайся к другим за XP.</div>
         </div>
       </div>
 
-      {/* ТВОЯ КАРТОЧКА — тёмная с золотым свечением; редактируешь прямо тут. */}
-      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: 18, color: "#fff",
-        background: "linear-gradient(135deg, #1a1a1d 0%, #0a0a0a 100%)", boxShadow: "0 6px 22px rgba(0,0,0,0.20)" }}>
+      {/* ТВОЯ КАРТОЧКА — тёмная; тут ты публикуешь пользу. */}
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: 18, color: "#fff", background: "linear-gradient(135deg, #1a1a1d 0%, #0a0a0a 100%)", boxShadow: "0 6px 22px rgba(0,0,0,0.20)" }}>
         <div aria-hidden style={{ position: "absolute", top: -40, right: -30, width: 160, height: 160, borderRadius: "50%", background: "radial-gradient(circle at 35% 35%, #ffe88a, #FEDE34 30%, #EF9F14 70%, transparent 95%)", opacity: 0.18, filter: "blur(8px)", pointerEvents: "none" }} />
         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 13 }}>
           {typeof BosAvatar === "function" ? <BosAvatar avatar={myAvatar} size={50} style={{ flexShrink: 0, boxShadow: "0 0 0 2px rgba(255,255,255,0.14)" }} /> : null}
@@ -995,65 +1014,271 @@ function NetworkLive({ navigate, app, level, isDark }) {
         </div>
 
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700, marginBottom: 7 }}>Твоё предложение сообществу</div>
-          <input value={myOffer} onChange={onOfferChange} onBlur={onOfferBlur} maxLength={200}
-            placeholder="Напр.: поделюсь опытом в маркетинге · проведу медитацию · подскажу по спорту"
-            style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "rgba(255,255,255,0.08)", borderRadius: 13, padding: "12px 13px", fontSize: 14, color: "#fff", fontFamily: "inherit" }} />
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.4, marginTop: 6 }}>Это видят те, кто дошёл до Нетворка. Меняй в любой момент.</div>
+          <input value={myOffer} onChange={onOfferChange} onBlur={onOfferBlur} maxLength={200} placeholder="Коротко о себе: чем можешь быть полезен"
+            style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "rgba(255,255,255,0.08)", borderRadius: 13, padding: "11px 13px", fontSize: 13.5, color: "#fff", fontFamily: "inherit" }} />
         </div>
 
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700, marginBottom: 8 }}>Что ты можешь предложить</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {unlockedTiers.map(function (u, i) {
-              return <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "rgba(255,255,255,0.07)", borderRadius: 999, fontSize: 12, color: "#fff" }}><span aria-hidden style={{ fontSize: 14 }}>{u.i}</span>{u.t}</span>;
-            })}
-          </div>
-        </div>
-        {nextTier ? (
-          <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255,222,52,0.08)", borderRadius: 14, display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 30, height: 30, borderRadius: 999, background: "rgba(254,222,52,0.18)", display: "grid", placeItems: "center", fontSize: 16 }}>{nextTier.i}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>С {nextTier.lvl} уровня · {nextTier.t}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>{nextTier.d}</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700, marginBottom: 9 }}>Твоя польза окружению</div>
+          {myOffers === null ? (
+            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)" }}>Загружаем…</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {myOffers.length === 0 ? (
+                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>Опубликуй, что готов делать для окружения — с ценой в XP, временем и числом мест в неделю.</div>
+              ) : myOffers.map(function (o) {
+                var c = counts[o.id] | 0; var full = c >= ((o.slots_week | 0) || 1);
+                return (
+                  <button key={o.id} onClick={function () { openEditor(o); }} className="tap" style={{ border: 0, cursor: "pointer", textAlign: "left", background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "11px 12px", display: "flex", alignItems: "center", gap: 11 }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 11, background: "rgba(255,255,255,0.08)", display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>{o.emoji || "🤝"}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.title}</div>
+                      <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(o.price_xp > 0 ? (o.price_xp + " XP") : "Бесплатно") + (o.when_text ? (" · " + o.when_text) : "") + " · " + ((o.slots_week | 0) || 1) + "/нед"}</div>
+                    </div>
+                    <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: full ? "#FF9F0A" : "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.08)", borderRadius: 999, padding: "3px 8px" }}>{c > 0 ? (c + " зап.") : "свободно"}</span>
+                  </button>
+                );
+              })}
+              <button onClick={function () { openEditor(null); }} className="tap" style={{ border: "1px dashed rgba(255,255,255,0.22)", cursor: "pointer", background: "transparent", borderRadius: 14, padding: "10px 12px", color: "#FEDE34", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>＋ Добавить предложение</button>
             </div>
-          </div>
-        ) : null}
+          )}
+        </div>
       </div>
 
-      {/* ЛЮДИ, ЧТО ДОШЛИ — реальные (или честная пустая полка). */}
-      <div className="section-label" style={{ marginTop: 6 }}>{peers && peers.length ? ("Дошли до Нетворка · " + peers.length) : "Дошли до Нетворка"}</div>
-      {peers === null ? (
+      {/* ЛЮДИ — задизайненные карточки. */}
+      <div className="section-label" style={{ marginTop: 6 }}>{people && people.length ? ("В Нетворке · " + people.length) : "В Нетворке"}</div>
+      {people === null ? (
         <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)" }}>Загружаем…</div>
-      ) : peers.length === 0 ? (
+      ) : people.length === 0 ? (
         <React.Fragment>
           <div style={{ background: "var(--card)", borderRadius: 22, padding: "18px 16px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
             <div style={{ fontSize: 30 }}>🌱</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 6 }}>Ты здесь первый</div>
-            <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.5, marginTop: 5, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>Когда другие дойдут до 10 уровня, они появятся тут. Твоя карточка их уже ждёт — позови своих, чтобы круг ожил быстрее.</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.5, marginTop: 5, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>Опубликуй свою пользу выше — а когда другие дойдут до Нетворка, их предложения появятся здесь.</div>
           </div>
           {typeof InviteFriendsCardLive === "function" ? <InviteFriendsCardLive isDark={isDark} /> : null}
         </React.Fragment>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {peers.map(function (p, i) {
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {people.map(function (pp) { return <NetPersonCardLive key={pp.ownerId} person={pp} viewerLevel={level} navigate={navigate} />; })}
+        </div>
+      )}
+
+      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", margin: "10px 8px 2px", fontStyle: "italic" }}>Плата XP из копилки — не деньгами. Уровень от траты не падает.</div>
+    </div>
+  );
+}
+
+/* Редактор предложения (шторка): значок, что, пара слов, цена XP, места/неделю, когда. */
+function NetOfferEditSheetLive({ offer, onDone }) {
+  const editing = !!(offer && offer.id);
+  const { close } = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  const [emoji, setEmoji] = React.useState((offer && offer.emoji) || "🤝");
+  const [title, setTitle] = React.useState((offer && offer.title) || "");
+  const [descr, setDescr] = React.useState((offer && offer.descr) || "");
+  const [price, setPrice] = React.useState(String((offer && offer.price_xp != null) ? offer.price_xp : 0));
+  const [when, setWhen] = React.useState((offer && offer.when_text) || "");
+  const [slots, setSlots] = React.useState(String((offer && offer.slots_week) || 1));
+  const [busy, setBusy] = React.useState(false);
+  const EMO = ["🤝", "🧠", "🧘", "🌬️", "🏃", "💼", "🎯", "📚", "🎨", "💬", "🌍", "💡", "🎧", "🍳"];
+  const save = async function () {
+    if (busy || !title.trim()) return; setBusy(true);
+    try { await window.bosCloud.netUpsertOffer({ id: offer && offer.id, emoji: emoji, title: title.trim(), descr: descr.trim(), price_xp: parseInt(price, 10) || 0, slots_week: Math.max(1, parseInt(slots, 10) || 1), when_text: when.trim(), min_level: (offer && offer.min_level) || 10, active: true }); } catch (e) {}
+    setBusy(false); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } if (onDone) onDone(); close();
+  };
+  const del = async function () {
+    if (busy || !editing) return; setBusy(true);
+    try { await window.bosCloud.netDeleteOffer(offer.id); } catch (e) {}
+    setBusy(false); if (onDone) onDone(); close();
+  };
+  const inp = { width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 12, padding: "12px 13px", fontSize: 15, color: "var(--text)", fontFamily: "inherit" };
+  const lbl = { fontSize: 12, fontWeight: 700, color: "var(--text-3)", margin: "14px 2px 6px" };
+  return (
+    <div style={{ padding: "4px 2px 8px" }}>
+      <div style={{ fontSize: 19, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.3px" }}>{editing ? "Твоё предложение" : "Новое предложение"}</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>Пользу увидят в Нетворке и запишутся за XP. Мест в неделю — жёсткий лимит.</div>
+
+      <div style={lbl}>Значок</div>
+      <div className="bos-hscroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2 }}>
+        {EMO.map(function (e) { return <button key={e} onClick={function () { setEmoji(e); }} className="tap" style={{ flexShrink: 0, width: 42, height: 42, borderRadius: 13, border: emoji === e ? "2px solid var(--text)" : "1px solid var(--line)", background: emoji === e ? "var(--surface-3)" : "var(--card)", fontSize: 20, cursor: "pointer" }}>{e}</button>; })}
+      </div>
+
+      <div style={lbl}>Что предлагаешь</div>
+      <input value={title} onChange={function (e) { setTitle(e.target.value); }} maxLength={80} placeholder="Напр.: Консультация по маркетингу" style={inp} />
+
+      <div style={lbl}>Пара слов (не обязательно)</div>
+      <input value={descr} onChange={function (e) { setDescr(e.target.value); }} maxLength={300} placeholder="Напр.: 1 час · разбор бренда и роста" style={inp} />
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={lbl}>Цена, XP</div>
+          <input value={price} onChange={function (e) { setPrice(e.target.value.replace(/[^0-9]/g, "")); }} inputMode="numeric" placeholder="0" style={inp} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={lbl}>Мест в неделю</div>
+          <input value={slots} onChange={function (e) { setSlots(e.target.value.replace(/[^0-9]/g, "")); }} inputMode="numeric" placeholder="1" style={inp} />
+        </div>
+      </div>
+
+      <div style={lbl}>Когда готов</div>
+      <input value={when} onChange={function (e) { setWhen(e.target.value); }} maxLength={60} placeholder="Напр.: Воскресенье 18:00" style={inp} />
+
+      <button onClick={save} disabled={busy || !title.trim()} className="tap" style={{ width: "100%", marginTop: 18, background: title.trim() ? "#0a0a0a" : "var(--surface-3)", color: title.trim() ? "#fff" : "var(--text-4)", border: 0, borderRadius: 14, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>{editing ? "Сохранить" : "Опубликовать"}</button>
+      {editing ? <button onClick={del} disabled={busy} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", color: "var(--text-4)", border: 0, borderRadius: 14, padding: 12, fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Удалить предложение</button> : null}
+    </div>
+  );
+}
+
+/* Карточка человека в Нетворке (reuse дизайна): аватар, уровень, превью предложений.
+   Тап → детали с бронью. Аноним (имён пока нет — честно). */
+function NetPersonCardLive({ person, viewerLevel, navigate }) {
+  const offers = (person.offers || []).slice().sort(function (a, b) { return ((a.min_level | 0) - (b.min_level | 0)); });
+  const n = offers.length;
+  const nWord = n + " " + ((n % 10 === 1 && n % 100 !== 11) ? "предложение" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "предложения" : "предложений"));
+  return (
+    <div onClick={function () { navigate("net-person", { person: person }); }} className="tap" style={{ background: "var(--card)", borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", cursor: "pointer" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={44} style={{ flexShrink: 0 }} /> : null}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Участник</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4 }}>L{person.level | 0}</span>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3 }}>{nWord}</div>
+        </div>
+        <I.ChevronRight size={18} color="var(--text-4)" />
+      </div>
+      {offers.length > 0 ? (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 7 }}>
+          {offers.slice(0, 3).map(function (o) {
+            var locked = (viewerLevel | 0) < (o.min_level | 0);
             return (
-              <div key={p.id || i} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
-                {typeof BosAvatar === "function" ? <BosAvatar avatar={p.avatar} size={42} style={{ flexShrink: 0 }} /> : null}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text)" }}>Участник</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4 }}>L{p.level | 0}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.35 }}>{p.offer ? ("🤝 " + p.offer) : "Пока без предложения"}</div>
-                </div>
+              <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, opacity: locked ? 0.55 : 1 }}>
+                <span style={{ width: 28, height: 28, borderRadius: 10, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{o.emoji || "🤝"}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.title}</span>
+                <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: locked ? "var(--text-4)" : "var(--text)" }}>{locked ? ("🔒 L" + o.min_level) : (o.price_xp > 0 ? (o.price_xp + " XP") : "Бесплатно")}</span>
               </div>
             );
           })}
         </div>
-      )}
+      ) : null}
+    </div>
+  );
+}
 
-      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", margin: "10px 8px 2px", fontStyle: "italic" }}>Знакомство по делам, не по ленте. Скоро — способ связаться прямо здесь.</div>
+/* Детали человека в Нетворке (reuse дизайна ContactDetailLive): герой + Предложения с бронью.
+   Выдуманные отзывы/рейтинг/история НЕ показываем — только реальное. Маршрут "net-person". */
+function NetPersonDetailLive() {
+  const { navigate, params } = useNav();
+  const app = (typeof useApp === "function") ? useApp() : null;
+  const person = (params && params.person) || { ownerId: null, avatar: "default", level: 10, offers: [] };
+  const week = bosNetWeek();
+  const viewerLevel = (typeof bosLiveXPLive === "function" && typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(bosLiveXPLive(app)).level : 1;
+  const offers = (person.offers || []).slice().sort(function (a, b) { return ((a.min_level | 0) - (b.min_level | 0)); });
+  const balance = (typeof bosLiveSpendableXPLive === "function") ? bosLiveSpendableXPLive(app) : 0;
+
+  const [taken, setTaken] = React.useState({});
+  const [mine, setMine] = React.useState({});
+  const [busyId, setBusyId] = React.useState(null);
+  React.useEffect(function () {
+    var on = true;
+    (async function () {
+      var C = window.bosCloud; if (!(C && C.enabled && C.enabled())) return;
+      var tk = {};
+      try { for (var i = 0; i < offers.length; i++) { tk[offers[i].id] = await C.netOfferTaken(offers[i].id, week); } } catch (e) {}
+      if (on) setTaken(tk);
+      try { var mb = (await C.netMyBookings()) || []; var mm = {}; mb.forEach(function (b) { if (b.week === week) mm[b.offer_id] = true; }); if (on) setMine(mm); } catch (e) {}
+    })();
+    return function () { on = false; };
+  }, [person.ownerId]);
+
+  const book = async function (o) {
+    if (busyId) return;
+    var C = window.bosCloud; if (!(C && C.enabled && C.enabled() && C.netBook)) return;
+    setBusyId(o.id);
+    var earned = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : null;
+    var res = null; try { res = await C.netBook(o.id, week, earned); } catch (e) {}
+    setBusyId(null);
+    if (res && res.ok) {
+      if (!res.dup && (o.price_xp | 0) > 0 && app && typeof app.noteSpentXP === "function") app.noteSpentXP(o.price_xp);
+      setMine(function (m) { var nn = Object.assign({}, m); nn[o.id] = true; return nn; });
+      setTaken(function (t) { var nn = Object.assign({}, t); nn[o.id] = (nn[o.id] | 0) + (res.dup ? 0 : 1); return nn; });
+      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    } else {
+      if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} }
+    }
+  };
+
+  return (
+    <div className="page-in" style={{ padding: "0 0 28px" }}>
+      {/* HERO */}
+      <div style={{ background: "linear-gradient(160deg, rgba(120,140,255,0.22) 0%, rgba(120,140,255,0.06) 60%, transparent 100%)", margin: "-60px 0 0", padding: "60px 16px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", paddingTop: 4, paddingBottom: 14 }}>
+          <button onClick={function () { navigate("community"); }} className="tap" style={{ width: 40, height: 40, borderRadius: 999, background: "var(--card)", border: 0, display: "grid", placeItems: "center", padding: 0, boxShadow: "var(--card-shadow)" }}><I.ChevronLeft size={18} /></button>
+        </div>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          {typeof BosAvatar === "function" ? <BosAvatar avatar={person.avatar} size={64} style={{ flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }} /> : null}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px" }}>Участник</span>
+              <span style={{ fontSize: 10, fontWeight: 700, background: "#0a0a0a", color: "#FEDE34", borderRadius: 999, padding: "2px 8px", letterSpacing: 0.4 }}>L{person.level | 0}</span>
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 4 }}>Дошёл до Нетворка · помогает окружению</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: "14px 16px 0", display: "flex", alignItems: "center", gap: 7 }}>
+        <span style={{ fontSize: 14 }}>🪙</span>
+        <span style={{ fontSize: 12.5, color: "var(--text-4)" }}>Твоя копилка: <b style={{ color: "var(--text-2)" }}>{balance} XP</b></span>
+      </div>
+
+      <div style={{ padding: "16px 16px 0" }}>
+        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginBottom: 10 }}>Предложения</div>
+        {offers.length === 0 ? (
+          <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)" }}>Пока нет активных предложений.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {offers.map(function (o) {
+              var slots = (o.slots_week | 0) || 1;
+              var tk = taken[o.id] | 0;
+              var full = tk >= slots;
+              var locked = (viewerLevel | 0) < (o.min_level | 0);
+              var booked = !!mine[o.id];
+              var affordable = balance >= (o.price_xp | 0);
+              return (
+                <div key={o.id} style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", opacity: (locked && !booked) ? 0.6 : 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{o.emoji || "🤝"}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{o.title}</span>
+                        {locked ? <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px" }}>🔒 L{o.min_level}</span> : null}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{(o.descr ? (o.descr + " · ") : "") + (o.when_text ? (o.when_text + " · ") : "") + slots + "/нед"}</div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", flexShrink: 0 }}>{o.price_xp > 0 ? (o.price_xp + " XP") : "Бесплатно"}</div>
+                  </div>
+                  <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    {booked ? (
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "#1E8E4E", background: "rgba(52,199,89,0.14)", borderRadius: 999, padding: "7px 13px" }}><I.Check size={13} strokeWidth={3} /> Ты записан на этой неделе</div>
+                    ) : locked ? (
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)" }}>Откроется с {o.min_level} уровня</div>
+                    ) : full ? (
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#FF9F0A" }}>Занято на этой неделе — вернись в следующую</div>
+                    ) : !affordable ? (
+                      <div style={{ fontSize: 12.5, color: "var(--text-4)" }}>Нужно ещё {(o.price_xp - balance)} XP</div>
+                    ) : (
+                      <button onClick={function () { book(o); }} disabled={busyId === o.id} className="tap" style={{ background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{busyId === o.id ? "…" : (o.price_xp > 0 ? ("Записаться за " + o.price_xp + " XP") : "Записаться")}</button>
+                    )}
+                    {!booked && !locked ? <span style={{ fontSize: 11.5, color: "var(--text-5)" }}>{Math.max(0, slots - tk)} из {slots} свободно</span> : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

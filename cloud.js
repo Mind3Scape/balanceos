@@ -1084,6 +1084,72 @@
     catch (e) { return false; }
   }
 
+  // ── НЕТВОРК · предложения пользы + бронь за XP (patch_network_offers.sql) ──────
+  // Все активные предложения (витрина нетворка). Graceful: нет таблицы → [].
+  async function netOffers(limit) {
+    var c = client(); if (!c) return [];
+    try {
+      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text").eq("active", true).limit(limit || 200);
+      return (r && !r.error && r.data) ? r.data : [];
+    } catch (e) { return []; }
+  }
+  // Мои предложения (все, включая выключённые) — для редактора.
+  async function netMyOffers() {
+    var c = client(); var id = await uid(); if (!c || !id) return [];
+    try {
+      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active").eq("owner_id", id).order("created_at", { ascending: true });
+      return (r && !r.error && r.data) ? r.data : [];
+    } catch (e) { return []; }
+  }
+  // Создать/обновить моё предложение (RLS: только владелец). Возвращает сохранённую строку | null.
+  async function netUpsertOffer(o) {
+    var c = client(); var id = await uid(); if (!c || !id || !o || !o.title) return null;
+    try {
+      var row = {
+        owner_id: id, emoji: o.emoji || null, title: ("" + o.title).slice(0, 80),
+        descr: (o.descr ? ("" + o.descr).slice(0, 300) : null),
+        price_xp: Math.max(0, o.price_xp | 0), min_level: Math.max(1, (o.min_level | 0) || 10),
+        slots_week: Math.max(1, (o.slots_week | 0) || 1), when_text: (o.when_text ? ("" + o.when_text).slice(0, 60) : null),
+        active: o.active !== false,
+      };
+      if (o.id) row.id = o.id;
+      var r = await c.from("network_offers").upsert(row).select().single();
+      return (r && !r.error && r.data) ? r.data : null;
+    } catch (e) { return null; }
+  }
+  async function netDeleteOffer(offerId) {
+    var c = client(); var id = await uid(); if (!c || !id || !offerId) return false;
+    try { var r = await c.from("network_offers").delete().eq("id", offerId).eq("owner_id", id); return !(r && r.error); }
+    catch (e) { return false; }
+  }
+  // Бронь через RPC (атомарно: слот + плата XP). Возвращает {ok, dup?, err?, taken?, slots?}.
+  async function netBook(offerId, week, earned) {
+    var c = client(); if (!c || !offerId || !week) return { ok: false, err: "client" };
+    try {
+      var r = await c.rpc("bos_book_offer", { p_offer: offerId, p_week: week, p_earned: (earned == null ? null : (earned | 0)) });
+      if (r.error) return { ok: false, err: "rpc" };
+      return r.data || { ok: false };
+    } catch (e) { return { ok: false, err: "ex" }; }
+  }
+  // Сколько слотов занято на неделю (витрина «свободно/занято»).
+  async function netOfferTaken(offerId, week) {
+    var c = client(); if (!c || !offerId || !week) return 0;
+    try { var r = await c.rpc("bos_offer_taken", { p_offer: offerId, p_week: week }); return (r && !r.error) ? (r.data | 0) : 0; }
+    catch (e) { return 0; }
+  }
+  // Мои брони (куда я записан) — {offer_id, week}.
+  async function netMyBookings() {
+    var c = client(); var id = await uid(); if (!c || !id) return [];
+    try { var r = await c.from("network_bookings").select("offer_id,week,price_xp,created_at").eq("booker_id", id); return (r && r.data) || []; }
+    catch (e) { return []; }
+  }
+  // Кто записался на предложение (владелец читает по RLS) — {booker_id, week}.
+  async function netOfferBookings(offerId) {
+    var c = client(); if (!c || !offerId) return [];
+    try { var r = await c.from("network_bookings").select("booker_id,week,created_at").eq("offer_id", offerId); return (r && r.data) || []; }
+    catch (e) { return []; }
+  }
+
   window.bosCloud = {
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
@@ -1103,6 +1169,8 @@
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,
     loadMessages: loadMessages, sendMessage: sendMessage, subscribeMessages: subscribeMessages, uploadChatPhoto: uploadChatPhoto, unreadMessages: unreadMessages,
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
+    netOffers: netOffers, netMyOffers: netMyOffers, netUpsertOffer: netUpsertOffer, netDeleteOffer: netDeleteOffer,
+    netBook: netBook, netOfferTaken: netOfferTaken, netMyBookings: netMyBookings, netOfferBookings: netOfferBookings,
     upsertReminder: upsertReminder, deleteReminder: deleteReminder, markReminderDone: markReminderDone, saveTz: saveTz,
     signOut: signOut,
     _client: client,
