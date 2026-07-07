@@ -206,7 +206,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v632";
+const APP_VERSION = "v633";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -725,6 +725,10 @@ function PhoneApp() {
   const [drag, setDrag] = useState(null); // { dx, w, releasing } during/just-after a drag
   const dragRef = useRef(null);
   const stackRef = useRef(null);
+  // frame.id → scrollTop of that screen. Saved when a screen is buried (navigate away)
+  // and restored when its frame re-surfaces to the top (back / swipe) → you land at the
+  // SAME place you left, not scrolled to the top. New screens have no entry → start at top.
+  const scrollPos = useRef({});
   const EDGE_ZONE = 32;  // px from the left edge that arms the gesture (roomier = easier to start)
   const DRAG_THRESH = 7; // px of travel before we lock to a horizontal drag
 
@@ -802,6 +806,13 @@ function PhoneApp() {
   }, []);
 
   const navigate = useCallback((next, np = {}, opts = {}) => {
+    // Save the scroll position of the screen we're leaving (the current top layer),
+    // keyed by its frame id, so a later back/swipe to it lands where we left off.
+    try {
+      const _els = stackRef.current ? stackRef.current.querySelectorAll(".bos-page") : null;
+      const _el = _els && _els[_els.length - 1];
+      if (_el && _el.dataset.fid != null) scrollPos.current[_el.dataset.fid] = _el.scrollTop;
+    } catch (e) {}
     // Live: страница «Привычки» слита с главной — любая старая дорожка ведёт на доску.
     if (next === "habits" && isLiveRef.current) next = "home";
     setFrames((prev) => {
@@ -847,6 +858,18 @@ function PhoneApp() {
   }, []);
 
   const top = frames[frames.length - 1];
+
+  // Restore a screen's saved scroll when its frame re-surfaces to the top (back / swipe).
+  // A freshly pushed screen has no saved entry → it stays at the top, as expected.
+  useEffect(() => {
+    const id = top.id;
+    if (scrollPos.current[id] == null) return;
+    const y = scrollPos.current[id];
+    const apply = () => { try { const el = stackRef.current && stackRef.current.querySelector('.bos-page[data-fid="' + id + '"]'); if (el) el.scrollTop = y; } catch (e) {} };
+    const r1 = requestAnimationFrame(() => { apply(); requestAnimationFrame(apply); });
+    const t = window.setTimeout(apply, 90); // catch screens whose content grows a beat after mount
+    return () => { cancelAnimationFrame(r1); window.clearTimeout(t); };
+  }, [top.id]);
 
   const themeFor = (route) =>
     app.themeOverride === "dark" ? true
@@ -919,7 +942,7 @@ function PhoneApp() {
       (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "") +
       (animClass ? " " + animClass : "");
     return (
-      <div key={frame.id} className={cls} onAnimationEnd={onEnd}>
+      <div key={frame.id} data-fid={frame.id} className={cls} onAnimationEnd={onEnd}>
         <NavCtx.Provider value={{ route: frame.route, params: frame.params, navigate }}>
           <BosErrorBoundary>
             <Comp />
@@ -938,7 +961,7 @@ function PhoneApp() {
       "bos-page " + (dark ? "theme-dark" : "theme-light") +
       (inTabs ? "" : " no-tabbar") + (full ? " full-bleed" : "");
     return (
-      <div key={frame.id} className={cls} style={style}>
+      <div key={frame.id} data-fid={frame.id} className={cls} style={style}>
         <NavCtx.Provider value={{ route: frame.route, params: frame.params, navigate }}>
           <BosErrorBoundary>
             <Comp />

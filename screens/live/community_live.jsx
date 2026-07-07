@@ -986,20 +986,8 @@ function TeamDetailLive() {
           </div>
         </div>
       )}
-      {contrib.length > 0 && (
-        <div style={{ display: "flex", gap: 7, marginTop: 12, flexWrap: "wrap" }}>
-          {contrib.map((m, i) => {
-            const pay = payFor(m, i);
-            return (
-              <span key={m.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, ...bosChipGlass(isDark), borderRadius: 999, padding: "3px 10px 3px 3px" }}>
-                <BuddyFaceLive avatar={m.avatar} name={m.name} size={20} />
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{m.me ? "Ты" : (m.name || "").split(" ")[0]} · {m.value}</span>
-                {pay > 0 && <span style={{ fontSize: 10, fontWeight: 800, color: "#7a5300", background: "rgba(254,222,52,0.95)", borderRadius: 999, padding: "1px 6px" }}>+{pay}{isRace ? " 👑" : ""}</span>}
-              </span>
-            );
-          })}
-        </div>
-      )}
+      {/* (Убраны чипы-люди под банком — David: дублируют раздел «Люди» ниже, где и так есть все
+          участники + кнопка «Позвать людей». Вклад/выплата теперь читаются в самом разделе.) */}
 
       {/* Заявки на вступление — владельцу, ПЕРЕД единым блоком (это действие, не раздел). */}
       {_isOwner && pending.length > 0 && (<>
