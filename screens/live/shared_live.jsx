@@ -919,6 +919,175 @@ function NetworkLockedLive({ navigate, level, xp, xpMax, levelsLeft, onTraining 
   );
 }
 
+/* ── НЕТВОРК · LIVE (v642) ──────────────────────────────────────────────────────
+   Настоящий нетворк, открывается с 10 уровня. Лесенка «что ты можешь предложить» — не
+   выдуманные люди, а честная карта вкладов, которая раскрывается уровнем. */
+var BOS_NET_TIERS = [
+  { lvl: 3,  i: "🧠", t: "Разбор привычек",   d: "Помоги другому найти, что мешает" },
+  { lvl: 5,  i: "🧘", t: "Практика для группы", d: "Проведи короткую сессию" },
+  { lvl: 8,  i: "🏃", t: "Поддержка по темпу", d: "Держи кого-то в ритме" },
+  { lvl: 10, i: "💼", t: "Поделиться опытом",  d: "Час твоего опыта — кому это нужно" },
+  { lvl: 15, i: "🎯", t: "Наставничество",     d: "Сопровождение на месяц" },
+  { lvl: 20, i: "🌍", t: "Собрать своих",      d: "Встреча или ретрит сообщества" },
+];
+
+/* Твоя РЕДАКТИРУЕМАЯ карточка (аватар, уровень, знак Основателя, «чем могу быть полезен»
+   + лесенка) + РЕАЛЬНЫЙ список тех, кто тоже дошёл (облако allPublic — анонимно, но
+   по-настоящему). Без выдуманных людей/цен: пока David первый — честная пустая полка. */
+function NetworkLive({ navigate, app, level, isDark }) {
+  const { open: _openSheet } = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+  // «Чем могу быть полезен» — то же поле (localStorage + облако), что и в «Балансе окружения».
+  const offSt = React.useState(function () { try { return localStorage.getItem("bos:myOffer") || ""; } catch (e) { return ""; } });
+  const myOffer = offSt[0], setMyOffer = offSt[1];
+  const onOfferChange = function (e) { var v = (e.target.value || "").slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} };
+  const onOfferBlur = function (e) { var v = (e.target.value || "").trim().slice(0, 200); setMyOffer(v); try { localStorage.setItem("bos:myOffer", v); } catch (er) {} try { if (window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.saveOffer) window.bosCloud.saveOffer(v); } catch (er2) {} };
+  const isFounder = (function () { try { return localStorage.getItem("bos:founder") === "1"; } catch (e) { return false; } })();
+  const myName = (app && app.userName) || "Ты";
+  const myAvatar = app && app.avatar;
+
+  // Реальные люди, дошедшие до Нетворка (10+). allPublic отдаёт анонимные орбиты — честно.
+  const peersSt = React.useState(null); // null = грузим
+  const peers = peersSt[0], setPeers = peersSt[1];
+  React.useEffect(function () {
+    var on = true;
+    try {
+      if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.allPublic) {
+        window.bosCloud.allPublic(240).then(function (rows) {
+          if (!on) return;
+          var net = (Array.isArray(rows) ? rows : []).filter(function (r) { return r && (r.level | 0) >= 10; });
+          setPeers(net);
+        }).catch(function () { if (on) setPeers([]); });
+      } else { setPeers([]); }
+    } catch (e) { setPeers([]); }
+    return function () { on = false; };
+  }, []);
+
+  const unlockedTiers = BOS_NET_TIERS.filter(function (t) { return t.lvl <= level; });
+  const nextTier = BOS_NET_TIERS.find(function (t) { return t.lvl > level; });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+      {/* ГЕРОЙ — открыто (золото вместо тёмного замка). */}
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px",
+        background: "linear-gradient(140deg, #FEDE34 0%, #F6B31E 46%, #EF9F14 100%)",
+        boxShadow: "0 10px 26px rgba(239,159,20,0.34)" }}>
+        <div aria-hidden style={{ position: "absolute", top: -44, right: -30, width: 170, height: 170, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(70,45,0,0.62)" }}>Нетворк · открыт</div>
+          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", color: "#3a2600", marginTop: 4, lineHeight: 1.16 }}>{isFounder ? "Ты открыл его первым" : "Круг своих"}</div>
+          <div style={{ fontSize: 13, color: "rgba(58,38,0,0.72)", marginTop: 6, lineHeight: 1.45, maxWidth: 264 }}>Ты дошёл до 10 уровня. Здесь — те, кто тоже добрался, и твоя карточка для них.</div>
+        </div>
+      </div>
+
+      {/* ТВОЯ КАРТОЧКА — тёмная с золотым свечением; редактируешь прямо тут. */}
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: 18, color: "#fff",
+        background: "linear-gradient(135deg, #1a1a1d 0%, #0a0a0a 100%)", boxShadow: "0 6px 22px rgba(0,0,0,0.20)" }}>
+        <div aria-hidden style={{ position: "absolute", top: -40, right: -30, width: 160, height: 160, borderRadius: "50%", background: "radial-gradient(circle at 35% 35%, #ffe88a, #FEDE34 30%, #EF9F14 70%, transparent 95%)", opacity: 0.18, filter: "blur(8px)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 13 }}>
+          {typeof BosAvatar === "function" ? <BosAvatar avatar={myAvatar} size={50} style={{ flexShrink: 0, boxShadow: "0 0 0 2px rgba(255,255,255,0.14)" }} /> : null}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px" }}>{myName}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999, padding: "2px 8px", letterSpacing: 0.3 }}>L{level}</span>
+            </div>
+            {isFounder ? <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 6, fontSize: 11.5, fontWeight: 700, color: "#FEDE34", background: "rgba(254,222,52,0.12)", borderRadius: 999, padding: "3px 9px" }}>🏛 Основатель</div> : null}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700, marginBottom: 7 }}>Твоё предложение сообществу</div>
+          <input value={myOffer} onChange={onOfferChange} onBlur={onOfferBlur} maxLength={200}
+            placeholder="Напр.: поделюсь опытом в маркетинге · проведу медитацию · подскажу по спорту"
+            style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "rgba(255,255,255,0.08)", borderRadius: 13, padding: "12px 13px", fontSize: 14, color: "#fff", fontFamily: "inherit" }} />
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.4, marginTop: 6 }}>Это видят те, кто дошёл до Нетворка. Меняй в любой момент.</div>
+        </div>
+
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1.2, fontWeight: 700, marginBottom: 8 }}>Что ты можешь предложить</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {unlockedTiers.map(function (u, i) {
+              return <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", background: "rgba(255,255,255,0.07)", borderRadius: 999, fontSize: 12, color: "#fff" }}><span aria-hidden style={{ fontSize: 14 }}>{u.i}</span>{u.t}</span>;
+            })}
+          </div>
+        </div>
+        {nextTier ? (
+          <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255,222,52,0.08)", borderRadius: 14, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 30, height: 30, borderRadius: 999, background: "rgba(254,222,52,0.18)", display: "grid", placeItems: "center", fontSize: 16 }}>{nextTier.i}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>С {nextTier.lvl} уровня · {nextTier.t}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>{nextTier.d}</div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ЛЮДИ, ЧТО ДОШЛИ — реальные (или честная пустая полка). */}
+      <div className="section-label" style={{ marginTop: 6 }}>{peers && peers.length ? ("Дошли до Нетворка · " + peers.length) : "Дошли до Нетворка"}</div>
+      {peers === null ? (
+        <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)", fontSize: 13, color: "var(--text-4)" }}>Загружаем…</div>
+      ) : peers.length === 0 ? (
+        <React.Fragment>
+          <div style={{ background: "var(--card)", borderRadius: 22, padding: "18px 16px", boxShadow: "var(--card-shadow)", textAlign: "center" }}>
+            <div style={{ fontSize: 30 }}>🌱</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 6 }}>Ты здесь первый</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.5, marginTop: 5, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>Когда другие дойдут до 10 уровня, они появятся тут. Твоя карточка их уже ждёт — позови своих, чтобы круг ожил быстрее.</div>
+          </div>
+          {typeof InviteFriendsCardLive === "function" ? <InviteFriendsCardLive isDark={isDark} /> : null}
+        </React.Fragment>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {peers.map(function (p, i) {
+            return (
+              <div key={p.id || i} style={{ background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>
+                {typeof BosAvatar === "function" ? <BosAvatar avatar={p.avatar} size={42} style={{ flexShrink: 0 }} /> : null}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text)" }}>Участник</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4 }}>L{p.level | 0}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.35 }}>{p.offer ? ("🤝 " + p.offer) : "Пока без предложения"}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", margin: "10px 8px 2px", fontStyle: "italic" }}>Знакомство по делам, не по ленте. Скоро — способ связаться прямо здесь.</div>
+    </div>
+  );
+}
+
+/* Разовый подарок «Основатель»: до-порога (8–9 ур.) первому дошедшему — прыжок на 10 и
+   открытый Нетворк. Постоянный (копилка XP, не сгорает). Гейт по уровню≥8 — до запуска это
+   только David; после запуска карточку можно убрать. */
+function FounderUnlockLive({ app, isDark }) {
+  const claim = function () {
+    try {
+      var cur = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
+      var need = Math.max(1, 2760 - cur);                 // 2760 = уверенно внутри 10-го уровня
+      if (app && typeof app.grantBonusXP === "function") app.grantBonusXP("founder", need);
+      try { localStorage.setItem("bos:founder", "1"); } catch (e) {}
+      if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    } catch (e) {}
+  };
+  return (
+    <button onClick={claim} className="tap" data-haptic="success" style={{ position: "relative", width: "100%", border: 0, borderRadius: 22, padding: "17px 16px", textAlign: "left", overflow: "hidden", cursor: "pointer",
+      background: "linear-gradient(140deg, #FEDE34 0%, #F6B31E 48%, #EF9F14 100%)", boxShadow: "0 10px 26px rgba(239,159,20,0.34)" }}>
+      <div aria-hidden style={{ position: "absolute", top: -46, right: -28, width: 168, height: 168, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.5), transparent 66%)", pointerEvents: "none" }} />
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+        <span aria-hidden style={{ fontSize: 34, flexShrink: 0 }}>🏛</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(70,45,0,0.62)" }}>Ты дошёл первым</div>
+          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px", color: "#3a2600", marginTop: 3, lineHeight: 1.18 }}>Стать Основателем</div>
+          <div style={{ fontSize: 12.5, color: "rgba(58,38,0,0.74)", marginTop: 4, lineHeight: 1.4 }}>Прыжок на 10 уровень и открытый Нетворк — навсегда.</div>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 11, fontSize: 12.5, fontWeight: 800, color: "#3a2600", background: "rgba(255,255,255,0.5)", borderRadius: 999, padding: "7px 14px" }}>Открыть Нетворк ›</span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 /* ShareAppSheet → live-only: the user's REAL referral circle + ?ref=<uid> invite link
    (no demo sample faces, no demo "истории/ещё" share targets). */
 /* ── Unified share sheet (v595) ────────────────────────────────────────────────
@@ -4771,6 +4940,7 @@ function NetworkPeekLive({ unlocked, onOpen }) {
         <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(255,255,255,0.55)" }}>🧭 Нетворк · контакты</div>
         <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#fff", marginTop: 4, lineHeight: 1.2 }}>Люди, с которыми по пути</div>
         <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.62)", marginTop: 4, lineHeight: 1.4, maxWidth: 250 }}>Знакомства по ритму и делам. Открывается уровнем, а часть кругов — тренингами.</div>
+        {!unlocked && (
         <div aria-hidden style={{ filter: "blur(3px)", opacity: 0.55, pointerEvents: "none", marginTop: 12, display: "flex", flexDirection: "column", gap: 7 }}>
           {rows.map(([e, t], i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
@@ -4779,9 +4949,10 @@ function NetworkPeekLive({ unlocked, onOpen }) {
             </div>
           ))}
         </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13 }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, padding: "8px 14px", borderRadius: 999, color: "#fff", background: "rgba(255,255,255,0.12)", boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.22)" }}>
-            🔒 {unlocked ? "Скоро здесь" : "Откроется с 10 уровня"}
+            {unlocked ? "✓ Открыт" : "🔒 Откроется с 10 уровня"}
           </span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>Заглянуть <I.ChevronRight size={14} color="rgba(255,255,255,0.6)" /></span>
         </div>

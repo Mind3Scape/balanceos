@@ -1157,6 +1157,22 @@ function AppProvider({ children }) {
     return true;
   };
 
+  // Разовый ПОСТОЯННЫЙ подарок XP (Основатель / особые события): кладёт ключ в ту же копилку
+  // claimedChallenges, что и завершённый челлендж — идемпотентно по ключу, переживает
+  // перезагрузку и сливается ОБЪЕДИНЕНИЕМ между устройствами (не отберётся). Это НЕ трата —
+  // только растит уровень (как обещанный бонус за достижение).
+  const grantBonusXP = (key, amount) => {
+    if (!key || !((amount | 0) > 0)) return false;
+    setClaimedChallenges(function (prev) {
+      if (prev && prev[key]) return prev;                 // уже подарено — не дублируем
+      var merged = Object.assign({}, prev); merged[key] = amount | 0;
+      try { localStorage.setItem("bos:claimedXP", JSON.stringify(merged)); } catch (e) {}
+      return merged;
+    });
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    return true;
+  };
+
   // СЕЙФ (Этап 1): «получено у партнёра» и «постучался в круг» раньше жили ТОЛЬКО в
   // localStorage — потеря телефона их стирала. Теперь едут в облачный блоб (extras);
   // события ниже дёргают пересохранение, слияние при входе — union (полученное не отменяется).
@@ -1737,7 +1753,7 @@ function AppProvider({ children }) {
     themeOverride, setThemeOverride,
     mode, persistId, userName, setUserName, avatar, setAvatar, enterDemo, enterFresh, enterLive,
     aiBrief, invitedCount, teamGoalXP, refreshTeamGoalXP,
-    claimedChallenges, spentXP, spendXP,
+    claimedChallenges, spentXP, spendXP, grantBonusXP,
     pendingAch, clearPendingAch,
     pendingJoinWelcome, clearPendingJoinWelcome,
     tourStep, setTourStep, startTour, endTour, tourMode,

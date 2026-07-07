@@ -192,6 +192,8 @@ function CommunityLive() {
   const xpForNext = _commLvl ? _commLvl.span : 2000;
   const levelsLeft = Math.max(0, 10 - userLevel);
   const weeksToUnlock = Math.max(1, levelsLeft);
+  // «Основатель» уже получен? (разовый подарок первому дошедшему — прыжок на 10 + Нетворк).
+  const founderClaimed = (function () { try { return localStorage.getItem("bos:founder") === "1"; } catch (e) { return false; } })();
 
   const teams = app?.teams || []; // shared store — "Создать команду" adds here
 
@@ -492,19 +494,30 @@ function CommunityLive() {
         )}
 
         {filter === "people" && (
-          // Живого нетворка ещё нет — честный замок (реальные пути XP, без выдуманных людей).
           <div style={{ marginTop: 0 }}>
-            <NetworkLockedLive
-              navigate={navigate}
-              live={true}
-              level={userLevel}
-              xp={xpInLevel}
-              xpMax={xpForNext}
-              levelsLeft={levelsLeft}
-              weeks={weeksToUnlock}
-              onUnlock={() => {}}
-              onSwitchToCommunity={() => setFilter("partners")}
-            />
+            {userLevel >= 10 ? (
+              // НАСТОЯЩИЙ Нетворк: твоя карточка + реальные дошедшие (без выдуманных людей).
+              <NetworkLive navigate={navigate} app={app} level={userLevel} isDark={isDark} />
+            ) : (
+              <React.Fragment>
+                {/* Подарок «Основатель» первому дошедшему (8–9 ур.): прыжок на 10 + открытый Нетворк. */}
+                {userLevel >= 8 && !founderClaimed && typeof FounderUnlockLive === "function" && (
+                  <div style={{ marginBottom: 12 }}><FounderUnlockLive app={app} isDark={isDark} /></div>
+                )}
+                {/* Честный замок — реальные пути XP, без выдуманных людей. */}
+                <NetworkLockedLive
+                  navigate={navigate}
+                  live={true}
+                  level={userLevel}
+                  xp={xpInLevel}
+                  xpMax={xpForNext}
+                  levelsLeft={levelsLeft}
+                  weeks={weeksToUnlock}
+                  onUnlock={() => {}}
+                  onSwitchToCommunity={() => setFilter("partners")}
+                />
+              </React.Fragment>
+            )}
           </div>
         )}
 
