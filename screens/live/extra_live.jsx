@@ -272,13 +272,19 @@ function GoalDetailPersonalLive() {
   const gStyle = (typeof bosLoadGoalStyle === "function") ? bosLoadGoalStyle() : { orbits: false };
   const buddies = (typeof useBuddyMembersLive === "function") ? useBuddyMembersLive(g.shareCode) : null;
 
+  // ЖИВЫЕ привычки = те, что видны на доске: без спрятанных (shelved «убрал со страницы») и без
+  // архивных. Иначе цель показывает/считает то, чего в «Привычках» нет (David: «две прогулки в
+  // привычках, четыре на орбите»). goalOnly («только внутри цели») ОСТАЮТСЯ — это и есть привычки
+  // цели (на общей доске их прячут намеренно). Дедуп по id — на случай задвоенных записей.
+  const _arch = (typeof useBosArchived === "function") ? useBosArchived() : null;
+  const _liveHabits = (app?.habits || []).filter((h) => h && !h.shelved && !(typeof bosIsArch === "function" && bosIsArch(_arch, "h", h)));
   // Прогресс цели = из её привычек (если привязаны), иначе ручной current. Единый движок bosGoalProgress.
-  const prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, app?.habits || []) : { pct: g.target ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0, done: (g.current || 0) >= (g.target || 0), fromHabits: false };
+  const prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, _liveHabits) : { pct: g.target ? Math.min(1, (g.current || 0) / g.target) : 0, current: g.current || 0, done: (g.current || 0) >= (g.target || 0), fromHabits: false };
   const cur = prog.current;
   const pct = prog.pct;
   const remaining = Math.max(0, (g.target || 0) - cur);
   const done = prog.done;
-  const linked = (app?.habits || []).filter((h) => (g.habitIds || []).includes(h.id));
+  const linked = (function () { var seen = {}, out = []; (_liveHabits || []).forEach(function (h) { if ((g.habitIds || []).indexOf(h.id) >= 0 && !seen[h.id]) { seen[h.id] = 1; out.push(h); } }); return out; })();
   // ПУЛЬС: active = отметился сегодня → колечко «в деле» на лице.
   const _otk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   const orbitPeople = (buddies || []).filter((m) => m && !m.me).map((m) => ({ avatar: m.avatar, name: m.name, active: !!(_otk && m.days && m.days[_otk]) }));

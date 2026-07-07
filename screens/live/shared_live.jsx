@@ -1661,7 +1661,10 @@ function bosGoalMarks(h) { try { return h && h.log ? Object.keys(h.log).length :
 function bosGoalProgress(goal, habits) {
   var target = (goal && goal.target) || 0;
   var ids = (goal && goal.habitIds) || [];
-  var linked = ids.length ? (habits || []).filter(function (h) { return ids.indexOf(h.id) >= 0; }) : [];
+  // Спрятанные с доски привычки (shelved = «убрал со страницы») НЕ ведут цель — иначе кольцо
+  // считает то, чего пользователь на доске не видит (David: «в привычках 2, на орбите 4»). Архив
+  // фильтруется на экране (там есть реестр); shelved — флаг на самой привычке, режем везде.
+  var linked = ids.length ? (habits || []).filter(function (h) { return h && ids.indexOf(h.id) >= 0 && !h.shelved; }) : [];
   var fromHabits = linked.length > 0;
   var raw = fromHabits ? linked.reduce(function (a, h) { return a + bosGoalMarks(h); }, 0) : ((goal && goal.current) || 0);
   var current = target > 0 ? Math.min(raw, target) : raw; // кольцо не переполняем
