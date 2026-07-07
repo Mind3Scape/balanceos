@@ -2301,6 +2301,24 @@ var BOS_STATE = [
   { i: "😄", t: "Хорошо",   c: "#34C759" },
   { i: "🤩", t: "Отлично",  c: "#19B6E8" },
 ];
+// ОТТЕНКИ состояния (David 2026-07-07): чипы-грани поверх слайдера-валентности. Слайдер = «насколько
+// хорошо» (одно значение), чипы = «что именно чувствуешь» (несколько, мультивыбор). Храним id-шники в
+// dayNotes[день].tags (инфраструктура уже была). Орб/чипы красятся ОДНИМ цветом текущей валентности →
+// единая связанная структура состояния.
+var BOS_FACETS = [
+  { id: "energy",   i: "⚡",  t: "Энергия" },
+  { id: "calm",     i: "🌿",  t: "Спокойствие" },
+  { id: "joy",      i: "😊",  t: "Радость" },
+  { id: "inspired", i: "✨",  t: "Вдохновение" },
+  { id: "focus",    i: "🎯",  t: "Собран" },
+  { id: "tired",    i: "😮‍💨", t: "Усталость" },
+  { id: "anxious",  i: "😣",  t: "Тревога" },
+  { id: "sad",      i: "😔",  t: "Грусть" },
+  { id: "angry",    i: "😤",  t: "Раздражение" },
+];
+// Храним ЯРЛЫК (Энергия…), а не id — так грани естественно ложатся в существующий показ тегов дня
+// (журнал: «#Энергия») и в XP-«отмечено». Резолвер по ярлыку добавляет эмодзи для показа в виджете.
+function bosFacetByLabel(t) { for (var i = 0; i < BOS_FACETS.length; i++) { if (BOS_FACETS[i].t === t) return BOS_FACETS[i]; } return null; }
 // Цвет орба по валентности 0..1 = наша радуга онбординга (красный→…→синий), НАШ tintFromMood.
 function bosStateTintForV(v) {
   v = Math.max(0, Math.min(1, (typeof v === "number" && isFinite(v)) ? v : 0.6));
@@ -2337,6 +2355,8 @@ function StateSheetLive(props) {
   }, []);
   const [val, setVal] = React.useState(initV);
   const [note, setNote] = React.useState(() => (app && app.dayNotes && app.dayNotes[tk] && app.dayNotes[tk].note) || "");
+  const [tags, setTags] = React.useState(() => { const t0 = app && app.dayNotes && app.dayNotes[tk] && app.dayNotes[tk].tags; return Array.isArray(t0) ? t0.slice() : []; });
+  const toggleTag = (id) => { setTags((ts) => (ts.indexOf(id) >= 0 ? ts.filter((x) => x !== id) : ts.concat([id]))); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } };
   const [saved, setSaved] = React.useState(false);
   const trackRef = React.useRef(null), dragRef = React.useRef(false), lastB = React.useRef(-1);
   const [t, setT] = React.useState(0);
@@ -2361,7 +2381,7 @@ function StateSheetLive(props) {
     if (app) {
       app.setMood && app.setMood(BOS_STATE[bucket]);
       app.setDayMoods && app.setDayMoods({ ...(app.dayMoods || {}), [tk]: bucket });
-      if (app.setDayNotes) { const prev = (app.dayNotes || {})[tk] || {}; app.setDayNotes({ ...(app.dayNotes || {}), [tk]: { tags: prev.tags || [], note: note.trim() || prev.note || "" } }); }
+      if (app.setDayNotes) { const prev = (app.dayNotes || {})[tk] || {}; app.setDayNotes({ ...(app.dayNotes || {}), [tk]: { tags: tags, note: note.trim() || prev.note || "" } }); }
     }
     if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
     setSaved(true);
@@ -2399,6 +2419,31 @@ function StateSheetLive(props) {
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, padding: "0 2px", fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", color: subMuted, fontWeight: 600 }}>
         <span>тяжело</span><span>отлично</span>
+      </div>
+
+      {/* ОТТЕНКИ — мультивыбор граней состояния (David: «чипы, чтобы быстро прокликать несколько»).
+          Выбранные красятся цветом текущей валентности → орб+слайдер+чипы = один цвет состояния. */}
+      <div style={{ marginTop: 18 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.2, color: subMuted, marginBottom: 9, textAlign: "left" }}>Что ближе — можно несколько</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "flex-start" }}>
+          {BOS_FACETS.map((f) => {
+            const on = tags.indexOf(f.t) >= 0;
+            const selC = (BOS_STATE[bucket] || BOS_STATE[3]).c;
+            return (
+              <button key={f.id} onClick={() => toggleTag(f.t)} className="tap" data-no-haptic aria-pressed={on}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5, border: 0, cursor: "pointer",
+                  borderRadius: 999, padding: "8px 13px", fontSize: 13.5, fontWeight: 600, letterSpacing: "-0.2px",
+                  color: on ? "#fff" : cardText,
+                  background: on ? selC : fieldBg,
+                  boxShadow: on ? ("0 2px 9px " + selC + "55") : (isDark ? "inset 0 0 0 0.7px rgba(255,255,255,0.07)" : "inset 0 0 0 0.7px rgba(0,0,0,0.05)"),
+                  transition: "background .16s, color .16s, box-shadow .16s",
+                }}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>{f.i}</span><span>{f.t}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Пара слов, если хочешь…"
@@ -3742,6 +3787,11 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
     return { key, today: i === _monOff, future: off < 0, wd: _WD[i], m: (di != null && typeof bosStateResolve === "function") ? bosStateResolve(di) : null };
   }), [app?.dayMoods, _monOff]);
   const logged = last7.filter(d => d.m).length;
+  // Today's picked facets (chips from the state sheet) → shown as the sub-line, so the widget
+  // reflects the FULL state, not just the valence orb. (David: «орб — единая связанная структура».)
+  const _tkW = (typeof bosTodayKey === "function") ? bosTodayKey() : "";
+  const _facets = ((app && app.dayNotes && app.dayNotes[_tkW] && app.dayNotes[_tkW].tags) || [])
+    .map((t) => ((typeof bosFacetByLabel === "function" && bosFacetByLabel(t)) || { i: "", t: "" + t }));
   const bg = isDark ? `linear-gradient(160deg, #1a1a1d 0%, #0d0d10 100%)` : `#ffffff`;
   const border = isDark ? "0" : "1px solid rgba(0,0,0,0.04)";
   const labelMuted = isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.50)";
@@ -3777,7 +3827,9 @@ function MoodWidgetLive({ mood, app, isDark, navigate, flush = false }) {
             )}
           </div>
           <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 26, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.6px", marginTop: 4, color: titleColor }}>{(mood.i ? mood.i + " " : "") + mood.t}</div>
-          <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>Отмечай каждый день, добавляй строку — удержишь неделю подряд, получишь бонус.</div>
+          {_facets.length
+            ? <div style={{ fontSize: 12.5, color: subMuted, marginTop: 5, lineHeight: 1.45 }}>{_facets.map((f) => (f.i ? f.i + " " : "") + f.t).join("   ·   ")}</div>
+            : <div style={{ fontSize: 12, color: subMuted, marginTop: 4 }}>Отмечай каждый день, добавляй строку — удержишь неделю подряд, получишь бонус.</div>}
         </div>
       </div>
 

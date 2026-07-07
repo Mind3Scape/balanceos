@@ -1368,7 +1368,12 @@ function AppProvider({ children }) {
       // in the mood the user last set today instead of snapping back to neutral.
       var _tkS = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
       var _miS = (_tkS && saved.dayMoods) ? saved.dayMoods[_tkS] : undefined;
-      setMood((_miS != null && MOOD_OPTIONS[_miS]) ? MOOD_OPTIONS[_miS] : (_onbMood() || MOOD_OPTIONS[2]));
+      // dayMoods stores a BOS_STATE valence index (0..6, written by the state slider) — NOT a
+      // MOOD_OPTIONS index. Resolve it as BOS_STATE so the orb reflects the REAL logged state on
+      // reload/sync. (Bug: MOOD_OPTIONS[5] === «Усталость», so a good pick like «Хорошо» (BOS_STATE 5)
+      // reloaded as «Усталость» → David: «каждый день говорит усталость, хотя выбираю другое».)
+      var _stS = (_miS != null && typeof bosStateResolve === "function") ? bosStateResolve(_miS) : null;
+      setMood(_stS || _onbMood() || MOOD_OPTIONS[2]);
     } else {
       setUserName(name); setAvatar(_av0);
       setHabits([]); setGoals([]); setTeams([]);
