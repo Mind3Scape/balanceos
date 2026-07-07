@@ -181,6 +181,8 @@ function GuideLive() {
   var app = (typeof useApp === "function") ? useApp() : null;
   var isDark = !!(app && app.themeOverride === "dark");
   var back = function () { navigate(params.from || "profile"); };
+  var _tb = React.useState(params.tab || "suti");
+  var tab = _tb[0], setTab = _tb[1];
   var sheen = (typeof BOS_TILE_SHEEN !== "undefined") ? BOS_TILE_SHEEN + ", " : "";
   var glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none";
   var chipBg = sheen + (isDark ? "rgba(255,255,255,0.08)" : "#fff");
@@ -233,15 +235,94 @@ function GuideLive() {
   var visWrap = function (children, pad) {
     return <div style={{ padding: pad || "18px 16px 4px", display: "flex", justifyContent: "center" }}>{children}</div>;
   };
+  var tabIntro = function (title, sub, big) {
+    return (
+      <div style={{ padding: "6px 4px 2px", marginTop: 6 }}>
+        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: big ? 25 : 19, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", lineHeight: 1.16 }}>{title}</div>
+        {sub && <div style={{ fontSize: big ? 14 : 13, color: "var(--text-3)", marginTop: 6, lineHeight: 1.5 }}>{sub}</div>}
+      </div>
+    );
+  };
   return (
     <div className="page-in" style={{ padding: "0 16px 28px" }}>
-      <PageHeader title="Как устроен Balance" onBack={back} />
-      <div style={{ padding: "2px 4px 0" }}>
-        <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 25, fontWeight: 800, letterSpacing: "-0.6px", color: "var(--text)", lineHeight: 1.15 }}>Одна отметка — целая вселенная</div>
-        <div style={{ fontSize: 14, color: "var(--text-3)", marginTop: 8, lineHeight: 1.5 }}>Полный гид по механикам: четыре ступени — от одного касания до карты всех людей. Всё, что здесь написано, — настоящие правила и настоящие цифры.</div>
+      <PageHeader title="Как устроена игра" onBack={back} />
+      {/* Пилюли-вкладки (как фильтры Сообщества): активная — CTA, прочие — стекло.
+          Полная простыня разбита на разделы игры — David: «внутри тоже классные пилюли». */}
+      <div className="bos-hscroll" style={{ display: "flex", gap: 7, padding: "8px 16px 4px", margin: "2px -16px 2px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
+        {[["suti", "Суть"], ["day", "Каждый день"], ["level", "Уровни"], ["together", "Вместе"], ["world", "Мир"]].map(function (p) {
+          var on = tab === p[0];
+          var g = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
+          return (
+            <button key={p[0]} onClick={function () { setTab(p[0]); }} className="tap" data-haptic="selection"
+              style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap", transition: "background 0.2s, color 0.2s", ...g, background: on ? "var(--cta, #0a0a0a)" : g.background, color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>{p[1]}</button>
+          );
+        })}
       </div>
 
-      {part("I", "Каждый день", "Фундамент: касание, ритм недели и твоё состояние.")}
+      {/* ── ВКЛАДКА: СУТЬ — «ты играешь в игру про свою жизнь» (вайб + манифест + цепочка). */}
+      {tab === "suti" && (
+        <React.Fragment>
+          {tabIntro("Ты играешь в игру про свою жизнь", "Balance — не трекер, а игра. Маленькие ходы каждый день, а на кону — твоё состояние и твои люди. Здесь — как она устроена: честно, по-настоящему, без мелкого шрифта.", true)}
+
+          <div style={{ ...cardStyle, marginTop: 14 }}>
+            <div style={{ padding: "22px 16px 4px", display: "flex", justifyContent: "center" }}>
+              <div style={{ position: "relative", width: 128, height: 128, display: "grid", placeItems: "center" }}>
+                <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "radial-gradient(circle at 50% 42%, rgba(126,210,168,0.55), rgba(143,180,232,0.22) 56%, transparent 72%)", filter: "blur(1px)" }} />
+                <span aria-hidden style={{ position: "absolute", inset: 28, borderRadius: "50%", background: "radial-gradient(circle at 50% 38%, #FEDE6B, #F5A46B 72%)", boxShadow: "0 8px 26px rgba(245,164,107,0.45)" }} />
+                <span style={{ position: "relative", fontSize: 34 }}>🌅</span>
+              </div>
+            </div>
+            {body("Всё начинается с состояния", "Ты видишь мир не таким, какой он есть, — а таким, в каком ты состоянии. В сильном возможностей больше, рядом со своими — ещё больше. Вся игра про то, чтобы почаще быть в ресурсе и звать своих.")}
+          </div>
+
+          {kicker("01", "Правила простые")}
+          <div style={cardStyle}>
+            <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                ["✅", "Отмечай, что делаешь", "Каждый ход виден: растут опыт и уровень."],
+                ["🤝", "Зови своих", "Вместе держится дольше — и очков больше."],
+                ["🛡", "Ничего не сгорает", "Пропуск не наказывает. Продолжаешь с любого дня."],
+              ].map(function (r, i) {
+                return (
+                  <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: softBg, borderRadius: 16, padding: "11px 12px" }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 11, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{r[0]}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{r[1]}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{r[2]}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {body("Игра без наказания", "Три правила — весь фундамент. Дальше только глубже: за что дают очки, как растёт уровень, что открывается с людьми. Листай пилюли сверху.")}
+          </div>
+
+          {kicker("02", "Как всё связано")}
+          <div style={cardStyle}>
+            {visWrap(
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                {[["🎯", "отметка"], ["✦", "опыт"], ["⬆️", "уровень"], ["🤝", "люди"], ["🌌", "Вселенная"]].map(function (s, i, arr) {
+                  return (
+                    <React.Fragment key={i}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                        <span style={{ width: 44, height: 44, borderRadius: 14, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 20 }}>{s[0]}</span>
+                        <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>{s[1]}</span>
+                      </div>
+                      {i < arr.length - 1 && <span style={{ color: "var(--text-4)", fontSize: 14, opacity: 0.5, marginTop: 14 }}>→</span>}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+            {body("Одна отметка — целая вселенная", "Один ход тянет за собой всё: отметка даёт опыт, опыт растит уровень, уровень открывает людей и партнёров, а все вместе вы — целая Вселенная. Каждый шаг разберём в своей вкладке.")}
+          </div>
+        </React.Fragment>
+      )}
+
+      {/* ── ВКЛАДКА: КАЖДЫЙ ДЕНЬ */}
+      {tab === "day" && (
+        <React.Fragment>
+          {tabIntro("Каждый день", "Фундамент: касание, ритм недели и твоё состояние.")}
 
       {kicker("01", "Самое маленькое")}
       <div style={cardStyle}>
@@ -304,9 +385,15 @@ function GuideLive() {
         {body("Состояние и дневник", "Раз в день — один свайп «как ты?» и, если хочется, пара слов в дневник. Это твоя личная погода: по ней ИИ подстраивает подсказки, а календарь потом показывает, как состояние ходит вместе с привычками.")}
       </div>
 
-      {part("II", "Рост", "Опыт, уровень и награды — след пути, а не счётчик вины.")}
+        </React.Fragment>
+      )}
 
-      {kicker("04", "Твой след")}
+      {/* ── ВКЛАДКА: УРОВНИ */}
+      {tab === "level" && (
+        <React.Fragment>
+          {tabIntro("Опыт и уровни", "Опыт, уровень и награды — след пути, а не счётчик вины.")}
+
+      {kicker("01", "Твой след")}
       <div style={cardStyle}>
         <div style={{ padding: "20px 16px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           {ring(88, 0.72, (
@@ -320,7 +407,7 @@ function GuideLive() {
         {body("Опыт и уровень", "Весь XP стекается в одно место — золотое кольцо вокруг твоего лица. Кольцо заполнилось — уровень вырос, навсегда: он не обнуляется и не «сгорает по понедельникам». Уровень видят друзья, и именно он открывает двери дальше — к партнёрам и нетворку.")}
       </div>
 
-      {kicker("05", "Откуда капает XP")}
+      {kicker("02", "Откуда капает XP")}
       <div style={cardStyle}>
         <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
           {[
@@ -343,7 +430,7 @@ function GuideLive() {
         {body("Экономика опыта", "Это весь прайс — честный и открытый. Никаких скрытых умножителей: самое ценное здесь — люди. Позвать друга даёт больше, чем неделя отметок, потому что вместе вы удержитесь оба.")}
       </div>
 
-      {kicker("06", "Медали за путь")}
+      {kicker("03", "Медали за путь")}
       <div style={cardStyle}>
         {visWrap(
           <div style={{ display: "flex", gap: 10 }}>
@@ -360,7 +447,7 @@ function GuideLive() {
         {body("Достижения", "Медали выдаются за настоящие вехи: первую привычку, серию, первого человека рядом. Каждая — разовый бонус XP и след на странице «Я». Коллекция — в «Я» → «Достижения».")}
       </div>
 
-      {kicker("07", "Быстрый старт с бонусом")}
+      {kicker("04", "Быстрый старт с бонусом")}
       <div style={cardStyle}>
         {visWrap(
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
@@ -375,9 +462,15 @@ function GuideLive() {
         {body("Челленджи", "Готовые вызовы на несколько дней: тапнул — привычка создана, серия пошла. Дотянул до финиша — бонус XP сверху. Пропустил день — бонус НЕ сгорает: правило «ничего не сжигается» работает и тут.")}
       </div>
 
-      {part("III", "Вместе", "Всё в Balance может быть совместным — так держится дольше.")}
+        </React.Fragment>
+      )}
 
-      {kicker("08", "Одна орбита")}
+      {/* ── ВКЛАДКА: ВМЕСТЕ */}
+      {tab === "together" && (
+        <React.Fragment>
+          {tabIntro("Вместе", "Всё в Balance может быть совместным — так держится дольше.")}
+
+      {kicker("01", "Одна орбита")}
       <div style={cardStyle}>
         <div style={{ padding: "12px 16px 0", display: "flex", justifyContent: "center" }}>
           {(typeof GoalOrbitMini === "function") ? (
@@ -390,7 +483,7 @@ function GuideLive() {
         {body("Совместные цели и привычки", "Любую привычку можно вести вдвоём (вы видите отметки друг друга), а цель — целым кругом: общий счёт, лица на одной орбите. Привычка круга приходит к тебе как личная — отметка где угодно попадает в общий журнал.")}
       </div>
 
-      {kicker("09", "Правила круга")}
+      {kicker("02", "Правила круга")}
       <div style={cardStyle}>
         <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
           {[
@@ -412,7 +505,7 @@ function GuideLive() {
         {body("Кто за что отвечает", "Круг — как поход с тренером: маршрут задаёт ведущий, а идёте вы все вместе. Выйти из круга можно всегда — это отдельное действие на его плитке, и твоя история остаётся с тобой.")}
       </div>
 
-      {kicker("10", "Живой пульс круга")}
+      {kicker("03", "Живой пульс круга")}
       <div style={cardStyle}>
         {visWrap(
           <div style={{ width: "100%", maxWidth: 300, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -434,7 +527,7 @@ function GuideLive() {
         {body("Чат и уведомления", "В каждом круге — живой чат: сообщения долетают мгновенно, можно кидать фото. А колокольчик на главной собирает всё важное: заявки в твои круги, «друг присоединился к привычке», новые сообщения. Внутри приложения — и никакого спама в Telegram.")}
       </div>
 
-      {kicker("11", "Твои люди")}
+      {kicker("04", "Твои люди")}
       <div style={cardStyle}>
         {visWrap(
           <div style={{ width: "100%", maxWidth: 300, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 18, padding: "13px 14px", color: "#0a0a0a", boxShadow: "0 8px 22px rgba(239,159,20,0.3)" }}>
@@ -450,9 +543,15 @@ function GuideLive() {
         {body("Друзья и вехи", "Каждый, кто придёт по твоей ссылке, встаёт на твою орбиту на «Я» — и приносит +150 XP. А вехи добавляют сверху: 3 друга → +300, 7 → +700, 15 → +1500, 30 → +3000. В «Друзьях» видно живой прогресс до следующей.")}
       </div>
 
-      {part("IV", "Мир", "Куда ведёт уровень: партнёры, нетворк и карта всех.")}
+        </React.Fragment>
+      )}
 
-      {kicker("12", "Куда тратить")}
+      {/* ── ВКЛАДКА: МИР */}
+      {tab === "world" && (
+        <React.Fragment>
+          {tabIntro("Мир", "Куда ведёт уровень: партнёры, нетворк и карта всех.")}
+
+      {kicker("01", "Куда тратить")}
       <div style={cardStyle}>
         {visWrap(
           <div style={{ position: "relative", width: "100%", maxWidth: 300, borderRadius: 18, overflow: "hidden", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 10px 26px rgba(239,159,20,0.35)", padding: "14px 16px", color: "#0a0a0a" }}>
@@ -471,7 +570,7 @@ function GuideLive() {
         {body("Партнёры", "XP и уровень — не просто цифры: в «Найти» партнёры меняют их на реальное — программы, разборы, скидки. И партнёром может вырасти ЛЮБОЙ пользователь: это уровень и доверие, а не должность. Билет с кодом уже в работе.")}
       </div>
 
-      {kicker("13", "Люди по делам")}
+      {kicker("02", "Люди по делам")}
       <div style={cardStyle}>
         <div style={{ padding: "18px 16px 2px" }}>
           <div style={{ position: "relative", borderRadius: 18, background: softBg, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
@@ -489,7 +588,7 @@ function GuideLive() {
         {body("Нетворк", "С 10 уровня открываются «Люди» — нетворк по делам: кто чем живёт, у кого какой ритм, к кому идти за помощью или партнёрством. Уровень — твой пропуск, и его не купить: только прожить. А часть кругов открывается иначе — ачивкой за пройденный тренинг, сразу.")}
       </div>
 
-      {kicker("14", "Самое большое")}
+      {kicker("03", "Самое большое")}
       <div style={cardStyle}>
         <div style={{ padding: "16px 16px 0" }}>
           <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)", height: 150 }}>
@@ -506,6 +605,9 @@ function GuideLive() {
         </div>
         {body("Вселенная", "Каждый в Balance — своя система: человек в центре, привычки — планеты на орбитах. «Вселенная» на странице «Я» показывает всех — анонимно, как огни ночного города: имён не видно, но видно, что город живой. Ты уже один из этих огней.")}
       </div>
+
+        </React.Fragment>
+      )}
 
       <button onClick={back} className="tap" style={{ width: "100%", marginTop: 24, border: 0, borderRadius: 999, padding: 16, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontSize: 15.5, fontWeight: 700, cursor: "pointer" }}>Начали!</button>
       <button onClick={function () { navigate("ai-chat", { prompt: "Объясни, как устроен Balance и с чего мне лучше начать" }); }} className="tap" style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 999, padding: 14, background: "transparent", color: "var(--text-3)", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Остались вопросы — спроси Balance AI ›</button>

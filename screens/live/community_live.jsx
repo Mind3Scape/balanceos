@@ -346,6 +346,31 @@ function CommunityLive() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
         {filter === "all" && (
           <React.Fragment>
+            {/* БАННЕР «Как устроена игра» → гид (David: вынести гид из настроек на видное место
+                в Сообществе, между строкой «в потоке» и партнёрами). Тёмное ночное небо +
+                мини-орбита — перекличка с героем гида «целая вселенная». */}
+            <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }} className="tap"
+              style={{ position: "relative", width: "100%", border: 0, borderRadius: 22, padding: "18px 16px 16px", textAlign: "left", overflow: "hidden", cursor: "pointer",
+                background: "radial-gradient(130% 120% at 82% -12%, rgba(120,140,255,0.30), transparent 52%), radial-gradient(90% 90% at 10% 116%, rgba(255,214,90,0.16), transparent 55%), linear-gradient(160deg,#0e1a2e,#0a1120)",
+                boxShadow: "0 12px 30px rgba(10,10,25,0.34), inset 0 0 0 0.5px rgba(255,255,255,0.10)" }}>
+              {[[14, 26, 2], [30, 66, 1.5], [52, 18, 2], [70, 72, 1.5], [86, 34, 2], [93, 60, 1.5], [22, 84, 1.5], [62, 10, 2]].map(function (d, i) {
+                return <span key={i} aria-hidden style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: "rgba(200,220,255,0.85)", boxShadow: "0 0 6px rgba(170,205,255,0.8)" }} />;
+              })}
+              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: "rgba(200,215,255,0.62)" }}>✦ Гид по игре</div>
+                  <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.4px", color: "#fff", marginTop: 5, lineHeight: 1.18 }}>Как устроена игра</div>
+                  <div style={{ fontSize: 12.5, color: "rgba(220,228,245,0.66)", marginTop: 5, lineHeight: 1.4, maxWidth: 240 }}>Отметки, уровни, круги, Вселенная — как всё связано и зачем. За пару минут.</div>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 12.5, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.13)", borderRadius: 999, padding: "7px 14px", boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.22)" }}>Открыть гид ›</span>
+                </div>
+                <span aria-hidden style={{ position: "relative", width: 64, height: 64, flexShrink: 0, display: "grid", placeItems: "center" }}>
+                  <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.18)" }} />
+                  <span style={{ position: "absolute", inset: 13, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.12)" }} />
+                  <span style={{ fontSize: 26 }}>🙂</span>
+                  <span style={{ position: "absolute", top: -1, right: 9, width: 8, height: 8, borderRadius: "50%", background: "#FEDE34", boxShadow: "0 0 8px rgba(254,222,52,0.9)" }} />
+                </span>
+              </div>
+            </button>
             {/* КАРТА + ПАРТНЁРЫ одним блоком (David: «карта и партнёры аккуратнее в одном блоке»,
                 карту крупнее, дубль «Рядом» убрать). Крупная карта сверху → сразу витрина партнёров. */}
             {typeof PartnersMapLive === "function" && (
