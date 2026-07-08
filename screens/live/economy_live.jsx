@@ -419,14 +419,14 @@ function GuideLive() {
       <div style={cardStyle}>
         {visWrap(
           <div style={{ width: "100%", maxWidth: 300, background: softBg, borderRadius: 18, padding: "14px 16px" }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)" }}>Сейчас · 🌤 ровно</div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)" }}>Сейчас · ◎ ровно</div>
             <div style={{ position: "relative", height: 10, borderRadius: 999, marginTop: 12, background: "linear-gradient(90deg,#8FB4E8,#7ED2A8,#FEDE6B,#F5A46B)" }}>
               <span style={{ position: "absolute", left: "58%", top: "50%", transform: "translate(-50%,-50%)", width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 0 0 0.5px rgba(0,0,0,0.06)" }} />
             </div>
             <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 10, lineHeight: 1.45 }}>…и одна строка в дневник: «успел до работы, доволен собой»</div>
           </div>
         )}
-        {body("Состояние и дневник", "Раз в день — один свайп «как ты?» и, если хочется, пара слов в дневник. Это твоя личная погода: по ней ИИ подстраивает подсказки, а календарь потом показывает, как состояние ходит вместе с привычками.")}
+        {body("Состояние и дневник", "Раз в день — один свайп «как ты?» и, если хочется, пара слов в дневник. Это твой личный срез дня: по нему ИИ подстраивает подсказки, а календарь показывает, как состояние связано с привычками.")}
       </div>
 
           </React.Fragment>
