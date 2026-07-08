@@ -348,8 +348,8 @@ function CommunityLive() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
         {filter === "all" && (
           <React.Fragment>
-            {/* БАННЕР worldview → гид: Community начинается не с XP, а с выхода состояния
-                в своих людей, доверие, помощь и реальные практики рядом. */}
+            {/* БАННЕР → гид: коротко объясняет, зачем вкладка «Сообщество» после Home.
+                Не философия и не RPG, а конкретный путь: собрал день → нашёл своих. */}
             <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }} className="tap"
               style={{ position: "relative", width: "100%", border: 0, borderRadius: 24, padding: "18px 16px 16px", textAlign: "left", overflow: "hidden", cursor: "pointer",
                 background: "radial-gradient(120% 110% at 84% 4%, rgba(254,222,52,0.24), transparent 42%), radial-gradient(100% 90% at 8% 110%, rgba(126,210,168,0.20), transparent 52%), linear-gradient(160deg,#101a2d 0%,#08111f 62%,#050a12 100%)",
@@ -359,11 +359,11 @@ function CommunityLive() {
               })}
               <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.35, textTransform: "uppercase", color: "rgba(214,224,255,0.66)" }}>живые круги</div>
-                  <div style={{ fontSize: 20, fontWeight: 850, letterSpacing: "-0.55px", color: "#fff", marginTop: 5, lineHeight: 1.12 }}>Состояние выходит в жизнь</div>
-                  <div style={{ fontSize: 12.5, color: "rgba(226,234,250,0.72)", marginTop: 6, lineHeight: 1.42, maxWidth: 280 }}>Собери день, найди своих и практики рядом. Круги и помощь здесь открываются не шумом, а доверием.</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.35, textTransform: "uppercase", color: "rgba(214,224,255,0.66)" }}>сообщество</div>
+                  <div style={{ fontSize: 20, fontWeight: 850, letterSpacing: "-0.55px", color: "#fff", marginTop: 5, lineHeight: 1.12 }}>Собери день — найди своих</div>
+                  <div style={{ fontSize: 12.5, color: "rgba(226,234,250,0.72)", marginTop: 6, lineHeight: 1.42, maxWidth: 280 }}>Отмечай состояние, закрывай привычки и цели. Balance покажет круги, людей и практики, которые подходят твоему ритму.</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 11 }}>
-                    {[["🌤", "состояние"], ["🔁", "ритм"], ["🤝", "доверие"], ["📍", "жизнь"]].map(function (s, i) {
+                    {[["✓", "день"], ["🔁", "ритм"], ["👥", "круги"], ["📍", "места"]].map(function (s, i) {
                       return <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 999, padding: "5px 8px", background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.92)", fontSize: 11.5, fontWeight: 700, boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.16)" }}><span>{s[0]}</span>{s[1]}</span>;
                     })}
                   </div>
@@ -374,7 +374,7 @@ function CommunityLive() {
                   <span style={{ position: "absolute", inset: 13, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.13)" }} />
                   <span style={{ position: "absolute", left: 2, top: 34, width: 12, height: 12, borderRadius: "50%", background: "rgba(126,210,168,0.95)", boxShadow: "0 0 10px rgba(126,210,168,0.65)" }} />
                   <span style={{ position: "absolute", right: 9, top: 3, width: 9, height: 9, borderRadius: "50%", background: "#FEDE34", boxShadow: "0 0 10px rgba(254,222,52,0.95)" }} />
-                  <span style={{ position: "relative", width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(165deg,rgba(255,255,255,0.30),rgba(255,255,255,0.08))", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.38), 0 8px 20px rgba(0,0,0,0.30)", fontSize: 23 }}>🌤</span>
+                  <span style={{ position: "relative", width: 42, height: 42, borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(165deg,rgba(255,255,255,0.30),rgba(255,255,255,0.08))", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.38), 0 8px 20px rgba(0,0,0,0.30)", fontSize: 24, fontWeight: 800 }}>◎</span>
                 </span>
               </div>
             </button>
