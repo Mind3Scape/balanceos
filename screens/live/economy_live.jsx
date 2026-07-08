@@ -245,10 +245,10 @@ function GuideLive() {
     );
   };
   var pathLoop = function () {
-    var steps = [["🌤", "Ресурс", "понял себя"], ["✅", "Ход", "сделал сегодня"], ["✦", "XP", "видимый след"], ["⬆", "Уровень", "двери дальше"], ["🤝", "Люди", "держаться вместе"]];
+    var steps = [["🌤", "Состояние", "понял себя"], ["✅", "Ход", "сделал сегодня"], ["🔁", "Ритм", "вернулся завтра"], ["🤝", "Доверие", "свои рядом"], ["📍", "Жизнь", "практики и места"]];
     return (
       <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: "13px 12px", background: softBg, boxShadow: glass }}>
-        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)", marginBottom: 10 }}>основной цикл</div>
+        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)", marginBottom: 10 }}>основной путь</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 }}>
           {steps.map(function (s, i) {
             return (
@@ -302,12 +302,12 @@ function GuideLive() {
   };
   return (
     <div className="page-in" style={{ padding: "0 16px 28px" }}>
-      <PageHeader title="Как устроена игра" onBack={back} />
+      <PageHeader title="Как работает Balance" onBack={back} />
       {/* Липкое быстрое меню-прыжок (David: «наверху меню из пилюль, скролл по категориям»).
           Тап = раскрыть этап + доскроллить к нему. Матовое стекло, чтобы не спорить с фоном. */}
       <div style={{ position: "sticky", top: 0, zIndex: 6, margin: "2px -16px 4px", padding: "8px 16px", background: isDark ? "rgba(18,18,20,0.72)" : "rgba(244,244,247,0.72)", backdropFilter: "saturate(180%) blur(18px)", WebkitBackdropFilter: "saturate(180%) blur(18px)" }}>
         <div className="bos-hscroll" style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
-          {[["suti", "Старт"], ["day", "Ход"], ["level", "XP"], ["together", "Люди"], ["world", "Мир"]].map(function (p) {
+          {[["suti", "Старт"], ["day", "Ход"], ["level", "Прогресс"], ["together", "Люди"], ["world", "Мир"]].map(function (p) {
             var on = openId ? (openId === p[0]) : (p[0] === "suti");
             var g = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
             return (
@@ -318,13 +318,13 @@ function GuideLive() {
         </div>
       </div>
 
-      {/* ── СУТЬ — всегда открыта: вход и вайб «ты играешь в игру про свою жизнь». */}
+      {/* ── СУТЬ — всегда открыта: вход не в «игру про XP», а в путь состояния → людей. */}
       <div ref={function (el) { secRefs.current["suti"] = el; }} style={{ scrollMarginTop: 64 }}>
-          {tabIntro("Твой путь в Balance", "Каждый день ты делаешь маленький ход: отмечаешь состояние, закрываешь привычку или зовёшь своих. Ход даёт XP, XP растит уровень, а уровень открывает людей, круги, партнёров и живой мир приложения.", true)}
+          {tabIntro("От состояния к людям", "Balance не просит сразу менять жизнь. Он помогает понять состояние, сделать один ход и постепенно открыть людей, круги и реальные сценарии рядом.", true)}
 
           <div style={{ ...cardStyle, marginTop: 14 }}>
             {visWrap(pathLoop(), "18px 14px 4px")}
-            {body("Сначала — один ход сегодня", "Не нужно проходить всё приложение. Отметь состояние, закрой одну привычку или позови человека — Balance сразу покажет след: XP, серию, уровень и следующую дверь.")}
+            {body("Сначала — один честный ход", "Не нужно проходить всё приложение. Заметь состояние, закрой маленькое действие или позови человека — Balance покажет, как из этого складываются ритм, доверие и жизнь вокруг.")}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
@@ -332,14 +332,14 @@ function GuideLive() {
             {guideAction("✅", "К привычкам", "создать или отметить", "habits", null, false)}
           </div>
 
-          {kicker("01", "Правила простые")}
+          {kicker("01", "Опоры дня")}
           <div style={cardStyle}>
             <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
               {[
-                ["🌤", "Начни с состояния", "Один свайп показывает, с каким ресурсом ты играешь."],
-                ["✅", "Сделай маленький ход", "Привычка, дневник или дело — каждое действие оставляет след."],
-                ["🤝", "Зови своих", "С людьми ритм держится дольше, а путь быстрее становится живым."],
-                ["🛡", "Без наказания", "Пропуск не сжигает уровень. Просто возвращаешься в игру."],
+                ["🌤", "Начни с состояния", "Один свайп помогает увидеть, где ты сейчас."],
+                ["✅", "Сделай маленький ход", "Привычка, дневник или дело превращают состояние в действие."],
+                ["🤝", "Зови своих", "С людьми ритм держится дольше, а круги становятся живыми."],
+                ["🛡", "Без наказания", "Пропуск не ломает путь. Просто возвращаешься к себе и своим."],
               ].map(function (r, i) {
                 return (
                   <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: softBg, borderRadius: 16, padding: "11px 12px" }}>
@@ -352,13 +352,13 @@ function GuideLive() {
                 );
               })}
             </div>
-            {body("Игра без вины", "Здесь нет наказания за паузу: опыт и уровень остаются с тобой. Смысл — не закрыть идеальный календарь, а чаще возвращаться к себе и своим людям.")}
+            {body("Ритм без вины", "Здесь нет наказания за паузу: опыт и уровень остаются с тобой. Смысл — не закрыть идеальный календарь, а чаще возвращаться к себе и своим людям.")}
           </div>
 
           {kicker("02", "Как всё связано")}
           <div style={cardStyle}>
             {visWrap(pathLoop(), "18px 14px 4px")}
-            {body("Один ход тянет всю систему", "Отметка или состояние дают видимый след. XP растит уровень, уровень открывает людей, партнёров и круги, а вместе это превращается в твою живую Вселенную Balance.")}
+            {body("Один ход тянет всю систему", "Состояние и действие дают видимый след. XP и уровни остаются языком прогресса, но не заменяют смысл: ритм открывает доверие, круги, пользу и реальные сценарии рядом.")}
           </div>
       </div>
 
