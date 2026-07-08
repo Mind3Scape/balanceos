@@ -181,67 +181,99 @@ function GuideLive() {
   var app = (typeof useApp === "function") ? useApp() : null;
   var isDark = !!(app && app.themeOverride === "dark");
   var back = function () { navigate(params.from || "profile"); };
-  var sheen = (typeof BOS_TILE_SHEEN !== "undefined") ? BOS_TILE_SHEEN + ", " : "";
+  var _active = React.useState("day");
+  var activeLayer = _active[0], setActiveLayer = _active[1];
+  var layerRefs = React.useRef({});
   var glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none";
-  var softBg = isDark ? "rgba(255,255,255,0.055)" : "rgba(255,255,255,0.72)";
-  var quietBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.035)";
-  var border = isDark ? "rgba(255,255,255,0.10)" : "rgba(10,14,24,0.07)";
+  var softBg = isDark ? "rgba(255,255,255,0.060)" : "rgba(255,255,255,0.76)";
+  var quietBg = isDark ? "rgba(255,255,255,0.040)" : "rgba(0,0,0,0.035)";
+  var border = isDark ? "rgba(255,255,255,0.11)" : "rgba(10,14,24,0.075)";
   var muted = "var(--text-3)";
   var faint = "var(--text-4)";
   var titleFont = "var(--bos-title-font)";
   var card = { background: "var(--card)", borderRadius: 26, boxShadow: "var(--card-shadow)", overflow: "hidden" };
-  var sectionLabel = function (t) {
-    return <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.25, textTransform: "uppercase", color: faint, marginBottom: 8 }}>{t}</div>;
+  var layers = [
+    { id: "day", icon: "◎", title: "День", short: "с чего начать", head: "Собрать день", text: "Отметь состояние и закрой одно реальное действие: привычку, цель или короткую запись. Так у дня появляется опора, а не просто список дел." },
+    { id: "rhythm", icon: "↻", title: "Ритм", short: "что держит", head: "Удержать ритм", text: "Повтор нужен не ради идеального календаря. Он показывает, что помогает тебе возвращаться к себе, а где нужен другой темп или пауза." },
+    { id: "people", icon: "👥", title: "Свои", short: "кто рядом", head: "Найти своих", text: "Когда появляется ритм, легче понять, с кем его держать: спорт, восстановление, обучение, дела. Круги — это маленькая группа, а не бесконечная лента." },
+    { id: "places", icon: "📍", title: "Места", short: "куда идти", head: "Перенести в реальность", text: "Практики, события и партнёры нужны, чтобы ритм не оставался в телефоне. Balance постепенно связывает твой день с живыми форматами рядом." },
+  ];
+  var coreSteps = [
+    ["◎", "Собери день", "Состояние + одно действие. Этого достаточно, чтобы начать."],
+    ["↻", "Удержи ритм", "Повтор даёт опору, но не превращает пропуск в провал."],
+    ["👥", "Найди своих", "С кругом легче продолжать, чем держаться одному."],
+    ["📍", "Перенеси в реальность", "Дальше появляются практики, места и люди рядом."],
+  ];
+  var jumpTo = function (id) {
+    setActiveLayer(id);
+    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+    setTimeout(function () {
+      var el = layerRefs.current[id];
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
   };
-  var copyBlock = function (title, text, compact) {
+  var sectionLabel = function (t) {
+    return <div style={{ fontSize: 11, fontWeight: 850, letterSpacing: 1.25, textTransform: "uppercase", color: faint, marginBottom: 9 }}>{t}</div>;
+  };
+  var layerButton = function (l) {
+    var on = activeLayer === l.id;
     return (
-      <div style={{ padding: compact ? "0" : "16px 16px 0" }}>
-        <div style={{ fontFamily: titleFont, fontSize: compact ? 18 : 20, fontWeight: 800, letterSpacing: "-0.45px", lineHeight: 1.12, color: "var(--text)" }}>{title}</div>
-        <div style={{ marginTop: 7, fontSize: compact ? 13 : 13.5, lineHeight: 1.55, color: muted }}>{text}</div>
-      </div>
+      <button key={l.id} type="button" onClick={function () { jumpTo(l.id); }} className="tap" data-haptic="selection"
+        style={{ minWidth: 0, border: 0, cursor: "pointer", borderRadius: 18, padding: "10px 8px", textAlign: "left",
+          background: on ? "linear-gradient(135deg,rgba(254,222,52,0.42),rgba(239,159,20,0.22))" : quietBg,
+          color: "var(--text)", boxShadow: "inset 0 0 0 1px " + (on ? "rgba(239,159,20,0.34)" : border) }}>
+        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>{l.icon}</span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 12.5, fontWeight: 850, letterSpacing: "-0.08px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.title}</span>
+              <span style={{ display: "block", marginTop: 1, fontSize: 9.8, fontWeight: 650, color: faint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.short}</span>
+            </span>
+          </span>
+          <span aria-hidden style={{ fontSize: 12, color: faint }}>↓</span>
+        </span>
+      </button>
     );
   };
-  var steps = [
-    ["01", "Собери день", "Отметь состояние и закрой одно реальное действие: привычку, цель или короткую запись. Этого достаточно, чтобы система поняла твой сегодняшний ритм."],
-    ["02", "Удержи ритм", "Повтор нужен не ради идеального календаря. Он помогает видеть, что возвращает тебя к себе без вины и давления."],
-    ["03", "Найди своих", "Когда появляется ритм, проще понять, какие круги, люди и форматы тебе подходят: спорт, восстановление, обучение, дела."],
-    ["04", "Выходи в жизнь", "Сообщество и партнёры — не отдельная лента. Это слой вокруг твоего ритма: практики, места и помощь, которые можно применить в реальности."],
-  ];
-  var detail = [
-    ["Первый ход", "Состояние + одно действие. Не надо изучать всё приложение, чтобы начать."],
-    ["Прогресс", "XP — видимый след. Уровень показывает устойчивость, но не заменяет смысл."],
-    ["Люди", "Круги помогают держаться дольше, чем в одиночку, без публичной гонки."],
-    ["Мир", "Практики, места и партнёры появляются там, где уже есть ритм и доверие."],
-  ];
-  var stepCard = function (s, i) {
-    var last = i === steps.length - 1;
+  var coreStep = function (r, i) {
+    var last = i === coreSteps.length - 1;
     return (
-      <div key={s[0]} style={{ position: "relative", display: "flex", gap: 14, padding: last ? "0 0 2px" : "0 0 18px" }}>
-        {!last && <span aria-hidden style={{ position: "absolute", left: 20, top: 44, bottom: -2, width: 1, background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,14,24,0.08)" }} />}
-        <span style={{ position: "relative", zIndex: 1, width: 40, height: 40, borderRadius: 15, display: "grid", placeItems: "center", flexShrink: 0, background: i === 0 ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : softBg, color: i === 0 ? "#111" : "var(--text)", boxShadow: i === 0 ? "0 9px 22px rgba(239,159,20,0.25)" : glass, fontSize: 12, fontWeight: 850, fontVariantNumeric: "tabular-nums" }}>{s[0]}</span>
+      <div key={r[1]} style={{ position: "relative", display: "flex", gap: 13, padding: last ? "0 0 1px" : "0 0 17px" }}>
+        {!last && <span aria-hidden style={{ position: "absolute", left: 18, top: 42, bottom: -2, width: 1, background: isDark ? "rgba(255,255,255,0.10)" : "rgba(10,14,24,0.08)" }} />}
+        <span style={{ position: "relative", zIndex: 1, width: 36, height: 36, borderRadius: 14, display: "grid", placeItems: "center", flexShrink: 0, background: i === 0 ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : softBg, boxShadow: i === 0 ? "0 9px 22px rgba(239,159,20,0.25)" : glass, fontSize: 15 }}>{r[0]}</span>
         <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
-          <div style={{ fontFamily: titleFont, fontSize: 18, fontWeight: 800, letterSpacing: "-0.35px", color: "var(--text)", lineHeight: 1.16 }}>{s[1]}</div>
-          <div style={{ marginTop: 5, fontSize: 13.3, lineHeight: 1.52, color: muted }}>{s[2]}</div>
+          <div style={{ fontFamily: titleFont, fontSize: 18, fontWeight: 850, letterSpacing: "-0.35px", color: "var(--text)", lineHeight: 1.16 }}>{r[1]}</div>
+          <div style={{ marginTop: 5, fontSize: 13.3, lineHeight: 1.50, color: muted }}>{r[2]}</div>
         </div>
       </div>
     );
   };
-  var detailCard = function (d) {
+  var layerCard = function (l, i) {
     return (
-      <div key={d[0]} style={{ borderRadius: 20, padding: "13px 14px", background: quietBg, boxShadow: "inset 0 0 0 1px " + border }}>
-        <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.15px", color: "var(--text)" }}>{d[0]}</div>
-        <div style={{ marginTop: 4, fontSize: 12.7, lineHeight: 1.45, color: faint }}>{d[1]}</div>
-      </div>
+      <section key={l.id} ref={function (el) { layerRefs.current[l.id] = el; }} style={{ ...card, scrollMarginTop: 18, padding: "16px 16px 15px", marginTop: i === 0 ? 0 : 10 }}>
+        <div style={{ display: "flex", gap: 13, alignItems: "flex-start" }}>
+          <span style={{ width: 42, height: 42, borderRadius: 16, display: "grid", placeItems: "center", flexShrink: 0, background: i === 0 ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : softBg, boxShadow: i === 0 ? "0 9px 22px rgba(239,159,20,0.22)" : glass, fontSize: 18 }}>{l.icon}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ fontFamily: titleFont, fontSize: 20, fontWeight: 850, letterSpacing: "-0.45px", color: "var(--text)", lineHeight: 1.12 }}>{l.title}</div>
+              <div style={{ fontSize: 11.2, fontWeight: 780, color: faint, textTransform: "uppercase", letterSpacing: 0.75 }}>{l.short}</div>
+            </div>
+            <div style={{ marginTop: 7, fontSize: 14, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.18px" }}>{l.head}</div>
+            <div style={{ marginTop: 5, fontSize: 13.3, lineHeight: 1.52, color: muted }}>{l.text}</div>
+          </div>
+        </div>
+      </section>
     );
   };
-  var finishButton = function (label, sub, onClick, strong) {
+  var finishButton = function (icon, label, sub, onClick, strong) {
     return (
-      <button onClick={onClick} className="tap" data-haptic="selection"
+      <button type="button" onClick={onClick} className="tap" data-haptic="selection"
         style={{ width: "100%", border: 0, cursor: "pointer", textAlign: "left", borderRadius: 20, padding: "14px 15px", display: "flex", alignItems: "center", gap: 12,
           background: strong ? "var(--cta, #0a0a0a)" : quietBg, color: strong ? "var(--cta-ink, #fff)" : "var(--text)", boxShadow: strong ? "0 10px 26px rgba(0,0,0,0.14)" : "inset 0 0 0 1px " + border }}>
+        <span style={{ width: 34, height: 34, borderRadius: 13, display: "grid", placeItems: "center", flexShrink: 0, background: strong ? "rgba(255,255,255,0.16)" : softBg, fontSize: 16 }}>{icon}</span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 14, fontWeight: 800, letterSpacing: "-0.1px" }}>{label}</span>
-          {sub && <span style={{ display: "block", marginTop: 3, fontSize: 12, lineHeight: 1.35, color: strong ? "rgba(255,255,255,0.68)" : faint }}>{sub}</span>}
+          <span style={{ display: "block", fontSize: 14, fontWeight: 850, letterSpacing: "-0.1px" }}>{label}</span>
+          {sub && <span style={{ display: "block", marginTop: 3, fontSize: 12, lineHeight: 1.35, color: strong ? "rgba(255,255,255,0.70)" : faint }}>{sub}</span>}
         </span>
         <span aria-hidden style={{ fontSize: 18, opacity: 0.55 }}>›</span>
       </button>
@@ -254,18 +286,16 @@ function GuideLive() {
       <section style={{ ...card, position: "relative", marginTop: 8, padding: "22px 18px 20px", background: isDark ? "linear-gradient(160deg,#111827 0%,#090d16 100%)" : "linear-gradient(160deg,#ffffff 0%,#f7f3e7 100%)" }}>
         <div aria-hidden style={{ position: "absolute", right: -44, top: -54, width: 156, height: 156, borderRadius: "50%", background: "radial-gradient(circle,rgba(254,222,52,0.42),rgba(254,222,52,0.10) 45%,transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 999, padding: "6px 10px", background: quietBg, boxShadow: "inset 0 0 0 1px " + border, color: faint, fontSize: 11.5, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 999, padding: "6px 10px", background: quietBg, boxShadow: "inset 0 0 0 1px " + border, color: faint, fontSize: 11.5, fontWeight: 850, letterSpacing: 0.7, textTransform: "uppercase" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#7ED2A8", boxShadow: "0 0 10px rgba(126,210,168,0.75)" }} />
-            гайд за 2 минуты
+            путь внутри Balance
           </div>
-          <div style={{ marginTop: 16, maxWidth: 470 }}>
-            <div style={{ fontFamily: titleFont, fontSize: 31, lineHeight: 1.02, fontWeight: 900, letterSpacing: "-1.05px", color: "var(--text)" }}>Сначала день — потом свои</div>
-            <div style={{ marginTop: 10, fontSize: 14.5, lineHeight: 1.52, color: muted }}>Balance не заставляет изучать все разделы сразу. Он показывает один понятный путь: собрать день, удержать ритм и постепенно найти людей, практики и места рядом.</div>
+          <div style={{ marginTop: 16, maxWidth: 510 }}>
+            <div style={{ fontFamily: titleFont, fontSize: 31, lineHeight: 1.02, fontWeight: 900, letterSpacing: "-1.05px", color: "var(--text)" }}>От дня к своим</div>
+            <div style={{ marginTop: 10, fontSize: 14.5, lineHeight: 1.52, color: muted }}>Сначала ты собираешь день: отмечаешь состояние, закрываешь привычку или цель. Так появляется ритм. По ритму Balance подсказывает круги, людей, практики и места рядом.</div>
           </div>
           <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
-            {["День", "Ритм", "Свои", "Места"].map(function (t, i) {
-              return <div key={t} style={{ borderRadius: 16, padding: "9px 6px", textAlign: "center", background: i === 0 ? "rgba(254,222,52,0.28)" : quietBg, boxShadow: "inset 0 0 0 1px " + border }}><div style={{ fontSize: 11.5, fontWeight: 850, color: "var(--text)" }}>{t}</div></div>;
-            })}
+            {layers.map(layerButton)}
           </div>
         </div>
       </section>
@@ -273,32 +303,30 @@ function GuideLive() {
       <section style={{ ...card, marginTop: 12, padding: "18px 16px 16px" }}>
         {sectionLabel("суть")}
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {steps.map(stepCard)}
+          {coreSteps.map(coreStep)}
         </div>
-      </section>
-
-      <section style={{ ...card, marginTop: 12, padding: "17px 16px" }}>
-        {copyBlock("Сначала смысл — потом действие", "Все переходы собраны в конце. Можно спокойно дочитать систему, не теряя место и не проваливаясь в другой раздел.", true)}
       </section>
 
       <section style={{ marginTop: 22 }}>
         <div style={{ padding: "0 4px 10px" }}>
-          {sectionLabel("если хочется подробнее")}
-          <div style={{ fontFamily: titleFont, fontSize: 22, fontWeight: 850, letterSpacing: "-0.55px", color: "var(--text)" }}>Четыре слоя системы</div>
-          <div style={{ marginTop: 6, fontSize: 13.2, lineHeight: 1.5, color: muted }}>Это не меню и не обязательный маршрут. Просто короткая карта: что в приложении за что отвечает.</div>
+          {sectionLabel("четыре слоя")}
+          <div style={{ fontFamily: titleFont, fontSize: 22, fontWeight: 850, letterSpacing: "-0.55px", color: "var(--text)" }}>Что за что отвечает</div>
+          <div style={{ marginTop: 6, fontSize: 13.2, lineHeight: 1.5, color: muted }}>Каждый слой отвечает за свой вопрос: что со мной сегодня, что держит ритм, кто рядом и куда идти дальше.</div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          {detail.map(detailCard)}
+        <div>
+          {layers.map(layerCard)}
         </div>
       </section>
 
       <section style={{ ...card, marginTop: 22, padding: "18px 16px 16px" }}>
         {sectionLabel("дальше")}
-        <div style={{ fontFamily: titleFont, fontSize: 22, fontWeight: 850, letterSpacing: "-0.55px", color: "var(--text)", lineHeight: 1.12 }}>Теперь можно вернуться</div>
-        <div style={{ marginTop: 7, fontSize: 13.2, lineHeight: 1.5, color: muted }}>Когда захочешь действовать — начни с одного дня. Гайд останется здесь, его не нужно дочитывать заново.</div>
+        <div style={{ fontFamily: titleFont, fontSize: 22, fontWeight: 850, letterSpacing: "-0.55px", color: "var(--text)", lineHeight: 1.12 }}>Выбери первый шаг</div>
+        <div style={{ marginTop: 7, fontSize: 13.2, lineHeight: 1.5, color: muted }}>Начни с одного дня или посмотри, с кем держать ритм дальше.</div>
         <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-          {finishButton("Готово — вернуться", params.from === "community" ? "назад в Сообщество" : "назад в приложение", back, true)}
-          {finishButton("Спросить Balance AI", "если хочется, чтобы он объяснил с твоего контекста", function () { navigate("ai-chat", { prompt: "Объясни, как устроен Balance и с чего мне лучше начать" }); }, false)}
+          {finishButton("◎", "Собрать день", "отметить состояние или одно действие", function () { navigate("home"); }, true)}
+          {finishButton("👥", "Найти своих", "круги, люди и общие привычки", function () { navigate("community"); }, false)}
+          {finishButton("✨", "Спросить Balance AI", "если хочется разобрать свой старт", function () { navigate("ai-chat", { prompt: "Помоги мне начать в Balance: состояние, привычки, круги и следующий шаг" }); }, false)}
+          {finishButton("↩", "Закрыть гайд", params.from === "community" ? "назад в Сообщество" : "вернуться в приложение", back, false)}
         </div>
       </section>
     </div>
