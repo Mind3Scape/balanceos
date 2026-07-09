@@ -167,16 +167,33 @@ function bosEnvPulseCaption(pulse, total, meIn) {
   return { main: meIn ? "Пока это твой тон" : "Отметь состояние — начни общий тон", sub: "Общий появится, когда в круге вольются трое." };
 }
 
-/* СВЕТИЛО — общее состояние круга (гибрид A+B, David 2026-07-09): центр-орб общего тона,
-   нити к своим дышат (атом созвездия «Поделиться»), анонимные светлячки-вливания у центра.
-   Сами состояния не видны никому; точка у лица — только ФАКТ «влился сегодня» и только у
-   тех, кто сам включил «Показывать меня в круге». Моё лицо и моя точка — всегда (мой экран). */
+// тихая легенда под сценой — только когда в круге ЕСТЬ и влившиеся (ближе к огню), и нет (дальше).
+// total = сколько сидит у огня, включая тебя. Без смешения дистанция ничего не «читается».
+function bosEnvSceneLegend(pulse, total, meIn) {
+  var faces = (pulse && Array.isArray(pulse.faces)) ? pulse.faces : [];
+  var near = faces.length + (meIn ? 1 : 0);
+  if (near <= 0 || near >= total || total < 2) return null;
+  return "Кто ближе к светилу — тот сегодня влился";
+}
+
+/* СВЕТИЛО — «круг у огня» (David 2026-07-09): очаг-орб в центре, свои сидят вокруг на РАЗНЫХ
+   расстояниях. Влился сегодня → подсел ближе, ярче и крупнее; не влился → сидит дальше в полутени.
+   «Я» — всегда ближний нижний (у огня спереди). Углы неравномерные, сцена сплюснута «с угла» и
+   тихо дышит (CSS-дрейф) — пентаграммы нет. Каждый тап отвечает: орб → волна тепла по нитям
+   («послать тепло»); лицо своего → карточка снизу; своё неотмеченное лицо → шторка состояния.
+   При входе, если мой день отмечен, искра летит от меня к огню и вливается (орб делает вдох).
+   ПРИВАТНОСТЬ незыблема: чужой ТОН не виден нигде — ни цветом узла, ни в карточке. Показываем
+   лишь факт «влился» (у тех, кто сам разрешил), offer и крепость орбиты (публичный pub_orbit). */
 function BosEnvSunLive(props) {
   var app = props.app || {};
   var people = Array.isArray(props.people) ? props.people : [];
   var pulse = props.pulse || null;
   var dark = !!props.dark;
   var size = props.size || 320;
+  var nav = (typeof useNav === "function") ? useNav() : null;
+  var navigate = (nav && nav.navigate) || props.navigate || function () {};
+  var sheet = (typeof useSheet === "function") ? useSheet() : null;
+
   var tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
   var myBucket = (tk && app.dayMoods && app.dayMoods[tk] != null) ? app.dayMoods[tk] : null;
   var avg = (pulse && pulse.avg != null) ? Number(pulse.avg) : null;
@@ -190,52 +207,202 @@ function BosEnvSunLive(props) {
   try { if (!tint && typeof tintFromMood === "function") tint = tintFromMood(dark ? "#8b93a3" : "#b7bcc7"); } catch (e2) {}
   var glowC = (tint && tint[1]) || "#b7bcc7";
 
+  // геометрия очага (фикс-координата 320×258): орб чуть выше центра, свои — «подковой» над огнём,
+  // «я» всегда внизу-спереди. SQ<1 = вид с угла (как на костёр). Радиус несёт смысл: near/far.
+  var W = 320, H = 258, cx = 160, cy = 120, SQ = 0.82, orbPx = 86;
+  var jit = function (n) { var s = Math.sin(n * 12.9898) * 43758.5453; return s - Math.floor(s); };
+  var P = function (deg, r) { var a = deg * Math.PI / 180; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r * SQ]; };
+
   var shown = people.slice(0, 7);
-  var ringNodes = [{ you: true, avatar: app.avatar, name: app.userName || "Ты", show: meIn }]
-    .concat(shown.map(function (p) { return { avatar: p.avatar, name: p.name, show: faces.indexOf(p.id) >= 0 }; }));
-  var W = 320, H = 248, cx = 160, cy = 126, Rr = 100, N = ringNodes.length;
-  var pos = ringNodes.map(function (n, i) {
-    var a = (-90 + i * (360 / N) + (((i * 37) % 11) - 5)) * Math.PI / 180;
-    return { x: cx + Math.cos(a) * Rr, y: cy + Math.sin(a) * Rr * 0.88, n: n };
+  var nShown = shown.length;
+  var others = shown.map(function (p, i) {
+    var inF = faces.indexOf(p.id) >= 0;
+    var base = 150 + ((i + 0.5) / Math.max(1, nShown)) * 240;   // подкова 150°→390°, «я» в нижнем окне
+    var ang = base + (jit(i + 3) * 22 - 11);                     // неравномерный джиттер → нет звезды
+    return { id: p.id, avatar: p.avatar, name: p.name, offer: p.offer, inviter: p.inviter, b: p.b, habits: p.habits,
+      you: false, inF: inF, ang: ang, rNear: 62 + jit(i + 7) * 6, rFar: 92 + jit(i + 13) * 8, size: inF ? 32 : 26 };
   });
-  var linkCore = dark ? "rgba(214,220,232,0.44)" : "rgba(146,153,167,0.5)";
-  var linkShine = "rgba(255,255,255,0.7)";
+  var meNode = { id: "__me", avatar: app.avatar, name: app.userName || "Ты", you: true, inF: meIn, ang: 90, rNear: 70, rFar: 70, size: 36 };
+  var nodes = [meNode].concat(others);
+
+  // мягкая история появления + интерактив без 60fps-часов (дрейф на CSS, волны — дискретные)
+  var stWave = React.useState(0); var wave = stWave[0], setWave = stWave[1];
+  var stGlow = React.useState(false); var glowPulse = stGlow[0], setGlow = stGlow[1];
+  var stNudge = React.useState(null); var nudgedId = stNudge[0], setNudged = stNudge[1];
+  var stSpark = React.useState(false); var sparkOn = stSpark[0], setSpark = stSpark[1];
+
+  React.useEffect(function () {
+    if (!meIn) return;
+    var timers = [];
+    setSpark(true);
+    timers.push(setTimeout(function () { setSpark(false); }, 1250));
+    timers.push(setTimeout(function () { setWave(function (w) { return w + 1; }); setGlow(true); }, 1000)); // искра долетела → огонь вдохнул
+    timers.push(setTimeout(function () { setGlow(false); }, 1650));
+    return function () { timers.forEach(clearTimeout); };
+  }, []);
+
+  var sendWarmth = function () {
+    setWave(function (w) { return w + 1; });
+    setGlow(true);
+    setTimeout(function () { setGlow(false); }, 620);
+    try { if (window.tgHaptic) window.tgHaptic("light"); } catch (e) {}
+  };
+  var openMe = function () {
+    if (meIn) { sendWarmth(); return; }
+    try { if (sheet && sheet.open && typeof StateSheetLive === "function") { sheet.open(<StateSheetLive />); return; } } catch (e) {}
+    try { navigate("mood"); } catch (e2) {}
+  };
+  var openPerson = function (p) {
+    setNudged(p.id);
+    setTimeout(function () { setNudged(function (cur) { return cur === p.id ? null : cur; }); }, 1900);
+    try { if (window.tgHaptic) window.tgHaptic("light"); } catch (e) {}
+    try { if (sheet && sheet.open && typeof BosEnvPersonCardLive === "function") sheet.open(<BosEnvPersonCardLive person={p} inFaces={p.inF} glowC={glowC} dark={dark} navigate={navigate} close={sheet.close} />); } catch (e2) {}
+  };
+
+  var linkCore = dark ? "rgba(214,220,232,0.42)" : "rgba(146,153,167,0.48)";
+  var linkShine = "rgba(255,255,255,0.72)";
   var anon = (marked != null) ? Math.max(0, marked - faces.length - (meIn ? 1 : 0)) : 0;
-  var orbPx = 106;
   var Orb = window.StateOrb;
+  var driftCls = ["bosSunDriftA", "bosSunDriftB", "bosSunDriftC"];
+  var posOf = function (n) { return P(n.ang, n.you ? n.rNear : (n.inF ? n.rNear : n.rFar)); };
 
   return (
     <div style={{ position: "relative", width: "100%", maxWidth: size, margin: "0 auto", aspectRatio: W + " / " + H }}>
-      <style>{"@keyframes bosEnvLinkPulse{from{stroke-dashoffset:0.2}to{stroke-dashoffset:-1}}@keyframes bosEnvFirefly{0%,100%{opacity:0.2}50%{opacity:0.95}}"}</style>
-      <svg viewBox={"0 0 " + W + " " + H} width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }}>
-        {pos.map(function (q, i) {
+      <style>{
+        "@keyframes bosSunDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}" +
+        "@keyframes bosSunPul{from{stroke-dashoffset:0.2}to{stroke-dashoffset:-1}}" +
+        "@keyframes bosSunSurge{0%{stroke-dashoffset:1;opacity:.85}100%{stroke-dashoffset:0;opacity:0}}" +
+        "@keyframes bosSunPop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}" +
+        "@keyframes bosSunFire{0%,100%{opacity:.24}50%{opacity:.9}}" +
+        "@keyframes bosSunInhale{0%{transform:scale(1)}32%{transform:scale(1.06)}100%{transform:scale(1)}}" +
+        "@keyframes bosSunDriftA{0%,100%{transform:translate(0,0)}34%{transform:translate(1.6px,-1.3px)}67%{transform:translate(-1.3px,1.2px)}}" +
+        "@keyframes bosSunDriftB{0%,100%{transform:translate(0,0)}34%{transform:translate(-1.5px,-0.9px)}67%{transform:translate(1.2px,1.5px)}}" +
+        "@keyframes bosSunDriftC{0%,100%{transform:translate(0,0)}50%{transform:translate(1.3px,1.3px)}}"
+      }</style>
+      <svg viewBox={"0 0 " + W + " " + H} width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible", pointerEvents: "none" }}>
+        {nodes.map(function (n, i) {
+          var q = posOf(n);
+          var dashed = n.you && !meIn;
           return (
-            <g key={"ln" + i} opacity={q.n.you ? 0.95 : 0.8}>
-              <line x1={cx} y1={cy} x2={q.x.toFixed(1)} y2={q.y.toFixed(1)} stroke={linkCore} strokeWidth="1.2" />
-              <line x1={cx} y1={cy} x2={q.x.toFixed(1)} y2={q.y.toFixed(1)} stroke={linkShine} strokeWidth="2.2" pathLength="1" strokeDasharray="0.18 1" style={{ animation: "bosEnvLinkPulse 3.4s ease-in-out " + (0.2 + i * 0.16).toFixed(2) + "s infinite" }} />
+            <g key={"ln" + n.id} opacity={n.you ? (meIn ? 0.95 : 0.55) : (n.inF ? 0.85 : 0.6)}>
+              <line x1={cx} y1={cy} x2={q[0].toFixed(1)} y2={q[1].toFixed(1)} stroke={linkCore} strokeWidth={(n.inF || n.you) ? 1.3 : 1} strokeLinecap="round" strokeDasharray={dashed ? "2 3" : "none"} />
+              {dashed ? null : <line x1={cx} y1={cy} x2={q[0].toFixed(1)} y2={q[1].toFixed(1)} stroke={linkShine} strokeWidth="2.1" pathLength="1" strokeDasharray="0.18 1" style={{ animation: "bosSunPul 3.4s ease-in-out " + (0.4 + i * 0.16).toFixed(2) + "s infinite both, bosSunDraw 0.5s ease " + (0.12 + i * 0.05).toFixed(2) + "s both" }} />}
             </g>
           );
         })}
+        {wave > 0 ? (
+          <g key={"surge" + wave}>
+            {nodes.map(function (n, i) {
+              var q = posOf(n);
+              return <line key={"sg" + n.id} x1={cx} y1={cy} x2={q[0].toFixed(1)} y2={q[1].toFixed(1)} stroke={glowC} strokeWidth="2.4" strokeLinecap="round" pathLength="1" strokeDasharray="0.3 1" style={{ animation: "bosSunSurge 0.6s ease " + (i * 0.04).toFixed(2) + "s both" }} />;
+            })}
+          </g>
+        ) : null}
         {Array.apply(null, Array(Math.min(anon, 6))).map(function (_x, i) {
-          var a = ((i * 63 + 18) % 360) * Math.PI / 180, rr = orbPx / 2 + 13 + (i % 3) * 6;
-          return <circle key={"ff" + i} cx={(cx + Math.cos(a) * rr).toFixed(1)} cy={(cy + Math.sin(a) * rr * 0.9).toFixed(1)} r="2.6" fill={glowC} style={{ animation: "bosEnvFirefly 2.6s ease-in-out " + (i * 0.45).toFixed(2) + "s infinite" }} />;
+          var a = ((i * 63 + 18) % 360) * Math.PI / 180, rr = orbPx / 2 + 12 + (i % 3) * 6;
+          return <circle key={"ff" + i} cx={(cx + Math.cos(a) * rr).toFixed(1)} cy={(cy + Math.sin(a) * rr * 0.9).toFixed(1)} r="2.5" fill={glowC} style={{ animation: "bosSunFire 2.6s ease-in-out " + (i * 0.45).toFixed(2) + "s infinite" }} />;
         })}
+        {(sparkOn && meIn) ? (
+          <circle key="spark" r="2.5" fill={glowC} opacity="0">
+            <animate attributeName="cx" from={posOf(meNode)[0].toFixed(1)} to={cx} dur="0.85s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+            <animate attributeName="cy" from={posOf(meNode)[1].toFixed(1)} to={cy} dur="0.85s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+            <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.2;0.85;1" dur="1s" begin="0.15s" fill="freeze" />
+            <animate attributeName="r" values="2;3.4;1.4" keyTimes="0;0.7;1" dur="1s" begin="0.15s" fill="freeze" />
+          </circle>
+        ) : null}
       </svg>
-      <div style={{ position: "absolute", left: (cx / W * 100) + "%", top: (cy / H * 100) + "%", transform: "translate(-50%,-50%)" }}>
-        {Orb ? <Orb size={orbPx} tint={tint || undefined} intensity={avg != null ? 1.2 : 0.9} />
-             : <div style={{ width: orbPx, height: orbPx, borderRadius: "50%", background: "radial-gradient(circle at 42% 36%, " + ((tint && tint[0]) || "#e7eaf0") + ", " + glowC + ")" }} />}
+
+      <div onClick={sendWarmth} className="tap" data-no-haptic style={{ position: "absolute", left: (cx / W * 100) + "%", top: (cy / H * 100) + "%", transform: "translate(-50%,-50%)", cursor: "pointer", pointerEvents: "auto" }}>
+        <div key={"orb" + wave} style={{ animation: wave > 0 ? "bosSunInhale 0.7s cubic-bezier(.3,.7,.3,1) both" : undefined }}>
+          {Orb ? <Orb size={orbPx} tint={tint || undefined} intensity={avg != null ? 1.2 : 0.95} />
+               : <div style={{ width: orbPx, height: orbPx, borderRadius: "50%", background: "radial-gradient(circle at 42% 36%, " + ((tint && tint[0]) || "#e7eaf0") + ", " + glowC + ")" }} />}
+        </div>
       </div>
-      {pos.map(function (q, i) {
-        var n = q.n;
+
+      {nodes.map(function (n, i) {
+        var q = posOf(n);
+        var dx = cx - q[0], dy = cy - q[1], dd = Math.sqrt(dx * dx + dy * dy) || 1;
+        var lean = nudgedId === n.id ? 7 : 0;
+        var leanT = lean ? " translate(" + (dx / dd * lean).toFixed(1) + "px," + (dy / dd * lean).toFixed(1) + "px)" : "";
+        var dim = n.you ? (meIn ? 1 : 0.5) : (n.inF ? 1 : 0.72);
+        var hot = glowPulse && (n.inF || n.you);
         return (
-          <div key={"nd" + i} style={{ position: "absolute", left: (q.x / W * 100) + "%", top: (q.y / H * 100) + "%", transform: "translate(-50%,-50%)", pointerEvents: "none", opacity: (n.show || n.you) ? 1 : 0.78 }}>
-            <div style={{ position: "relative" }}>
-              {bosEnvNode(n.avatar, n.name, n.you ? 34 : 30, dark, !!n.you)}
-              {n.show ? <span style={{ position: "absolute", right: -2, bottom: -2, width: 11, height: 11, borderRadius: "50%", background: glowC, boxShadow: "0 0 0 2px var(--card), 0 0 7px " + glowC }} /> : null}
+          <div key={"nd" + n.id} onClick={function () { if (n.you) openMe(); else openPerson(n); }} className="tap" data-no-haptic
+            style={{ position: "absolute", left: (q[0] / W * 100) + "%", top: (q[1] / H * 100) + "%", transform: "translate(-50%,-50%)", pointerEvents: "auto", cursor: "pointer", zIndex: n.you ? 4 : (n.inF ? 3 : 2) }}>
+            <div key={"pop" + n.id + (n.inF ? 1 : 0)} style={{ animation: "bosSunPop 0.5s cubic-bezier(.2,1.3,.4,1) " + (0.4 + i * 0.06).toFixed(2) + "s both" }}>
+              <div style={{ animation: driftCls[i % 3] + " " + (8 + (i % 4)) + "s ease-in-out " + (-(i * 1.3)).toFixed(1) + "s infinite", opacity: dim, transition: "opacity 0.5s ease" }}>
+                <div style={{ position: "relative", transform: (hot ? "scale(1.08)" : "scale(1)") + leanT, transition: "transform 0.35s ease" }}>
+                  {bosEnvNode(n.avatar, n.name, n.size, dark, !!n.you && meIn)}
+                  {n.inF ? <span style={{ position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: "50%", background: glowC, boxShadow: "0 0 0 2px var(--card), 0 0 7px " + glowC }} /> : null}
+                </div>
+              </div>
             </div>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/* КАРТОЧКА СВОЕГО — открывается снизу по тапу лица в «круге у огня». Возвращает считываемость
+   «кто как», не загромождая сцену. ПРИВАТНОСТЬ: тон человека НЕ показываем. Только факт «влился
+   сегодня» (если он в faces), его offer, крепость орбиты (bond) и его активные сферы. */
+function BosEnvPersonCardLive(props) {
+  var p = props.person || {};
+  var inFaces = !!props.inFaces;
+  var dark = !!props.dark;
+  var glowC = props.glowC || "#b7bcc7";
+  var navigate = props.navigate || function () {};
+  var close = props.close || function () {};
+  var pct = Math.round(Math.max(0, Math.min(1, p.b || 0.3)) * 100);
+  var word = bosEnvWord(pct);
+  var spheres = [];
+  try {
+    var seen = {};
+    (Array.isArray(p.habits) ? p.habits : []).forEach(function (h) {
+      var e = (h && (h.e || h.emoji)) || (typeof h === "string" ? h : null);
+      if (e && !seen[e]) { seen[e] = 1; spheres.push(e); }
+    });
+  } catch (e) {}
+  spheres = spheres.slice(0, 6);
+  var txt = dark ? "#fff" : "var(--text)";
+  var sub = dark ? "rgba(255,255,255,0.55)" : "var(--text-4)";
+  var name = p.name || "Близкий";
+  var support = function () {
+    try { navigate("ai-chat", { prompt: "Как по-доброму поддержать близкого (" + name + "), чтобы вернуть ему тонус?" }); } catch (e) {}
+    try { close(); } catch (e2) {}
+  };
+  return (
+    <div style={{ padding: "2px 20px 22px", color: txt }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>{bosEnvNode(p.avatar, name, 72, dark, false)}</div>
+      <div style={{ textAlign: "center", fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>{name}</div>
+      {p.inviter ? <div style={{ textAlign: "center", fontSize: 12.5, color: sub, marginTop: 2 }}>позвал тебя</div> : null}
+      {inFaces ? (
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: txt, background: glowC + "26", border: "0.5px solid " + glowC + "55", borderRadius: 999, padding: "6px 13px" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: glowC, boxShadow: "0 0 6px " + glowC }} /> Влился сегодня
+          </span>
+        </div>
+      ) : null}
+      {p.offer ? <div style={{ fontSize: 13.5, color: dark ? "rgba(255,255,255,0.78)" : "var(--text-2)", lineHeight: 1.45, textAlign: "center", marginTop: 12 }}>🤝 может помочь: {p.offer}</div> : null}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+          <span style={{ fontSize: 12.5, color: sub }}>Орбита</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: txt }}>{word}</span>
+        </div>
+        <div style={{ height: 7, borderRadius: 4, background: dark ? "rgba(255,255,255,0.10)" : "var(--surface-3)", overflow: "hidden" }}>
+          <i style={{ display: "block", height: "100%", width: pct + "%", borderRadius: 4, background: bosEnvZone(pct) }} />
+        </div>
+      </div>
+      {spheres.length ? (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 11.5, color: sub, marginBottom: 7 }}>В ритме держит</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {spheres.map(function (e, i) { return <span key={i} style={{ display: "inline-grid", placeItems: "center", width: 34, height: 34, borderRadius: 10, fontSize: 17, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)" }}>{e}</span>; })}
+          </div>
+        </div>
+      ) : null}
+      <button onClick={support} className="tap" style={{ width: "100%", marginTop: 20, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", border: 0, borderRadius: 999, padding: 14, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Поддержать</button>
     </div>
   );
 }
@@ -292,6 +459,7 @@ function BosEnvBalanceLive(props) {
   var meIn = false;
   try { var _tkB = (typeof bosTodayKey === "function") ? bosTodayKey() : null; meIn = !!(_tkB && app.dayMoods && app.dayMoods[_tkB] != null); } catch (e) {}
   var cap = bosEnvPulseCaption(pulse, total + 1, meIn);
+  var legend = bosEnvSceneLegend(pulse, Math.min(total, 7) + 1, meIn);
 
   // подсказка ИИ — реципрокность. Приоритет ЧЕСТНО: (1) кто затих/просел → поддержи; (2) кто предлагает
   // помощь (offer) → загляни к нему; (3) иначе — поделись сам. Имена в ИМЕНИТЕЛЬНОМ, глаголы нейтральные.
@@ -313,28 +481,27 @@ function BosEnvBalanceLive(props) {
 
   return (
     <div style={wrapStyle}>
-      {hideTitle ? (
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button onClick={open} className="tap" data-no-haptic style={{ background: "transparent", border: 0, cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 2, padding: "0 0 4px" }}>Подробнее {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} /> : "›"}</button>
-        </div>
-      ) : (
+      {hideTitle ? null : (
       <button onClick={open} className="tap" data-no-haptic style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent", border: 0, padding: 0, cursor: "pointer", textAlign: "left" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс окружения</div>
           <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>Состояние, которое вы держите вместе.</div>
         </div>
-        <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: "var(--text-4)", display: "inline-flex", alignItems: "center", gap: 2 }}>Подробнее {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} /> : "›"}</span>
       </button>
       )}
 
-      {/* светило: общий тон круга + нити к своим (гибрид A+B — BosEnvSunLive) */}
-      <div style={{ margin: "6px 0 2px" }}>
+      {/* светило — «круг у огня» (BosEnvSunLive) */}
+      <div style={{ margin: (hideTitle ? "2px" : "6px") + " 0 2px" }}>
         <BosEnvSunLive app={app} people={people} pulse={pulse} dark={dark} size={320} />
         <div style={{ textAlign: "center", marginTop: 2 }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{cap.main}</div>
           <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.4, marginTop: 2 }}>{cap.sub}</div>
+          {legend ? <div style={{ fontSize: 11, color: "var(--text-5)", lineHeight: 1.35, marginTop: 4, opacity: 0.85 }}>{legend}</div> : null}
         </div>
       </div>
+
+      {/* «Подробнее» — тихой полноширинной кнопкой ПОД подписью/легендой (David: опустить вниз) */}
+      <button onClick={open} className="tap" data-no-haptic style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, width: "100%", marginTop: 12, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 14, padding: "11px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Подробнее о балансе окружения {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} /> : "›"}</button>
 
       {/* голос ИИ — реципрокность */}
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, padding: "12px 13px", borderRadius: 16, border: dark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid #e7ebf2", background: dark ? "rgba(255,255,255,0.04)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)" }}>
@@ -394,6 +561,7 @@ function BosEnvBalanceFullLive() {
   var meInF = false;
   try { var _tkF = (typeof bosTodayKey === "function") ? bosTodayKey() : null; meInF = !!(_tkF && app.dayMoods && app.dayMoods[_tkF] != null); } catch (e) {}
   var cap = bosEnvPulseCaption(pulse, total + 1, meInF);
+  var legendF = bosEnvSceneLegend(pulse, Math.min(total, 7) + 1, meInF);
 
   // «Показывать меня в круге» — гибрид A+B: точка у лица (факт вливания), сам тон не виден никому.
   var pfSt = React.useState(function () { try { return localStorage.getItem("bos:pulseFaces") === "1"; } catch (e) { return false; } });
@@ -428,6 +596,7 @@ function BosEnvBalanceFullLive() {
         <div style={{ textAlign: "center", marginTop: 4 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{cap.main}</div>
           <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{cap.sub}</div>
+          {legendF ? <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.35, marginTop: 5, opacity: 0.85 }}>{legendF}</div> : null}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, padding: "11px 13px", borderRadius: 14, background: "var(--surface-3)" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
