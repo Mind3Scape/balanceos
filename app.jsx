@@ -207,7 +207,7 @@ const IS_STANDALONE =
 
 // Build tag — also the cache-bust stamp (build.js reads it) AND the LIVE product version
 // shown in the badge for a real Telegram user. Bumped on every live deploy.
-const APP_VERSION = "v652";
+const APP_VERSION = "v653";
 // DEMO product version — shown in the badge for the two demos (Павел / чистый лист) and the
 // shared onboarding. NOT a fake freeze: it only moves when we actually change demo code; we
 // don't, so it stands still — honestly. Live (APP_VERSION) runs ahead on its own.
@@ -1078,7 +1078,8 @@ function PhoneApp() {
             (pending-состояния просто ЖДУТ, они не сбрасываются); потом приглашение; ачивка —
             последней. Каждый следующий монтируется только после закрытия предыдущего. */}
         {!app.onbWelcome && !sheet && app.pendingJoinWelcome && typeof JoinWelcomeLive === "function" && <JoinWelcomeLive info={app.pendingJoinWelcome} onClose={app.clearPendingJoinWelcome} />}
-        {!app.onbWelcome && !sheet && !app.pendingJoinWelcome && app.pendingAch && typeof AchievementSheetLive === "function" && <AchievementSheetLive ach={app.pendingAch} onClose={app.clearPendingAch} />}
+        {!app.onbWelcome && !sheet && !app.pendingJoinWelcome && app.pendingDayClose && typeof DayCloseSheetLive === "function" && <DayCloseSheetLive info={app.pendingDayClose} onClose={app.clearPendingDayClose} navigate={navigate} />}
+        {!app.onbWelcome && !sheet && !app.pendingJoinWelcome && !app.pendingDayClose && app.pendingAch && typeof AchievementSheetLive === "function" && <AchievementSheetLive ach={app.pendingAch} onClose={app.clearPendingAch} />}
       </div>
     </div>
     </SheetCtx.Provider>

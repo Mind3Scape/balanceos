@@ -930,6 +930,7 @@ function AppProvider({ children }) {
   // pristine filled demo). The signup screen flips this via enterDemo/enterFresh.
   const [mode, setMode] = useState("demo");      // "demo" | "fresh"
   const [pendingAch, setPendingAch] = useState(null); // a freshly-unlocked achievement to celebrate
+  const [pendingDayClose, setPendingDayClose] = useState(null); // today's Daily Balance just closed → one calm completion reveal
   const [pendingJoinWelcome, setPendingJoinWelcome] = useState(null); // freshly-joined shared habit / team via invite link → greet «X позвал тебя»
   const [userName, setUserName] = useState("Павел");
   const [avatar, setAvatar] = useState(null); // null = default Memoji (assets/sphere.png)
@@ -1680,7 +1681,28 @@ function AppProvider({ children }) {
   // typeof-guarded global lookup, so the framework never hard-depends on the live file —
   // if it's absent the effect simply no-ops (no celebration). Demo never reaches here (gate).
   const clearPendingAch = () => setPendingAch(null);
+  const clearPendingDayClose = () => setPendingDayClose(null);
   const clearPendingJoinWelcome = () => setPendingJoinWelcome(null);
+
+  // ── Daily Balance: one calm completion reveal per real day ──────────────────
+  // The XP bonus for a perfect day is still handled by claimedChallenges above. This
+  // effect is only the user-facing closure moment: состояние + ход + смысл/связь.
+  // Persist a per-profile/day seen key so reloads and hydration never replay it.
+  const dayCloseSeenRef = useRef({});
+  useEffect(() => {
+    if (mode !== "live" || !persistId || typeof bosDailyBalanceLive !== "function") return;
+    if (hydratingRef.current) return;
+    var db = bosDailyBalanceLive({ habits: habits, teams: teams, dayMoods: dayMoods, dayNotes: dayNotes });
+    if (!db || !db.complete || !db.today) return;
+    var key = "bos:dayclose:" + persistId + ":" + db.today;
+    var seen = false;
+    try { seen = localStorage.getItem(key) === "1"; } catch (e) {}
+    if (seen || dayCloseSeenRef.current[key]) return;
+    dayCloseSeenRef.current[key] = true;
+    try { localStorage.setItem(key, "1"); } catch (e2) {}
+    setPendingDayClose({ day: db.today, balance: db, ts: Date.now() });
+  }, [mode, persistId, habits, teams, dayMoods, dayNotes]);
+
   const achSeenRef = useRef({ pid: null, ids: null });
   useEffect(() => {
     if (mode !== "live" || !persistId || typeof bosEarnedAchIdsLive !== "function") return;
@@ -1779,6 +1801,7 @@ function AppProvider({ children }) {
     aiBrief, invitedCount, teamGoalXP, refreshTeamGoalXP,
     claimedChallenges, spentXP, spendXP, grantBonusXP, noteSpentXP,
     pendingAch, clearPendingAch,
+    pendingDayClose, clearPendingDayClose,
     pendingJoinWelcome, clearPendingJoinWelcome,
     tourStep, setTourStep, startTour, endTour, tourMode,
     onbWelcome, setOnbWelcome, onbTab, setOnbTab, showTabIntro,

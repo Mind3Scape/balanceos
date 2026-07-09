@@ -1941,6 +1941,69 @@ function JoinWelcomeLive({ info, onClose }) {
   );
 }
 
+/* Daily Balance completion — the Apple-Watch-style closure moment, but in BalanceOS language:
+   not a score popup, a calm proof that today's small life-system is assembled. Rendered from
+   app.pendingDayClose at the app root, after invite welcomes and before achievement sheets. LIVE. */
+function DayCloseSheetLive({ info, onClose, navigate }) {
+  const [open, setOpen] = React.useState(false);
+  const closingRef = React.useRef(false);
+  const app = (typeof useApp === "function") ? useApp() : null;
+  React.useEffect(() => { const t = window.setTimeout(() => setOpen(true), 10); return () => window.clearTimeout(t); }, []);
+  if (!info) return null;
+  const isDark = !!(typeof document !== "undefined" && document.querySelector(".bos-page.theme-dark"));
+  const bal = info.balance || ((typeof bosDailyBalanceLive === "function") ? bosDailyBalanceLive(app) : null) || {};
+  const parts = Array.isArray(bal.parts) ? bal.parts : [];
+  const insight = (typeof bosDayCloseInsightLive === "function") ? bosDayCloseInsightLive(app) : "Один честный день важнее идеального плана. Завтра продолжим с малого.";
+  const close = () => {
+    if (closingRef.current) return; closingRef.current = true;
+    setOpen(false);
+    window.setTimeout(() => { try { onClose && onClose(); } catch (e) {} }, 340);
+  };
+  const go = (route, params) => { close(); window.setTimeout(() => { try { navigate && navigate(route, params || {}); } catch (e) {} }, 360); };
+  const chipBg = isDark ? "rgba(255,255,255,0.07)" : "#f4f4f6";
+  const ink = isDark ? "#fff" : "var(--text)";
+  return (
+    <BottomSheet open={open} onClose={close} dark={isDark}>
+      <div style={{ padding: "6px 22px 24px", color: ink, textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "relative", width: 98, height: 98, display: "grid", placeItems: "center" }}>
+            <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "radial-gradient(circle at 50% 45%, rgba(254,222,52,0.55), rgba(239,159,20,0.18) 58%, transparent 74%)", filter: "blur(1px)" }} />
+            <svg width="96" height="96" viewBox="0 0 96 96" style={{ position: "absolute", inset: 1, transform: "rotate(-90deg)" }} aria-hidden>
+              <circle cx="48" cy="48" r="37" fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"} strokeWidth="7" />
+              <circle cx="48" cy="48" r="37" fill="none" stroke="url(#bosDayCloseGold)" strokeWidth="7" strokeLinecap="round" strokeDasharray="232.5" strokeDashoffset="0" />
+              <defs><linearGradient id="bosDayCloseGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" /></linearGradient></defs>
+            </svg>
+            <span style={{ position: "relative", fontSize: 34, filter: "drop-shadow(0 3px 7px rgba(0,0,0,0.18))" }}>✓</span>
+          </div>
+        </div>
+        <div style={{ fontSize: 11.5, color: "#C98A00", textTransform: "uppercase", letterSpacing: 1.8, fontWeight: 800, marginTop: 12 }}>Баланс дня</div>
+        <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.08, marginTop: 5 }}>День собран</div>
+        <div style={{ fontSize: 14, color: "var(--text-3)", lineHeight: 1.5, maxWidth: 286, margin: "9px auto 0", textWrap: "balance" }}>Ты заметил состояние, сделал ход и закрепил день. Так, день за днём, собирается ритм.</div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 7, marginTop: 18 }}>
+          {parts.map((p) => (
+            <div key={p.id} style={{ borderRadius: 16, background: chipBg, padding: "10px 6px", minWidth: 0 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", margin: "0 auto", display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 13, fontWeight: 900 }}>✓</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text)", marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 16, borderRadius: 18, background: isDark ? "rgba(255,255,255,0.06)" : "#f7f7f8", padding: "13px 15px", textAlign: "left" }}>
+          <div style={{ fontSize: 11, color: "var(--text-4)", fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase" }}>Что стало сильнее</div>
+          <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text)", marginTop: 5, lineHeight: 1.35 }}>Ритм возвращения</div>
+          <div style={{ fontSize: 12.8, color: "var(--text-3)", marginTop: 4, lineHeight: 1.45 }}>{insight}</div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          <button onClick={() => go("history")} className="tap" style={{ flex: 1, border: 0, borderRadius: 999, padding: "14px 12px", background: isDark ? "rgba(255,255,255,0.08)" : "var(--surface-3)", color: "var(--text)", fontSize: 14.5, fontWeight: 700 }}>Неделя</button>
+          <button onClick={() => go("ai-chat", { prompt: "Разбери мой закрытый день Balance: что стало сильнее и с чего начать завтра?" })} className="bos-btn" style={{ flex: 1, marginTop: 0 }}>Разобрать с AI</button>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}
+
 /* Achievement celebration — the gold «достижение открыто» moment as our STANDARD iOS sheet
    (David: «достижения делаешь не в нашем стиле который поп-ап — лучше в iOS-шторку»). Was a
    centered popup (demo AchievementUnlock); now slides up over a dimmed backdrop with a grabber,
@@ -4356,7 +4419,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     "Усталость":   "Сбавь темп: закрой одну привычку — и довольно.",
   };
   const aiBrief = (totalCount && doneCount >= totalCount)
-    ? "День закрыт — ты в потоке. Так держи ритм."
+    ? "Идеальный день — ты в потоке. Так держи ритм."
     : (AI_BRIEF[mood && mood.t] || "Один маленький шаг сегодня — и ритм на твоей стороне.");
   // For LIVE the summary + pills come from the AI login brief (heuristic fallback if absent).
   const _liveBrief = heroApp?.aiBrief || null;
@@ -4370,15 +4433,55 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
   const _heroLI = ((typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(_heroXp) : null) || {};
   const _heroPct = _heroLI.pct || 0;
   const _heroLevel = _heroLI.level || 0;
+  const _daily = (typeof bosDailyBalanceLive === "function") ? bosDailyBalanceLive(heroApp) : null;
+  const _dailyNext = _daily && _daily.next;
+  const _dailyTitle = _daily && _daily.complete ? "День собран" : "Собери сегодняшний Balance";
+  // ИИ-сводка — личность главной; статус цикла и так несут чипы ниже, поэтому подзаголовок
+  // остаётся живой фразой дня, а не дублирует «закрой день: …» статикой.
+  const _dailySub = _homeSummary;
+  const _goDailyNext = () => {
+    if (!_dailyNext) return;
+    if (_dailyNext.route === "state") return _openSheet(<StateSheetLive />);
+    if (_dailyNext.route === "create-habit") return _openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />);
+    // «Сделать ход»/«Отметиться вместе» ведут в конкретную привычку (там большое кольцо
+    // отметки): navigate("habits") в live — это та же главная, тап был бы пустым.
+    const _hs = ((heroApp && heroApp.habits) || []).filter((x) => x && !x.shelved && !x.goalOnly);
+    const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+    const _target = _dailyNext.id === "link"
+      ? _hs.find((x) => x.shareCode || x.teamHabitId)
+      : (_hs.find((x) => !(x.log && _tk && x.log[_tk])) || _hs[0]);
+    if (_target) return navigate("habit-detail", { habit: _target, from: "home" });
+    if (_dailyNext.route && _dailyNext.route !== "habits") navigate(_dailyNext.route);
+  };
+  // Золото на главной — только у XP-кольца; выполненная часть дня = стеклянный чек,
+  // тем же материалом, что все чекбоксы приложения.
+  const _dailyPartChips = _daily && _daily.parts ? (
+    <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+      {_daily.parts.map((p) => (
+        <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, borderRadius: 999, padding: "7px 10px", fontSize: 12, fontWeight: 700,
+          ...(p.done ? bosChipGlass(isDark) : { background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)" }),
+          color: p.done ? "var(--text)" : "var(--text-3)" }}>
+          <span style={{ fontSize: 12 }}>{p.done ? "✓" : p.icon}</span>{p.label}
+        </span>
+      ))}
+    </div>
+  ) : null;
 
   const page1 = newbie ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div key={_homeSummary} style={{ ...BOS_AI_TEXT, animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}><span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
+          <div key={_dailyTitle + _dailySub} style={{ ...BOS_AI_TEXT, animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.35px", lineHeight: 1.08 }}>{_dailyTitle}</div>
+            <div style={{ marginTop: 5, color: "var(--text-3)", lineHeight: 1.34 }}>{_dailySub}</div>
+          </div>
         </div>
         <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={56} isDark={isDark} />
       </div>
+      {_dailyPartChips}
+      {_daily && !_daily.complete && _dailyNext && (
+        <button onClick={_goDailyNext} className="tap" style={{ width: "100%", border: 0, borderRadius: 16, padding: "11px 13px", background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", fontSize: 13.5, fontWeight: 700, textAlign: "center" }}>{_dailyNext.cta}</button>
+      )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
           { i: "🙋", t: "Рассказать о себе", go: () => navigate("ai-chat", { prompt: "Я хочу рассказать о себе — задай мне пару коротких вопросов и подскажи, с каких привычек начать." }) },
@@ -4398,12 +4501,17 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     <div key="quote" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div key={_homeSummary} style={{ ...BOS_AI_TEXT, animation: "briefFade 0.5s ease both" }}>
-            <span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_homeSummary}
+          <div key={_dailyTitle + _dailySub} style={{ ...BOS_AI_TEXT, animation: "briefFade 0.5s ease both" }}>
+            <div style={{ fontSize: 18.5, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.35px", lineHeight: 1.08 }}>{_dailyTitle}</div>
+            <div style={{ marginTop: 5, color: "var(--text-3)", lineHeight: 1.34 }}>{_dailySub}</div>
           </div>
         </div>
         <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={64} isDark={isDark} />
       </div>
+      {_dailyPartChips}
+      {_daily && !_daily.complete && _dailyNext && (
+        <button onClick={_goDailyNext} className="tap" style={{ width: "100%", border: 0, borderRadius: 16, padding: "11px 13px", marginTop: 12, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", fontSize: 13.5, fontWeight: 700, textAlign: "center" }}>{_dailyNext.cta}</button>
+      )}
       <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
         {(_livePills || ((typeof bosMixPillsLive === "function") ? bosMixPillsLive : (x) => x)([
           { i: "✨", t: "ИИ: спланируй день" },

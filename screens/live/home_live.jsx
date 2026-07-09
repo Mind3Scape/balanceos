@@ -539,7 +539,7 @@ function HomeLive() {
                 background: "#0a0a0a", color: "#FEDE34", fontSize: celebrate.full ? 13 : 12, fontWeight: 800,
                 padding: celebrate.full ? "7px 12px" : "5px 10px", borderRadius: 999, boxShadow: "0 8px 22px rgba(0,0,0,0.3)",
                 animation: "bosXpPop 1.15s cubic-bezier(0.22,1,0.36,1) forwards" }}>
-                ✦ +{celebrate.xp} XP{celebrate.full ? " · день закрыт" : ""}
+                ✦ +{celebrate.xp} XP{celebrate.full ? " · идеальный день" : ""}
               </div>
               {celebrate.full && [0,1,2,3,4,5,6,7].map(i => {
                 const a = (i / 8) * Math.PI * 2;

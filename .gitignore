@@ -5,4 +5,8 @@ palette.png
 # Локальные документы — НЕ публиковать (репо/Pages публичны)
 FOUNDATION.md
 VISION.md
+docs/
+scripts/render_worldview_pdf.py
+.hermes/
 .claude/
+_dev*.html

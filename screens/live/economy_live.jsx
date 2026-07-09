@@ -108,6 +108,52 @@ function bosLevelInfoLive(xp) {
   return { level: L, xp: xp, floor: floor, next: floor + step, into: xp - floor, span: step, pct: Math.max(2, Math.round(((xp - floor) / step) * 100)) };
 }
 
+// «Баланс дня» = главный ежедневный цикл live-приложения. Чисто производная: ничего не
+// пишет, не начисляет и не ходит в облако. Три части сознательно отделяют завершённость
+// от очков: состояние → ход → смысл/связь. Пока у человека нет своих, третья часть —
+// смысл (заметка/ярлык дня); появились общие привычки или круги — она становится связью.
+function bosDailyBalanceLive(app) {
+  var today = (typeof bosTodayKey === "function") ? bosTodayKey() : new Date().toISOString().slice(0, 10);
+  var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved && !h.goalOnly; });
+  var notes = (app && app.dayNotes && app.dayNotes[today]) || null;
+  var teams = (app && app.teams) || [];
+  var hasSharedHabit = habits.some(function (h) { return h && (h.shareCode || h.teamHabitId); });
+  var hasTeams = !!(teams.length || hasSharedHabit);
+
+  var stateDone = !!(app && app.dayMoods && app.dayMoods[today] != null);
+  var moveDone = habits.some(function (h) { return !!(h && h.log && h.log[today]); });
+  var linkedHabitDone = habits.some(function (h) { return !!(h && (h.shareCode || h.teamHabitId) && h.log && h.log[today]); });
+  var reflectionDone = !!(notes && (((notes.note != null) && ("" + notes.note).trim()) || (Array.isArray(notes.tags) && notes.tags.length)));
+  var linkDone = hasTeams ? linkedHabitDone : reflectionDone;
+
+  var parts = [
+    { id: "state", label: "Состояние", done: stateDone, icon: "🌤", cta: "Отметить состояние", route: "state" },
+    { id: "move", label: "Ход", done: moveDone, icon: "✅", cta: habits.length ? "Сделать ход" : "Создать привычку", route: habits.length ? "habits" : "create-habit" },
+    { id: "link", label: hasTeams ? "Связь" : "Смысл", done: linkDone, icon: hasTeams ? "🤝" : "✍️", cta: hasTeams ? "Отметиться вместе" : "Добавить смысл", route: hasTeams ? "community" : "state" },
+  ];
+  var done = parts.filter(function (p) { return p.done; }).length;
+  var required = parts.length;
+  return {
+    today: today,
+    parts: parts,
+    done: done,
+    required: required,
+    complete: done >= required,
+    pct: required ? done / required : 0,
+    next: parts.find(function (p) { return !p.done; }) || null,
+    hasTeams: hasTeams,
+    habitsToday: habits.filter(function (h) { return h && h.log && h.log[today]; }).length,
+  };
+}
+
+function bosDayCloseInsightLive(app) {
+  var db = (typeof bosDailyBalanceLive === "function") ? bosDailyBalanceLive(app) : null;
+  if (!db) return "Ты заметил состояние, сделал ход и закрепил день. Это и есть ритм.";
+  if (db.habitsToday >= 2) return "Сегодня не один чек — ты собрал несколько реальных ходов.";
+  if (db.hasTeams) return "Ты не просто отметил день — ты оставил след в общем ритме.";
+  return "Один честный день важнее идеального плана. Завтра продолжим с малого.";
+}
+
 /* ── Achievements (LIVE) ──────────────────────────────────────────────────────
    Real, persisted milestone badges for LIVE users — earned from real signals, each
    pays bonus XP, and a freshly-unlocked one pops a celebration. Conditions use BASE
@@ -423,10 +469,10 @@ function GuideLive() {
                 })}
               </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>{goldPill("✦ весь день закрыт · +30 XP")}</div>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>{goldPill("✦ идеальный день · +30 XP")}</div>
           </div>
         )}
-        {body("Серия и «день закрыт»", "Отмечаешься день за днём — на плитке растёт огонёк серии 🔥. Закрыл ВСЕ привычки дня — сверху падает +30 XP. И главное правило: пропуск НИЧЕГО не сжигает — ни уровень, ни опыт. Просто продолжай со следующего дня.")}
+        {body("Серия и идеальный день", "Отмечаешься день за днём — на плитке растёт огонёк серии 🔥. Закрыл ВСЕ привычки дня — это идеальный день, сверху падает +30 XP. И главное правило: пропуск НИЧЕГО не сжигает — ни уровень, ни опыт. Просто продолжай со следующего дня.")}
       </div>
 
       {kicker("03", "Как ты?")}
@@ -464,15 +510,17 @@ function GuideLive() {
           ))}
           <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600 }}>кольцо заполняется → уровень растёт</div>
         </div>
-        {body("Опыт и уровень", "Весь XP стекается в одно место — золотое кольцо вокруг твоего лица. Кольцо заполнилось — уровень вырос, навсегда: он не обнуляется и не «сгорает по понедельникам». Уровень видят друзья, и именно он открывает двери дальше — к партнёрам и нетворку.")}
+        {body("Опыт и уровень", "Весь XP стекается в одно место — золотое кольцо вокруг твоего лица. Кольцо заполнилось — уровень вырос, навсегда: он не обнуляется и не «сгорает по понедельникам». Уровень видят друзья, а с 10 уровня он открывает «Людей». Партнёры не заперты — они рады тебе с первого дня.")}
       </div>
 
       {kicker("02", "Откуда капает XP")}
       <div style={cardStyle}>
         <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
           {[
-            ["✅", "Отметка привычки", "+10"],
-            ["🌅", "Весь день закрыт", "+30"],
+            ["✅", "Отметка привычки · вместе", "+10 · +15"],
+            ["🌤", "Состояние: отметка · неделя подряд", "+5 · +50"],
+            ["✍️", "Пара слов в дневник", "+10"],
+            ["🌅", "Идеальный день · все привычки", "+30"],
             ["🤝", "Друг пришёл по твоей ссылке", "+150"],
             ["🏁", "Вехи друзей · 3 / 7 / 15 / 30", "+300…3000"],
             ["⚡", "Финиш челленджа", "+40…100"],
@@ -487,7 +535,7 @@ function GuideLive() {
             );
           })}
         </div>
-        {body("Экономика опыта", "Это весь прайс — честный и открытый. Никаких скрытых умножителей: самое ценное здесь — люди. Позвать друга даёт больше, чем неделя отметок, потому что вместе вы удержитесь оба.")}
+        {body("Экономика опыта", "Вот за что идёт опыт — честно и открыто, без скрытых умножителей. Самое ценное здесь — люди: позвать друга даёт больше, чем неделя отметок, потому что вместе вы удержитесь оба.")}
       </div>
 
       {kicker("03", "Медали за путь")}
