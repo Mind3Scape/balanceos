@@ -56,8 +56,10 @@ function bosEnvOfferer(people) { return people.filter(function (p) { return p.of
 function bosEnvNode(avatar, name, size, dark, youRing) {
   var a = "" + (avatar || "");
   var plate = dark ? "linear-gradient(160deg,#464c58,#30353f)" : "linear-gradient(160deg,#eef1f6,#dadfe7)";
+  // «Ты» — не iOS-синий обод (David: «странное синенькое кольцо»), а мягкий СТЕКЛЯННЫЙ обод в палитре:
+  // белый внутренний блик + еле-заметный серебристый ореол. Отмечает «меня», но в тон всему стеклу.
   var sh = youRing
-    ? (dark ? "0 7px 18px rgba(43,143,243,0.4), inset 0 0 0 2px #2B8FF3" : "0 7px 18px rgba(43,143,243,0.32), inset 0 0 0 2px #2B8FF3, inset 0 1.5px 0.5px rgba(255,255,255,0.9)")
+    ? (dark ? "0 7px 18px rgba(0,0,0,0.5), inset 0 0 0 1.6px rgba(255,255,255,0.5), 0 0 0 2px rgba(150,160,175,0.32)" : "0 7px 18px rgba(24,34,64,0.18), inset 0 0 0 1.6px rgba(255,255,255,0.95), 0 0 0 2px rgba(150,160,175,0.34), inset 0 1.5px 0.5px rgba(255,255,255,0.9)")
     : (dark ? "0 7px 18px rgba(0,0,0,0.5), inset 0 0.5px 0.5px rgba(255,255,255,0.14), inset 0 0 0 0.7px rgba(255,255,255,0.06)" : "0 7px 18px rgba(24,34,64,0.18), inset 0 1.5px 0.5px rgba(255,255,255,0.92), inset 0 0 0 0.7px rgba(0,0,0,0.05)");
   var base = { width: size, height: size, borderRadius: "50%", flexShrink: 0, boxShadow: sh, display: "grid", placeItems: "center" };
   if (/^m\d+$/.test(a)) return <div style={Object.assign({}, base, { background: "url(./assets/people/" + a + ".png) center/cover no-repeat, " + BOS_ENV_SHEEN + ", " + plate })} />;
@@ -206,6 +208,13 @@ function BosEnvSunLive(props) {
   try { if (v != null && typeof bosStateTintForV === "function") tint = bosStateTintForV(v); } catch (e) {}
   try { if (!tint && typeof tintFromMood === "function") tint = tintFromMood(dark ? "#8b93a3" : "#b7bcc7"); } catch (e2) {}
   var glowC = (tint && tint[1]) || "#b7bcc7";
+  // Огонь светится ОБЩИМ тоном, но МЯГКО (David: «не кричать зелёным») — тон приглушён к серебру на 42%.
+  var softTint = tint;
+  try { if (tint && typeof bosMixHex === "function") { var _neu = dark ? "#8b93a3" : "#c4c9d2"; softTint = tint.map(function (c) { return (c && ("" + c)[0] === "#") ? bosMixHex(c, _neu, 0.42) : c; }); } } catch (e3) {}
+  // Нити/волна/искра/светлячки/точки — НЕЙТРАЛЬНОЕ стекло (как связи во Вселенной), БЕЗ тона (David).
+  var glintC = dark ? "rgba(232,238,246,0.9)" : "#aeb6c4";
+  var fireflyC = dark ? "rgba(226,232,240,0.85)" : "rgba(150,160,175,0.8)";
+  var pearlBg = dark ? "radial-gradient(circle at 40% 34%, #ffffff, #aab2c0)" : "radial-gradient(circle at 40% 34%, #ffffff, #d7dce4)";
 
   // геометрия очага (фикс-координата 320×258): орб чуть выше центра, свои — «подковой» над огнём,
   // «я» всегда внизу-спереди. SQ<1 = вид с угла (как на костёр). Радиус несёт смысл: near/far.
@@ -294,16 +303,16 @@ function BosEnvSunLive(props) {
           <g key={"surge" + wave}>
             {nodes.map(function (n, i) {
               var q = posOf(n);
-              return <line key={"sg" + n.id} x1={cx} y1={cy} x2={q[0].toFixed(1)} y2={q[1].toFixed(1)} stroke={glowC} strokeWidth="2.4" strokeLinecap="round" pathLength="1" strokeDasharray="0.3 1" style={{ animation: "bosSunSurge 0.6s ease " + (i * 0.04).toFixed(2) + "s both" }} />;
+              return <line key={"sg" + n.id} x1={cx} y1={cy} x2={q[0].toFixed(1)} y2={q[1].toFixed(1)} stroke={glintC} strokeWidth="2.4" strokeLinecap="round" pathLength="1" strokeDasharray="0.3 1" style={{ animation: "bosSunSurge 0.6s ease " + (i * 0.04).toFixed(2) + "s both" }} />;
             })}
           </g>
         ) : null}
         {Array.apply(null, Array(Math.min(anon, 6))).map(function (_x, i) {
           var a = ((i * 63 + 18) % 360) * Math.PI / 180, rr = orbPx / 2 + 12 + (i % 3) * 6;
-          return <circle key={"ff" + i} cx={(cx + Math.cos(a) * rr).toFixed(1)} cy={(cy + Math.sin(a) * rr * 0.9).toFixed(1)} r="2.5" fill={glowC} style={{ animation: "bosSunFire 2.6s ease-in-out " + (i * 0.45).toFixed(2) + "s infinite" }} />;
+          return <circle key={"ff" + i} cx={(cx + Math.cos(a) * rr).toFixed(1)} cy={(cy + Math.sin(a) * rr * 0.9).toFixed(1)} r="2.5" fill={fireflyC} style={{ animation: "bosSunFire 2.6s ease-in-out " + (i * 0.45).toFixed(2) + "s infinite" }} />;
         })}
         {(sparkOn && meIn) ? (
-          <circle key="spark" r="2.5" fill={glowC} opacity="0">
+          <circle key="spark" r="2.5" fill={glintC} opacity="0">
             <animate attributeName="cx" from={posOf(meNode)[0].toFixed(1)} to={cx} dur="0.85s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
             <animate attributeName="cy" from={posOf(meNode)[1].toFixed(1)} to={cy} dur="0.85s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
             <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.2;0.85;1" dur="1s" begin="0.15s" fill="freeze" />
@@ -314,8 +323,8 @@ function BosEnvSunLive(props) {
 
       <div onClick={sendWarmth} className="tap" data-no-haptic style={{ position: "absolute", left: (cx / W * 100) + "%", top: (cy / H * 100) + "%", transform: "translate(-50%,-50%)", cursor: "pointer", pointerEvents: "auto" }}>
         <div key={"orb" + wave} style={{ animation: wave > 0 ? "bosSunInhale 0.7s cubic-bezier(.3,.7,.3,1) both" : undefined }}>
-          {Orb ? <Orb size={orbPx} tint={tint || undefined} intensity={avg != null ? 1.2 : 0.95} />
-               : <div style={{ width: orbPx, height: orbPx, borderRadius: "50%", background: "radial-gradient(circle at 42% 36%, " + ((tint && tint[0]) || "#e7eaf0") + ", " + glowC + ")" }} />}
+          {Orb ? <Orb size={orbPx} tint={softTint || undefined} intensity={avg != null ? 1.05 : 0.9} />
+               : <div style={{ width: orbPx, height: orbPx, borderRadius: "50%", background: "radial-gradient(circle at 42% 36%, " + ((softTint && softTint[0]) || "#e7eaf0") + ", " + ((softTint && softTint[1]) || "#c4c9d2") + ")" }} />}
         </div>
       </div>
 
@@ -333,7 +342,7 @@ function BosEnvSunLive(props) {
               <div style={{ animation: driftCls[i % 3] + " " + (8 + (i % 4)) + "s ease-in-out " + (-(i * 1.3)).toFixed(1) + "s infinite", opacity: dim, transition: "opacity 0.5s ease" }}>
                 <div style={{ position: "relative", transform: (hot ? "scale(1.08)" : "scale(1)") + leanT, transition: "transform 0.35s ease" }}>
                   {bosEnvNode(n.avatar, n.name, n.size, dark, !!n.you && meIn)}
-                  {n.inF ? <span style={{ position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: "50%", background: glowC, boxShadow: "0 0 0 2px var(--card), 0 0 7px " + glowC }} /> : null}
+                  {n.inF ? <span style={{ position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: "50%", background: pearlBg, boxShadow: "0 0 0 2px var(--card), 0 1px 2px rgba(0,0,0,0.28), inset 0 0.5px 0.5px rgba(255,255,255,0.9)" }} /> : null}
                 </div>
               </div>
             </div>
@@ -379,8 +388,8 @@ function BosEnvPersonCardLive(props) {
       {p.inviter ? <div style={{ textAlign: "center", fontSize: 12.5, color: sub, marginTop: 2 }}>позвал тебя</div> : null}
       {inFaces ? (
         <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: txt, background: glowC + "26", border: "0.5px solid " + glowC + "55", borderRadius: 999, padding: "6px 13px" }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: glowC, boxShadow: "0 0 6px " + glowC }} /> Влился сегодня
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: txt, background: dark ? "rgba(255,255,255,0.08)" : "rgba(120,130,145,0.10)", border: dark ? "0.5px solid rgba(255,255,255,0.14)" : "0.5px solid rgba(120,130,145,0.28)", borderRadius: 999, padding: "6px 13px" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: dark ? "radial-gradient(circle at 40% 34%, #ffffff, #aab2c0)" : "radial-gradient(circle at 40% 34%, #ffffff, #d7dce4)", boxShadow: "0 1px 2px rgba(0,0,0,0.25), inset 0 0.5px 0.5px rgba(255,255,255,0.9)" }} /> Влился сегодня
           </span>
         </div>
       ) : null}
