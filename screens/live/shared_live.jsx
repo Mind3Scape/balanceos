@@ -2765,17 +2765,29 @@ var BOS_STATE = [
 // хорошо» (одно значение), чипы = «что именно чувствуешь» (несколько, мультивыбор). Храним id-шники в
 // dayNotes[день].tags (инфраструктура уже была). Орб/чипы красятся ОДНИМ цветом текущей валентности →
 // единая связанная структура состояния.
+// lo/hi = диапазон валентности (0..6), в котором грань уместна. David 2026-07-09: «Тревога/
+// Раздражение не должны висеть при Хорошо». Светлые грани живут вверху шкалы, тяжёлые — внизу,
+// спокойные (Спокойствие/Собран) — почти во всём диапазоне. Уже выбранную грань НЕ прячем.
 var BOS_FACETS = [
-  { id: "energy",   i: "⚡",  t: "Энергия" },
-  { id: "calm",     i: "🌿",  t: "Спокойствие" },
-  { id: "joy",      i: "😊",  t: "Радость" },
-  { id: "inspired", i: "✨",  t: "Вдохновение" },
-  { id: "focus",    i: "🎯",  t: "Собран" },
-  { id: "tired",    i: "😮‍💨", t: "Усталость" },
-  { id: "anxious",  i: "😣",  t: "Тревога" },
-  { id: "sad",      i: "😔",  t: "Грусть" },
-  { id: "angry",    i: "😤",  t: "Раздражение" },
+  { id: "energy",   i: "⚡",  t: "Энергия",     lo: 3, hi: 6 },
+  { id: "calm",     i: "🌿",  t: "Спокойствие", lo: 2, hi: 6 },
+  { id: "joy",      i: "😊",  t: "Радость",     lo: 4, hi: 6 },
+  { id: "inspired", i: "✨",  t: "Вдохновение", lo: 4, hi: 6 },
+  { id: "focus",    i: "🎯",  t: "Собран",      lo: 3, hi: 6 },
+  { id: "tired",    i: "😮‍💨", t: "Усталость",   lo: 0, hi: 3 },
+  { id: "anxious",  i: "😣",  t: "Тревога",     lo: 0, hi: 2 },
+  { id: "sad",      i: "😔",  t: "Грусть",      lo: 0, hi: 2 },
+  { id: "angry",    i: "😤",  t: "Раздражение", lo: 0, hi: 2 },
 ];
+// Грани под текущую валентность (bucket 0..6) + всё, что уже отмечено (чтобы выбор не пропадал при
+// сдвиге слайдера). Пустой набор невозможен — Спокойствие/Собран/Усталость покрывают середину.
+function bosFacetsForBucket(bucket, tags) {
+  var b = Math.max(0, Math.min(6, bucket | 0));
+  var sel = Array.isArray(tags) ? tags : [];
+  return BOS_FACETS.filter(function (f) {
+    return (b >= (f.lo || 0) && b <= (f.hi != null ? f.hi : 6)) || sel.indexOf(f.t) >= 0;
+  });
+}
 // Храним ЯРЛЫК (Энергия…), а не id — так грани естественно ложатся в существующий показ тегов дня
 // (журнал: «#Энергия») и в XP-«отмечено». Резолвер по ярлыку добавляет эмодзи для показа в виджете.
 function bosFacetByLabel(t) { for (var i = 0; i < BOS_FACETS.length; i++) { if (BOS_FACETS[i].t === t) return BOS_FACETS[i]; } return null; }
@@ -2886,7 +2898,7 @@ function StateSheetLive(props) {
       <div style={{ marginTop: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.2, color: subMuted, marginBottom: 9, textAlign: "left" }}>Что ближе — можно несколько</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "flex-start" }}>
-          {BOS_FACETS.map((f) => {
+          {bosFacetsForBucket(bucket, tags).map((f) => {
             const on = tags.indexOf(f.t) >= 0;
             const selC = (BOS_STATE[bucket] || BOS_STATE[3]).c;
             return (
@@ -5789,10 +5801,13 @@ function UniverseFieldLive({ app, people, from, onClose }) {
     var peopleN = s.people || 0;
     var weight = Math.min(hb.length + peopleN, 16);
     var size = Math.round(122 + Math.min(weight, 14) * 5.4);   // диаметр системы на экране, ~122..198px
-    // habits → объекты, которые читает OrbitField (.emoji/.color/.streak/.id); люди → обезличенные лица.
+    // habits → объекты, которые читает OrbitField (.emoji/.color/.streak/.id); люди → РЕАЛЬНЫЕ лица.
     var habits = hb.slice(0, 12).map(function (h, i) { return { emoji: (h && h.e) || "✨", color: h && h.c, streak: 0, id: "ph" + i }; });
+    // Лица на орбите = настоящие аватарки (pub_orbit.faces), а не заглушка → старый мемоджи в очках
+    // (David). Нет faces (витрина ещё не перепубликована этим человеком) → null → мягкая заглушка.
+    var faces = Array.isArray(s.faces) ? s.faces : [];
     var people = [];
-    for (var pi = 0; pi < Math.min(peopleN, 10); pi++) people.push({ avatar: null, name: "" });
+    for (var pi = 0; pi < Math.min(peopleN, 10); pi++) people.push({ avatar: faces[pi] || null, name: "" });
     // footprint < size/2: видимая орбита заметно меньше своего 300-бокса (значки в пределах ~внутренних
     // поясов), поэтому ужимаем зону размещения, чтобы во «Вселенную» влезало больше систем без наезда.
     return { s: s, size: size, level: s.level || 0, lvlPct: s.lvlPct || 2, habits: habits, people: people, weight: weight, footprint: Math.round(size * 0.42 + 8) };

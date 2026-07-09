@@ -45,14 +45,24 @@ function ProfileLive() {
     let on = true;
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
-        const _mk = (p) => ({ avatar: (p && p.avatar) || "default", name: (p && (p.username || p.name)) || "" });
+        const _me = (window.bosCloud.uidSync && window.bosCloud.uidSync()) || null;
+        const _mk = (p) => ({ id: (p && p.id) || null, avatar: (p && p.avatar) || "default", name: (p && (p.username || p.name)) || "" });
         Promise.all([
           window.bosCloud.invitedPeople().catch(() => []),
           (window.bosCloud.myInviter ? window.bosCloud.myInviter() : Promise.resolve(null)).catch(() => null),
         ]).then(([list, inv]) => {
           if (!on) return;
-          const out = (Array.isArray(list) ? list : []).map(_mk);
-          if (inv && inv.username) out.unshift(_mk(inv)); // зовущий — первым, ближе всех
+          // Себя на своей орбите быть не должно (ты — центр), и один человек не двоится, даже если
+          // пришёл из двух источников (баг «вижу себя дважды»): фильтр self по id + дедуп по id.
+          const _raw = [];
+          if (inv && inv.username) _raw.push(_mk(inv)); // зовущий — первым, ближе всех
+          (Array.isArray(list) ? list : []).forEach((p) => _raw.push(_mk(p)));
+          const _seen = {};
+          const out = _raw.filter((x) => {
+            if (_me && x.id && x.id === _me) return false;
+            const k = x.id || ("n:" + x.avatar + "|" + x.name);
+            if (_seen[k]) return false; _seen[k] = 1; return true;
+          });
           // «Пусто = правда»-защита: invitedPeople при обрыве возвращает [] (неотличимо от «нет друзей»).
           // Приглашённые/пригласивший сами не исчезают, поэтому пустой ответ ПРИ ЖИВОМ КЭШЕ = обрыв →
           // не затираем орбиту пустотой (у НОВОГО юзера кэш пуст → пустой ответ проходит, это верно).
@@ -79,9 +89,11 @@ function ProfileLive() {
   // Скрытые копии привычек круга (shelved, Г) и goalOnly не светятся ни на орбите, ни в витрине.
   const _visHabits = (app?.habits || []).filter((h) => !h.shelved && !h.goalOnly);
   const _pubHabits = _visHabits.map((h) => ({ e: h.emoji, c: h.color }));
-  const _pubSig = JSON.stringify(_pubHabits) + "|" + orbitPeople.length + "|" + lvlNum + "|" + lvlPct + "|" + (app?.goals || []).length;
+  // Реальные лица людей на орбите → во «Вселенную» (David: «настоящие аватарки на орбитах, не мемоджи»).
+  const _pubFaces = orbitPeople.map((p) => p.avatar || "default").slice(0, 10);
+  const _pubSig = JSON.stringify(_pubHabits) + "|" + orbitPeople.length + "|" + JSON.stringify(_pubFaces) + "|" + lvlNum + "|" + lvlPct + "|" + (app?.goals || []).length;
   React.useEffect(() => {
-    try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, lvlPct: lvlPct, habits: _pubHabits, goals: (app?.goals || []).length, people: orbitPeople.length }); } catch (e) {}
+    try { if (window.bosCloud && window.bosCloud.enabled() && window.bosCloud.savePublicStats) window.bosCloud.savePublicStats({ level: lvlNum, lvlPct: lvlPct, habits: _pubHabits, goals: (app?.goals || []).length, people: orbitPeople.length, faces: _pubFaces }); } catch (e) {}
   }, [_pubSig]);
 
   // Achievements badge — REAL earned set + emojis.

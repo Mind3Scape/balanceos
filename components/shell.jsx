@@ -1440,6 +1440,7 @@ function AppProvider({ children }) {
         var _locAv = _av0;
         window.bosCloud.signIn(_refBy).then(function (u) {
           if (!u) { _doneHydrate(); return; }
+          var _myUid = u && u.id; // моя РЕАЛЬНАЯ облачная id — для гарда «открыл собственную ссылку»
           window.bosCloud.loadProfile().then(function (prof) {
             if (prof && (prof.username || prof.avatar)) {
               if (prof.username) setUserName(prof.username);
@@ -1600,6 +1601,9 @@ function AppProvider({ children }) {
                 if (!_joinShareId || !window.bosCloud.joinSharedHabit) return;
                 return window.bosCloud.joinSharedHabit(_joinShareId).then(function (sh) {
                   if (!sh) return;
+                  // Своя же привычка (открыл собственную ссылку hb_<code>) — НЕ заводим вторую копию и не
+                  // показываем «X зовёт вступить»: ты уже владелец и участник (баг «дублируюсь дважды»).
+                  if (sh.owner_id && _myUid && sh.owner_id === _myUid) { try { history.replaceState(null, "", window.location.pathname); } catch (e) {} return; }
                   setHabits(function (prev) {
                     if ((prev || []).some(function (x) { return x.shareCode === _joinShareId; })) return prev || [];
                     var nh = bosRollHabit({ id: _nid(), cloudId: _uuid(), name: sh.name || "Привычка", emoji: sh.emoji || "✨", color: sh.color || null, shareCode: _joinShareId, log: {}, done: false, streak: 0, days: [1, 1, 1, 1, 1, 1, 1], goalPerDay: 1 });

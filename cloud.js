@@ -27,7 +27,9 @@
   }
   async function uid() {
     if (_uid) return _uid;
-    var u = await currentUser(); _uid = u ? u.id : null; return _uid;
+    var u = await currentUser(); _uid = u ? u.id : null;
+    try { if (_uid) localStorage.setItem("bos:lastUid", _uid); } catch (e) {}
+    return _uid;
   }
   // Синхронный доступ к уже известному uid (после авторизации _uid закэширован). Нужен, чтобы лица
   // круга СРАЗУ знали «меня» и на первом рендере НЕ мелькал свой аватар среди чужих (David).
@@ -58,16 +60,21 @@
       return existing;
     }
     if (inTelegram()) {
+      // Гард само-реферала и на «свежей» двери (ветка без активной сессии): если ссылка несёт МОЙ
+      // же прежний uid (открыл собственную ссылку hb_<code>__<uid> после того, как сессия протухла),
+      // реферал сбрасываем — иначе сервер запишет «сам себя пригласил» → двойники в друзьях/на орбите.
+      var _lastUid = null; try { _lastUid = localStorage.getItem("bos:lastUid"); } catch (e) {}
+      var _refSafe = (referredBy && referredBy !== _lastUid) ? referredBy : null;
       try {
         var resp = await fetch(URL + "/functions/v1/tg-auth", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + KEY, "apikey": KEY },
-          body: JSON.stringify({ initData: window.__TG.initData, referredBy: referredBy || null }),
+          body: JSON.stringify({ initData: window.__TG.initData, referredBy: _refSafe }),
         });
         var j = await resp.json();
         if (j && j.email && j.otp) {
           var v = await c.auth.verifyOtp({ email: j.email, token: j.otp, type: "email" });
-          if (v && v.data && v.data.user) { _uid = v.data.user.id; return v.data.user; }
+          if (v && v.data && v.data.user) { _uid = v.data.user.id; try { if (_uid) localStorage.setItem("bos:lastUid", _uid); } catch (e) {} return v.data.user; }
         }
       } catch (e) { /* fall through to local */ }
       return null;
@@ -133,7 +140,7 @@
   // People you've brought in (orbit): profiles referred by you, in invite order.
   async function invitedPeople() {
     var c = client(); var id = await uid(); if (!c || !id) return [];
-    try { var r = await c.from("profiles").select("id,username,avatar,created_at").eq("referred_by", id).order("created_at", { ascending: true }); return r.data || []; }
+    try { var r = await c.from("profiles").select("id,username,avatar,created_at").eq("referred_by", id).order("created_at", { ascending: true }); return (r.data || []).filter(function (p) { return p && p.id !== id; }); } // self-фильтр: себя среди «кого пригласил» не показываем (баг «Давид пригласил Давид»)
     catch (e) { return []; }
   }
   // The person who brought ME in (my profiles.referred_by → their profile), so the
@@ -149,6 +156,7 @@
       try {
         var me = await c.from("profiles").select("referred_by").eq("id", id).maybeSingle();
         var rid = me.data && me.data.referred_by;
+        if (rid && rid === id) rid = null; // никогда не «сам себя пригласил» (баг «Давид пригласил Давид»)
         var out = null;
         if (rid) { var r = await c.from("profiles").select("id,username,avatar").eq("id", rid).maybeSingle(); out = r.data || null; }
         _inviterMem = out;
@@ -181,12 +189,17 @@
     // что опубликовал экран «Я» — иначе каждый заход на Главную стирал бы планеты у друзей.
     var last = {}, lastRaw = null; try { lastRaw = localStorage.getItem("bos:pubOrbit:last"); last = JSON.parse(lastRaw || "{}") || {}; } catch (e) {}
     var hb = Array.isArray(s.habits) ? s.habits : (Array.isArray(last.habits) ? last.habits : []);
+    // faces = РЕАЛЬНЫЕ аватарки людей на твоей орбите (David: «настоящие аватарки, а не старый мемоджи в
+    // очках»). Шлёт их ТОЛЬКО экран «Я» (он знает людей с аватарами); Главная faces не шлёт → тот же мерж
+    // с последней витриной, что и people, чтобы Главная не затирала лица нулём.
+    var fc = Array.isArray(s.faces) ? s.faces : (Array.isArray(last.faces) ? last.faces : []);
     var blob = {
       level: (s.level == null ? last.level : s.level) | 0,
       lvlPct: (s.lvlPct == null ? last.lvlPct : s.lvlPct) | 0,
       goals: (s.goals == null ? last.goals : s.goals) | 0,
       people: (s.people == null ? last.people : s.people) | 0,
       habits: hb.slice(0, 12).map(function (h) { return { e: ("" + ((h && h.e) || "✨")).slice(0, 8), c: (h && h.c) || null }; }),
+      faces: fc.slice(0, 10).map(function (a) { return ("" + (a || "default")).slice(0, 40); }),
     };
     var blobStr = JSON.stringify(blob);
     // ДЕДУП: «Я» и Главная публикуют витрину при КАЖДОМ заходе — если ничего не изменилось, не
@@ -211,7 +224,7 @@
       var r = null;
       for (var i = 0; i < cols.length; i++) { r = await c.from("profiles").select(cols[i]).in("id", ids); if (!r.error) break; }
       if (!r || r.error || !r.data) return {};
-      var out = {}; r.data.forEach(function (p) { var o = p.pub_orbit || {}; out[p.id] = { level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0, offer: p.offer || null, lastActive: p.last_active || null }; }); return out;
+      var out = {}; r.data.forEach(function (p) { var o = p.pub_orbit || {}; out[p.id] = { level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0, faces: Array.isArray(o.faces) ? o.faces : [], offer: p.offer || null, lastActive: p.last_active || null }; }); return out;
     } catch (e) { return {}; }
   }
   // ВСЕ пользователи для «Вселенной»: каждый, кто опубликовал витрину орбиты (pub_orbit not null).
@@ -229,7 +242,7 @@
       if (r.error || !r.data) return [];
       return r.data.filter(function (p) { return p && p.id && p.id !== me; }).map(function (p) {
         var o = p.pub_orbit || {};
-        return { id: p.id, avatar: p.avatar || "default", name: "", level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0, referredBy: p.referred_by || null, offer: p.offer || null };
+        return { id: p.id, avatar: p.avatar || "default", name: "", level: o.level || 0, lvlPct: o.lvlPct || 2, habits: Array.isArray(o.habits) ? o.habits : [], goals: o.goals || 0, people: o.people || 0, faces: Array.isArray(o.faces) ? o.faces : [], referredBy: (p.referred_by && p.referred_by !== p.id) ? p.referred_by : null, offer: p.offer || null }; // referredBy!==id: само-реферал не рисует связь-петлю на себя
       });
     } catch (e) { return []; }
   }
