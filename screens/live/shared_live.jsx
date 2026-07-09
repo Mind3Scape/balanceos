@@ -4436,55 +4436,18 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
   const _heroLI = ((typeof bosLevelInfoLive === "function") ? bosLevelInfoLive(_heroXp) : null) || {};
   const _heroPct = _heroLI.pct || 0;
   const _heroLevel = _heroLI.level || 0;
-  const _daily = (typeof bosDailyBalanceLive === "function") ? bosDailyBalanceLive(heroApp) : null;
-  const _dailyNext = _daily && _daily.next;
-  const _dailyTitle = _daily && _daily.complete ? "День собран" : "Собери сегодняшний Balance";
-  // ИИ-сводка — личность главной; статус цикла и так несут чипы ниже, поэтому подзаголовок
-  // остаётся живой фразой дня, а не дублирует «закрой день: …» статикой.
-  const _dailySub = _homeSummary;
-  const _goDailyNext = () => {
-    if (!_dailyNext) return;
-    if (_dailyNext.route === "state") return _openSheet(<StateSheetLive />);
-    if (_dailyNext.route === "create-habit") return _openSheet(<HabitFormSheetLive mode="create" navigate={navigate} />);
-    // «Сделать ход»/«Отметиться вместе» ведут в конкретную привычку (там большое кольцо
-    // отметки): navigate("habits") в live — это та же главная, тап был бы пустым.
-    const _hs = ((heroApp && heroApp.habits) || []).filter((x) => x && !x.shelved && !x.goalOnly);
-    const _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
-    const _target = _dailyNext.id === "link"
-      ? _hs.find((x) => x.shareCode || x.teamHabitId)
-      : (_hs.find((x) => !(x.log && _tk && x.log[_tk])) || _hs[0]);
-    if (_target) return navigate("habit-detail", { habit: _target, from: "home" });
-    if (_dailyNext.route && _dailyNext.route !== "habits") navigate(_dailyNext.route);
-  };
-  // Золото на главной — только у XP-кольца; выполненная часть дня = стеклянный чек,
-  // тем же материалом, что все чекбоксы приложения.
-  const _dailyPartChips = _daily && _daily.parts ? (
-    <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-      {_daily.parts.map((p) => (
-        <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, borderRadius: 999, padding: "7px 10px", fontSize: 12, fontWeight: 700,
-          ...(p.done ? bosChipGlass(isDark) : { background: isDark ? "rgba(255,255,255,0.07)" : "var(--surface-3)" }),
-          color: p.done ? "var(--text)" : "var(--text-3)" }}>
-          <span style={{ fontSize: 12 }}>{p.done ? "✓" : p.icon}</span>{p.label}
-        </span>
-      ))}
-    </div>
-  ) : null;
+  // «Баланс дня» на главной НЕ показывается (David 2026-07-09: «оттуда это зачистить») —
+  // герой как был: живая ИИ-строка + чипы-подсказки. Сам цикл живёт в shell (bosDailyBalanceLive)
+  // и говорит только шторкой «День собран», когда день реально собран.
 
   const page1 = newbie ? (
     <div key="hints" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div key={_dailyTitle + _dailySub} style={{ ...BOS_AI_TEXT, animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.35px", lineHeight: 1.08 }}>{_dailyTitle}</div>
-            <div style={{ marginTop: 5, color: "var(--text-3)", lineHeight: 1.34 }}>{_dailySub}</div>
-          </div>
+          <div key={_homeSummary} style={{ ...BOS_AI_TEXT, animation: _liveBrief ? "briefFade 0.5s ease both" : undefined }}><span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_liveBrief ? _homeSummary : "Расскажи о себе — и я подскажу, с каких привычек начать."}</div>
         </div>
         <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={56} isDark={isDark} />
       </div>
-      {_dailyPartChips}
-      {_daily && !_daily.complete && _dailyNext && (
-        <button onClick={_goDailyNext} className="tap" style={{ width: "100%", border: 0, borderRadius: 16, padding: "11px 13px", background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", fontSize: 13.5, fontWeight: 700, textAlign: "center" }}>{_dailyNext.cta}</button>
-      )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
           { i: "🙋", t: "Рассказать о себе", go: () => navigate("ai-chat", { prompt: "Я хочу рассказать о себе — задай мне пару коротких вопросов и подскажи, с каких привычек начать." }) },
@@ -4504,17 +4467,12 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
     <div key="quote" style={{ position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div key={_dailyTitle + _dailySub} style={{ ...BOS_AI_TEXT, animation: "briefFade 0.5s ease both" }}>
-            <div style={{ fontSize: 18.5, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.35px", lineHeight: 1.08 }}>{_dailyTitle}</div>
-            <div style={{ marginTop: 5, color: "var(--text-3)", lineHeight: 1.34 }}>{_dailySub}</div>
+          <div key={_homeSummary} style={{ ...BOS_AI_TEXT, animation: "briefFade 0.5s ease both" }}>
+            <span style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }}><I.Sparkles size={13} color="#EF9F14" filled strokeWidth={0} /></span>{_homeSummary}
           </div>
         </div>
         <HeroAccountAvatarLive navigate={navigate} avatar={heroApp?.avatar} pct={_heroPct} level={_heroLevel} size={64} isDark={isDark} />
       </div>
-      {_dailyPartChips}
-      {_daily && !_daily.complete && _dailyNext && (
-        <button onClick={_goDailyNext} className="tap" style={{ width: "100%", border: 0, borderRadius: 16, padding: "11px 13px", marginTop: 12, background: isDark ? "#fff" : "#0a0a0a", color: isDark ? "#0a0a0a" : "#fff", fontSize: 13.5, fontWeight: 700, textAlign: "center" }}>{_dailyNext.cta}</button>
-      )}
       <div key={_pillsKey} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
         {(_livePills || ((typeof bosMixPillsLive === "function") ? bosMixPillsLive : (x) => x)([
           { i: "✨", t: "ИИ: спланируй день" },

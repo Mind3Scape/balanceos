@@ -28,43 +28,46 @@ drop policy if exists day_pulse_update_own on public.day_pulse;
 create policy day_pulse_update_own on public.day_pulse
   for update to authenticated using (auth.uid() = uid) with check (auth.uid() = uid);
 
--- select-политики НЕТ намеренно: читать строки не может никто, даже владелец.
-revoke all on public.day_pulse from anon, authenticated;
-grant insert, update on public.day_pulse to authenticated;
+-- Владелец может читать ТОЛЬКО свою строку (нужно для upsert: ON CONFLICT DO UPDATE в
+-- Postgres требует права SELECT). Чужие строки закрыты RLS — приватность не страдает.
+drop policy if exists day_pulse_select_own on public.day_pulse;
+create policy day_pulse_select_own on public.day_pulse
+  for select to authenticated using (auth.uid() = uid);
 
+revoke all on public.day_pulse from anon, authenticated;
+grant select, insert, update on public.day_pulse to authenticated;
+
+-- Чистый SQL без временных таблиц: в базе включена защита «DELETE без WHERE запрещён»,
+-- и plpgsql-вариант с temp-таблицей падал на её очистке (код 21000).
 create or replace function public.bos_env_pulse(p_uids uuid[], p_day date)
 returns jsonb
-language plpgsql security definer set search_path = public as $$
-declare
-  k int; s numeric; faces jsonb;
-begin
-  if p_uids is null or coalesce(array_length(p_uids, 1), 0) = 0 or array_length(p_uids, 1) > 60 or p_day is null then
-    return jsonb_build_object('marked', 0, 'faces', '[]'::jsonb);
-  end if;
-
-  -- только реально связанные с вызывающим: я сам / мои приглашённые / мой пригласивший
-  create temp table if not exists _pulse_allowed (uid uuid primary key) on commit drop;
-  delete from _pulse_allowed;
-  insert into _pulse_allowed
-    select distinct u from unnest(p_uids) as u
-    where u = auth.uid()
-       or exists (select 1 from public.profiles pr where pr.id = u and pr.referred_by = auth.uid())
-       or exists (select 1 from public.profiles me where me.id = auth.uid() and me.referred_by = u)
-    on conflict do nothing;
-
-  select count(*), avg(dp.bucket) into k, s
-    from public.day_pulse dp join _pulse_allowed a on a.uid = dp.uid
-   where dp.day = p_day;
-
-  select coalesce(jsonb_agg(dp.uid), '[]'::jsonb) into faces
-    from public.day_pulse dp join _pulse_allowed a on a.uid = dp.uid
-   where dp.day = p_day and dp.show_face;
-
-  if k >= 3 then
-    return jsonb_build_object('marked', k, 'avg', round(s, 2), 'faces', faces);
-  end if;
-  return jsonb_build_object('marked', k, 'faces', faces);
-end $$;
+language sql security definer set search_path = public as $$
+  with allowed as (
+    select distinct u as uid
+    from unnest(coalesce(p_uids, '{}'::uuid[])) as u
+    where coalesce(array_length(p_uids, 1), 0) between 1 and 60
+      and (u = auth.uid()
+           or exists (select 1 from public.profiles pr where pr.id = u and pr.referred_by = auth.uid())
+           or exists (select 1 from public.profiles me where me.id = auth.uid() and me.referred_by = u))
+  ),
+  hits as (
+    select dp.uid, dp.bucket, dp.show_face
+    from public.day_pulse dp
+    join allowed a on a.uid = dp.uid
+    where dp.day = p_day
+  )
+  select case
+    when (select count(*) from hits) >= 3 then
+      jsonb_build_object(
+        'marked', (select count(*) from hits),
+        'avg',    round((select avg(bucket) from hits), 2),
+        'faces',  coalesce((select jsonb_agg(uid) from hits where show_face), '[]'::jsonb))
+    else
+      jsonb_build_object(
+        'marked', coalesce((select count(*) from hits), 0),
+        'faces',  coalesce((select jsonb_agg(uid) from hits where show_face), '[]'::jsonb))
+  end;
+$$;
 
 revoke all on function public.bos_env_pulse(uuid[], date) from public, anon;
 grant execute on function public.bos_env_pulse(uuid[], date) to authenticated;
