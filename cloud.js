@@ -108,6 +108,28 @@
       if (!r.error) { try { localStorage.setItem("bos:lastActive:touch", "" + Date.now()); } catch (e2) {} }
     } catch (e) {}
   }
+  // «Пульс дня»: валентность сегодняшнего состояния (0..6) вливается в общий баланс окружения.
+  // Приватность в ДАННЫХ: строку day_pulse не может прочитать никто (RLS без select) — наружу
+  // отдаёт только серверный агрегат bos_env_pulse, и только когда влились ≥3. show_face =
+  // «показывать меня в круге» (точка у лица); сам тон не раскрывается никогда. Прямая запись
+  // как touchActive: тихий no-op до применения patch_day_pulse.sql.
+  async function savePulse(day, bucket, showFace) {
+    try {
+      var c = client(); var id = await uid(); if (!c || !id || !day || bucket == null) return;
+      await c.from("day_pulse").upsert({ uid: id, day: day, bucket: Math.max(0, Math.min(6, Math.round(bucket))), show_face: !!showFace, updated_at: new Date().toISOString() }, { onConflict: "uid,day" });
+    } catch (e) {}
+  }
+  // Агрегат пульса круга: {marked, avg?, faces:[uid]} либо null (нет патча/сети). Мой uid
+  // добавляется сам; день — локальная дата клиента (bosTodayKey), не серверный UTC.
+  async function envPulse(ids, day) {
+    try {
+      var c = client(); var id = await uid(); if (!c || !id || !day) return null;
+      var all = [id].concat((ids || []).filter(function (x) { return x && x !== id; })).slice(0, 60);
+      var r = await c.rpc("bos_env_pulse", { p_uids: all, p_day: day });
+      if (r.error || !r.data) return null;
+      return r.data;
+    } catch (e) { return null; }
+  }
   // People you've brought in (orbit): profiles referred by you, in invite order.
   async function invitedPeople() {
     var c = client(); var id = await uid(); if (!c || !id) return [];
@@ -1154,7 +1176,7 @@
     enabled: function () { return !!client(); },
     inTelegram: inTelegram,
     signIn: signIn, uid: uid, uidSync: uidSync, currentUser: currentUser,
-    loadProfile: loadProfile, saveProfile: saveProfile, saveOffer: saveOffer, touchActive: touchActive, invitedPeople: invitedPeople, myInviter: myInviter, refCode: refCode, inviteCode: inviteCode,
+    loadProfile: loadProfile, saveProfile: saveProfile, saveOffer: saveOffer, touchActive: touchActive, savePulse: savePulse, envPulse: envPulse, invitedPeople: invitedPeople, myInviter: myInviter, refCode: refCode, inviteCode: inviteCode,
     savePublicStats: savePublicStats, profilesPublic: profilesPublic, allPublic: allPublic,
     saveSnapshot: saveSnapshot, loadSnapshot: loadSnapshot,
     loadHabits: loadHabits, upsertHabit: upsertHabit, deleteHabit: deleteHabit, toggleHabitLog: toggleHabitLog,

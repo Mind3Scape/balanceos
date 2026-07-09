@@ -647,6 +647,18 @@ function HomeLive() {
       );
     }
 
+    if (id === "env") {
+      // «Баланс окружения» — мини-светило общего тона своих (env_balance_live). ВЫКЛ по умолчанию.
+      const _envHide = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:env") }];
+      return (
+        <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: cardShadow, transform: "translateZ(0)" }}>
+          <SwipeRow rowBg={rowBg} dark={isDark} actions={_envHide}>
+            {(typeof EnvPulseWidgetLive === "function") ? <EnvPulseWidgetLive navigate={navigate} isDark={isDark} /> : null}
+          </SwipeRow>
+        </div>
+      );
+    }
+
     if (id === "tasks") {
       // «Дела» — локальный todo-виджет (списки-вкладки, разовые дела). Свайп ряда → «Убрать».
       const _hideTasks = [{ key: "hide", tone: "delete", label: "Убрать", icon: I.X, onAction: () => hideKey("w:tasks") }];

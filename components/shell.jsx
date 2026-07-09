@@ -1703,6 +1703,26 @@ function AppProvider({ children }) {
     setPendingDayClose({ day: db.today, balance: db, ts: Date.now() });
   }, [mode, persistId, habits, teams, dayMoods, dayNotes]);
 
+  // ── «Пульс дня» → общий баланс окружения ────────────────────────────────────
+  // Отметил состояние → одна цифра-тон (0..6) уезжает в day_pulse. Читается ТОЛЬКО
+  // серверным агрегатом от ≥3 влившихся (приватность в данных, patch_day_pulse.sql).
+  // show_face — настройка «показывать меня в круге» (точка у лица), хранится локально.
+  const pulseSentRef = useRef(null);
+  useEffect(() => {
+    if (mode !== "live" || !persistId) return;
+    if (hydratingRef.current) return;
+    try {
+      const tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+      const b = (tk && dayMoods) ? dayMoods[tk] : null;
+      if (b == null) return;
+      let show = false; try { show = localStorage.getItem("bos:pulseFaces") === "1"; } catch (e) {}
+      const key = persistId + ":" + tk + ":" + b + ":" + (show ? 1 : 0);
+      if (pulseSentRef.current === key) return;
+      pulseSentRef.current = key;
+      if (window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.savePulse) window.bosCloud.savePulse(tk, b, show);
+    } catch (e) {}
+  }, [mode, persistId, dayMoods]);
+
   const achSeenRef = useRef({ pid: null, ids: null });
   useEffect(() => {
     if (mode !== "live" || !persistId || typeof bosEarnedAchIdsLive !== "function") return;

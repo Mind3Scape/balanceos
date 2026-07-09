@@ -129,6 +129,117 @@ function bosEnvUsePeople() {
   return people;
 }
 
+// «Пульс дня» круга: {marked, avg?, faces:[uid]} из серверного агрегата bos_env_pulse.
+// Телефон НИКОГДА не получает чужих состояний — только общий тон (и то от ≥3 влившихся).
+var _bosEnvPulseCache;
+function bosEnvUsePulse(people) {
+  var st = React.useState(_bosEnvPulseCache || null);
+  var pulse = st[0], setPulse = st[1];
+  var ids = Array.isArray(people) ? people.map(function (p) { return p && p.id; }).filter(Boolean).join(",") : "";
+  React.useEffect(function () {
+    var on = true;
+    try {
+      if (!(window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.envPulse)) return;
+      var day = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+      if (!day) return;
+      window.bosCloud.envPulse(ids ? ids.split(",") : [], day).then(function (r) {
+        if (on && r) { _bosEnvPulseCache = r; setPulse(r); }
+      }).catch(function () {});
+    } catch (e) {}
+    return function () { on = false; };
+  }, [ids]);
+  return pulse;
+}
+
+// подпись под светилом — честная по слоям данных (агрегат → счётчик → только я)
+function bosEnvPulseCaption(pulse, total, meIn) {
+  var avg = (pulse && pulse.avg != null) ? Number(pulse.avg) : null;
+  var marked = (pulse && pulse.marked != null) ? pulse.marked : null;
+  if (avg != null) {
+    var w = null;
+    try { if (typeof bosStateResolve === "function") w = (bosStateResolve(Math.round(avg)) || {}).t; } catch (e) {}
+    return { main: (w ? w + " · " : "") + "влились " + marked + " из " + total, sub: "Общий тон дня. По одному состояния не видит никто — даже мы." };
+  }
+  if (marked != null) {
+    if (marked > 0) return { main: "Влились " + marked + " из " + total, sub: "Общий тон появится, когда вольются трое." };
+    return { main: "Сегодня ещё никто не влился", sub: meIn ? "Твой тон готов влиться первым." : "Отметь состояние — и вливай свой тон в общий." };
+  }
+  return { main: meIn ? "Пока это твой тон" : "Отметь состояние — начни общий тон", sub: "Общий появится, когда в круге вольются трое." };
+}
+
+/* СВЕТИЛО — общее состояние круга (гибрид A+B, David 2026-07-09): центр-орб общего тона,
+   нити к своим дышат (атом созвездия «Поделиться»), анонимные светлячки-вливания у центра.
+   Сами состояния не видны никому; точка у лица — только ФАКТ «влился сегодня» и только у
+   тех, кто сам включил «Показывать меня в круге». Моё лицо и моя точка — всегда (мой экран). */
+function BosEnvSunLive(props) {
+  var app = props.app || {};
+  var people = Array.isArray(props.people) ? props.people : [];
+  var pulse = props.pulse || null;
+  var dark = !!props.dark;
+  var size = props.size || 320;
+  var tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+  var myBucket = (tk && app.dayMoods && app.dayMoods[tk] != null) ? app.dayMoods[tk] : null;
+  var avg = (pulse && pulse.avg != null) ? Number(pulse.avg) : null;
+  var marked = (pulse && pulse.marked != null) ? pulse.marked : null;
+  var faces = (pulse && Array.isArray(pulse.faces)) ? pulse.faces : [];
+  var meIn = myBucket != null;
+
+  var v = avg != null ? Math.max(0, Math.min(1, avg / 6)) : (myBucket != null ? Math.max(0, Math.min(1, myBucket / 6)) : null);
+  var tint = null;
+  try { if (v != null && typeof bosStateTintForV === "function") tint = bosStateTintForV(v); } catch (e) {}
+  try { if (!tint && typeof tintFromMood === "function") tint = tintFromMood(dark ? "#8b93a3" : "#b7bcc7"); } catch (e2) {}
+  var glowC = (tint && tint[1]) || "#b7bcc7";
+
+  var shown = people.slice(0, 7);
+  var ringNodes = [{ you: true, avatar: app.avatar, name: app.userName || "Ты", show: meIn }]
+    .concat(shown.map(function (p) { return { avatar: p.avatar, name: p.name, show: faces.indexOf(p.id) >= 0 }; }));
+  var W = 320, H = 248, cx = 160, cy = 126, Rr = 100, N = ringNodes.length;
+  var pos = ringNodes.map(function (n, i) {
+    var a = (-90 + i * (360 / N) + (((i * 37) % 11) - 5)) * Math.PI / 180;
+    return { x: cx + Math.cos(a) * Rr, y: cy + Math.sin(a) * Rr * 0.88, n: n };
+  });
+  var linkCore = dark ? "rgba(214,220,232,0.44)" : "rgba(146,153,167,0.5)";
+  var linkShine = "rgba(255,255,255,0.7)";
+  var anon = (marked != null) ? Math.max(0, marked - faces.length - (meIn ? 1 : 0)) : 0;
+  var orbPx = 106;
+  var Orb = window.StateOrb;
+
+  return (
+    <div style={{ position: "relative", width: "100%", maxWidth: size, margin: "0 auto", aspectRatio: W + " / " + H }}>
+      <style>{"@keyframes bosEnvLinkPulse{from{stroke-dashoffset:0.2}to{stroke-dashoffset:-1}}@keyframes bosEnvFirefly{0%,100%{opacity:0.2}50%{opacity:0.95}}"}</style>
+      <svg viewBox={"0 0 " + W + " " + H} width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+        {pos.map(function (q, i) {
+          return (
+            <g key={"ln" + i} opacity={q.n.you ? 0.95 : 0.8}>
+              <line x1={cx} y1={cy} x2={q.x.toFixed(1)} y2={q.y.toFixed(1)} stroke={linkCore} strokeWidth="1.2" />
+              <line x1={cx} y1={cy} x2={q.x.toFixed(1)} y2={q.y.toFixed(1)} stroke={linkShine} strokeWidth="2.2" pathLength="1" strokeDasharray="0.18 1" style={{ animation: "bosEnvLinkPulse 3.4s ease-in-out " + (0.2 + i * 0.16).toFixed(2) + "s infinite" }} />
+            </g>
+          );
+        })}
+        {Array.apply(null, Array(Math.min(anon, 6))).map(function (_x, i) {
+          var a = ((i * 63 + 18) % 360) * Math.PI / 180, rr = orbPx / 2 + 13 + (i % 3) * 6;
+          return <circle key={"ff" + i} cx={(cx + Math.cos(a) * rr).toFixed(1)} cy={(cy + Math.sin(a) * rr * 0.9).toFixed(1)} r="2.6" fill={glowC} style={{ animation: "bosEnvFirefly 2.6s ease-in-out " + (i * 0.45).toFixed(2) + "s infinite" }} />;
+        })}
+      </svg>
+      <div style={{ position: "absolute", left: (cx / W * 100) + "%", top: (cy / H * 100) + "%", transform: "translate(-50%,-50%)" }}>
+        {Orb ? <Orb size={orbPx} tint={tint || undefined} intensity={avg != null ? 1.2 : 0.9} />
+             : <div style={{ width: orbPx, height: orbPx, borderRadius: "50%", background: "radial-gradient(circle at 42% 36%, " + ((tint && tint[0]) || "#e7eaf0") + ", " + glowC + ")" }} />}
+      </div>
+      {pos.map(function (q, i) {
+        var n = q.n;
+        return (
+          <div key={"nd" + i} style={{ position: "absolute", left: (q.x / W * 100) + "%", top: (q.y / H * 100) + "%", transform: "translate(-50%,-50%)", pointerEvents: "none", opacity: (n.show || n.you) ? 1 : 0.78 }}>
+            <div style={{ position: "relative" }}>
+              {bosEnvNode(n.avatar, n.name, n.you ? 34 : 30, dark, !!n.you)}
+              {n.show ? <span style={{ position: "absolute", right: -2, bottom: -2, width: 11, height: 11, borderRadius: "50%", background: glowC, boxShadow: "0 0 0 2px var(--card), 0 0 7px " + glowC }} /> : null}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // индекс окружения = средняя крепость людей, приподнятая твоим балансом
 function bosEnvIndex(people, myLight) {
   if (!people.length) return 0;
@@ -176,15 +287,11 @@ function BosEnvBalanceLive(props) {
   }
 
   var total = people.length;
-  var index = bosEnvIndex(people, myLight);
-  var word = bosEnvWord(index);
-  var invitedCount = people.filter(function (p) { return p.mine; }).length;
-
-  // хоровод: ТЫ + до 7 близких, ровно по кругу (ты — один из хоровода, не отдельный узел)
   var shown = people.slice(0, 7);
-  var ringNodes = [{ you: true, avatar: app.avatar, name: app.userName || "Ты" }].concat(shown);
-  var VW = 320, VH = 240, cx = 160, cy = 116, Rp = 98, N = ringNodes.length;
-  var pos = ringNodes.map(function (p, i) { var a = (-90 + i * (360 / N)) * Math.PI / 180; return { x: cx + Math.cos(a) * Rp, y: cy + Math.sin(a) * Rp * 0.9, p: p }; });
+  var pulse = bosEnvUsePulse(people);
+  var meIn = false;
+  try { var _tkB = (typeof bosTodayKey === "function") ? bosTodayKey() : null; meIn = !!(_tkB && app.dayMoods && app.dayMoods[_tkB] != null); } catch (e) {}
+  var cap = bosEnvPulseCaption(pulse, total + 1, meIn);
 
   // подсказка ИИ — реципрокность. Приоритет ЧЕСТНО: (1) кто затих/просел → поддержи; (2) кто предлагает
   // помощь (offer) → загляни к нему; (3) иначе — поделись сам. Имена в ИМЕНИТЕЛЬНОМ, глаголы нейтральные.
@@ -220,21 +327,13 @@ function BosEnvBalanceLive(props) {
       </button>
       )}
 
-      {/* кольцо-состояние + хоровод людей */}
-      <div style={{ position: "relative", width: "100%", aspectRatio: VW + " / " + VH, margin: "8px 0 2px" }}>
-        <svg viewBox={"0 0 " + VW + " " + VH} width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }}>
-          <circle cx={cx} cy={cy} r={Rp} fill="none" stroke={dark ? "rgba(214,220,232,0.10)" : "rgba(92,120,165,0.12)"} strokeWidth="1" />
-        </svg>
-        <div style={{ position: "absolute", left: (cx / VW * 100) + "%", top: (cy / VH * 100) + "%", transform: "translate(-50%,-50%)" }}>{bosEnvRing(index, word, total + " " + bosEnvPlural(total).toUpperCase(), 150, dark)}</div>
-        {pos.map(function (n, i) {
-          var p = n.p;
-          return (
-            <div key={"f" + i} style={{ position: "absolute", left: (n.x / VW * 100) + "%", top: (n.y / VH * 100) + "%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
-              {bosEnvNode(p.avatar, p.name, 40, dark, !!p.you)}
-              <div style={{ fontSize: 10, fontWeight: p.you ? 700 : 600, color: p.you ? "var(--text-2)" : "var(--text-3)", marginTop: 3, maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.you ? "Ты" : p.name}</div>
-            </div>
-          );
-        })}
+      {/* светило: общий тон круга + нити к своим (гибрид A+B — BosEnvSunLive) */}
+      <div style={{ margin: "6px 0 2px" }}>
+        <BosEnvSunLive app={app} people={people} pulse={pulse} dark={dark} size={320} />
+        <div style={{ textAlign: "center", marginTop: 2 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{cap.main}</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.4, marginTop: 2 }}>{cap.sub}</div>
+        </div>
       </div>
 
       {/* голос ИИ — реципрокность */}
@@ -291,9 +390,24 @@ function BosEnvBalanceFullLive() {
 
   var list = Array.isArray(people) ? people : [];
   var total = list.length;
-  var index = bosEnvIndex(list, myLight);
-  var word = bosEnvWord(index);
-  var invitedCount = list.filter(function (p) { return p.mine; }).length;
+  var pulse = bosEnvUsePulse(list);
+  var meInF = false;
+  try { var _tkF = (typeof bosTodayKey === "function") ? bosTodayKey() : null; meInF = !!(_tkF && app.dayMoods && app.dayMoods[_tkF] != null); } catch (e) {}
+  var cap = bosEnvPulseCaption(pulse, total + 1, meInF);
+
+  // «Показывать меня в круге» — гибрид A+B: точка у лица (факт вливания), сам тон не виден никому.
+  var pfSt = React.useState(function () { try { return localStorage.getItem("bos:pulseFaces") === "1"; } catch (e) { return false; } });
+  var pulseFaces = pfSt[0], setPulseFaces = pfSt[1];
+  var togglePulseFaces = function () {
+    var on = !pulseFaces;
+    setPulseFaces(on);
+    try { localStorage.setItem("bos:pulseFaces", on ? "1" : "0"); } catch (e) {}
+    try {
+      var tk3 = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+      var b3 = (tk3 && app.dayMoods) ? app.dayMoods[tk3] : null;
+      if (b3 != null && window.bosCloud && window.bosCloud.enabled && window.bosCloud.enabled() && window.bosCloud.savePulse) window.bosCloud.savePulse(tk3, b3, on);
+    } catch (e2) {}
+  };
   var SPH = bosEnvWheelData(list, app);
   var lowSphere = SPH.slice().sort(function (a, b) { return a.v - b.v; })[0];
 
@@ -308,11 +422,19 @@ function BosEnvBalanceFullLive() {
     <div className="page-in" style={{ padding: "0 16px 28px" }}>
       {typeof PageHeader === "function" ? <PageHeader onBack={function () { navigate("ai"); }} title="Баланс окружения" /> : null}
 
-      {/* герой: большое кольцо-состояние */}
-      <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "20px 16px 18px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        {bosEnvRing(index, word, total + " " + bosEnvPlural(total).toUpperCase(), 176, dark)}
-        <div style={{ fontSize: 13, lineHeight: 1.5, color: "var(--text-3)", textAlign: "center", marginTop: 12, maxWidth: 300 }}>
-          {index >= 55 ? "Твоё окружение в хорошем тонусе — вы держите баланс вместе." : "Окружение затихло — самое время поддержать своих и вернуть тонус."} Твой баланс питает общий: ты сам создаёшь окружение.
+      {/* герой: светило — общий тон круга (гибрид A+B) */}
+      <div style={{ background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "18px 16px 15px" }}>
+        <BosEnvSunLive app={app} people={list} pulse={pulse} dark={dark} size={340} />
+        <div style={{ textAlign: "center", marginTop: 4 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{cap.main}</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>{cap.sub}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, padding: "11px 13px", borderRadius: 14, background: "var(--surface-3)" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>Показывать меня в круге</div>
+            <div style={{ fontSize: 11, color: "var(--text-5)", lineHeight: 1.35, marginTop: 2 }}>Точка у лица скажет своим, что ты сегодня влился. Сам тон не видит никто.</div>
+          </div>
+          {typeof Switch === "function" ? <Switch on={pulseFaces} onChange={togglePulseFaces} dark={dark} /> : null}
         </div>
       </div>
 
@@ -487,5 +609,49 @@ function BosBalanceTabsLive(props) {
           : <BosEnvBalanceLive app={app} dark={dark} navigate={navigate} openSheet={openSheet} tint={tint} hideTitle={true} bare={true} />}
       </div>
     </div>
+  );
+}
+
+/* ═══════════ ВИДЖЕТ ГЛАВНОЙ — «Баланс окружения» компактной строкой ═══════════
+   Мини-светило общего тона + честная подпись + точки «влились k из n». Тап → env-balance.
+   ВЫКЛ по умолчанию (включается из галереи «+»), чтобы главная не перегружалась. */
+function EnvPulseWidgetLive(props) {
+  var navigate = props.navigate || function () {};
+  var app = (typeof useApp === "function") ? useApp() : {};
+  var dark = !!props.isDark;
+  var people = bosEnvUsePeople() || [];
+  var pulse = bosEnvUsePulse(people);
+  var tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null;
+  var meIn = !!(tk && app.dayMoods && app.dayMoods[tk] != null);
+  var total = people.length + 1;
+  var cap = bosEnvPulseCaption(pulse, total, meIn);
+  var avg = (pulse && pulse.avg != null) ? Number(pulse.avg) : null;
+  var v = avg != null ? Math.max(0, Math.min(1, avg / 6)) : (meIn ? Math.max(0, Math.min(1, app.dayMoods[tk] / 6)) : null);
+  var tint = null;
+  try {
+    if (v != null && typeof bosStateTintForV === "function") tint = bosStateTintForV(v);
+    else if (typeof tintFromMood === "function") tint = tintFromMood(dark ? "#8b93a3" : "#b7bcc7");
+  } catch (e) {}
+  var Orb = window.StateOrb;
+  var marked = pulse ? (pulse.marked || 0) : (meIn ? 1 : 0);
+  var dots = [];
+  for (var i = 0; i < Math.min(total, 7); i++) dots.push(i < marked);
+  return (
+    <button className="tap" onClick={function () { navigate("env-balance"); }}
+      style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", background: "var(--card)", border: 0, borderRadius: 0, boxShadow: "none", padding: "13px 15px", cursor: "pointer" }}>
+      <span style={{ width: 46, height: 46, flexShrink: 0, display: "grid", placeItems: "center" }}>
+        {Orb ? <Orb size={46} tint={tint || undefined} intensity={0.95} /> : <span style={{ width: 34, height: 34, borderRadius: "50%", background: (tint && tint[1]) || "#b7bcc7" }} />}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>Баланс окружения</span>
+        <span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cap.main}</span>
+      </span>
+      <span style={{ display: "inline-flex", gap: 4, flexShrink: 0 }}>
+        {dots.map(function (on, i) {
+          return <span key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: on ? ((tint && tint[1]) || "#9aa1ad") : "transparent", boxShadow: on ? "none" : ("inset 0 0 0 1.2px " + (dark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.22)")) }} />;
+        })}
+      </span>
+      {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={16} color="var(--text-5)" /> : null}
+    </button>
   );
 }
