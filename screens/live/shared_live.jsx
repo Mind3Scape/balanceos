@@ -359,6 +359,30 @@ function bosCellGlass(isDark) {
     ? "inset 0 1px 0.5px rgba(255,255,255,0.16), inset 0 0 0 0.6px rgba(255,255,255,0.06)"
     : "inset 0 1px 0.5px rgba(255,255,255,0.5), inset 0 0 0 0.6px rgba(0,0,0,0.06)";
 }
+// СТЕКЛЯННОЕ КОЛЬЦО-заполнение дня (David v660): день — не залитый диск, а кольцо, что заполняется
+// по мере выполнения (как кольца активности Apple) — читается честнее. Стекло = светлый внутренний
+// блик + мягкий тонкий контур; тон = цвет привычки (нейтраль → графит/светлый). Только неделя/месяц
+// и виджет главной; в годовом виде кольца слишком мелкие → там остаются точки (bosCellFill). pct 0..1.
+function bosDayRing(pct, accent, isDark, opts) {
+  opts = opts || {};
+  pct = Math.max(0, Math.min(1, (typeof pct === "number" && isFinite(pct)) ? pct : 0));
+  if (typeof bosCanonColor === "function") accent = bosCanonColor(accent);
+  var neutral = !(accent && accent[0] === "#" && accent.length >= 7) || ("" + accent).toLowerCase() === "#0a0a0a" || accent === "#8E8E93";
+  var arc = neutral ? (isDark ? "#eef1f7" : "#2e323b") : accent;
+  var track = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)";
+  var R = 15.4, C = 2 * Math.PI * R, sw = opts.sw || 4.6;
+  var dash = (pct * C).toFixed(2), gap = (C + 0.6).toFixed(2);
+  var sheen = isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.82)";
+  return (
+    <svg viewBox="0 0 40 40" width="100%" height="100%" style={{ display: "block", overflow: "visible" }}>
+      <circle cx="20" cy="20" r={R} fill="none" stroke={track} strokeWidth={sw} />
+      {pct > 0 ? <circle cx="20" cy="20" r={R} fill="none" stroke={arc} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash + " " + gap} transform="rotate(-90 20 20)" /> : null}
+      <circle cx="20" cy="20" r={R - sw / 2 + 0.3} fill="none" stroke={sheen} strokeWidth="0.7" />
+      {opts.today ? <circle cx="20" cy="20" r={R + sw / 2 + 1.1} fill="none" stroke={isDark ? "rgba(255,255,255,0.42)" : "rgba(10,10,10,0.24)"} strokeWidth="1.1" />
+        : (opts.sel ? <circle cx="20" cy="20" r={R + sw / 2 + 1.1} fill="none" stroke={isDark ? "rgba(255,255,255,0.26)" : "rgba(10,10,10,0.15)"} strokeWidth="1" /> : null)}
+    </svg>
+  );
+}
 // Glass for the habit/goal ICON tiles — a BRIGHTER specular top + soft edge + depth than the small
 // day-cell glass (David: «на главной иконке привычки стекло еле видно — чуть светлее и заметнее, и
 // так ВЕЗДЕ где привычки видны»). Pair with BOS_TILE_SHEEN on the background.
@@ -639,9 +663,11 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
               const bg = fut ? bosCellEmpty(hx, isDark, 0.42) : (pct <= 0 ? (itx ? bosCellFill(hx, 0.14, isDark) : bosCellEmpty(hx, isDark)) : bosCellFill(hx, pct, isDark));
               // Сегодня = единое стеклянное кольцо (bosTodayRing) в ТОНЕ привычки, как снаружи; без «+».
               const sh = [filled ? bosCellGlass(isDark) : "", wd.isToday ? bosTodayRing(isDark, hx) : ""].filter(Boolean).join(", ") || "none";
+              var wchk = (hx && hx[0] === "#" && ("" + hx).toLowerCase() !== "#0a0a0a" && hx !== "#8E8E93") ? hx : "var(--text)";
               return (
-                <button key={i} onClick={itx ? fireToday : undefined} className="tap" style={{ aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, background: bg, boxShadow: sh, cursor: itx ? "pointer" : "default", display: "grid", placeItems: "center", color: "#fff", fontWeight: 800, fontSize: 13 }}>
-                  {itx && done ? <I.Check size={15} strokeWidth={3} color="#fff" /> : null}
+                <button key={i} onClick={itx ? fireToday : undefined} className="tap" style={{ aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, background: "transparent", cursor: itx ? "pointer" : "default", position: "relative", display: "grid", placeItems: "center" }}>
+                  <span aria-hidden style={{ position: "absolute", inset: 0 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { today: wd.isToday })}</span>
+                  {itx && done ? <span style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}><I.Check size={13} strokeWidth={3} color={wchk} /></span> : null}
                 </button>
               );
             })}
@@ -670,7 +696,7 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             // кружочками слева и справа, чтобы месяц был ближе к ГРЯДКЕ»). Полный размер достраивает
             // прямоугольник-грядку; opacity ниже пустого дня (track) → месяц мягко «бледнеет» по краям,
             // но клетка-кружок не рвётся на точки — бесшовное продолжение бесконечной грядки.
-            if (c.adj) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1", borderRadius: "50%", background: bosCellEmpty(selColor, isDark, 0.3) }} />;
+            if (c.adj) return <span key={c.key} aria-hidden style={{ aspectRatio: "1/1", opacity: 0.5, display: "grid", placeItems: "center" }}>{bosDayRing(0, selColor, isDark, {})}</span>;
             const isToday = isCurMonth && c.d === today;
             // TODAY is the single tap-to-mark control now (David removed the bottom button — «тапаешь
             // день, бумс»). Interactive only in YOUR view (solo / «Все» / your own chip) — never on a
@@ -695,14 +721,17 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
             // день (не сегодня) — тонкая обводка selRing. Без accent-зелёного/серого разнобоя.
             const shadow = [filled ? bosCellGlass(isDark) : "", isToday ? bosTodayRing(isDark, hx) : ((!compact && isSel) ? ("0 0 0 1.6px " + selRing) : "")].filter(Boolean).join(", ") || "none";
             const onClick = itx ? fireToday : (compact ? undefined : () => setSelDay(c.d));
+            var mchk = (hx && hx[0] === "#" && ("" + hx).toLowerCase() !== "#0a0a0a" && hx !== "#8E8E93") ? hx : "var(--text)";
+            var ringInk = fut ? "var(--text-4)" : "var(--text)";
             return (
               <button key={c.key} {...(itx ? { "data-no-haptic": "" } : {})} onClick={onClick} className="tap" style={{
                 aspectRatio: "1/1", border: 0, borderRadius: "50%", padding: 0, display: "grid", placeItems: "center",
                 fontSize: 11, fontWeight: isToday ? 700 : 500, cursor: (itx || !compact) ? "pointer" : "default",
-                background: bg, boxShadow: shadow, color: ink, position: "relative" }}>
+                background: "transparent", color: ringInk, position: "relative" }}>
+                <span aria-hidden style={{ position: "absolute", inset: 0 }}>{bosDayRing(fut ? 0 : Math.max(pct || 0, 0), hx, isDark, { today: isToday, sel: (!compact && isSel && !isToday) })}</span>
                 {(itx && done)
-                  ? <I.Check size={15} strokeWidth={3} color={ink} style={{ filter: todayGlow !== "none" ? "drop-shadow(0 0.5px 1px rgba(0,0,0,0.5))" : "none" }} />
-                  : (!compact && !fut && <span>{c.d}</span>)}
+                  ? <span style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}><I.Check size={14} strokeWidth={3} color={mchk} /></span>
+                  : (!compact && !fut && <span style={{ position: "relative", zIndex: 1 }}>{c.d}</span>)}
               </button>
             );
           })}
@@ -6327,12 +6356,14 @@ function HomeWeekStripLive(props) {
   return (
     <div style={{ display: "flex" }}>
       {keys.map(function (k, i) {
-        var on = habits.length > 0 && habits.some(function (h) { return h.log && h.log[k]; });
+        // День = стеклянное КОЛЬЦО-заполнение: доля выполненных сегодня привычек (David v660).
+        var doneN = habits.length ? habits.filter(function (h) { return h.log && h.log[k]; }).length : 0;
+        var pct = habits.length ? doneN / habits.length : 0;
         var isToday = k === todayK;
         return (
           <div key={i} style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "8px 7px 6px", borderRadius: 18, background: isToday ? todayCap : "transparent" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: on ? doneFill : emptyFill, boxShadow: on ? doneGlass : emptyInset }} />
+              <div style={{ width: 28, height: 28 }}>{bosDayRing(pct, "#0a0a0a", isDark, { sw: 4.9 })}</div>
               <span style={{ fontSize: 10, fontWeight: 600, color: isToday ? "var(--text-2)" : "var(--text-4)", letterSpacing: "0.2px" }}>{WD[i]}</span>
             </div>
           </div>
