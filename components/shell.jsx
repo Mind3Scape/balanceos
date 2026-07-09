@@ -1639,6 +1639,9 @@ function AppProvider({ children }) {
             if (_joinTeamId) {
               window.bosCloud.joinViaLink(_joinTeamId).then(function (row) {
                 if (!row) return;
+                // Своя же ссылка на СВОЙ круг (владелец открыл собственный team-линк) — просто чистим
+                // URL: ты уже владелец, не заводим «joined»-плитку и не показываем «тебя зовут вступить».
+                if (row.owner_id && _myUid && row.owner_id === _myUid) { try { history.replaceState(null, "", window.location.pathname); } catch (e) {} return; }
                 var lt = { _id: "cloud-" + row.id, cloudId: row.id, joined: true, name: row.name, emblem: row.emblem || "✨", accent: "#dbe9ff", vis: row.vis, goal: "", members: [], target: row.goal_target || 0, current: 0, progress: 0 };
                 var _already = (teams || []).some(function (x) { return x.cloudId === row.id; });
                 setTeams(function (prev) { return (prev || []).some(function (x) { return x.cloudId === row.id; }) ? prev : [lt].concat(prev || []); });
