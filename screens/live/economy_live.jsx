@@ -215,11 +215,14 @@ function bosEarnedAchIdsLive(app) {
 }
 function bosAchByIdLive(id) { for (var i = 0; i < BOS_ACHIEVEMENTS_LIVE.length; i++) { if (BOS_ACHIEVEMENTS_LIVE[i].id === id) return BOS_ACHIEVEMENTS_LIVE[i]; } return null; }
 
-/* ── ГИД «Как устроен Balance» 2.0 (v535, David: «глубже, больше и ещё интереснее — много
-   функционала не успевает проявиться») — LIVE-переопределение маршрута guide (демо цело).
-   12 глав в ЧЕТЫРЁХ разделах-лестнице: Каждый день → Рост → Вместе → Мир. Все цифры
-   НАСТОЯЩИЕ (+10/+30/+150, вехи 3/7/15/30, пороги 10/15 ур.) — это те же числа, что в
-   экономике. Иллюстрации — рисунки мануала в языке приложения (орбиты, стекло, золото). */
+/* ── ГИД «Как устроен Balance» 3.0 — капитальный редизайн (worldview v2 + мастер-план §8).
+   ЧЕТЫРЕ акта-лестницы: День → Рост → Свои → Мир, в языке VISION (звезда/планеты/орбиты/
+   город). В КАЖДОМ акте — живая сцена из НАСТОЯЩИХ атомов приложения (плитка привычки,
+   кольцо уровня, орбита, билет): человек трогает механику, не выходя из рассказа. Пилюли
+   собирают прогресс прочтения; финал — единственный выход «Сделать первый ход». Ни одной
+   ссылки наружу до финала. Все цифры честные (мастер-план §4): отметка +10 · вместе +15 ·
+   состояние +5 · неделя +50 · дневник +10 · идеальный день +30 · друг +150 · вехи 3/7/15/30
+   · челлендж +30…75 · достижения разово. Серия обнуляется при пропуске — уровень и XP нет. */
 function GuideLive() {
   var nav = (typeof useNav === "function") ? useNav() : {};
   var navigate = nav.navigate || function () {};
@@ -227,8 +230,23 @@ function GuideLive() {
   var app = (typeof useApp === "function") ? useApp() : null;
   var isDark = !!(app && app.themeOverride === "dark");
   var back = function () { navigate(params.from || "profile"); };
+  var haptic = function (k) { if (window.tgHaptic) { try { window.tgHaptic(k || "selection"); } catch (e) {} } };
   var _oi = React.useState(params.tab && params.tab !== "suti" ? params.tab : null);
   var openId = _oi[0], setOpenId = _oi[1];
+  // Прогресс прочтения: акт «зачтён», как только человек его открыл или потрогал сцену.
+  var _seen = React.useState({});
+  var seen = _seen[0], setSeen = _seen[1];
+  var markSeen = function (id) { setSeen(function (s) { if (s[id]) return s; var n = Object.assign({}, s); n[id] = true; return n; }); };
+  var _xp = React.useState(false), xpOpen = _xp[0], setXpOpen = _xp[1];   // свёртка «Точные цифры»
+  // Состояние живых сцен — каждая реагирует на касание.
+  var _sd = React.useState(false), dayTapped = _sd[0], setDayTapped = _sd[1];   // День: плитка отмечена
+  var _sl = React.useState(false), levelUp = _sl[0], setLevelUp = _sl[1];       // Рост: кольцо докручено до L2
+  var _si = React.useState(false), invited = _si[0], setInvited = _si[1];       // Свои: позвал
+  var _sw = React.useState(false), stamped = _sw[0], setStamped = _sw[1];       // Мир: билет погашен
+  var ACTS = ["day", "level", "together", "world"];
+  var seenCount = ACTS.filter(function (k) { return seen[k]; }).length;
+  var allSeen = seenCount >= ACTS.length;
+  var hasHabits = !!(app && (app.habits || []).some(function (h) { return h && !h.shelved && !h.goalOnly; }));
   var secRefs = React.useRef({});
   var sheen = (typeof BOS_TILE_SHEEN !== "undefined") ? BOS_TILE_SHEEN + ", " : "";
   var glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none";
@@ -251,7 +269,7 @@ function GuideLive() {
     return (
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "0 4px", marginTop: 20, marginBottom: 8 }}>
         <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-1px", color: "var(--text-4)", opacity: 0.45, fontVariantNumeric: "tabular-nums", fontFamily: "var(--bos-title-font)" }}>{n}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--text-4)" }}>{t}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.2, color: "var(--text-4)" }}>{t}</span>
       </div>
     );
   };
@@ -272,7 +290,7 @@ function GuideLive() {
       <span style={{ position: "relative", width: size, height: size, display: "grid", placeItems: "center" }}>
         <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.09)"} strokeWidth="3" />
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#bosGdRing)" strokeWidth="3" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pctv)} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#bosGdRing)" strokeWidth="3" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pctv)} style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(0.2,0.7,0.2,1)" }} />
           <defs><linearGradient id="bosGdRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEDE34" /><stop offset="1" stopColor="#EF9F14" /></linearGradient></defs>
         </svg>
         {inner}
@@ -294,7 +312,7 @@ function GuideLive() {
     var steps = [["✓", "День", "собран"], ["🔁", "Ритм", "держится"], ["👥", "Свои", "рядом"], ["📍", "Места", "вживую"]];
     return (
       <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: "13px 12px", background: softBg, boxShadow: glass }}>
-        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)", marginBottom: 10 }}>основной путь</div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.2, color: "var(--text-4)", marginBottom: 10 }}>как это течёт</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
           {steps.map(function (s, i) {
             return (
@@ -325,14 +343,14 @@ function GuideLive() {
     );
   };
   var goTo = function (id) {
-    if (id !== "suti") setOpenId(id);
+    if (id !== "suti") { setOpenId(id); markSeen(id); }
     setTimeout(function () { var el = secRefs.current[id]; if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 70);
   };
   // Свёрнутый заголовок этапа-«уровня»: номер-чип + название + подзаголовок + шеврон.
   var stageHeader = function (id, n, title, sub) {
     var open = openId === id;
     return (
-      <button onClick={function () { var willOpen = !open; setOpenId(willOpen ? id : null); if (willOpen) setTimeout(function () { var el = secRefs.current[id]; if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 70); }}
+      <button onClick={function () { var willOpen = !open; setOpenId(willOpen ? id : null); if (willOpen) { markSeen(id); setTimeout(function () { var el = secRefs.current[id]; if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 70); } }}
         className="tap" data-haptic="selection"
         style={{ width: "100%", border: 0, cursor: "pointer", textAlign: "left", background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: "15px 16px", display: "flex", alignItems: "center", gap: 13 }}>
         <span style={{ width: 32, height: 32, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 14, fontWeight: 800, fontVariantNumeric: "tabular-nums", background: open ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : softBg, color: open ? "#0a0a0a" : "var(--text-3)", boxShadow: open ? "0 4px 12px rgba(239,159,20,0.35)" : "none" }}>{n}</span>
@@ -348,78 +366,60 @@ function GuideLive() {
   };
   return (
     <div className="page-in" style={{ padding: "0 16px 28px" }}>
-      <PageHeader title="Как работает Balance" onBack={back} />
+      <PageHeader title="Как устроен Balance" onBack={back} />
       {/* Липкое быстрое меню-прыжок (David: «наверху меню из пилюль, скролл по категориям»).
           Тап = раскрыть этап + доскроллить к нему. Матовое стекло, чтобы не спорить с фоном. */}
       <div style={{ position: "sticky", top: 0, zIndex: 6, margin: "2px -16px 4px", padding: "8px 16px", background: isDark ? "rgba(18,18,20,0.72)" : "rgba(244,244,247,0.72)", backdropFilter: "saturate(180%) blur(18px)", WebkitBackdropFilter: "saturate(180%) blur(18px)" }}>
         <div className="bos-hscroll" style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}>
-          {[["suti", "Общее"], ["day", "День"], ["level", "Рост"], ["together", "Свои"], ["world", "Места"]].map(function (p) {
+          {[["suti", "Суть"], ["day", "День"], ["level", "Рост"], ["together", "Свои"], ["world", "Мир"]].map(function (p) {
             var on = openId ? (openId === p[0]) : (p[0] === "suti");
             var g = (!on && typeof bosChipGlass === "function") ? bosChipGlass(isDark) : {};
+            var done = p[0] !== "suti" && seen[p[0]];
             return (
               <button key={p[0]} onClick={function () { goTo(p[0]); }} className="tap" data-haptic="selection"
-                style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap", transition: "background 0.2s, color 0.2s", ...g, background: on ? "var(--cta, #0a0a0a)" : g.background, color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>{p[1]}</button>
+                style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "8px 13px", fontSize: 13.5, fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6, transition: "background 0.2s, color 0.2s", ...g, background: on ? "var(--cta, #0a0a0a)" : g.background, color: on ? "var(--cta-ink, #fff)" : "var(--text-2)" }}>
+                {p[1]}
+                {done && <span aria-hidden style={{ width: 15, height: 15, borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", display: "grid", placeItems: "center", fontSize: 9, fontWeight: 900, boxShadow: "0 1px 4px rgba(239,159,20,0.5)" }}>✓</span>}
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* ── ОБЩЕЕ — всегда открыто: короткая карта, дальше раскрываются глубокие главы. */}
+      {/* ── СУТЬ — всегда открыта: формула пути + как всё течёт, дальше раскрываются акты. */}
       <div ref={function (el) { secRefs.current["suti"] = el; }} style={{ scrollMarginTop: 64 }}>
-          {tabIntro("От дня к своим", "Сначала ты собираешь день: отмечаешь состояние, закрываешь привычку или цель. Так появляется ритм. По ритму Balance подсказывает круги, людей, практики и места рядом.", true)}
+          {tabIntro("От дня — к своим", "Balance начинается как привычки, а оказывается системой, которая возвращает тебя в твою жизнь — и выводит к своим людям и настоящим местам рядом.", true)}
 
-          <div style={{ ...cardStyle, marginTop: 14 }}>
-            {visWrap(pathLoop(), "18px 14px 4px")}
-            {body("Сначала — свой ритм", "Balance не начинается с ленты или рейтинга. Система собирает твой день, удерживает ритм и только потом связывает его с людьми, практиками и местами.")}
-          </div>
-
-          {kicker("01", "Общий ход")}
-          <div style={cardStyle}>
-            <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                ["◎", "Отметь состояние", "Понять, с чего начинать день."],
-                ["✅", "Закрой одно действие", "Привычка или цель превращают план в ритм."],
-                ["👥", "Найди своих", "Круги помогают держаться дольше, чем в одиночку."],
-                ["📍", "Практики и места", "Дальше ритм связывается с событиями, людьми и форматами рядом."],
-              ].map(function (r, i) {
-                return (
-                  <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: softBg, borderRadius: 16, padding: "11px 12px" }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 11, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{r[0]}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{r[1]}</div>
-                      <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{r[2]}</div>
-                    </div>
+          {/* Человеческая формула пути — четыре шага, крупно (worldview §1). */}
+          <div style={{ ...cardStyle, marginTop: 14, padding: "4px 4px" }}>
+            {[
+              ["Собери себя", "состояние, привычка, день"],
+              ["Найди своих", "круги и общие привычки"],
+              ["Стань полезен", "помощь своим за опыт"],
+              ["Выйди в жизнь", "практики и места в городе"],
+            ].map(function (r, i) {
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: "12px 12px", borderTop: i ? ("1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)")) : "none" }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 999, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, fontVariantNumeric: "tabular-nums", background: softBg, color: "var(--text-3)", boxShadow: glass }}>{i + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16.5, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)", fontFamily: "var(--bos-title-font)" }}>{r[0]}.</div>
+                    <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>{r[1]}</div>
                   </div>
-                );
-              })}
-            </div>
-            {body("Без давления", "Пауза не ломает прогресс. Balance помогает вернуться к дню, ритму и людям, с которыми легче продолжать.")}
+                </div>
+              );
+            })}
           </div>
 
-          {kicker("02", "Механики по слоям")}
-          <div style={cardStyle}>
-            <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                ["День", "состояние, привычки, дневник"],
-                ["Рост", "XP, уровни, достижения, челленджи"],
-                ["Свои", "круги, общие цели, друзья"],
-                ["Места", "партнёры, нетворк, Вселенная"],
-              ].map(function (r, i) {
-                return (
-                  <button key={r[0]} onClick={function () { goTo(["day", "level", "together", "world"][i]); }} className="tap" data-haptic="selection"
-                    style={{ width: "100%", border: 0, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: softBg, borderRadius: 16, padding: "12px 13px", boxShadow: glass }}>
-                    <span style={{ width: 30, height: 30, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "var(--text-3)", background: chipBg, boxShadow: glass }}>{i + 1}</span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{r[0]}</span>
-                      <span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 2, lineHeight: 1.35 }}>{r[1]}</span>
-                    </span>
-                    <span aria-hidden style={{ color: "var(--text-4)", fontSize: 16 }}>↓</span>
-                  </button>
-                );
-              })}
-            </div>
-            {body("Каждый слой даёт свой рычаг", "День помогает начать. Рост показывает устойчивость. Свои дают поддержку без публичной гонки. Места переводят ритм в события, практики и помощь рядом.")}
+          <div style={{ ...cardStyle, marginTop: 12 }}>
+            {visWrap(pathLoop(), "18px 14px 4px")}
+            {body("Сначала — свой ритм", "Balance не начинается с ленты или рейтинга. Система собирает твой день, держит ритм — и только потом связывает его со своими, кругами и местами рядом.")}
           </div>
+
+          <button onClick={function () { haptic("selection"); navigate("manifest", { from: "guide" }); }} className="tap"
+            style={{ width: "100%", border: 0, cursor: "pointer", textAlign: "left", marginTop: 12, borderRadius: 16, padding: "13px 15px", background: softBg, boxShadow: glass, color: "var(--text-2)", fontSize: 13.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>✧ Зачем всё это — прочитать манифест</span>
+            <span aria-hidden style={{ opacity: 0.5 }}>›</span>
+          </button>
       </div>
 
       {/* ── ЭТАП 1: КАЖДЫЙ ДЕНЬ (свёрнут по умолчанию) */}
@@ -428,24 +428,30 @@ function GuideLive() {
         {openId === "day" && (
           <React.Fragment>
 
-      {kicker("01", "Самое маленькое")}
+      {kicker("01", "Первый ход")}
       <div style={cardStyle}>
         {visWrap(
           <div style={{ position: "relative", width: "100%", maxWidth: 300 }}>
-            <div style={{ background: softBg, borderRadius: 18, padding: "13px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ width: 40, height: 40, borderRadius: 13, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 20 }}>🤸</span>
+            <button onClick={function () { if (!dayTapped) { haptic("impact"); setDayTapped(true); markSeen("day"); } }} className="tap"
+              style={{ width: "100%", border: 0, cursor: "pointer", textAlign: "left", background: softBg, borderRadius: 18, padding: "13px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 13, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 20 }}>🚶</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Зарядка</div>
-                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 1 }}>сегодня · сделано</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Прогулка</div>
+                <div style={{ fontSize: 11.5, marginTop: 1, fontWeight: dayTapped ? 700 : 400, color: dayTapped ? "#2E9E52" : "var(--text-4)" }}>{dayTapped ? "сегодня · сделано" : "коснись — отметь"}</div>
               </div>
-              <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#34C759", display: "grid", placeItems: "center", color: "#fff", boxShadow: "0 4px 12px rgba(52,199,89,0.4)" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+              <span style={{ position: "relative", width: 32, height: 32, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                {dayTapped && <span aria-hidden style={{ position: "absolute", inset: 1, borderRadius: "50%", border: "2px solid #34C759", animation: "bosGuideWave 0.7s ease-out forwards" }} />}
+                <span style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", color: "#fff", transition: "background 0.3s, box-shadow 0.3s",
+                  background: dayTapped ? "#34C759" : "transparent",
+                  boxShadow: dayTapped ? "0 4px 12px rgba(52,199,89,0.4)" : "inset 0 0 0 2px " + (isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.18)") }}>
+                  {dayTapped && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
+                </span>
               </span>
-            </div>
-            <span style={{ position: "absolute", top: -10, right: 6 }}>{goldPill("✦ +10 XP")}</span>
+            </button>
+            {dayTapped && <span key="p10" style={{ position: "absolute", top: -12, right: 6, animation: "bosXpPop 2.4s ease forwards" }}>{goldPill("✦ +10 XP")}</span>}
           </div>
         )}
-        {body("Отметка", "Сделал дело — коснулся плитки, вот и вся церемония. Каждая отметка даёт +10 XP. Отметить можно где угодно: на главной, на «Привычках», внутри цели или круга — это ОДИН и тот же журнал.")}
+        {body("Отметка", "Сделал дело — коснись плитки, вот и вся церемония. Каждая отметка — +10 XP. Отметить можно где угодно: на главной, в «Привычках», внутри цели или круга — это один и тот же журнал.")}
       </div>
 
       {kicker("02", "Ритм недели")}
@@ -479,7 +485,7 @@ function GuideLive() {
       <div style={cardStyle}>
         {visWrap(
           <div style={{ width: "100%", maxWidth: 300, background: softBg, borderRadius: 18, padding: "14px 16px" }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, textTransform: "uppercase", color: "var(--text-4)" }}>Сейчас · ◎ ровно</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: "var(--text-4)" }}>Сейчас · ◎ ровно</div>
             <div style={{ position: "relative", height: 10, borderRadius: 999, marginTop: 12, background: "linear-gradient(90deg,#8FB4E8,#7ED2A8,#FEDE6B,#F5A46B)" }}>
               <span style={{ position: "absolute", left: "58%", top: "50%", transform: "translate(-50%,-50%)", width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 0 0 0.5px rgba(0,0,0,0.06)" }} />
             </div>
@@ -489,60 +495,79 @@ function GuideLive() {
         {body("Состояние и дневник", "Раз в день — один свайп «как ты?» и, если хочется, пара слов в дневник. Это твой личный срез дня: по нему ИИ подстраивает подсказки, а календарь показывает, как состояние связано с привычками.")}
       </div>
 
+      {kicker("04", "День собран")}
+      <div style={cardStyle}>
+        {visWrap(
+          <div style={{ width: "100%", maxWidth: 300 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+              {["Состояние", "Ход", "Смысл"].map(function (lbl, i) {
+                return (
+                  <div key={i} style={{ borderRadius: 16, background: softBg, padding: "11px 6px", textAlign: "center", boxShadow: glass }}>
+                    <span style={{ width: 30, height: 30, borderRadius: "50%", margin: "0 auto", display: "grid", placeItems: "center", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 14, fontWeight: 900, boxShadow: "0 4px 12px rgba(239,159,20,0.3)" }}>✓</span>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text)", marginTop: 7, whiteSpace: "nowrap" }}>{lbl}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 11 }}>{goldPill("✦ День собран")}</div>
+          </div>
+        )}
+        {body("День собран", "В конце дня три вещи складываются в одну: ты заметил состояние, сделал ход и добавил смысл (а когда рядом свои — отметился вместе). Это «День собран» — маленькая церемония завершённости, а не счётчик. Пропуск ничего не жжёт: завтра собираешь заново.")}
+      </div>
+
           </React.Fragment>
         )}
       </div>
 
       {/* ── ЭТАП 2: ОПЫТ И УРОВНИ */}
       <div ref={function (el) { secRefs.current["level"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
-        {stageHeader("level", "2", "Рост и XP", "Как действия становятся уровнем, бонусами и достижениями.")}
+        {stageHeader("level", "2", "Рост", "Как действия становятся уровнем, копилкой и достижениями.")}
         {openId === "level" && (
           <React.Fragment>
 
       {kicker("01", "Твой след")}
       <div style={cardStyle}>
-        <div style={{ padding: "20px 16px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-          {ring(88, 0.72, (
-            <span style={{ position: "relative", width: 68, height: 68, borderRadius: "50%", background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 32 }}>
-              🙂
-              <span style={{ position: "absolute", right: -4, bottom: -2, minWidth: 22, height: 22, borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 5px", boxShadow: "0 0 0 2.5px var(--card)" }}>5</span>
-            </span>
-          ))}
-          <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600 }}>кольцо заполняется → уровень растёт</div>
+        <div style={{ padding: "20px 16px 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <button onClick={function () { if (!levelUp) { haptic("impact"); setLevelUp(true); markSeen("level"); } }} className="tap"
+            style={{ border: 0, background: "transparent", cursor: "pointer", padding: 4 }}>
+            {ring(96, levelUp ? 1 : (dayTapped ? 0.86 : 0.74), (
+              <span style={{ position: "relative", width: 68, height: 68, borderRadius: "50%", background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 32 }}>
+                🙂
+                <span key={levelUp ? "l2" : "l1"} style={{ position: "absolute", right: -4, bottom: -2, minWidth: 22, height: 22, borderRadius: 999, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 5px", boxShadow: "0 0 0 2.5px var(--card)", animation: "bosMenuPop 0.3s ease" }}>{levelUp ? 2 : 1}</span>
+              </span>
+            ))}
+          </button>
+          <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600, textAlign: "center", minHeight: 15 }}>
+            {levelUp ? "уровень вырос — навсегда" : (dayTapped ? "твои +10 уже в кольце — докрути до конца" : "коснись — заполни кольцо")}
+          </div>
         </div>
-        {body("Опыт и уровень", "Весь XP стекается в одно место — золотое кольцо вокруг твоего лица. Кольцо заполнилось — уровень вырос, навсегда: он не обнуляется и не «сгорает по понедельникам». Уровень видят друзья, а с 10 уровня он открывает «Людей». Партнёры не заперты — они рады тебе с первого дня.")}
+        {body("Опыт и уровень", "Каждое действие — след того, что ты возвращаешься. Весь опыт стекается в золотое кольцо вокруг твоего лица: заполнилось — уровень вырос, навсегда. Он не обнуляется и не «сгорает по понедельникам». Уровень видят свои, а с 10 уровня он открывает «Людей». Партнёры не заперты — рады тебе с первого дня.")}
       </div>
 
-      {kicker("02", "Откуда капает XP")}
+      {kicker("02", "Две роли опыта")}
       <div style={cardStyle}>
-        <div style={{ padding: "16px 16px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {[
-            ["✅", "Отметка привычки · вместе", "+10 · +15"],
-            ["🌤", "Состояние: отметка · неделя подряд", "+5 · +50"],
-            ["✍️", "Пара слов в дневник", "+10"],
-            ["🌅", "Идеальный день · все привычки", "+30"],
-            ["🤝", "Друг пришёл по твоей ссылке", "+150"],
-            ["🏁", "Вехи друзей · 3 / 7 / 15 / 30", "+300…3000"],
-            ["⚡", "Финиш челленджа", "+40…100"],
-            ["🏆", "Достижения", "разово"],
-          ].map(function (r, i) {
-            return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: softBg, borderRadius: 16, padding: "10px 12px" }}>
-                <span style={{ width: 34, height: 34, borderRadius: 11, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{r[0]}</span>
-                <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{r[1]}</span>
-                {goldPill("✦ " + r[2] + " XP")}
-              </div>
-            );
-          })}
-        </div>
-        {body("Экономика опыта", "Вот за что идёт опыт — честно и открыто, без скрытых умножителей. Самое ценное здесь — люди: позвать друга даёт больше, чем неделя отметок, потому что вместе вы удержитесь оба.")}
+        {visWrap(
+          <div style={{ width: "100%", maxWidth: 300, display: "flex", gap: 10 }}>
+            <div style={{ flex: 1, borderRadius: 16, background: softBg, padding: "13px 12px", boxShadow: glass }}>
+              <div style={{ fontSize: 22 }}>📈</div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text)", marginTop: 6 }}>Уровень</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>путь — только растёт, не купить</div>
+            </div>
+            <div style={{ flex: 1, borderRadius: 16, background: softBg, padding: "13px 12px", boxShadow: glass }}>
+              <div style={{ fontSize: 22 }}>🪙</div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text)", marginTop: 6 }}>Копилка</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>топливо — тратишь на настоящее</div>
+            </div>
+          </div>
+        )}
+        {body("Уровень и копилка", "У опыта две роли. Уровень — путь: сколько ты возвращался; он только растёт, его не купить — только прожить. Копилка — топливо: та часть опыта, что тратится на настоящее в городе и на помощь своих. Тратишь — копилка пустеет, а уровень стоит на месте и не падает.")}
       </div>
 
-      {kicker("03", "Медали за путь")}
+      {kicker("03", "След на пути")}
       <div style={cardStyle}>
         {visWrap(
           <div style={{ display: "flex", gap: 10 }}>
-            {[["🌱", "Первый шаг"], ["🔥", "Серия 7"], ["🤝", "Не один"]].map(function (m, i) {
+            {[["🌱", "Первый шаг"], ["🔥", "Неделя с собой"], ["🤝", "Не один"]].map(function (m, i) {
               return (
                 <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 54, height: 54, borderRadius: 16, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 26 }}>{m[0]}</span>
@@ -552,7 +577,7 @@ function GuideLive() {
             })}
           </div>
         )}
-        {body("Достижения", "Медали выдаются за настоящие вехи: первую привычку, серию, первого человека рядом. Каждая — разовый бонус XP и след на странице «Я». Коллекция — в «Я» → «Достижения».")}
+        {body("Достижения", "Отмечают настоящие вехи: первую привычку, неделю с собой, первого рядом. Каждое — разовый бонус опыта и след на странице «Я». Коллекция — в «Я» → «Достижения».")}
       </div>
 
       {kicker("04", "Быстрый старт с бонусом")}
@@ -567,8 +592,42 @@ function GuideLive() {
             <span style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600 }}>лента челленджей — над «Привычками» и в «Найти»</span>
           </div>
         )}
-        {body("Челленджи", "Готовые вызовы на несколько дней: тапнул — привычка создана, серия пошла. Дотянул до финиша — бонус XP сверху. Пропустил день — бонус НЕ сгорает: правило «ничего не сжигается» работает и тут.")}
+        {body("Челленджи", "Готовые вызовы на несколько дней: тап — привычка создана, серия пошла. Дотянул до финиша — сверху бонус (+30…75 опыта). Пропустил день — бонус не сгорает: правило «ничего не жжётся» работает и тут.")}
       </div>
+
+      {/* Точные цифры — свёрнутая полная таблица опыта (единственный канон, мастер-план §4). */}
+      <button onClick={function () { haptic("selection"); setXpOpen(!xpOpen); }} className="tap" data-haptic="selection"
+        style={{ width: "100%", border: 0, cursor: "pointer", textAlign: "left", marginTop: 16, borderRadius: 16, padding: "13px 15px", background: softBg, boxShadow: glass, color: "var(--text-2)", fontSize: 13.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>Точные цифры — вся таблица опыта</span>
+        <span aria-hidden style={{ display: "grid", placeItems: "center", transition: "transform 0.22s", transform: xpOpen ? "rotate(90deg)" : "none" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+        </span>
+      </button>
+      {xpOpen && (
+        <div style={{ ...cardStyle, marginTop: 8 }} className="bos-acc-in">
+          <div style={{ padding: "14px 14px 4px", display: "flex", flexDirection: "column", gap: 7 }}>
+            {[
+              ["✅", "Отметка привычки · вместе", "+10 · +15"],
+              ["🌤", "Состояние: отметка · неделя подряд", "+5 · +50"],
+              ["✍️", "Пара слов в дневник", "+10"],
+              ["🌅", "Идеальный день — все привычки", "+30"],
+              ["⚡", "Финиш челленджа", "+30…75"],
+              ["🏆", "Достижение", "разово"],
+              ["🤝", "Друг пришёл по ссылке", "+150"],
+              ["🏁", "Вехи своих · 3 / 7 / 15 / 30", "+300…3000"],
+            ].map(function (r, i) {
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 11, background: softBg, borderRadius: 14, padding: "9px 11px" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 10, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>{r[0]}</span>
+                  <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: "var(--text)" }}>{r[1]}</span>
+                  {goldPill(r[2] === "разово" ? "разово" : (r[2] + " XP"))}
+                </div>
+              );
+            })}
+          </div>
+          {body("Всё честно", "Тот же список чисел, что в самой игре — без скрытых умножителей. Самое ценное здесь — свои: позвать своего даёт больше, чем неделя отметок, потому что вместе вы удержитесь оба.")}
+        </div>
+      )}
 
           </React.Fragment>
         )}
@@ -576,21 +635,32 @@ function GuideLive() {
 
       {/* ── ЭТАП 3: ВМЕСТЕ */}
       <div ref={function (el) { secRefs.current["together"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
-        {stageHeader("together", "3", "Свои", "Круги, друзья и общие привычки — чтобы не тянуть одному.")}
+        {stageHeader("together", "3", "Свои", "Круги, свои и общие привычки — чтобы не тянуть одному.")}
         {openId === "together" && (
           <React.Fragment>
 
       {kicker("01", "Одна орбита")}
       <div style={cardStyle}>
         <div style={{ padding: "12px 16px 0", display: "flex", justifyContent: "center" }}>
-          {(typeof GoalOrbitMini === "function") ? (
-            <GoalOrbitMini centerEmoji="🌅" centerColor={null}
-              habits={[{ emoji: "🤸", color: "#34C759", done: true }, { emoji: "📖", color: "#0A84FF" }, { emoji: "💧", color: "#5AC8FA" }]}
-              people={[{ avatar: "emoji:🐱", name: "" }, { avatar: "emoji:🦊", name: "" }, { avatar: "emoji:🙂", name: "" }]}
-              size={158} dark={isDark} />
-          ) : <span style={{ fontSize: 44 }}>🌅</span>}
+          <div style={{ position: "relative" }}>
+            {(typeof GoalOrbitMini === "function") ? (
+              <GoalOrbitMini centerEmoji="🌅" centerColor={null}
+                habits={[{ emoji: "🤸", color: "#34C759", done: true }, { emoji: "📖", color: "#0A84FF" }]}
+                people={invited
+                  ? [{ avatar: "emoji:🦊", name: "", active: true }, { avatar: "emoji:🐱", name: "", active: true }]
+                  : [{ avatar: "emoji:🦊", name: "", active: true }]}
+                size={168} dark={isDark} />
+            ) : <span style={{ fontSize: 44 }}>🌅</span>}
+            {invited && <span style={{ position: "absolute", top: -2, right: -6, animation: "bosXpPop 2.6s ease forwards" }}>{goldPill("✦ +15 вместе")}</span>}
+          </div>
         </div>
-        {body("Совместные цели и привычки", "Любую привычку можно вести вдвоём (вы видите отметки друг друга), а цель — целым кругом: общий счёт, лица на одной орбите. Привычка круга приходит к тебе как личная — отметка где угодно попадает в общий журнал.")}
+        <div style={{ display: "flex", justifyContent: "center", padding: "12px 16px 0" }}>
+          {!invited
+            ? <button onClick={function () { haptic("impact"); setInvited(true); markSeen("together"); }} className="tap" data-haptic="selection"
+                style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "9px 16px", background: chipBg, boxShadow: glass, fontSize: 13, fontWeight: 700, color: "var(--text)" }}>👋 Позвать своего</button>
+            : <span style={{ fontSize: 12, color: "var(--text-4)", fontWeight: 600 }}>второй на орбите — вместе +15 за отметку</span>}
+        </div>
+        {body("Совместные цели и привычки", "Любую привычку можно вести вдвоём — вы видите отметки друг друга. А цель — целым кругом: общий счёт, лица на одной орбите. Привычка круга приходит к тебе как личная: отметка где угодно попадает в общий журнал.")}
       </div>
 
       {kicker("02", "Правила круга")}
@@ -642,7 +712,7 @@ function GuideLive() {
         {visWrap(
           <div style={{ width: "100%", maxWidth: 300, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 18, padding: "13px 14px", color: "#0a0a0a", boxShadow: "0 8px 22px rgba(239,159,20,0.3)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", opacity: 0.6 }}>Веха · +300 XP бонусом</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3, opacity: 0.62 }}>Веха · +300 XP бонусом</span>
               <span style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.8 }}>2 из 3</span>
             </div>
             <div style={{ display: "flex", gap: 4 }}>
@@ -659,27 +729,29 @@ function GuideLive() {
 
       {/* ── ЭТАП 4: МИР */}
       <div ref={function (el) { secRefs.current["world"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
-        {stageHeader("world", "4", "Места и мир", "Практики, партнёры и нетворк: куда ведёт ритм.")}
+        {stageHeader("world", "4", "Мир", "Партнёры, Люди и город — куда ведёт твой ритм.")}
         {openId === "world" && (
           <React.Fragment>
 
       {kicker("01", "Куда тратить")}
       <div style={cardStyle}>
         {visWrap(
-          <div style={{ position: "relative", width: "100%", maxWidth: 300, borderRadius: 18, overflow: "hidden", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 10px 26px rgba(239,159,20,0.35)", padding: "14px 16px", color: "#0a0a0a" }}>
-            <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 85% 10%, rgba(255,255,255,0.45) 0%, transparent 55%)", pointerEvents: "none" }} />
+          <button onClick={function () { if (!stamped) { haptic("impact"); setStamped(true); markSeen("world"); } }} className="tap"
+            style={{ position: "relative", width: "100%", maxWidth: 300, borderRadius: 18, overflow: "hidden", border: 0, cursor: "pointer", textAlign: "left", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", boxShadow: "0 10px 26px rgba(239,159,20,0.35)", padding: "14px 16px", color: "#0a0a0a" }}>
+            <span aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 85% 10%, rgba(255,255,255,0.45) 0%, transparent 55%)", pointerEvents: "none" }} />
+            {stamped && <span aria-hidden style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: 55, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent)", animation: "bosShine 1.1s ease-out forwards", pointerEvents: "none" }} />}
             <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", opacity: 0.6 }}>Партнёрский билет</div>
-                <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>✦ BAL-2481</div>
+                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, color: "rgba(10,10,10,0.62)" }}>Партнёрский билет</div>
+                <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 3 }}>100 XP → тренировка</div>
               </div>
-              <span style={{ fontSize: 10.5, fontWeight: 800, background: "rgba(10,10,10,0.85)", color: "#FEDE34", borderRadius: 999, padding: "4px 9px" }}>скоро</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, background: "rgba(10,10,10,0.85)", color: "#FEDE34", borderRadius: 999, padding: "4px 9px" }}>{stamped ? "готово" : "скоро"}</span>
             </div>
             <div aria-hidden style={{ position: "relative", borderTop: "2px dashed rgba(10,10,10,0.25)", margin: "12px -16px 0" }} />
-            <div style={{ position: "relative", fontSize: 11.5, fontWeight: 600, marginTop: 9, opacity: 0.75 }}>предъяви код — получи живое</div>
-          </div>
+            <div style={{ position: "relative", fontSize: 11.5, fontWeight: 600, marginTop: 9, color: "rgba(10,10,10,0.72)" }}>{stamped ? "код BAL-2481 — предъяви в зале" : "коснись — обменяй копилку на живое"}</div>
+          </button>
         )}
-        {body("Партнёры", "XP и уровень — не просто цифры: в «Найти» партнёры меняют их на реальное — программы, разборы, скидки. И партнёром может вырасти ЛЮБОЙ пользователь: это уровень и доверие, а не должность. Билет с кодом уже в работе.")}
+        {body("Партнёры", "Опыт — не просто цифры: копилка меняется на настоящее в городе — тренировки, разборы, практики. С первого дня, и уровень от траты не падает. Это главная история Balance: «сходил на бокс за привычки». Партнёром может стать любой — это уровень и доверие, а не должность. Билет с кодом уже в работе.")}
       </div>
 
       {kicker("02", "Люди по делам")}
@@ -697,7 +769,7 @@ function GuideLive() {
             <span style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", display: "inline-flex", alignItems: "center", gap: 6, background: isDark ? "rgba(28,28,30,0.92)" : "rgba(255,255,255,0.95)", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", borderRadius: 999, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>🔒 Откроется с 10 уровня</span>
           </div>
         </div>
-        {body("Нетворк", "С 10 уровня открываются «Люди» — нетворк по делам: кто чем живёт, у кого какой ритм, к кому идти за помощью или партнёрством. Уровень — твой пропуск, и его не купить: только прожить. А часть кругов открывается иначе — ачивкой за пройденный тренинг, сразу.")}
+        {body("Люди", "С 10 уровня открываются «Люди» — помощь по делам: кто чем живёт, у кого какой ритм, к кому пойти за практикой или разбором. XP здесь — знак намерения, не деньги: записался — опыт уходит из копилки, но уровень не падает. Уровень не купить — только прожить.")}
       </div>
 
       {kicker("03", "Самое большое")}
@@ -712,7 +784,7 @@ function GuideLive() {
                 <span key={"d" + i} style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: "linear-gradient(165deg, rgba(255,255,255,0.35), rgba(255,255,255,0.08) 55%), rgba(255,255,255,0.14)", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.4), 0 6px 18px rgba(0,0,0,0.35)", display: "grid", placeItems: "center", fontSize: d[2] * 0.5 }}>{d[3]}</span>
               );
             })}
-            <span style={{ position: "absolute", left: 12, bottom: 10, fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "rgba(190,215,255,0.75)" }}>Вселенная · все системы</span>
+            <span style={{ position: "absolute", left: 12, bottom: 10, fontSize: 11, fontWeight: 700, letterSpacing: 0.3, color: "rgba(190,215,255,0.78)" }}>Вселенная · все системы</span>
           </div>
         </div>
         {body("Вселенная", "Каждый в Balance — своя система: человек в центре, привычки — планеты на орбитах. «Вселенная» на странице «Я» показывает всех — анонимно, как огни ночного города: имён не видно, но видно, что город живой. Ты уже один из этих огней.")}
@@ -722,14 +794,27 @@ function GuideLive() {
         )}
       </div>
 
-      <div style={{ marginTop: 26, display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ padding: "0 4px 2px" }}>
-          <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 19, fontWeight: 800, letterSpacing: "-0.35px", color: "var(--text)" }}>Куда перейти дальше</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>Если смысл понятен — можно перейти к действию. Если нет, вернись к нужной главе выше.</div>
+      <div style={{ marginTop: 26 }}>
+        {allSeen ? (
+          <div style={{ ...cardStyle, padding: "22px 18px 20px", textAlign: "center", position: "relative" }} className="bos-acc-in">
+            <span aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg,#FEDE34,#EF9F14)" }} />
+            <div style={{ fontSize: 34, lineHeight: 1 }}>✦</div>
+            <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", marginTop: 8 }}>Ты знаешь, как устроен Balance</div>
+            <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 6, lineHeight: 1.5, maxWidth: 300, margin: "6px auto 0" }}>Собрал день, нашёл своих, увидел город. Дальше — не читать, а сделать. С малого.</div>
+          </div>
+        ) : (
+          <div style={{ ...cardStyle, padding: "18px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>Собираешь картину · {seenCount} из 4</div>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 11 }}>
+              {ACTS.map(function (k) { return <span key={k} style={{ width: 22, height: 6, borderRadius: 999, background: seen[k] ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)") }} />; })}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 11, lineHeight: 1.45 }}>Открой каждый раздел и потрогай, как он живёт — внизу появится первый ход.</div>
+          </div>
+        )}
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+          {allSeen && guideAction("✅", "Сделать первый ход", hasHabits ? "на «Привычки» — отметить сегодня" : "создать первую привычку", "habits", null, true)}
+          <button onClick={function () { navigate("ai-chat", { prompt: "Объясни, как устроен Balance и с чего мне лучше начать" }); }} className="tap" style={{ width: "100%", border: 0, borderRadius: 999, padding: 15, background: softBg, color: "var(--text-2)", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: glass }}>Остались вопросы — спроси Balance AI ›</button>
         </div>
-        {guideAction("✅", "Собрать день", "создать или отметить привычку", "habits", null, true)}
-        {guideAction("🤝", "Найти своих", "круги, люди и общие привычки", "community", null, false)}
-        <button onClick={function () { navigate("ai-chat", { prompt: "Объясни, как устроен Balance и с чего мне лучше начать" }); }} className="tap" style={{ width: "100%", border: 0, borderRadius: 999, padding: 15, background: softBg, color: "var(--text-2)", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: glass }}>Остались вопросы — спроси Balance AI ›</button>
       </div>
     </div>
   );

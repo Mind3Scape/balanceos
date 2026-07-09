@@ -374,6 +374,9 @@ body.bos-noglass { --sheen-a: rgba(255,255,255,0) !important; --sheen-b: rgba(25
 /* Orbit field — rings spin; each item counter-spins by the SAME duration to stay upright. */
 @keyframes bosSpin  { from { transform: rotate(0deg); }  to { transform: rotate(360deg); } }
 @keyframes bosSpinR { from { transform: rotate(0deg); }  to { transform: rotate(-360deg); } }
+/* Гайд «попробуй здесь» — отметка привычки: тонкая волна расходится от кружка. */
+@keyframes bosGuideWave { 0% { opacity: 0.5; transform: scale(0.55); } 100% { opacity: 0; transform: scale(2.3); } }
+@media (prefers-reduced-motion: reduce) { @keyframes bosGuideWave { 0%, 100% { opacity: 0; } } }
 /* Skeleton placeholder — a soft pulse for content still loading from the cloud (team roster),
    so a synced screen never flashes stale local data while the real data is on its way. */
 @keyframes bosSkel { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.85; } }
