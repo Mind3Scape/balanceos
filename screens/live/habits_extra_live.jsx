@@ -233,6 +233,26 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         )}
       </div>
 
+      {/* ── ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА — строка-скролл под обликом (David 2026-07-10, макет ленты «Открытий»):
+          готовая привычка с призом за серию. Тап → ChallengeIntroSheet (правила → «Начать») → bosCommitChallenge,
+          форма при этом заменяется шторкой челленджа. Только при создании ЛИЧНОЙ привычки (не правка/цель/круг).
+          «Готовый челлендж» в меню «+» НЕ возвращаем (закомментирован) — этот вход его замещает. ── */}
+      {!editing && !teamFor && !goalFor && typeof CHALLENGE_STARTERS !== "undefined" && (
+      <React.Fragment>
+        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.3, color: "var(--text-4)", padding: "16px 4px 8px" }}>ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА</div>
+        <div className="bos-hscroll" style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px 4px" }}>
+          {CHALLENGE_STARTERS.map((c) => (
+            <button key={c.key} type="button" data-no-haptic onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } if (typeof ChallengeIntroSheet === "function") openSheet(<ChallengeIntroSheet c={c} dark={isDark} onStart={() => bosCommitChallenge(app, c, { navigate, openSheet })} />); }}
+              className="tap" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 7, background: "var(--card, #fff)", border: "0.5px solid var(--line, rgba(0,0,0,0.05))", boxShadow: "var(--card-shadow)", borderRadius: 999, padding: "8px 11px 8px 9px", fontSize: 13, fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center" }}>{bosIcon(c.i, 14, "var(--text)")}</span>
+              {c.t} <span style={{ fontSize: 10.5, fontWeight: 800, background: "#FEDE34", color: "#0a0a0a", borderRadius: 999, padding: "2.5px 7px" }}>+{c.bonus}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-4)", padding: "7px 4px 0", lineHeight: 1.4 }}>Челлендж — та же привычка, но с призом за серию. Тап → правила → старт.</div>
+      </React.Fragment>
+      )}
+
       {/* ── РАЗВИВАТЬ / БРОСИТЬ — тумблер (по умолч. Развивать). У общей привычки скрыт (не применимо). ── */}
       {!teamFor && (
       <div style={{ background: "var(--card, #fff)", borderRadius: 22, padding: 16, marginTop: 14, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 12 }}>

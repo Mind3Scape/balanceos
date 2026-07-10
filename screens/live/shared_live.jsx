@@ -3497,9 +3497,8 @@ function BosReorderGrid({ ids, onReorder, renderItem, onLongPress, ctlRef, cols 
 // на доске рисуется как прежде; символ используется только в списке добавления.
 var BOS_HOME_WIDGETS = [
   { id: "hero",    t: "Подсказки",    d: "ИИ-сводка дня и аватар",   emoji: "✨", sym: "sf:Sparkles" },
-  // Лента челленджей ПЕРЕЕХАЛА со страницы «Привычки» (слияние с главной, David): готовые
-  // привычки/цели/«вместе» с XP-бонусом одной строкой чипов. Добирается на доску сама
-  // (как плитки) — правило видимости «НЕ в hidden», см. effLayout в home_live.
+  // Лента челленджей. David 2026-07-10: УБРАНА из дефолта главной (челленджи переехали в форму
+  // создания привычки + Сообщество). Остаётся обычным opt-in виджетом — включается из галереи «+».
   { id: "quick",   t: "Быстрое добавление", d: "Челленджи с бонусом XP", emoji: "⚡", sym: "sf:Flame" },
   { id: "week",    t: "Эта неделя",   d: "Недельная активность",     emoji: "📅", sym: "sf:Calendar" },
   // v598: локальный todo-виджет «Дела» — списки-вкладки со своими делами. ВЫКЛ по умолчанию
@@ -3676,12 +3675,12 @@ function HomeGalleryContentLive({ dark = false, onStyle = null }) {
   const setL = (order, hid) => { if (app && app.setHomeLayout) { app.setHomeLayout({ order, hidden: hid }); haptic(); } };
   const toggleWidget = (id) => {
     const k = "w:" + id;
-    // «Быстрое добавление» добирается на доску само (как плитки) → его вкл = НЕ в hidden.
-    if (id === "quick") { toggleTile(k); return; }
+    // «Быстрое добавление» (quick) больше НЕ добирается само — обычный opt-in виджет (David 2026-07-10):
+    // вкл = «w:quick» в order, как остальные виджеты. Убран из дефолта главной, возвращается отсюда.
     if (inOrder(k)) setL(layout.order.filter((x) => x !== k), hidden.indexOf(k) < 0 ? hidden.concat([k]) : hidden);
     else setL(layout.order.concat([k]), hidden.filter((x) => x !== k));
   };
-  const widgetOn = (id) => (id === "quick") ? (hidden.indexOf("w:quick") < 0) : inOrder("w:" + id);
+  const widgetOn = (id) => inOrder("w:" + id);
   const tileOn = (k) => hidden.indexOf(k) < 0;
   const toggleTile = (k) => {
     if (tileOn(k)) setL(layout.order.filter((x) => x !== k), hidden.concat([k]));
