@@ -308,17 +308,12 @@ function GuideLive() {
       </div>
     );
   };
-  // Орб состояния (валентность) — тот же атом, что в приложении: круг с градиентом
-  // настроения. Показываем ЕГО, а не эмодзи-погоду, чтобы «состояние» совпадало с реальным.
-  var stateOrb = function (sz) {
-    return <span aria-hidden style={{ width: sz, height: sz, borderRadius: "50%", display: "inline-block", background: "linear-gradient(140deg,#8FB4E8 0%,#7ED2A8 38%,#FEDE6B 66%,#F5A46B 100%)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.55)" }} />;
-  };
   var pathLoop = function () {
     // Настоящие иконки приложения (window.I) в родных цветах, не эмодзи-заглушки:
     // день = зелёная отметка · ритм = огонёк серии · свои = орбита людей · места = пин.
     var steps = [
-      { node: <I.Check size={20} color="#34C759" strokeWidth={2.2} />, t: "День", s: "собран" },
-      { node: <I.Flame size={20} color="#FF8A5B" strokeWidth={1.8} />, t: "Ритм", s: "держится" },
+      { node: <I.Check size={20} color="var(--text-2)" strokeWidth={2.2} />, t: "День", s: "собран" },
+      { node: <I.Flame size={20} color="var(--text-2)" strokeWidth={1.8} />, t: "Ритм", s: "держится" },
       { node: <I.OrbitPeople size={21} color="var(--text-2)" strokeWidth={1.7} />, t: "Свои", s: "рядом" },
       { node: <I.MapPin size={20} color="var(--text-2)" strokeWidth={1.8} />, t: "Места", s: "вживую" },
     ];
@@ -400,7 +395,7 @@ function GuideLive() {
 
       {/* ── СУТЬ — всегда открыта: формула пути + как всё течёт, дальше раскрываются акты. */}
       <div ref={function (el) { secRefs.current["suti"] = el; }} style={{ scrollMarginTop: 64 }}>
-          {tabIntro("От дня — к своим", "Balance начинается как привычки, а оказывается системой, которая возвращает тебя в твою жизнь — и выводит к своим людям и настоящим местам рядом.", true)}
+          {tabIntro("От дня — к своим", "Balance начинается как привычки, а оказывается системой, которая возвращает тебя в твою жизнь — и связывает со своими людьми и настоящими местами рядом.", true)}
 
           {/* Человеческая формула пути — четыре шага, крупно (worldview §1). */}
           <div style={{ ...cardStyle, marginTop: 14, padding: "4px 4px" }}>
@@ -408,7 +403,7 @@ function GuideLive() {
               ["Собери себя", "состояние, привычка, день"],
               ["Найди своих", "круги и общие привычки"],
               ["Стань полезен", "помощь своим за опыт"],
-              ["Выйди в жизнь", "практики и места в городе"],
+              ["Выйди в жизнь", "практики и места рядом"],
             ].map(function (r, i) {
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: "12px 12px", borderTop: i ? ("1px solid " + (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)")) : "none" }}>
@@ -449,13 +444,13 @@ function GuideLive() {
               <span style={{ width: 40, height: 40, borderRadius: 13, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 20 }}>🚶</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Прогулка</div>
-                <div style={{ fontSize: 11.5, marginTop: 1, fontWeight: dayTapped ? 700 : 400, color: dayTapped ? "#2E9E52" : "var(--text-4)" }}>{dayTapped ? "сегодня · сделано" : "коснись — отметь"}</div>
+                <div style={{ fontSize: 11.5, marginTop: 1, fontWeight: dayTapped ? 700 : 400, color: dayTapped ? "var(--text-3)" : "var(--text-4)" }}>{dayTapped ? "сегодня · сделано" : "коснись — отметь"}</div>
               </div>
               <span style={{ position: "relative", width: 32, height: 32, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                {dayTapped && <span aria-hidden style={{ position: "absolute", inset: 1, borderRadius: "50%", border: "2px solid #34C759", animation: "bosGuideWave 0.7s ease-out forwards" }} />}
-                <span style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", color: "#fff", transition: "background 0.3s, box-shadow 0.3s",
-                  background: dayTapped ? "#34C759" : "transparent",
-                  boxShadow: dayTapped ? "0 4px 12px rgba(52,199,89,0.4)" : "inset 0 0 0 2px " + (isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.18)") }}>
+                {dayTapped && <span aria-hidden style={{ position: "absolute", inset: 1, borderRadius: "50%", border: "2px solid #EF9F14", animation: "bosGuideWave 0.7s ease-out forwards" }} />}
+                <span style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", color: "#0a0a0a", transition: "background 0.3s, box-shadow 0.3s",
+                  background: dayTapped ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : "transparent",
+                  boxShadow: dayTapped ? "0 4px 12px rgba(239,159,20,0.4)" : "inset 0 0 0 2px " + (isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.18)") }}>
                   {dayTapped && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
                 </span>
               </span>
@@ -473,14 +468,14 @@ function GuideLive() {
             <div style={{ background: softBg, borderRadius: 18, padding: "13px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Эта неделя</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: "#E8590C" }}><I.Flame size={13} color="#E8590C" strokeWidth={1.9} /> серия 6 дн.</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: "#EF9F14" }}><I.Flame size={13} color="#EF9F14" strokeWidth={1.9} /> серия 6 дн.</span>
               </div>
               <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
                 {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map(function (d, i) {
                   var on = i < 4;
                   return (
                     <div key={d} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                      <span style={{ width: 26, height: 26, borderRadius: "50%", background: on ? "#34C759" : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"), boxShadow: on ? "0 3px 8px rgba(52,199,89,0.35)" : "none" }} />
+                      <span style={{ width: 26, height: 26, borderRadius: "50%", background: on ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"), boxShadow: on ? "0 3px 8px rgba(239,159,20,0.35)" : "none" }} />
                       <span style={{ fontSize: 9.5, color: "var(--text-4)", fontWeight: 600 }}>{d}</span>
                     </div>
                   );
@@ -497,8 +492,8 @@ function GuideLive() {
       <div style={cardStyle}>
         {visWrap(
           <div style={{ width: "100%", maxWidth: 300, background: softBg, borderRadius: 18, padding: "14px 16px" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: "var(--text-4)", display: "flex", alignItems: "center", gap: 5 }}><span>Сейчас</span>{stateOrb(11)}<span>ровно</span></div>
-            <div style={{ position: "relative", height: 10, borderRadius: 999, marginTop: 12, background: "linear-gradient(90deg,#8FB4E8,#7ED2A8,#FEDE6B,#F5A46B)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: "var(--text-4)" }}>Сейчас · ровно</div>
+            <div style={{ position: "relative", height: 10, borderRadius: 999, marginTop: 12, background: "linear-gradient(90deg, rgba(140,140,150,0.4), #EF9F14)" }}>
               <span style={{ position: "absolute", left: "58%", top: "50%", transform: "translate(-50%,-50%)", width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 0 0 0.5px rgba(0,0,0,0.06)" }} />
             </div>
             <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 10, lineHeight: 1.45 }}>…и одна строка в дневник: «успел до работы, доволен собой»</div>
@@ -572,14 +567,14 @@ function GuideLive() {
             </div>
           </div>
         )}
-        {body("Уровень и копилка", "У опыта две роли. Уровень — путь: сколько ты возвращался; он только растёт, его не купить — только прожить. Копилка — топливо: та часть опыта, что тратится на настоящее в городе и на помощь своих. Тратишь — копилка пустеет, а уровень стоит на месте и не падает.")}
+        {body("Уровень и копилка", "У опыта две роли. Уровень — путь: сколько ты возвращался; он только растёт, его не купить — только прожить. Копилка — топливо: та часть опыта, что тратится на настоящее рядом и на помощь своих. Тратишь — копилка пустеет, а уровень стоит на месте и не падает.")}
       </div>
 
       {kicker("03", "След на пути")}
       <div style={cardStyle}>
         {visWrap(
           <div style={{ display: "flex", gap: 10 }}>
-            {[["🌱", "Первый шаг", "#7FB37F"], ["🔥", "Неделя с собой", "#FF8A5B"], ["🤝", "Не один", "#5FA8FF"]].map(function (m, i) {
+            {[["🌱", "Первый шаг", "#EF9F14"], ["🔥", "Неделя с собой", "#EF9F14"], ["🤝", "Не один", "#EF9F14"]].map(function (m, i) {
               return (
                 <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 54, height: 54, borderRadius: "50%", background: "linear-gradient(160deg, " + m[2] + "33, " + m[2] + "14)", boxShadow: "inset 0 0 0 1.5px " + m[2] + "59, 0 6px 14px " + m[2] + "26", display: "grid", placeItems: "center", fontSize: 25 }}>{m[0]}</span>
@@ -619,8 +614,8 @@ function GuideLive() {
         <div style={{ ...cardStyle, marginTop: 8 }} className="bos-acc-in">
           <div style={{ padding: "14px 14px 4px", display: "flex", flexDirection: "column", gap: 7 }}>
             {[
-              [<I.Check size={16} color="#34C759" strokeWidth={2.3} />, "Отметка привычки · вместе", "+10 · +15"],
-              [stateOrb(17), "Состояние: отметка · неделя подряд", "+5 · +50"],
+              [<I.Check size={16} color="var(--text-2)" strokeWidth={2.3} />, "Отметка привычки · вместе", "+10 · +15"],
+              [<I.Smile size={17} color="var(--text-2)" strokeWidth={1.7} />, "Состояние: отметка · неделя подряд", "+5 · +50"],
               [<I.Pencil size={15} color="var(--text-2)" strokeWidth={1.8} />, "Пара слов в дневник", "+10"],
               [<I.Sun size={16} color="#EF9F14" strokeWidth={1.8} />, "Идеальный день — все привычки", "+30"],
               [<I.Bolt size={16} color="#EF9F14" strokeWidth={1.7} />, "Финиш челленджа", "+30…75"],
@@ -657,7 +652,7 @@ function GuideLive() {
           <div style={{ position: "relative" }}>
             {(typeof GoalOrbitMini === "function") ? (
               <GoalOrbitMini centerEmoji="🌅" centerColor={null}
-                habits={[{ emoji: "🤸", color: "#34C759", done: true }, { emoji: "📖", color: "#0A84FF" }]}
+                habits={[{ emoji: "🤸", color: "#EF9F14", done: true }, { emoji: "📖", color: "#8E8E93" }]}
                 people={invited
                   ? [{ avatar: "emoji:🦊", name: "", active: true }, { avatar: "emoji:🐱", name: "", active: true }]
                   : [{ avatar: "emoji:🦊", name: "", active: true }]}
@@ -741,7 +736,7 @@ function GuideLive() {
 
       {/* ── ЭТАП 4: МИР */}
       <div ref={function (el) { secRefs.current["world"] = el; }} style={{ scrollMarginTop: 64, marginTop: 12 }}>
-        {stageHeader("world", "4", "Мир", "Партнёры, Люди и город — куда ведёт твой ритм.")}
+        {stageHeader("world", "4", "Мир", "Партнёры, Люди и места — куда ведёт твой ритм.")}
         {openId === "world" && (
           <React.Fragment>
 
@@ -763,14 +758,14 @@ function GuideLive() {
             <div style={{ position: "relative", fontSize: 11.5, fontWeight: 600, marginTop: 9, color: "rgba(10,10,10,0.72)" }}>{stamped ? "код BAL-2481 — предъяви в зале" : "коснись — обменяй копилку на живое"}</div>
           </button>
         )}
-        {body("Партнёры", "Опыт — не просто цифры: копилка меняется на настоящее в городе — тренировки, разборы, практики. С первого дня, и уровень от траты не падает. Это главная история Balance: «сходил на бокс за привычки». Партнёром может стать любой — это уровень и доверие, а не должность. Билет с кодом уже в работе.")}
+        {body("Партнёры", "Опыт — не просто цифры: копилка меняется на настоящее рядом — тренировки, разборы, практики. С первого дня, и уровень от траты не падает. Это главная история Balance: «сходил на бокс за привычки». Партнёром может стать любой — это уровень и доверие, а не должность. Билет с кодом уже в работе.")}
       </div>
 
       {kicker("02", "Люди по делам")}
       <div style={cardStyle}>
         <div style={{ padding: "18px 16px 2px" }}>
           <div style={{ position: "relative", borderRadius: 18, background: softBg, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
-            {[[<I.Group size={17} color="var(--text-2)" strokeWidth={1.7} />, "Похожая структура привычек"], [<I.Flame size={16} color="#FF8A5B" strokeWidth={1.8} />, "Такой же ритм — спорт по утрам"]].map(function (r, i) {
+            {[[<I.Group size={17} color="var(--text-2)" strokeWidth={1.7} />, "Похожая структура привычек"], [<I.Flame size={16} color="var(--text-2)" strokeWidth={1.8} />, "Такой же ритм — спорт по утрам"]].map(function (r, i) {
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, filter: "blur(3.5px)", opacity: 0.6 }}>
                   <span style={{ width: 34, height: 34, borderRadius: "50%", background: chipBg, boxShadow: glass, display: "grid", placeItems: "center" }}>{r[0]}</span>
@@ -787,19 +782,20 @@ function GuideLive() {
       {kicker("03", "Самое большое")}
       <div style={cardStyle}>
         <div style={{ padding: "16px 16px 0" }}>
-          <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", background: "linear-gradient(160deg, #0e1a2e 0%, #0a1424 100%)", height: 150 }}>
+          <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", background: "linear-gradient(160deg, #16161c 0%, #0a0a0c 100%)", height: 150 }}>
             {[[12, 18, 2.5], [30, 64, 2], [48, 30, 3], [66, 74, 2], [82, 22, 2.5], [90, 58, 2], [22, 82, 2], [58, 12, 2], [74, 44, 2.5], [8, 52, 2], [40, 90, 2], [95, 86, 2]].map(function (d, i) {
-              return <span key={i} aria-hidden style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: "rgba(190,215,255,0.85)", boxShadow: "0 0 6px rgba(160,200,255,0.8)" }} />;
+              var gold = i % 3 === 0;
+              return <span key={i} aria-hidden style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: gold ? "#FEDE34" : "rgba(255,255,255,0.85)", boxShadow: gold ? "0 0 6px rgba(254,222,52,0.85)" : "0 0 5px rgba(255,255,255,0.6)" }} />;
             })}
             {[[24, 34, 34, "🙂"], [56, 58, 42, "😎"], [78, 26, 30, "🐱"]].map(function (d, i) {
               return (
                 <span key={"d" + i} style={{ position: "absolute", left: d[0] + "%", top: d[1] + "%", width: d[2], height: d[2], borderRadius: "50%", background: "linear-gradient(165deg, rgba(255,255,255,0.35), rgba(255,255,255,0.08) 55%), rgba(255,255,255,0.14)", boxShadow: "inset 0 1px 0.5px rgba(255,255,255,0.4), 0 6px 18px rgba(0,0,0,0.35)", display: "grid", placeItems: "center", fontSize: d[2] * 0.5 }}>{d[3]}</span>
               );
             })}
-            <span style={{ position: "absolute", left: 12, bottom: 10, fontSize: 11, fontWeight: 700, letterSpacing: 0.3, color: "rgba(190,215,255,0.78)" }}>Вселенная · все системы</span>
+            <span style={{ position: "absolute", left: 12, bottom: 10, fontSize: 11, fontWeight: 700, letterSpacing: 0.3, color: "rgba(255,255,255,0.72)" }}>Вселенная · все системы</span>
           </div>
         </div>
-        {body("Вселенная", "Каждый в Balance — своя система: человек в центре, привычки — планеты на орбитах. «Вселенная» на странице «Я» показывает всех — анонимно, как огни ночного города: имён не видно, но видно, что город живой. Ты уже один из этих огней.")}
+        {body("Вселенная", "Каждый в Balance — своя система: человек в центре, привычки — планеты на орбитах. «Вселенная» на странице «Я» показывает всех — анонимно, как звёзды ночного неба: имён не видно, но видно, сколько вокруг живого. Ты уже среди этих звёзд.")}
       </div>
 
           </React.Fragment>
@@ -812,7 +808,7 @@ function GuideLive() {
             <span aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg,#FEDE34,#EF9F14)" }} />
             <div style={{ display: "flex", justifyContent: "center", lineHeight: 1 }}><I.Sparkles size={34} color="#EF9F14" filled strokeWidth={1.4} /></div>
             <div style={{ fontFamily: "var(--bos-title-font)", fontSize: 22, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)", marginTop: 8 }}>Ты знаешь, как устроен Balance</div>
-            <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 6, lineHeight: 1.5, maxWidth: 300, margin: "6px auto 0" }}>Собрал день, нашёл своих, увидел город. Дальше — не читать, а сделать. С малого.</div>
+            <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 6, lineHeight: 1.5, maxWidth: 300, margin: "6px auto 0" }}>Собрал день, нашёл своих, увидел живой мир вокруг. Дальше — не читать, а сделать. С малого.</div>
           </div>
         ) : (
           <div style={{ ...cardStyle, padding: "18px 16px", textAlign: "center" }}>

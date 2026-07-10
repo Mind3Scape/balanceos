@@ -114,50 +114,42 @@ function CommSectionHeadLive({ title, onAll }) {
 }
 
 /* Баннер «Как устроен Balance» на «Сообществе» → гид. Вынесен из ленты, чтобы жить
-   отдельным атомом (и превьюиться в _devguide.html). David: старый «неприкольный»,
-   заглушки-эмодзи (🌤/👥/📍) не соотносятся с реальным приложением. Теперь маршрут собран
-   из НАСТОЯЩИХ иконок приложения (window.I) в родных цветах: состояние = орб валентности,
-   день = зелёная галочка отметки, свои = орбита людей, город = золотой узел «выход в жизнь»
-   (ради чего копишь). Тап → «Как устроен Balance». */
+   отдельным атомом (и превьюиться в _devguide.html). David: иконки-шаги (состояние/день/
+   свои/город) — «непонятно», палитра приложения = БЕЛЫЙ · ЧЁРНЫЙ · немного ЗОЛОТА. Теперь
+   БЕЗ иконок: чёрная карта «звёздное небо» (белые + золотые звёзды, лёгкое золотое сияние),
+   копия прежняя, золотой CTA. Тап → «Как устроен Balance». */
 function CommunityGuideBannerLive({ navigate, isDark }) {
-  var sheen = (typeof BOS_TILE_SHEEN !== "undefined") ? BOS_TILE_SHEEN + ", " : "";
-  var glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none";
-  var tileBg = sheen + (isDark ? "rgba(255,255,255,0.06)" : "#F1F1F5");
-  var ink = "var(--text-2)";
-  var orb = (
-    <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(140deg,#8FB4E8 0%,#7ED2A8 38%,#FEDE6B 66%,#F5A46B 100%)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.55)" }} />
-  );
-  var nodes = [
-    { key: "state", label: "состояние", node: orb },
-    { key: "day", label: "день", node: <I.Check size={21} color="#34C759" strokeWidth={2.2} /> },
-    { key: "own", label: "свои", node: <I.OrbitPeople size={22} color={ink} strokeWidth={1.7} /> },
-    { key: "city", label: "город", gold: true, node: <I.MapPin size={20} color="#0a0a0a" strokeWidth={1.9} /> },
+  // Фиксированное звёздное поле [left%, top%, размер, золотая?, прозрачность] — стабильно между
+  // рендерами (без Math.random). Большинство белые, несколько золотых-акцентов.
+  var stars = [
+    [7, 22, 1.5, 0, 0.5], [14, 58, 1.8, 0, 0.65], [21, 33, 1.2, 0, 0.4], [27, 74, 1.6, 1, 0.9],
+    [33, 15, 2.3, 1, 0.95], [39, 49, 1.3, 0, 0.5], [45, 80, 1.7, 0, 0.6], [51, 27, 1.4, 0, 0.55],
+    [57, 63, 1.9, 1, 0.85], [62, 38, 1.3, 0, 0.5], [68, 72, 1.6, 0, 0.6], [73, 18, 2.1, 1, 0.9],
+    [79, 52, 1.5, 0, 0.6], [84, 34, 1.3, 0, 0.5], [89, 68, 1.7, 0, 0.65], [93, 25, 1.4, 1, 0.85],
+    [11, 84, 1.3, 0, 0.45], [37, 88, 1.5, 0, 0.5], [65, 86, 1.4, 0, 0.5], [95, 50, 1.6, 0, 0.55],
+    [4, 44, 1.2, 0, 0.4], [18, 12, 1.4, 0, 0.5], [49, 9, 1.7, 1, 0.8], [82, 82, 1.3, 0, 0.45], [70, 55, 1.2, 0, 0.4],
   ];
   return (
     <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }} className="tap"
-      style={{ width: "100%", border: 0, textAlign: "left", cursor: "pointer", background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "17px 16px 15px" }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: "var(--text-4)" }}>как это работает</div>
-      <div style={{ fontSize: 20, fontWeight: 850, letterSpacing: "-0.55px", color: "var(--text)", marginTop: 5, lineHeight: 1.12, fontFamily: "var(--bos-title-font)" }}>Собери день — найди своих</div>
-      <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 6, lineHeight: 1.42 }}>Отмечай состояние, закрывай привычки и цели — Balance покажет круги, людей и места по твоему ритму.</div>
-
-      <div style={{ display: "flex", alignItems: "flex-start", marginTop: 15 }}>
-        {nodes.map(function (n, i) {
-          return (
-            <React.Fragment key={n.key}>
-              {i > 0 && <span aria-hidden style={{ flex: 1, height: 2, marginTop: 22, borderRadius: 2, minWidth: 10, background: "repeating-linear-gradient(90deg, " + (isDark ? "rgba(255,255,255,0.20)" : "rgba(10,10,10,0.14)") + " 0 4px, transparent 4px 9px)" }} />}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 0 }}>
-                <span style={{ width: 46, height: 46, borderRadius: 16, display: "grid", placeItems: "center",
-                  background: n.gold ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : tileBg,
-                  boxShadow: n.gold ? "0 8px 18px rgba(239,159,20,0.32)" : glass }}>{n.node}</span>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: n.gold ? "#EF9F14" : "var(--text-3)", whiteSpace: "nowrap" }}>{n.label}</span>
-              </div>
-            </React.Fragment>
-          );
+      style={{ position: "relative", overflow: "hidden", width: "100%", border: 0, textAlign: "left", cursor: "pointer",
+        background: "radial-gradient(120% 92% at 24% -8%, #1b1b24 0%, #101014 48%, #08080a 100%)",
+        borderRadius: 24, boxShadow: "var(--card-shadow), inset 0 0 0 1px rgba(255,255,255,0.06)", padding: "19px 18px 16px" }}>
+      {/* звёздное поле + мягкое золотое сияние-рассвет */}
+      <span aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        {stars.map(function (s, i) {
+          return <span key={i} style={{ position: "absolute", left: s[0] + "%", top: s[1] + "%", width: s[2], height: s[2], borderRadius: "50%", background: s[3] ? "#FEDE34" : "#fff", opacity: s[4], boxShadow: s[3] ? "0 0 5px rgba(254,222,52,0.85)" : "0 0 3px rgba(255,255,255,0.5)" }} />;
         })}
-      </div>
+        <span style={{ position: "absolute", right: "-14%", top: "-30%", width: "62%", height: "88%", background: "radial-gradient(circle, rgba(239,159,20,0.20), transparent 68%)" }} />
+      </span>
 
-      <div style={{ display: "flex", justifyContent: "center", marginTop: 15, paddingTop: 14, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)") }}>
-        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", fontSize: 13.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999, padding: "12px 16px", boxShadow: "0 6px 16px rgba(239,159,20,0.32)" }}>Как устроен Balance · 3 минуты <I.ChevronRight size={15} color="#0a0a0a" strokeWidth={2.6} /></span>
+      <div style={{ position: "relative" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>как это работает</div>
+        <div style={{ fontSize: 21, fontWeight: 850, letterSpacing: "-0.55px", color: "#fff", marginTop: 7, lineHeight: 1.12, fontFamily: "var(--bos-title-font)" }}>Собери день — найди своих</div>
+        <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.6)", marginTop: 8, lineHeight: 1.46, maxWidth: 305 }}>Отмечай состояние, закрывай привычки и цели — Balance покажет круги, людей и места по твоему ритму.</div>
+
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 17 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, width: "100%", fontSize: 13.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999, padding: "12px 16px", boxShadow: "0 8px 20px rgba(239,159,20,0.42)" }}>Как устроен Balance · 3 минуты ›</span>
+        </div>
       </div>
     </button>
   );
