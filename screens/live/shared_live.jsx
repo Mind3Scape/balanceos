@@ -4722,24 +4722,39 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
    a flash-then-vanish at the page bottom (David: «показывает на секунду, потом исчезает»).
    Here it stays silent until real teams arrive, then the section appears once, below the
    create-CTA, shifting nothing above it. The frozen demo keeps core's CloudTeamsDiscover. */
-function CloudTeamsDiscoverLive({ app, query, onCount }) {
+// Кэш последнего удачного списка открытых кругов (витрина, НЕ поиск) — переживает перемонтаж
+// и обрыв сети, чтобы публичный круг не «то появлялся, то исчезал» при каждом заходе на «Круги».
+var _bosDiscoverCache = null;
+function CloudTeamsDiscoverLive({ app, query, onCount, navigate }) {
   const isDark = app?.themeOverride === "dark";
-  const [list, setList] = React.useState(null);
+  const q = ("" + (query || "")).trim();
+  const isSearch = !!q;
+  // Витрина стартует С КЭША → мгновенно, без мигания в пустоту; поиск всегда с чистого листа.
+  const [list, setList] = React.useState(() => (isSearch ? null : _bosDiscoverCache));
   const [busy, setBusy] = React.useState({});
   const [requested, setRequested] = React.useState({});
-  // query → режим ПОИСКА: ищем открытые круги по имени (cloud.searchTeams) вместо витрины;
-  // onCount сообщает родителю, сколько нашлось (для честной пустышки «ничего не нашлось»).
   React.useEffect(() => {
     let on = true;
-    const q = ("" + (query || "")).trim();
     try {
       if (window.bosCloud && window.bosCloud.enabled()) {
-        const p = (q && window.bosCloud.searchTeams) ? window.bosCloud.searchTeams(q) : window.bosCloud.discoverTeams();
-        p.then((ts) => { if (!on) return; const arr = Array.isArray(ts) ? ts : []; setList(arr); if (onCount) onCount(arr.length); }).catch(() => { if (!on) return; setList([]); if (onCount) onCount(0); });
-      } else { setList([]); if (onCount) onCount(0); }
-    } catch (e) { setList([]); if (onCount) onCount(0); }
+        const p = (isSearch && window.bosCloud.searchTeams) ? window.bosCloud.searchTeams(q) : window.bosCloud.discoverTeams();
+        p.then((ts) => {
+          if (!on) return;
+          const arr = Array.isArray(ts) ? ts : [];
+          if (!isSearch) _bosDiscoverCache = arr;                 // обновляем кэш витрины
+          setList(arr); if (onCount) onCount(arr.length);
+        }).catch(() => {
+          // Обрыв сети/RLS: НЕ гасим витрину в пустоту — держим что было (фикс «то появляется, то исчезает»).
+          if (!on) return;
+          if (isSearch) { setList([]); if (onCount) onCount(0); }
+          else { setList((prev) => prev || _bosDiscoverCache || []); if (onCount) onCount((_bosDiscoverCache || []).length); }
+        });
+      } else { if (!isSearch) setList((prev) => prev || _bosDiscoverCache || []); else setList([]); if (onCount) onCount(0); }
+    } catch (e) { if (isSearch) { setList([]); if (onCount) onCount(0); } }
     return () => { on = false; };
   }, [query]);
+  // Круги, где я уже состою (владелец/участник) — по cloudId: их не зову вступать, а даю «Открыть».
+  const mineById = {}; ((app && app.teams) || []).forEach((t) => { if (t && t.cloudId) mineById[t.cloudId] = t; });
   // While LOADING (null) → render nothing (no promissory skeleton that pops then collapses).
   // Once LOADED-EMPTY ([]) → a warm, HONEST invite: «Найти» is the community pulse, so the live
   // section shouldn't read as a dead blank — but we never fabricate circles that don't exist.
@@ -4782,16 +4797,21 @@ function CloudTeamsDiscoverLive({ app, query, onCount }) {
     <div style={{ marginTop: 10 }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌐 Открытые круги</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {list.map((t) => (
+        {list.map((t) => {
+          const mineT = mineById[t.id];
+          return (
           <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
             <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.06)", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(t.emblem || "✨", 24, null)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--text)" }}>{t.name}</div>
               <div style={{ marginTop: 5 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(isDark), padding: "3px 9px", borderRadius: 999 }}>🌐 Открытая · {t.members} участ.</span></div>
             </div>
-            <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "var(--cta, #0a0a0a)", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>
+            {mineT
+              ? <button onClick={() => { if (navigate) navigate("team-detail", { team: mineT, from: "community" }); }} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>Открыть</button>
+              : <button onClick={() => join(t)} disabled={busy[t.id] || requested[t.id]} className="tap" style={{ flexShrink: 0, background: (busy[t.id] || requested[t.id]) ? "var(--card-2)" : "var(--cta, #0a0a0a)", color: (busy[t.id] || requested[t.id]) ? "var(--text-3)" : "var(--cta-ink, #fff)", border: 0, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{requested[t.id] ? "Заявка отправлена" : busy[t.id] ? "…" : "Вступить"}</button>}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

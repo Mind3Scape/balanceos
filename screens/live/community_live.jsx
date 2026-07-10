@@ -1257,10 +1257,8 @@ function CommunityLive() {
   const searching = qDeb.length >= 2;
   const _qq = qDeb.toLowerCase();
   const _hit = (...fs) => fs.some((f) => ("" + (f || "")).toLowerCase().indexOf(_qq) !== -1);
-  // Живые круги: фейк сведён к ОДНОМУ примеру (David) — реальные круги ищутся через
-  // CloudTeamsDiscoverLive (настоящий поиск публичных кругов). Пример может совпасть по слову.
-  const lcHits = searching && typeof LIVING_CIRCLES !== "undefined"
-    ? LIVING_CIRCLES.slice(0, 1).filter((s) => _hit(s.t, s.hook, (s.habits || []).map((h) => h.name).join(" "))) : [];
+  // Круги ищутся ТОЛЬКО в облаке (CloudTeamsDiscoverLive) — настоящий поиск публичных кругов,
+  // без бутафорных примеров.
   const pHits = searching && typeof BOS_PARTNERS !== "undefined"
     ? BOS_PARTNERS.filter((p) => _hit(p.name, p.what, (p.tags || []).join(" "))) : [];
 
@@ -1314,7 +1312,7 @@ function CommunityLive() {
   ];
   // Хиты программ считаются ЗДЕСЬ (courses объявлен строкой выше — обращение раньше уронило бы TDZ).
   const cHits = searching ? courses.filter((c) => _hit(c.t, c.d, c.lvl)) : [];
-  const nothingFound = searching && cloudHits === 0 && !lcHits.length && !pHits.length && !cHits.length;
+  const nothingFound = searching && cloudHits === 0 && !pHits.length && !cHits.length;
 
   return (
     <div className="page-in" style={{ padding: "0 12px 24px" }}>
@@ -1376,25 +1374,7 @@ function CommunityLive() {
       {/* РЕЗУЛЬТАТЫ ПОИСКА — те же карточки, что в ленте; тап ведёт туда же. */}
       {searching && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-          {lcHits.length > 0 && (
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🌱 Живые круги</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {lcHits.map((s) => (
-                  <button key={s.id} onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} className="tap"
-                    style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
-                    <span style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe7))", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{bosIcon(s.i, 24, null)}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, fontWeight: 600 }}>{s.t}</div>
-                      <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.hook}</div>
-                    </div>
-                    <I.ChevronRight size={16} color="var(--text-4)" style={{ flexShrink: 0 }} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <CloudTeamsDiscoverLive app={app} query={qDeb} onCount={setCloudHits} />
+          <CloudTeamsDiscoverLive app={app} navigate={navigate} query={qDeb} onCount={setCloudHits} />
           {pHits.length > 0 && (
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-4)", padding: "4px 4px 8px" }}>🎁 Партнёры</div>
@@ -1493,96 +1473,33 @@ function CommunityLive() {
             {typeof PartnersGridLive === "function" && <PartnersGridLive app={app} navigate={navigate} from="community" />}
           </React.Fragment>
         )}
-        {filter === "all" && typeof NetworkPeekLive === "function" && (
-          /* Баннер «Люди» — ВТОРЫМ блоком, заметный (David: «суть нравится, но тоненький и в
-             незаметном месте»). Тап → чип «Люди». */
-          <NetworkPeekLive unlocked={userLevel >= 10} onOpen={() => setFilter("people")} />
-        )}
-
-        {(filter === "all" || filter === "circles") && (
+        {/* Чип «Круги» — ОДНА реальная категория «Открытые круги» (это и есть «живые»: одно и то
+            же, не две подписи). Никакой бутафории/примеров — только настоящие публичные круги из
+            облака. Ниже — челленджи-шаблоны и «Собери свой» (старт создаёт ТВОЙ настоящий круг). */}
+        {filter === "circles" && (
           <React.Fragment>
-            {/* КРУГИ (v526): ЕДИНЫЙ язык плиток — мозаика 2 колонки по макету, вместо трёх
-                разных горизонтальных лент. На «Все» — превью 4 плитки (2 живых + 2 челленджа);
-                чип «Круги» — все группы теми же плитками. Тапы прежние: живой → шторка-превью
-                с «Постучаться», челлендж → подтверждение → старт, пресет → форма создания. */}
-            {filter === "all" ? (
-              <React.Fragment>
-              {/* Обзор (David: «каждая категория со скроллом вбок» + «в ленте должна быть ИХ
-                  карточка с орбитами, не новая»): живые круги — НАСТОЯЩИЕ карточки
-                  LivingCircleCardLive (лица и привычки на кольцах), фикс-ширина в ленте,
-                  соседняя выглядывает; следом — компакт-плитки челленджей. */}
-              <CommSectionHeadLive title="🌱 Круги" onAll={() => setFilter("circles")} />
-              {/* Выравнивание (David): СЛЕВА первая карточка ровно под кикером (padding-left 4 от
-                  колонки страницы), СПРАВА уходит за экран (margin-right -12). Не bleed с обеих сторон.
-                  Карточки НАШЕГО размера (w=300): чётные — вариант «чипы», нечётные — «с орбитой»,
-                  чтобы David сравнил оба вживую (круги — примеры). */}
-              <div className="bos-hscroll" style={{ display: "flex", alignItems: "stretch", gap: 10, overflowX: "auto", padding: "3px 12px 14px 4px", margin: "-2px -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}>
-                {/* Живые круги: ОДИН пример-карточка (David) — весь реальный список открывается по «Все ›». */}
-                {LIVING_CIRCLES.slice(0, 1).map((s, i) => (
-                  <LivingCircleCardLive key={s.id} circle={s} w={300} variant="chips"
-                    onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
-                ))}
-                {SEED_CIRCLES.map((s) => {
-                  const mine = (app?.teams || []).find((t) => t.seedId === s.id);
-                  return (
-                    <button key={s.id} onClick={() => {
-                        if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
-                        if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
-                        _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
-                      }} className="tap"
-                      style={{ flex: "0 0 auto", width: 152, scrollSnapAlign: "start", background: "var(--card)", border: 0, borderRadius: 18, padding: 13, textAlign: "left", color: "var(--text)", boxShadow: "var(--card-shadow)", display: "flex", flexDirection: "column", justifyContent: "center", gap: 9, cursor: "pointer" }}>
-                      <span style={{ width: 40, height: 40, borderRadius: 13, background: BOS_TILE_SHEEN + ", linear-gradient(150deg, var(--disc-a, #eef1f6), var(--disc-b, #dadfe8))", boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none", display: "grid", placeItems: "center", fontSize: 20 }}>{bosIcon(s.emblem, 20, null)}</span>
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: "block", fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px", lineHeight: 1.25 }}>{s.name}</span>
-                        <span style={{ display: "block", fontSize: 11.5, color: mine ? "#34C759" : "var(--text-4)", marginTop: 3, lineHeight: 1.35 }}>{mine ? "Ты в деле ✓" : s.goalText + " · +" + s.reward + " XP"}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              </React.Fragment>
-            ) : (
-              <React.Fragment>
-                <CommSectionHeadLive title="✨ Живые круги" />
-                {/* David: живые круги теперь НАСТОЯЩИЕ (из облака) + ОДИН пример-карточка. Сделаешь
-                    свою цель открытым кругом — она появится здесь среди реальных. */}
-                <div style={{ fontSize: 12, color: "var(--text-4)", padding: "0 4px 8px", lineHeight: 1.4 }}>Пример круга — так он выглядит, когда наполнится жизнью 👇</div>
-                {LIVING_CIRCLES.slice(0, 1).map((s) => (
-                  <LivingCircleCardLive key={s.id} circle={s} variant="chips"
-                    onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof LivingCircleSheetLive === "function") _openSheet(<LivingCircleSheetLive circle={s} navigate={navigate} />); }} />
-                ))}
-                {/* НАСТОЯЩИЕ открытые круги из облака (в т.ч. твоя цель-круг, если открыть её). */}
-                <div style={{ marginTop: 12 }}><CloudTeamsDiscoverLive app={app} /></div>
-                <CirclesMosaicLive kicker="🔥 Челленджи">
-                  {SEED_CIRCLES.map((s) => {
-                    const mine = (app?.teams || []).find((t) => t.seedId === s.id);
-                    return (
-                      <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
-                        onTap={() => {
-                          if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
-                          if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
-                          _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
-                        }} />
-                    );
-                  })}
-                </CirclesMosaicLive>
-                <CirclesMosaicLive kicker="🤝 Собери свой">
-                  {CIRCLE_STARTERS.map((s) => (
-                    <CircleTileLive key={s.t} emoji={s.i} title={s.t} meta={s.target + " " + s.unit + " · " + (s.goalType === "streak" ? "серия вместе" : "счёт общий")}
-                      onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<GoalFormSheetLive mode="create" circleOn={true} preset={s} navigate={navigate} />); }} />
-                  ))}
-                </CirclesMosaicLive>
-              </React.Fragment>
-            )}
-            {/* РЕАЛЬНАЯ жизнь — живые лица из твоих кругов (скрыто, если людей нет). */}
-            {typeof CircleFriendsStripLive === "function" && <CircleFriendsStripLive app={app} navigate={navigate} />}
-            {filter === "circles" && (
-              <React.Fragment>
-                {/* Позови своих — родной выбор контактов Telegram (реферал). */}
-                {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
-                {/* Реальные открытые круги теперь показаны выше, под «Живые круги» (не дублируем). */}
-              </React.Fragment>
-            )}
+            <CloudTeamsDiscoverLive app={app} navigate={navigate} />
+            <CirclesMosaicLive kicker="🔥 Челленджи">
+              {SEED_CIRCLES.map((s) => {
+                const mine = (app?.teams || []).find((t) => t.seedId === s.id);
+                return (
+                  <CircleTileLive key={s.id} emoji={s.emblem} title={s.name} meta={s.goalText + " · +" + s.reward + " XP"} joined={!!mine}
+                    onTap={() => {
+                      if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+                      if (mine) { navigate("team-detail", { team: mine, from: "community" }); return; }
+                      _openSheet(<ChallengeStartSheetLive seed={s} onStart={() => bosStartSeedCircleLive(app, navigate, s)} />);
+                    }} />
+                );
+              })}
+            </CirclesMosaicLive>
+            <CirclesMosaicLive kicker="🤝 Собери свой">
+              {CIRCLE_STARTERS.map((s) => (
+                <CircleTileLive key={s.t} emoji={s.i} title={s.t} meta={s.target + " " + s.unit + " · " + (s.goalType === "streak" ? "серия вместе" : "счёт общий")}
+                  onTap={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } _openSheet(<GoalFormSheetLive mode="create" circleOn={true} preset={s} navigate={navigate} />); }} />
+              ))}
+            </CirclesMosaicLive>
+            {/* Позови своих — родной выбор контактов Telegram (реферал), только на «Круги». */}
+            {typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
           </React.Fragment>
         )}
 
@@ -1673,9 +1590,7 @@ function CommunityLive() {
         )}
 
 
-        {/* Финал обзора «Все»: позови своих — путь приглашения живёт в «Найти» (решение David:
-            с главной убран). На чипе «Круги» карточка живёт внутри полного раздела. */}
-        {filter === "all" && typeof InviteFriendsCardLive === "function" && <InviteFriendsCardLive isDark={isDark} />}
+        {/* «Позови своих» убран с «Все» (не по макету) — живёт на чипе «Круги». */}
       </div>
       )}
     </div>

@@ -519,13 +519,16 @@
     return row;
   }
   // Public teams you're NOT in yet (with member counts) — the discovery list.
+  // ВСЕ публичные круги (не фильтруем «мои» — иначе владелец не видит СВОЙ круг в открытых, а
+  // race у myTeamIds давал «то появляется, то исчезает»). «Мой/чужой» решает клиент (Открыть/Вступить).
   async function discoverTeams() {
-    var c = client(); var id = await uid(); if (!c || !id) return [];
+    var c = client(); if (!c) return [];
     try {
       var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,circle_balance_on,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(40);
       if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,team_members(count)").eq("vis", "public").order("created_at", { ascending: false }).limit(40); // до ALTER circle_balance_on
-      var rows = r.data || []; var mine = await myTeamIds();
-      return rows.filter(function (t) { return mine.indexOf(t.id) < 0; }).map(function (t) {
+      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target").eq("vis", "public").order("created_at", { ascending: false }).limit(40); // если embed team_members падает под RLS
+      var rows = (r && r.data) || [];
+      return rows.map(function (t) {
         return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, circleBalanceOn: t.circle_balance_on, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
       });
     } catch (e) { return []; }
@@ -533,11 +536,12 @@
   // ПОИСК открытых кругов по имени (Сообщество: строка поиска над лентой). Тот же
   // формат ответа, что у discoverTeams — CloudTeamsDiscoverLive ест обоих.
   async function searchTeams(q) {
-    var c = client(); var id = await uid(); if (!c || !id || !q) return [];
+    var c = client(); if (!c || !q) return [];
     try {
       var r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target,team_members(count)").eq("vis", "public").ilike("name", "%" + q + "%").limit(20);
-      var rows = r.data || []; var mine = await myTeamIds();
-      return rows.filter(function (t) { return mine.indexOf(t.id) < 0; }).map(function (t) {
+      if (r.error) r = await c.from("teams").select("id,name,emblem,vis,owner_id,goal_kind,goal_target").eq("vis", "public").ilike("name", "%" + q + "%").limit(20);
+      var rows = (r && r.data) || [];
+      return rows.map(function (t) {
         return { id: t.id, name: t.name, emblem: t.emblem, vis: t.vis, owner_id: t.owner_id, goalKind: t.goal_kind, goalTarget: t.goal_target, members: (t.team_members && t.team_members[0] && t.team_members[0].count) || 0 };
       });
     } catch (e) { return []; }
