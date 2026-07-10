@@ -214,13 +214,13 @@ function ProfileLive() {
               <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 3 }}>Короткие статьи — как это работает</div>
             </div>
             {[
-              { topic: "habits-basics", emoji: "🌱", t: "Основы привычек", b: "Почему маленькое сильнее большого — и как не пропускать дважды." },
-              { topic: "goals-101",     emoji: "🎯", t: "Хорошие цели", b: "Результат или процесс: что отслеживать и когда." },
-              { topic: "teams-101",     emoji: "🤝", t: "Совместные привычки", b: "Один общий якорь, общая серия и поддержка вместо контроля." },
+              { topic: "habits-basics", icon: "Leaf",   emoji: "🌱", t: "Основы привычек", b: "Почему маленькое сильнее большого — и как не пропускать дважды." },
+              { topic: "goals-101",     icon: "Target", emoji: "🎯", t: "Хорошие цели", b: "Результат или процесс: что отслеживать и когда." },
+              { topic: "teams-101",     icon: "Group",  emoji: "🤝", t: "Совместные привычки", b: "Один общий якорь, общая серия и поддержка вместо контроля." },
             ].map((c, i) => (
               <button key={i} onClick={() => { closeSheet(); navigate("info", { topic: c.topic, from: "profile" }); }} className="tap"
                 style={{ width: "100%", background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : "0", padding: "12px 2px", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: "var(--text)", cursor: "pointer" }}>
-                <span style={{ width: 36, height: 36, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{c.emoji}</span>
+                <span style={{ width: 36, height: 36, borderRadius: 12, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl(c.icon, { size: 19, color: "var(--text-2)" })) || c.emoji}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{c.t}</span>
                   <span style={{ display: "block", fontSize: 12, color: "var(--text-4)", marginTop: 1, lineHeight: 1.35 }}>{c.b}</span>
@@ -378,7 +378,7 @@ function AILive() {
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, cursor: "pointer", textAlign: "left", padding: "13px 14px" }}>
                 <span style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 15,
                   background: (typeof BOS_TILE_SHEEN === "string" ? BOS_TILE_SHEEN + ", " : "") + (isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)"),
-                  boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "none" }}>{(p && p.i) || "✨"}</span>
+                  boxShadow: (typeof bosTileGlass === "function") ? bosTileGlass(isDarkAI) : "none" }}>{(typeof bosPillGlyphLive === "function" ? bosPillGlyphLive(p, { size: 17, color: "var(--text-2)" }) : ((p && p.i) || "✨"))}</span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pillLabel(p)}</span>
                 <I.ChevronRight size={16} color="var(--text-4)" />
               </button>
@@ -393,7 +393,7 @@ function AILive() {
         <>
           <button onClick={() => navigate("mood")} className="tap"
             style={{ width: "100%", marginTop: 12, background: "var(--card)", border: 0, borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
-            <span style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(135deg,#e9f1ff,#cfe1ff)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🧭</span>
+            <span style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(135deg,#e9f1ff,#cfe1ff)", display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl("Smile", { size: 24, color: "#2f4258" })) || "🧭"}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600 }}>Отметить состояние</div>
               <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Пара секунд — и советы начнут подстраиваться под тебя.</div>
@@ -402,7 +402,7 @@ function AILive() {
           </button>
           <button onClick={() => navigate("ai-chat", { prompt: "Расскажу немного о себе и своих целях" })} className="tap"
             style={{ width: "100%", marginTop: 10, background: "var(--card)", border: 0, borderRadius: 22, padding: 16, boxShadow: "var(--card-shadow)", display: "flex", alignItems: "center", gap: 13, textAlign: "left", color: "var(--text)" }}>
-            <span style={{ width: 46, height: 46, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>💬</span>
+            <span style={{ width: 46, height: 46, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl("MessageCircle", { size: 23, color: "var(--text-2)" })) || "💬"}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15.5, fontWeight: 600 }}>Рассказать о себе</div>
               <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>Пара минут — и ИИ узнает твои цели и ритм дня.</div>
@@ -421,15 +421,15 @@ function AILive() {
       <div className="section-label" style={{ marginTop: 18, color: "var(--text-3)", padding: "0 4px" }}>Скоро в Balance AI</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
         {[
-          { i: "📊", t: "Аналитика", need: 10, d: "Твои закономерности: что качает, а что мешает.", details: [
-            ["📈", "Что качает энергию", "Какие привычки реально двигают серию и настроение — по твоим отметкам."],
-            ["🕳", "Где проседает", "Дни и связки, на которых чаще всего рвётся ритм."],
-            ["🧩", "Связки привычек", "Что с чем работает в паре — и что стоит переставить."],
+          { i: "📊", icon: "ChartBar", t: "Аналитика", need: 10, d: "Твои закономерности: что качает, а что мешает.", details: [
+            ["ChartBar", "Что качает энергию", "Какие привычки реально двигают серию и настроение — по твоим отметкам."],
+            ["Target", "Где проседает", "Дни и связки, на которых чаще всего рвётся ритм."],
+            ["Group", "Связки привычек", "Что с чем работает в паре — и что стоит переставить."],
           ] },
-          { i: "🧠", t: "Наставник", need: 15, d: "Личная программа и разбор недели.", details: [
-            ["🗺", "Программа под тебя", "Личный план на неделю из твоих целей и ритма."],
-            ["🔍", "Разбор недели", "Что получилось, что нет и почему — раз в неделю, честно."],
-            ["⚡", "Челленджи под ритм", "Персональные вызовы там, где тебе по силам расти."],
+          { i: "🧠", icon: "Compass", t: "Наставник", need: 15, d: "Личная программа и разбор недели.", details: [
+            ["MapPin", "Программа под тебя", "Личный план на неделю из твоих целей и ритма."],
+            ["Search", "Разбор недели", "Что получилось, что нет и почему — раз в неделю, честно."],
+            ["Bolt", "Челленджи под ритм", "Персональные вызовы там, где тебе по силам расти."],
           ] },
         ].map((f) => {
           const unlocked = lvl.level >= f.need;
@@ -439,14 +439,14 @@ function AILive() {
           const openDetails = () => openSheet(
             <div style={{ padding: "2px 18px 8px", color: "var(--text)" }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 14 }}>
-                <span style={{ width: 56, height: 56, borderRadius: 18, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 27 }}>{f.i}</span>
+                <span style={{ width: 56, height: 56, borderRadius: 18, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center" }}>{(typeof bosIconEl === "function" && bosIconEl(f.icon, { size: 28, color: "var(--text-2)" })) || f.i}</span>
                 <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px", marginTop: 10 }}>{f.t}</div>
                 <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>{unlocked ? "Готовим к запуску — ты уже открыл" : "Откроется на " + f.need + " уровне · у тебя " + lvl.level + "-й"}</div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {f.details.map((d, j) => (
                   <div key={j} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: 13, borderRadius: 18, background: isDarkAI ? "rgba(255,255,255,0.06)" : "var(--surface-2)" }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 11, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{d[0]}</span>
+                    <span style={{ width: 34, height: 34, borderRadius: 11, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", flexShrink: 0 }}>{(typeof bosIconEl === "function" && bosIconEl(d[0], { size: 17, color: "var(--text-2)" })) || d[0]}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14.5, fontWeight: 600 }}>{d[1]}</div>
                       <div style={{ fontSize: 12.5, color: "var(--text-4)", marginTop: 2, lineHeight: 1.45 }}>{d[2]}</div>
@@ -467,8 +467,8 @@ function AILive() {
           return (
             <button key={f.t} onClick={openDetails} className="tap" style={{ textAlign: "left", border: 0, cursor: "pointer", borderRadius: 22, padding: 15, background: "var(--card)", boxShadow: "var(--card-shadow)", color: "var(--text)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ width: 40, height: 40, borderRadius: 13, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center", fontSize: 20 }}>{f.i}</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)", borderRadius: 999, padding: "4px 9px" }}>{unlocked ? "✨ скоро" : <><I.Lock size={10} strokeWidth={2.4}/> {f.need} ур.</>}</span>
+                <span style={{ width: 40, height: 40, borderRadius: 13, background: chipBg, boxShadow: glass, display: "grid", placeItems: "center" }}>{(typeof bosIconEl === "function" && bosIconEl(f.icon, { size: 22, color: "var(--text-2)" })) || f.i}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: isDarkAI ? "rgba(255,255,255,0.08)" : "var(--surface-3)", borderRadius: 999, padding: "4px 9px" }}>{unlocked ? <><I.Sparkles size={10} filled strokeWidth={0} style={{ marginRight: 3, verticalAlign: "-1px" }}/>скоро</> : <><I.Lock size={10} strokeWidth={2.4}/> {f.need} ур.</>}</span>
               </div>
               <div style={{ fontSize: 15, fontWeight: 700, marginTop: 12, letterSpacing: "-0.2px" }}>{f.t}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 3, lineHeight: 1.4 }}>{f.d}</div>

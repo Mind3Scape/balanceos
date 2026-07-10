@@ -57,7 +57,7 @@ var BOS_PILL_ICON_BY_ROUTE = { mood: "Smile", "habit-settings": "Plus", "goal-se
 var BOS_PILL_ICON_BY_EMOJI = {
   "✨": "Sparkles", "🔮": "Bulb", "🧭": "Compass", "➕": "Plus", "🌟": "Target", "🙋": "Person",
   "📖": "Book", "📚": "Book", "🧘": "Moon", "🧘🏼‍♀️": "Moon", "🔥": "Flame", "💪": "Dumbbell",
-  "💧": "Droplet", "🏃": "Foot", "🌅": "Sun", "🚭": "Ban",
+  "💧": "Droplet", "🏃": "Sneaker", "🌅": "Sun", "🚭": "Ban",
 };
 function bosPillIconName(pill) {
   if (!pill || typeof pill === "string") return "Sparkles";
@@ -71,6 +71,14 @@ function bosPillGlyphLive(pill, opts) {
   // ЗАЛИВНЫЕ (filled) + strokeWidth 0 — David: контурные тонкие иконки на малом размере не
   // читаются (лампочка не читалась как лампочка). Сплошной силуэт «садится» лучше.
   return <Cmp size={o.size || 15} color={o.color || "var(--text-2)"} filled strokeWidth={0} />;
+}
+// Общий рендер ЗАЛИВНОЙ иконки по имени из набора I (для секций вне чипов: сферы колеса,
+// «Следующие шаги», «Обучение», «Скоро»). Возвращает элемент или null (тогда вызывающий даёт fallback).
+function bosIconEl(name, opts) {
+  var o = opts || {};
+  if (typeof I === "undefined" || !name || !I[name]) return null;
+  var Cmp = I[name];
+  return <Cmp size={o.size || 18} color={o.color || "var(--text-2)"} filled strokeWidth={0} />;
 }
 
 /* Learning-cards visibility (Habits → «Обучение»). One persisted flag: hide once read,
@@ -2215,6 +2223,10 @@ var BOS_SPHERES = [
   { id: "soul", e: "✨", l: "Дух" },
   { id: "rest", e: "🌿", l: "Отдых" },
 ];
+// Заливные иконки сфер для колеса «Баланс жизни» (David: эмодзи → SVG). Эмодзи-поля выше
+// остаются для матчинга/fallback. Тело→гантель, Разум→лампочка, Дело→портфель, Люди→сердце,
+// Дух→искра, Отдых→луна.
+var BOS_SPHERE_ICON = { body: "Dumbbell", mind: "Bulb", work: "Briefcase", bond: "Heart", soul: "Sparkles", rest: "Moon" };
 // Корни слов (в нижнем регистре, поиск подстрокой) — покрывают кастомные названия.
 var BOS_SPHERE_KW = {
   body: ["отжим", "присед", "планк", "турник", "бег", "бега", "пробеж", "зал", "спорт", "трениров", "тренаж", "фитнес", "качал", "штанг", "гантел", "упражн", "йог", "растяж", "гибк", "вода", "воды", "воду", "стакан", "шаг", "ходь", "прогул", "сон", "спать", "выспат", "высып", "душ", "закал", "зарядк", "разминк", "велосип", "плаван", "бассейн", "пресс", "мышц", "похуд", "питани", "завтрак", "сахар", "диет", "витамин", "здоров", "body", "gym", "run", "walk", "water", "sleep", "step", "workout", "fitness", "yoga"],
@@ -2372,7 +2384,7 @@ function BosBalanceWheelLive(props) {
           <circle cx={c} cy={c} r={R * 0.7} fill="none" stroke={dark ? "rgba(52,199,89,0.4)" : "rgba(52,199,89,0.34)"} strokeWidth="1" strokeDasharray="2.5 4.5" />
           <path d={poly} fill={"url(#" + uid + ")"} stroke="#FFB020" strokeWidth="1.8" strokeLinejoin="round" />
           {SPH.map(function (s, i) { var q = pt(i, Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={q[0].toFixed(1)} cy={q[1].toFixed(1)} r="2.6" fill={bosZoneColor(s.v)} stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="1.2" />; })}
-          {SPH.map(function (s, i) { var t2 = pol(ang(i), R + 18); return <text key={"e" + i} x={t2[0].toFixed(1)} y={t2[1].toFixed(1)} fontSize="15" textAnchor="middle" dominantBaseline="central">{s.e}</text>; })}
+          {SPH.map(function (s, i) { var t2 = pol(ang(i), R + 18); var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles"; var el = (typeof bosIconEl === "function") ? bosIconEl(nm, { size: 17, color: dark ? "#c8c8cf" : "#7c7d86" }) : null; return el ? <g key={"e" + i} transform={"translate(" + (t2[0] - 8.5).toFixed(1) + "," + (t2[1] - 8.5).toFixed(1) + ")"}>{el}</g> : <text key={"e" + i} x={t2[0].toFixed(1)} y={t2[1].toFixed(1)} fontSize="15" textAnchor="middle" dominantBaseline="central">{s.e}</text>; })}
           <text x={c} y={c - 3} fontSize="26" fontWeight="800" textAnchor="middle" fill={dark ? "#f2f2f5" : "#101828"} style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>{overall}</text>
           <text x={c} y={c + 13} fontSize="8.5" fontWeight="700" letterSpacing="1.2" textAnchor="middle" fill={dark ? "#8e8e93" : "#9f9fa9"}>БАЛАНС</text>
         </svg>
@@ -2386,7 +2398,7 @@ function BosBalanceWheelLive(props) {
           return (
             <button key={s.id} onClick={function () { setPick(on ? null : s.id); }} className="tap" data-no-haptic
               style={{ display: "flex", alignItems: "center", gap: 9, background: on ? (dark ? "rgba(255,255,255,0.08)" : "#eef0f3") : "transparent", border: 0, borderRadius: 10, cursor: "pointer", textAlign: "left", padding: "4px 5px" }}>
-              <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{s.e}</span>
+              <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles", { size: 15, color: dark ? "#d0d0d7" : "#5b5c66" })) || s.e}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)", lineHeight: 1.1 }}>{s.l}</div>
                 <div style={{ height: 5, borderRadius: 3, background: "var(--surface-3)", marginTop: 4, overflow: "hidden" }}>
