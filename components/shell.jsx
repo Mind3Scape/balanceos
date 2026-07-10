@@ -1538,8 +1538,19 @@ function AppProvider({ children }) {
               // keep the orb in sync with today's restored state
               try { var _tk = (typeof bosTodayKey === "function") ? bosTodayKey() : null; var _mi = _tk ? _mMoods[_tk] : undefined; if (_mi != null && MOOD_OPTIONS[_mi]) setMood(MOOD_OPTIONS[_mi]); } catch (e) {}
               if (d.wheelSpheres) setWheelSpheres(d.wheelSpheres);
-              if (d.widgets) setWidgets(d.widgets);
-              if (d.homeLayout) setHomeLayout(d.homeLayout);
+              // F-layout (David: «переставил блоки главной, потом через время всё вернулось»):
+              // loadSnapshot резолвится ПО СЕТИ, спустя секунды после входа, и применяет облачный снимок
+              // В КОНЦЕ. Если за эти секунды пользователь ПОМЕНЯЛ раскладку/виджеты — автосейв на время
+              // гидрации выключен, значит его правка ещё НЕ в localStorage (localAt старый) → cloudAt>=localAt
+              // и облачное затирало свежую живую правку. Сверяем ТЕКУЩЕЕ в памяти (latestRef) со стартовым
+              // снапшотом: если на ЭТОМ устройстве раскладку/виджеты трогали после входа — не затираем.
+              // Обычная кросс-девайс синхронизация цела (не трогали → применяется облачное).
+              var _liveW = (latestRef.current && latestRef.current.widgets) || null;
+              var _liveL = (latestRef.current && latestRef.current.homeLayout) || null;
+              var _wEditedLive = !!(saved && saved.widgets) && JSON.stringify(_liveW) !== JSON.stringify(saved.widgets);
+              var _lEditedLive = !!(saved && saved.homeLayout) && JSON.stringify(_liveL) !== JSON.stringify(saved.homeLayout);
+              if (d.widgets && !_wEditedLive) setWidgets(d.widgets);
+              if (d.homeLayout && !_lEditedLive) setHomeLayout(d.homeLayout);
               // If local held days the cloud lacked, push the union up so the cloud is whole too.
               // (v594: и если мы удержали локальные круги от пустого облака — лечим облачный снимок сразу.)
               if (_teamsHeld || Object.keys(_mMoods).length > Object.keys(_cloudMoods).length || Object.keys(_mNotes).length > Object.keys(_cloudNotes).length) {
