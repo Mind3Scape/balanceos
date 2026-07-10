@@ -868,13 +868,16 @@ function BosEnvBalanceFullLive() {
       <div style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: "15px 15px", marginTop: 12 }}>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text)" }}>Расти вместе</div>
         <div style={{ fontSize: 12.7, color: "var(--text-3)", lineHeight: 1.5, marginTop: 4 }}>Ты в балансе — самое время нести добро. Поделись, чем ты силён, и позови ещё близких: чем крепче каждый, тем выше общий баланс.</div>
-        {/* «Чем могу быть полезен» — короткое предложение помощи, которое увидят твои близкие. */}
+        {/* «Чем могу быть полезен» — ЕДИНЫЙ вклад из «Сообщества» (network_offers), не отдельная
+            локальная строка (Сообщество v2 §6): открывает ту же шторку «Добавить формат помощи». */}
         <div style={{ marginTop: 13 }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Чем ты можешь быть полезен</div>
-          <input value={myOffer} onChange={onOfferChange} onBlur={onOfferBlur} maxLength={200}
-            placeholder="Напр.: помогу с английским · выслушаю · подскажу по спорту"
-            style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 12, padding: "11px 13px", fontSize: 14, color: "var(--text)", fontFamily: "inherit" }} />
-          <div style={{ fontSize: 11, color: "var(--text-5)", lineHeight: 1.4, marginTop: 6 }}>Увидят твои близкие в «Балансе окружения» — и заглянут, когда нужно.</div>
+          <button className="tap" onClick={function () { if (typeof AddHelpFormatSheetLive === "function") openSheet(<AddHelpFormatSheetLive app={app} offer={null} onDone={function () {}} />); }}
+            style={{ width: "100%", boxSizing: "border-box", border: 0, background: "var(--surface-3)", borderRadius: 12, padding: "12px 13px", fontSize: 14, color: "var(--text-2)", fontFamily: "inherit", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span>Добавить формат помощи для своих</span>
+            <span style={{ color: "var(--text-4)", fontWeight: 700 }}>›</span>
+          </button>
+          <div style={{ fontSize: 11, color: "var(--text-5)", lineHeight: 1.4, marginTop: 6 }}>Единый вклад — тот же, что в «Сообществе». Круг подтвердит роль и увидит твою помощь.</div>
         </div>
         <button className="tap hit44" onClick={bosEnvInvite(openSheet, navigate, dark)} style={{ display: "block", width: "100%", marginTop: 14, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, border: 0, borderRadius: 999, padding: "12px", cursor: "pointer" }}>＋ Позвать своего</button>
       </div>

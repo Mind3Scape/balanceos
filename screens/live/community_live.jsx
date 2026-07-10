@@ -181,7 +181,7 @@ var BOS_GOLD = "#FEDE34";
 // Пороги «лесенки» замочков на странице — легко правимые (David ещё не уверен в точных цифрах).
 var BOS_DISC_GATES = { showcase: 3, people: 10, map: 3 };
 // Шторки колоды — обложка «прожита», когда открыты все.
-var BOS_DISC_SHEETS = ["core", "xp", "together", "ch", "partners", "people"];
+var BOS_DISC_SHEETS = ["core", "xp", "together", "helpers", "ch", "partners", "people"];
 
 function bosDiscBag(lsKey) { try { return JSON.parse(localStorage.getItem(lsKey) || "{}") || {}; } catch (e) { return {}; } }
 function bosDiscMark(lsKey, id) {
@@ -474,8 +474,35 @@ function DiscoveryPeopleSheetLive({ app, navigate, isDark }) {
   );
 }
 
+// ═════ ШТОРКА · ПОМОГАЙ СВОИМ (валидация окружением — соц. подтверждение) ═════
+function DiscoveryHelpersSheetLive({ app, navigate, isDark }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : { open: () => {}, close: () => {} };
+  const step = (n, t, d) => (
+    <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+      <span style={{ width: 24, height: 24, borderRadius: "50%", background: BOS_GOLD, color: "#0a0a0a", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center", flexShrink: 0 }}>{n}</span>
+      <div><div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{t}</div><div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 1, lineHeight: 1.4 }}>{d}</div></div>
+    </div>
+  );
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Помогай своим</div>
+      <div style={_dSSub}>роль подтверждает твоё окружение — не модерация сверху</div>
+      <div style={{ ..._dSText, textAlign: "center" }}>Любой становится помощником через <b style={{ color: "var(--text)" }}>своё окружение</b>: люди из твоих кругов видели тебя в деле — они и подтверждают роль.</div>
+      <div style={{ ..._dSCard, display: "flex", flexDirection: "column", gap: 12 }}>
+        {step("1", "Вклад", "Выбери формат из безопасного каталога — что даёшь своим.")}
+        {step("2", "Подтверждение", "2 человека из круга подтверждают роль → формат открывается шире.")}
+        {step("3", "Просьба", "Круг просит — ты откликаешься. Первое дело у своих.")}
+        {step("4", "След пользы", "«Спасибо»-свет от тех, кому помог. Без звёзд-рейтингов.")}
+      </div>
+      <button className="tap" style={_dGbtn} onClick={() => { if (typeof AddHelpFormatSheetLive === "function") sheet.open(<AddHelpFormatSheetLive app={app} offer={null} onDone={() => {}} />); }}>Добавить формат помощи</button>
+    </div>
+  );
+}
+
 // Открывает нужную шторку по id (для колоды и перекрёстных ссылок).
 function bosDiscSheetNode(id, app, navigate, isDark) {
+  if (id === "helpers") return <DiscoveryHelpersSheetLive app={app} navigate={navigate} isDark={isDark} />;
   if (id === "core") return <DiscoveryCoreSheetLive app={app} navigate={navigate} isDark={isDark} />;
   if (id === "xp") return <DiscoveryXPSheetLive app={app} navigate={navigate} isDark={isDark} />;
   if (id === "together") return <DiscoveryTogetherSheetLive app={app} navigate={navigate} isDark={isDark} />;
@@ -503,22 +530,25 @@ function _discIcon(key, size, color) {
     ch: <path d="M12 2c1.2 3.4-.8 4.6-.8 6.8a3 3 0 0 0 5.9.6C18.6 11 20 13.2 20 15.3A8 8 0 1 1 4 15.3c0-2.6 1.6-4.2 2.6-5.8.5 1.9 1.4 2.6 2.5 2.6C8 9 10 5.4 12 2z" />,
     partners: <path d="M20.5 8.6V6.4c0-1-.8-1.8-1.8-1.8H5.3c-1 0-1.8.8-1.8 1.8v2.2a3.4 3.4 0 0 1 0 6.8v2.2c0 1 .8 1.8 1.8 1.8h13.4c1 0 1.8-.8 1.8-1.8v-2.2a3.4 3.4 0 0 1 0-6.8zM14 15.6l-2-1.3-2 1.3.6-2.3-1.8-1.5 2.3-.2 1-2.2 1 2.2 2.3.2-1.9 1.5z" />,
     people: <g><circle cx="10" cy="8" r="3.6" /><path d="M3.6 19.6c0-3.6 2.9-6 6.4-6 1.1 0 2.2.25 3.1.72a4.7 4.7 0 0 0-1.2 3.1v2.8H5.1c-.9 0-1.5-.6-1.5-.62z" /><path d="M17.5 12.8a3 3 0 0 0-3 3v.6h-.1c-.7 0-1.3.6-1.3 1.3v2.9c0 .7.6 1.3 1.3 1.3h6.2c.7 0 1.3-.6 1.3-1.3v-2.9c0-.7-.6-1.3-1.3-1.3h-.1v-.6a3 3 0 0 0-3-3zm0 1.6c.8 0 1.4.6 1.4 1.4v.6h-2.8v-.6c0-.8.6-1.4 1.4-1.4z" /></g>,
+    help: <path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" />,
     lock: <path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5zm0 2.2a2.8 2.8 0 0 0-2.8 2.8v2h5.6v-2A2.8 2.8 0 0 0 12 5.8z" />,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>{body[key] || null}</svg>;
 }
 
-// ── карточка колоды: свой цвет (bosGoalSkin — язык тонированных карточек привычек) + крупная
-//    анимированная иконка, без XP-меты (David: «геймификацию „прочти карточку" не ставим»). ──
+// ── карточка колоды: БЕЛАЯ карточка, цвет ТОЛЬКО в плашке иконки (David: живые «слишком
+//    цветастые» — макет 2026-07-10). Крупная анимированная иконка в accent, без XP-меты. ──
 function _DiscCard({ id, accent, iconKey, title, desc, onOpen, onDismiss, isDark, animDelay }) {
-  var sk = (accent && typeof bosGoalSkin === "function") ? bosGoalSkin(accent, isDark, true) : null;
-  var iconInk = sk ? (sk.accent || accent) : "var(--text)";
+  var tint = accent
+    ? (typeof bosMixHex === "function" ? bosMixHex(accent, isDark ? "#101014" : "#ffffff", isDark ? 0.7 : 0.84) : accent)
+    : "var(--surface-3)";
+  var iconInk = accent || "var(--text)";
   return (
-    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: sk ? sk.bg : "var(--card)", boxShadow: sk ? sk.shadow : "var(--card-shadow)", border: 0, padding: "14px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: sk ? sk.txt : "var(--text)", fontFamily: "inherit" }}>
-      {onDismiss && <_DiscX onClick={onDismiss} color={sk ? sk.sub : "var(--text-4)"} />}
-      <span className="disc-bob" style={{ width: 56, height: 56, borderRadius: 18, background: sk ? sk.iconBg : "var(--surface-3)", display: "grid", placeItems: "center", marginBottom: 12, animation: "discBob 3.4s ease-in-out infinite", animationDelay: (animDelay || 0) + "s" }}>{_discIcon(iconKey, 30, iconInk)}</span>
+    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: "14px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "var(--text)", fontFamily: "inherit" }}>
+      {onDismiss && <_DiscX onClick={onDismiss} color="var(--text-4)" />}
+      <span className="disc-bob" style={{ width: 56, height: 56, borderRadius: 18, background: tint, display: "grid", placeItems: "center", marginBottom: 12, animation: "discBob 3.4s ease-in-out infinite", animationDelay: (animDelay || 0) + "s" }}>{_discIcon(iconKey, 30, iconInk)}</span>
       <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{title}</span>
-      <span style={{ fontSize: 12, color: sk ? sk.sub : "var(--text-3)", lineHeight: 1.35, marginTop: 5 }}>{desc}</span>
+      <span style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.35, marginTop: 5 }}>{desc}</span>
     </button>
   );
 }
@@ -628,6 +658,7 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
   const deckDefs = [
     { key: "xp", id: "xp", iconKey: "xp", accent: "#FF9F0A", title: "Опыт и уровень", desc: "Каждый ход — шаг по пути", show: true },
     { key: "together", id: "together", iconKey: "together", accent: "#0A84FF", title: "Вместе — больше", desc: "Совместные привычки и цели", show: !hasTogether },
+    { key: "helpers", id: "helpers", iconKey: "help", accent: "#EF9F14", title: "Помогай своим", desc: "Круг подтверждает твою роль", show: true },
     { key: "ch", id: "ch", iconKey: "ch", accent: "#FF453A", title: "Челленджи", desc: "Готовая привычка с призом", show: !hasChallenge },
     { key: "partners", id: "partners", iconKey: "partners", accent: "#BF5AF2", title: "Партнёры", desc: "Впечатления за твой опыт", show: !hasSpent },
     { key: "people", id: "people", iconKey: "people", accent: "#30C08B", title: "Люди", desc: "Закрытый круг — с 10 уровня", show: userLevel >= 5 },
