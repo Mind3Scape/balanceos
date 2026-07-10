@@ -42,7 +42,8 @@ declare me uuid := auth.uid(); row public.teams;
 begin
   if me is null then raise exception 'not authenticated'; end if;
   insert into public.team_members (team_id, user_id, role) values (t, me, 'member')
-    on conflict (team_id, user_id) do update set role = 'member';
+    on conflict (team_id, user_id) do update set role = 'member'
+      where team_members.role = 'pending';   -- только повысить заявку; НИКОГДА не понижать owner/admin/member (см. patch_fix_join_team_link.sql)
   select * into row from public.teams where id = t;
   return row;
 end; $$;

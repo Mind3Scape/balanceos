@@ -96,8 +96,13 @@ Deno.serve(async (req) => {
     // в орбитах» для уже зарегистрированных.
     if (referredById) {
       try {
+        // Гард САМО-реферала (корень бага «Давид пригласил Давид»): ссылка несёт ref_code ИЛИ uid;
+        // если он резолвится в СВОЙ ЖЕ профиль (человек открыл собственную инвайт/hb-ссылку), не
+        // вписываем себя как пригласившего. Обновляемая строка (tg_id=tgId) имеет id = свой uid →
+        // .neq("id", referredById) выкидывает её ровно когда пригласивший == сам. Клиентские гарды
+        // v658 ловили только сырой uid; ref_code (реальные ссылки) проскакивал — тут закрыто в корне.
         await admin.from("profiles").update({ referred_by: referredById })
-          .eq("tg_id", tgId).is("referred_by", null);
+          .eq("tg_id", tgId).is("referred_by", null).neq("id", referredById);
       } catch (_e) { /* ignore */ }
     }
 
