@@ -2227,6 +2227,12 @@ var BOS_SPHERES = [
 // остаются для матчинга/fallback. Тело→гантель, Разум→лампочка, Дело→портфель, Люди→сердце,
 // Дух→искра, Отдых→луна.
 var BOS_SPHERE_ICON = { body: "Dumbbell", mind: "Bulb", work: "Briefcase", bond: "Heart", soul: "Sparkles", rest: "Moon" };
+// Пресет для «Добавить привычку в сферу» (лупа сферы / опоры): эмодзи + осмысленное имя,
+// которое ГАРАНТИРОВАННО классифицируется bosSphereFor обратно в эту же сферу (по корню слова).
+var BOS_SPHERE_PRESET = {
+  body: { i: "💪", t: "Зарядка" }, mind: { i: "🧠", t: "Чтение" }, work: { i: "💼", t: "Фокус-блок по работе" },
+  bond: { i: "❤️", t: "Позвонить близкому" }, soul: { i: "✨", t: "Благодарность" }, rest: { i: "🌿", t: "Отдых 15 минут" },
+};
 // Корни слов (в нижнем регистре, поиск подстрокой) — покрывают кастомные названия.
 var BOS_SPHERE_KW = {
   body: ["отжим", "присед", "планк", "турник", "бег", "бега", "пробеж", "зал", "спорт", "трениров", "тренаж", "фитнес", "качал", "штанг", "гантел", "упражн", "йог", "растяж", "гибк", "вода", "воды", "воду", "стакан", "шаг", "ходь", "прогул", "сон", "спать", "выспат", "высып", "душ", "закал", "зарядк", "разминк", "велосип", "плаван", "бассейн", "пресс", "мышц", "похуд", "питани", "завтрак", "сахар", "диет", "витамин", "здоров", "body", "gym", "run", "walk", "water", "sleep", "step", "workout", "fitness", "yoga"],
@@ -2257,24 +2263,63 @@ function bosSphereFor(item) {
   if (emo) { for (var k = 0; k < BOS_SPHERES.length; k++) { var id2 = BOS_SPHERES[k].id; if ((BOS_SPHERE_EMO[id2] || "").indexOf(emo) >= 0) return id2; } }
   return "mind";                                                     // не распознали → «Разум» (саморазвитие)
 }
-// Сила одной привычки 0..1 — из серии, отметки сегодня и накопленной истории.
-function bosHabitStrength(h) {
+// ── ЗАТУХАНИЕ «за всё время» (David V2-финал) ────────────────────────────────
+// Баланс жизни копится из ВСЕЙ истории ходов, но свежие ходы весят больше: вес
+// одного хода = 0.5^(возраст_в_днях / полупериод). Полупериод ~месяц → заброшенная
+// сфера медленно бледнеет (а не обнуляется по понедельникам), вернулся — оживает.
+var BOS_WHEEL_HALFLIFE = 30;   // дней — полупериод веса одного хода
+var BOS_WHEEL_SAT = 10;        // столько «затухшего веса» ходов → привычка налита наполовину
+var BOS_WHEEL_TREND_EPS = 1;   // разница ходов (посл.7 дн vs пред.7 дн), чтобы стрелка «повернулась»
+// Сумма затухших весов ходов из лога привычки. minAge/maxAge (дней) сужают окно (для трендов);
+// по умолчанию — вся история. Ключи лога = "YYYY-MM-DD" (Date.parse → полночь локали).
+function bosDecayWeight(log, now, minAge, maxAge) {
+  if (!log) return 0;
+  var HL = BOS_WHEEL_HALFLIFE, sum = 0;
+  for (var k in log) {
+    if (!Object.prototype.hasOwnProperty.call(log, k) || !log[k]) continue;
+    var t = Date.parse(k); if (isNaN(t)) continue;
+    var age = (now - t) / 86400000; if (age < 0) age = 0;
+    if (minAge != null && age < minAge) continue;
+    if (maxAge != null && age >= maxAge) continue;
+    sum += Math.pow(0.5, age / HL);
+  }
+  return sum;
+}
+// Сила одной привычки 0..1 — насыщается от затухшего веса ВСЕЙ истории ходов (свежие весомее).
+// Существующая привычка без свежих ходов не падает в ноль (структура сферы видна).
+function bosHabitStrength(h, now) {
   if (!h) return 0;
-  var streak = Math.max(0, h.streak | 0);
-  var marks = 0; try { marks = h.log ? Object.keys(h.log).length : 0; } catch (e) {}
-  var s = 0.30;                                 // просто существует и ведётся
-  s += Math.min(streak, 30) / 30 * 0.42;        // сила серии
-  s += h.done ? 0.16 : 0;                        // отмечено сегодня
-  s += Math.min(marks, 20) / 20 * 0.12;          // накопленная история
-  return Math.max(0, Math.min(1, s));
+  now = now || Date.now();
+  var w = bosDecayWeight(h.log, now);
+  var s = 1 - Math.pow(0.5, w / BOS_WHEEL_SAT);   // 0 ходов → 0; много свежих → →1
+  var seed = (h.log && Object.keys(h.log).length) ? 0.12 : 0.10;
+  return Math.max(seed, Math.min(1, s));
+}
+// Направление сферы за последние дни: ходы посл. 7 дн vs пред. 7 дн (David: стрелка ▲▼—).
+function bosSphereTrend(habits, now) {
+  var last = 0, prev = 0;
+  (habits || []).forEach(function (h) {
+    var log = h && h.log; if (!log) return;
+    for (var k in log) {
+      if (!Object.prototype.hasOwnProperty.call(log, k) || !log[k]) continue;
+      var t = Date.parse(k); if (isNaN(t)) continue;
+      var age = (now - t) / 86400000; if (age < 0) age = 0;
+      if (age < 7) last++; else if (age < 14) prev++;
+    }
+  });
+  if (last - prev >= BOS_WHEEL_TREND_EPS) return "up";
+  if (prev - last >= BOS_WHEEL_TREND_EPS) return "dn";
+  return "eq";
 }
 // Данные колеса: сфера тем полнее, чем крепче держишь входящие в неё привычки/цели.
+// Сигнатура сохранена: { spheres:[{id,e,l,v,n,items,tr}], overall, filled }. Новое поле tr = тренд.
 function bosWheelData(app) {
+  var now = Date.now();
   var _archM = bosLoadArchived(); // по cloudId (bosIsArch), не по переиздаваемому числовому id
   var habits = ((app && app.habits) || []).filter(function (h) { return h && !h.shelved && !bosIsArch(_archM, "h", h); });
   var goals = ((app && app.goals) || []).filter(function (g) { return g && !bosIsArch(_archM, "g", g); });
-  var strengths = {}, items = {}; BOS_SPHERES.forEach(function (s) { strengths[s.id] = []; items[s.id] = []; });
-  habits.forEach(function (h) { var id = bosSphereFor(h); strengths[id].push(bosHabitStrength(h)); items[id].push({ emoji: h.emoji || "•", name: h.name || "Привычка", kind: "habit" }); });
+  var strengths = {}, items = {}, hbySph = {}; BOS_SPHERES.forEach(function (s) { strengths[s.id] = []; items[s.id] = []; hbySph[s.id] = []; });
+  habits.forEach(function (h) { var id = bosSphereFor(h); strengths[id].push(bosHabitStrength(h, now)); hbySph[id].push(h); items[id].push({ emoji: h.emoji || "•", name: h.name || "Привычка", kind: "habit" }); });
   goals.forEach(function (g) {
     var prog = (typeof bosGoalProgress === "function") ? bosGoalProgress(g, (app && app.habits) || []) : { pct: 0, done: false };
     var id = bosSphereFor(g);
@@ -2284,14 +2329,14 @@ function bosWheelData(app) {
   var total = 0, filled = 0;
   var spheres = BOS_SPHERES.map(function (s) {
     var arr = strengths[s.id], v;
-    if (!arr.length) v = 0.12;                                        // пустая сфера — тонкая, оранжевая
+    if (!arr.length) v = 0.06;                                        // пустая сфера — почти пусто
     else {
       var avg = arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
       v = Math.min(1, avg + Math.min(arr.length - 1, 4) * 0.03);      // чуть вознаграждаем широту
       filled++;
     }
     total += v;
-    return { id: s.id, e: s.e, l: s.l, v: v, n: arr.length, items: items[s.id] };
+    return { id: s.id, e: s.e, l: s.l, v: v, n: arr.length, items: items[s.id], tr: bosSphereTrend(hbySph[s.id], now) };
   });
   return { spheres: spheres, overall: Math.round(total / spheres.length * 100), filled: filled };
 }
@@ -2332,105 +2377,169 @@ function BosHeroOrbMini(props) {
   );
 }
 
-// РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint }.
+// «Из чего сложилась оценка» сферы — ЧЕСТНО из реальных данных (ходы по её привычкам).
+// Возвращает массив строк {k, v} + вспомогательные факты для текста лупы.
+function bosSphereFacts(app, sphereId, now) {
+  now = now || Date.now();
+  var _archM = (typeof bosLoadArchived === "function") ? bosLoadArchived() : {};
+  var hs = ((app && app.habits) || []).filter(function (h) {
+    return h && !h.shelved && !(typeof bosIsArch === "function" && bosIsArch(_archM, "h", h)) && bosSphereFor(h) === sphereId;
+  });
+  var last7 = 0, prev7 = 0, lastMarkAge = null;
+  hs.forEach(function (h) {
+    var log = h && h.log; if (!log) return;
+    for (var k in log) {
+      if (!Object.prototype.hasOwnProperty.call(log, k) || !log[k]) continue;
+      var t = Date.parse(k); if (isNaN(t)) continue;
+      var age = (now - t) / 86400000; if (age < 0) age = 0;
+      if (age < 7) last7++; else if (age < 14) prev7++;
+      if (lastMarkAge == null || age < lastMarkAge) lastMarkAge = age;
+    }
+  });
+  var trend = bosSphereTrend(hs, now);
+  var rows = [];
+  // Ходы по привычкам сферы за неделю (+ квалификатор направления)
+  var moveQ = trend === "dn" ? "редеют" : trend === "up" ? "чаще" : "ровно";
+  rows.push({ k: "Ходы по привычкам сферы", v: hs.length ? (moveQ + " · " + last7 + " за неделю") : "привычек пока нет" });
+  // Свежесть последнего хода
+  var freshV = lastMarkAge == null ? "ходов ещё не было" : (lastMarkAge < 1 ? "сегодня" : (Math.round(lastMarkAge) + " дн. назад"));
+  rows.push({ k: "Последний ход", v: freshV });
+  // Что входит в сферу
+  rows.push({ k: "Привычек в сфере", v: hs.length ? (hs.length + " · " + hs.slice(0, 3).map(function (h) { return h.name || "привычка"; }).join(", ") + (hs.length > 3 ? "…" : "")) : "нет" });
+  return { rows: rows, habits: hs, last7: last7, prev7: prev7, lastMarkAge: lastMarkAge, trend: trend };
+}
+
+// ШТОРКА-ЛУПА СФЕРЫ ЖИЗНИ (David: «тап → разобрать, из чего сложилось + два действия»).
+// props: { sphere:{id,l,v,tr}, app, navigate }. Открывается через openSheet(<... />).
+function BosSphereLupaSheetLive(props) {
+  var sphere = props.sphere || {};
+  var app = props.app || (typeof useApp === "function" ? useApp() : {});
+  var navigate = props.navigate || function () {};
+  var sheet = (typeof useSheet === "function") ? useSheet() : { open: function () {}, close: function () {} };
+  var dark = (app && app.themeOverride === "dark");
+  var pct = Math.round((sphere.v || 0) * 100);
+  var facts = bosSphereFacts(app, sphere.id, Date.now());
+  var lbl = sphere.l || "Сфера";
+  var preset = (typeof BOS_SPHERE_PRESET !== "undefined" && BOS_SPHERE_PRESET[sphere.id]) || { i: "✨", t: lbl };
+  var addHabit = function () {
+    if (typeof HabitFormSheetLive === "function") sheet.open(<HabitFormSheetLive mode="create" preset={{ i: preset.i, t: preset.t, sphere: sphere.id }} navigate={navigate} />);
+    else if (navigate) navigate("home");
+  };
+  var askAI = function () { sheet.close(); if (navigate) navigate("ai-chat", { prompt: "Разбери мою сферу «" + lbl + "» — из чего она сложилась и что подтянуть?" }); };
+  var isThin = !facts.habits.length || (sphere.v || 0) < 0.25;
+  return (
+    <div style={{ padding: "0 16px 22px" }}>
+      <div style={{ textAlign: "center", fontSize: 19, fontWeight: 800, letterSpacing: "-0.35px", color: "var(--text)", padding: "2px 0 2px" }}>{lbl} · {pct}%</div>
+      <div style={{ textAlign: "center", fontSize: 12.5, color: "var(--text-4)", paddingBottom: 12 }}>из чего сложилась оценка</div>
+      <div style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: "6px 14px", marginBottom: 10 }}>
+        {facts.rows.map(function (r, i) {
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 2px", borderTop: i ? "0.5px solid var(--line)" : "0", fontSize: 13, color: "var(--text-2)" }}>
+              <b style={{ color: "var(--text)", fontWeight: 700 }}>{r.k}</b>
+              <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "var(--text-3)", textAlign: "right" }}>{r.v}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 13, lineHeight: 1.5, color: "var(--text-2)", padding: "0 2px 14px" }}>
+        {isThin
+          ? <span>В сфере «{lbl}» пока мало ходов. Оценка не приговор — она поднимется от первых же регулярных отметок.</span>
+          : <span>Оценка «{lbl}» копится за всё время из твоих ходов; свежие весят больше. {facts.trend === "dn" ? "Сейчас ходы редеют — вот почему стрелка вниз." : facts.trend === "up" ? "Сейчас идёшь в рост." : "Держишь ровно."}</span>}
+      </div>
+      <button onClick={addHabit} className="tap" style={{ width: "100%", border: 0, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, borderRadius: 14, padding: 13, cursor: "pointer" }}>Добавить привычку в «{lbl}»</button>
+      <button onClick={askAI} className="tap" style={{ width: "100%", border: 0, background: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", color: "var(--text)", fontSize: 14, fontWeight: 700, borderRadius: 14, padding: 13, cursor: "pointer", marginTop: 8 }}>Разобрать с ИИ</button>
+    </div>
+  );
+}
+
+// РАДАР-КОЛЕСО на странице ИИ. props: { app, dark, navigate, tint, openSheet }.
 function BosBalanceWheelLive(props) {
   var app = props.app, dark = !!props.dark, navigate = props.navigate, tint = props.tint || ["#cfe1ff", "#7aa4d0", "#1a2c48"], hideTitle = !!props.hideTitle, bare = !!props.bare;
+  var openSheet = props.openSheet || function () {};
   var uid = React.useMemo(function () { return "bw" + Math.random().toString(36).slice(2, 7); }, []);
-  var pickState = React.useState(null), pick = pickState[0], setPick = pickState[1];
   var data = bosWheelData(app);
-  var SPH = data.spheres, N = SPH.length, overall = data.overall;
-  var S = 232, c = S / 2, R = 80, TAU = Math.PI * 2;
+  var SPH = data.spheres, N = SPH.length;
+  // Геометрия радара (макет V2): фикс-размер для точного позиционирования HTML-ярлыков поверх SVG.
+  var W = 300, H = 288, cx = 150, cy = 142, R = 82, labelR = R + 30, TAU = Math.PI * 2;
   var ang = function (i) { return i / N * TAU - Math.PI / 2; };
-  var pol = function (a, r) { return [c + Math.cos(a) * r, c + Math.sin(a) * r]; };
-  var pt = function (i, v, rad) { return pol(ang(i), (rad == null ? R : rad) * v); };
-  var poly = "";
-  for (var i = 0; i < N; i++) { var p = pt(i, Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1) + " "; }
-  poly += "Z";
-  var grid = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
+  var pol = function (a, r) { return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; };
+  var ringPath = function (lv) { var p = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * lv); p += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } return p + "Z"; };
+  var poly = ""; for (var i = 0; i < N; i++) { var q = pol(ang(i), R * Math.max(SPH[i].v, 0.05)); poly += (i ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1); } poly += "Z";
+  var grid = function (idx) { return dark ? (idx ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.09)") : (idx ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.06)"); };
   var spoke = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  var tickCol = dark ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.28)";
 
-  // v594 (David): по умолчанию РАЗВЁРНУТО — компакт только если юзер сам свернул глазиком
-  // (выбор запоминаем, чтобы не спорить с ним при каждом заходе).
   var expandedState = React.useState(function () { try { return localStorage.getItem("bos:wheelExpanded") !== "0"; } catch (e) { return true; } }), expanded = expandedState[0], setExpanded = expandedState[1];
   var chips = bosWheelChips(data, app);
   var askWheel = function () { if (navigate) navigate("ai-chat", { prompt: "Разбери мой баланс по сферам жизни и подскажи, что подтянуть." }); };
+  var openLupa = function (s) { openSheet(<BosSphereLupaSheetLive sphere={s} app={app} navigate={navigate} />); };
+  // Зона внимания = самая слабая НЕ пустая сфера (есть привычки, но проседает).
+  var weak = null; SPH.forEach(function (s) { if (s.n && (!weak || s.v < weak.v)) weak = s; });
+  var trGlyph = function (tr) { return tr === "up" ? "▲" : tr === "dn" ? "▼" : "—"; };
+  var trColor = function (tr) { return tr === "up" ? "#E8C412" : (dark ? "#8e8e93" : "#9c9ca3"); };
 
   return (
     <div style={bare ? { padding: "0" } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" }}>
-      {/* Заголовок + ГЛАЗИК компакт↔развёрнуто (David): компакт = только колесо (без расшифровок),
-          развёрнуто = + пояснение, сферы, чипы «ИИ заметил». Название «Баланс жизни» (не «колесо»). */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, paddingBottom: expanded ? 12 : 6 }}>
-        {hideTitle ? <div style={{ flex: 1 }} /> : (
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div>
-          {expanded && <div style={{ fontSize: 12.5, color: dark ? "#98989f" : "var(--text-4)", lineHeight: 1.45, marginTop: 4 }}>ИИ сам следит за всеми твоими привычками и целями — даже за придуманными тобой — раскладывает их по сферам жизни и считает, где ты в балансе, а где просело.</div>}
-        </div>
-        )}
+      {/* Шапка: (название — только если не hideTitle) + «за всё время» + ГЛАЗИК компакт↔развёрнуто. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 4 }}>
+        {hideTitle
+          ? <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.6px", color: "var(--text-4)", textTransform: "uppercase" }}>за всё время</div>
+          : (<div style={{ minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс жизни</div><div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.5px", color: "var(--text-4)", marginTop: 2, textTransform: "uppercase" }}>за всё время</div></div>)}
         <button onClick={function () { var nv = !expanded; setExpanded(nv); try { localStorage.setItem("bos:wheelExpanded", nv ? "1" : "0"); } catch (e) {} }} className="tap" data-no-haptic aria-label={expanded ? "Свернуть" : "Развернуть"} aria-pressed={expanded}
           style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center", background: expanded ? (dark ? "rgba(255,255,255,0.10)" : "#eef0f3") : "var(--surface-3)", color: "var(--text-3)", transition: "background 0.15s" }}>
           <I.Eye size={18} filled={expanded} />
         </button>
       </div>
-      <div style={{ display: "flex", justifyContent: "center", padding: "2px 0" }}>
-        <svg width={S} height={S} viewBox={"0 0 " + S + " " + S} style={{ overflow: "visible", display: "block" }}>
-          <defs>
-            <radialGradient id={uid} cx="50%" cy="46%" r="60%">
-              <stop offset="0%" stopColor="#FFD64A" stopOpacity="0.46" />
-              <stop offset="100%" stopColor="#FF9F45" stopOpacity="0.12" />
-            </radialGradient>
-          </defs>
-          {SPH.map(function (s, i) { var e = pt(i, 1); return <line key={"sp" + i} x1={c} y1={c} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spoke} strokeWidth="1" />; })}
-          <circle cx={c} cy={c} r={R} fill="none" stroke={grid} strokeWidth="1" />
-          <circle cx={c} cy={c} r={R * 0.7} fill="none" stroke={dark ? "rgba(52,199,89,0.4)" : "rgba(52,199,89,0.34)"} strokeWidth="1" strokeDasharray="2.5 4.5" />
-          <path d={poly} fill={"url(#" + uid + ")"} stroke="#FFB020" strokeWidth="1.8" strokeLinejoin="round" />
-          {SPH.map(function (s, i) { var q = pt(i, Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={q[0].toFixed(1)} cy={q[1].toFixed(1)} r="2.6" fill={bosZoneColor(s.v)} stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="1.2" />; })}
-          {SPH.map(function (s, i) { var t2 = pol(ang(i), R + 18); var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles"; var el = (typeof bosIconEl === "function") ? bosIconEl(nm, { size: 17, color: dark ? "#c8c8cf" : "#7c7d86" }) : null; return el ? <g key={"e" + i} transform={"translate(" + (t2[0] - 8.5).toFixed(1) + "," + (t2[1] - 8.5).toFixed(1) + ")"}>{el}</g> : <text key={"e" + i} x={t2[0].toFixed(1)} y={t2[1].toFixed(1)} fontSize="15" textAnchor="middle" dominantBaseline="central">{s.e}</text>; })}
-          <text x={c} y={c - 3} fontSize="26" fontWeight="800" textAnchor="middle" fill={dark ? "#f2f2f5" : "#101828"} style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>{overall}</text>
-          <text x={c} y={c + 13} fontSize="8.5" fontWeight="700" letterSpacing="1.2" textAnchor="middle" fill={dark ? "#8e8e93" : "#9f9fa9"}>БАЛАНС</text>
-        </svg>
-      </div>
 
-      {expanded && (<>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginTop: 12 }}>
-        {SPH.map(function (s) {
-          var pct = Math.round(s.v * 100);
-          var on = pick === s.id;
+      {/* РАДАР: SVG-сетка + золотой РАДИАЛЬНЫЙ градиент от центра + свечение кромки; ярлыки осей — HTML поверх. */}
+      <div style={{ position: "relative", width: W, maxWidth: "100%", margin: "2px auto 0" }}>
+        <svg width="100%" viewBox={"0 0 " + W + " " + H} style={{ display: "block", overflow: "visible" }}>
+          <defs>
+            <radialGradient id={uid} gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={R}>
+              <stop offset="0%" stopColor="#FEDE34" stopOpacity="0.05" />
+              <stop offset="48%" stopColor="#FEDE34" stopOpacity="0.20" />
+              <stop offset="78%" stopColor="#F6CF1B" stopOpacity="0.42" />
+              <stop offset="100%" stopColor="#EFC30A" stopOpacity="0.62" />
+            </radialGradient>
+            <filter id={uid + "g"} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5" /></filter>
+          </defs>
+          {/* кольца-шестиугольники 25/50/75/100 + обод */}
+          {[0.25, 0.5, 0.75, 1].map(function (lv, idx) { return <path key={"r" + idx} d={ringPath(lv)} fill="none" stroke={grid(idx === 3 ? 1 : 0)} strokeWidth="1" />; })}
+          {/* спицы */}
+          {SPH.map(function (s, i) { var e = pol(ang(i), R); return <line key={"sp" + i} x1={cx} y1={cy} x2={e[0].toFixed(1)} y2={e[1].toFixed(1)} stroke={spoke} strokeWidth="1" />; })}
+          {/* деления на верхней оси — проценты */}
+          <text x={cx + 5} y={cy - R * 0.5 + 3} fontSize="8" fontWeight="700" fill={tickCol}>50</text>
+          <text x={cx + 5} y={cy - R + 3} fontSize="8" fontWeight="700" fill={tickCol}>100%</text>
+          {/* полигон данных: свечение → градиентная заливка → обводка → золотые узлы */}
+          <path d={poly} fill="none" stroke="#FEDE34" strokeWidth="6" opacity="0.35" filter={"url(#" + uid + "g)"} />
+          <path d={poly} fill={"url(#" + uid + ")"} stroke={dark ? "#E8C412" : "#E0B90B"} strokeWidth="2.2" strokeLinejoin="round" />
+          {SPH.map(function (s, i) { var p = pol(ang(i), R * Math.max(s.v, 0.05)); return <circle key={"d" + i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r="4" fill="#FEDE34" stroke={dark ? "#1c1c1e" : "#fff"} strokeWidth="2" />; })}
+        </svg>
+        {/* ярлыки осей: иконка + название + ПРОЦЕНТ + стрелка направления (тап → лупа сферы) */}
+        {SPH.map(function (s, i) {
+          var lp = pol(ang(i), labelR), pct = s.n ? Math.round(s.v * 100) : 0;
+          var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles";
           return (
-            <button key={s.id} onClick={function () { setPick(on ? null : s.id); }} className="tap" data-no-haptic
-              style={{ display: "flex", alignItems: "center", gap: 9, background: on ? (dark ? "rgba(255,255,255,0.08)" : "#eef0f3") : "transparent", border: 0, borderRadius: 10, cursor: "pointer", textAlign: "left", padding: "4px 5px" }}>
-              <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[s.id]) || "Sparkles", { size: 15, color: dark ? "#d0d0d7" : "#5b5c66" })) || s.e}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)", lineHeight: 1.1 }}>{s.l}</div>
-                <div style={{ height: 5, borderRadius: 3, background: "var(--surface-3)", marginTop: 4, overflow: "hidden" }}>
-                  <i style={{ display: "block", height: "100%", width: pct + "%", borderRadius: 3, background: bosZoneColor(s.v) }} />
-                </div>
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: on ? "var(--text)" : "var(--text-3)", minWidth: 20, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{s.n ? pct : "—"}</div>
+            <button key={"lb" + i} onClick={function () { openLupa(s); }} className="tap" data-no-haptic aria-label={s.l + " " + pct + "%"}
+              style={{ position: "absolute", left: ((lp[0] / W) * 100) + "%", top: ((lp[1] / H) * 100) + "%", transform: "translate(-50%,-50%)", width: 76, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, background: "transparent", border: 0, cursor: "pointer", padding: 0 }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)", display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: dark ? "#c8c8cf" : "#0a0a0a" })) || s.e}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "-0.2px" }}>{s.l}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)", display: "flex", alignItems: "center", gap: 2 }}>{s.n ? pct + "%" : "—"}<span style={{ fontSize: 8.5, fontWeight: 800, color: trColor(s.tr) }}>{s.n ? trGlyph(s.tr) : ""}</span></span>
             </button>
           );
         })}
       </div>
 
-      {pick ? (function () {
-        var sp = null; for (var qi = 0; qi < SPH.length; qi++) { if (SPH[qi].id === pick) sp = SPH[qi]; }
-        if (!sp) return null;
-        return (
-          <div style={{ marginTop: 10, padding: "11px 12px", background: dark ? "rgba(255,255,255,0.04)" : "#f6f6f8", borderRadius: 14, border: "0.5px solid " + (dark ? "rgba(255,255,255,0.06)" : "#ececef") }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", marginBottom: sp.items.length ? 8 : 0 }}>
-              {sp.e} {sp.l} <span style={{ color: "var(--text-4)", fontWeight: 600 }}>· {Math.round(sp.v * 100)}</span>
-            </div>
-            {sp.items.length ? (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {sp.items.map(function (it, ii) {
-                  return <span key={ii} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--text-2)", background: dark ? "rgba(255,255,255,0.06)" : "#fff", border: "0.5px solid var(--line)", borderRadius: 999, padding: "4px 9px" }}><span style={{ fontSize: 13 }}>{bosDeSF(it.emoji)}</span>{it.name}{it.kind === "goal" ? <span style={{ color: "var(--text-5)", marginLeft: 1 }}>· цель</span> : null}</span>;
-                })}
-              </div>
-            ) : (
-              <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45 }}>Пока пусто. Заведи сюда привычку — и сфера нальётся.</div>
-            )}
-          </div>
-        );
-      })() : null}
+      {expanded && (<>
+      {/* зона внимания — самая слабая сфера одной капсулой (тап → лупа) */}
+      {weak ? (
+        <button onClick={function () { openLupa(weak); }} className="tap" data-no-haptic
+          style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, width: "100%", background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"), borderRadius: 999, padding: "8px 12px 8px 8px", cursor: "pointer", textAlign: "left" }}>
+          <span style={{ width: 34, height: 34, borderRadius: "50%", background: "#FEDE34", display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[weak.id]) || "Sparkles", { size: 16, color: "#0a0a0a" })) || weak.e}</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text)" }}>{weak.l} · {Math.round(weak.v * 100)}% — ниже остальных<span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginTop: 1 }}>{weak.tr === "dn" ? "и продолжает снижаться · тап — разобрать" : "тап — разобрать, из чего сложилось"}</span></span>
+          {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={14} color={dark ? "#8e8e93" : "#9c9ca3"} /> : null}
+        </button>
+      ) : null}
 
       {/* Чипы «ИИ заметил» — живые (из aiBrief или выведены из колеса), каждый тапаемый → разбор с ИИ. */}
       <div style={{ marginTop: 14 }}>
@@ -2452,7 +2561,11 @@ function BosBalanceWheelLive(props) {
         <button onClick={askWheel} className="tap" data-no-haptic style={{ width: "100%", textAlign: "center", cursor: "pointer", marginTop: 11, padding: "10px 12px", fontSize: 12.7, fontWeight: 700, color: "#4d6f9e", background: dark ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "#e7ebf2"), borderRadius: 14 }}>Разобрать баланс с ИИ →</button>
       </div>
 
-      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", marginTop: 12, padding: "0 6px" }}>Нажми на сферу — покажу, какие твои привычки в неё вошли.</div>
+      {/* строка методики (David: научная серьёзность — «что и из чего считается») */}
+      <div style={{ display: "flex", gap: 7, alignItems: "flex-start", marginTop: 12, padding: "0 2px" }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"} style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" /></svg>
+        <div style={{ fontSize: 10.5, lineHeight: 1.45, color: "var(--text-5)", fontWeight: 500 }}>Заполненность сферы копится за всё время из твоих ходов по её привычкам и целям — свежие ходы весят больше. Стрелка — куда сфера движется за последние дни.</div>
+      </div>
       </>)}
     </div>
   );

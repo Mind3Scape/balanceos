@@ -783,7 +783,7 @@ function BosBalanceTabsLive(props) {
       </div>
       <div style={{ marginTop: 6 }}>
         {tab === "life"
-          ? (typeof BosBalanceWheelLive === "function" ? <BosBalanceWheelLive app={app} dark={dark} navigate={navigate} tint={tint} hideTitle={true} bare={true} /> : null)
+          ? (typeof BosBalanceWheelLive === "function" ? <BosBalanceWheelLive app={app} dark={dark} navigate={navigate} openSheet={openSheet} tint={tint} hideTitle={true} bare={true} /> : null)
           : <BosEnvBalanceLive app={app} dark={dark} navigate={navigate} openSheet={openSheet} tint={tint} hideTitle={true} bare={true} />}
       </div>
     </div>
