@@ -220,8 +220,10 @@ function OrbitField({ avatar, name, habits = [], people = [], levelPct = 2, onTa
           const rad = lerp(1.7, 1.05, clamp(r / 4, 0, 1));
           return (
             <g key={"dot" + r + "_" + k} opacity={(baseOp * 0.9).toFixed(2)}>
-              <circle cx={x} cy={y} r={(rad * 2.4).toFixed(2)} fill={glow} opacity="0.16" style={{ filter: "blur(2.5px)" }} />
-              <circle cx={x} cy={y} r={rad.toFixed(2)} fill={glow} opacity={dark ? "0.85" : "0.6"} />
+              {/* David: точки на орбитах — цветом САМИХ орбит (PAL.ring), еле-стеклянные, БЕЗ реакции на
+                  состояние (раньше fill=glow=tintFromMood → зелёные/синие по настроению). */}
+              <circle cx={x} cy={y} r={(rad * 2.4).toFixed(2)} fill={"rgb(" + PAL.ring + ")"} opacity="0.12" style={{ filter: "blur(2.5px)" }} />
+              <circle cx={x} cy={y} r={rad.toFixed(2)} fill={"rgb(" + PAL.ring + ")"} opacity={dark ? "0.6" : "0.4"} />
             </g>
           );
         });

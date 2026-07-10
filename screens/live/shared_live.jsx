@@ -5832,11 +5832,11 @@ function UniverseFieldLive({ app, people, from, onClose }) {
     var size = Math.round(122 + Math.min(weight, 14) * 5.4);   // диаметр системы на экране, ~122..198px
     // habits → объекты, которые читает OrbitField (.emoji/.color/.streak/.id); люди → РЕАЛЬНЫЕ лица.
     var habits = hb.slice(0, 12).map(function (h, i) { return { emoji: (h && h.e) || "✨", color: h && h.c, streak: 0, id: "ph" + i }; });
-    // Лица на орбите = настоящие аватарки (pub_orbit.faces), а не заглушка → старый мемоджи в очках
-    // (David). Нет faces (витрина ещё не перепубликована этим человеком) → null → мягкая заглушка.
-    var faces = Array.isArray(s.faces) ? s.faces : [];
+    // David: во Вселенной на ЧУЖИХ системах лица людей НЕ показываем — они уже и свои звёзды, и в слое
+    // «Связи» (рёбра «кто кого привёл»); лицо на орбите = тройной повтор. peopleN всё ещё в weight, так
+    // что «вес» системы не теряется — просто без лиц. Своя орбита = youSp/youPeople (отдельный путь,
+    // ниже) — там лица ОСТАЮТСЯ: David «свою орбиту не трогай».
     var people = [];
-    for (var pi = 0; pi < Math.min(peopleN, 10); pi++) people.push({ avatar: faces[pi] || null, name: "" });
     // footprint < size/2: видимая орбита заметно меньше своего 300-бокса (значки в пределах ~внутренних
     // поясов), поэтому ужимаем зону размещения, чтобы во «Вселенную» влезало больше систем без наезда.
     return { s: s, size: size, level: s.level || 0, lvlPct: s.lvlPct || 2, habits: habits, people: people, weight: weight, footprint: Math.round(size * 0.42 + 8) };
