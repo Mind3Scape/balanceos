@@ -14,14 +14,22 @@ const I = {
   Home: ({filled, ...p}) => <Icon {...p}><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2v-9z" fill={filled ? p.color || "currentColor" : "none"} /></Icon>,
   Bolt: ({filled, ...p}) => <Icon {...p}><path d="M13 3L4 14h7l-1 7 9-11h-7l1-7z" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
   Flame: ({filled, ...p}) => <Icon {...p}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
-  Group: ({filled, ...p}) => filled
-    ? <Icon {...p} strokeWidth={0}><g fill={p.color || "currentColor"} stroke="none">
-        <circle cx="16.5" cy="8" r="2.5"/>
-        <path d="M16.5 11c2.9 0 5.2 2.3 5.4 5.1.04.5-.34.9-.84.9H13.5v-1c0-2.8 .3-5 3-5Z"/>
-        <circle cx="9" cy="7.4" r="3.5"/>
-        <path d="M9 10.4C5.1 10.4 2 13.5 2 17.3V18a1.2 1.2 0 0 0 1.2 1.2h11.6A1.2 1.2 0 0 0 16 18v-.7C16 13.5 12.9 10.4 9 10.4Z"/>
-      </g></Icon>
-    : <Icon {...p}><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M14.5 14.2c.8-.3 1.6-.4 2.5-.4 2.5 0 4.5 2 4.5 4.5"/></Icon>,
+  // «Двое» (таб Сообщества, David 2026-07-10): дальний человечек = ТА ЖЕ форма, что ближний, просто
+  // МЕНЬШЕ (<g> со scale 0.6, БЕЗ наклона). Актив (filled): ближний currentColor + дальний серый
+  // #9c9ca3 (раньше заливались оба одним цветом). Неактив: оба контуром одним серым; strokeWidth на
+  // уменьшенном компенсирует масштаб, чтобы обводка не истончалась.
+  Group: ({filled, ...p}) => {
+    const P = <React.Fragment><circle cx="8" cy="7.4" r="3.5"/><path d="M1.9 19c0-3.3 2.7-5.7 6.1-5.7s6.1 2.4 6.1 5.7c0 .8-.64 1.45-1.43 1.45H3.33C2.54 20.45 1.9 19.8 1.9 19z"/></React.Fragment>;
+    return filled
+      ? <Icon {...p} strokeWidth={0}>
+          <g transform="translate(11.4 8.2) scale(0.6)" fill="#9c9ca3">{P}</g>
+          <g fill={p.color || "currentColor"}>{P}</g>
+        </Icon>
+      : <Icon {...p}>
+          <g transform="translate(11.4 8.2) scale(0.6)" strokeWidth={2.7} fill="none">{P}</g>
+          <g fill="none">{P}</g>
+        </Icon>;
+  },
   Eye: ({filled, ...p}) => <Icon {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
   Check: (p) => <Icon {...p}><path d="M5 12l5 5 9-11"/></Icon>,
   Hash: (p) => <Icon {...p}><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></Icon>,

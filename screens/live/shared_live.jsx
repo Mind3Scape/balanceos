@@ -3822,12 +3822,16 @@ function SheetGreyBgLive() {
 function SheetFormHeadLive({ title, onClose, onDone }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const dark = app?.themeOverride === "dark";
-  const glass = { width: 38, height: 38, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0, color: dark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.10)" : "#fff"), boxShadow: bosTileGlass(dark) };
+  // David 2026-07-10 (стандарт круглых кнопок Apple HIG): 44pt плавающие кружки в шапке формы —
+  // отмена СЛЕВА стеклянная, готово СПРАВА чёрная (в тёмной — белая). 38→44, «✓» из стекла в CTA.
+  const base = { width: 44, height: 44, borderRadius: "50%", border: 0, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0 };
+  const glass = { ...base, color: dark ? "#fff" : "var(--text)", background: BOS_TILE_SHEEN + ", " + (dark ? "rgba(255,255,255,0.10)" : "#fff"), boxShadow: bosTileGlass(dark) };
+  const solid = { ...base, color: dark ? "#0a0a0a" : "var(--cta-ink, #fff)", background: dark ? "#fff" : "var(--cta, #0a0a0a)", boxShadow: "0 8px 22px rgba(0,0,0,0.22)" };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 0 4px" }}>
-      <button type="button" onClick={onClose} className="tap" data-haptic="selection" aria-label="Закрыть" style={glass}><I.X size={17} strokeWidth={2.2} /></button>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 0 8px" }}>
+      <button type="button" onClick={onClose} className="tap" data-haptic="selection" aria-label="Закрыть" style={glass}><I.X size={18} strokeWidth={2.2} /></button>
       <div style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
-      <button type="button" onClick={onDone} className="tap" data-haptic="light" aria-label="Сохранить" style={glass}><I.Check size={18} strokeWidth={2.5} /></button>
+      <button type="button" onClick={onDone} className="tap" data-haptic="light" aria-label="Сохранить" style={solid}><I.Check size={19} strokeWidth={2.6} /></button>
     </div>
   );
 }

@@ -769,15 +769,15 @@ function HomeLive() {
         {/* «+» — явная кнопка СОЗДАТЬ (привычку/цель/круг), всегда под рукой на главной (David). Тот
             же CreateMenuLive, что на странице Привычки; стеклянный круг, «+» крутится при открытии. */}
         <button ref={addBtnRef} onClick={() => { setCreateOpen(true); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } }} className="tap hit44" aria-label="Создать" aria-haspopup="menu" aria-expanded={createOpen} title="Создать"
-          style={{ width: 40, height: 40, borderRadius: 999, ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" })), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
-          <I.Plus size={20} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
+          style={{ width: 44, height: 44, borderRadius: 999, ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" })), color: isDark ? "#fff" : "var(--text)", border: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+          <I.Plus size={21} strokeWidth={2.4} style={{ transition: "transform 0.34s cubic-bezier(0.34,1.5,0.4,1)", transform: createOpen ? "rotate(45deg)" : "none" }} />
         </button>
         {/* Notifications — СТЕКЛЯННЫЙ КРУГ, симметрично «+» слева (David: «колокольчик тоже
             в кружочек»). Красная точка едет на верхнем правом крае колокольчика. */}
         <button onClick={() => navigate("notifications", { from: "home" })} className="tap hit44" aria-label="Уведомления"
-          style={{ width: 40, height: 40, borderRadius: 999, ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" })), border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+          style={{ width: 44, height: 44, borderRadius: 999, ...(typeof bosGlassChrome === "function" ? bosGlassChrome(isDark) : (typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" })), border: 0, padding: 0, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
           <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
-            <I.Bell size={20} strokeWidth={2} color={bellIcon}/>
+            <I.Bell size={21} strokeWidth={2} color={bellIcon}/>
             {showBellDot && (
             <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: "50%", background: "var(--accent-red)", border: "2px solid " + (isDark ? "#0a0a0a" : "#fff") }} />
             )}

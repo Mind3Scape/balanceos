@@ -114,6 +114,18 @@ body {
    режима тряски (порталы на body, z-index 7000) гаснут — не светятся поверх панели. */
 body.bos-sheet-open .bos-reorder-float { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
 .bos-reorder-float { transition: opacity 0.2s ease; }
+/* iOS «ФОН ОТЪЕЗЖАЕТ» под шторкой (David 2026-07-10, макет ленты «Открытий»): пока открыта ЛЮБАЯ
+   шторка (BottomSheet вешает bos-sheet-open на body), контент приложения уезжает вглубь — масштаб +
+   скругление углов, а таб-бар прячется вниз. Кривая — родная apple-пружина. Трансформится ТОЛЬКО
+   .page-stack; шторка-портал .bos-sheet-root — её сосед (z-index 300), поэтому не масштабируется. */
+.page-stack { transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1); }
+body.bos-sheet-open .page-stack { transform: scale(0.935) translateY(8px); transform-origin: 50% 0%; border-radius: 26px; }
+.bos-tabbar { transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.32s ease, background 0.2s ease; }
+/* !important перебивает keyframe tabRaise (он держит transform/opacity), как и правило bos-kb-typing выше. */
+body.bos-sheet-open .bos-tabbar { transform: translateY(140%) !important; opacity: 0 !important; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .page-stack, body.bos-sheet-open .page-stack, .bos-tabbar, body.bos-sheet-open .bos-tabbar { transition: none; }
+}
 /* Пока печатаешь в ИНЛАЙН-поле «Дел» (виджет вешает bos-kb-typing на body при фокусе) — таб-бар
    прячется, чтобы не всплывать над клавиатурой ПОВЕРХ поля (David: «меню прилипает к клаве вместо
    задач»). Возвращается на blur. */
