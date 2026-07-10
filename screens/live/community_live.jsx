@@ -80,6 +80,12 @@ function LiveTeamCard({ t, navigate, rhythm }) {
   const ruPart = (n) => { const m = n % 10, h = n % 100; return (m === 1 && h !== 11) ? "участник" : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? "участника" : "участников"; };
   // Инфо ЧИПАМИ, не строчками вразброс (David: «чипы для разной инфо вместо разброса»).
   const chipS = { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", ...bosChipGlass(false), padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" };
+  // t.goal у ОБЛАЧНОГО круга — jsonb-ОБЪЕКТ {title,target,unit,type,stake,desc}, а не строка. Рендер
+  // объекта как React-ребёнка = краш (error #31, «Мои круги»). Достаём безопасную подпись-строку.
+  const _goalLabel = (typeof t.goal === "string") ? t.goal
+    : (t.goal && typeof t.goal === "object" ? (t.goal.title || (t.goal.target ? (t.goal.target + (typeof t.goal.unit === "string" && t.goal.unit ? " " + t.goal.unit : "")) : "")) : "");
+  const _dateLabel = (typeof t.date === "string") ? t.date : "";
+  const _unitLabel = (typeof t.unit === "string") ? t.unit : "";
   return (
     <div className="tap" onClick={() => navigate("team-detail", { team: t })} style={{ background: "var(--card)", boxShadow: "var(--card-shadow)", borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", cursor: "pointer" }}>
       <div aria-hidden className="team-card__emblem" style={{ position: "absolute", top: -10, right: -6, fontSize: 110, lineHeight: 1, pointerEvents: "none", transform: "rotate(8deg)" }}>{bosIcon(t.emblem, 88, null)}</div>
@@ -87,14 +93,14 @@ function LiveTeamCard({ t, navigate, rhythm }) {
         <div style={{ fontWeight: 700, fontSize: 18, color: "var(--text)", letterSpacing: "-0.4px" }}>{t.name}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
           {rhythm && rhythmN > 0 && <span style={{ ...chipS, color: "#1E8E4E", background: "rgba(52,199,89,0.13)", boxShadow: "none" }}>● сегодня {rhythmN} в ритме</span>}
-          {t.goal && <span style={chipS}>🎯 {t.goal}</span>}
-          {t.date && <span style={chipS}>📅 {t.date}</span>}
+          {_goalLabel && <span style={chipS}>🎯 {_goalLabel}</span>}
+          {_dateLabel && <span style={chipS}>📅 {_dateLabel}</span>}
           {!_loading && count > 0 && <span style={chipS}>👥 {count}</span>}
           <span style={chipS}>{t.vis === "public" ? "🌐 Открытая" : "🔒 Приватная"}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>
           <span>{t.target ? "К цели" : "Прогресс цели"}</span>
-          <span style={{ color: "var(--text)" }}>{t.target ? (cur + " / " + tgt + " " + (t.unit || "")) : Math.round(gp * 100) + "%"}</span>
+          <span style={{ color: "var(--text)" }}>{t.target ? (cur + " / " + tgt + (_unitLabel ? " " + _unitLabel : "")) : Math.round(gp * 100) + "%"}</span>
         </div>
         <div style={{ marginTop: 6, height: 8, borderRadius: 999, background: "var(--card-track)", overflow: "hidden" }}>
           <span className="team-card__fill" style={{ display: "block", height: "100%", width: (gp * 100) + "%", borderRadius: 999 }} />
@@ -1440,25 +1446,25 @@ function CommunityLive() {
             <BosBlock name="circle-requests"><CircleRequestsLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             <BosBlock name="circle-help"><CircleHelpLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
             <BosBlock name="my-contribution"><MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} /></BosBlock>
-            {/* КАРТА партнёров — под замком до BOS_DISC_GATES.map уровня (David 2026-07-10: «карта
-                партнёров тоже должна быть закрыта под замочком»). Порог правится в BOS_DISC_GATES. */}
-            {typeof PartnersMapLive === "function" && (
-              <div>
-                <CommSectionHeadLive title="🗺 Партнёры рядом" onAll={() => setFilter("partners")} />
-                <div style={{ marginTop: 10 }}>
-                  <DiscoveryVeil gate={BOS_DISC_GATES.map} level={userLevel} isDark={isDark} label={"Откроется с " + BOS_DISC_GATES.map + " уровня"}>
-                    <PartnersMapLive app={app} navigate={navigate} from="community" />
-                  </DiscoveryVeil>
-                </div>
-              </div>
-            )}
-            {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку.
-                Лесенка раскрытия (David): под мягкой вуалью-замком до BOS_DISC_GATES.showcase уровня. */}
+            {/* ПАРТНЁРЫ — ОДИН блок на «Все» (David: «Партнёры рядом» и «потратить XP» — это одно и то
+                же, не делить). Карта уведена на чип «Партнёры» (тут её НЕТ). Витрина под замком по уровню. */}
             {typeof PartnersShowcaseLive === "function" && (
               <DiscoveryVeil gate={BOS_DISC_GATES.showcase} level={userLevel} isDark={isDark} label={"Откроется с " + BOS_DISC_GATES.showcase + " уровня"}>
                 <PartnersShowcaseLive app={app} navigate={navigate} onAll={() => setFilter("partners")} />
               </DiscoveryVeil>
             )}
+            {/* «Как работает сообщество» — подсказка-футер из макета (Круг → Дело → Спасибо). */}
+            <BosBlock name="how-works">
+              <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } if (typeof DiscoveryHelpersSheetLive === "function") _openSheet(<DiscoveryHelpersSheetLive app={app} navigate={navigate} isDark={isDark} />); }} className="tap"
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", cursor: "pointer", color: "var(--text)" }}>
+                <span style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" /></svg></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>Как работает сообщество</div>
+                  <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 2 }}>Круг → Дело → Спасибо</div>
+                </div>
+                <I.ChevronRight size={18} color="var(--text-4)" style={{ flexShrink: 0 }} />
+              </button>
+            </BosBlock>
           </React.Fragment>
         )}
         {filter === "partners" && (
@@ -1659,9 +1665,23 @@ function TeamPeopleCalendarLive({ mainProg, members, meId, navigate, teamName, i
   var base = (Array.isArray(mainProg) && mainProg.length) ? mainProg : (members || []).map(function (m) { return { id: m.id, name: m.name, avatar: m.avatar, me: m.id === meId, days: {} }; });
   var _s = React.useState(function () { var mi = base.findIndex(function (p) { return p.me; }); return mi >= 0 ? mi : 0; });
   var sel = _s[0], setSel = _s[1];
+  // Уровни участников (L-бейдж на лице) — из публичных профилей (тот же источник, что «Друзья»).
+  var _lv = React.useState({}), levels = _lv[0], setLevels = _lv[1];
+  var idsSig = base.map(function (p) { return p.id; }).filter(Boolean).join(",");
+  React.useEffect(function () {
+    var ids = base.map(function (p) { return p.id; }).filter(Boolean);
+    if (!ids.length || !(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.profilesPublic)) return;
+    var on = true;
+    window.bosCloud.profilesPublic(ids).then(function (pub) { if (!on || !pub) return; var m = {}; Object.keys(pub).forEach(function (id) { if (pub[id] && pub[id].level) m[id] = pub[id].level; }); setLevels(m); }).catch(function () {});
+    return function () { on = false; };
+  }, [idsSig]);
   if (!base.length) return null;
   var roleById = {}; (members || []).forEach(function (m) { if (m) roleById[m.id] = m.role; });
-  var roleLabel = function (id) { return roleById[id] === "owner" ? "Организатор" : "Участник"; };
+  var roleLabel = function (p) {
+    if (roleById[p.id] === "owner") return "Организатор";
+    var last = ("" + (p.name || "")).trim().slice(-1).toLowerCase();
+    return (last === "а" || last === "я") ? "Участница" : "Участник"; // лёгкая эвристика рода по имени
+  };
   var selP = base[sel] || base[0];
   var marks = (selP && selP.days) ? Object.keys(selP.days).filter(function (k) { return selP.days[k]; }).length : 0;
   var dayWord = function (n) { return (n % 10 === 1 && n % 100 !== 11) ? "день" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "дня" : "дней"); };
@@ -1669,15 +1689,19 @@ function TeamPeopleCalendarLive({ mainProg, members, meId, navigate, teamName, i
   var _tCalKey = function (d, mi) { var y = new Date().getFullYear(); return y + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); };
   return (
     <div style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: "14px 14px 6px", marginTop: 12 }}>
-      {/* Слайдер лиц */}
-      <div className="bos-hscroll" style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 2px 6px", scrollbarWidth: "none" }}>
+      {/* Слайдер лиц — L-бейдж + роль. Вертикальный воздух в скролле, чтобы кольцо выбора и L-бейдж НЕ обрезались. */}
+      <div className="bos-hscroll" style={{ display: "flex", gap: 12, overflowX: "auto", padding: "6px 4px 10px", margin: "-4px -2px 0", scrollbarWidth: "none" }}>
         {base.map(function (p, i) {
           var on = i === sel;
+          var lvl = p.id ? levels[p.id] : null;
           return (
-            <button key={p.id || i} onClick={function () { setSel(i); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" data-no-haptic style={{ flexShrink: 0, border: 0, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: 60 }}>
-              <span style={{ borderRadius: "50%", boxShadow: on ? ("0 0 0 2px var(--card), 0 0 0 4px " + (accent || "#0a0a0a")) : "none", transition: "box-shadow 0.15s" }}><BuddyFaceLive avatar={p.avatar} name={p.name} size={48} /></span>
-              <span style={{ fontSize: 11.5, fontWeight: on ? 700 : 600, color: on ? "var(--text)" : "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 60, textAlign: "center" }}>{p.me ? "Ты" : (p.name || "").split(" ")[0]}</span>
-              <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)" }}>{roleLabel(p.id)}</span>
+            <button key={p.id || i} onClick={function () { setSel(i); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" data-no-haptic style={{ flexShrink: 0, border: 0, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 62 }}>
+              <span style={{ position: "relative", borderRadius: "50%", boxShadow: on ? ("0 0 0 2px var(--card), 0 0 0 4px " + (accent || "#0a0a0a")) : "none", transition: "box-shadow 0.15s" }}>
+                <BuddyFaceLive avatar={p.avatar} name={p.name} size={48} />
+                {lvl ? <span style={{ position: "absolute", bottom: -4, left: "50%", transform: "translateX(-50%)", background: "#0a0a0a", color: "#FEDE34", fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 6px", border: "1.5px solid var(--card)", whiteSpace: "nowrap" }}>L{lvl}</span> : null}
+              </span>
+              <span style={{ fontSize: 11.5, fontWeight: on ? 700 : 600, color: on ? "var(--text)" : "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 62, textAlign: "center" }}>{p.me ? "Ты" : (p.name || "").split(" ")[0]}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)" }}>{roleLabel(p)}</span>
             </button>
           );
         })}
@@ -1685,10 +1709,10 @@ function TeamPeopleCalendarLive({ mainProg, members, meId, navigate, teamName, i
       {/* Подпись выбранного + Профиль */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "6px 2px 2px" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{selP.me ? "Ты" : selP.name} · {marks} {dayWord(marks)} в ритме</div>
-        {!selP.me && <button onClick={function () { navigate("contact-detail", { person: { id: selP.id, name: selP.name, avatar: selP.avatar, teamName: teamName, from: "team-detail" } }); }} className="tap" data-haptic="selection" style={{ border: 0, background: "var(--surface-3)", color: "var(--text-2)", borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>Профиль <I.ChevronRight size={13} /></button>}
+        {!selP.me && <button onClick={function () { navigate("contact-detail", { person: { id: selP.id, name: selP.name, avatar: selP.avatar, level: levels[selP.id] || null, teamName: teamName, from: "team-detail" } }); }} className="tap" data-haptic="selection" style={{ border: 0, background: "var(--surface-3)", color: "var(--text-2)", borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>Профиль <I.ChevronRight size={13} /></button>}
       </div>
-      {/* Календарь выбранного — кольца-заполнения (bosDayRing) */}
-      <PeopleMonthCalendarLive bare label="" people={calPeople} selPerson={sel} onSelPerson={setSel}
+      {/* Календарь выбранного — кольца-заполнения (bosDayRing); внутренний пикер СКРЫТ (людей выбираем слайдером выше — не дублируем). */}
+      <PeopleMonthCalendarLive bare hidePicker label="" people={calPeople} selPerson={sel} onSelPerson={setSel}
         dayFrac={function (pi, d, mi) { return (base[pi] && base[pi].days && base[pi].days[_tCalKey(d, mi)]) ? 1 : 0; }} />
       <button onClick={onInvite} className="tap" style={{ width: "100%", marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px", border: 0, background: "transparent", color: "var(--text-2)", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
         <span style={{ width: 26, height: 26, borderRadius: "50%", display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={14} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>

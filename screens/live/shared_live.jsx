@@ -524,7 +524,7 @@ function bosCellInk(hx, p, isDark) {
 }
 
 /* PeopleMonthCalendar → live-only: always the REAL calendar (demo's frozen showcase date gone). */
-function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap, bare = false, defaultView = "month", tintInk = null }) {
+function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календарь", granular = false, selPerson: selProp, onSelPerson, todayTap, bare = false, defaultView = "month", tintInk = null, hidePicker = false }) {
   const app = (typeof useApp === "function") ? useApp() : null;
   const isDark = app?.themeOverride === "dark";
   const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
@@ -846,8 +846,9 @@ function PeopleMonthCalendarLive({ people = [], dayFrac, label = "Календа
                   : <span><b style={{ color: "var(--text)" }}>{selName}</b> · {MONTHS[mIdx]} {selDay} · {granular ? `${Math.round((dayPct(selDay) || 0) * 100)}% привычек` : ((dayPct(selDay) || 0) > 0 ? "отмечался ✓" : "пропустил")}</span>}
           </div>
         )}
-        {/* Чипы людей — ПОД календарём (David: «под, а не над»), с разделителем. Фильтруют, чей heat-map. */}
-        {!solo && (
+        {/* Чипы людей — ПОД календарём (David: «под, а не над»), с разделителем. Фильтруют, чей heat-map.
+            hidePicker → скрыты, когда выбором управляет ВНЕШНИЙ слайдер лиц (круг: не дублируем людей). */}
+        {!solo && !hidePicker && (
           <div className="screen-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingTop: 12, marginTop: 12, borderTop: "1px solid var(--line)" }}>
             <button onClick={() => setSelPerson(null)} className="tap" style={chip(selPerson == null)}>
               <span style={{ width: 18, height: 18, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.1)", display: "grid", placeItems: "center", fontSize: 10 }}>👥</span>
@@ -3960,7 +3961,8 @@ function bosSaveCardStyle(s) { try { localStorage.setItem("bos:cardStyle", JSON.
 // шестерёнке — стиль привычек И стиль целей, у целей другие пресеты»). База = ВЫСОКИЙ БАННЕР (как
 // цель выглядела изначально). form: banner (полноширинный высокий) | square (2-в-ряд минимал).
 // orbits = мини-орбита (привычки+люди вокруг цели-превью). name/progress — тоглы. Тот же event.
-var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: true, progress: true };
+// orbits ПО УМОЛЧАНИЮ ВЫКЛ (David: «кому нужно — включит тумблером; по дефолту сразу иконки людей»).
+var BOS_GOAL_STYLE_DEFAULT = { form: "banner", name: true, orbits: false, progress: true };
 function bosLoadGoalStyle() { try { var s = JSON.parse(localStorage.getItem("bos:goalStyle") || "null"); if (s && typeof s === "object") return Object.assign({}, BOS_GOAL_STYLE_DEFAULT, s); } catch (e) {} return Object.assign({}, BOS_GOAL_STYLE_DEFAULT); }
 function bosSaveGoalStyle(s) { try { localStorage.setItem("bos:goalStyle", JSON.stringify(s)); } catch (e) {} try { window.dispatchEvent(new Event("bos:cardStyleChanged")); } catch (e) {} }
 

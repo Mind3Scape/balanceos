@@ -204,7 +204,7 @@ function FriendsLive() {
             ? ("Уровень " + lvl + ((o.habits || []).length ? " · " + o.habits.length + " " + bosHabitsWord((o.habits || []).length) : ""))
             : (f.invited ? "Пришёл по твоему приглашению" : "Вместе в круге");
           return (
-            <button key={f.id} onClick={() => openSheet(<FriendPreviewSheetLive friend={f} pub={o} navigate={navigate} />)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, cursor: "pointer", textAlign: "left", padding: "12px 14px" }}>
+            <button key={f.id} onClick={() => navigate("contact-detail", { person: { id: f.id, name: f.name, avatar: f.avatar, level: lvl || null, from: "friends" } })} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "transparent", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, cursor: "pointer", textAlign: "left", padding: "12px 14px" }}>
               <span style={{ position: "relative", width: 46, height: 46, flexShrink: 0, display: "grid", placeItems: "center" }}>
                 <svg width="46" height="46" viewBox="0 0 46 46" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden>
                   <circle cx="23" cy="23" r="21.5" fill="none" stroke={isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"} strokeWidth="2" />
