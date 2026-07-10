@@ -155,6 +155,445 @@ function CommunityGuideBannerLive({ navigate, isDark }) {
   );
 }
 
+/* ══════════ ЛЕНТА «ОТКРЫТИЙ» (v670) ══════════════════════════════════════════════
+   David 2026-07-10 (макет design-mockups/2026-07-10-лента-открытий.html): единый гид
+   РАСФОРМИРОВАН — вместо одного баннера-«книги» горизонтальная лента карточек-подсказок,
+   и КАЖДАЯ открывает СВОЮ шторку про одну механику («как в игре»). Обложка «Суть» уходит,
+   когда человек открыл все 6 шторок. Скрытие карточки крестиком — НАВСЕГДА: localStorage +
+   облачный union-merge (через extras в shell.jsx, тем же путём, что claimedChallenges).
+   Палитра хрома: белый · чёрный · золото. GuideLive пока НЕ трогаем (переезд позже). */
+var BOS_GOLD = "#FEDE34";
+// Пороги «лесенки» замочков на странице — легко правимые (David ещё не уверен в точных цифрах).
+var BOS_DISC_GATES = { showcase: 3, people: 10 };
+// Шторки колоды — обложка «прожита», когда открыты все.
+var BOS_DISC_SHEETS = ["core", "xp", "together", "ch", "partners", "people"];
+
+function bosDiscBag(lsKey) { try { return JSON.parse(localStorage.getItem(lsKey) || "{}") || {}; } catch (e) { return {}; } }
+function bosDiscMark(lsKey, id) {
+  var bag = bosDiscBag(lsKey);
+  if (bag[id]) return bag;
+  bag[id] = 1;
+  try { localStorage.setItem(lsKey, JSON.stringify(bag)); } catch (e) {}
+  try { window.dispatchEvent(new Event("bos:discoveryChanged")); } catch (e) {}
+  return bag;
+}
+function bosFmtXP(n) { return String(n | 0).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+// ── общие атомы шторок-подсказок ──
+var _dSTitle = { textAlign: "center", fontSize: 19, fontWeight: 800, letterSpacing: "-0.35px", padding: "6px 0 2px", color: "var(--text)" };
+var _dSSub = { textAlign: "center", fontSize: 12.5, color: "var(--text-3)", paddingBottom: 12 };
+var _dSCard = { background: "var(--card)", borderRadius: 20, padding: 14, boxShadow: "var(--card-shadow)", marginBottom: 10 };
+var _dSKick = { fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, color: "var(--text-4)", padding: "4px 4px 8px" };
+var _dSText = { fontSize: 13.5, lineHeight: 1.5, color: "var(--text-2)", padding: "0 2px 12px" };
+var _dGbtn = { width: "100%", border: 0, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", fontFamily: "inherit", fontSize: 15, fontWeight: 700, borderRadius: 16, padding: 14, cursor: "pointer" };
+var _dGold = { fontSize: 12, fontWeight: 800, background: BOS_GOLD, color: "#0a0a0a", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap", marginLeft: "auto" };
+
+// строка таблицы «откуда опыт / вехи» (иконка слева опциональна, значение-пилюля справа)
+function _dXRow({ icon, label, value, first, quiet }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: first ? 0 : "0.5px solid var(--line)", fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>
+      {icon && <span style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", flexShrink: 0 }}>{icon}</span>}
+      <span>{label}</span>
+      <span style={{ ..._dGold, ...(quiet ? { background: "var(--surface-3)", color: "var(--text-2)", fontWeight: 800 } : null) }}>{value}</span>
+    </div>
+  );
+}
+
+// ═════ ШТОРКА 0 · СУТЬ ═════
+function DiscoveryCoreSheetLive({ app, navigate, isDark }) {
+  const { close } = (typeof useSheet === "function") ? useSheet() : { close: () => {} };
+  const loopPill = (icon, txt) => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--card)", border: "0.5px solid var(--line)", borderRadius: 999, padding: "8px 12px", fontSize: 12.5, fontWeight: 700, color: "var(--text)", boxShadow: "var(--card-shadow)" }}>{icon}{txt}</span>
+  );
+  const step = (n, t, d) => (
+    <div><div style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text)" }}>{n}</div><div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.3 }}>{d}</div></div>
+  );
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Как устроен Balance</div>
+      <div style={_dSSub}>одна минута — и всё ясно</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "2px 0 12px", flexWrap: "wrap" }}>
+        {loopPill(<svg width="13" height="13" viewBox="0 0 24 24" fill="var(--text)"><circle cx="12" cy="12" r="8" /></svg>, "Состояние")}
+        <span style={{ color: "var(--text-4)", fontWeight: 800 }}>→</span>
+        {loopPill(<svg width="13" height="13" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="var(--text)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>, "Ход")}
+        <span style={{ color: "var(--text-4)", fontWeight: 800 }}>→</span>
+        {loopPill(<svg width="13" height="13" viewBox="0 0 24 24" fill="var(--text)"><path d="M4 20c8-1 12-5 14-13l2-3-3 2C9 8 5 12 4 20z" /></svg>, "Смысл")}
+      </div>
+      <div style={{ ..._dSText, textAlign: "center" }}>Отметь, как ты. Сделай ход по привычке. Запиши пару слов. <b style={{ color: "var(--text)" }}>День собран ✦</b> — опыт капает, уровень растёт.</div>
+      <div style={{ ..._dSCard, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {step("1 · Собери себя", null, "состояние, привычки, день")}
+        {step("2 · Найди своих", null, "круги и общие привычки")}
+        {step("3 · Стань полезен", null, "помощь своим за опыт")}
+        {step("4 · Выйди в жизнь", null, "практики и места рядом")}
+      </div>
+      <button className="tap" style={_dGbtn} onClick={() => { close(); navigate("habits"); }}>Сделать первый ход</button>
+    </div>
+  );
+}
+
+// ═════ ШТОРКА 1 · ОПЫТ И УРОВЕНЬ ═════
+function DiscoveryXPSheetLive({ app, navigate, isDark }) {
+  const { close } = (typeof useSheet === "function") ? useSheet() : { close: () => {} };
+  const info = (typeof bosLevelInfoLive === "function" && typeof bosLiveXPLive === "function") ? bosLevelInfoLive(bosLiveXPLive(app)) : { level: 1, xp: 0, into: 0, span: 100 };
+  const frac = info.span > 0 ? Math.max(0.02, Math.min(1, info.into / info.span)) : 0;
+  const C = 182, off = C * (1 - frac), toNext = Math.max(0, (info.span | 0) - (info.into | 0));
+  const rowIcon = {
+    mark: <svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="var(--text)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+    duo: <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--text)"><circle cx="8.4" cy="8" r="3.2" /><path d="M2.8 18.4c0-3 2.5-5.2 5.6-5.2s5.6 2.2 5.6 5.2c0 .74-.6 1.34-1.34 1.34H4.14c-.74 0-1.34-.6-1.34-1.34z" /><circle cx="16.6" cy="8.6" r="2.5" opacity=".45" /></svg>,
+    state: <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--text)"><circle cx="12" cy="12" r="7" /></svg>,
+    note: <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--text)"><path d="M4 20c8-1 12-5 14-13l2-3-3 2C9 8 5 12 4 20z" /></svg>,
+    day: <svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="var(--text)" strokeWidth="2.6" /><path d="M8.6 12.3l2.3 2.3 4.5-5" fill="none" stroke="var(--text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+    week: <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--text)"><path d="M12 2c1.2 3.4-.8 4.6-.8 6.8a3 3 0 0 0 5.9.6C18.6 11 20 13.2 20 15.3A8 8 0 1 1 4 15.3c0-2.6 1.6-4.2 2.6-5.8.5 1.9 1.4 2.6 2.5 2.6C8 9 10 5.4 12 2z" /></svg>,
+    friend: <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--text)"><circle cx="12" cy="8" r="3.6" /><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke="var(--text)" strokeWidth="2.2" fill="none" strokeLinecap="round" /></svg>,
+  };
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Опыт и уровень</div>
+      <div style={_dSSub}>каждый ход — шаг по пути</div>
+      <div style={{ ..._dSCard, display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ position: "relative", width: 68, height: 68, flexShrink: 0 }}>
+          <svg width="68" height="68" viewBox="0 0 68 68" style={{ transform: "rotate(-90deg)" }}>
+            <circle cx="34" cy="34" r="29" fill="none" stroke="var(--surface-3)" strokeWidth="7" />
+            <circle cx="34" cy="34" r="29" fill="none" stroke={BOS_GOLD} strokeWidth="7" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} />
+          </svg>
+          <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 15, fontWeight: 800, color: "var(--text)" }}>{info.level}</span>
+        </div>
+        <div>
+          <div style={{ fontSize: 15.5, fontWeight: 800, color: "var(--text)" }}>Уровень {info.level} · {bosFmtXP(info.xp)} XP</div>
+          <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>До {info.level + 1} уровня — {bosFmtXP(toNext)} XP. Уровень <b style={{ color: "var(--text)" }}>не сгорает</b> и не тратится.</div>
+        </div>
+      </div>
+      <div style={_dSKick}>ОТКУДА ОПЫТ</div>
+      <div style={{ ..._dSCard, padding: "6px 14px" }}>
+        {_dXRow({ icon: rowIcon.mark, label: "Отметка привычки", value: "+10", first: true })}
+        {_dXRow({ icon: rowIcon.duo, label: "Отметка вместе", value: "+15" })}
+        {_dXRow({ icon: rowIcon.state, label: "Состояние дня", value: "+5" })}
+        {_dXRow({ icon: rowIcon.note, label: "Пара слов в дневник", value: "+10" })}
+        {_dXRow({ icon: rowIcon.day, label: "Все привычки дня", value: "+30" })}
+        {_dXRow({ icon: rowIcon.week, label: "Неделя состояния подряд", value: "+50" })}
+        {_dXRow({ icon: rowIcon.friend, label: "Друг пришёл по ссылке", value: "+150" })}
+      </div>
+      <div style={_dSKick}>ДВЕ РОЛИ ОПЫТА</div>
+      <div style={{ ..._dSCard, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div><div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>Уровень</div><div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>Путь. Только растёт, открывает двери — Люди, Основатель, Нетворк.</div></div>
+        <div><div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>Копилка ✦</div><div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>Топливо. Трать у партнёров и людей — уровень от траты не падает.</div></div>
+      </div>
+      <button className="tap" style={_dGbtn} onClick={() => { close(); navigate("home"); }}>Отметить сегодняшний ход</button>
+    </div>
+  );
+}
+
+// ═════ ШТОРКА 2 · ВМЕСТЕ ═════
+function DiscoveryTogetherSheetLive({ app, navigate, isDark }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : { open: () => {}, close: () => {} };
+  const face = (bg, txt) => (
+    <span style={{ width: 44, height: 44, borderRadius: "50%", border: "2.5px solid var(--card)", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 800, color: "#fff", background: bg }}>{txt}</span>
+  );
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Вместе — больше</div>
+      <div style={_dSSub}>совместные привычки и цели</div>
+      <div style={{ ..._dSCard, display: "flex", alignItems: "center", gap: 13 }}>
+        <span style={{ display: "flex", alignItems: "center" }}>{face("#0a0a0a", "Ты")}<span style={{ marginLeft: -10, display: "flex" }}>{face("#9c9ca3", "А")}</span></span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text)" }}>Пробежка · вдвоём</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>каждый ведёт свою копию</div>
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 800, background: BOS_GOLD, color: "#0a0a0a", borderRadius: 999, padding: "5px 10px" }}>✦ +15</span>
+      </div>
+      <div style={_dSText}>Поделись привычкой или собери круг под цель. Отметка в совместной — <b style={{ color: "var(--text)" }}>+15 вместо +10</b>. Никто никого не тянет: у каждого своя копия, а рядом — живой пульс своих.</div>
+      <div style={_dSKick}>ТВОИ ЛЮДИ — ТВОИ ВЕХИ</div>
+      <div style={{ ..._dSCard, padding: "6px 14px" }}>
+        {_dXRow({ label: "Друг пришёл по твоей ссылке", value: "+150", first: true })}
+        {_dXRow({ label: "3 своих", value: "+300" })}
+        {_dXRow({ label: "7 своих", value: "+700" })}
+        {_dXRow({ label: "15 своих", value: "+1500" })}
+        {_dXRow({ label: "30 своих", value: "+3000" })}
+      </div>
+      <button className="tap" style={_dGbtn} onClick={() => { if (typeof ShareSheetLive === "function") sheet.open(<ShareSheetLive kind="app" dark={isDark} />); }}>Позвать своего</button>
+    </div>
+  );
+}
+
+// ═════ ШТОРКА 3 · ЧЕЛЛЕНДЖИ ═════
+function DiscoveryChSheetLive({ app, navigate, isDark }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : { open: () => {}, close: () => {} };
+  const starters = (typeof CHALLENGE_STARTERS !== "undefined") ? CHALLENGE_STARTERS.slice(0, 5) : [];
+  const pick = (c) => {
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+    if (typeof ChallengeIntroSheet === "function") sheet.open(<ChallengeIntroSheet c={c} dark={isDark} onStart={() => bosCommitChallenge(app, c, { navigate, openSheet: sheet.open })} />);
+  };
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Челленджи</div>
+      <div style={_dSSub}>готовая привычка с призом за серию</div>
+      <div className="bos-hscroll" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 2px 10px", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+        {starters.map((c) => (
+          <button key={c.key} onClick={() => pick(c)} className="tap" data-no-haptic style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 7, background: "var(--card)", border: "0.5px solid var(--line)", boxShadow: "var(--card-shadow)", borderRadius: 999, padding: "8px 11px 8px 9px", fontSize: 13, fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>
+            <span style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center" }}>{bosIcon(c.i, 14, "var(--text)")}</span>
+            {c.t} <span style={{ fontSize: 10.5, fontWeight: 800, background: BOS_GOLD, color: "#0a0a0a", borderRadius: 999, padding: "2.5px 7px" }}>+{c.bonus}</span>
+          </button>
+        ))}
+      </div>
+      <div style={_dSCard}>
+        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 5, color: "var(--text)" }}>Правила простые</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.5 }}>Держишь серию — забираешь приз: <b style={{ color: "var(--text)" }}>+30…75 ✦</b> к копилке. Пропустил день — серия начинается заново, но <b style={{ color: "var(--text)" }}>заработанное не сгорает</b>.</div>
+      </div>
+      <div style={{ ..._dSText, paddingTop: 8 }}>Челлендж — это обычная привычка, только с правилами и наградой: тап → правила → старт, она сама встаёт в твой список. Найдёшь их при создании привычки и здесь, в Сообществе.</div>
+      <button className="tap" style={_dGbtn} onClick={() => { if (typeof CreatePickerSheetLive === "function") sheet.open(<CreatePickerSheetLive custom={false} navigate={navigate} />); }}>Выбрать челлендж</button>
+    </div>
+  );
+}
+
+// ═════ ШТОРКА 4 · ПАРТНЁРЫ ═════
+function DiscoveryPartnersSheetLive({ app, navigate, isDark }) {
+  const { close } = (typeof useSheet === "function") ? useSheet() : { close: () => {} };
+  const goPartners = () => {
+    close();
+    try { app && app.setCommunityView && app.setCommunityView({ filter: "partners", section: "community", commTab: "network" }); } catch (e) {}
+  };
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Партнёры</div>
+      <div style={_dSSub}>впечатления за твой опыт</div>
+      <div style={{ position: "relative", background: "var(--card)", borderRadius: 18, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: "var(--text-4)" }}>ПАРТНЁРСКИЙ БИЛЕТ</div>
+          <div style={{ fontSize: 15, fontWeight: 800, marginTop: 3, color: "var(--text)" }}>Тренировка · зал рядом</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>покажи код на входе</div>
+        </div>
+        <div style={{ borderLeft: "2px dashed var(--line)", paddingLeft: 14, width: 74, textAlign: "center", flexShrink: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>100</div>
+          <div style={{ fontSize: 10.5, color: "var(--text-4)" }}>✦ XP</div>
+        </div>
+      </div>
+      <div style={{ ..._dSText, paddingTop: 10 }}>Залы, студии, практики и кофейни рядом принимают твой опыт: <b style={{ color: "var(--text)" }}>от 150 ✦</b> за настоящее — тренировку, медитацию, бачату. Копишь дома — тратишь в жизни.</div>
+      <div style={_dSCard}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 34, height: 34, borderRadius: "50%", background: BOS_GOLD, display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#0a0a0a"><circle cx="12" cy="8" r="3.6" /><path d="M4.8 20c.9-3.4 3.8-5.4 7.2-5.4s6.3 2 7.2 5.4" stroke="#0a0a0a" strokeWidth="2.2" fill="none" strokeLinecap="round" /></svg>
+          </span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>Стать партнёром</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.4 }}>Вырастешь — подашь своё предложение: публикации открываются с 3 уровня, рынок пользы — с 10.</div>
+          </div>
+        </div>
+      </div>
+      <button className="tap" style={_dGbtn} onClick={goPartners}>Открыть карту партнёров</button>
+    </div>
+  );
+}
+
+// ═════ ШТОРКА 5 · ЛЮДИ ═════
+function DiscoveryPeopleSheetLive({ app, navigate, isDark }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+  const info = (typeof bosLevelInfoLive === "function" && typeof bosLiveXPLive === "function") ? bosLevelInfoLive(bosLiveXPLive(app)) : { level: 1, xp: 0, into: 0, span: 100 };
+  const lvl = info.level || 1, left = Math.max(0, 10 - lvl), toNext = Math.max(0, (info.span | 0) - (info.into | 0));
+  const barW = Math.max(4, Math.min(100, (lvl / 10) * 100));
+  // Лестница пути (L1/3/5/8/10/15·20) — по макету; NOW-строка встаёт на позицию текущего уровня.
+  const mets = [
+    { lvl: 1, t: "Партнёры рядом", d: "впечатления за опыт — с первого дня" },
+    { lvl: 3, t: "Разбор привычек", d: "твоя первая публикация" },
+    { lvl: 5, t: "Практика для группы", d: "собери людей на своё" },
+    { lvl: 8, t: "Основатель", d: "подарок: прыжок сразу на 10", lock: true },
+    { lvl: 10, t: "Люди", d: "рынок пользы · наставники · встречи", lock: true, big: true },
+    { lvl: 15, t: "Наставничество · Собрать своих", d: "веди других · живая встреча под твоим флагом", lock: true },
+  ];
+  const knot = (state) => (
+    <span style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", zIndex: 1,
+      background: state === "done" ? BOS_GOLD : state === "now" ? "var(--cta, #0a0a0a)" : "var(--card)",
+      border: state === "future" ? "1.5px solid var(--line)" : "1.5px solid transparent",
+      boxShadow: state === "now" ? "0 0 0 5px rgba(10,10,10,0.08)" : "none" }}>
+      {state === "done" && <svg width="13" height="13" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#0a0a0a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+      {state === "now" && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />}
+      {state === "future" && <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--text-4)"><path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5zm0 2.2a2.8 2.8 0 0 0-2.8 2.8v2h5.6v-2A2.8 2.8 0 0 0 12 5.8z" /></svg>}
+    </span>
+  );
+  const stepRow = (key, state, lvlLabel, title, desc, big, last) => (
+    <div key={key} style={{ display: "flex", gap: 12, position: "relative", paddingBottom: last ? 2 : 18 }}>
+      {!last && <span style={{ position: "absolute", left: 15, top: 32, bottom: 0, width: 2, background: state === "done" ? BOS_GOLD : "var(--line)" }} />}
+      {knot(state)}
+      <div style={{ opacity: state === "future" && !big ? 0.6 : 1 }}>
+        <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, color: "var(--text-4)" }}>{lvlLabel}</div>
+        {big ? (
+          <div style={{ background: "var(--card)", border: "1px solid " + BOS_GOLD, borderRadius: 14, padding: "10px 12px", marginTop: 3, boxShadow: "0 6px 18px rgba(254,222,52,0.25)" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text)" }}>{title}</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.35 }}>{desc}</div>
+          </div>
+        ) : (
+          <React.Fragment>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", marginTop: 1, display: "flex", alignItems: "center", gap: 6, color: "var(--text)" }}>{title}{state === "now" && <span style={{ fontSize: 9.5, fontWeight: 800, background: "var(--cta, #0a0a0a)", color: "var(--cta-ink, #fff)", borderRadius: 999, padding: "2px 7px" }}>{bosFmtXP(info.xp)} XP</span>}</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.35 }}>{desc}</div>
+          </React.Fragment>
+        )}
+      </div>
+    </div>
+  );
+  const rows = [];
+  let nowPut = false;
+  mets.forEach((m, i) => {
+    if (!nowPut && lvl < m.lvl) { rows.push(stepRow("now", "now", "УРОВЕНЬ " + lvl, "Ты здесь", "до " + (lvl + 1) + " уровня — " + bosFmtXP(toNext) + " ✦", false, false)); nowPut = true; }
+    rows.push(stepRow("m" + m.lvl, lvl >= m.lvl ? "done" : "future", "УРОВЕНЬ " + m.lvl + (m.big ? " · ГЛАВНАЯ ДВЕРЬ" : ""), m.t, m.d, m.big, false));
+  });
+  if (!nowPut) rows.push(stepRow("now", "now", "УРОВЕНЬ " + lvl, "Ты здесь", "до " + (lvl + 1) + " уровня — " + bosFmtXP(toNext) + " ✦", false, true));
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Люди</div>
+      <div style={_dSSub}>закрытый круг своих — с 10 уровня</div>
+      <div style={_dSCard}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}><span>Уровень {lvl}</span><span>10</span></div>
+        <div style={{ height: 6, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden", margin: "6px 0" }}><span style={{ display: "block", height: "100%", width: barW + "%", background: BOS_GOLD, borderRadius: 99 }} /></div>
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", fontWeight: 600 }}>Осталось {left} {left === 1 ? "уровень" : (left >= 2 && left <= 4 ? "уровня" : "уровней")}. Вход не покупается — его проходят.</div>
+      </div>
+      <div style={_dSText}>Внутри — <b style={{ color: "var(--text)" }}>рынок пользы</b>: услуги за ✦, наставники, живые встречи с людьми твоего города. Без случайных людей: сюда доходят те, кто держит свой ритм.</div>
+      <div style={_dSKick}>ЧТО ОТКРЫВАЕТСЯ ПО ПУТИ</div>
+      <div style={{ padding: "2px 2px 4px" }}>{rows}</div>
+      <button className="tap" style={_dGbtn} onClick={() => sheet.open(<DiscoveryXPSheetLive app={app} navigate={navigate} isDark={isDark} />)}>Как копить быстрее</button>
+    </div>
+  );
+}
+
+// Открывает нужную шторку по id (для колоды и перекрёстных ссылок).
+function bosDiscSheetNode(id, app, navigate, isDark) {
+  if (id === "core") return <DiscoveryCoreSheetLive app={app} navigate={navigate} isDark={isDark} />;
+  if (id === "xp") return <DiscoveryXPSheetLive app={app} navigate={navigate} isDark={isDark} />;
+  if (id === "together") return <DiscoveryTogetherSheetLive app={app} navigate={navigate} isDark={isDark} />;
+  if (id === "ch") return <DiscoveryChSheetLive app={app} navigate={navigate} isDark={isDark} />;
+  if (id === "partners") return <DiscoveryPartnersSheetLive app={app} navigate={navigate} isDark={isDark} />;
+  if (id === "people") return <DiscoveryPeopleSheetLive app={app} navigate={navigate} isDark={isDark} />;
+  return null;
+}
+
+// ── маленький крестик карточки: 26 видимых / 44 тап-зона ──
+function _DiscX({ onClick }) {
+  return (
+    <button onClick={onClick} className="tap" aria-label="Скрыть навсегда" style={{ position: "absolute", top: 2, right: 2, width: 44, height: 44, border: 0, background: "transparent", display: "grid", placeItems: "center", cursor: "pointer", zIndex: 3 }}>
+      <span style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center" }}>
+        <svg width="11" height="11" viewBox="0 0 11 11"><path d="M2 2l7 7M9 2l-7 7" stroke="var(--text-3)" strokeWidth="1.8" strokeLinecap="round" /></svg>
+      </span>
+    </button>
+  );
+}
+
+// ── иконки колоды (заливные SVG, палитра бел/чёрн/золото) ──
+var _DISC_ICONS = {
+  xp: <svg width="19" height="19" viewBox="0 0 24 24" fill="var(--text)"><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg>,
+  together: <svg width="20" height="20" viewBox="0 0 24 24"><g fill="var(--text-4)"><circle cx="16.6" cy="8.6" r="2.9" /><path d="M11.6 19c0-2.8 2.2-4.8 5-4.8s5 2 5 4.8c0 .66-.54 1.2-1.2 1.2h-7.6c-.66 0-1.2-.54-1.2-1.2z" /></g><g fill="var(--text)"><circle cx="8.6" cy="7.6" r="3.6" /><path d="M2 19.2c0-3.4 2.9-5.8 6.6-5.8s6.6 2.4 6.6 5.8c0 .72-.6 1.3-1.32 1.3H3.32C2.6 20.5 2 19.92 2 19.2z" /></g></svg>,
+  ch: <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--text)"><path d="M12 2c1.2 3.4-.8 4.6-.8 6.8a3 3 0 0 0 5.9.6C18.6 11 20 13.2 20 15.3A8 8 0 1 1 4 15.3c0-2.6 1.6-4.2 2.6-5.8.5 1.9 1.4 2.6 2.5 2.6C8 9 10 5.4 12 2z" /></svg>,
+  partners: <svg width="19" height="19" viewBox="0 0 24 24" fill="var(--text)"><path d="M20.5 8.6V6.4c0-1-.8-1.8-1.8-1.8H5.3c-1 0-1.8.8-1.8 1.8v2.2a3.4 3.4 0 0 1 0 6.8v2.2c0 1 .8 1.8 1.8 1.8h13.4c1 0 1.8-.8 1.8-1.8v-2.2a3.4 3.4 0 0 1 0-6.8zM14 15.6l-2-1.3-2 1.3.6-2.3-1.8-1.5 2.3-.2 1-2.2 1 2.2 2.3.2-1.9 1.5z" /></svg>,
+  people: <svg width="19" height="19" viewBox="0 0 24 24" fill="#0a0a0a"><circle cx="10" cy="7.6" r="3.6" /><path d="M3.6 19.4c0-3.6 2.9-6 6.4-6 1.2 0 2.4.3 3.3.8a4.6 4.6 0 0 0-1.3 3.2v2.7H5.1c-.9 0-1.5-.6-1.5-.7z" /><path d="M17.5 12.6a3 3 0 0 0-3 3v.7h-.2c-.7 0-1.3.6-1.3 1.3v3c0 .7.6 1.4 1.3 1.4h6.4c.7 0 1.3-.7 1.3-1.4v-3c0-.7-.6-1.3-1.3-1.3h-.2v-.7a3 3 0 0 0-3-3zm0 1.6c.8 0 1.4.6 1.4 1.4v.7h-2.8v-.7c0-.8.6-1.4 1.4-1.4z" /></svg>,
+  lock: <svg width="17" height="17" viewBox="0 0 24 24" fill="var(--text)"><path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5zm0 2.2a2.8 2.8 0 0 0-2.8 2.8v2h5.6v-2A2.8 2.8 0 0 0 12 5.8z" /></svg>,
+};
+
+// ── карточка колоды ──
+function _DiscCard({ id, ic, iconGold, title, desc, meta, metaQuiet, onOpen, onDismiss }) {
+  return (
+    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: "13px 12px 12px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "var(--text)", fontFamily: "inherit" }}>
+      {onDismiss && <_DiscX onClick={onDismiss} />}
+      <span style={{ width: 36, height: 36, borderRadius: "50%", background: iconGold ? BOS_GOLD : "var(--surface-3)", display: "grid", placeItems: "center", marginBottom: 9 }}>{ic}</span>
+      <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{title}</span>
+      <span style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.35, marginTop: 4 }}>{desc}</span>
+      <span style={{ marginTop: "auto", fontSize: 11, fontWeight: 800, borderRadius: 999, padding: "3.5px 9px", display: "inline-flex", alignItems: "center", gap: 4, background: metaQuiet ? "var(--surface-3)" : BOS_GOLD, color: metaQuiet ? "var(--text-2)" : "#0a0a0a" }}>{meta}</span>
+    </button>
+  );
+}
+
+// ═════ ЛЕНТА ═════
+function DiscoveryFeedLive({ app, navigate, isDark }) {
+  const sheet = (typeof useSheet === "function") ? useSheet() : { open: () => {} };
+  const _t = React.useState(0), setTick = _t[1];
+  React.useEffect(() => {
+    const f = () => setTick((n) => n + 1);
+    window.addEventListener("bos:discoveryChanged", f);
+    return () => window.removeEventListener("bos:discoveryChanged", f);
+  }, []);
+  const dismissed = bosDiscBag("bos:discoveryDismissed");
+  const seen = bosDiscBag("bos:discoverySeen");
+  const info = (typeof bosLevelInfoLive === "function" && typeof bosLiveXPLive === "function") ? bosLevelInfoLive(bosLiveXPLive(app)) : { level: 1 };
+  const userLevel = info.level || 1;
+  const allSeen = BOS_DISC_SHEETS.every((s) => seen[s]);
+
+  const openDisc = (id) => {
+    bosDiscMark("bos:discoverySeen", id);
+    if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} }
+    sheet.open(bosDiscSheetNode(id, app, navigate, isDark));
+  };
+  const doDismiss = (ev, key) => {
+    ev.stopPropagation();
+    bosDiscMark("bos:discoveryDismissed", key);
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+  };
+
+  // Колода (Б1: полный состав из макета; появление/уход по уровню и прожитости — Б2).
+  const deck = [
+    { key: "xp", id: "xp", ic: _DISC_ICONS.xp, title: "Опыт и уровень", desc: "Каждый ход — шаг по пути", meta: "✦ +10 за отметку" },
+    { key: "together", id: "together", ic: _DISC_ICONS.together, title: "Вместе — больше", desc: "Совместные привычки и цели", meta: "✦ +15 вместо +10" },
+    { key: "ch", id: "ch", ic: _DISC_ICONS.ch, title: "Челленджи", desc: "Готовая привычка с призом", meta: "✦ +30…75" },
+    { key: "partners", id: "partners", ic: _DISC_ICONS.partners, title: "Партнёры", desc: "Впечатления за твой опыт", meta: "от 150 XP", metaQuiet: true },
+    { key: "people", id: "people", ic: _DISC_ICONS.people, iconGold: true, title: "Люди", desc: "Закрытый круг — с 10 уровня", meta: "Уровень " + userLevel + " из 10", metaQuiet: true },
+  ];
+  const founderLeft = Math.max(0, 8 - userLevel);
+  const founderW = Math.max(4, Math.min(100, (userLevel / 8) * 100));
+
+  return (
+    <div>
+      <div style={{ padding: "16px 4px 8px" }}><span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, color: "var(--text-4)" }}>ОТКРЫТИЯ</span></div>
+      <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "2px 12px 10px 4px", margin: "0 -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+        {/* обложка «звёздное небо» — своя шторка «Суть», без крестика; уходит когда открыты все 6 шторок */}
+        {!allSeen && (
+          <button onClick={() => openDisc("core")} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 196, height: 172, borderRadius: 22, border: 0, padding: "13px 12px 12px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "#fff", fontFamily: "inherit", background: "radial-gradient(140% 110% at 82% -8%, #23232e 0%, #14141a 45%, #08080a 100%)" }}>
+            <span aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+              {[[12, 14, 2, 0, 0.75], [32, 8, 1.5, 0, 0.5], [78, 12, 2.5, 1, 0.9], [64, 22, 1.5, 0, 0.6], [88, 38, 2, 0, 0.7], [22, 34, 1.5, 1, 0.85], [46, 30, 1.5, 0, 0.4], [70, 48, 1.5, 0, 0.5]].map((s, i) => (
+                <span key={i} style={{ position: "absolute", left: s[0] + "%", top: s[1] + "%", width: s[2], height: s[2], borderRadius: "50%", background: s[3] ? BOS_GOLD : "#fff", opacity: s[4], boxShadow: s[3] ? "0 0 5px rgba(254,222,52,0.85)" : "0 0 3px rgba(255,255,255,0.5)" }} />
+              ))}
+            </span>
+            <span style={{ position: "relative", fontSize: 9.5, fontWeight: 800, letterSpacing: 1.5, color: "rgba(255,255,255,0.5)", marginBottom: 7 }}>С ЧЕГО НАЧАТЬ</span>
+            <span style={{ position: "relative", fontSize: 16, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2 }}>Как устроен Balance</span>
+            <span style={{ position: "relative", fontSize: 11.5, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>День · опыт · свои · мир</span>
+            <span style={{ position: "relative", marginTop: "auto", fontSize: 11, fontWeight: 800, background: BOS_GOLD, color: "#0a0a0a", borderRadius: 999, padding: "3.5px 9px" }}>Суть · 1 минута ›</span>
+          </button>
+        )}
+        {/* карточки колоды */}
+        {deck.filter((c) => !dismissed[c.key]).map((c) => (
+          <_DiscCard key={c.key} {...c} onOpen={() => openDisc(c.id)} onDismiss={(ev) => doDismiss(ev, c.key)} />
+        ))}
+        {/* тизер-замок «Основатель» — без крестика и без тапа */}
+        <div style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", padding: "13px 12px 12px", display: "flex", flexDirection: "column", alignItems: "flex-start", overflow: "hidden", color: "var(--text)" }}>
+          <span style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", marginBottom: 9, opacity: 0.55 }}>{_DISC_ICONS.lock}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2, opacity: 0.55 }}>Основатель</span>
+          <span style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.35, marginTop: 4, opacity: 0.55 }}>Подарок на 8 уровне: прыжок сразу на 10</span>
+          <span style={{ marginTop: "auto", width: "100%" }}>
+            <span style={{ display: "block", height: 4, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: founderW + "%", borderRadius: 99, background: BOS_GOLD }} /></span>
+            <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: "var(--text-4)", marginTop: 6 }}>Ты на {userLevel} · осталось {founderLeft} {founderLeft === 1 ? "уровень" : (founderLeft >= 2 && founderLeft <= 4 ? "уровня" : "уровней")}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── мягкая вуаль-замок над секцией (лесенка раскрытия по уровню) ──
+function DiscoveryVeil({ gate, level, label, isDark, children }) {
+  if ((level || 1) >= gate) return children;
+  return (
+    <div style={{ position: "relative", borderRadius: 22, overflow: "hidden" }}>
+      <div aria-hidden style={{ pointerEvents: "none" }}>{children}</div>
+      <div style={{ position: "absolute", inset: 0, background: isDark ? "rgba(18,18,22,0.5)" : "rgba(242,242,244,0.55)", backdropFilter: "blur(5px)", WebkitBackdropFilter: "blur(5px)", display: "grid", placeItems: "center" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--card)", border: "0.5px solid var(--line)", boxShadow: "var(--card-shadow)", borderRadius: 999, padding: "9px 14px", fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--text)"><path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5zm0 2.2a2.8 2.8 0 0 0-2.8 2.8v2h5.6v-2A2.8 2.8 0 0 0 12 5.8z" /></svg>
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function CommunityLive() {
   const { navigate } = useNav();
   const app = useApp();
@@ -390,9 +829,10 @@ function CommunityLive() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
         {filter === "all" && (
           <React.Fragment>
-            {/* БАННЕР → гид: вынесен в CommunityGuideBannerLive (маршрут из настоящих иконок
-                приложения в родных цветах). David: старый на эмодзи-заглушках был «неприкольный». */}
-            <CommunityGuideBannerLive navigate={navigate} isDark={isDark} />
+            {/* ЛЕНТА «ОТКРЫТИЙ» вместо баннера гида (David 2026-07-10): свайп-карточки, каждая
+                открывает СВОЮ шторку про механику. Гид (GuideLive) пока жив, но здесь его баннер
+                (CommunityGuideBannerLive) заменён лентой. Кромка ленты — по общей сетке страницы. */}
+            <DiscoveryFeedLive app={app} navigate={navigate} isDark={isDark} />
             {/* КАРТА + ПАРТНЁРЫ одним блоком (David: «карта и партнёры аккуратнее в одном блоке»,
                 карту крупнее, дубль «Рядом» убрать). Крупная карта сверху → сразу витрина партнёров. */}
             {typeof PartnersMapLive === "function" && (
@@ -403,9 +843,14 @@ function CommunityLive() {
                 </div>
               </div>
             )}
-            {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку. */}
-            {typeof PartnersShowcaseLive === "function" && <PartnersShowcaseLive app={app} navigate={navigate}
-              onAll={() => setFilter("partners")} />}
+            {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку.
+                Лесенка раскрытия (David): под мягкой вуалью-замком до BOS_DISC_GATES.showcase уровня
+                (порог правится там же — David ещё не уверен в точных цифрах). Карта выше — открыта. */}
+            {typeof PartnersShowcaseLive === "function" && (
+              <DiscoveryVeil gate={BOS_DISC_GATES.showcase} level={userLevel} isDark={isDark} label={"Откроется с " + BOS_DISC_GATES.showcase + " уровня"}>
+                <PartnersShowcaseLive app={app} navigate={navigate} onAll={() => setFilter("partners")} />
+              </DiscoveryVeil>
+            )}
           </React.Fragment>
         )}
         {filter === "partners" && (

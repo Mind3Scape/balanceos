@@ -1206,7 +1206,8 @@ function AppProvider({ children }) {
     const bump = () => setExtrasTick((t) => t + 1);
     window.addEventListener("bos:partnersChanged", bump);
     window.addEventListener("bos:circlesKnocked", bump);
-    return () => { window.removeEventListener("bos:partnersChanged", bump); window.removeEventListener("bos:circlesKnocked", bump); };
+    window.addEventListener("bos:discoveryChanged", bump);
+    return () => { window.removeEventListener("bos:partnersChanged", bump); window.removeEventListener("bos:circlesKnocked", bump); window.removeEventListener("bos:discoveryChanged", bump); };
   }, []);
   const _walletExtras = () => {
     var out = { redeemedPartners: {}, knockedCircles: {} };
@@ -1215,6 +1216,9 @@ function AppProvider({ children }) {
     // v594: архив едет в облачный снимок — переживает переустановку и синкается между устройствами
     // (до этого жил ТОЛЬКО в localStorage и терялся вместе с телефоном).
     try { out.archived = JSON.parse(localStorage.getItem("bos:archived") || "null") || {}; } catch (e) {}
+    // v670: скрытые/прожитые карточки ленты «Открытий» — тем же union-путём (скрытие навсегда).
+    try { out.discoveryDismissed = JSON.parse(localStorage.getItem("bos:discoveryDismissed") || "{}") || {}; } catch (e) {}
+    try { out.discoverySeen = JSON.parse(localStorage.getItem("bos:discoverySeen") || "{}") || {}; } catch (e) {}
     return out;
   };
 
@@ -1517,6 +1521,12 @@ function AppProvider({ children }) {
                   localStorage.setItem("bos:archived", JSON.stringify(Object.assign({}, _cx.archived, _la)));
                   window.dispatchEvent(new Event("bos:archivedChanged"));
                 }
+                // v670: «Открытия» — union скрытых/прожитых карточек (локальное скрытие главнее — не воскресает).
+                var _ddC = {}; try { _ddC = JSON.parse(localStorage.getItem("bos:discoveryDismissed") || "{}") || {}; } catch (ed1) {}
+                localStorage.setItem("bos:discoveryDismissed", JSON.stringify(Object.assign({}, _cx.discoveryDismissed || {}, _ddC)));
+                var _dsC = {}; try { _dsC = JSON.parse(localStorage.getItem("bos:discoverySeen") || "{}") || {}; } catch (ed2) {}
+                localStorage.setItem("bos:discoverySeen", JSON.stringify(Object.assign({}, _cx.discoverySeen || {}, _dsC)));
+                window.dispatchEvent(new Event("bos:discoveryChanged"));
                 window.dispatchEvent(new Event("bos:partnersChanged"));
                 window.dispatchEvent(new Event("bos:circlesKnocked"));
               }
