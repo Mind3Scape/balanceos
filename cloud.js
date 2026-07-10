@@ -1124,15 +1124,18 @@
   async function netOffers(limit) {
     var c = client(); if (!c) return [];
     try {
-      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text").eq("active", true).limit(limit || 200);
+      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,status,visibility").eq("active", true).limit(limit || 200);
+      if (r && r.error) r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text").eq("active", true).limit(limit || 200); // до patch_community_v2.sql
       return (r && !r.error && r.data) ? r.data : [];
     } catch (e) { return []; }
   }
-  // Мои предложения (все, включая выключённые) — для редактора.
+  // Мои предложения (все, включая выключённые) — для редактора/статуса «Мой вклад».
+  // status/visibility (Э2) читаем с фолбэком: до patch_community_v2.sql столбцов нет → без них.
   async function netMyOffers() {
     var c = client(); var id = await uid(); if (!c || !id) return [];
     try {
-      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active").eq("owner_id", id).order("created_at", { ascending: true });
+      var r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active,status,visibility").eq("owner_id", id).order("created_at", { ascending: true });
+      if (r && r.error) r = await c.from("network_offers").select("id,owner_id,emoji,title,descr,price_xp,min_level,slots_week,when_text,active").eq("owner_id", id).order("created_at", { ascending: true });
       return (r && !r.error && r.data) ? r.data : [];
     } catch (e) { return []; }
   }
@@ -1147,10 +1150,30 @@
         slots_week: Math.max(1, (o.slots_week | 0) || 1), when_text: (o.when_text ? ("" + o.when_text).slice(0, 60) : null),
         active: o.active !== false,
       };
+      if (o.visibility) row.visibility = o.visibility;   // Э2: 'circles' | 'all'
+      if (o.status) row.status = o.status;                // Э2: 'draft' | 'confirmed'
       if (o.id) row.id = o.id;
       var r = await c.from("network_offers").upsert(row).select().single();
+      // до patch_community_v2.sql столбцов status/visibility нет → повторяем без них (не роняем сохранение).
+      if (r && r.error && (o.visibility || o.status)) {
+        delete row.visibility; delete row.status;
+        r = await c.from("network_offers").upsert(row).select().single();
+      }
       return (r && !r.error && r.data) ? r.data : null;
     } catch (e) { return null; }
+  }
+  // ── Э2 · подтверждения роли окружением (role_confirmations) ──────────────────
+  // Кто подтвердил вклад — {confirmer_id, created_at}. Нет таблицы (до патча) → [].
+  async function netRoleConfirmations(offerId) {
+    var c = client(); if (!c || !offerId) return [];
+    try { var r = await c.from("role_confirmations").select("confirmer_id,created_at").eq("offer_id", offerId); return (r && !r.error && r.data) ? r.data : []; }
+    catch (e) { return []; }
+  }
+  // Подтвердить роль автора вклада (RLS: только если мы в общем круге, за себя, один раз).
+  async function netConfirmRole(offerId) {
+    var c = client(); var id = await uid(); if (!c || !id || !offerId) return false;
+    try { var r = await c.from("role_confirmations").upsert({ offer_id: offerId, confirmer_id: id }, { onConflict: "offer_id,confirmer_id", ignoreDuplicates: true }); return !(r && r.error); }
+    catch (e) { return false; }
   }
   async function netDeleteOffer(offerId) {
     var c = client(); var id = await uid(); if (!c || !id || !offerId) return false;
@@ -1206,6 +1229,7 @@
     spendLedger: spendLedger, wallet: wallet, flushLedgerBacklog: flushLedgerBacklog,
     netOffers: netOffers, netMyOffers: netMyOffers, netUpsertOffer: netUpsertOffer, netDeleteOffer: netDeleteOffer,
     netBook: netBook, netOfferTaken: netOfferTaken, netMyBookings: netMyBookings, netOfferBookings: netOfferBookings,
+    netRoleConfirmations: netRoleConfirmations, netConfirmRole: netConfirmRole,
     upsertReminder: upsertReminder, deleteReminder: deleteReminder, markReminderDone: markReminderDone, saveTz: saveTz,
     signOut: signOut,
     _client: client,

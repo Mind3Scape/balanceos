@@ -767,34 +767,58 @@ function MyCirclesLive({ app, navigate, isDark, onAll }) {
 function CircleHelpLive({ app, navigate, isDark }) {
   var cm = bosUseCircleMembers(app), map = cm.map, meId = cm.meId;
   var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
+  var _cf = React.useState({}), confs = _cf[0], setConfs = _cf[1]; // offerId -> { n, mine }
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
   React.useEffect(function () {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netOffers)) { setOffers([]); return; }
     var on = true;
     window.bosCloud.netOffers(200).then(function (all) { if (on) setOffers(Array.isArray(all) ? all : []); }).catch(function () { if (on) setOffers([]); });
     return function () { on = false; };
   }, []);
+  var shown = (map && offers) ? offers.filter(function (o) { return o && o.owner_id && o.owner_id !== meId && map[o.owner_id] && o.active !== false; }).slice(0, 3) : [];
+  var shownSig = shown.map(function (o) { return o.id; }).join(",");
+  React.useEffect(function () {
+    if (!shown.length || !(window.bosCloud && window.bosCloud.netRoleConfirmations)) return;
+    var on = true;
+    Promise.all(shown.map(function (o) { return window.bosCloud.netRoleConfirmations(o.id).then(function (rc) { rc = rc || []; return { id: o.id, n: rc.length, mine: meId ? rc.some(function (x) { return x.confirmer_id === meId; }) : false }; }).catch(function () { return { id: o.id, n: 0, mine: false }; }); }))
+      .then(function (res) { if (!on) return; var m = {}; res.forEach(function (r) { m[r.id] = { n: r.n, mine: r.mine }; }); setConfs(m); });
+    return function () { on = false; };
+  }, [shownSig, meId, tick]);
   if (!map || offers === null) return null;
-  var mine = offers.filter(function (o) { return o && o.owner_id && o.owner_id !== meId && map[o.owner_id] && o.active !== false; }).slice(0, 3);
-  if (!mine.length) return null;
+  if (!shown.length) return null;
+  var confirmRole = function (o) {
+    if (!window.bosCloud || !window.bosCloud.netConfirmRole) return;
+    setConfs(function (m) { var n = Object.assign({}, m); var cur = n[o.id] || { n: 0, mine: false }; n[o.id] = { n: cur.n + 1, mine: true }; return n; }); // оптимистично
+    if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+    window.bosCloud.netConfirmRole(o.id).then(function (ok) { if (ok === false) setTick(function (n) { return n + 1; }); });
+  };
   return (
     <div>
       <CommSectionHeadLive title="🤝 Помощь круга" onAll={null} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-        {mine.map(function (o) {
+        {shown.map(function (o) {
           var p = map[o.owner_id];
           var slots = Math.max(1, o.slots_week || 1);
           var person = { ownerId: o.owner_id, avatar: p.avatar, level: null, offers: [o] };
+          var cf = confs[o.id] || { n: 0, mine: false };
+          var isDraft = o.status === "draft"; // подтверждён (или до-SQL легаси) → сразу «Попросить»
+          var canConfirm = isDraft && !cf.mine;
+          var facts = [o.when_text, slots + " " + bosSlotsWord(slots)];
+          if (cf.n > 0) facts.push("✓ " + cf.n);
           return (
-            <button key={o.id} onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap"
-              style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "13px 14px", boxShadow: "var(--card-shadow)", border: 0, textAlign: "left", width: "100%", cursor: "pointer", color: "var(--text)" }}>
-              <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(p.name || "").split(" ")[0]} · {o.title}</div>
-                <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>{[o.when_text, slots + " " + bosSlotsWord(slots)].filter(Boolean).join(" · ")}</div>
-                <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>Показана: круг «{p.teamName}»</div>
-              </div>
-              <span style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700 }}>Попросить</span>
-            </button>
+            <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "13px 14px", boxShadow: "var(--card-shadow)", color: "var(--text)" }}>
+              <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", textAlign: "left", cursor: "pointer", color: "var(--text)", padding: 0 }}>
+                <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(p.name || "").split(" ")[0]} · {o.title}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>{facts.filter(Boolean).join(" · ")}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-4)", marginTop: 2 }}>Показана: круг «{p.teamName}»{isDraft ? " · черновик" : ""}</div>
+                </div>
+              </button>
+              {canConfirm
+                ? <button onClick={function () { confirmRole(o); }} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Подтвердить</button>
+                : <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Попросить</button>}
+            </div>
           );
         })}
       </div>
@@ -802,51 +826,229 @@ function CircleHelpLive({ app, navigate, isDark }) {
   );
 }
 
-// ── «МОЙ ВКЛАД» — статус-карточка (нет → добавить · есть → форматы/места). Все уровни. ──
-// Открывает ЖИВОЙ редактор вклада (NetOfferEditSheetLive → network_offers). Полная шторка
-// «Добавить формат помощи» с каталогом и подтверждениями роли — Э2.
+// ── «МОЙ ВКЛАД» — статус-карточка пути помощника (нет → добавить · черновик N/2 · открыт). ──
+// Все уровни (свои — без замка). Открывает шторку «Добавить формат помощи» (Э2, каталог+подтверждения).
 function MyContributionStatusLive({ app, navigate, isDark }) {
   var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
   var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
+  var _cn = React.useState(null), confN = _cn[0], setConfN = _cn[1];
   var _t = React.useState(0), tick = _t[0], setTick = _t[1];
   React.useEffect(function () {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netMyOffers)) { setOffers([]); return; }
     var on = true;
-    window.bosCloud.netMyOffers().then(function (mine) { if (on) setOffers(Array.isArray(mine) ? mine : []); }).catch(function () { if (on) setOffers([]); });
+    window.bosCloud.netMyOffers().then(function (mine) {
+      if (!on) return; mine = Array.isArray(mine) ? mine : []; setOffers(mine);
+      var first = mine.filter(function (o) { return o && o.active !== false; })[0];
+      if (first && window.bosCloud.netRoleConfirmations) window.bosCloud.netRoleConfirmations(first.id).then(function (rc) { if (on) setConfN((rc || []).length); }); else setConfN(0);
+    }).catch(function () { if (on) { setOffers([]); setConfN(0); } });
     return function () { on = false; };
   }, [tick]);
   if (offers === null) return null;
-  var edit = function (offer) { if (typeof NetOfferEditSheetLive === "function") s.open(<NetOfferEditSheetLive offer={offer} onDone={function () { setTick(function (n) { return n + 1; }); }} />); };
+  var open = function (offer) { if (typeof AddHelpFormatSheetLive === "function") s.open(<AddHelpFormatSheetLive app={app} offer={offer} onDone={function () { setTick(function (n) { return n + 1; }); }} />); };
   var active = offers.filter(function (o) { return o && o.active !== false; });
   var goldCard = { background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)", border: "1px solid rgba(239,159,20,0.35)" };
-  var kick = (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, color: "#9a6800", textTransform: "uppercase" }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 2l8 3.5v5.2c0 5-3.4 9.6-8 11.3-4.6-1.7-8-6.3-8-11.3V5.5L12 2z" /></svg>
-      Мой вклад
-    </div>
-  );
+  var shield = <svg width="12" height="12" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 2l8 3.5v5.2c0 5-3.4 9.6-8 11.3-4.6-1.7-8-6.3-8-11.3V5.5L12 2z" /></svg>;
   if (!active.length) {
     return (
       <div style={goldCard}>
-        {kick}
-        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 7, letterSpacing: "-0.2px" }}>Поделись, чем можешь помочь</div>
-        <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>Один формат для своих — и круг увидит, что ты рядом.</div>
-        <button onClick={function () { edit(null); }} className="tap" data-haptic="selection" style={{ width: "100%", marginTop: 12, border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 14, fontWeight: 800, borderRadius: 14, padding: "12px 16px", cursor: "pointer", boxShadow: "0 4px 12px rgba(239,159,20,0.3)" }}>Добавить формат помощи</button>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, color: "#9a6800", textTransform: "uppercase" }}>{shield} Мой вклад</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 7, letterSpacing: "-0.2px" }}>Стань помощником своим</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3, lineHeight: 1.4 }}>Выбери формат из безопасного каталога — круг подтвердит роль.</div>
+        <button onClick={function () { open(null); }} className="tap" data-haptic="selection" style={{ width: "100%", marginTop: 12, border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 14, fontWeight: 800, borderRadius: 14, padding: "12px 16px", cursor: "pointer", boxShadow: "0 4px 12px rgba(239,159,20,0.3)" }}>Добавить формат помощи</button>
       </div>
     );
   }
   var first = active[0];
-  var totalSlots = active.reduce(function (a, o) { return a + Math.max(1, o.slots_week || 1); }, 0);
+  var n = confN == null ? 0 : confN;
+  var confirmed = first.status === "confirmed" || n >= 2;
+  var statusKick = confirmed ? "Мой вклад · открыт кругам" : "Мой вклад · черновик в ближнем круге";
+  var sub = confirmed ? "Роль подтверждена · дальше: первое дело у своих" : (n + " из 2 подтверждений · дальше: первое дело у своих");
   return (
     <div style={goldCard}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          {kick}
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.emoji ? bosIcon(first.emoji, 16, null) : null} {first.title}</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3 }}>{active.length} {bosFormatsWord(active.length)} · {totalSlots} {bosSlotsWord(totalSlots)} в неделю</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 800, letterSpacing: 0.5, color: "#9a6800", textTransform: "uppercase" }}>{shield} {statusKick}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.title}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 3 }}>{sub}</div>
         </div>
-        <button onClick={function () { edit(first); }} className="tap" data-haptic="selection" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Изменить</button>
+        <button onClick={function () { open(first); }} className="tap" data-haptic="selection" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Изменить</button>
       </div>
+    </div>
+  );
+}
+
+// ═════ Э2 · ШТОРКА «Добавить формат помощи» (валидация окружением) ═════════════════
+// Безопасный каталог + границы + «Кто может подтвердить эту роль?» (лица из кругов) → сохранить:
+// черновик (visibility='circles', status='draft'), 2 подтверждения → confirmed. Каталог из дока §1.
+var BOS_HELP_CATALOG = [
+  { key: "habit",   i: "🌱", t: "Поддержать привычку" },
+  { key: "walk",    i: "🚶", t: "Позвать на прогулку" },
+  { key: "return",  i: "🔄", t: "Помочь вернуться в ритм" },
+  { key: "workout", i: "🏃", t: "Провести первую тренировку" },
+  { key: "breath",  i: "🧘", t: "Провести дыхание или медитацию" },
+  { key: "week",    i: "🗓️", t: "Разобрать неделю" },
+  { key: "meet",    i: "🤝", t: "Собрать маленькую встречу" },
+];
+
+function AddHelpFormatSheetLive({ app, offer, onDone }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var editing = !!(offer && offer.id);
+  var cm = bosUseCircleMembers(app);
+  var members = (cm.map ? Object.keys(cm.map) : []).filter(function (id) { return id !== cm.meId; }).map(function (id) { return { id: id, name: cm.map[id].name, avatar: cm.map[id].avatar }; });
+  var initCat = BOS_HELP_CATALOG.filter(function (c) { return offer && c.t === offer.title; })[0];
+  var _c = React.useState(initCat ? initCat.key : (editing ? "" : "habit")); var catKey = _c[0], setCatKey = _c[1];
+  var _m = React.useState(20); var mins = _m[0], setMins = _m[1];
+  var _p = React.useState("онлайн"); var place = _p[0], setPlace = _p[1];
+  var _pk = React.useState({}); var picked = _pk[0], setPicked = _pk[1];
+  var _b = React.useState(false); var busy = _b[0], setBusy = _b[1];
+  var cat = BOS_HELP_CATALOG.filter(function (c) { return c.key === catKey; })[0];
+  var togMin = function () { setMins(function (m) { return m === 15 ? 20 : m === 20 ? 30 : 15; }); };
+  var togPlace = function () { setPlace(function (p) { return p === "онлайн" ? "рядом" : "онлайн"; }); };
+  var togPick = function (id) { setPicked(function (m) { var n = Object.assign({}, m); if (n[id]) delete n[id]; else if (Object.keys(n).length < 3) n[id] = true; return n; }); };
+  var save = async function () {
+    if (!cat || busy) return; setBusy(true);
+    var when = mins + " мин · " + place, row = null;
+    try { row = await window.bosCloud.netUpsertOffer({ id: offer && offer.id, emoji: cat.i, title: cat.t, descr: "", price_xp: 0, slots_week: 2, when_text: when, min_level: (offer && offer.min_level) || 10, visibility: "circles", status: (offer && offer.status) || "draft", active: true }); } catch (e) {}
+    try { var oid = (row && row.id) || (offer && offer.id); if (oid) localStorage.setItem("bos:offerAsked:" + oid, JSON.stringify(Object.keys(picked))); } catch (e) {}
+    setBusy(false); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } if (onDone) onDone(); s.close();
+  };
+  var kick = { fontSize: 11, fontWeight: 800, letterSpacing: 0.6, color: "var(--text-4)", textTransform: "uppercase", padding: "16px 2px 8px" };
+  var chipOn = { background: "rgba(254,222,52,0.28)", border: "1px solid #EF9F14", color: "var(--text)", borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 600 };
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Добавить формат помощи</div>
+      <div style={_dSSub}>безопасный каталог · роль подтверждает твоё окружение</div>
+
+      <div style={kick}>Как ты можешь помочь?</div>
+      <div style={{ background: "var(--card)", borderRadius: 18, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
+        {BOS_HELP_CATALOG.map(function (c, i) {
+          var on = c.key === catKey;
+          return (
+            <button key={c.key} onClick={function () { setCatKey(c.key); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: 0, borderTop: i ? "0.5px solid var(--line)" : 0, background: "transparent", textAlign: "left", cursor: "pointer", color: on ? "var(--text)" : "var(--text-3)", fontWeight: on ? 700 : 600 }}>
+              <span style={{ width: 30, height: 30, borderRadius: 10, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{c.i}</span>
+              <span style={{ flex: 1, fontSize: 14.5 }}>{c.t}</span>
+              <span style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: on ? "#EF9F14" : "transparent", border: on ? 0 : "1.5px solid var(--line)" }}>{on && <svg width="12" height="12" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={kick}>Границы формата</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+        <button onClick={togMin} className="tap" style={{ ...chipOn, cursor: "pointer" }}>{mins} минут</button>
+        <button onClick={togPlace} className="tap" style={{ ...chipOn, cursor: "pointer" }}>{place}</button>
+        <span style={chipOn}>2 места в неделю</span>
+        <span style={chipOn}>Сначала ближний круг</span>
+        <span style={chipOn}>Без обещаний результата</span>
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, padding: "8px 2px 0" }}>Без медицины, терапии и финансов — каталог только из безопасных форматов.</div>
+
+      <div style={kick}>Кто может подтвердить эту роль?</div>
+      {members.length ? (
+        <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "2px 2px 4px" }}>
+          {members.slice(0, 10).map(function (p) {
+            var on = !!picked[p.id];
+            return (
+              <button key={p.id} onClick={function () { togPick(p.id); }} className="tap" data-no-haptic style={{ flexShrink: 0, border: 0, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: 56 }}>
+                <span style={{ position: "relative", borderRadius: "50%", boxShadow: on ? "0 0 0 2px var(--card), 0 0 0 4px #EF9F14" : "none" }}>
+                  <BuddyFaceLive avatar={p.avatar} name={p.name} size={44} />
+                  <span style={{ position: "absolute", right: -2, bottom: -2, width: 18, height: 18, borderRadius: "50%", background: on ? "#EF9F14" : "var(--surface-3)", border: "2px solid var(--card)", display: "grid", placeItems: "center" }}>{on ? <svg width="9" height="9" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg> : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="3"><path d="M12 5v14M5 12h14" /></svg>}</span>
+                </span>
+                <span style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 56, textAlign: "center" }}>{(p.name || "").split(" ")[0]}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, padding: "0 2px" }}>Появится, когда у тебя будут круги с людьми — они и подтвердят роль. Пока можно сохранить черновик.</div>
+      )}
+      <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, padding: "8px 2px 0" }}>Люди из твоих кругов, которые видели тебя в этом деле.</div>
+
+      <div style={{ marginTop: 14, background: "var(--card)", border: "1px solid rgba(239,159,20,0.35)", borderRadius: 16, padding: 13, display: "flex", alignItems: "center", gap: 11 }}>
+        <span style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17 }}>🌙</span>
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>Черновик в ближнем круге</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.35 }}>2 подтверждения → первое действие → след пользы → шире</div>
+        </div>
+      </div>
+
+      <button onClick={save} disabled={!cat || busy} className="tap" style={{ width: "100%", marginTop: 14, marginBottom: 8, border: 0, background: cat ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : "var(--surface-3)", color: cat ? "#0a0a0a" : "var(--text-4)", fontSize: 15, fontWeight: 800, borderRadius: 16, padding: 14, cursor: cat ? "pointer" : "default", boxShadow: cat ? "0 6px 16px rgba(239,159,20,0.32)" : "none" }}>{editing ? "Сохранить формат" : "Сохранить и запросить подтверждения"}</button>
+    </div>
+  );
+}
+
+// ── «ТВОЙ ПУТЬ ПОМОЩНИКА» — лесенка валидации (на «Люди», до L10) ──
+// Формат ✓ → Подтверждения круга N/2 (лица) → Первое дело → Следы → Нетворк L10.
+function HelperPathLive({ app, navigate, isDark }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var cm = bosUseCircleMembers(app);
+  var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
+  var _rc = React.useState([]), confIds = _rc[0], setConfIds = _rc[1];
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
+  React.useEffect(function () {
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netMyOffers)) { setOffers([]); return; }
+    var on = true;
+    window.bosCloud.netMyOffers().then(function (mine) {
+      if (!on) return; mine = Array.isArray(mine) ? mine : []; setOffers(mine);
+      var first = mine.filter(function (o) { return o && o.active !== false; })[0];
+      if (first && window.bosCloud.netRoleConfirmations) window.bosCloud.netRoleConfirmations(first.id).then(function (rc) { if (on) setConfIds((rc || []).map(function (x) { return x.confirmer_id; })); });
+    }).catch(function () { if (on) setOffers([]); });
+    return function () { on = false; };
+  }, [tick]);
+  if (offers === null) return null;
+  var lvl = (typeof bosLiveXPLive === "function" && typeof bosLevelInfoLive === "function") ? (bosLevelInfoLive(bosLiveXPLive(app)).level || 1) : 1;
+  var first = offers.filter(function (o) { return o && o.active !== false; })[0] || null;
+  var confN = confIds.length;
+  var confirmed = !!(first && (first.status === "confirmed" || confN >= 2));
+  var open = function () { if (typeof AddHelpFormatSheetLive === "function") s.open(<AddHelpFormatSheetLive app={app} offer={first} onDone={function () { setTick(function (n) { return n + 1; }); }} />); };
+  var confFaces = confIds.map(function (id) { return cm.map && cm.map[id]; }).filter(Boolean);
+  var asked = []; try { if (first) asked = JSON.parse(localStorage.getItem("bos:offerAsked:" + first.id) || "[]") || []; } catch (e) {}
+  var waitFaces = asked.filter(function (id) { return confIds.indexOf(id) === -1; }).map(function (id) { return cm.map && cm.map[id]; }).filter(Boolean);
+  var fn = function (f) { return (f && f.name || "").split(" ")[0]; };
+  var confSub = !first ? "2 человека из круга подтвердят роль"
+    : (confN + " из 2" + (confFaces.length ? " · " + confFaces.map(fn).join(", ") + " подтвердил" + (confFaces.length > 1 ? "и" : "а") : "") + (waitFaces.length ? " · ждём " + waitFaces.map(fn).join(", ") : ""));
+  var steps = [
+    { st: first ? "done" : "now", t: "Формат выбран", d: first ? (first.title + " · черновик у ближнего круга") : "Выбери формат из безопасного каталога", cta: !first },
+    { st: !first ? "future" : (confirmed ? "done" : "now"), t: "Подтверждения круга", d: confSub, badge: (first && !confirmed) ? (confN + "/2") : null, faces: confFaces.concat(waitFaces.map(function (f) { return { _w: 1, avatar: f.avatar, name: f.name }; })) },
+    { st: confirmed ? "now" : "future", t: "Первое дело у своих", d: "Просьбы ближнего круга придут сюда" },
+    { st: "future", t: "Следы пользы", d: "«Спасибо» от тех, кому помог" },
+    { st: lvl >= 10 ? "done" : "future", t: "Нетворк · опубликовать всем", d: "С 10 уровня · рынок пользы", lock: true },
+  ];
+  var knot = function (st, lock, badge) {
+    return (
+      <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", zIndex: 1, position: "relative",
+        background: st === "done" ? BOS_GOLD : st === "now" ? "var(--cta, #0a0a0a)" : "var(--card)",
+        border: st === "future" ? "1.5px solid var(--line)" : "1.5px solid transparent",
+        boxShadow: st === "now" ? "0 0 0 5px rgba(10,10,10,0.07)" : "none" }}>
+        {st === "done" && <svg width="13" height="13" viewBox="0 0 14 14"><path d="M2.8 7.4l2.9 2.9 5.5-6" fill="none" stroke="#0a0a0a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+        {st === "now" && (badge ? <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>{badge}</span> : <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />)}
+        {st === "future" && (lock ? <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--text-4)"><path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5z" /></svg> : <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--text-5, var(--text-4))" }} />)}
+      </span>
+    );
+  };
+  return (
+    <div style={{ background: "var(--card)", borderRadius: 22, padding: "14px 15px", boxShadow: "var(--card-shadow)" }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, color: "var(--text-4)", textTransform: "uppercase", paddingBottom: 12 }}>Твой путь помощника</div>
+      {steps.map(function (m, i) {
+        var last = i === steps.length - 1;
+        return (
+          <div key={i} style={{ display: "flex", gap: 12, position: "relative", paddingBottom: last ? 0 : 16 }}>
+            {!last && <span style={{ position: "absolute", left: 14, top: 30, bottom: 0, width: 2, background: m.st === "done" ? BOS_GOLD : "var(--line)" }} />}
+            {knot(m.st, m.lock, m.badge)}
+            <div style={{ flex: 1, minWidth: 0, opacity: m.st === "future" ? 0.65 : 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.2px" }}>{m.t}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.35 }}>{m.d}</div>
+              {m.faces && m.faces.length > 0 && (
+                <div style={{ display: "flex", marginTop: 7 }}>
+                  {m.faces.slice(0, 4).map(function (f, fi) { return <span key={fi} style={{ marginLeft: fi ? -8 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)", filter: f._w ? "grayscale(1)" : "none", opacity: f._w ? 0.5 : 1 }}><BuddyFaceLive avatar={f.avatar} name={f.name} size={26} /></span>; })}
+                </div>
+              )}
+              {m.cta && <button onClick={open} className="tap" data-haptic="selection" style={{ marginTop: 8, border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 12.5, fontWeight: 800, borderRadius: 999, padding: "7px 14px", cursor: "pointer" }}>Выбрать формат</button>}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1230,6 +1432,9 @@ function CommunityLive() {
               <NetworkLive navigate={navigate} app={app} level={userLevel} isDark={isDark} />
             ) : (
               <React.Fragment>
+                {/* Э2 · «Твой путь помощника» — валидация видна ДО L10 (свои — без замка): формат →
+                    подтверждения круга → первое дело → следы → Нетворк L10. */}
+                <div style={{ marginBottom: 12 }}><HelperPathLive app={app} navigate={navigate} isDark={isDark} /></div>
                 {/* Подарок «Основатель» первому дошедшему (8–9 ур.): прыжок на 10 + открытый Нетворк. */}
                 {userLevel >= 8 && !founderClaimed && typeof FounderUnlockLive === "function" && (
                   <div style={{ marginBottom: 12 }}><FounderUnlockLive app={app} isDark={isDark} /></div>
