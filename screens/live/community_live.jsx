@@ -113,6 +113,56 @@ function CommSectionHeadLive({ title, onAll }) {
   );
 }
 
+/* Баннер «Как устроен Balance» на «Сообществе» → гид. Вынесен из ленты, чтобы жить
+   отдельным атомом (и превьюиться в _devguide.html). David: старый «неприкольный»,
+   заглушки-эмодзи (🌤/👥/📍) не соотносятся с реальным приложением. Теперь маршрут собран
+   из НАСТОЯЩИХ иконок приложения (window.I) в родных цветах: состояние = орб валентности,
+   день = зелёная галочка отметки, свои = орбита людей, город = золотой узел «выход в жизнь»
+   (ради чего копишь). Тап → «Как устроен Balance». */
+function CommunityGuideBannerLive({ navigate, isDark }) {
+  var sheen = (typeof BOS_TILE_SHEEN !== "undefined") ? BOS_TILE_SHEEN + ", " : "";
+  var glass = (typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none";
+  var tileBg = sheen + (isDark ? "rgba(255,255,255,0.06)" : "#F1F1F5");
+  var ink = "var(--text-2)";
+  var orb = (
+    <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(140deg,#8FB4E8 0%,#7ED2A8 38%,#FEDE6B 66%,#F5A46B 100%)", boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.55)" }} />
+  );
+  var nodes = [
+    { key: "state", label: "состояние", node: orb },
+    { key: "day", label: "день", node: <I.Check size={21} color="#34C759" strokeWidth={2.2} /> },
+    { key: "own", label: "свои", node: <I.OrbitPeople size={22} color={ink} strokeWidth={1.7} /> },
+    { key: "city", label: "город", gold: true, node: <I.MapPin size={20} color="#0a0a0a" strokeWidth={1.9} /> },
+  ];
+  return (
+    <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }} className="tap"
+      style={{ width: "100%", border: 0, textAlign: "left", cursor: "pointer", background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "17px 16px 15px" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: "var(--text-4)" }}>как это работает</div>
+      <div style={{ fontSize: 20, fontWeight: 850, letterSpacing: "-0.55px", color: "var(--text)", marginTop: 5, lineHeight: 1.12, fontFamily: "var(--bos-title-font)" }}>Собери день — найди своих</div>
+      <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 6, lineHeight: 1.42 }}>Отмечай состояние, закрывай привычки и цели — Balance покажет круги, людей и места по твоему ритму.</div>
+
+      <div style={{ display: "flex", alignItems: "flex-start", marginTop: 15 }}>
+        {nodes.map(function (n, i) {
+          return (
+            <React.Fragment key={n.key}>
+              {i > 0 && <span aria-hidden style={{ flex: 1, height: 2, marginTop: 22, borderRadius: 2, minWidth: 10, background: "repeating-linear-gradient(90deg, " + (isDark ? "rgba(255,255,255,0.20)" : "rgba(10,10,10,0.14)") + " 0 4px, transparent 4px 9px)" }} />}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 0 }}>
+                <span style={{ width: 46, height: 46, borderRadius: 16, display: "grid", placeItems: "center",
+                  background: n.gold ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : tileBg,
+                  boxShadow: n.gold ? "0 8px 18px rgba(239,159,20,0.32)" : glass }}>{n.node}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: n.gold ? "#EF9F14" : "var(--text-3)", whiteSpace: "nowrap" }}>{n.label}</span>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 15, paddingTop: 14, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)") }}>
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", fontSize: 13.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999, padding: "12px 16px", boxShadow: "0 6px 16px rgba(239,159,20,0.32)" }}>Как устроен Balance · 3 минуты <I.ChevronRight size={15} color="#0a0a0a" strokeWidth={2.6} /></span>
+      </div>
+    </button>
+  );
+}
+
 function CommunityLive() {
   const { navigate } = useNav();
   const app = useApp();
@@ -348,41 +398,9 @@ function CommunityLive() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
         {filter === "all" && (
           <React.Fragment>
-            {/* БАННЕР → гид (v655, David выбрал «цепочку пути»): СВЕТЛАЯ карта, маршрут
-                состояние → день → свои → город (золотой узел = награда/выход в жизнь). Копия в
-                духе, который David любит: «отмечай состояние, закрывай привычки и цели → Balance
-                покажет твоё сообщество». Стекло/золото как везде; тап → «Как устроен Balance». */}
-            <button onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("guide", { from: "community" }); }} className="tap"
-              style={{ width: "100%", border: 0, textAlign: "left", cursor: "pointer", background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "17px 16px 15px" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: "var(--text-4)" }}>как это работает</div>
-              <div style={{ fontSize: 20, fontWeight: 850, letterSpacing: "-0.55px", color: "var(--text)", marginTop: 5, lineHeight: 1.12, fontFamily: "var(--bos-title-font)" }}>Собери день — найди своих</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-3)", marginTop: 6, lineHeight: 1.42 }}>Отмечай состояние, закрывай привычки и цели — Balance покажет круги, людей и места по твоему ритму.</div>
-
-              <div style={{ display: "flex", alignItems: "flex-start", marginTop: 14 }}>
-                {[["🌤", "состояние", false, false], ["", "день", false, true], ["👥", "свои", false, false], ["📍", "город", true, false]].map(function (n, i) {
-                  var gold = n[2], isCheck = n[3];
-                  return (
-                    <React.Fragment key={i}>
-                      {i > 0 && <span aria-hidden style={{ flex: 1, height: 2, marginTop: 21, borderRadius: 2, minWidth: 8, background: "repeating-linear-gradient(90deg, " + (isDark ? "rgba(255,255,255,0.22)" : "rgba(10,10,10,0.16)") + " 0 5px, transparent 5px 10px)" }} />}
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, minWidth: 0 }}>
-                        <span style={{ width: 44, height: 44, borderRadius: 15, display: "grid", placeItems: "center", fontSize: 20,
-                          background: gold ? "linear-gradient(135deg,#FEDE34,#EF9F14)" : (BOS_TILE_SHEEN + ", " + (isDark ? "rgba(255,255,255,0.06)" : "#F1F1F5")),
-                          boxShadow: gold ? "0 8px 18px rgba(239,159,20,0.3)" : ((typeof bosTileGlass === "function") ? bosTileGlass(isDark) : "none") }}>
-                          {isCheck
-                            ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                            : n[0]}
-                        </span>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap" }}>{n[1]}</span>
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "center", marginTop: 15, paddingTop: 14, borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)") }}>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", fontSize: 13.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", borderRadius: 999, padding: "12px 16px", boxShadow: "0 6px 16px rgba(239,159,20,0.32)" }}>Как устроен Balance · 3 минуты ›</span>
-              </div>
-            </button>
+            {/* БАННЕР → гид: вынесен в CommunityGuideBannerLive (маршрут из настоящих иконок
+                приложения в родных цветах). David: старый на эмодзи-заглушках был «неприкольный». */}
+            <CommunityGuideBannerLive navigate={navigate} isDark={isDark} />
             {/* КАРТА + ПАРТНЁРЫ одним блоком (David: «карта и партнёры аккуратнее в одном блоке»,
                 карту крупнее, дубль «Рядом» убрать). Крупная карта сверху → сразу витрина партнёров. */}
             {typeof PartnersMapLive === "function" && (
