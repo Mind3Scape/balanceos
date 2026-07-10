@@ -49,6 +49,28 @@ function bosMixPillsLive(pills, app) {
   return out.slice(0, 4);
 }
 
+/* ── Живые SVG-иконки для чипов вместо эмодзи (David: эмодзи «режут глаза» на спокойном
+   монохромном чроме — палитра бел/чёрн/золото). Иконки — одноцветные линии из набора I.
+   МАРШРУТ важнее эмодзи: «Отметить состояние» и «Как всё устроено» делят 🧭, но зовут
+   разные иконки (Smile / Compass). Демо не трогаем — меняем только live-рендеры чипов. */
+var BOS_PILL_ICON_BY_ROUTE = { mood: "Smile", "habit-settings": "Plus", "goal-settings": "Target", guide: "Compass", "ai-chat": "Sparkles" };
+var BOS_PILL_ICON_BY_EMOJI = {
+  "✨": "Sparkles", "🔮": "Bulb", "🧭": "Compass", "➕": "Plus", "🌟": "Target", "🙋": "Person",
+  "📖": "Book", "📚": "Book", "🧘": "Moon", "🧘🏼‍♀️": "Moon", "🔥": "Flame", "💪": "Dumbbell",
+  "💧": "Droplet", "🏃": "Foot", "🌅": "Sun", "🚭": "Ban",
+};
+function bosPillIconName(pill) {
+  if (!pill || typeof pill === "string") return "Sparkles";
+  if (pill.kind === "action" && pill.route && BOS_PILL_ICON_BY_ROUTE[pill.route]) return BOS_PILL_ICON_BY_ROUTE[pill.route];
+  return BOS_PILL_ICON_BY_EMOJI[pill.i || ""] || "Sparkles";
+}
+function bosPillGlyphLive(pill, opts) {
+  var o = opts || {};
+  if (typeof I === "undefined") return (typeof bosPillIcon === "function") ? bosPillIcon(pill) : "✨";
+  var Cmp = I[bosPillIconName(pill)] || I.Sparkles;
+  return <Cmp size={o.size || 14} color={o.color || "var(--text-2)"} strokeWidth={o.strokeWidth || 1.8} />;
+}
+
 /* Learning-cards visibility (Habits → «Обучение»). One persisted flag: hide once read,
    restore from Settings → Предпочтения. Synced across screens via a window event so the
    habits screen reacts the moment Settings flips it (David: «прочитал — хочу убрать»). */
@@ -4500,7 +4522,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
             ...bosChipGlass(isDark), border: 0, minWidth: 0, maxWidth: "calc(50% - 3px)",
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
-          }}><span style={{ flexShrink: 0 }}>{c.i}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.t}</span></button>
+          }}><span style={{ flexShrink: 0, display: "inline-flex" }}>{bosPillGlyphLive(c, { size: 13, color: "var(--text-2)" })}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.t}</span></button>
         ))}
       </div>
     </div>
@@ -4526,7 +4548,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
             ...bosChipGlass(isDark), border: 0, minWidth: 0, maxWidth: "calc(50% - 3px)",
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
             animation: _livePills ? ("briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.06) + "s") : undefined,
-          }}><span style={{ flexShrink: 0 }}>{bosPillIcon(c)}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bosPillLabel(c)}</span></button>
+          }}><span style={{ flexShrink: 0, display: "inline-flex" }}>{bosPillGlyphLive(c, { size: 13, color: "var(--text-2)" })}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bosPillLabel(c)}</span></button>
         ))}
       </div>
     </div>

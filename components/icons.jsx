@@ -80,6 +80,8 @@ const I = {
   Bulb: (p) => <Icon {...p}><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.5.4.8 1 .8 1.7v.2h6v-.2c0-.7.3-1.3.8-1.7A6 6 0 0 0 12 3z"/></Icon>,
   Wallet: (p) => <Icon {...p}><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M15.5 11H21v4h-5.5a2 2 0 0 1 0-4z"/></Icon>,
   Moon: (p) => <Icon {...p}><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8z"/></Icon>,
+  Droplet: ({filled, ...p}) => <Icon {...p}><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z" fill={filled ? p.color || "currentColor" : "none"}/></Icon>,
+  Ban: (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></Icon>,
 };
 
 window.I = I;

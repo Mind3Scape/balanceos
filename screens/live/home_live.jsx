@@ -48,7 +48,7 @@ function HomeQuickStripLive({ isDark }) {
           display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap", cursor: "pointer",
           animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.03) + "s",
         }}>
-          <span style={{ fontSize: 15, lineHeight: 1 }}>{c.i}</span>
+          <span style={{ display: "inline-flex", flexShrink: 0 }}>{typeof bosPillGlyphLive === "function" ? bosPillGlyphLive(c, { size: 15, color: chipText }) : c.i}</span>
           <span style={{ fontSize: 13, fontWeight: 600, color: chipText }}>{c.t}</span>
           {c.kind === "together" && <I.Users size={12} color={chipText} style={{ opacity: 0.55, marginLeft: -2 }} />}
           <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9a6800", background: "rgba(245,180,30,0.18)", borderRadius: 999, padding: "2px 6px", letterSpacing: "-0.2px", lineHeight: 1.3 }}>+{c.bonus} XP</span>
