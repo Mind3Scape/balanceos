@@ -1177,6 +1177,29 @@
       return (r && !r.error && r.data) ? r.data : null;
     } catch (e) { return null; }
   }
+  // ── Э4 · след пользы = «спасибо»-свет (thanks) ──────────────────────────────
+  // Оставить след (за реально забронированный вклад; RLS проверяет бронь). Одно на offer+неделю.
+  async function netThank(offerId, toId, week, note) {
+    var c = client(); var id = await uid(); if (!c || !id || !offerId || !toId || !week) return false;
+    try { var r = await c.from("thanks").upsert({ offer_id: offerId, from_id: id, to_id: toId, week: week, note: (note ? ("" + note).slice(0, 140) : null) }, { onConflict: "offer_id,from_id,week", ignoreDuplicates: true }); return !(r && r.error); }
+    catch (e) { return false; }
+  }
+  // Следы конкретного вклада — {n, notes, mine} (mine = я уже поблагодарил). Нет таблицы → n:0.
+  async function netOfferThanks(offerId) {
+    var c = client(); var me = await uid(); if (!c || !offerId) return { n: 0, notes: [], mine: false };
+    try {
+      var r = await c.from("thanks").select("from_id,note").eq("offer_id", offerId);
+      var rows = (r && !r.error && r.data) || [];
+      return { n: rows.length, notes: rows.map(function (x) { return x.note; }).filter(Boolean), mine: me ? rows.some(function (x) { return x.from_id === me; }) : false };
+    } catch (e) { return { n: 0, notes: [], mine: false }; }
+  }
+  // Сколько следов у человека (свет его звезды) — по to_id. Нет таблицы → 0.
+  async function netUserThanks(userId) {
+    var c = client(); if (!c || !userId) return 0;
+    try { var r = await c.from("thanks").select("id", { count: "exact", head: true }).eq("to_id", userId); return (r && typeof r.count === "number") ? r.count : 0; }
+    catch (e) { return 0; }
+  }
+
   // ── Э2 · подтверждения роли окружением (role_confirmations) ──────────────────
   // Кто подтвердил вклад — {confirmer_id, created_at}. Нет таблицы (до патча) → [].
   async function netRoleConfirmations(offerId) {
@@ -1245,6 +1268,7 @@
     netOffers: netOffers, netMyOffers: netMyOffers, netUpsertOffer: netUpsertOffer, netDeleteOffer: netDeleteOffer,
     netBook: netBook, netOfferTaken: netOfferTaken, netMyBookings: netMyBookings, netOfferBookings: netOfferBookings,
     netRoleConfirmations: netRoleConfirmations, netConfirmRole: netConfirmRole,
+    netThank: netThank, netOfferThanks: netOfferThanks, netUserThanks: netUserThanks,
     upsertReminder: upsertReminder, deleteReminder: deleteReminder, markReminderDone: markReminderDone, saveTz: saveTz,
     signOut: signOut,
     _client: client,

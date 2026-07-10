@@ -768,6 +768,8 @@ function CircleHelpLive({ app, navigate, isDark }) {
   var cm = bosUseCircleMembers(app), map = cm.map, meId = cm.meId;
   var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
   var _cf = React.useState({}), confs = _cf[0], setConfs = _cf[1]; // offerId -> { n, mine }
+  var _mt = React.useState({}), meta = _mt[0], setMeta = _mt[1];   // offerId -> { thanksN, booked, thanked, week }
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
   var _t = React.useState(0), tick = _t[0], setTick = _t[1];
   React.useEffect(function () {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netOffers)) { setOffers([]); return; }
@@ -784,6 +786,19 @@ function CircleHelpLive({ app, navigate, isDark }) {
       .then(function (res) { if (!on) return; var m = {}; res.forEach(function (r) { m[r.id] = { n: r.n, mine: r.mine }; }); setConfs(m); });
     return function () { on = false; };
   }, [shownSig, meId, tick]);
+  // следы пользы (✦) + мои брони: показать «✦ N» и кнопку «Спасибо ✦» тому, кого я бронировал.
+  React.useEffect(function () {
+    if (!shown.length) return;
+    var on = true;
+    var bookedWk = {};
+    (window.bosCloud && window.bosCloud.netMyBookings ? window.bosCloud.netMyBookings() : Promise.resolve([]))
+      .then(function (bk) {
+        (bk || []).forEach(function (b) { if (b && b.offer_id) bookedWk[b.offer_id] = b.week; });
+        return Promise.all(shown.map(function (o) { return (window.bosCloud.netOfferThanks ? window.bosCloud.netOfferThanks(o.id) : Promise.resolve({ n: 0, mine: false })).then(function (th) { return { id: o.id, thanksN: (th && th.n) || 0, thanked: !!(th && th.mine), booked: !!bookedWk[o.id], week: bookedWk[o.id] || null }; }).catch(function () { return { id: o.id, thanksN: 0, thanked: false, booked: false, week: null }; }); }));
+      })
+      .then(function (res) { if (!on) return; var m = {}; res.forEach(function (r) { m[r.id] = r; }); setMeta(m); }).catch(function () {});
+    return function () { on = false; };
+  }, [shownSig, tick]);
   if (!map || offers === null) return null;
   if (!shown.length) return null;
   var confirmRole = function (o) {
@@ -801,10 +816,13 @@ function CircleHelpLive({ app, navigate, isDark }) {
           var slots = Math.max(1, o.slots_week || 1);
           var person = { ownerId: o.owner_id, avatar: p.avatar, level: null, offers: [o] };
           var cf = confs[o.id] || { n: 0, mine: false };
+          var mt = meta[o.id] || { thanksN: 0, booked: false, thanked: false };
           var isDraft = o.status === "draft"; // подтверждён (или до-SQL легаси) → сразу «Попросить»
           var canConfirm = isDraft && !cf.mine;
+          var canThank = mt.booked && !mt.thanked; // я бронировал и ещё не оставил след
           var facts = [o.when_text, slots + " " + bosSlotsWord(slots)];
           if (cf.n > 0) facts.push("✓ " + cf.n);
+          if (mt.thanksN > 0) facts.push("✦ " + mt.thanksN);
           return (
             <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "13px 14px", boxShadow: "var(--card-shadow)", color: "var(--text)" }}>
               <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", textAlign: "left", cursor: "pointer", color: "var(--text)", padding: 0 }}>
@@ -817,7 +835,9 @@ function CircleHelpLive({ app, navigate, isDark }) {
               </button>
               {canConfirm
                 ? <button onClick={function () { confirmRole(o); }} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Подтвердить</button>
-                : <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Попросить</button>}
+                : canThank
+                  ? <button onClick={function () { s.open(<ThanksSheetLive offerId={o.id} toId={o.owner_id} toName={p.name} week={mt.week} onDone={function () { setTick(function (n) { return n + 1; }); }} />); }} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Спасибо ✦</button>
+                  : <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Попросить</button>}
             </div>
           );
         })}
@@ -832,6 +852,7 @@ function MyContributionStatusLive({ app, navigate, isDark }) {
   var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
   var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
   var _cn = React.useState(null), confN = _cn[0], setConfN = _cn[1];
+  var _th = React.useState(0), thanksN = _th[0], setThanksN = _th[1];
   var _t = React.useState(0), tick = _t[0], setTick = _t[1];
   React.useEffect(function () {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netMyOffers)) { setOffers([]); return; }
@@ -840,6 +861,7 @@ function MyContributionStatusLive({ app, navigate, isDark }) {
       if (!on) return; mine = Array.isArray(mine) ? mine : []; setOffers(mine);
       var first = mine.filter(function (o) { return o && o.active !== false; })[0];
       if (first && window.bosCloud.netRoleConfirmations) window.bosCloud.netRoleConfirmations(first.id).then(function (rc) { if (on) setConfN((rc || []).length); }); else setConfN(0);
+      if (first && window.bosCloud.netOfferThanks) window.bosCloud.netOfferThanks(first.id).then(function (th) { if (on) setThanksN((th && th.n) || 0); });
     }).catch(function () { if (on) { setOffers([]); setConfN(0); } });
     return function () { on = false; };
   }, [tick]);
@@ -862,7 +884,8 @@ function MyContributionStatusLive({ app, navigate, isDark }) {
   var n = confN == null ? 0 : confN;
   var confirmed = first.status === "confirmed" || n >= 2;
   var statusKick = confirmed ? "Мой вклад · открыт кругам" : "Мой вклад · черновик в ближнем круге";
-  var sub = confirmed ? "Роль подтверждена · дальше: первое дело у своих" : (n + " из 2 подтверждений · дальше: первое дело у своих");
+  var traces = thanksN > 0 ? (" · ✦ " + thanksN + " " + (thanksN === 1 ? "след пользы" : (thanksN < 5 ? "следа пользы" : "следов пользы"))) : "";
+  var sub = (confirmed ? "Роль подтверждена · дальше: первое дело у своих" : (n + " из 2 подтверждений · дальше: первое дело у своих")) + traces;
   return (
     <div style={goldCard}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -987,6 +1010,7 @@ function HelperPathLive({ app, navigate, isDark }) {
   var cm = bosUseCircleMembers(app);
   var _o = React.useState(null), offers = _o[0], setOffers = _o[1];
   var _rc = React.useState([]), confIds = _rc[0], setConfIds = _rc[1];
+  var _th = React.useState(0), thanksN = _th[0], setThanksN = _th[1];
   var _t = React.useState(0), tick = _t[0], setTick = _t[1];
   React.useEffect(function () {
     if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netMyOffers)) { setOffers([]); return; }
@@ -995,6 +1019,7 @@ function HelperPathLive({ app, navigate, isDark }) {
       if (!on) return; mine = Array.isArray(mine) ? mine : []; setOffers(mine);
       var first = mine.filter(function (o) { return o && o.active !== false; })[0];
       if (first && window.bosCloud.netRoleConfirmations) window.bosCloud.netRoleConfirmations(first.id).then(function (rc) { if (on) setConfIds((rc || []).map(function (x) { return x.confirmer_id; })); });
+      if (first && window.bosCloud.netOfferThanks) window.bosCloud.netOfferThanks(first.id).then(function (th) { if (on) setThanksN((th && th.n) || 0); });
     }).catch(function () { if (on) setOffers([]); });
     return function () { on = false; };
   }, [tick]);
@@ -1014,7 +1039,7 @@ function HelperPathLive({ app, navigate, isDark }) {
     { st: first ? "done" : "now", t: "Формат выбран", d: first ? (first.title + " · черновик у ближнего круга") : "Выбери формат из безопасного каталога", cta: !first },
     { st: !first ? "future" : (confirmed ? "done" : "now"), t: "Подтверждения круга", d: confSub, badge: (first && !confirmed) ? (confN + "/2") : null, faces: confFaces.concat(waitFaces.map(function (f) { return { _w: 1, avatar: f.avatar, name: f.name }; })) },
     { st: confirmed ? "now" : "future", t: "Первое дело у своих", d: "Просьбы ближнего круга придут сюда" },
-    { st: "future", t: "Следы пользы", d: "«Спасибо» от тех, кому помог" },
+    { st: thanksN > 0 ? "done" : "future", t: "Следы пользы", d: thanksN > 0 ? ("✦ " + thanksN + " " + (thanksN === 1 ? "след" : (thanksN < 5 ? "следа" : "следов")) + " пользы") : "«Спасибо» от тех, кому помог" },
     { st: lvl >= 10 ? "done" : "future", t: "Нетворк · опубликовать всем", d: "С 10 уровня · рынок пользы", lock: true },
   ];
   var knot = function (st, lock, badge) {
@@ -1074,6 +1099,35 @@ function RespondRequestSheetLive({ text, teamName, onConfirm }) {
       <div style={_dSText}>Круг увидит, что просьбу взял ты. Договоритесь в чате круга — он для этого и есть.</div>
       <button onClick={function () { if (onConfirm) onConfirm(); s.close(); }} className="tap" style={{ width: "100%", border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 15, fontWeight: 800, borderRadius: 16, padding: 14, cursor: "pointer", boxShadow: "0 6px 16px rgba(239,159,20,0.32)" }}>Откликнуться</button>
       <button onClick={function () { s.close(); }} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", color: "var(--text-4)", border: 0, borderRadius: 14, padding: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Позже</button>
+    </div>
+  );
+}
+
+// ═════ Э4 · ШТОРКА «След пользы» — «спасибо»-свет (1 тап + 1 строка, БЕЗ звёзд) ═════
+function ThanksSheetLive({ offerId, toId, toName, week, onDone }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var _n = React.useState(""); var note = _n[0], setNote = _n[1];
+  var _b = React.useState(false); var busy = _b[0], setBusy = _b[1];
+  var wk = week || ((typeof bosNetWeek === "function") ? bosNetWeek() : "");
+  var send = async function () {
+    if (busy) return; setBusy(true);
+    try { await window.bosCloud.netThank(offerId, toId, wk, note.trim()); } catch (e) {}
+    setBusy(false); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } if (onDone) onDone(); s.close();
+  };
+  var first = (toName || "").split(" ")[0] || "";
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Спасибо{first ? (" " + first) : ""}</div>
+      <div style={_dSSub}>{first ? ("звезда " + first) : "звезда"} станет ярче — это и есть след пользы</div>
+      <div style={{ display: "grid", placeItems: "center", padding: "16px 0 8px" }}>
+        <div style={{ width: 96, height: 96, borderRadius: "50%", display: "grid", placeItems: "center", background: "radial-gradient(circle at 50% 42%, #FEDE34 0%, #EF9F14 54%, rgba(239,159,20,0.14) 100%)", boxShadow: "0 0 42px rgba(254,222,52,0.6), 0 0 82px rgba(239,159,20,0.32)" }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg>
+        </div>
+      </div>
+      <div style={{ ..._dSText, textAlign: "center", paddingBottom: 8 }}>Один тап — не анкета из четырёх вопросов.</div>
+      <input value={note} onChange={function (e) { setNote(e.target.value); }} maxLength={140} placeholder="Что изменилось? Одна строка · необязательно" style={{ width: "100%", boxSizing: "border-box", border: 0, outline: 0, background: "var(--surface-3)", borderRadius: 13, padding: "13px 14px", fontSize: 15, color: "var(--text)", fontFamily: "inherit" }} />
+      <button onClick={send} disabled={busy} className="tap" style={{ width: "100%", marginTop: 12, marginBottom: 8, border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 15, fontWeight: 800, borderRadius: 16, padding: 14, cursor: "pointer", boxShadow: "0 6px 16px rgba(239,159,20,0.32)" }}>Спасибо ✨</button>
     </div>
   );
 }

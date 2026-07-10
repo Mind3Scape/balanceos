@@ -86,4 +86,36 @@ create policy team_tasks_claim on public.team_tasks
   for update using ( public.is_member(team_id, auth.uid()) )
   with check ( public.is_member(team_id, auth.uid()) );
 
+-- 5) Э4 · след пользы = «спасибо»-свет (thanks), заменяет звёзды-рейтинги -----
+create table if not exists public.thanks (
+  id         uuid primary key default gen_random_uuid(),
+  offer_id   uuid not null references public.network_offers(id) on delete cascade,
+  from_id    uuid not null references public.profiles(id)        on delete cascade,   -- кто благодарит
+  to_id      uuid not null references public.profiles(id)        on delete cascade,   -- автор вклада (чья звезда ярче)
+  week       text not null,
+  note       text,                                                                    -- одна строка «что изменилось» (необязательно)
+  created_at timestamptz not null default now(),
+  unique (offer_id, from_id, week)   -- одно спасибо на бронь (offer+неделя)
+);
+create index if not exists thanks_offer on public.thanks(offer_id);
+create index if not exists thanks_to    on public.thanks(to_id);
+
+alter table public.thanks enable row level security;
+
+-- счётчик следов виден всем (свет на карточке вклада и в профиле)
+drop policy if exists thanks_read on public.thanks;
+create policy thanks_read on public.thanks for select using (true);
+
+-- благодарить можно ТОЛЬКО за реально забронированный вклад, за себя, автору (не себе)
+drop policy if exists thanks_ins on public.thanks;
+create policy thanks_ins on public.thanks
+  for insert with check (
+    auth.uid() = from_id
+    and from_id <> to_id
+    and exists (
+      select 1 from public.network_bookings b
+       where b.offer_id = thanks.offer_id and b.booker_id = auth.uid()
+    )
+  );
+
 notify pgrst, 'reload schema';
