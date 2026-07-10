@@ -856,7 +856,7 @@ function CircleHelpLive({ app, navigate, isDark }) {
           if (mt.thanksN > 0) facts.push("✦ " + mt.thanksN);
           return (
             <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "13px 14px", boxShadow: "var(--card-shadow)", color: "var(--text)" }}>
-              <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", textAlign: "left", cursor: "pointer", color: "var(--text)", padding: 0 }}>
+              <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("contact-detail", { person: { id: o.owner_id, name: p.name, avatar: p.avatar, teamName: p.teamName, from: "community" } }); }} className="tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", textAlign: "left", cursor: "pointer", color: "var(--text)", padding: 0 }}>
                 <BuddyFaceLive avatar={p.avatar} name={p.name} size={40} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(p.name || "").split(" ")[0]} · {o.title}</div>
@@ -868,7 +868,7 @@ function CircleHelpLive({ app, navigate, isDark }) {
                 ? <button onClick={function () { confirmRole(o); }} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Подтвердить</button>
                 : canThank
                   ? <button onClick={function () { s.open(<ThanksSheetLive offerId={o.id} toId={o.owner_id} toName={p.name} week={mt.week} onDone={function () { setTick(function (n) { return n + 1; }); }} />); }} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Спасибо ✦</button>
-                  : <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("net-person", { person: person }); }} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Попросить</button>}
+                  : <button onClick={function () { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } navigate("contact-detail", { person: { id: o.owner_id, name: p.name, avatar: p.avatar, teamName: p.teamName, from: "community" } }); }} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-2)", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Попросить</button>}
             </div>
           );
         })}
@@ -1725,6 +1725,53 @@ function TeamOrbitLive({ emblem, faces, isDark }) {
   );
 }
 
+/* СООБЩЕСТВО v2 · экран круга — ЛЮДИ + КАЛЕНДАРЬ единым блоком наверху (David fork 3):
+   слайдер Memoji-лиц (роль + «Ты») → тап переключает → под ним КАЛЕНДАРЬ выбранного
+   человека кольцами-заполнения (bosDayRing внутри PeopleMonthCalendarLive), «кто когда
+   отметился» + подпись «Имя · N дней в ритме» + «Профиль ›» на экран человека. */
+function TeamPeopleCalendarLive({ mainProg, members, meId, navigate, teamName, isDark, onInvite, accent }) {
+  var base = (Array.isArray(mainProg) && mainProg.length) ? mainProg : (members || []).map(function (m) { return { id: m.id, name: m.name, avatar: m.avatar, me: m.id === meId, days: {} }; });
+  var _s = React.useState(function () { var mi = base.findIndex(function (p) { return p.me; }); return mi >= 0 ? mi : 0; });
+  var sel = _s[0], setSel = _s[1];
+  if (!base.length) return null;
+  var roleById = {}; (members || []).forEach(function (m) { if (m) roleById[m.id] = m.role; });
+  var roleLabel = function (id) { return roleById[id] === "owner" ? "Организатор" : "Участник"; };
+  var selP = base[sel] || base[0];
+  var marks = (selP && selP.days) ? Object.keys(selP.days).filter(function (k) { return selP.days[k]; }).length : 0;
+  var dayWord = function (n) { return (n % 10 === 1 && n % 100 !== 11) ? "день" : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "дня" : "дней"); };
+  var calPeople = base.map(function (p) { return { name: p.me ? "Ты" : p.name, color: accent, you: !!p.me, avatar: p.avatar }; });
+  var _tCalKey = function (d, mi) { var y = new Date().getFullYear(); return y + "-" + String(mi + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0"); };
+  return (
+    <div style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", padding: "14px 14px 6px", marginTop: 12 }}>
+      {/* Слайдер лиц */}
+      <div className="bos-hscroll" style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 2px 6px", scrollbarWidth: "none" }}>
+        {base.map(function (p, i) {
+          var on = i === sel;
+          return (
+            <button key={p.id || i} onClick={function () { setSel(i); if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } }} className="tap" data-no-haptic style={{ flexShrink: 0, border: 0, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: 60 }}>
+              <span style={{ borderRadius: "50%", boxShadow: on ? ("0 0 0 2px var(--card), 0 0 0 4px " + (accent || "#0a0a0a")) : "none", transition: "box-shadow 0.15s" }}><BuddyFaceLive avatar={p.avatar} name={p.name} size={48} /></span>
+              <span style={{ fontSize: 11.5, fontWeight: on ? 700 : 600, color: on ? "var(--text)" : "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 60, textAlign: "center" }}>{p.me ? "Ты" : (p.name || "").split(" ")[0]}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-4)" }}>{roleLabel(p.id)}</span>
+            </button>
+          );
+        })}
+      </div>
+      {/* Подпись выбранного + Профиль */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "6px 2px 2px" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{selP.me ? "Ты" : selP.name} · {marks} {dayWord(marks)} в ритме</div>
+        {!selP.me && <button onClick={function () { navigate("contact-detail", { person: { id: selP.id, name: selP.name, avatar: selP.avatar, teamName: teamName, from: "team-detail" } }); }} className="tap" data-haptic="selection" style={{ border: 0, background: "var(--surface-3)", color: "var(--text-2)", borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>Профиль <I.ChevronRight size={13} /></button>}
+      </div>
+      {/* Календарь выбранного — кольца-заполнения (bosDayRing) */}
+      <PeopleMonthCalendarLive bare label="" people={calPeople} selPerson={sel} onSelPerson={setSel}
+        dayFrac={function (pi, d, mi) { return (base[pi] && base[pi].days && base[pi].days[_tCalKey(d, mi)]) ? 1 : 0; }} />
+      <button onClick={onInvite} className="tap" style={{ width: "100%", marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px", border: 0, background: "transparent", color: "var(--text-2)", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
+        <span style={{ width: 26, height: 26, borderRadius: "50%", display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={14} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
+        Позвать людей
+      </button>
+    </div>
+  );
+}
+
 function TeamDetailLive() {
   const { navigate, params } = useNav();
   const app = useApp();
@@ -2134,6 +2181,14 @@ function TeamDetailLive() {
 
       <div style={{ padding: "8px 16px 0" }}>
 
+      {/* ЛЮДИ + КАЛЕНДАРЬ единым блоком наверху (Сообщество v2, David fork 3): слайдер лиц с
+          ролями → выбранный человек → его календарь кольцами. Заменяет секции «Люди»/«Календарь»
+          из аккордеона ниже. Живой ростер + mainProg; для соло-круга показывает тебя. */}
+      {_rosterLive && (
+        <TeamPeopleCalendarLive mainProg={mainProg} members={members} meId={meId} navigate={navigate}
+          teamName={t.name} isDark={isDark} accent={ringInk} onInvite={() => openSheet(<TeamShareSheetLive team={t} />)} />
+      )}
+
       {/* СТАВКА/БАНК — карточкой под статами (перенесено из бывшей мега-карточки, логика та же). */}
       {stake > 0 && !gDone && (
         <div style={{ ...card, borderRadius: 22, padding: 14, marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
@@ -2302,16 +2357,7 @@ function TeamDetailLive() {
             </div>
           </>),
         } : null),
-        {
-          key: "calendar", icon: <I.Calendar size={17} color="var(--text-3)" />, title: "Календарь",
-          summary: main ? ("Отметки по «" + main.name + "»") : "Отметки по дням",
-          render: () => ((_rosterLive && main && mainProg && mainProg.length > 0)
-            ? <div style={{ padding: "10px 12px 12px" }}><PeopleMonthCalendarLive bare label=""
-                people={mainProg.map((m) => ({ name: m.me ? "Ты" : m.name, initials: m.me ? "Я" : ((m.name || "У").charAt(0).toUpperCase()), color: accent, you: !!m.me, avatar: m.avatar }))}
-                dayFrac={(pi, d, mi) => (mainProg[pi] && mainProg[pi].days[_tCalKey(d, mi)] ? 1 : 0)} />
-              </div>
-            : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Пока нет отметок — появятся, когда участники начнут закрывать привычки круга.</div>),
-        },
+        // «Календарь» и «Люди» подняты в TeamPeopleCalendarLive наверх (David fork 3) — здесь убраны.
         (circleBalOn ? {
           // БАЛАНС КРУГА — та же аналитика, что «Баланс окружения», но В РАМКАХ ЦЕЛИ (кольцо-состояние
           // круга + темп каждого + поддержи отстающего). Секцией между Календарём и Людьми (David).
@@ -2324,38 +2370,7 @@ function TeamDetailLive() {
                 fallbackProgress={gp} dark={isDark} navigate={navigate} />
             : <div style={{ fontSize: 13, color: "var(--text-4)", padding: 14, lineHeight: 1.5 }}>Появится, когда в круге будет хотя бы двое.</div>),
         } : null),
-        {
-          key: "people", icon: <I.Users size={17} color="var(--text-3)" />, title: "Люди",
-          summary: _rosterLoading ? "загрузка…" : (members.length + " " + _peopleWord(members.length) + (inFlowToday ? (" · сегодня " + inFlowToday + " в деле") : "")),
-          render: () => (<>
-        <div style={{ overflow: "hidden" }}>
-        {_rosterLoading && [0, 1].map((i) => (
-          <div key={"sk" + i} style={{ padding: 12, display: "flex", alignItems: "center", gap: 12, borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
-            <span className="bos-skel" style={{ width: 40, height: 40, borderRadius: "50%" }} />
-            <div style={{ flex: 1 }}>
-              <span className="bos-skel" style={{ display: "block", width: "42%", height: 12, borderRadius: 6 }} />
-              <span className="bos-skel" style={{ display: "block", width: "26%", height: 10, borderRadius: 6, marginTop: 7 }} />
-            </div>
-          </div>
-        ))}
-        {!_rosterLoading && ranked.map((m, i) => (
-          <div key={m.id || i} style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
-            <span style={{ display: "inline-flex", borderRadius: "50%", boxShadow: flowSet[m.id] ? ("0 0 0 1.5px " + (isDark ? "#0f0f12" : "#fff") + ", 0 0 0 3.5px " + ringInk) : "none" }}>
-              <BuddyFaceLive avatar={m.avatar} name={m.name} size={38} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.id === meId ? "Ты" : m.name}</div>
-              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 1 }}>{m.role === "owner" ? "Создатель" : "Участник"}{flowSet[m.id] ? " · сегодня в деле" : ""}</div>
-            </div>
-          </div>
-        ))}
-        <button className="tap" onClick={() => openSheet(<TeamShareSheetLive team={t} />)}
-          style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: (members.length || _rosterLoading) ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0, background: "transparent", border: 0, color: "var(--text-2)", cursor: "pointer" }}>
-          <span style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={15} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
-          <span style={{ fontSize: 14.5, fontWeight: 600 }}>Позвать людей</span>
-        </button>
-        </div>
-          </>) },
+        null,
       ].filter(Boolean)} />
 
       {/* Чат цели переехал в hero-шапку справа (David: «доступ к чату стеклянной кнопкой в блоке»). */}

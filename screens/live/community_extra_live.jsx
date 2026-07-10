@@ -1077,188 +1077,176 @@ function TeamChatLive() {
   );
 }
 
-/* CONTACT DETAIL — public profile of a network member with their social-impact
-   history, reviews, and bookable offers. No demo branches; faithful fork (reads its
-   contact from useNav().params), with the iOS-Headline typography polish. */
+/* CONTACT DETAIL — ЧЕСТНЫЙ профиль человека сообщества (Сообщество v2, экран 5).
+   Всё на живых данных: статистика Вклад · Подтверждения · Помог (БЕЗ рейтинга-звёзд),
+   «Роль подтвердили» (лица), предложения с 🔒 по уровню + бронь, «Следы пользы»
+   (карточки без звёзд). params.person = { id, name, avatar, level, teamName, from }. */
 function ContactDetailLive() {
   const { navigate, params } = useNav();
   const { open: openSheet } = useSheet();
   const app = useApp();
-  const [booked, setBooked] = useCS({}); // booked offers (by index)
-  const [added, setAdded] = useCS(false);
-  // YOUR real level (was a hardcoded 8) so an offer's lock reflects actual XP.
-  const userLevel = bosLevelInfoLive(bosLiveXPLive(app)).level;
-  const p = params?.contact || {
-    name: "Александра Иванова", initials: "АИ", color: "#e8c8a8",
-    city: "Москва", role: "Маркетинг", level: 12, impact: 1840,
-    bio: "Цифровой маркетолог, 5 лет. Йога и медитация.",
-    tags: ["Йога","Маркетинг","Путешествия"],
-    offers: [
-      { i: "🧘", t: "Сеанс медитации", d: "30 мин · вт и чт", price: "Бесплатно", lvl: 5 },
-      { i: "💼", t: "Консультация по маркетингу",  d: "1 ч · бренд и рост", price: "150 XP/ч", lvl: 10 },
-    ],
+  const isDark = app?.themeOverride === "dark";
+  const person = params?.person || params?.contact || { id: null, name: "Участник", avatar: "default", level: null, teamName: "" };
+  const pid = person.id || person.ownerId || null;
+  const from = params?.from || (person && person.from) || "community";
+  const viewerLevel = (typeof bosLevelInfoLive === "function" && typeof bosLiveXPLive === "function") ? bosLevelInfoLive(bosLiveXPLive(app)).level : 1;
+  const week = (typeof bosNetWeek === "function") ? bosNetWeek() : "";
+  const cm = (typeof bosUseCircleMembers === "function") ? bosUseCircleMembers(app) : { map: {}, meId: null };
+
+  const [offers, setOffers] = React.useState(null);
+  const [confIds, setConfIds] = React.useState([]);   // distinct подтвердившие
+  const [helped, setHelped] = React.useState(0);        // получено следов (thanks)
+  const [notes, setNotes] = React.useState([]);         // тексты следов пользы
+  const [booked, setBooked] = React.useState({});       // offerId -> true (моя бронь на неделю)
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!(pid && window.bosCloud && window.bosCloud.enabled() && window.bosCloud.netOffers)) { setOffers([]); return; }
+    let on = true;
+    window.bosCloud.netOffers(200).then((all) => {
+      if (!on) return;
+      const mine = (Array.isArray(all) ? all : []).filter((o) => o && o.owner_id === pid && o.active !== false);
+      setOffers(mine);
+      Promise.all(mine.map((o) => (window.bosCloud.netRoleConfirmations ? window.bosCloud.netRoleConfirmations(o.id) : Promise.resolve([])).then((rc) => rc || []).catch(() => []))).then((arr) => {
+        if (!on) return; const ids = {}; arr.forEach((rc) => rc.forEach((x) => { ids[x.confirmer_id] = true; })); setConfIds(Object.keys(ids));
+      });
+      Promise.all(mine.map((o) => (window.bosCloud.netOfferThanks ? window.bosCloud.netOfferThanks(o.id) : Promise.resolve({ notes: [] })).then((t) => (t && t.notes) || []).catch(() => []))).then((arr) => {
+        if (!on) return; setNotes([].concat.apply([], arr).slice(0, 6));
+      });
+    }).catch(() => { if (on) setOffers([]); });
+    if (window.bosCloud.netUserThanks) window.bosCloud.netUserThanks(pid).then((n) => { if (on) setHelped(n || 0); });
+    if (window.bosCloud.netMyBookings) window.bosCloud.netMyBookings().then((bk) => { if (!on) return; const m = {}; (bk || []).forEach((b) => { if (b && b.week === week) m[b.offer_id] = true; }); setBooked(m); });
+    return () => { on = false; };
+  }, [pid, tick]);
+
+  const book = (o) => {
+    if (!window.bosCloud.netBook || booked[o.id]) return;
+    const earned = (typeof bosLiveXPLive === "function") ? bosLiveXPLive(app) : 0;
+    window.bosCloud.netBook(o.id, week, earned).then((res) => {
+      if (res && res.ok) {
+        if (!res.dup && (o.price_xp | 0) > 0 && app && app.noteSpentXP) app.noteSpentXP(o.price_xp);
+        setBooked((b) => Object.assign({}, b, { [o.id]: true }));
+        if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} }
+      } else if (window.tgHaptic) { try { window.tgHaptic("error"); } catch (e) {} }
+    });
   };
+  const thank = (o) => { if (typeof ThanksSheetLive === "function") openSheet(<ThanksSheetLive offerId={o.id} toId={pid} toName={person.name} week={week} onDone={() => setTick((n) => n + 1)} />); };
 
-  // Mock impact history — services this person has delivered
-  const history = [
-    { i: "🧘", t: "Проведено медитаций", n: 23, sub: "Последняя: вчера с Марией" },
-    { i: "💼", t: "Консультации по маркетингу",       n: 8,  sub: "Помогла 8 основателям" },
-    { i: "🌬️", t: "Сеансы дыхания",     n: 5,  sub: "Группы по 3–5 человек" },
-  ];
-  const rating = 4.9;
-  const ratingsCount = 36;
-
-  const reviews = [
-    { who: "Ник В.",   when: "2 дн. назад",  text: "Самые спокойные 30 минут моей недели. Её объяснение дыхания превратило привычку, которой я боялся, в ту, которую жду.",  stars: 5, color: "#a8b9d4" },
-    { who: "Анна К.",   when: "1 нед. назад",  text: "Разобралась с основой лендинга за 45 минут. Прямо, без воды, дала задание, которое я реально выполнила.", stars: 5, color: "#e8a8c8" },
-    { who: "Сергей М.", when: "2 нед. назад",  text: "Сеанс медитации был прекрасно выстроен. Запишусь снова.", stars: 5, color: "#c8e8a8" },
-  ];
-
-  const offers = (p.offers || []).slice().sort((a, b) => a.lvl - b.lvl);
+  const list = offers || [];
+  const contribN = list.length;
+  const confFaces = confIds.map((id) => (cm.map && cm.map[id]) ? { id: id, name: cm.map[id].name, avatar: cm.map[id].avatar } : null).filter(Boolean);
+  const first = (person.name || "").split(" ")[0] || "";
+  const statCard = { background: "rgba(255,255,255,0.7)", borderRadius: 14, padding: "10px 12px" };
+  const statCardD = { background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.7)", borderRadius: 14, padding: "10px 12px" };
+  const stat = (lbl, val) => (
+    <div style={statCardD}>
+      <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>{lbl}</div>
+      <div style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", marginTop: 2 }}>{val}</div>
+    </div>
+  );
+  const kick = { fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginBottom: 10 };
 
   return (
     <div className="page-in" style={{ padding: "0 0 24px" }}>
-      {/* Identity hero — soft tinted band, no avatar background heaviness */}
-      <div style={{
-        background: `linear-gradient(160deg, ${p.color}66 0%, ${p.color}22 60%, transparent 100%)`,
-        margin: "-60px 0 0",
-        padding: "60px 16px 18px",
-      }}>
+      {/* Герой — тёплая золотисто-нейтральная лента, лицо = живой стандарт (Memoji на стекле) */}
+      <div style={{ background: isDark ? "linear-gradient(160deg, rgba(239,159,20,0.18) 0%, rgba(239,159,20,0.06) 60%, transparent 100%)" : "linear-gradient(160deg, rgba(254,222,52,0.4) 0%, rgba(254,222,52,0.12) 60%, transparent 100%)", margin: "-60px 0 0", padding: "60px 16px 18px" }}>
         <div style={{ display: "flex", alignItems: "center", paddingTop: 4, paddingBottom: 14 }}>
-          <button onClick={() => navigate("community")} className="tap"
-            style={{ width: 40, height: 40, borderRadius: 999, background: "rgba(255,255,255,0.6)", border: 0, display: "grid", placeItems: "center", padding: 0 }}>
-            <I.ChevronLeft size={18}/>
+          <button onClick={() => navigate(from)} className="tap" aria-label="Назад"
+            style={{ width: 40, height: 40, borderRadius: 999, background: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.65)", border: 0, display: "grid", placeItems: "center", padding: 0, color: "var(--text)" }}>
+            <I.ChevronLeft size={18} />
           </button>
-          <div style={{ flex: 1 }}/>
-          <button className="tap" style={{ width: 40, height: 40, borderRadius: 999, background: "rgba(255,255,255,0.6)", border: 0, display: "grid", placeItems: "center", padding: 0 }}>
-            <I.MessageCircle size={16}/>
-          </button>
+          <div style={{ flex: 1 }} />
         </div>
-
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <span style={{ width: 64, height: 64, borderRadius: "50%", background: p.color, border: "3px solid #fff", display: "grid", placeItems: "center", fontSize: 22, fontWeight: 700, color: "rgba(0,0,0,0.65)", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>{p.initials}</span>
+          {typeof BuddyFaceLive === "function"
+            ? <span style={{ borderRadius: "50%", boxShadow: "0 0 0 3px " + (isDark ? "#15151a" : "#fff") + ", 0 2px 8px rgba(0,0,0,0.08)" }}><BuddyFaceLive avatar={person.avatar} name={person.name} size={64} /></span>
+            : <BosAvatar avatar={person.avatar} size={64} />}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px" }}>{p.name}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, background: "#0a0a0a", color: "#FEDE34", borderRadius: 999, padding: "2px 8px", letterSpacing: 0.4 }}>L{p.level}</span>
+              <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.5px" }}>{person.name}</span>
+              {person.level ? <span style={{ fontSize: 10, fontWeight: 700, background: "#0a0a0a", color: "#FEDE34", borderRadius: 999, padding: "2px 8px", letterSpacing: 0.4 }}>L{person.level}</span> : null}
             </div>
-            <div style={{ display: "flex", gap: 10, fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>
-              <span>📍 {p.city}</span><span>💼 {p.role}</span>
-            </div>
+            {person.teamName ? <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>🫂 круг «{person.teamName}»</div> : null}
           </div>
         </div>
-
-        {/* Stat strip — impact / rating / sessions */}
+        {/* Статистика — Вклад · Подтверждения · Помог (БЕЗ рейтинга-звёзд) */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 16 }}>
-          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 14, padding: "10px 12px" }}>
-            <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Вклад</div>
-            <div style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", marginTop: 2 }}>{p.impact.toLocaleString()}</div>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 14, padding: "10px 12px" }}>
-            <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Рейтинг</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 2 }}>
-              <span style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px" }}>{rating}</span>
-              <span style={{ fontSize: 11, color: "var(--text-4)" }}>★ · {ratingsCount}</span>
-            </div>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 14, padding: "10px 12px" }}>
-            <div style={{ fontSize: 10, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Помог</div>
-            <div style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", marginTop: 2 }}>{history.reduce((s, h) => s + h.n, 0)}</div>
-          </div>
+          {stat("Вклад", contribN)}
+          {stat("Подтверждения", confIds.length)}
+          {stat("Помог", helped)}
         </div>
       </div>
 
-      {/* Body */}
-      <div style={{ padding: "18px 16px 0" }}>
-        <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.55 }}>{p.bio}</div>
-        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-          {p.tags.map((tg, j) => <span key={j} style={{ background: "var(--card-2)", borderRadius: 999, padding: "4px 10px", fontSize: 11, color: "var(--text-3)" }}>{tg}</span>)}
+      {/* Роль подтвердили — лица из кругов */}
+      {confFaces.length > 0 && (
+        <div style={{ padding: "20px 16px 0" }}>
+          <div style={kick}>Роль подтвердили</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--card)", borderRadius: 22, padding: "12px 14px", boxShadow: "var(--card-shadow)" }}>
+            <div style={{ display: "flex" }}>{confFaces.slice(0, 5).map((f, j) => <span key={f.id} style={{ marginLeft: j ? -8 : 0, borderRadius: "50%", boxShadow: "0 0 0 2px var(--card)" }}><BuddyFaceLive avatar={f.avatar} name={f.name} size={30} /></span>)}</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.4 }}>{confFaces.slice(0, 2).map((f) => (f.name || "").split(" ")[0]).join(", ")}{confIds.length > 2 ? (" и ещё " + (confIds.length - 2)) : ""} — из ваших общих кругов</div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Offers — bookable services */}
+      {/* Предложения — бронь; свои (min_level=1) не заперты */}
       <div style={{ padding: "22px 16px 0" }}>
-        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginBottom: 10 }}>Предложения</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {offers.map((o, j) => {
-            const locked = userLevel < o.lvl;
-            return (
-              <div key={j} style={{
-                background: "var(--card)", borderRadius: 22, padding: 14,
-                display: "flex", alignItems: "center", gap: 12,
-                boxShadow: "var(--card-shadow)",
-                opacity: locked ? 0.55 : 1,
-              }}>
-                <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{o.i}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: -0.1 }}>{o.t}</span>
-                    {locked && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-4)", background: "var(--card-2)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4 }}>🔒 L{o.lvl}</span>}
+        <div style={kick}>Чем помогает</div>
+        {offers === null ? (
+          <div style={{ background: "var(--card)", borderRadius: 22, padding: 18, boxShadow: "var(--card-shadow)" }}>{[0, 1].map((i) => <span key={i} className="bos-skel" style={{ display: "block", height: 14, borderRadius: 7, width: i ? "50%" : "72%", marginTop: i ? 10 : 0 }} />)}</div>
+        ) : list.length === 0 ? (
+          <div style={{ background: "var(--card)", borderRadius: 22, padding: "20px 16px", boxShadow: "var(--card-shadow)", fontSize: 13.5, color: "var(--text-4)", lineHeight: 1.5, textAlign: "center" }}>Пока не делится форматом помощи. Загляни позже — или позови в общее дело.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {list.slice().sort((a, b) => (a.min_level || 1) - (b.min_level || 1)).map((o) => {
+              const lvl = o.min_level || 1;
+              const locked = viewerLevel < lvl;
+              const isBooked = !!booked[o.id];
+              const priceTxt = (o.price_xp | 0) > 0 ? (o.price_xp + " XP") : "Бесплатно";
+              return (
+                <div key={o.id} style={{ background: "var(--card)", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--card-shadow)", opacity: locked ? 0.55 : 1 }}>
+                  <span style={{ width: 42, height: 42, borderRadius: 14, background: "var(--surface-3)", display: "grid", placeItems: "center", fontSize: 21, flexShrink: 0 }}>{bosIcon(o.emoji || "🤝", 21, null)}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{o.title}</span>
+                      {locked && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-4)", background: "var(--surface-3)", borderRadius: 999, padding: "2px 7px", letterSpacing: 0.4 }}>🔒 L{lvl}</span>}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{[o.when_text, priceTxt].filter(Boolean).join(" · ")}</div>
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>{o.d}</div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    {locked
+                      ? <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-4)" }}>с L{lvl}</span>
+                      : isBooked
+                        ? <button onClick={() => thank(o)} className="tap" style={{ fontSize: 11.5, fontWeight: 800, color: "#0a0a0a", background: "linear-gradient(135deg,#FEDE34,#EF9F14)", border: 0, borderRadius: 999, padding: "6px 12px", cursor: "pointer" }}>Спасибо ✦</button>
+                        : <button onClick={() => book(o)} className="tap" style={{ fontSize: 11.5, fontWeight: 600, color: "var(--cta-ink, #fff)", background: "var(--cta, #0a0a0a)", border: 0, borderRadius: 999, padding: "6px 13px", cursor: "pointer" }}>Записаться</button>}
+                  </div>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: locked ? "var(--text-4)" : "var(--text)" }}>{o.price}</div>
-                  {!locked && (booked[j] ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 700, color: "#1E8E4E", background: "rgba(52,199,89,0.14)", borderRadius: 999, padding: "4px 10px" }}><I.Check size={11} strokeWidth={3}/> Записан</span>
-                  ) : (
-                    <button onClick={() => setBooked(b => ({ ...b, [j]: true }))} className="tap" style={{ marginTop: 4, fontSize: 11, fontWeight: 600, color: "var(--cta-ink, #fff)", background: "var(--cta, #0a0a0a)", border: 0, borderRadius: 999, padding: "4px 12px" }}>Записаться</button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* History of impact — what they've delivered */}
-      <div style={{ padding: "22px 16px 0" }}>
-        <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700, marginBottom: 10 }}>История вклада</div>
-        <div style={{ background: "var(--card)", borderRadius: 22, boxShadow: "var(--card-shadow)", overflow: "hidden" }}>
-          {history.map((h, j) => (
-            <div key={j} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: j === 0 ? 0 : "1px solid var(--line)" }}>
-              <span style={{ width: 32, height: 32, borderRadius: 14, background: "var(--card-2)", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>{h.i}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", letterSpacing: -0.1 }}>{h.t}</div>
-                <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 1 }}>{h.sub}</div>
+      {/* Следы пользы — карточки-отзывы БЕЗ звёзд */}
+      {notes.length > 0 && (
+        <div style={{ padding: "22px 16px 0" }}>
+          <div style={kick}>✦ Следы пользы</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {notes.map((n, j) => (
+              <div key={j} style={{ background: "var(--card)", borderRadius: 22, padding: "13px 15px", boxShadow: "var(--card-shadow)", display: "flex", gap: 11, alignItems: "flex-start" }}>
+                <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "radial-gradient(circle at 50% 40%, #FEDE34, #EF9F14)", boxShadow: "0 0 12px rgba(254,222,52,0.5)" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg></span>
+                <div style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.5 }}>{n}</div>
               </div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.4px", flexShrink: 0 }}>{h.n}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Reviews */}
-      <div style={{ padding: "22px 16px 0" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: 1.4, fontWeight: 700 }}>Отзывы</div>
-          <div style={{ fontSize: 11, color: "var(--text-4)" }}>всего {ratingsCount}</div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {reviews.map((r, j) => (
-            <div key={j} style={{ background: "var(--card)", borderRadius: 22, padding: 14, boxShadow: "var(--card-shadow)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ width: 30, height: 30, borderRadius: "50%", background: r.color, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.6)" }}>{r.who.split(" ").map(s => s[0]).join("")}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{r.who}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-4)" }}>{r.when}</div>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-3)", letterSpacing: 1 }}>{"★".repeat(r.stars)}</div>
-              </div>
-              <div style={{ fontSize: 13.5, color: "var(--text-2)", marginTop: 10, lineHeight: 1.55 }}>{r.text}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Sticky-feel CTA */}
+      {/* CTA — «Написать · после принятия» + «Попросить помощь» */}
       <div style={{ padding: "22px 16px 0", display: "flex", gap: 8 }}>
-        <button onClick={() => openSheet(<MessageSheet name={p.name}/>)} className="tap" style={{ flex: 1, background: "var(--card)", border: 0, borderRadius: 999, padding: "13px 14px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 14, color: "var(--text-2)", boxShadow: "var(--card-shadow)" }}>
-          <I.MessageCircle size={15}/> Написать
-        </button>
-        <button onClick={() => setAdded(a => !a)} className="tap" style={{ flex: 1, background: added ? "rgba(52,199,89,0.16)" : "#0a0a0a", color: added ? "#1E8E4E" : "#fff", border: 0, borderRadius: 999, padding: "13px 14px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          {added ? <><I.Check size={15} strokeWidth={3}/> В контактах</> : "Добавить"}
-        </button>
+        <div style={{ flex: 1, background: "var(--card)", borderRadius: 999, padding: "12px 14px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, color: "var(--text-4)", boxShadow: "var(--card-shadow)" }}>
+          <I.MessageCircle size={15} /> Написать · после принятия
+        </div>
+        <button onClick={() => { const o = list.filter((x) => (viewerLevel >= (x.min_level || 1)) && !booked[x.id])[0]; if (o) book(o); }} disabled={!list.some((x) => (viewerLevel >= (x.min_level || 1)) && !booked[x.id])} className="tap"
+          style={{ flex: 1, background: "#0a0a0a", color: "#fff", border: 0, borderRadius: 999, padding: "12px 14px", fontSize: 14, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: list.some((x) => (viewerLevel >= (x.min_level || 1)) && !booked[x.id]) ? 1 : 0.5, cursor: "pointer" }}>Попросить помощь</button>
       </div>
     </div>
   );
