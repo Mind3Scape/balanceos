@@ -770,24 +770,39 @@
   async function teamTasks(teamId) {
     var c = client(); var me = await uid(); if (!c || !teamId) return null;
     try {
-      var ts = await c.from("team_tasks").select("id,text,sort,created_at").eq("team_id", teamId).order("sort", { ascending: true }).order("created_at", { ascending: true });
+      // kind/volunteer_id (Э3) читаем с фолбэком: до community_v2-патча столбцов нет → без них.
+      var ts = await c.from("team_tasks").select("id,text,sort,created_at,kind,volunteer_id").eq("team_id", teamId).order("sort", { ascending: true }).order("created_at", { ascending: true });
+      if (ts.error) ts = await c.from("team_tasks").select("id,text,sort,created_at").eq("team_id", teamId).order("sort", { ascending: true }).order("created_at", { ascending: true });
       if (ts.error) return null; // таблиц ещё нет → graceful: раздел скрыт
       var tasks = ts.data || [];
       var mem = await teamMembers(teamId); var total = mem.length || 1;
+      var byId = {}; mem.forEach(function (m) { byId[m.id] = m; });
       if (!tasks.length) return { total: total, tasks: [] };
       var ids = tasks.map(function (t) { return t.id; });
       var dn = await c.from("team_task_done").select("task_id,user_id").in("task_id", ids);
       var rows = (dn.data) || [];
       return { total: total, tasks: tasks.map(function (t) {
         var du = rows.filter(function (r) { return r.task_id === t.id; }).map(function (r) { return r.user_id; });
-        return { id: t.id, text: t.text, doneUsers: du, doneCount: du.length, doneByMe: !!(me && du.indexOf(me) >= 0) };
+        var vol = t.volunteer_id ? byId[t.volunteer_id] : null;
+        return { id: t.id, text: t.text, kind: t.kind || "task", volunteerId: t.volunteer_id || null, volunteerName: vol ? vol.name : null, volunteerAvatar: vol ? vol.avatar : null, volunteerMe: !!(me && t.volunteer_id === me), doneUsers: du, doneCount: du.length, doneByMe: !!(me && du.indexOf(me) >= 0) };
       }) };
     } catch (e) { return null; }
   }
-  // Владелец добавляет задание (RLS: insert только owner_id цели).
-  async function addTeamTask(teamId, text) {
+  // Добавить дело/просьбу. kind='task' — только владелец (RLS); kind='request' — любой участник.
+  async function addTeamTask(teamId, text, kind) {
     var c = client(); if (!c || !teamId || !text) return null;
-    try { var r = await c.from("team_tasks").insert({ team_id: teamId, text: ("" + text).slice(0, 200) }).select().single(); return (!r.error && r.data) ? r.data : null; } catch (e) { return null; }
+    try {
+      var row = { team_id: teamId, text: ("" + text).slice(0, 200) };
+      if (kind) row.kind = kind;
+      var r = await c.from("team_tasks").insert(row).select().single();
+      if (r.error && kind) { delete row.kind; r = await c.from("team_tasks").insert(row).select().single(); } // до Э3-патча столбца нет
+      return (!r.error && r.data) ? r.data : null;
+    } catch (e) { return null; }
+  }
+  // Откликнуться на просьбу (volunteer_id = я) / снять отклик (null). RLS: участник круга.
+  async function claimTeamRequest(taskId, on) {
+    var c = client(); var me = await uid(); if (!c || !me || !taskId) return false;
+    try { var r = await c.from("team_tasks").update({ volunteer_id: on ? me : null }).eq("id", taskId); return !(r && r.error); } catch (e) { return false; }
   }
   // Владелец удаляет задание (его отметки каскадом). RLS: delete только owner.
   async function removeTeamTask(taskId) {
@@ -1221,7 +1236,7 @@
     joinViaLink: joinViaLink, requestJoin: requestJoin, approveMember: approveMember, rejectMember: rejectMember, pendingRequests: pendingRequests, teamById: teamById,
     teamMembers: teamMembers, myTeamIds: myTeamIds, myTeamsLive: myTeamsLive, leaveTeam: leaveTeam, deleteTeam: deleteTeam,
     teamHabitsFull: teamHabitsFull, addTeamHabit: addTeamHabit, updateTeamHabit: updateTeamHabit, removeTeamHabit: removeTeamHabit, toggleTeamHabitToday: toggleTeamHabitToday,
-    teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine,
+    teamTasks: teamTasks, addTeamTask: addTeamTask, removeTeamTask: removeTeamTask, toggleTeamTaskMine: toggleTeamTaskMine, claimTeamRequest: claimTeamRequest,
     createSharedHabit: createSharedHabit, joinSharedHabit: joinSharedHabit, setSharedLog: setSharedLog, setSharedLogBulk: setSharedLogBulk, sharedHabitProgress: sharedHabitProgress, removeSharedHabitMember: removeSharedHabitMember,
     teamHabitProgress: teamHabitProgress, teamGoalProgress: teamGoalProgress,
     settleTeamGoal: settleTeamGoal, myTeamGoalXP: myTeamGoalXP, teamSettlements: teamSettlements,

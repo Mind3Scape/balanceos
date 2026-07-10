@@ -68,4 +68,22 @@ create trigger trg_offer_confirm
   after insert on public.role_confirmations
   for each row execute function public.bos_bump_offer_status();
 
+-- 4) Э3 · просьба = дело круга, на которое откликаются --------------------------
+-- Требует, чтобы уже был прогнан patch_team_tasks.sql (таблица team_tasks + public.is_member).
+alter table public.team_tasks
+  add column if not exists kind text not null default 'task';                              -- 'task' | 'request'
+alter table public.team_tasks
+  add column if not exists volunteer_id uuid references public.profiles(id) on delete set null;  -- кто откликнулся
+
+-- участник круга может СОЗДАТЬ просьбу (обычные задания остаются за владельцем — политика из patch_team_tasks)
+drop policy if exists team_tasks_ins_request on public.team_tasks;
+create policy team_tasks_ins_request on public.team_tasks
+  for insert with check ( kind = 'request' and public.is_member(team_id, auth.uid()) );
+
+-- участник круга может откликнуться / снять отклик (менять volunteer_id на просьбе)
+drop policy if exists team_tasks_claim on public.team_tasks;
+create policy team_tasks_claim on public.team_tasks
+  for update using ( public.is_member(team_id, auth.uid()) )
+  with check ( public.is_member(team_id, auth.uid()) );
+
 notify pgrst, 'reload schema';

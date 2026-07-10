@@ -908,7 +908,9 @@ function AddHelpFormatSheetLive({ app, offer, onDone }) {
   var save = async function () {
     if (!cat || busy) return; setBusy(true);
     var when = mins + " мин · " + place, row = null;
-    try { row = await window.bosCloud.netUpsertOffer({ id: offer && offer.id, emoji: cat.i, title: cat.t, descr: "", price_xp: 0, slots_week: 2, when_text: when, min_level: (offer && offer.min_level) || 10, visibility: "circles", status: (offer && offer.status) || "draft", active: true }); } catch (e) {}
+    // min_level=1: вклад для СВОИХ — без замка L10 на бронь (помощь своим не рынок). Рынок «всех»
+    // (visibility='all') гейтит уровень публикации отдельно, а не эту запись.
+    try { row = await window.bosCloud.netUpsertOffer({ id: offer && offer.id, emoji: cat.i, title: cat.t, descr: "", price_xp: 0, slots_week: 2, when_text: when, min_level: 1, visibility: "circles", status: (offer && offer.status) || "draft", active: true }); } catch (e) {}
     try { var oid = (row && row.id) || (offer && offer.id); if (oid) localStorage.setItem("bos:offerAsked:" + oid, JSON.stringify(Object.keys(picked))); } catch (e) {}
     setBusy(false); if (window.tgHaptic) { try { window.tgHaptic("success"); } catch (e) {} } if (onDone) onDone(); s.close();
   };
@@ -1049,6 +1051,68 @@ function HelperPathLive({ app, navigate, isDark }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ═════ Э3 · ШТОРКА «Отклик» на просьбу круга ═════════════════════════════════════
+function RespondRequestSheetLive({ text, teamName, onConfirm }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { close: function () {} };
+  var heart = <svg width="20" height="20" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" /></svg>;
+  return (
+    <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16, color: "var(--text)" }}>
+      {typeof SheetGreyBgLive === "function" && <SheetGreyBgLive />}
+      <div style={_dSTitle}>Откликнуться</div>
+      <div style={_dSSub}>просьба — дело круга, которое берёт один</div>
+      <div style={{ ..._dSCard, display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(254,222,52,0.22)", display: "grid", placeItems: "center", flexShrink: 0 }}>{heart}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{text}</div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Круг «{teamName}»</div>
+        </div>
+      </div>
+      <div style={_dSText}>Круг увидит, что просьбу взял ты. Договоритесь в чате круга — он для этого и есть.</div>
+      <button onClick={function () { if (onConfirm) onConfirm(); s.close(); }} className="tap" style={{ width: "100%", border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", fontSize: 15, fontWeight: 800, borderRadius: 16, padding: 14, cursor: "pointer", boxShadow: "0 6px 16px rgba(239,159,20,0.32)" }}>Откликнуться</button>
+      <button onClick={function () { s.close(); }} className="tap" style={{ width: "100%", marginTop: 8, background: "transparent", color: "var(--text-4)", border: 0, borderRadius: 14, padding: 12, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Позже</button>
+    </div>
+  );
+}
+
+// ── «ПРОСЬБЫ ТВОИХ КРУГОВ» — открытые просьбы (kind='request', без отклика) на главной ──
+function CircleRequestsLive({ app, navigate, isDark }) {
+  var s = (typeof useSheet === "function") ? useSheet() : { open: function () {} };
+  var teams = ((app && app.teams) || []).filter(function (t) { return t && t.cloudId; });
+  var sig = teams.map(function (t) { return t.cloudId; }).join(",");
+  var _r = React.useState(null), reqs = _r[0], setReqs = _r[1];
+  React.useEffect(function () {
+    if (!(window.bosCloud && window.bosCloud.enabled() && window.bosCloud.teamTasks) || !teams.length) { setReqs([]); return; }
+    var on = true;
+    Promise.all(teams.map(function (t) { return window.bosCloud.teamTasks(t.cloudId).then(function (d) { return { t: t, tasks: (d && d.tasks) || [] }; }).catch(function () { return { t: t, tasks: [] }; }); }))
+      .then(function (res) { if (!on) return; var out = []; res.forEach(function (r) { r.tasks.forEach(function (tk) { if (tk.kind === "request" && !tk.volunteerId) out.push({ task: tk, team: r.t }); }); }); setReqs(out); });
+    return function () { on = false; };
+  }, [sig]);
+  if (!reqs || !reqs.length) return null;
+  var respond = function (item) {
+    var claim = function () { setReqs(function (list) { return (list || []).filter(function (x) { return x.task.id !== item.task.id; }); }); if (window.bosCloud.claimTeamRequest) window.bosCloud.claimTeamRequest(item.task.id, true); };
+    s.open(<RespondRequestSheetLive text={item.task.text} teamName={item.team.name} onConfirm={claim} />);
+  };
+  return (
+    <div>
+      <CommSectionHeadLive title="🙌 Просьбы твоих кругов" onAll={null} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+        {reqs.slice(0, 3).map(function (item) {
+          return (
+            <div key={item.task.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", borderRadius: 22, padding: "12px 14px", boxShadow: "var(--card-shadow)", border: "1px solid rgba(239,159,20,0.35)" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 11, background: "rgba(254,222,52,0.22)", display: "grid", placeItems: "center", flexShrink: 0 }}><svg width="17" height="17" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" /></svg></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.task.text}</div>
+                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 2 }}>Просьба круга «{item.team.name}»</div>
+              </div>
+              <button onClick={function () { respond(item); }} className="tap" data-haptic="selection" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Откликнуться</button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1297,6 +1361,7 @@ function CommunityLive() {
                 и витрина кругов остаются ниже (не трогаем проверенную механику). */}
             <CommunitySuggestLive app={app} navigate={navigate} isDark={isDark} onOpen={() => setFilter("circles")} />
             <MyCirclesLive app={app} navigate={navigate} isDark={isDark} onAll={() => setFilter("circles")} />
+            <CircleRequestsLive app={app} navigate={navigate} isDark={isDark} />
             <CircleHelpLive app={app} navigate={navigate} isDark={isDark} />
             <MyContributionStatusLive app={app} navigate={navigate} isDark={isDark} />
             {/* КАРТА партнёров — под замком до BOS_DISC_GATES.map уровня (David 2026-07-10: «карта
@@ -1757,6 +1822,21 @@ function TeamDetailLive() {
   };
   const addTeamTaskCloud = () => { const tx = newTeamTask.trim(); if (!tx || !window.bosCloud.addTeamTask) return; setNewTeamTask(""); window.bosCloud.addTeamTask(t.cloudId, tx).then(() => setTasksTick((n) => n + 1)); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } };
   const removeTeamTaskCloud = (id) => { if (!window.bosCloud.removeTeamTask) return; setTeamTaskData((d) => (d ? { ...d, tasks: (d.tasks || []).filter((x) => x.id !== id) } : d)); window.bosCloud.removeTeamTask(id).then(() => setTasksTick((n) => n + 1)); };
+  // ── Э3 · ПРОСЬБЫ круга: дело с kind='request', на которое откликаются (volunteer_id). ──
+  const _plainTasks = _teamTasks.filter((x) => (x.kind || "task") !== "request");
+  const _requests = _teamTasks.filter((x) => x.kind === "request");
+  const [newTeamRequest, setNewTeamRequest] = React.useState("");
+  const addTeamRequestCloud = () => {
+    const tx = newTeamRequest.trim(); if (!tx || !window.bosCloud.addTeamTask) return; setNewTeamRequest("");
+    window.bosCloud.addTeamTask(t.cloudId, tx, "request").then(() => setTasksTick((n) => n + 1));
+    if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
+  };
+  const claimRequest = (tk, on) => {
+    if (!tk || !tk.id || !window.bosCloud.claimTeamRequest) return;
+    setTeamTaskData((d) => (d ? { ...d, tasks: (d.tasks || []).map((x) => (x.id === tk.id ? { ...x, volunteerMe: on, volunteerId: on ? (meId || "me") : null, volunteerName: on ? "Ты" : null } : x)) } : d));
+    if (window.tgHaptic) { try { window.tgHaptic(on ? "success" : "light"); } catch (e) {} }
+    window.bosCloud.claimTeamRequest(tk.id, on).then((ok) => { if (ok === false) setTasksTick((n) => n + 1); else setTasksTick((n) => n + 1); });
+  };
   // A CLOUD team's roster lives in the cloud; the passed-in t.members is a STALE local
   // cache (the «3 снаружи / 0 внутри» mismatch). Until the real roster loads we show a
   // skeleton — NEVER the stale members, which used to flash phantom people for a beat
@@ -2076,11 +2156,33 @@ function TeamDetailLive() {
         // ДЕЛА — задания совместной цели: автор ставит, участник отмечает своё + видит «кто выполнил».
         // Раздел появляется только когда облако поддерживает team_tasks (после patch_team_tasks.sql).
         (_rosterLive && _teamTasksAvail ? {
-          key: "tasks", icon: <I.Check size={17} color="var(--text-3)" />, title: "Дела",
-          summary: _teamTasks.length ? (_teamTasksMine + " из " + _teamTasks.length + " у тебя") : (_isOwner ? "Поставь задания участникам" : "Автор ещё не добавил заданий"),
+          key: "tasks", icon: <I.Check size={17} color="var(--text-3)" />, title: "Дела и просьбы",
+          summary: (_requests.length || _plainTasks.length)
+            ? [(_requests.length ? (_requests.length + " " + (_requests.length === 1 ? "просьба" : (_requests.length < 5 ? "просьбы" : "просьб"))) : ""), (_plainTasks.length ? (_teamTasksMine + " из " + _plainTasks.length + " у тебя") : "")].filter(Boolean).join(" · ")
+            : (_isOwner ? "Поставь задание или попроси круг" : "Попроси круг о помощи"),
           render: () => (<>
-            {_teamTasks.map((tk, i) => (
-              <div key={tk.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+            {/* ПРОСЬБЫ — дело, которое берёт один: «Откликнуться» → volunteer_id. */}
+            {_requests.map((tk, i) => {
+              const taken = !!tk.volunteerId;
+              return (
+                <div key={tk.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderTop: i ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "rgba(254,222,52,0.22)" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" /></svg></span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tk.text}</div>
+                    <div style={{ fontSize: 12, color: taken ? "#1E8E4E" : "var(--text-4)", marginTop: 1 }}>{taken ? ("✓ взял: " + (tk.volunteerMe ? "Ты" : (tk.volunteerName || "участник"))) : "просьба круга · ждёт отклика"}</div>
+                  </div>
+                  {tk.volunteerMe
+                    ? <button onClick={() => claimRequest(tk, false)} className="tap" style={{ flexShrink: 0, background: "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 999, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Ты откликнулся</button>
+                    : taken
+                      ? null
+                      : <button onClick={() => openSheet(<RespondRequestSheetLive text={tk.text} teamName={t.name} onConfirm={() => claimRequest(tk, true)} />)} className="tap" style={{ flexShrink: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", border: 0, borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>Откликнуться</button>}
+                  {_isOwner && <button onClick={() => removeTeamTaskCloud(tk.id)} className="tap" aria-label="Убрать просьбу" style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: 0, background: "transparent", color: "var(--text-5)", cursor: "pointer", display: "grid", placeItems: "center" }}><I.X size={14} /></button>}
+                </div>
+              );
+            })}
+            {/* ЗАДАНИЯ владельца — отмечаешь СВОЁ выполнение. */}
+            {_plainTasks.map((tk, i) => (
+              <div key={tk.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: (i || _requests.length) ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
                 <button onClick={() => toggleMyTeamTask(tk)} className={"check-btn" + (tk.doneByMe ? "" : " unchecked")} aria-label={tk.doneByMe ? "Снять мою отметку" : "Я выполнил"}
                   style={{ width: 26, height: 26, flexShrink: 0, cursor: "pointer", ...(tk.doneByMe ? { "--check-color": accent } : {}) }}>
                   {tk.doneByMe && <I.Check size={14} strokeWidth={3} color="#fff" />}
@@ -2095,8 +2197,9 @@ function TeamDetailLive() {
               </div>
             ))}
             {_teamTasks.length === 0 && (
-              <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>{_isOwner ? "Пока нет заданий. Добавь первое — участники будут отмечать выполнение." : "Автор цели пока не добавил заданий."}</div>
+              <div style={{ padding: "14px 14px 2px", fontSize: 13, color: "var(--text-4)", lineHeight: 1.5 }}>{_isOwner ? "Пока пусто. Поставь задание или попроси круг о помощи." : "Пока пусто. Попроси круг о помощи — кто-то откликнется."}</div>
             )}
+            {/* Задание — только владелец (RLS). */}
             {_isOwner && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: _teamTasks.length ? "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") : 0 }}>
                 <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: "1.5px dashed " + (isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.18)") }}><I.Plus size={14} strokeWidth={2.4} color={isDark ? "#fff" : "var(--text-2)"} /></span>
@@ -2105,6 +2208,13 @@ function TeamDetailLive() {
                 {newTeamTask.trim() && <button onClick={addTeamTaskCloud} className="tap" style={{ flexShrink: 0, border: 0, background: accent, color: "#fff", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Добавить</button>}
               </div>
             )}
+            {/* Попросить круг — ЛЮБОЙ участник (kind='request'). */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: "1px solid " + (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)") }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "rgba(254,222,52,0.22)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="#EF9F14"><path d="M12 21s-7-4.35-9.3-8.2C1.2 10.1 2.2 6.5 5.5 6.5c1.9 0 3.1 1.1 3.9 2.2l.6.9.6-.9c.8-1.1 2-2.2 3.9-2.2 3.3 0 4.3 3.6 2.8 6.3C19 16.65 12 21 12 21z" /></svg></span>
+              <input value={newTeamRequest} onChange={(e) => setNewTeamRequest(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTeamRequestCloud(); } }} placeholder="Попросить круг о помощи…"
+                style={{ flex: 1, minWidth: 0, background: "transparent", border: 0, outline: 0, fontSize: 15, color: "var(--text)", fontFamily: "inherit" }} />
+              {newTeamRequest.trim() && <button onClick={addTeamRequestCloud} className="tap" style={{ flexShrink: 0, border: 0, background: "linear-gradient(135deg,#FEDE34,#EF9F14)", color: "#0a0a0a", borderRadius: 999, padding: "6px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Попросить</button>}
+            </div>
           </>),
         } : null),
         {
