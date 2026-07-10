@@ -164,7 +164,7 @@ function CommunityGuideBannerLive({ navigate, isDark }) {
    Палитра хрома: белый · чёрный · золото. GuideLive пока НЕ трогаем (переезд позже). */
 var BOS_GOLD = "#FEDE34";
 // Пороги «лесенки» замочков на странице — легко правимые (David ещё не уверен в точных цифрах).
-var BOS_DISC_GATES = { showcase: 3, people: 10 };
+var BOS_DISC_GATES = { showcase: 3, people: 10, map: 3 };
 // Шторки колоды — обложка «прожита», когда открыты все.
 var BOS_DISC_SHEETS = ["core", "xp", "together", "ch", "partners", "people"];
 
@@ -471,35 +471,39 @@ function bosDiscSheetNode(id, app, navigate, isDark) {
 }
 
 // ── маленький крестик карточки: 26 видимых / 44 тап-зона ──
-function _DiscX({ onClick }) {
+// ── крестик карточки: БЕЗ кружка (David: не привлекать внимание), тап-зона 44 ──
+function _DiscX({ onClick, color }) {
   return (
-    <button onClick={onClick} className="tap" aria-label="Скрыть навсегда" style={{ position: "absolute", top: 2, right: 2, width: 44, height: 44, border: 0, background: "transparent", display: "grid", placeItems: "center", cursor: "pointer", zIndex: 3 }}>
-      <span style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center" }}>
-        <svg width="11" height="11" viewBox="0 0 11 11"><path d="M2 2l7 7M9 2l-7 7" stroke="var(--text-3)" strokeWidth="1.8" strokeLinecap="round" /></svg>
-      </span>
+    <button onClick={onClick} className="tap" aria-label="Скрыть навсегда" style={{ position: "absolute", top: 0, right: 0, width: 44, height: 44, border: 0, background: "transparent", display: "grid", placeItems: "center", cursor: "pointer", zIndex: 3 }}>
+      <svg width="13" height="13" viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke={color || "var(--text-4)"} strokeWidth="1.7" strokeLinecap="round" /></svg>
     </button>
   );
 }
 
-// ── иконки колоды (заливные SVG, палитра бел/чёрн/золото) ──
-var _DISC_ICONS = {
-  xp: <svg width="19" height="19" viewBox="0 0 24 24" fill="var(--text)"><path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" /></svg>,
-  together: <svg width="20" height="20" viewBox="0 0 24 24"><g fill="var(--text-4)"><circle cx="16.6" cy="8.6" r="2.9" /><path d="M11.6 19c0-2.8 2.2-4.8 5-4.8s5 2 5 4.8c0 .66-.54 1.2-1.2 1.2h-7.6c-.66 0-1.2-.54-1.2-1.2z" /></g><g fill="var(--text)"><circle cx="8.6" cy="7.6" r="3.6" /><path d="M2 19.2c0-3.4 2.9-5.8 6.6-5.8s6.6 2.4 6.6 5.8c0 .72-.6 1.3-1.32 1.3H3.32C2.6 20.5 2 19.92 2 19.2z" /></g></svg>,
-  ch: <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--text)"><path d="M12 2c1.2 3.4-.8 4.6-.8 6.8a3 3 0 0 0 5.9.6C18.6 11 20 13.2 20 15.3A8 8 0 1 1 4 15.3c0-2.6 1.6-4.2 2.6-5.8.5 1.9 1.4 2.6 2.5 2.6C8 9 10 5.4 12 2z" /></svg>,
-  partners: <svg width="19" height="19" viewBox="0 0 24 24" fill="var(--text)"><path d="M20.5 8.6V6.4c0-1-.8-1.8-1.8-1.8H5.3c-1 0-1.8.8-1.8 1.8v2.2a3.4 3.4 0 0 1 0 6.8v2.2c0 1 .8 1.8 1.8 1.8h13.4c1 0 1.8-.8 1.8-1.8v-2.2a3.4 3.4 0 0 1 0-6.8zM14 15.6l-2-1.3-2 1.3.6-2.3-1.8-1.5 2.3-.2 1-2.2 1 2.2 2.3.2-1.9 1.5z" /></svg>,
-  people: <svg width="19" height="19" viewBox="0 0 24 24" fill="#0a0a0a"><circle cx="10" cy="7.6" r="3.6" /><path d="M3.6 19.4c0-3.6 2.9-6 6.4-6 1.2 0 2.4.3 3.3.8a4.6 4.6 0 0 0-1.3 3.2v2.7H5.1c-.9 0-1.5-.6-1.5-.7z" /><path d="M17.5 12.6a3 3 0 0 0-3 3v.7h-.2c-.7 0-1.3.6-1.3 1.3v3c0 .7.6 1.4 1.3 1.4h6.4c.7 0 1.3-.7 1.3-1.4v-3c0-.7-.6-1.3-1.3-1.3h-.2v-.7a3 3 0 0 0-3-3zm0 1.6c.8 0 1.4.6 1.4 1.4v.7h-2.8v-.7c0-.8.6-1.4 1.4-1.4z" /></svg>,
-  lock: <svg width="17" height="17" viewBox="0 0 24 24" fill="var(--text)"><path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5zm0 2.2a2.8 2.8 0 0 0-2.8 2.8v2h5.6v-2A2.8 2.8 0 0 0 12 5.8z" /></svg>,
-};
+// ── крупные заливные иконки карточек (David: крупнее + свой цвет + анимация) ──
+function _discIcon(key, size, color) {
+  var body = {
+    xp: <path d="M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z" />,
+    together: <g><circle cx="9" cy="8" r="3.4" /><path d="M3 19.4c0-3.3 2.7-5.6 6-5.6s6 2.3 6 5.6c0 .7-.55 1.25-1.25 1.25H4.25C3.55 20.65 3 20.1 3 19.4z" /><circle cx="17.2" cy="9" r="2.5" opacity="0.5" /><path d="M14.9 14.9c.7-.28 1.5-.42 2.3-.42 2.4 0 4.3 1.85 4.3 4.25 0 .55-.45 1-1 1h-3.4z" opacity="0.5" /></g>,
+    ch: <path d="M12 2c1.2 3.4-.8 4.6-.8 6.8a3 3 0 0 0 5.9.6C18.6 11 20 13.2 20 15.3A8 8 0 1 1 4 15.3c0-2.6 1.6-4.2 2.6-5.8.5 1.9 1.4 2.6 2.5 2.6C8 9 10 5.4 12 2z" />,
+    partners: <path d="M20.5 8.6V6.4c0-1-.8-1.8-1.8-1.8H5.3c-1 0-1.8.8-1.8 1.8v2.2a3.4 3.4 0 0 1 0 6.8v2.2c0 1 .8 1.8 1.8 1.8h13.4c1 0 1.8-.8 1.8-1.8v-2.2a3.4 3.4 0 0 1 0-6.8zM14 15.6l-2-1.3-2 1.3.6-2.3-1.8-1.5 2.3-.2 1-2.2 1 2.2 2.3.2-1.9 1.5z" />,
+    people: <g><circle cx="10" cy="8" r="3.6" /><path d="M3.6 19.6c0-3.6 2.9-6 6.4-6 1.1 0 2.2.25 3.1.72a4.7 4.7 0 0 0-1.2 3.1v2.8H5.1c-.9 0-1.5-.6-1.5-.62z" /><path d="M17.5 12.8a3 3 0 0 0-3 3v.6h-.1c-.7 0-1.3.6-1.3 1.3v2.9c0 .7.6 1.3 1.3 1.3h6.2c.7 0 1.3-.6 1.3-1.3v-2.9c0-.7-.6-1.3-1.3-1.3h-.1v-.6a3 3 0 0 0-3-3zm0 1.6c.8 0 1.4.6 1.4 1.4v.6h-2.8v-.6c0-.8.6-1.4 1.4-1.4z" /></g>,
+    lock: <path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5zm0 2.2a2.8 2.8 0 0 0-2.8 2.8v2h5.6v-2A2.8 2.8 0 0 0 12 5.8z" />,
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>{body[key] || null}</svg>;
+}
 
-// ── карточка колоды ──
-function _DiscCard({ id, ic, iconGold, title, desc, meta, metaQuiet, onOpen, onDismiss }) {
+// ── карточка колоды: свой цвет (bosGoalSkin — язык тонированных карточек привычек) + крупная
+//    анимированная иконка, без XP-меты (David: «геймификацию „прочти карточку" не ставим»). ──
+function _DiscCard({ id, accent, iconKey, title, desc, onOpen, onDismiss, isDark, animDelay }) {
+  var sk = (accent && typeof bosGoalSkin === "function") ? bosGoalSkin(accent, isDark, true) : null;
+  var iconInk = sk ? (sk.accent || accent) : "var(--text)";
   return (
-    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", border: 0, padding: "13px 12px 12px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: "var(--text)", fontFamily: "inherit" }}>
-      {onDismiss && <_DiscX onClick={onDismiss} />}
-      <span style={{ width: 36, height: 36, borderRadius: "50%", background: iconGold ? BOS_GOLD : "var(--surface-3)", display: "grid", placeItems: "center", marginBottom: 9 }}>{ic}</span>
-      <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{title}</span>
-      <span style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.35, marginTop: 4 }}>{desc}</span>
-      <span style={{ marginTop: "auto", fontSize: 11, fontWeight: 800, borderRadius: 999, padding: "3.5px 9px", display: "inline-flex", alignItems: "center", gap: 4, background: metaQuiet ? "var(--surface-3)" : BOS_GOLD, color: metaQuiet ? "var(--text-2)" : "#0a0a0a" }}>{meta}</span>
+    <button onClick={onOpen} className="tap" style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: sk ? sk.bg : "var(--card)", boxShadow: sk ? sk.shadow : "var(--card-shadow)", border: 0, padding: "14px 13px", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", cursor: "pointer", overflow: "hidden", color: sk ? sk.txt : "var(--text)", fontFamily: "inherit" }}>
+      {onDismiss && <_DiscX onClick={onDismiss} color={sk ? sk.sub : "var(--text-4)"} />}
+      <span className="disc-bob" style={{ width: 56, height: 56, borderRadius: 18, background: sk ? sk.iconBg : "var(--surface-3)", display: "grid", placeItems: "center", marginBottom: 12, animation: "discBob 3.4s ease-in-out infinite", animationDelay: (animDelay || 0) + "s" }}>{_discIcon(iconKey, 30, iconInk)}</span>
+      <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{title}</span>
+      <span style={{ fontSize: 12, color: sk ? sk.sub : "var(--text-3)", lineHeight: 1.35, marginTop: 5 }}>{desc}</span>
     </button>
   );
 }
@@ -555,7 +559,7 @@ function DiscoveryFounderCard({ actionable, onTap, userLevel, founderLeft, found
   }
   return (
     <div style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start", width: 152, height: 172, borderRadius: 22, background: "var(--card)", boxShadow: "var(--card-shadow)", padding: "13px 12px 12px", display: "flex", flexDirection: "column", alignItems: "flex-start", overflow: "hidden", color: "var(--text)" }}>
-      <span style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", marginBottom: 9, opacity: 0.55 }}>{_DISC_ICONS.lock}</span>
+      <span style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center", marginBottom: 9, opacity: 0.55 }}>{_discIcon("lock", 18, "var(--text)")}</span>
       <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1.2, opacity: 0.55 }}>Основатель</span>
       <span style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.35, marginTop: 4, opacity: 0.55 }}>Подарок на 8 уровне: прыжок сразу на 10</span>
       <span style={{ marginTop: "auto", width: "100%" }}>
@@ -576,10 +580,8 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
     return () => window.removeEventListener("bos:discoveryChanged", f);
   }, []);
   const dismissed = bosDiscBag("bos:discoveryDismissed");
-  const seen = bosDiscBag("bos:discoverySeen");
   const info = (typeof bosLevelInfoLive === "function" && typeof bosLiveXPLive === "function") ? bosLevelInfoLive(bosLiveXPLive(app)) : { level: 1 };
   const userLevel = info.level || 1;
-  const allSeen = BOS_DISC_SHEETS.every((s) => seen[s]);
 
   // сигналы «прожитости» — карточка уходит, когда механика уже вошла в жизнь
   const hasTogether = ((app && app.teams) || []).length > 0 || ((app && app.habits) || []).some((h) => h && (h.shareCode || h.teamHabitId));
@@ -606,34 +608,33 @@ function DiscoveryFeedLive({ app, navigate, isDark }) {
   };
   const goPeople = () => { if (window.tgHaptic) { try { window.tgHaptic("selection"); } catch (e) {} } try { app && app.setCommunityView && app.setCommunityView({ filter: "people", section: "community", commTab: "network" }); } catch (e) {} };
 
-  // колода по правилам: стартовые с L1, «Люди» с L5; уход по прожитости
+  // колода по правилам: стартовые с L1, «Люди» с L5; уход по прожитости. У каждой — свой цвет
+  // (David: «разные карточки разного цвета — сразу обращаешь внимание»).
   const deckDefs = [
-    { key: "xp", id: "xp", ic: _DISC_ICONS.xp, title: "Опыт и уровень", desc: "Каждый ход — шаг по пути", meta: "✦ +10 за отметку", show: true },
-    { key: "together", id: "together", ic: _DISC_ICONS.together, title: "Вместе — больше", desc: "Совместные привычки и цели", meta: "✦ +15 вместо +10", show: !hasTogether },
-    { key: "ch", id: "ch", ic: _DISC_ICONS.ch, title: "Челленджи", desc: "Готовая привычка с призом", meta: "✦ +30…75", show: !hasChallenge },
-    { key: "partners", id: "partners", ic: _DISC_ICONS.partners, title: "Партнёры", desc: "Впечатления за твой опыт", meta: "от 150 XP", metaQuiet: true, show: !hasSpent },
-    { key: "people", id: "people", ic: _DISC_ICONS.people, iconGold: true, title: "Люди", desc: "Закрытый круг — с 10 уровня", meta: "Уровень " + userLevel + " из 10", metaQuiet: true, show: userLevel >= 5 },
+    { key: "xp", id: "xp", iconKey: "xp", accent: "#FF9F0A", title: "Опыт и уровень", desc: "Каждый ход — шаг по пути", show: true },
+    { key: "together", id: "together", iconKey: "together", accent: "#0A84FF", title: "Вместе — больше", desc: "Совместные привычки и цели", show: !hasTogether },
+    { key: "ch", id: "ch", iconKey: "ch", accent: "#FF453A", title: "Челленджи", desc: "Готовая привычка с призом", show: !hasChallenge },
+    { key: "partners", id: "partners", iconKey: "partners", accent: "#BF5AF2", title: "Партнёры", desc: "Впечатления за твой опыт", show: !hasSpent },
+    { key: "people", id: "people", iconKey: "people", accent: "#30C08B", title: "Люди", desc: "Закрытый круг — с 10 уровня", show: userLevel >= 5 },
   ];
   const founderLeft = Math.max(0, 8 - userLevel);
   const founderW = Math.max(4, Math.min(100, (userLevel / 8) * 100));
   const founderActionable = !founderClaimed && userLevel >= 8 && userLevel < 10;
   const founderTeaser = !founderClaimed && userLevel >= 6 && userLevel < 8;
 
-  // порядок приоритета → кап ≤6 карточек одновременно
+  // порядок приоритета → кап ≤6 карточек одновременно (обложка «Суть» убрана — David: про механики
+  // рассказываем отдельными карточками, отдельный «как устроено» не нужен).
   const nodes = [];
-  if (!allSeen) nodes.push(<DiscoveryCoverCard key="cover" onOpen={() => openDisc("core")} />);
   if (showLevelUp) nodes.push(<DiscoveryLevelUpCard key={"lvl" + userLevel} level={userLevel} unlock={BOS_LEVEL_UNLOCKS[userLevel]} onOpen={() => { ackLevel(); openDisc("xp"); }} onDismiss={(ev) => { ev.stopPropagation(); if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } ackLevel(); }} />);
   if (founderActionable) nodes.push(<DiscoveryFounderCard key="founder-go" actionable onTap={goPeople} />);
-  deckDefs.forEach((c) => { if (c.show && !dismissed[c.key]) nodes.push(<_DiscCard key={c.key} {...c} onOpen={() => openDisc(c.id)} onDismiss={(ev) => doDismiss(ev, c.key)} />); });
+  let _di = 0;
+  deckDefs.forEach((c) => { if (c.show && !dismissed[c.key]) { nodes.push(<_DiscCard key={c.key} {...c} isDark={isDark} animDelay={_di * 0.25} onOpen={() => openDisc(c.id)} onDismiss={(ev) => doDismiss(ev, c.key)} />); _di++; } });
   if (founderTeaser) nodes.push(<DiscoveryFounderCard key="founder-teaser" userLevel={userLevel} founderLeft={founderLeft} founderW={founderW} />);
   const shown = nodes.slice(0, 6);
 
   return (
-    <div>
-      <div style={{ padding: "16px 4px 8px" }}><span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, color: "var(--text-4)" }}>ОТКРЫТИЯ</span></div>
-      <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "2px 12px 10px 4px", margin: "0 -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
-        {shown}
-      </div>
+    <div className="bos-hscroll" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "10px 12px 12px 4px", margin: "2px -12px 0 0", scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+      {shown}
     </div>
   );
 }
@@ -893,19 +894,20 @@ function CommunityLive() {
                 открывает СВОЮ шторку про механику. Гид (GuideLive) пока жив, но здесь его баннер
                 (CommunityGuideBannerLive) заменён лентой. Кромка ленты — по общей сетке страницы. */}
             <DiscoveryFeedLive app={app} navigate={navigate} isDark={isDark} />
-            {/* КАРТА + ПАРТНЁРЫ одним блоком (David: «карта и партнёры аккуратнее в одном блоке»,
-                карту крупнее, дубль «Рядом» убрать). Крупная карта сверху → сразу витрина партнёров. */}
+            {/* КАРТА партнёров — под замком до BOS_DISC_GATES.map уровня (David 2026-07-10: «карта
+                партнёров тоже должна быть закрыта под замочком»). Порог правится в BOS_DISC_GATES. */}
             {typeof PartnersMapLive === "function" && (
               <div>
                 <CommSectionHeadLive title="🗺 Партнёры рядом" onAll={() => setFilter("partners")} />
                 <div style={{ marginTop: 10 }}>
-                  <PartnersMapLive app={app} navigate={navigate} from="community" />
+                  <DiscoveryVeil gate={BOS_DISC_GATES.map} level={userLevel} isDark={isDark} label={"Откроется с " + BOS_DISC_GATES.map + " уровня"}>
+                    <PartnersMapLive app={app} navigate={navigate} from="community" />
+                  </DiscoveryVeil>
                 </div>
               </div>
             )}
             {/* Партнёры — «на что потратить XP»: живые вещи (медитация/бачата/бокс) за копилку.
-                Лесенка раскрытия (David): под мягкой вуалью-замком до BOS_DISC_GATES.showcase уровня
-                (порог правится там же — David ещё не уверен в точных цифрах). Карта выше — открыта. */}
+                Лесенка раскрытия (David): под мягкой вуалью-замком до BOS_DISC_GATES.showcase уровня. */}
             {typeof PartnersShowcaseLive === "function" && (
               <DiscoveryVeil gate={BOS_DISC_GATES.showcase} level={userLevel} isDark={isDark} label={"Откроется с " + BOS_DISC_GATES.showcase + " уровня"}>
                 <PartnersShowcaseLive app={app} navigate={navigate} onAll={() => setFilter("partners")} />

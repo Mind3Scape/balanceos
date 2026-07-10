@@ -182,8 +182,12 @@ function CreatePickerSheetLive({ navigate, custom = true }) {
    карандашиком»). Открывается через openSheet (хрома-BottomSheet снаружи). Значок + о чём это +
    ПРАВИЛА простым языком: объём (N дней подряд / цель) и награда с честной оговоркой (пропуск
    обнуляет серию, но заработанный бонус не сгорает). Кнопка «Начать» → onStart() создаёт сразу. */
-function ChallengeIntroSheet({ c, dark, onStart }) {
+function ChallengeIntroSheet({ c, dark, onStart, onBack }) {
   const { close } = useSheet();
+  // onBack (опц.) — «Может, позже» ВОЗВРАЩАЕТ туда, откуда открыли (напр. к форме создания привычки,
+  // сохраняя введённое), а не закрывает всё (David: «нажимаю „может позже" — а меня кидает на главную,
+  // хотя я был в создании привычки»). Без onBack — прежнее поведение (закрыть шторку).
+  const back = onBack || close;
   const [busy, setBusy] = React.useState(false);
   const together = c.kind === "together";
   const isGoalKind = c.kind === "goal" || together;
@@ -226,7 +230,7 @@ function ChallengeIntroSheet({ c, dark, onStart }) {
       <button onClick={go} disabled={busy} className="bos-btn" style={{ marginTop: 18, opacity: busy ? 0.6 : 1 }}>
         {busy ? "Минутку…" : (together ? "Начать и позвать" : "Начать челлендж")}
       </button>
-      <button onClick={close} disabled={busy} className="tap" style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 999, padding: 15, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)", fontSize: 15.5, fontWeight: 600 }}>
+      <button onClick={back} disabled={busy} className="tap" style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 999, padding: 15, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text)", fontSize: 15.5, fontWeight: 600 }}>
         Может, позже
       </button>
       <div style={{ height: "max(8px, var(--tg-bottom-inset, 0px))" }} />

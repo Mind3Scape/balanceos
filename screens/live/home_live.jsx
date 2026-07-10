@@ -26,13 +26,31 @@ class WidgetBoundaryLive extends React.Component {
    с главной): те же чипы CHALLENGE_STARTERS с XP-бонусом, тот же путь согласия
    (ChallengeIntroSheet → bosCommitChallenge). Горизонтальный скролл, уходит за край с
    маской — как жила наверху «Привычек». Виджет w:quick, снимается минусом/в галерее. */
+// ОДИН чип челленджа — общий вид для главной И формы создания привычки (David 2026-07-10: «в форме
+// челленджи должны быть в ТОМ ЖЕ стиле, что на главной — мы это уже разработали»). Стекло + SVG-глиф
+// (bosPillGlyphLive) + матовая золотая XP-пилюля. onTap — свой у каждого места.
+function bosQuickChipEl(c, isDark, onTap, i) {
+  const chipText = isDark ? "var(--text)" : "var(--text-2)";
+  return (
+    <button key={c.key || i} type="button" className="tap" data-no-haptic onClick={onTap} style={{
+      ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), borderRadius: 999, padding: "7px 9px 7px 11px", border: 0, flexShrink: 0,
+      display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap", cursor: "pointer",
+      animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + ((i || 0) * 0.03) + "s",
+    }}>
+      <span style={{ display: "inline-flex", flexShrink: 0 }}>{typeof bosPillGlyphLive === "function" ? bosPillGlyphLive(c, { size: 16, color: chipText }) : c.i}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: chipText }}>{c.t}</span>
+      {c.kind === "together" && <I.Users size={12} color={chipText} style={{ opacity: 0.55, marginLeft: -2 }} />}
+      <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9a6800", background: "rgba(245,180,30,0.18)", borderRadius: 999, padding: "2px 6px", letterSpacing: "-0.2px", lineHeight: 1.3 }}>+{c.bonus} XP</span>
+    </button>
+  );
+}
+
 function HomeQuickStripLive({ isDark }) {
   const { navigate } = useNav();
   const { open: openSheet } = useSheet();
   const app = useApp();
   const list = (typeof CHALLENGE_STARTERS !== "undefined" && Array.isArray(CHALLENGE_STARTERS)) ? CHALLENGE_STARTERS : [];
   if (!list.length) return null;
-  const chipText = isDark ? "var(--text)" : "var(--text-2)";
   const start = (c) => {
     if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} }
     if (typeof ChallengeIntroSheet === "function" && typeof bosCommitChallenge === "function") {
@@ -42,18 +60,7 @@ function HomeQuickStripLive({ isDark }) {
   return (
     <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-x", padding: "2px 1px", margin: "0 -1px",
       WebkitMaskImage: "linear-gradient(90deg, #000 88%, transparent)", maskImage: "linear-gradient(90deg, #000 88%, transparent)" }}>
-      {list.map((c, i) => (
-        <button key={c.key || i} className="tap" data-no-haptic onClick={() => start(c)} style={{
-          ...(typeof bosChipGlass === "function" ? bosChipGlass(isDark) : { background: "var(--surface-3)" }), borderRadius: 999, padding: "7px 9px 7px 11px", border: 0, flexShrink: 0,
-          display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap", cursor: "pointer",
-          animation: "briefPop 0.4s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.03) + "s",
-        }}>
-          <span style={{ display: "inline-flex", flexShrink: 0 }}>{typeof bosPillGlyphLive === "function" ? bosPillGlyphLive(c, { size: 16, color: chipText }) : c.i}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: chipText }}>{c.t}</span>
-          {c.kind === "together" && <I.Users size={12} color={chipText} style={{ opacity: 0.55, marginLeft: -2 }} />}
-          <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9a6800", background: "rgba(245,180,30,0.18)", borderRadius: 999, padding: "2px 6px", letterSpacing: "-0.2px", lineHeight: 1.3 }}>+{c.bonus} XP</span>
-        </button>
-      ))}
+      {list.map((c, i) => bosQuickChipEl(c, isDark, () => start(c), i))}
     </div>
   );
 }
@@ -518,6 +525,19 @@ function HomeLive() {
   // Миграция фиксируется ОДИН раз (иначе шторка «+» видела бы пустой layout). Гидрация из
   // облака позже спокойно перекроет это своим сохранённым homeLayout.
   React.useEffect(() => { if (!layoutObj && !trulyNew && app?.setHomeLayout) app.setHomeLayout(effLayout); }, [!!layoutObj, trulyNew]);
+  // v674: «Быстрое добавление» (w:quick) убираем из ДЕФОЛТА у ВСЕХ разово (David: «сделай блок
+  // скрытым по дефолту, кто захочет — включит из галереи лично»). У существующих юзеров он мог осесть
+  // в persisted order (авто-добор до v672) — снимаем ОДИН раз по флагу; дальше обычный opt-in виджет.
+  React.useEffect(() => {
+    try {
+      if (localStorage.getItem("bos:quickOffMigrated")) return;
+      if (!layoutObj || !Array.isArray(layoutObj.order)) return; // ждём реальную раскладку
+      localStorage.setItem("bos:quickOffMigrated", "1");
+      if (layoutObj.order.indexOf("w:quick") >= 0 && app?.setHomeLayout) {
+        app.setHomeLayout({ ...layoutObj, order: layoutObj.order.filter((k) => k !== "w:quick") });
+      }
+    } catch (e) {}
+  }, [layoutObj]);
   const hideKey = (k) => saveLayout({ order: effLayout.order.filter((x) => x !== k), hidden: effLayout.hidden.indexOf(k) < 0 ? effLayout.hidden.concat([k]) : effLayout.hidden });
 
   // Each widget's content. Returns null when a widget is ON but has nothing to show

@@ -25,7 +25,8 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
   // в цель. goalOnly = «вести только внутри цели» (не показывать в общем списке привычек) — David: «час
   // рояля не хочу выводить на личную». (Существующая привычка тоже помнит goalOnly при редактировании.)
   const goalFor = goalForProp || null;
-  const [view, setView] = useHS("form"); // form | picker | share — вторые вью внутри ОДНОЙ шторки
+  const [view, setView] = useHS("form"); // form | picker | share | challenge — вторые вью ОДНОЙ шторки
+  const [challengeC, setChallengeC] = useHS(null); // выбранный челлендж для вью «challenge» (возврат к форме)
   const [goalOnly, setGoalOnly] = useHS(editing ? !!params.habit.goalOnly : false);
   const [name, setName] = useHS(editing ? params.habit.name : (preset?.t || "Прогулка"));
   const [iconPick, setIconPick] = useHS(editing ? (typeof bosDeSF === "function" ? bosDeSF(params.habit.emoji) : params.habit.emoji) : (preset?.i || "👟")); // старые sf:-символы → эмодзи по смыслу
@@ -201,6 +202,16 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
       </div>
     );
   }
+  // ВТОРОЙ ВЬЮ: правила ЧЕЛЛЕНДЖА внутри той же шторки (David: «нажимаю „может позже" — хочу остаться
+  // в создании привычки, а не вылетать на главную»). «Начать» создаёт челлендж и закрывает; «Может,
+  // позже» → onBack возвращает к форме с сохранённым вводом.
+  if (view === "challenge" && challengeC && typeof ChallengeIntroSheet === "function") {
+    return (
+      <div className="bos-sheet-scroll" style={{ paddingTop: 2 }}>
+        <ChallengeIntroSheet c={challengeC} dark={isDark} onStart={() => bosCommitChallenge(app, challengeC, { navigate, openSheet })} onBack={() => setView("form")} />
+      </div>
+    );
+  }
 
   return (
     <div className="bos-sheet-scroll" style={{ paddingTop: 2, paddingLeft: 16, paddingRight: 16 }}>
@@ -233,21 +244,15 @@ function HabitFormSheetLive({ mode = "create", habit = null, preset = null, goal
         )}
       </div>
 
-      {/* ── ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА — строка-скролл под обликом (David 2026-07-10, макет ленты «Открытий»):
-          готовая привычка с призом за серию. Тап → ChallengeIntroSheet (правила → «Начать») → bosCommitChallenge,
-          форма при этом заменяется шторкой челленджа. Только при создании ЛИЧНОЙ привычки (не правка/цель/круг).
-          «Готовый челлендж» в меню «+» НЕ возвращаем (закомментирован) — этот вход его замещает. ── */}
-      {!editing && !teamFor && !goalFor && typeof CHALLENGE_STARTERS !== "undefined" && (
+      {/* ── ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА — строка-скролл под обликом. Чипы В ТОМ ЖЕ СТИЛЕ, что на главной
+          (bosQuickChipEl: стекло + SVG-глиф + матовая XP-пилюля — David: «уже разработали, перенеси»).
+          Тап → правила ВНУТРИ формы (view «challenge»); «может позже» вернёт сюда. Только при создании
+          ЛИЧНОЙ привычки. «Готовый челлендж» в меню «+» НЕ возвращаем. ── */}
+      {!editing && !teamFor && !goalFor && typeof CHALLENGE_STARTERS !== "undefined" && typeof bosQuickChipEl === "function" && (
       <React.Fragment>
         <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.3, color: "var(--text-4)", padding: "16px 4px 8px" }}>ИЛИ НАЧНИ С ЧЕЛЛЕНДЖА</div>
         <div className="bos-hscroll" style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px 4px" }}>
-          {CHALLENGE_STARTERS.map((c) => (
-            <button key={c.key} type="button" data-no-haptic onClick={() => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } if (typeof ChallengeIntroSheet === "function") openSheet(<ChallengeIntroSheet c={c} dark={isDark} onStart={() => bosCommitChallenge(app, c, { navigate, openSheet })} />); }}
-              className="tap" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 7, background: "var(--card, #fff)", border: "0.5px solid var(--line, rgba(0,0,0,0.05))", boxShadow: "var(--card-shadow)", borderRadius: 999, padding: "8px 11px 8px 9px", fontSize: 13, fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>
-              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--surface-3)", display: "grid", placeItems: "center" }}>{bosIcon(c.i, 14, "var(--text)")}</span>
-              {c.t} <span style={{ fontSize: 10.5, fontWeight: 800, background: "#FEDE34", color: "#0a0a0a", borderRadius: 999, padding: "2.5px 7px" }}>+{c.bonus}</span>
-            </button>
-          ))}
+          {CHALLENGE_STARTERS.map((c, i) => bosQuickChipEl(c, isDark, () => { if (window.tgHaptic) { try { window.tgHaptic("light"); } catch (e) {} } setChallengeC(c); setView("challenge"); }, i))}
         </div>
         <div style={{ fontSize: 11, color: "var(--text-4)", padding: "7px 4px 0", lineHeight: 1.4 }}>Челлендж — та же привычка, но с призом за серию. Тап → правила → старт.</div>
       </React.Fragment>
