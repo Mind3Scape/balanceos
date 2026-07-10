@@ -68,7 +68,9 @@ function bosPillGlyphLive(pill, opts) {
   var o = opts || {};
   if (typeof I === "undefined") return (typeof bosPillIcon === "function") ? bosPillIcon(pill) : "✨";
   var Cmp = I[bosPillIconName(pill)] || I.Sparkles;
-  return <Cmp size={o.size || 14} color={o.color || "var(--text-2)"} strokeWidth={o.strokeWidth || 1.8} />;
+  // ЗАЛИВНЫЕ (filled) + strokeWidth 0 — David: контурные тонкие иконки на малом размере не
+  // читаются (лампочка не читалась как лампочка). Сплошной силуэт «садится» лучше.
+  return <Cmp size={o.size || 15} color={o.color || "var(--text-2)"} filled strokeWidth={0} />;
 }
 
 /* Learning-cards visibility (Habits → «Обучение»). One persisted flag: hide once read,
@@ -4540,7 +4542,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
             padding: "6px 12px", fontSize: 12, color: "var(--text-2)",
             ...bosChipGlass(isDark), border: 0, minWidth: 0, maxWidth: "calc(50% - 3px)",
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
-          }}><span style={{ flexShrink: 0, display: "inline-flex" }}>{bosPillGlyphLive(c, { size: 13, color: "var(--text-2)" })}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.t}</span></button>
+          }}><span style={{ flexShrink: 0, display: "inline-flex" }}>{bosPillGlyphLive(c, { size: 15, color: "var(--text-2)" })}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.t}</span></button>
         ))}
       </div>
     </div>
@@ -4566,7 +4568,7 @@ function HomeHeroSwipeLive({ navigate, doneCount, totalCount, ringPct, isDark })
             ...bosChipGlass(isDark), border: 0, minWidth: 0, maxWidth: "calc(50% - 3px)",
             borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6,
             animation: _livePills ? ("briefPop 0.45s cubic-bezier(0.22,0.9,0.3,1.2) both " + (i * 0.06) + "s") : undefined,
-          }}><span style={{ flexShrink: 0, display: "inline-flex" }}>{bosPillGlyphLive(c, { size: 13, color: "var(--text-2)" })}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bosPillLabel(c)}</span></button>
+          }}><span style={{ flexShrink: 0, display: "inline-flex" }}>{bosPillGlyphLive(c, { size: 15, color: "var(--text-2)" })}</span><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bosPillLabel(c)}</span></button>
         ))}
       </div>
     </div>
