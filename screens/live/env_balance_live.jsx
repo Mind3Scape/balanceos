@@ -435,7 +435,202 @@ function bosEnvInvite(openSheet, navigate, dark) {
   };
 }
 
-/* ═══════════ БЛОК на странице ИИ — кольцо-состояние ═══════════ */
+/* ═══════════ МОДЕЛЬ ОПОРЫ (David V2-финал) ═══════════
+   Баланс окружения = не «сеть лиц», а СТРУКТУРА ПОДДЕРЖКИ: хватает ли опоры там, где
+   тебе трудно. Всё из УЖЕ существующих данных, без бутафории:
+   • потребность(сфера) = 1 − заполненность сферы из «Баланса жизни»; если сфера падает
+     (тренд ▼) — потребность чуть выше.
+   • опора(сфера) = сумма ЖИВЫХ каналов: совместная привычка (buddy по shareCode), круг
+     с участниками, чат круга, предложения Нетворка (только с 10 ур.). Молчащий канал ×0.5.
+   • хрупко = вся опора сферы упирается в ОДНОГО человека.
+   • разрыв = потребность заметно выше опоры. */
+var BOS_SUPPORT_CFG = {
+  W_BUDDY: 0.45, W_CIRCLE: 0.35, W_CHAT: 0.15, W_OFFER: 0.25, // веса каналов (1 сильный ≈0.5, два разных ≈0.7–0.9)
+  SILENT_MULT: 0.5,   // молчащий канал (нет отклика за LIVE_DAYS) весит вполовину
+  LIVE_DAYS: 30,      // окно «живости» канала
+  NEED_TREND_BOOST: 0.15, // сфера падает → потребность выше
+  GAP_THRESH: 0.18,   // потребность − опора > этого = разрыв
+  SUPPORT_OK: 0.66,   // «опора есть», если опора ≥ потребность×это (или опора > 0.3)
+  MIN_LEVEL_ASK: 10,  // «Попросить о помощи» / «Ориентир» — честно под замком до 10 ур.
+};
+function _bosMaxDayFresh(days, now) { // минимальный возраст отметки (дней), null если пусто
+  if (!days) return null; var min = null;
+  for (var k in days) { if (!Object.prototype.hasOwnProperty.call(days, k) || !days[k]) continue; var t = Date.parse(k); if (isNaN(t)) continue; var a = (now - t) / 86400000; if (a < 0) a = 0; if (min == null || a < min) min = a; }
+  return min;
+}
+
+// ЧИСТАЯ модель: (app + уже собранные каналы) → строки по 6 сферам. Тестируема без облака.
+// channels: [{ kind:'buddy'|'circle'|'offer', sphereId, uids:[], alive:bool, hasChat?, chatAlive?, label? }]
+function bosSupportModel(app, channels, cfg) {
+  cfg = cfg || BOS_SUPPORT_CFG;
+  var wd = (typeof bosWheelData === "function") ? bosWheelData(app) : { spheres: [] };
+  var byId = {}; (wd.spheres || []).forEach(function (s) { byId[s.id] = s; });
+  var chBySph = {}; BOS_SPHERES.forEach(function (s) { chBySph[s.id] = []; });
+  (channels || []).forEach(function (c) { if (c && chBySph[c.sphereId]) chBySph[c.sphereId].push(c); });
+  return BOS_SPHERES.map(function (sp) {
+    var s = byId[sp.id] || { v: 0, tr: "eq" };
+    var need = Math.max(0, Math.min(1, (1 - (s.v || 0)) + (s.tr === "dn" ? cfg.NEED_TREND_BOOST : 0)));
+    var chans = chBySph[sp.id], sup = 0, uids = {};
+    chans.forEach(function (c) {
+      var w = c.kind === "buddy" ? cfg.W_BUDDY : c.kind === "circle" ? cfg.W_CIRCLE : c.kind === "offer" ? cfg.W_OFFER : 0;
+      if (!c.alive && c.kind !== "offer") w *= cfg.SILENT_MULT; // предложения — стоящие, не «молчат»
+      sup += w;
+      if (c.kind === "circle" && c.hasChat) { var cw = cfg.W_CHAT; if (!c.chatAlive) cw *= cfg.SILENT_MULT; sup += cw; }
+      (c.uids || []).forEach(function (u) { if (u) uids[u] = 1; });
+    });
+    sup = Math.min(1, sup);
+    var uidList = Object.keys(uids);
+    var supported = sup > 0.3 || (need > 0 && sup >= need * cfg.SUPPORT_OK && sup > 0.05);
+    return {
+      id: sp.id, e: sp.e, l: sp.l, v: s.v || 0, tr: s.tr || "eq",
+      need: need, support: sup, uids: uidList,
+      fragile: sup > 0 && uidList.length === 1,
+      gap: (need - sup) > cfg.GAP_THRESH,
+      supported: supported, diff: need - sup, channels: chans,
+    };
+  });
+}
+
+// Фраза-вывод (генерится из данных; David забраковал квадратики-счётчики).
+function bosSupportPhrase(rows) {
+  var okN = rows.filter(function (r) { return r.supported; }).length;
+  var gaps = rows.filter(function (r) { return r.gap && r.need > 0.5; }).sort(function (a, b) { return b.diff - a.diff; });
+  var frag = rows.filter(function (r) { return r.fragile; });
+  var anyChan = rows.some(function (r) { return r.channels && r.channels.length; });
+  if (!anyChan) return { main: "Опоры пока нет", sub: "Начни с совместной привычки — позови кого-то в сферу, где тебе сейчас труднее всего. Так появляется первая опора." };
+  var main = "Опора есть в " + okN + " " + bosSupportPlural(okN) + " из 6";
+  var parts = [];
+  if (gaps.length) {
+    var names = gaps.slice(0, 2).map(function (r) { return "«" + r.l + "»"; });
+    parts.push("В " + names.join(" и ") + " опоры нет — а потребность там сейчас высокая.");
+  }
+  if (frag.length) parts.push("Опора «" + frag[0].l + "» держится на одном человеке — это хрупко.");
+  if (!parts.length) parts.push("Разрывов нет — там, где трудно, рядом есть кто-то.");
+  return { main: main, sub: parts.join(" ") };
+}
+function bosSupportPlural(n) { var a = n % 100, b = n % 10; if (a > 10 && a < 20) return "сферах"; if (b === 1) return "сфере"; if (b >= 2 && b <= 4) return "сферах"; return "сферах"; }
+
+// ГИДРАЦИЯ каналов (как bosEnvUsePeople): мгновенный старт из модуль-кэша, догрузка в useEffect.
+// Без облака (браузер-тест) остаётся []. Собирает buddy-привычки, круги+чаты, предложения (с 10 ур.).
+var _bosSupportCache = null;
+function bosSupportChannelsUse(app, level) {
+  var st = React.useState(function () { return Array.isArray(_bosSupportCache) ? _bosSupportCache : []; });
+  var channels = st[0], setChannels = st[1];
+  var habits = (app && app.habits) || [], teams = (app && app.teams) || [];
+  var sig = habits.filter(function (h) { return h && h.shareCode; }).map(function (h) { return h.shareCode; }).join(",") + "|" + teams.filter(function (t) { return t && t.cloudId; }).map(function (t) { return t.cloudId; }).join(",") + "|" + (level | 0);
+  React.useEffect(function () {
+    var on = true, C = window.bosCloud;
+    if (!(C && C.enabled && C.enabled())) { setChannels([]); return; }
+    var now = Date.now(), LIVE = BOS_SUPPORT_CFG.LIVE_DAYS;
+    (async function () {
+      var me = null; try { me = C.uid ? await C.uid() : null; } catch (e) {}
+      var out = [];
+      // (а) совместные привычки (buddy по shareCode)
+      var shHabits = habits.filter(function (h) { return h && h.shareCode && !h.shelved; });
+      await Promise.all(shHabits.map(async function (h) {
+        var mem = null; try { mem = C.sharedHabitProgress ? await C.sharedHabitProgress(h.shareCode) : null; } catch (e) {}
+        var members = (mem && mem.members) || [];
+        var others = members.filter(function (m) { return m && m.id && m.id !== me; });
+        if (!others.length) return;
+        var alive = others.some(function (m) { var a = _bosMaxDayFresh(m.days, now); return a != null && a < LIVE; });
+        out.push({ kind: "buddy", sphereId: bosSphereFor(h), uids: others.map(function (m) { return m.id; }), alive: alive, label: h.name || "совместная привычка", people: others.map(function (m) { return { id: m.id, name: m.name, avatar: m.avatar }; }) });
+      }));
+      // (б,в) круги с участниками + чат
+      var cTeams = teams.filter(function (t) { return t && t.cloudId; });
+      await Promise.all(cTeams.map(async function (t) {
+        var members = null; try { members = C.teamMembers ? await C.teamMembers(t.cloudId) : null; } catch (e) {}
+        members = members || [];
+        var others = members.filter(function (m) { return m && m.id && m.id !== me; });
+        if (members.length < 2) return; // круг из одного — не опора
+        var msgs = null; try { msgs = C.loadMessages ? await C.loadMessages(t.cloudId) : null; } catch (e) {}
+        msgs = Array.isArray(msgs) ? msgs : [];
+        var lastMsg = null; msgs.forEach(function (r) { var t2 = r && r.created_at ? Date.parse(r.created_at) : NaN; if (!isNaN(t2) && (lastMsg == null || t2 > lastMsg)) lastMsg = t2; });
+        var chatAlive = lastMsg != null && (now - lastMsg) / 86400000 < LIVE;
+        // живость круга: есть свежий чат ИЛИ участник отметился (по общему пульсу — приблиз. через lastMsg)
+        out.push({ kind: "circle", sphereId: bosSphereFor({ name: t.name, emoji: t.emblem }), uids: others.map(function (m) { return m.id; }), alive: chatAlive, hasChat: msgs.length > 0, chatAlive: chatAlive, label: t.name || "круг", people: others.map(function (m) { return { id: m.id, name: m.name, avatar: m.avatar }; }) });
+      }));
+      // (г) предложения Нетворка — ТОЛЬКО с 10 ур. (иначе честно не существуют для юзера)
+      if ((level | 0) >= BOS_SUPPORT_CFG.MIN_LEVEL_ASK) {
+        var offers = null; try { offers = C.netOffers ? await C.netOffers(200) : null; } catch (e) {}
+        (Array.isArray(offers) ? offers : []).forEach(function (o) {
+          if (!o || o.active === false || (me && o.owner_id === me)) return;
+          out.push({ kind: "offer", sphereId: bosSphereFor({ emoji: o.emoji, name: o.title }), uids: o.owner_id ? [o.owner_id] : [], alive: true, label: o.title || "предложение" });
+        });
+      }
+      if (!on) return;
+      _bosSupportCache = out;
+      setChannels(function (prev) { return JSON.stringify(prev) === JSON.stringify(out) ? prev : out; });
+    })();
+    return function () { on = false; };
+  }, [sig]); // eslint-disable-line
+  return channels;
+}
+
+// ШТОРКА-ЛУПА ОПОРЫ СФЕРЫ. props: { row, app, people, level, navigate }.
+function BosSupportLupaSheetLive(props) {
+  var row = props.row || {}, app = props.app || {}, people = props.people || [], level = props.level | 0;
+  var navigate = props.navigate || function () {};
+  var sheet = (typeof useSheet === "function") ? useSheet() : { open: function () {}, close: function () {} };
+  var dark = (app && app.themeOverride === "dark");
+  var lbl = row.l || "Сфера";
+  var chans = row.channels || [];
+  var together = chans.filter(function (c) { return c.kind === "buddy" || c.kind === "circle"; });
+  var circles = chans.filter(function (c) { return c.kind === "circle"; });
+  var offers = chans.filter(function (c) { return c.kind === "offer"; });
+  var chatLive = circles.some(function (c) { return c.hasChat && c.chatAlive; });
+  var chatQuiet = circles.some(function (c) { return c.hasChat && !c.chatAlive; });
+  var locked = level < BOS_SUPPORT_CFG.MIN_LEVEL_ASK;
+  // кого можно позвать: свои, у кого есть привычки в этой сфере (имена раскрываются ТОЛЬКО тут)
+  var candidates = (people || []).filter(function (p) {
+    return p && p.name && (p.habits || []).some(function (h) { return bosSphereFor({ emoji: (h.e || h.emoji || "✨"), name: "" }) === row.id; });
+  });
+  var preset = (typeof BOS_SPHERE_PRESET !== "undefined" && BOS_SPHERE_PRESET[row.id]) || { i: "✨", t: lbl };
+  var proposeStep = function () { if (typeof HabitFormSheetLive === "function") sheet.open(<HabitFormSheetLive mode="create" preset={{ i: preset.i, t: preset.t, sphere: row.id }} navigate={navigate} />); };
+  var status = function (kind, txt) {
+    var st = { fontSize: 10.5, fontWeight: 800, borderRadius: 999, padding: "4px 9px", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4 };
+    if (kind === "ok") return <span style={Object.assign({}, st, { background: "#FEDE34", color: "#0a0a0a" })}>{txt}</span>;
+    if (kind === "frag") return <span style={Object.assign({}, st, { background: "repeating-linear-gradient(-55deg,#FEDE34 0 4px,rgba(254,222,52,0.3) 4px 8px)", color: "#0a0a0a" })}>{txt}</span>;
+    if (kind === "lock") return <span style={Object.assign({}, st, { background: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: "var(--text-4)" })}><svg width="10" height="10" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"}><path d="M12 3.6c2.8 0 5 2.2 5 5v2h.4c1 0 1.8.8 1.8 1.8v6.8c0 1-.8 1.8-1.8 1.8H6.6c-1 0-1.8-.8-1.8-1.8v-6.8c0-1 .8-1.8 1.8-1.8H7v-2c0-2.8 2.2-5 5-5zm0 2.2a2.8 2.8 0 0 0-2.8 2.8v2h5.6v-2A2.8 2.8 0 0 0 12 5.8z" /></svg>{txt}</span>;
+    return <span style={Object.assign({}, st, { background: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: "var(--text-3)" })}>{txt}</span>;
+  };
+  var fnRow = function (icon, title, sub, statusEl, key) {
+    return (
+      <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 2px", borderTop: key ? "0.5px solid var(--line)" : "0" }}>
+        <span style={{ width: 30, height: 30, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", display: "grid", placeItems: "center", flexShrink: 0 }}>{icon}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{title}<span style={{ display: "block", fontSize: 10.5, fontWeight: 600, color: "var(--text-4)", marginTop: 1 }}>{sub}</span></span>
+        {statusEl}
+      </div>
+    );
+  };
+  var ic = function (path) { return <svg width="14" height="14" viewBox="0 0 24 24" fill={dark ? "#c8c8cf" : "#0a0a0a"}><path d={path} /></svg>; };
+  return (
+    <div style={{ padding: "0 16px 22px" }}>
+      <div style={{ textAlign: "center", fontSize: 19, fontWeight: 800, letterSpacing: "-0.35px", color: "var(--text)", padding: "2px 0 2px" }}>Опора · {lbl}</div>
+      <div style={{ textAlign: "center", fontSize: 12.5, color: "var(--text-4)", paddingBottom: 12 }}>четыре формы поддержки — что есть, чего не хватает</div>
+      <div style={{ background: "var(--card)", borderRadius: 20, boxShadow: "var(--card-shadow)", padding: "4px 14px", marginBottom: 10 }}>
+        {fnRow(ic("M8.4 4.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zM2.8 18.4c0-3 2.5-5.2 5.6-5.2s5.6 2.2 5.6 5.2c0 .74-.6 1.34-1.34 1.34H4.14c-.74 0-1.34-.6-1.34-1.34zM16.6 6.1a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"), "Сделать вместе", "совместная привычка или круг в сфере", together.length ? status(row.fragile ? "frag" : "ok", (row.fragile ? "хрупко · " : "есть · ") + together.length) : status("no", "нет"), 0)}
+        {fnRow(ic("M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 4a.6.6 0 0 1-1-.45V5.5z"), "Поговорить", "живой чат круга в этой сфере", chatLive ? status("ok", "есть чат") : (chatQuiet ? status("no", "тихо") : status("no", "нет")), 1)}
+        {fnRow(ic("M12 2.2l2.4 7.4 7.4 2.4-7.4 2.4-2.4 7.4-2.4-7.4-7.4-2.4 7.4-2.4z"), "Попросить о помощи", "рынок пользы за ✦", locked ? status("lock", "с 10 ур.") : (offers.length ? status("ok", offers.length + " предл.") : status("no", "нет")), 2)}
+        {fnRow(ic("M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm3.5 5.5l-2 5-5 2 2-5z"), "Получить ориентир", "наставники и разборы", locked ? status("lock", "с 10 ур.") : status("no", "скоро"), 3)}
+      </div>
+      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "1.2px", color: "var(--text-4)", padding: "4px 4px 8px" }}>ПОЧЕМУ ТАК</div>
+      <div style={{ fontSize: 13, lineHeight: 1.5, color: "var(--text-2)", padding: "0 2px 12px" }}>Собрано из добровольных сигналов твоего круга за 30 дней: совместные отметки, круги и их чаты{level >= BOS_SUPPORT_CFG.MIN_LEVEL_ASK ? ", предложения Нетворка" : ""}. <b style={{ color: "var(--text)" }}>Имена скрыты</b> — откроются только по твоему нажатию ниже.</div>
+      <button onClick={proposeStep} className="tap" style={{ width: "100%", border: 0, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, borderRadius: 14, padding: 13, cursor: "pointer" }}>Предложить совместный шаг</button>
+      {candidates.length ? (
+        <div style={{ marginTop: 10, background: "var(--card)", borderRadius: 16, boxShadow: "var(--card-shadow)", padding: "10px 12px" }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 8 }}>Кого можно позвать в «{lbl}»</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {candidates.slice(0, 8).map(function (p, i) { return <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", background: dark ? "rgba(255,255,255,0.06)" : "#f4f5f7", border: "0.5px solid var(--line)", borderRadius: 999, padding: "5px 10px" }}>{bosEnvNode(p.avatar, p.name, 20, dark, false)}{p.name}</span>; })}
+          </div>
+        </div>
+      ) : (
+        <button onClick={props.onInvite} className="tap" style={{ width: "100%", border: 0, background: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", color: "var(--text)", fontSize: 14, fontWeight: 700, borderRadius: 14, padding: 13, cursor: "pointer", marginTop: 8 }}>Кого можно позвать →</button>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════ БЛОК на странице ИИ — модель ОПОРЫ ═══════════ */
 function BosEnvBalanceLive(props) {
   var app = props.app || {};
   var navigate = props.navigate || function () {};
@@ -445,85 +640,92 @@ function BosEnvBalanceLive(props) {
   var bare = !!props.bare;           // без своей карточки (внутри общей карточки переключателя)
   var wrapStyle = bare ? { padding: "0" } : { background: "var(--card)", borderRadius: 24, boxShadow: "var(--card-shadow)", padding: "16px 16px 14px" };
   var people = bosEnvUsePeople();
-  var myLight = bosEnvMyLight(app);
-  if (people === null) return null;
-
+  var level = 1; try { if (typeof bosLiveXPLive === "function" && typeof bosLevelInfoLive === "function") level = bosLevelInfoLive(bosLiveXPLive(app)).level | 0; } catch (e) {}
+  var channels = bosSupportChannelsUse(app, level);
+  var rows = bosSupportModel(app, channels);
+  var phrase = bosSupportPhrase(rows);
+  var anyChan = (channels || []).length > 0;
   var open = function () { try { navigate("env-balance"); } catch (e) {} };
+  var invite = bosEnvInvite(openSheet, navigate, dark);
+  var openLupa = function (r) { openSheet(<BosSupportLupaSheetLive row={r} app={app} people={people || []} level={level} navigate={navigate} onInvite={invite} />); };
+  // главный разрыв = максимум (потребность − опора); если разрывов нет — просто самая слабая по опоре
+  var sortedByDiff = rows.slice().sort(function (a, b) { return b.diff - a.diff; });
+  var mainGap = sortedByDiff.filter(function (r) { return r.gap; })[0] || sortedByDiff[0];
 
-  // ПУСТОЕ
-  if (!people.length) {
-    return (
-      <div style={wrapStyle}>
-        <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс окружения</div>
-        <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 4, marginBottom: 14 }}>Состояние, которое вы держите вместе. Пока в нём только ты — позови первого своего.</div>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>{bosEnvNode(app.avatar, app.userName || "", 60, dark, true)}</div>
-        <button className="tap hit44" onClick={bosEnvInvite(openSheet, navigate, dark)} style={{ display: "block", width: "100%", background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, border: 0, borderRadius: 999, padding: "12px", cursor: "pointer" }}>＋ Позвать своего</button>
-      </div>
-    );
-  }
-
-  var total = people.length;
-  var shown = people.slice(0, 7);
-  var pulse = bosEnvUsePulse(people);
-  var meIn = false;
-  try { var _tkB = (typeof bosTodayKey === "function") ? bosTodayKey() : null; meIn = !!(_tkB && app.dayMoods && app.dayMoods[_tkB] != null); } catch (e) {}
-  var cap = bosEnvPulseCaption(pulse, total + 1, meIn);
-  var legend = bosEnvSceneLegend(pulse, Math.min(total, 7) + 1, meIn);
-
-  // подсказка ИИ — реципрокность. Приоритет ЧЕСТНО: (1) кто затих/просел → поддержи; (2) кто предлагает
-  // помощь (offer) → загляни к нему; (3) иначе — поделись сам. Имена в ИМЕНИТЕЛЬНОМ, глаголы нейтральные.
-  var support = bosEnvSupportTarget(shown);
-  var offerer = bosEnvOfferer(shown);
-  var nudge;
-  if (support) {
-    var nm = support.p.name;
-    var body = support.reason === "quiet"
-      ? <span><b>Ты сейчас в балансе — самое время делиться.</b> {nm} — давно тихо, {support.days} дн. без отметок. Загляни, поддержи — и вы снова в ритме.</span>
-      : <span><b>Ты сейчас в балансе — самое время делиться.</b> {nm} сейчас в спаде — поддержи, и общий баланс подрастёт. Так вы и растёте вместе.</span>;
-    var q = support.reason === "quiet" ? "давно не отмечался" : "сейчас в спаде";
-    nudge = { text: body, act: "💬 Поддержать", on: function () { navigate("ai-chat", { prompt: "Как по-доброму поддержать близкого (" + nm + "), который " + q + "?" }); } };
-  } else if (offerer) {
-    nudge = { text: <span><b>{offerer.name} рядом и может помочь:</b> «{offerer.offer}». Загляни — так добро и ходит по кругу.</span>, act: "Подробнее →", on: function () { try { navigate("env-balance"); } catch (e) {} } };
-  } else {
-    nudge = { text: <span><b>Окружение держится на тебе.</b> Поделись, чем ты силён — кому-то это сейчас нужно, и вы вырастете вместе.</span>, act: "＋ Чем могу быть полезен", on: function () { try { navigate("env-balance"); } catch (e) {} } };
-  }
+  var ink = dark ? "#f2f2f5" : "#0a0a0a";
+  var trackBg = dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.055)";
 
   return (
     <div style={wrapStyle}>
       {hideTitle ? null : (
-      <button onClick={open} className="tap" data-no-haptic style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent", border: 0, padding: 0, cursor: "pointer", textAlign: "left" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ marginBottom: 2 }}>
           <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.3px", color: "var(--text)" }}>Баланс окружения</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>Состояние, которое вы держите вместе.</div>
         </div>
-      </button>
+      )}
+      {/* подпись-рамка: не люди, а структура поддержки */}
+      <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, padding: "2px 2px 0" }}>Показывает не людей, а <b style={{ color: "var(--text)" }}>структуру поддержки</b>: хватает ли опоры там, где тебе сейчас трудно.</div>
+
+      {/* фраза-вывод (из данных, без квадратиков-счётчиков) */}
+      <div style={{ marginTop: 12, padding: "12px 13px", background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"), borderRadius: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)" }}>{phrase.main}</div>
+        <div style={{ fontSize: 11.5, color: "var(--text-4)", lineHeight: 1.45, marginTop: 3 }}>{phrase.sub}</div>
+      </div>
+
+      {/* потребность ✕ опора — 6 строк (те же сферы, что колесо) */}
+      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "1.2px", color: "var(--text-4)", padding: "14px 2px 4px" }}>ПОТРЕБНОСТЬ ✕ ОПОРА</div>
+      <div>
+        {rows.map(function (r, i) {
+          var nm = (typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[r.id]) || "Sparkles";
+          // при полном отсутствии опоры не пугаем 6× «разрыв» — строки читаются как карта потребности
+          var flag = !anyChan ? "" : (r.fragile ? "хрупко" : (r.gap ? "разрыв" : ""));
+          return (
+            <button key={r.id} onClick={function () { openLupa(r); }} className="tap" data-no-haptic
+              style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 2px", borderTop: i ? "0.5px solid var(--line)" : "0", width: "100%", background: "transparent", border: 0, borderTopWidth: i ? "0.5px" : 0, cursor: "pointer", textAlign: "left" }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.045)", display: "grid", placeItems: "center", flexShrink: 0 }}>{((typeof bosIconEl === "function") && bosIconEl(nm, { size: 14, color: dark ? "#c8c8cf" : "#0a0a0a" })) || r.e}</span>
+              <span style={{ width: 52, fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px", color: "var(--text)", flexShrink: 0 }}>{r.l}</span>
+              <span style={{ flex: 1, position: "relative", height: 10, borderRadius: 99, background: trackBg }}>
+                <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: Math.round(r.support * 100) + "%", borderRadius: 99, background: r.fragile ? "repeating-linear-gradient(-55deg,#FEDE34 0 4px,rgba(254,222,52,0.28) 4px 8px)" : "#FEDE34" }} />
+                <span style={{ position: "absolute", top: -3, bottom: -3, left: "calc(" + Math.round(r.need * 100) + "% - 1.25px)", width: 2.5, borderRadius: 2, background: ink }} />
+              </span>
+              <span style={{ width: 44, textAlign: "right", flexShrink: 0 }}>{flag ? <span style={{ fontSize: 9, fontWeight: 800, color: "#0a0a0a", background: "#FEDE34", padding: "2px 6px", borderRadius: 99 }}>{flag}</span> : null}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* легенда */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 9, padding: "0 2px" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, color: "var(--text-4)" }}><span style={{ width: 2.5, height: 12, borderRadius: 2, background: ink }} /> потребность</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, color: "var(--text-4)" }}><span style={{ width: 18, height: 8, borderRadius: 99, background: "#FEDE34" }} /> устойчивая опора</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, color: "var(--text-4)" }}><span style={{ width: 18, height: 8, borderRadius: 99, background: "repeating-linear-gradient(-55deg,#FEDE34 0 4px,rgba(254,222,52,0.28) 4px 8px)" }} /> хрупкая · один человек</span>
+      </div>
+
+      {/* главный разрыв ИЛИ (пусто) приглашение — без паники */}
+      {anyChan && mainGap && mainGap.gap ? (
+        <div style={{ marginTop: 12, background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"), borderRadius: 18, padding: 13 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "1.2px", color: "var(--text-4)" }}>ГЛАВНЫЙ РАЗРЫВ</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, letterSpacing: "-0.3px", color: "var(--text)", marginTop: 5 }}>
+            <span style={{ width: 22, height: 22, display: "grid", placeItems: "center" }}>{((typeof bosIconEl === "function") && bosIconEl((typeof BOS_SPHERE_ICON !== "undefined" && BOS_SPHERE_ICON[mainGap.id]) || "Sparkles", { size: 17, color: dark ? "#f2f2f5" : "#0a0a0a" })) || mainGap.e}</span>
+            {mainGap.l}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-4)", lineHeight: 1.45, marginTop: 4 }}>Потребность высокая (сфера заполнена на {Math.round(mainGap.v * 100)}%), а {mainGap.support > 0.05 ? "опоры мало" : "рядом — никого: ни совместной привычки, ни круга в этой сфере"}.</div>
+          <button onClick={function () { openLupa(mainGap); }} className="tap" style={{ width: "100%", border: 0, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, borderRadius: 14, padding: 12, cursor: "pointer", marginTop: 11 }}>Разобрать опору</button>
+        </div>
+      ) : (
+        <div style={{ marginTop: 12, background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: "0.5px solid " + (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"), borderRadius: 18, padding: 13 }}>
+          <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>{anyChan ? "Разрывов нет — там, где трудно, рядом кто-то есть. Так держать." : "Опора начинается с одного совместного шага. Позови кого-то в сферу, где тебе труднее всего."}</div>
+          {!anyChan ? <button onClick={mainGap ? function () { openLupa(mainGap); } : invite} className="tap" style={{ width: "100%", border: 0, background: dark ? "#f2f2f5" : "#101828", color: dark ? "#101828" : "#fff", fontSize: 14, fontWeight: 700, borderRadius: 14, padding: 12, cursor: "pointer", marginTop: 11 }}>Начать с совместной привычки</button> : null}
+        </div>
       )}
 
-      {/* светило — «круг у огня» (BosEnvSunLive) */}
-      <div style={{ margin: (hideTitle ? "2px" : "6px") + " 0 2px" }}>
-        <BosEnvSunLive app={app} people={people} pulse={pulse} dark={dark} size={320} />
-        <div style={{ textAlign: "center", marginTop: 2 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>{cap.main}</div>
-          <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.4, marginTop: 2 }}>{cap.sub}</div>
-          {legend ? <div style={{ fontSize: 11, color: "var(--text-5)", lineHeight: 1.35, marginTop: 4, opacity: 0.85 }}>{legend}</div> : null}
-        </div>
+      {/* приватность */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 11, fontSize: 10.5, fontWeight: 600, color: "var(--text-4)" }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill={dark ? "#8e8e93" : "#9c9ca3"}><path d="M12 2l8 3.5v5.2c0 5-3.4 9.6-8 11.3-4.6-1.7-8-6.3-8-11.3V5.5L12 2z" /></svg>
+        Без чужих оценок · только добровольные сигналы круга
       </div>
 
-      {/* «Подробнее» — тихой полноширинной кнопкой ПОД подписью/легендой (David: опустить вниз) */}
+      {/* вход в подробный экран (оставлен) */}
       <button onClick={open} className="tap" data-no-haptic style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, width: "100%", marginTop: 12, background: dark ? "rgba(255,255,255,0.06)" : "var(--surface-3)", color: "var(--text-3)", border: 0, borderRadius: 14, padding: "11px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Подробнее о балансе окружения {typeof I !== "undefined" && I.ChevronRight ? <I.ChevronRight size={15} /> : "›"}</button>
-
-      {/* голос ИИ — реципрокность */}
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, padding: "12px 13px", borderRadius: 16, border: dark ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid #e7ebf2", background: dark ? "rgba(255,255,255,0.04)" : "linear-gradient(180deg,#f7f9fc,#f2f5fa)" }}>
-        <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", background: "radial-gradient(circle at 38% 32%,#eaf2ff,#a9c6ee 70%,#5d7fae)", boxShadow: "0 2px 6px rgba(93,127,174,0.4)" }}>
-          {typeof I !== "undefined" && I.Sparkles ? <I.Sparkles size={13} color="#fff" filled /> : <span style={{ color: "#fff", fontSize: 12 }}>✦</span>}
-        </div>
-        <div style={{ fontSize: 12.7, lineHeight: 1.5, color: "var(--text-2)" }}>
-          {nudge.text}
-          <div><button className="tap" onClick={nudge.on} style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, borderRadius: 999, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", border: 0, background: "#101828", color: "#fff" }}>{nudge.act}</button></div>
-        </div>
-      </div>
-
-      <div style={{ fontSize: 11.5, color: "var(--text-5)", lineHeight: 1.5, textAlign: "center", margin: "12px 8px 2px", fontStyle: "italic" }}>Отметил своё состояние — общий баланс окружения подрос.</div>
     </div>
   );
 }
